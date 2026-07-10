@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from .models import CadsrStatus
 
-
 REUSE_TARGETS = [
     "CDE AI Project CDE Match API",
     "FAIR Data Workbench caDSR access path",

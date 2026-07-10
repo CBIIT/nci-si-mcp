@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 import json
+import logging
+import socket
+import time
 from typing import Any, Dict, Iterable, List, Optional
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from .models import NcitConcept, ReleaseInfo, utc_now_iso
+
+logger = logging.getLogger(__name__)
 
 
 class EVSError(RuntimeError):
@@ -119,9 +125,54 @@ def normalize_concept(
 
 
 class EVSClient:
-    def __init__(self, base_url: str, timeout_seconds: float = 30.0) -> None:
+    def __init__(
+        self,
+        base_url: str,
+        timeout_seconds: float = 30.0,
+        *,
+        max_attempts: int = 3,
+        retry_backoff_seconds: float = 0.25,
+        max_response_bytes: int = 10 * 1024 * 1024,
+    ) -> None:
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
+        self.max_attempts = max(1, max_attempts)
+        self.retry_backoff_seconds = max(0.0, retry_backoff_seconds)
+        self.max_response_bytes = max_response_bytes
+
+    def _retry(self, path: str, attempt: int, message: str) -> None:
+        delay = self.retry_backoff_seconds * (2 ** (attempt - 1))
+        logger.warning(
+            "evs_request_retry path=%s attempt=%s max_attempts=%s delay_seconds=%.3f reason=%s",
+            path,
+            attempt,
+            self.max_attempts,
+            delay,
+            message,
+        )
+        if delay:
+            time.sleep(delay)
+
+    def _read_response(self, response: Any, path: str) -> Any:
+        content_length = response.headers.get("Content-Length")
+        if content_length:
+            try:
+                declared_length = int(content_length)
+            except (TypeError, ValueError):
+                declared_length = None
+            if declared_length is not None and declared_length > self.max_response_bytes:
+                raise EVSError(
+                    f"EVS response for {path} exceeded {self.max_response_bytes} bytes"
+                )
+        payload = response.read(self.max_response_bytes + 1)
+        if len(payload) > self.max_response_bytes:
+            raise EVSError(
+                f"EVS response for {path} exceeded {self.max_response_bytes} bytes"
+            )
+        try:
+            return json.loads(payload.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise EVSError(f"EVS returned invalid JSON for {path}: {exc}") from exc
 
     def _get_json(self, path: str, params: Optional[Dict[str, Any]] = None) -> Any:
         query = ""
@@ -130,11 +181,31 @@ class EVSClient:
             query = "?" + urlencode(filtered, doseq=True) if filtered else ""
         url = f"{self.base_url}{path}{query}"
         request = Request(url, headers={"Accept": "application/json"})
-        try:
-            with urlopen(request, timeout=self.timeout_seconds) as response:
-                return json.loads(response.read().decode("utf-8"))
-        except Exception as exc:  # pragma: no cover - exercised through callers with fakes
-            raise EVSError(f"EVS request failed for {path}: {exc}") from exc
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                with urlopen(request, timeout=self.timeout_seconds) as response:
+                    return self._read_response(response, path)
+            except HTTPError as exc:
+                retryable = exc.code == 429 or 500 <= exc.code < 600
+                message = f"HTTP {exc.code} {exc.reason}"
+                if retryable and attempt < self.max_attempts:
+                    self._retry(path, attempt, message)
+                    continue
+                raise EVSError(f"EVS request failed for {path}: {message}") from exc
+            except (URLError, TimeoutError, socket.timeout) as exc:
+                message = str(getattr(exc, "reason", exc))
+                if attempt < self.max_attempts:
+                    self._retry(path, attempt, message)
+                    continue
+                raise EVSError(f"EVS request failed for {path}: {message}") from exc
+            except EVSError:
+                raise
+            except OSError as exc:
+                if attempt < self.max_attempts:
+                    self._retry(path, attempt, str(exc))
+                    continue
+                raise EVSError(f"EVS request failed for {path}: {exc}") from exc
+        raise EVSError(f"EVS request failed for {path}")
 
     def get_api_version(self) -> Dict[str, Any]:
         return self._get_json("/api/v1/version")

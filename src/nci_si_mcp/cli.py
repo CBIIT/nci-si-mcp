@@ -6,17 +6,19 @@ import argparse
 import json
 from typing import Any
 
-from .config import Settings
+from .config import Settings, configure_logging
+from .errors import error_response
 from .evaluation import evaluate_retrieval
 from .server import run_stdio
 from .service import NCISIService
+from .traversal import DEFAULT_MAX_EDGES
 
 
 def _print_json(value: Any) -> None:
     print(json.dumps(value, indent=2, sort_keys=True))
 
 
-def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="nci-si-mcp")
     subcommands = parser.add_subparsers(dest="command", required=True)
 
@@ -42,63 +44,85 @@ def main() -> None:
     traverse.add_argument("--direction", choices=["in", "out", "both"], default="out")
     traverse.add_argument("--max-depth", type=int, default=2)
     traverse.add_argument("--max-nodes", type=int, default=200)
+    traverse.add_argument("--max-edges", type=int, default=DEFAULT_MAX_EDGES)
     traverse.add_argument("--no-hierarchy", action="store_true")
     traverse.add_argument("--no-roles", action="store_true")
     traverse.add_argument("--no-associations", action="store_true")
     traverse.add_argument("--relationship-name", action="append", dest="relationship_names")
     traverse.add_argument("--edge-type", action="append", dest="edge_types")
 
-    subcommands.add_parser("evaluate", help="Evaluate BM25/vector/hybrid ranking on the built-in gold set")
+    subcommands.add_parser(
+        "evaluate",
+        help="Evaluate BM25/vector/hybrid ranking on the built-in gold set",
+    )
+    return parser
+
+
+def _print_result(value: Any) -> int:
+    _print_json(value)
+    return 1 if isinstance(value, dict) and value.get("isError") else 0
+
+
+def main() -> int:
+    parser = build_parser()
 
     args = parser.parse_args()
+    try:
+        settings = Settings.from_env()
+        configure_logging(settings.log_level)
+    except ValueError as exc:
+        return _print_result(error_response("invalid_configuration", str(exc)))
     if args.command == "serve":
-        run_stdio()
-        return
+        run_stdio(settings)
+        return 0
 
-    service = NCISIService(Settings.from_env())
+    try:
+        service = NCISIService(settings)
+    except (RuntimeError, ValueError) as exc:
+        return _print_result(error_response("startup_failed", str(exc)))
+    result: Any
     if args.command == "release-info":
-        _print_json(service.release_info())
+        result = service.release_info()
     elif args.command == "index-sample":
-        _print_json(service.index_codes(args.codes))
+        result = service.index_codes(args.codes)
     elif args.command == "search":
-        _print_json(
-            service.search(
-                args.query,
-                limit=args.limit,
-                mode=args.mode,
-                include_raw=args.include_raw,
-            )
+        result = service.search(
+            args.query,
+            limit=args.limit,
+            mode=args.mode,
+            include_raw=args.include_raw,
         )
     elif args.command == "lookup":
-        _print_json(
-            service.lookup(
-                args.code,
-                live_only=args.live_only,
-                include_raw=args.include_raw,
-            )
+        result = service.lookup(
+            args.code,
+            live_only=args.live_only,
+            include_raw=args.include_raw,
         )
     elif args.command == "traverse":
-        _print_json(
-            service.traverse(
-                start_codes=args.start_codes,
-                direction=args.direction,
-                max_depth=args.max_depth,
-                max_nodes=args.max_nodes,
-                include_hierarchy=not args.no_hierarchy,
-                include_roles=not args.no_roles,
-                include_associations=not args.no_associations,
-                relationship_names=args.relationship_names,
-                edge_types=args.edge_types,
-            )
+        result = service.traverse(
+            start_codes=args.start_codes,
+            direction=args.direction,
+            max_depth=args.max_depth,
+            max_nodes=args.max_nodes,
+            max_edges=args.max_edges,
+            include_hierarchy=not args.no_hierarchy,
+            include_roles=not args.no_roles,
+            include_associations=not args.no_associations,
+            relationship_names=args.relationship_names,
+            edge_types=args.edge_types,
         )
     elif args.command == "evaluate":
-        _print_json(
-            [
+        try:
+            result = [
                 result.to_dict()
                 for result in evaluate_retrieval(service.index, service.embedding_provider)
             ]
-        )
+        except (RuntimeError, ValueError) as exc:
+            result = error_response("evaluation_unavailable", str(exc))
+    else:  # pragma: no cover - argparse enforces known commands
+        result = error_response("invalid_request", "Unknown command")
+    return _print_result(result)
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

@@ -8,11 +8,12 @@ from typing import Dict, Iterable, List, Optional, Set, Tuple
 from .evs import EVSClient
 from .models import TraversalEdge, TraversalNode, TraversalResult, utc_now_iso
 
-
 DEFAULT_MAX_DEPTH = 2
 DEFAULT_MAX_NODES = 200
+DEFAULT_MAX_EDGES = 1000
 HARD_MAX_DEPTH = 4
 HARD_MAX_NODES = 1000
+HARD_MAX_EDGES = 5000
 
 
 RELATION_ENDPOINTS = {
@@ -32,6 +33,12 @@ def clamp_limits(max_depth: int, max_nodes: int) -> Tuple[int, int]:
     if max_nodes < 1:
         max_nodes = 1
     return min(max_depth, HARD_MAX_DEPTH), min(max_nodes, HARD_MAX_NODES)
+
+
+def clamp_edge_limit(max_edges: int) -> int:
+    if max_edges < 1:
+        max_edges = 1
+    return min(max_edges, HARD_MAX_EDGES)
 
 
 def _matches_filter(value: str, allowed: Optional[Set[str]]) -> bool:
@@ -54,7 +61,7 @@ def _edge_types(types: Optional[Iterable[str]]) -> Optional[Set[str]]:
 
 def _node_from_raw(raw: Dict[str, object], release_version: str) -> TraversalNode:
     return TraversalNode(
-        code=str(raw.get("code") or raw.get("relatedCode") or ""),
+        code=str(raw.get("relatedCode") or raw.get("code") or ""),
         preferred_name=str(raw.get("name") or raw.get("relatedName") or raw.get("label") or ""),
         terminology=str(raw.get("terminology") or "ncit"),
         release_version=str(raw.get("version") or release_version),
@@ -87,6 +94,7 @@ def traverse_ncit(
     direction: str = "out",
     max_depth: int = DEFAULT_MAX_DEPTH,
     max_nodes: int = DEFAULT_MAX_NODES,
+    max_edges: int = DEFAULT_MAX_EDGES,
     include_hierarchy: bool = True,
     include_roles: bool = True,
     include_associations: bool = True,
@@ -94,6 +102,7 @@ def traverse_ncit(
     edge_types: Optional[List[str]] = None,
 ) -> TraversalResult:
     depth_limit, node_limit = clamp_limits(max_depth, max_nodes)
+    edge_limit = clamp_edge_limit(max_edges)
     relation_filter = _relation_names(relationship_names)
     edge_type_filter = _edge_types(edge_types)
     endpoints = []
@@ -113,11 +122,15 @@ def traverse_ncit(
         if direction in ("in", "both"):
             endpoints.append("inverse_association")
 
+    unique_start_codes = list(dict.fromkeys(start_codes))
+    truncated = len(unique_start_codes) > node_limit
+    bounded_start_codes = unique_start_codes[:node_limit]
     nodes: Dict[str, TraversalNode] = {}
     edges: List[TraversalEdge] = []
+    seen_edges: Set[Tuple[str, str, str, str]] = set()
     visited: Set[Tuple[str, int]] = set()
-    queue = deque((code, 0) for code in start_codes)
-    for code in start_codes:
+    queue = deque((code, 0) for code in bounded_start_codes)
+    for code in bounded_start_codes:
         nodes[code] = TraversalNode(
             code=code,
             preferred_name="",
@@ -125,8 +138,8 @@ def traverse_ncit(
             release_version=release_version,
         )
 
-    truncated = False
-    while queue:
+    edge_limit_reached = False
+    while queue and not edge_limit_reached:
         code, depth = queue.popleft()
         if (code, depth) in visited:
             continue
@@ -144,21 +157,36 @@ def traverse_ncit(
                     continue
                 if not _matches_filter(edge.relationship_name, relation_filter):
                     continue
-                edges.append(edge)
+                edge_key = (
+                    edge.source_code,
+                    edge.target_code,
+                    edge.edge_type,
+                    edge.relationship_name,
+                )
+                if edge_key in seen_edges:
+                    continue
                 if edge.target_code not in nodes:
                     if len(nodes) >= node_limit:
                         truncated = True
                         continue
+                if len(edges) >= edge_limit:
+                    truncated = True
+                    edge_limit_reached = True
+                    break
+                seen_edges.add(edge_key)
+                edges.append(edge)
+                if edge.target_code not in nodes:
                     nodes[edge.target_code] = _node_from_raw(raw, release_version)
                     queue.append((edge.target_code, depth + 1))
 
     return TraversalResult(
-        start_codes=start_codes,
+        start_codes=bounded_start_codes,
         release_version=release_version,
         nodes=list(nodes.values()),
         edges=edges,
         truncated=truncated,
         max_depth=depth_limit,
         max_nodes=node_limit,
+        max_edges=edge_limit,
         retrieved_at=utc_now_iso(),
     )

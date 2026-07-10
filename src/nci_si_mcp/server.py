@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import sys
-from typing import List, Optional
+from typing import List, Literal, Optional
 
-from .config import Settings
+from .config import Settings, configure_logging
+from .errors import error_response
 from .service import NCISIService
+from .traversal import DEFAULT_MAX_EDGES
 
 
 def create_mcp(settings: Optional[Settings] = None):
@@ -22,11 +24,18 @@ def create_mcp(settings: Optional[Settings] = None):
     except ImportError as exc:  # pragma: no cover - depends on optional runtime install
         raise RuntimeError("FastMCP is not installed. Install project dependencies first.") from exc
 
-    service = NCISIService(settings or Settings.from_env())
+    resolved_settings = settings or Settings.from_env()
+    configure_logging(resolved_settings.log_level)
+    service = NCISIService(resolved_settings)
     mcp = FastMCP("nci-si-mcp")
 
     @mcp.tool()
-    def ncit_search(query: str, limit: int = 10, mode: str = "hybrid", include_raw: bool = False):
+    def ncit_search(
+        query: str,
+        limit: int = 10,
+        mode: Literal["hybrid", "bm25", "vector"] = "hybrid",
+        include_raw: bool = False,
+    ):
         """Search the active monthly NCIt local index."""
         return service.search(query=query, limit=limit, mode=mode, include_raw=include_raw)
 
@@ -38,9 +47,10 @@ def create_mcp(settings: Optional[Settings] = None):
     @mcp.tool()
     def ncit_traverse(
         start_codes: List[str],
-        direction: str = "out",
+        direction: Literal["in", "out", "both"] = "out",
         max_depth: int = 2,
         max_nodes: int = 200,
+        max_edges: int = DEFAULT_MAX_EDGES,
         include_hierarchy: bool = True,
         include_roles: bool = True,
         include_associations: bool = True,
@@ -53,6 +63,7 @@ def create_mcp(settings: Optional[Settings] = None):
             direction=direction,
             max_depth=max_depth,
             max_nodes=max_nodes,
+            max_edges=max_edges,
             include_hierarchy=include_hierarchy,
             include_roles=include_roles,
             include_associations=include_associations,
@@ -80,9 +91,19 @@ def create_mcp(settings: Optional[Settings] = None):
         if version in ("monthly", "latest", "monthly-latest"):
             return info
         selected = info["selected_monthly_release"]
-        if version == selected["version"]:
+        if selected.get("isError"):
+            return error_response(
+                "release_unavailable",
+                "The active monthly release could not be resolved",
+                requested_version=version,
+            )
+        if version == selected.get("version"):
             return selected
-        return {"isError": True, "error": "release_not_active", "requested_version": version}
+        return error_response(
+            "release_not_active",
+            "The requested release is not active",
+            requested_version=version,
+        )
 
     @mcp.resource("nci-si://index/ncit/{version}/manifest")
     def ncit_index_manifest_resource(version: str):
@@ -91,10 +112,14 @@ def create_mcp(settings: Optional[Settings] = None):
             return {"active_index": None}
         if version in ("active", manifest.release_version):
             return manifest.to_dict()
-        return {"isError": True, "error": "index_not_active", "requested_version": version}
+        return error_response(
+            "index_not_active",
+            "The requested index is not active",
+            requested_version=version,
+        )
 
     return mcp
 
 
-def run_stdio() -> None:
-    create_mcp().run()
+def run_stdio(settings: Optional[Settings] = None) -> None:
+    create_mcp(settings).run()

@@ -65,6 +65,7 @@ class IndexManifest:
     concept_count: int
     built_at: str
     index_path: str
+    embedding_dimensions: Optional[int] = None
     active: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
@@ -118,6 +119,7 @@ class TraversalResult:
     truncated: bool
     max_depth: int
     max_nodes: int
+    max_edges: int
     retrieved_at: str
 
     def to_dict(self) -> Dict[str, Any]:

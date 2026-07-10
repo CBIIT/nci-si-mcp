@@ -62,8 +62,14 @@ class SentenceTransformersProvider(EmbeddingProvider):
 
 
 def create_embedding_provider(provider: str, model: str) -> EmbeddingProvider:
-    if provider == "hashing" or model == "hashing":
+    normalized_provider = provider.strip().lower()
+    normalized_model = model.strip()
+    if normalized_provider == "hashing":
+        if normalized_model not in {"hashing", "hashing-128"}:
+            raise ValueError("The hashing provider requires the hashing model")
         return HashingEmbeddingProvider()
-    if provider == "sentence-transformers":
-        return SentenceTransformersProvider(model)
+    if normalized_provider == "sentence-transformers":
+        if not normalized_model or normalized_model == "hashing":
+            raise ValueError("The sentence-transformers provider requires a model name")
+        return SentenceTransformersProvider(normalized_model)
     raise ValueError(f"Unknown embedding provider: {provider}")

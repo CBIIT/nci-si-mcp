@@ -7,12 +7,15 @@ EVS-first MVP for exposing NCI Thesaurus search, lookup, and graph traversal thr
 - Python/FastMCP server entrypoint with local `stdio` transport.
 - EVS REST client for monthly NCIt release resolution, concept lookup, search, and traversal endpoints.
 - Fail-closed monthly release selection: no fallback to weekly if monthly metadata is missing or ambiguous.
-- SQLite-backed active-release cache and local concept index.
-- Pure-Python BM25, vector, and hybrid ranking.
+- Migration-backed SQLite active-release cache with transactional release activation.
+- SQLite FTS5 BM25 plus a persistent locality-sensitive-hashing vector candidate index.
+- BM25, vector, and hybrid ranking with embedding provider/model/dimension checks.
 - Embedding provider abstraction:
   - deterministic hashing provider for local smoke tests and CI;
   - optional `sentence-transformers` provider for SapBERT, MiniLM, or internal models.
-- Named relationship traversal filters for role/association edge names.
+- Named relationship traversal filters with hard node, edge, and depth limits.
+- Bounded EVS retries, response-size protection, batched indexing, and stderr logging.
+- Shared input validation and structured errors across CLI and MCP surfaces.
 - caDSR adapter stub that reports reuse-discovery status without inventing CDE results.
 
 ## Quick Start
@@ -71,7 +74,11 @@ python -m nci_si_mcp.cli lookup C3262 --include-raw
 Traversal can be tested from the terminal before using MCP:
 
 ```bash
-python -m nci_si_mcp.cli traverse C3262 --max-depth 1 --edge-type role --relationship-name Disease_Has_Abnormal_Cell
+python -m nci_si_mcp.cli traverse C3262 \
+  --max-depth 1 \
+  --max-edges 100 \
+  --edge-type role \
+  --relationship-name Disease_Has_Abnormal_Cell
 ```
 
 The active local data directory defaults to `.nci-si-mcp/`. Override it with:
@@ -79,6 +86,22 @@ The active local data directory defaults to `.nci-si-mcp/`. Override it with:
 ```bash
 export NCI_SI_DATA_DIR=/path/to/data
 ```
+
+Additional runtime controls:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `NCI_SI_EVS_BASE_URL` | NCI EVS production API | EVS endpoint |
+| `NCI_SI_TIMEOUT_SECONDS` | `30` | Per-request timeout |
+| `NCI_SI_EVS_MAX_ATTEMPTS` | `3` | Bounded request attempts |
+| `NCI_SI_EVS_RETRY_BACKOFF_SECONDS` | `0.25` | Initial exponential backoff |
+| `NCI_SI_EVS_MAX_RESPONSE_BYTES` | `10485760` | Maximum accepted EVS response |
+| `NCI_SI_INDEX_BATCH_SIZE` | `100` | Codes per EVS indexing request |
+| `NCI_SI_LOG_LEVEL` | `INFO` | Stderr diagnostic level |
+
+Indexes record their embedding provider, model, and dimensions. A runtime with
+incompatible embedding settings must rebuild the index instead of silently
+mixing vector spaces.
 
 ## MCP Tools
 
@@ -94,11 +117,25 @@ export NCI_SI_DATA_DIR=/path/to/data
 - `direction`
 - `max_depth`
 - `max_nodes`
+- `max_edges`
 - `include_hierarchy`
 - `include_roles`
 - `include_associations`
 - `relationship_names`
 - `edge_types`
+
+Invalid inputs and operational failures use one response envelope:
+
+```json
+{
+  "isError": true,
+  "error": "invalid_request",
+  "message": "Search query must not be blank"
+}
+```
+
+Release status remains available during EVS outages and includes nested error
+details alongside any active local index manifest.
 
 ## MCP Resources
 
@@ -118,14 +155,21 @@ The caDSR adapter is intentionally non-fabricating. It reports `reuse_pending` u
 
 ## Tests
 
-```bash
-python -m unittest discover -s tests
-```
-
-`pytest` also works when installed:
+The dependency-free local path uses `unittest`:
 
 ```bash
-python -m pytest
+PYTHONPATH=src python -m unittest discover -s tests
 ```
 
-Live EVS tests are not enabled by default. The included tests use fixtures/fakes for deterministic validation of release selection, normalization, cache provenance, traversal filtering, and retrieval ranking.
+For coverage and quality gates:
+
+```bash
+pip install -e ".[test,dev]"
+pytest
+ruff check src tests
+mypy src
+```
+
+Coverage is required to remain at or above 70%. GitHub Actions runs the quality
+suite and compatibility tests on Python 3.9 through 3.12. Live EVS tests are not
+enabled by default; network behavior is tested with deterministic fakes.
