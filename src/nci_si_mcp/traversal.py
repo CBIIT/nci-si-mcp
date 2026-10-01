@@ -113,9 +113,9 @@ def select_edge_types(
         "associations": include_associations,
     }
     available = _available_edge_types(direction, included)
-    if not edge_types:
+    requested = set(edge_types or [])
+    if not requested:
         return _default_edge_types(available)
-    requested = set(edge_types)
     excluded = sorted(requested - set(available))
     if excluded:
         raise InputValidationError(
@@ -228,14 +228,16 @@ class _Walk:
     unexpanded: list[str] = field(default_factory=list)
     truncated: bool = False
     # Set when the edge limit stops the walk.
-    full: bool = False
+    edge_limit_reached: bool = False
     # Descendants of the start codes by level; level n is emitted with the
     # other edges that reach depth n.
     descendants: dict[int, list[tuple[str, dict[str, Any]]]] = field(default_factory=dict)
+    # Edge types whose relations come with the concept payload; descendants
+    # have their own request.
+    payload_types: list[str] = field(init=False)
+    batch_size: int = field(init=False)
 
     def __post_init__(self) -> None:
-        # Edge types whose relations come with the concept payload; descendants
-        # have their own request.
         self.payload_types = [
             edge_type for edge_type in self.edge_types if edge_type != "descendant"
         ]
@@ -254,7 +256,7 @@ class _Walk:
         self.unexpanded += [code for code in codes if code not in self.unexpanded]
         self.truncated = True
 
-    def _reads(self, frontier: list[str], depth: int) -> bool:
+    def _needs_fetch(self, frontier: list[str], depth: int) -> bool:
         # Start codes are always fetched, to name them and to prove they exist.
         expand = depth < self.depth_limit
         return depth == 0 or bool(expand and self.payload_types and frontier)
@@ -262,7 +264,7 @@ class _Walk:
     def fetch(self, frontier: list[str], depth: int) -> dict[str, dict[str, Any]]:
         """Read the concepts of the frontier, with the relations to follow from them."""
 
-        if not self._reads(frontier, depth):
+        if not self._needs_fetch(frontier, depth):
             return {}
         relations = [RELATIONS[edge_type][0] for edge_type in self.payload_types]
         include = ",".join(["minimal", *relations]) if depth < self.depth_limit else "minimal"
@@ -323,7 +325,7 @@ class _Walk:
         filtered = self.name_filter and edge.relationship_name.lower() not in self.name_filter
         return bool(filtered) or key in self.seen_edges
 
-    def _add(self, edge: TraversalEdge, frontier: list[str]) -> None:
+    def _add(self, edge: TraversalEdge, reached: list[str]) -> None:
         """Emit the edge unless a filter or a limit drops it."""
 
         key = (edge.source_code, edge.target_code, edge.edge_type, edge.relationship_name)
@@ -334,13 +336,13 @@ class _Walk:
             self.truncated = True
             return
         if len(self.edges) >= self.edge_limit:
-            self.truncated = self.full = True
+            self.truncated = self.edge_limit_reached = True
             return
         self.seen_edges.add(key)
         self.edges.append(edge)
         if new_node:
             self.nodes[edge.target_code] = self._node(edge.target_code, edge.target_name)
-            frontier.append(edge.target_code)
+            reached.append(edge.target_code)
 
     def follow(
         self, frontier: list[str], concepts: dict[str, dict[str, Any]], depth: int
@@ -350,7 +352,7 @@ class _Walk:
         reached: list[str] = []
         for code, edge_type, item in self._found(frontier, concepts, depth):
             self._add(_edge(code, self.nodes[code].preferred_name, edge_type, item), reached)
-            if self.full:
+            if self.edge_limit_reached:
                 break
         return reached
 
@@ -418,6 +420,6 @@ def traverse_ncit(
         if depth == depth_limit:
             break
         frontier = walk.follow(frontier, concepts, depth)
-        if walk.full:
+        if walk.edge_limit_reached:
             break
     return walk.result(start_codes)

@@ -145,8 +145,11 @@ class NCISIService:
 
     def _fetch_for_index(
         self, codes: list[str], release: ReleaseInfo
-    ) -> dict[str, dict[str, Any]]:
-        """Fetch the payloads by code, pinned to the release. EVS omits unknown codes."""
+    ) -> tuple[list[dict[str, Any]], set[str]]:
+        """Fetch the payloads pinned to the release, and the codes EVS returned.
+
+        EVS omits the codes it does not know.
+        """
 
         raw_concepts: list[dict[str, Any]] = []
         for batch in batched(codes, self.settings.index_batch_size, strict=False):
@@ -154,17 +157,17 @@ class NCISIService:
                 self.evs.get_concepts_by_codes(batch, terminology=release.pinned_terminology)
             )
         verify_release(raw_concepts, release.version)
-        concepts = {str(raw.get("code") or ""): raw for raw in raw_concepts}
-        if not concepts.keys() <= set(codes):
+        returned_codes = {str(raw.get("code") or "") for raw in raw_concepts}
+        if not returned_codes <= set(codes):
             raise EVSResponseError("EVS returned a concept that was not requested")
-        return concepts
+        return raw_concepts, returned_codes
 
     @_enveloped
     def index_codes(self, codes: Iterable[str]) -> dict[str, Any]:
         normalized_codes = validate_ncit_codes(codes)
         release = self.evs.resolve_monthly_ncit_release()
-        concepts = self._fetch_for_index(normalized_codes, release)
-        missing_codes = [code for code in normalized_codes if code not in concepts]
+        raw_concepts, returned_codes = self._fetch_for_index(normalized_codes, release)
+        missing_codes = [code for code in normalized_codes if code not in returned_codes]
         if missing_codes:
             logger.warning("index_codes_failed error=concepts_missing codes=%s", missing_codes)
             return error_response(
@@ -174,7 +177,7 @@ class NCISIService:
                 missing_codes=missing_codes,
             )
         manifest = self.index.upsert_concepts(
-            raw_concepts=concepts.values(),
+            raw_concepts=raw_concepts,
             release_date=release.date,
             embedding_provider=self.embedding_provider,
             expected_release_version=release.version,

@@ -79,7 +79,7 @@ def vector_lsh_buckets(vector: Sequence[float]) -> list[tuple[int, int]]:
     return buckets
 
 
-_TABLES = (
+_CONCEPT_TABLES = (
     """
     CREATE TABLE IF NOT EXISTS manifests (
         release_version TEXT PRIMARY KEY,
@@ -97,6 +97,8 @@ _TABLES = (
         PRIMARY KEY (release_version, code)
     )
     """,
+)
+_SEARCH_TABLES = (
     """
     CREATE VIRTUAL TABLE IF NOT EXISTS concepts_fts USING fts5(
         release_version UNINDEXED,
@@ -124,7 +126,7 @@ _WEIGHTS = {"bm25": (1.0, 0.0), "vector": (0.0, 1.0), "hybrid": (0.55, 0.45)}
 
 
 def _create_schema(conn: sqlite3.Connection) -> None:
-    for statement in _TABLES:
+    for statement in _CONCEPT_TABLES:
         conn.execute(statement)
     # Databases of the first prototype could mark several releases active.
     active_rows = conn.execute(
@@ -141,6 +143,8 @@ def _create_schema(conn: sqlite3.Connection) -> None:
         ON manifests(active) WHERE active = 1
         """
     )
+    for statement in _SEARCH_TABLES:
+        conn.execute(statement)
 
 
 def _drop_inactive_releases(conn: sqlite3.Connection) -> list[str]:
@@ -290,6 +294,8 @@ def _rank(
 
     norm_bm25 = min_max_normalize(bm25_scores)
     norm_vector = min_max_normalize(vector_scores)
+    # In bm25 and vector mode the other component was not computed, so its
+    # weighted term is exactly zero and the score equals the one component.
     bm25_weight, vector_weight = _WEIGHTS[mode]
     ranked = []
     for code in set(norm_bm25) | set(norm_vector):

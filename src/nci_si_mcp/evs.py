@@ -314,7 +314,7 @@ class EVSClient:
                 message = f"EVS request failed for {path}: {_http_error_message(exc)}"
                 exc.close()
                 permanent = _permanent_failure(exc, message)
-                if permanent:
+                if permanent is not None:
                     raise permanent from exc
                 failure = exc
             except (OSError, HTTPException) as exc:
