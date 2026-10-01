@@ -62,6 +62,21 @@ class EVSTest(unittest.TestCase):
                 ]
             )
 
+    def test_select_monthly_ncit_release_requires_a_version(self):
+        with self.assertRaises(ReleaseResolutionError):
+            select_monthly_ncit_release(
+                [{"terminology": "ncit", "latest": True, "tags": {"monthly": "true"}}]
+            )
+
+    def test_release_pins_requests_by_its_terminology_version(self):
+        row = {"terminology": "ncit", "version": "26.06e", "latest": True, "tags": {"monthly": "true"}}
+
+        named = select_monthly_ncit_release([dict(row, terminologyVersion="ncit_26.06e")])
+        unnamed = select_monthly_ncit_release([row])
+
+        self.assertEqual(named.pinned_terminology, "ncit_26.06e")
+        self.assertEqual(unnamed.pinned_terminology, "ncit_26.06e")
+
     def test_normalize_concept_includes_required_provenance(self):
         concept = normalize_concept(
             {

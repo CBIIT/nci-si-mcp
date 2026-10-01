@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import json
 import logging
-import socket
 import time
+from http.client import HTTPException
 from typing import Any, Dict, Iterable, List, Optional
-from urllib.error import HTTPError, URLError
+from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -18,6 +18,22 @@ logger = logging.getLogger(__name__)
 
 class EVSError(RuntimeError):
     """Base error for EVS client failures."""
+
+
+class EVSUnavailableError(EVSError):
+    """EVS could not be reached, or kept failing after the bounded retries."""
+
+
+class EVSNotFoundError(EVSError):
+    """EVS answered 404: the requested concept or release does not exist."""
+
+
+class EVSResponseError(EVSError):
+    """EVS rejected the request or answered with something the client cannot use."""
+
+
+class EVSResponseTooLargeError(EVSResponseError):
+    """EVS answered with more bytes than the configured response limit."""
 
 
 class ReleaseResolutionError(EVSError):
@@ -61,6 +77,8 @@ def select_monthly_ncit_release(terminologies: Iterable[Dict[str, Any]]) -> Rele
             "Expected exactly one latest monthly NCIt release; "
             f"found {len(candidates)} ({versions}). Refusing to fall back to weekly."
         )
+    if not candidates[0].version:
+        raise ReleaseResolutionError("The latest monthly NCIt release has no version")
     return candidates[0]
 
 
@@ -124,7 +142,41 @@ def normalize_concept(
     )
 
 
+def _http_error_message(exc: HTTPError) -> str:
+    """Describe an HTTP failure, including the reason EVS gives in its error body."""
+
+    detail = ""
+    if exc.fp is not None:
+        try:
+            body = json.loads(exc.read(4096).decode("utf-8"))
+        except (OSError, ValueError, HTTPException):
+            body = None
+        if isinstance(body, dict):
+            detail = str(body.get("message") or "")
+    parts = [f"HTTP {exc.code}", str(exc.reason or ""), f"({detail})" if detail else ""]
+    return " ".join(part for part in parts if part)
+
+
+def _object(data: Any, what: str) -> Dict[str, Any]:
+    if not isinstance(data, dict):
+        raise EVSResponseError(f"EVS {what} response was not an object")
+    return data
+
+
+def _object_list(data: Any, what: str) -> List[Dict[str, Any]]:
+    if not isinstance(data, list) or not all(isinstance(item, dict) for item in data):
+        raise EVSResponseError(f"EVS {what} response was not a list of objects")
+    return data
+
+
 class EVSClient:
+    """Read-only EVS REST client.
+
+    Concept methods take a `terminology` path segment. Passing a release's
+    `pinned_terminology` (for example `ncit_26.06e`) pins the request to that
+    release; plain `ncit` lets EVS choose.
+    """
+
     def __init__(
         self,
         base_url: str,
@@ -154,6 +206,10 @@ class EVSClient:
             time.sleep(delay)
 
     def _read_response(self, response: Any, path: str) -> Any:
+        too_large = (
+            f"EVS response for {path} exceeded {self.max_response_bytes} bytes "
+            "(NCI_SI_EVS_MAX_RESPONSE_BYTES)"
+        )
         content_length = response.headers.get("Content-Length")
         if content_length:
             try:
@@ -161,60 +217,52 @@ class EVSClient:
             except (TypeError, ValueError):
                 declared_length = None
             if declared_length is not None and declared_length > self.max_response_bytes:
-                raise EVSError(
-                    f"EVS response for {path} exceeded {self.max_response_bytes} bytes"
-                )
+                raise EVSResponseTooLargeError(too_large)
         payload = response.read(self.max_response_bytes + 1)
         if len(payload) > self.max_response_bytes:
-            raise EVSError(
-                f"EVS response for {path} exceeded {self.max_response_bytes} bytes"
-            )
+            raise EVSResponseTooLargeError(too_large)
         try:
             return json.loads(payload.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise EVSError(f"EVS returned invalid JSON for {path}: {exc}") from exc
+            raise EVSResponseError(f"EVS returned invalid JSON for {path}: {exc}") from exc
 
     def _get_json(self, path: str, params: Optional[Dict[str, Any]] = None) -> Any:
+        """GET a JSON document, retrying transport failures, HTTP 429 and HTTP 5xx."""
+
         query = ""
         if params:
             filtered = {key: value for key, value in params.items() if value is not None}
             query = "?" + urlencode(filtered, doseq=True) if filtered else ""
-        url = f"{self.base_url}{path}{query}"
-        request = Request(url, headers={"Accept": "application/json"})
-        for attempt in range(1, self.max_attempts + 1):
+        request = Request(f"{self.base_url}{path}{query}", headers={"Accept": "application/json"})
+        attempt = 0
+        while True:
+            attempt += 1
+            failure: Exception
             try:
                 with urlopen(request, timeout=self.timeout_seconds) as response:
                     return self._read_response(response, path)
             except HTTPError as exc:
-                retryable = exc.code == 429 or 500 <= exc.code < 600
-                message = f"HTTP {exc.code} {exc.reason}"
-                if retryable and attempt < self.max_attempts:
-                    self._retry(path, attempt, message)
-                    continue
-                raise EVSError(f"EVS request failed for {path}: {message}") from exc
-            except (URLError, TimeoutError, socket.timeout) as exc:
-                message = str(getattr(exc, "reason", exc))
-                if attempt < self.max_attempts:
-                    self._retry(path, attempt, message)
-                    continue
-                raise EVSError(f"EVS request failed for {path}: {message}") from exc
-            except EVSError:
-                raise
-            except OSError as exc:
-                if attempt < self.max_attempts:
-                    self._retry(path, attempt, str(exc))
-                    continue
-                raise EVSError(f"EVS request failed for {path}: {exc}") from exc
-        raise EVSError(f"EVS request failed for {path}")
+                message = f"EVS request failed for {path}: {_http_error_message(exc)}"
+                exc.close()
+                if exc.code == 404:
+                    raise EVSNotFoundError(message) from exc
+                if exc.code != 429 and exc.code < 500:
+                    raise EVSResponseError(message) from exc
+                failure = exc
+            except (OSError, HTTPException) as exc:
+                message = f"EVS request failed for {path}: {getattr(exc, 'reason', None) or exc}"
+                failure = exc
+            if attempt >= self.max_attempts:
+                raise EVSUnavailableError(message) from failure
+            self._retry(path, attempt, message)
 
     def get_api_version(self) -> Dict[str, Any]:
-        return self._get_json("/api/v1/version")
+        return _object(self._get_json("/api/v1/version"), "version")
 
     def get_terminologies(self) -> List[Dict[str, Any]]:
-        data = self._get_json("/api/v1/metadata/terminologies")
-        if not isinstance(data, list):
-            raise EVSError("EVS terminology metadata response was not a list")
-        return data
+        return _object_list(
+            self._get_json("/api/v1/metadata/terminologies"), "terminology metadata"
+        )
 
     def resolve_monthly_ncit_release(self) -> ReleaseInfo:
         return select_monthly_ncit_release(self.get_terminologies())
@@ -222,7 +270,7 @@ class EVSClient:
     def get_codes(self, terminology: str = "ncit") -> List[str]:
         data = self._get_json(f"/api/v1/concept/{terminology}/codes")
         if not isinstance(data, list):
-            raise EVSError("EVS code response was not a list")
+            raise EVSResponseError("EVS code response was not a list")
         return [str(code) for code in data]
 
     def get_concepts_by_codes(
@@ -231,6 +279,8 @@ class EVSClient:
         terminology: str = "ncit",
         include: str = "summary,definitions,synonyms,properties",
     ) -> List[Dict[str, Any]]:
+        """Fetch several concepts in one request; EVS omits codes it does not know."""
+
         code_list = [code.strip() for code in codes if code and code.strip()]
         if not code_list:
             return []
@@ -238,9 +288,7 @@ class EVSClient:
             f"/api/v1/concept/{terminology}",
             {"list": ",".join(code_list), "include": include},
         )
-        if not isinstance(data, list):
-            raise EVSError("EVS concept list response was not a list")
-        return data
+        return _object_list(data, "concept list")
 
     def get_concept(
         self,
@@ -248,10 +296,18 @@ class EVSClient:
         terminology: str = "ncit",
         include: str = "summary,definitions,synonyms,properties,parents,children,roles,inverseRoles,associations,inverseAssociations",
     ) -> Dict[str, Any]:
-        return self._get_json(
-            f"/api/v1/concept/{terminology}/{code}",
-            {"include": include},
+        data = self._get_json(f"/api/v1/concept/{terminology}/{code}", {"include": include})
+        return _object(data, "concept")
+
+    def get_descendants(
+        self, code: str, max_level: int, terminology: str = "ncit"
+    ) -> List[Dict[str, Any]]:
+        """Fetch every descendant within `max_level` hierarchy levels, each with its `level`."""
+
+        data = self._get_json(
+            f"/api/v1/concept/{terminology}/{code}/descendants", {"maxLevel": max_level}
         )
+        return _object_list(data, "descendants")
 
     def search(
         self,
@@ -270,15 +326,3 @@ class EVSClient:
                 "include": include,
             },
         )
-
-    def get_related(self, code: str, relation: str, terminology: str = "ncit") -> List[Dict[str, Any]]:
-        data = self._get_json(f"/api/v1/concept/{terminology}/{code}/{relation}")
-        if isinstance(data, dict):
-            for key in ("concepts", "roles", "associations", "associationEntries"):
-                value = data.get(key)
-                if isinstance(value, list):
-                    return value
-            return [data]
-        if isinstance(data, list):
-            return data
-        raise EVSError(f"EVS relation response for {relation} was not a list or object")

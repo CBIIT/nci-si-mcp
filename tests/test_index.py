@@ -3,11 +3,25 @@ import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
+
+from fakes import concept
 
 from nci_si_mcp.embeddings import EmbeddingProvider, HashingEmbeddingProvider
-from nci_si_mcp.errors import IndexCompatibilityError
+from nci_si_mcp.errors import (
+    IndexBuildError,
+    IndexCompatibilityError,
+    InputValidationError,
+    NoActiveIndexError,
+)
 from nci_si_mcp.evs import normalize_concept
-from nci_si_mcp.index import SCHEMA_VERSION, LocalIndex, concept_search_text
+from nci_si_mcp.index import (
+    LSH_BANDS,
+    SCHEMA_VERSION,
+    LocalIndex,
+    concept_search_text,
+    vector_lsh_buckets,
+)
 
 RAW_CONCEPTS = [
     {
@@ -29,167 +43,391 @@ RAW_CONCEPTS = [
         "properties": [{"type": "Semantic_Type", "value": "Neoplastic Process"}],
     },
 ]
+WORDS = ["alpha", "bravo", "carbon", "delta", "ember", "fjord", "garnet", "harbor", "indigo", "jasper"]
 
 
-class IndexTest(unittest.TestCase):
-    def test_index_search_and_cache_provenance(self):
-        with tempfile.TemporaryDirectory() as tmp_path:
-            index = LocalIndex(tmp_path)
-            provider = HashingEmbeddingProvider()
-            manifest = index.upsert_concepts(RAW_CONCEPTS, "2026-06-29", provider)
+def synthetic_concepts(count):
+    """Concepts whose names are distinct three-word combinations."""
 
-            self.assertEqual(manifest.release_version, "26.06e")
-            self.assertEqual(manifest.concept_count, 2)
+    return [
+        concept(
+            f"C{number}",
+            " ".join(WORDS[(number // step) % 10] + str(step) for step in (1, 10, 100)),
+        )
+        for number in range(count)
+    ]
 
-            cached = index.get_concept("C3262")
-            self.assertIsNotNone(cached)
-            self.assertEqual(cached.source, "active_cache")
-            self.assertEqual(cached.release_version, "26.06e")
-            self.assertNotIn("raw", cached.to_dict())
-            self.assertIn("raw", cached.to_dict(include_raw=True))
 
-            hits = index.search("kinase inhibition", provider, limit=2, mode="hybrid")
-            self.assertEqual(hits[0].concept.code, "C40704")
-            self.assertEqual(hits[0].concept.source, "active_cache")
-            self.assertIn("bm25", hits[0].score_components)
-            self.assertIn("vector", hits[0].score_components)
-            self.assertNotIn("raw", hits[0].to_dict()["concept"])
-            self.assertIn("raw", hits[0].to_dict(include_raw=True)["concept"])
+class RenamedProvider(HashingEmbeddingProvider):
+    def __init__(self, name="hashing", model="hashing-128", dimensions=128):
+        super().__init__(dimensions)
+        self.name = name
+        self.model = model
 
-    def test_schema_migration_and_fts_search(self):
-        with tempfile.TemporaryDirectory() as tmp_path:
-            index = LocalIndex(tmp_path)
-            provider = HashingEmbeddingProvider()
-            index.upsert_concepts(RAW_CONCEPTS, "2026-06-29", provider)
 
-            with index._connect() as conn:
-                version = conn.execute("PRAGMA user_version").fetchone()[0]
-                fts_count = conn.execute("SELECT COUNT(*) FROM concepts_fts").fetchone()[0]
-                lsh_count = conn.execute("SELECT COUNT(*) FROM vector_lsh").fetchone()[0]
+class IndexTestCase(unittest.TestCase):
+    def setUp(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.path = Path(directory.name)
+        self.provider = HashingEmbeddingProvider()
 
-            self.assertEqual(version, SCHEMA_VERSION)
-            self.assertEqual(fts_count, len(RAW_CONCEPTS))
-            self.assertEqual(lsh_count, len(RAW_CONCEPTS) * 4)
-            hits = index.search("tumor", provider, mode="bm25")
-            self.assertEqual(hits[0].concept.code, "C3262")
+    def build(self, concepts=RAW_CONCEPTS, date="2026-06-29", provider=None, **options):
+        index = LocalIndex(self.path)
+        index.upsert_concepts(concepts, date, provider or self.provider, **options)
+        return index
 
-    def test_legacy_database_is_backfilled_during_migration(self):
-        with tempfile.TemporaryDirectory() as tmp_path:
-            db_path = Path(tmp_path) / "nci_si.sqlite3"
-            provider = HashingEmbeddingProvider()
-            concept = normalize_concept(
-                RAW_CONCEPTS[0],
-                release_date="2026-06-29",
-                source="active_cache",
+    def counts(self, index):
+        with index._connect() as conn:
+            return tuple(
+                conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                for table in ("concepts", "concepts_fts", "vector_lsh", "manifests")
             )
-            search_text = concept_search_text(concept)
-            vector = provider.embed([search_text])[0]
-            manifest = {
-                "terminology": "ncit",
-                "release_version": "26.06e",
-                "release_date": "2026-06-29",
-                "embedding_provider": provider.name,
-                "embedding_model": provider.model,
-                "concept_count": 1,
-                "built_at": "2026-07-10T00:00:00Z",
-                "index_path": str(db_path),
-                "active": True,
-            }
-            with sqlite3.connect(str(db_path)) as conn:
-                conn.execute(
-                    "CREATE TABLE manifests (release_version TEXT PRIMARY KEY, payload TEXT, active INTEGER)"
+
+
+class UpsertTest(IndexTestCase):
+    def test_upsert_activates_the_release_and_caches_concepts_with_provenance(self):
+        index = LocalIndex(self.path)
+        manifest = index.upsert_concepts(RAW_CONCEPTS, "2026-06-29", self.provider)
+
+        self.assertEqual(manifest.release_version, "26.06e")
+        self.assertEqual(manifest.concept_count, 2)
+        self.assertEqual(manifest.embedding_dimensions, 128)
+        self.assertEqual(index.get_active_manifest(), manifest)
+        self.assertEqual(self.counts(index), (2, 2, 2 * LSH_BANDS, 1))
+
+        cached = index.get_concept("C3262")
+        self.assertEqual(cached.source, "active_cache")
+        self.assertEqual(cached.release_version, "26.06e")
+        self.assertEqual(cached.release_date, "2026-06-29")
+        self.assertNotIn("raw", cached.to_dict())
+        self.assertIn("raw", cached.to_dict(include_raw=True))
+        self.assertIsNone(index.get_concept("C999"))
+
+    def test_cached_concept_keeps_the_time_it_was_fetched(self):
+        index = self.build()
+
+        first = index.get_concept("C3262").retrieved_at
+        second = index.get_concept("C3262").retrieved_at
+
+        self.assertEqual(first, second)
+        self.assertEqual(index.search("tumor", self.provider)[0].concept.retrieved_at, first)
+
+    def test_reindexing_a_code_replaces_its_rows(self):
+        index = self.build()
+
+        manifest = index.upsert_concepts(
+            [dict(RAW_CONCEPTS[1], name="Renamed Growth", synonyms=[], definitions=[])],
+            "2026-06-29",
+            self.provider,
+        )
+
+        self.assertEqual(manifest.concept_count, 2)
+        self.assertEqual(self.counts(index), (2, 2, 2 * LSH_BANDS, 1))
+        self.assertEqual(index.search("renamed", self.provider, mode="bm25")[0].concept.code, "C3262")
+        self.assertEqual(index.search("tumor", self.provider, mode="bm25"), [])
+
+    def test_indexing_another_release_replaces_the_previous_one(self):
+        index = self.build()
+
+        with self.assertLogs("nci_si_mcp.index", level="INFO"):
+            manifest = index.upsert_concepts(
+                [dict(RAW_CONCEPTS[1], version="26.07d")], "2026-07-27", self.provider
+            )
+
+        self.assertEqual(manifest.release_version, "26.07d")
+        self.assertEqual(manifest.concept_count, 1)
+        self.assertEqual(self.counts(index), (1, 1, LSH_BANDS, 1))
+        self.assertIsNone(index.get_concept("C40704"))
+        self.assertEqual(index.get_concept("C3262").release_version, "26.07d")
+        self.assertEqual(index.search("kinase", self.provider, mode="bm25"), [])
+
+    def test_release_mismatch_is_rejected_and_keeps_the_previous_release(self):
+        index = self.build()
+        before = index.get_active_manifest()
+
+        with self.assertRaises(IndexCompatibilityError):
+            index.upsert_concepts(
+                [dict(RAW_CONCEPTS[0], version="26.07a")],
+                "2026-07-06",
+                self.provider,
+                expected_release_version="26.07d",
+            )
+
+        self.assertEqual(index.get_active_manifest(), before)
+        self.assertEqual(self.counts(index), (2, 2, 2 * LSH_BANDS, 1))
+
+    def test_unusable_batches_are_rejected(self):
+        index = LocalIndex(self.path)
+        batches = {
+            "empty": [],
+            "no version": [dict(RAW_CONCEPTS[0], version="")],
+            "no code": [dict(RAW_CONCEPTS[0], code="")],
+            "mixed versions": [RAW_CONCEPTS[0], dict(RAW_CONCEPTS[1], version="26.07a")],
+        }
+        for label, batch in batches.items():
+            with self.subTest(label), self.assertRaises(IndexBuildError):
+                index.upsert_concepts(batch, "2026-06-29", self.provider)
+        self.assertIsNone(index.get_active_manifest())
+
+    def test_a_code_repeated_in_one_batch_is_indexed_once(self):
+        index = LocalIndex(self.path)
+
+        manifest = index.upsert_concepts(
+            [RAW_CONCEPTS[1], dict(RAW_CONCEPTS[1], name="Later Name")], "2026-06-29", self.provider
+        )
+
+        self.assertEqual(manifest.concept_count, 1)
+        self.assertEqual(self.counts(index), (1, 1, LSH_BANDS, 1))
+        self.assertEqual(index.get_concept("C3262").preferred_name, "Later Name")
+
+    def test_count_and_search_ignore_rows_of_an_inactive_release(self):
+        index = self.build()
+        with index._connect() as conn:
+            conn.execute(
+                "INSERT INTO concepts SELECT '26.05d', code, payload, search_text, vector FROM concepts"
+            )
+            conn.execute(
+                "INSERT INTO concepts_fts SELECT '26.05d', code, search_text FROM concepts_fts"
+            )
+
+        manifest = index.upsert_concepts([RAW_CONCEPTS[0]], "2026-06-29", self.provider)
+
+        self.assertEqual(manifest.concept_count, 2)
+        self.assertEqual(len(index.search("tumor", self.provider, mode="bm25")), 1)
+        self.assertEqual(len(index.search("tumor", self.provider, limit=10, mode="vector")), 2)
+
+    def test_failed_write_rolls_back_every_table_and_keeps_the_previous_release(self):
+        index = self.build()
+        before = index.get_active_manifest()
+        with index._connect() as conn:
+            conn.execute(
+                """
+                CREATE TRIGGER fail_manifest BEFORE INSERT ON manifests
+                BEGIN SELECT RAISE(ABORT, 'disk full'); END
+                """
+            )
+
+        with self.assertRaises(sqlite3.Error):
+            index.upsert_concepts(
+                [dict(RAW_CONCEPTS[0], version="26.07d")], "2026-07-27", self.provider
+            )
+
+        self.assertEqual(index.get_active_manifest(), before)
+        self.assertEqual(self.counts(index), (2, 2, 2 * LSH_BANDS, 1))
+        self.assertEqual(index.get_concept("C40704").release_version, "26.06e")
+
+    def test_a_different_embedding_space_cannot_join_the_active_release(self):
+        providers = {
+            "provider": RenamedProvider(name="other"),
+            "model": RenamedProvider(model="hashing-v2"),
+            "dimensions": RenamedProvider(dimensions=64),
+        }
+        for label, provider in providers.items():
+            with self.subTest(label):
+                index = self.build()
+                before = index.get_active_manifest()
+                with self.assertRaises(IndexCompatibilityError) as raised:
+                    index.upsert_concepts([RAW_CONCEPTS[0]], "2026-06-29", provider)
+                self.assertIn("nci_si.sqlite3", str(raised.exception))
+                self.assertEqual(index.get_active_manifest(), before)
+                (self.path / "nci_si.sqlite3").unlink()
+
+    def test_dimension_change_is_rejected_when_the_manifest_predates_dimensions(self):
+        index = self.build()
+        with index._connect() as conn:
+            payload = json.loads(conn.execute("SELECT payload FROM manifests").fetchone()[0])
+            del payload["embedding_dimensions"]
+            conn.execute("UPDATE manifests SET payload = ?", (json.dumps(payload),))
+
+        with self.assertRaises(IndexCompatibilityError):
+            index.upsert_concepts([RAW_CONCEPTS[0]], "2026-06-29", RenamedProvider(dimensions=64))
+
+    def test_provider_returning_wrong_vectors_is_rejected(self):
+        class ShortProvider(HashingEmbeddingProvider):
+            def embed(self, texts):
+                return super().embed(texts)[:-1]
+
+        class RaggedProvider(HashingEmbeddingProvider):
+            def embed(self, texts):
+                vectors = super().embed(texts)
+                return [vectors[0][:-1], *vectors[1:]]
+
+        for provider in (ShortProvider(), RaggedProvider()):
+            with self.subTest(type(provider).__name__), self.assertRaises(IndexCompatibilityError):
+                LocalIndex(self.path).upsert_concepts(RAW_CONCEPTS, "2026-06-29", provider)
+
+
+class StorageTest(IndexTestCase):
+    def test_connections_are_closed_after_use(self):
+        index = self.build()
+
+        with index._connect() as conn:
+            conn.execute("SELECT 1")
+
+        with self.assertRaises(sqlite3.ProgrammingError):
+            conn.execute("SELECT 1")
+
+    def test_reopening_preserves_the_index(self):
+        index = self.build()
+        manifest = index.get_active_manifest()
+
+        reopened = LocalIndex(self.path)
+
+        self.assertEqual(reopened.get_active_manifest(), manifest)
+        self.assertEqual(self.counts(reopened), (2, 2, 2 * LSH_BANDS, 1))
+        self.assertEqual(reopened.search("tumor", self.provider, mode="bm25")[0].concept.code, "C3262")
+
+    def test_opening_a_current_database_does_not_need_the_write_lock(self):
+        self.build()
+        writer = sqlite3.connect(str(self.path / "nci_si.sqlite3"), timeout=0)
+        self.addCleanup(writer.close)
+        writer.execute("BEGIN IMMEDIATE")
+
+        connect = sqlite3.connect
+        with patch("nci_si_mcp.index.sqlite3.connect", lambda path: connect(path, timeout=0)):
+            manifest = LocalIndex(self.path).get_active_manifest()
+
+        self.assertEqual(manifest.release_version, "26.06e")
+
+    def test_newer_schema_is_refused(self):
+        index = self.build()
+        with index._connect() as conn:
+            conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION + 1}")
+
+        with self.assertRaises(IndexCompatibilityError):
+            LocalIndex(self.path)
+
+    def test_manifest_with_unknown_keys_still_loads(self):
+        index = self.build()
+        with index._connect() as conn:
+            payload = json.loads(conn.execute("SELECT payload FROM manifests").fetchone()[0])
+            payload["added_by_a_later_version"] = 1
+            conn.execute("UPDATE manifests SET payload = ?", (json.dumps(payload),))
+
+        self.assertEqual(index.get_active_manifest().release_version, "26.06e")
+
+
+class MigrationTest(IndexTestCase):
+    def legacy_database(self, releases):
+        """Write a database in the layout of the first prototype (schema 0)."""
+
+        db_path = self.path / "nci_si.sqlite3"
+        vectors = {}
+        with sqlite3.connect(str(db_path)) as conn:
+            conn.execute(
+                "CREATE TABLE manifests (release_version TEXT PRIMARY KEY, payload TEXT, active INTEGER)"
+            )
+            conn.execute(
+                """
+                CREATE TABLE concepts (
+                    release_version TEXT, code TEXT, payload TEXT, search_text TEXT, vector TEXT,
+                    PRIMARY KEY (release_version, code)
                 )
-                conn.execute(
-                    """
-                    CREATE TABLE concepts (
-                        release_version TEXT,
-                        code TEXT,
-                        payload TEXT,
-                        search_text TEXT,
-                        vector TEXT,
-                        PRIMARY KEY (release_version, code)
-                    )
-                    """
+                """
+            )
+            for release_version, raw in releases:
+                item = normalize_concept(
+                    dict(raw, version=release_version), release_date=None, source="active_cache"
                 )
+                search_text = concept_search_text(item)
+                vectors[release_version] = self.provider.embed([search_text])[0]
+                manifest = {
+                    "terminology": "ncit",
+                    "release_version": release_version,
+                    "release_date": None,
+                    "embedding_provider": self.provider.name,
+                    "embedding_model": self.provider.model,
+                    "concept_count": 1,
+                    "built_at": "2026-07-10T00:00:00Z",
+                    "index_path": str(db_path),
+                    "active": True,
+                }
                 conn.execute(
-                    "INSERT INTO manifests VALUES (?, ?, 1)",
-                    ("26.06e", json.dumps(manifest)),
+                    "INSERT INTO manifests VALUES (?, ?, 1)", (release_version, json.dumps(manifest))
                 )
                 conn.execute(
                     "INSERT INTO concepts VALUES (?, ?, ?, ?, ?)",
                     (
-                        "26.06e",
-                        concept.code,
-                        json.dumps(concept.to_dict(include_raw=True)),
+                        release_version,
+                        item.code,
+                        json.dumps(item.to_dict(include_raw=True)),
                         search_text,
-                        json.dumps(vector),
+                        json.dumps(vectors[release_version]),
                     ),
                 )
+        conn.close()
+        return vectors
 
-            index = LocalIndex(Path(tmp_path))
+    def test_legacy_database_is_backfilled(self):
+        vectors = self.legacy_database([("26.06e", RAW_CONCEPTS[0])])
 
-            with index._connect() as conn:
-                self.assertEqual(
-                    conn.execute("SELECT COUNT(*) FROM concepts_fts").fetchone()[0],
-                    1,
-                )
-                self.assertEqual(
-                    conn.execute("SELECT COUNT(*) FROM vector_lsh").fetchone()[0],
-                    4,
-                )
-            self.assertEqual(index.search("kinase", provider)[0].concept.code, "C40704")
+        index = LocalIndex(self.path)
 
-    def test_release_mismatch_is_rejected_before_activation(self):
-        with tempfile.TemporaryDirectory() as tmp_path:
-            index = LocalIndex(tmp_path)
+        with index._connect() as conn:
+            self.assertEqual(conn.execute("PRAGMA user_version").fetchone()[0], SCHEMA_VERSION)
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM concepts_fts").fetchone()[0], 1)
+            buckets = conn.execute("SELECT band, bucket FROM vector_lsh ORDER BY band").fetchall()
+        self.assertEqual([tuple(row) for row in buckets], vector_lsh_buckets(vectors["26.06e"]))
+        self.assertIsNone(index.get_active_manifest().embedding_dimensions)
+        for mode in ("bm25", "vector"):
+            self.assertEqual(index.search("kinase", self.provider, mode=mode)[0].concept.code, "C40704")
 
-            with self.assertRaises(IndexCompatibilityError):
-                index.upsert_concepts(
-                    RAW_CONCEPTS,
-                    "2026-06-29",
-                    HashingEmbeddingProvider(),
-                    expected_release_version="26.07a",
-                )
+    def test_several_active_manifests_are_reduced_to_one(self):
+        self.legacy_database([("26.05d", RAW_CONCEPTS[0]), ("26.06e", RAW_CONCEPTS[1])])
 
-            self.assertIsNone(index.get_active_manifest())
+        index = LocalIndex(self.path)
 
-    def test_failed_index_transaction_preserves_prior_active_release(self):
-        with tempfile.TemporaryDirectory() as tmp_path:
-            index = LocalIndex(tmp_path)
-            provider = HashingEmbeddingProvider()
-            index.upsert_concepts(RAW_CONCEPTS, "2026-06-29", provider)
-            next_release = [dict(RAW_CONCEPTS[0], version="26.07a")]
-            with index._connect() as conn:
-                conn.execute("DROP TABLE concepts_fts")
+        with index._connect() as conn:
+            active = conn.execute("SELECT release_version FROM manifests WHERE active = 1").fetchall()
+        self.assertEqual([row[0] for row in active], ["26.06e"])
+        self.assertEqual(index.search("tumor", self.provider, mode="bm25")[0].concept.code, "C3262")
+        self.assertEqual(index.search("kinase", self.provider, mode="bm25"), [])
 
-            with self.assertRaises(sqlite3.OperationalError):
-                index.upsert_concepts(next_release, "2026-07-06", provider)
+    def test_schema_two_database_gains_the_lsh_table(self):
+        index = self.build()
+        with index._connect() as conn:
+            conn.execute("DROP TABLE vector_lsh")
+            conn.execute("PRAGMA user_version = 2")
 
-            self.assertEqual(index.get_active_manifest().release_version, "26.06e")
-            with index._connect() as conn:
-                next_release_count = conn.execute(
-                    "SELECT COUNT(*) FROM concepts WHERE release_version = ?",
-                    ("26.07a",),
-                ).fetchone()[0]
-            self.assertEqual(next_release_count, 0)
+        migrated = LocalIndex(self.path)
 
-    def test_search_rejects_embedding_provider_mismatch(self):
-        class AlternateProvider(HashingEmbeddingProvider):
-            def __init__(self):
-                super().__init__()
-                self.name = "alternate"
-                self.model = "alternate-128"
+        self.assertEqual(self.counts(migrated), (2, 2, 2 * LSH_BANDS, 1))
 
-        with tempfile.TemporaryDirectory() as tmp_path:
-            index = LocalIndex(tmp_path)
-            index.upsert_concepts(
-                RAW_CONCEPTS,
-                "2026-06-29",
-                HashingEmbeddingProvider(),
-            )
 
-            with self.assertRaises(IndexCompatibilityError):
-                index.search("tumor", AlternateProvider(), mode="vector")
+class SearchTest(IndexTestCase):
+    def test_hybrid_search_ranks_and_reports_score_components(self):
+        index = self.build()
+
+        hits = index.search("kinase inhibition", self.provider, limit=2, mode="hybrid")
+
+        self.assertEqual([hit.concept.code for hit in hits], ["C40704", "C3262"])
+        self.assertEqual([hit.rank for hit in hits], [1, 2])
+        self.assertEqual(hits[0].score_components, {"bm25": 1.0, "vector": 1.0})
+        self.assertEqual(hits[0].concept.source, "active_cache")
+        self.assertNotIn("raw", hits[0].to_dict()["concept"])
+        self.assertIn("raw", hits[0].to_dict(include_raw=True)["concept"])
+
+    def test_search_without_an_index_is_refused(self):
+        with self.assertRaises(NoActiveIndexError):
+            LocalIndex(self.path).search("tumor", self.provider)
+
+    def test_search_validates_its_arguments(self):
+        index = self.build()
+        for arguments in ((" ", 10, "hybrid"), ("tumor", 0, "hybrid"), ("tumor", 10, "fuzzy")):
+            with self.subTest(arguments=arguments), self.assertRaises(InputValidationError):
+                index.search(arguments[0], self.provider, limit=arguments[1], mode=arguments[2])
+
+    def test_search_rejects_a_runtime_from_another_embedding_space(self):
+        index = self.build()
+        providers = {
+            "provider": RenamedProvider(name="other"),
+            "model": RenamedProvider(model="hashing-v2"),
+            "dimensions": RenamedProvider(dimensions=64),
+        }
+        for label, provider in providers.items():
+            with self.subTest(label), self.assertRaises(IndexCompatibilityError):
+                index.search("tumor", provider, mode="vector")
 
     def test_bm25_mode_does_not_compute_embeddings(self):
         class NoEmbedProvider(EmbeddingProvider):
@@ -199,17 +437,79 @@ class IndexTest(unittest.TestCase):
             def embed(self, texts):
                 raise AssertionError("BM25-only search must not embed the query")
 
-        with tempfile.TemporaryDirectory() as tmp_path:
-            index = LocalIndex(tmp_path)
-            index.upsert_concepts(
-                RAW_CONCEPTS,
-                "2026-06-29",
-                HashingEmbeddingProvider(),
+        index = self.build()
+
+        hits = index.search("tumor", NoEmbedProvider(), mode="bm25")
+
+        self.assertEqual(hits[0].concept.code, "C3262")
+        self.assertEqual(hits[0].score_components["vector"], 0.0)
+
+    def test_bm25_matches_names_with_diacritics(self):
+        index = self.build([concept("C26883", "Sjögren Syndrome"), concept("C3262", "Neoplasm")])
+
+        for query in ("Sjögren", "sjogren", "SJÖGREN syndrome"):
+            with self.subTest(query):
+                hits = index.search(query, self.provider, mode="bm25")
+                self.assertEqual(hits[0].concept.code, "C26883")
+
+    def test_fts_syntax_in_a_query_is_inert(self):
+        index = self.build()
+
+        for query in ('tumor" OR (', "NEAR(a b)", "C3262*", "non-small", "tumor AND NOT growth"):
+            with self.subTest(query):
+                index.search(query, self.provider, mode="bm25")
+        self.assertEqual(index.search("!!!", self.provider, mode="bm25"), [])
+
+    def test_vector_search_is_exact_when_the_release_fits_the_scan_limit(self):
+        concepts = synthetic_concepts(200)
+        index = self.build(concepts)
+
+        for raw in concepts[::10]:
+            hits = index.search(raw["name"], self.provider, limit=5, mode="vector")
+            self.assertEqual(len(hits), 5)
+            self.assertEqual(hits[0].concept.code, raw["code"], raw["name"])
+
+    def test_hybrid_search_fills_the_limit_from_the_whole_small_index(self):
+        index = self.build(synthetic_concepts(30))
+
+        hits = index.search("alpha1 alpha10 alpha100", self.provider, limit=20, mode="hybrid")
+
+        self.assertEqual(len(hits), 20)
+        self.assertEqual(hits[0].concept.code, "C0")
+
+    def test_large_release_scores_lsh_and_bm25_candidates_only(self):
+        concepts = synthetic_concepts(60)
+        index = self.build(concepts)
+
+        with patch("nci_si_mcp.index.EXACT_VECTOR_SCAN_LIMIT", 20), patch(
+            "nci_si_mcp.index.MAX_VECTOR_CANDIDATES", 20
+        ), patch(
+            "nci_si_mcp.index.cosine_similarity", wraps=lambda left, right: 0.5
+        ) as scored:
+            # The stored search text of a concept lands in all of its own buckets.
+            own_text = concept_search_text(
+                normalize_concept(concepts[7], release_date=None, source="active_cache")
             )
+            vector_hits = index.search(own_text, self.provider, limit=60, mode="vector")
+            vector_scored = scored.call_count
+            hybrid_hits = index.search("garnet1", self.provider, limit=60, mode="hybrid")
 
-            hits = index.search("tumor", NoEmbedProvider(), mode="bm25")
+        self.assertIn("C7", [hit.concept.code for hit in vector_hits])
+        self.assertLessEqual(vector_scored, 20)
+        self.assertLess(len(vector_hits), 60)
+        self.assertTrue(
+            {f"C{number}" for number in range(6, 60, 10)}
+            <= {hit.concept.code for hit in hybrid_hits}
+        )
 
-            self.assertEqual(hits[0].concept.code, "C3262")
+    def test_search_only_returns_the_active_release(self):
+        index = self.build()
+        index.upsert_concepts([dict(RAW_CONCEPTS[1], version="26.07d")], "2026-07-27", self.provider)
+
+        for mode in ("bm25", "vector", "hybrid"):
+            with self.subTest(mode):
+                hits = index.search("kinase tumor", self.provider, mode=mode)
+                self.assertEqual({hit.concept.release_version for hit in hits}, {"26.07d"})
 
 
 if __name__ == "__main__":

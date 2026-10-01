@@ -2,16 +2,26 @@
 
 from __future__ import annotations
 
+import json
 import sys
-from typing import List, Literal, Optional
+from typing import Any, Dict, List, Optional
 
 from .config import Settings, configure_logging
 from .errors import error_response
 from .service import NCISIService
-from .traversal import DEFAULT_MAX_EDGES
+from .traversal import DEFAULT_MAX_DEPTH, DEFAULT_MAX_EDGES, DEFAULT_MAX_NODES
+from .validation import Direction, EdgeType, SearchMode
+
+INSTRUCTIONS = (
+    "NCI Thesaurus (NCIt) lookup and relationship traversal against live NCI EVS, "
+    "plus text search over a small locally indexed sample of concepts. Every result "
+    "names the NCIt monthly release it came from. A failed tool call is flagged as an "
+    "error and carries a JSON object with isError, error (a stable code), message and "
+    "optional details."
+)
 
 
-def create_mcp(settings: Optional[Settings] = None):
+def create_mcp(settings: Optional[Settings] = None, *, service: Optional[NCISIService] = None):
     if sys.version_info < (3, 10):
         raise RuntimeError(
             "The MCP server requires Python 3.10+ because the upstream 'mcp' "
@@ -21,7 +31,9 @@ def create_mcp(settings: Optional[Settings] = None):
         )
     try:
         from mcp.server.mcpserver import MCPServer
-    except ImportError as exc:  # pragma: no cover - depends on optional runtime install
+        from mcp.server.mcpserver.exceptions import ResourceError
+        from mcp.types import CallToolResult, TextContent
+    except ImportError as exc:
         raise RuntimeError(
             "The MCP server needs the 'server' extra, which installs mcp>=2,<3 "
             f"(pip install -e '.[server]'). Import failed: {exc}"
@@ -29,100 +41,180 @@ def create_mcp(settings: Optional[Settings] = None):
 
     resolved_settings = settings or Settings.from_env()
     configure_logging(resolved_settings.log_level)
-    service = NCISIService(resolved_settings)
-    mcp = MCPServer("nci-si-mcp")
+    service = service or NCISIService(resolved_settings)
+    mcp = MCPServer("nci-si-mcp", instructions=INSTRUCTIONS)
+
+    def tool_result(result: Dict[str, Any]) -> Any:
+        """Flag an error envelope as an error at the protocol level as well."""
+
+        if result.get("isError"):
+            text = json.dumps(result, indent=2)
+            return CallToolResult(content=[TextContent(type="text", text=text)], is_error=True)
+        return result
+
+    def resource_result(result: Dict[str, Any]) -> Dict[str, Any]:
+        if result.get("isError"):
+            raise ResourceError(json.dumps(result))
+        return result
 
     @mcp.tool()
     def ncit_search(
         query: str,
         limit: int = 10,
-        mode: Literal["hybrid", "bm25", "vector"] = "hybrid",
+        mode: SearchMode = "hybrid",
         include_raw: bool = False,
     ):
-        """Search the active monthly NCIt local index."""
-        return service.search(query=query, limit=limit, mode=mode, include_raw=include_raw)
+        """Search the locally indexed NCIt concepts by text.
+
+        The index holds only the concepts an operator loaded with the
+        `index-sample` CLI command, all from the one NCIt monthly release named
+        in `release_version`. It is not all of NCIt, and no tool here adds to
+        it. `mode` is `hybrid` (0.55 * BM25 + 0.45 * vector), `bm25` or
+        `vector`; `limit` is 1 to 100.
+
+        `score` and `score_components` are min-max normalized over the concepts
+        scored for this query. They order the hits but are not comparable
+        across queries, and the weakest scored concept gets 0.0 even when it
+        matches. Hits have `source: active_cache`, and `retrieved_at` is when
+        the concept was indexed. `include_raw` adds the full EVS payload.
+        """
+        return tool_result(
+            service.search(query=query, limit=limit, mode=mode, include_raw=include_raw)
+        )
 
     @mcp.tool()
     def ncit_lookup(code: str, live_only: bool = False, include_raw: bool = False):
-        """Look up an NCIt concept with live EVS and active-cache fallback."""
-        return service.lookup(code=code, live_only=live_only, include_raw=include_raw)
+        """Look up one NCIt concept by code (C followed by digits) in live EVS.
+
+        The request is pinned to the current monthly release, and a live answer
+        has `source: live_evs`. A code that release does not contain returns
+        `concept_not_found`. If EVS cannot be reached, the concept is served
+        from the local index instead, with `source: active_cache` and a
+        `fallback` object giving the reason.
+
+        When the local index holds a different release than the current monthly
+        one, the call fails with `version_mismatch` so that results from two
+        releases are never mixed. `live_only=true` skips both that check and
+        the fallback. `include_raw` adds the full EVS payload.
+        """
+        return tool_result(
+            service.lookup(code=code, live_only=live_only, include_raw=include_raw)
+        )
 
     @mcp.tool()
     def ncit_traverse(
         start_codes: List[str],
-        direction: Literal["in", "out", "both"] = "out",
-        max_depth: int = 2,
-        max_nodes: int = 200,
+        direction: Direction = "out",
+        max_depth: int = DEFAULT_MAX_DEPTH,
+        max_nodes: int = DEFAULT_MAX_NODES,
         max_edges: int = DEFAULT_MAX_EDGES,
         include_hierarchy: bool = True,
         include_roles: bool = True,
         include_associations: bool = True,
         relationship_names: Optional[List[str]] = None,
-        edge_types: Optional[List[str]] = None,
+        edge_types: Optional[List[EdgeType]] = None,
     ):
-        """Traverse NCIt hierarchy, role, and association edges with filters."""
-        return service.traverse(
-            start_codes=start_codes,
-            direction=direction,
-            max_depth=max_depth,
-            max_nodes=max_nodes,
-            max_edges=max_edges,
-            include_hierarchy=include_hierarchy,
-            include_roles=include_roles,
-            include_associations=include_associations,
-            relationship_names=relationship_names,
-            edge_types=edge_types,
+        """Walk NCIt relationships breadth-first from the start codes, in live EVS.
+
+        `direction` `out` follows `child`, `role` and `association` edges, `in`
+        follows `parent`, `inverse_role` and `inverse_association` edges, and
+        `both` follows all six. The include flags switch hierarchy, role and
+        association edges off. `edge_types` narrows the walk to the listed
+        types and is the only way to get `descendant` edges, which link each
+        start code directly to every descendant within `max_depth` levels.
+        `relationship_names` keeps only edges with those names, ignoring case:
+        role and association names such as `Disease_Has_Finding`, or
+        `is_a_parent`, `is_a_child` and `is_a_descendant` for hierarchy edges.
+
+        Limits are clamped to depth 4, 1,000 nodes and 5,000 edges, and the
+        result reports the effective `max_depth`, `max_nodes` and `max_edges`.
+        `truncated` is true when the node or edge limit dropped something;
+        stopping at `max_depth` does not set it. Every edge connects two nodes
+        of the result, and all data is read from the monthly release named in
+        `release_version`. A start code that release does not contain returns
+        `concept_not_found`.
+        """
+        return tool_result(
+            service.traverse(
+                start_codes=start_codes,
+                direction=direction,
+                max_depth=max_depth,
+                max_nodes=max_nodes,
+                max_edges=max_edges,
+                include_hierarchy=include_hierarchy,
+                include_roles=include_roles,
+                include_associations=include_associations,
+                relationship_names=relationship_names,
+                edge_types=list(edge_types) if edge_types else None,
+            )
         )
 
     @mcp.tool()
     def ncit_release_info():
-        """Report EVS release and active index status."""
-        return service.release_info()
+        """Report the EVS API version, the current monthly NCIt release and the local index.
+
+        The call succeeds even when EVS cannot be reached: `evs_api` and
+        `selected_monthly_release` then hold an error object. `active_index` is
+        null until an index has been built, and
+        `embedding.active_index_compatible` says whether `ncit_search` can use it.
+        """
+        return tool_result(service.release_info())
 
     @mcp.tool()
     def cadsr_status():
-        """Report caDSR adapter state and reuse-spike targets."""
+        """Report that caDSR common data element search is not implemented yet.
+
+        Returns the status `reuse_pending` and the integrations under
+        evaluation. It never returns CDE data.
+        """
         return service.cadsr_status()
 
-    @mcp.resource("nci-si://concept/ncit/{code}")
+    @mcp.resource("nci-si://concept/ncit/{code}", mime_type="application/json")
     def ncit_concept_resource(code: str):
-        return service.lookup(code=code)
+        """One NCIt concept, as returned by the `ncit_lookup` tool with default options."""
+        return resource_result(service.lookup(code=code))
 
-    @mcp.resource("nci-si://release/ncit/{version}")
+    @mcp.resource("nci-si://release/ncit/{version}", mime_type="application/json")
     def ncit_release_resource(version: str):
-        info = service.release_info()
+        """The current monthly NCIt release.
+
+        `monthly`, `latest` and `monthly-latest` return the full status report
+        of the `ncit_release_info` tool. The version of the current monthly
+        release returns that release's record; any other version is an error.
+        """
+        info = resource_result(service.release_info())
         if version in ("monthly", "latest", "monthly-latest"):
             return info
-        selected = info["selected_monthly_release"]
-        if selected.get("isError"):
-            return error_response(
-                "release_unavailable",
-                "The active monthly release could not be resolved",
+        selected = resource_result(info["selected_monthly_release"])
+        if version == selected["version"]:
+            return selected
+        return resource_result(
+            error_response(
+                "release_not_active",
+                f"Release {version} is not the current monthly release {selected['version']}",
                 requested_version=version,
             )
-        if version == selected.get("version"):
-            return selected
-        return error_response(
-            "release_not_active",
-            "The requested release is not active",
-            requested_version=version,
         )
 
-    @mcp.resource("nci-si://index/ncit/{version}/manifest")
+    @mcp.resource("nci-si://index/ncit/{version}/manifest", mime_type="application/json")
     def ncit_index_manifest_resource(version: str):
+        """The manifest of the local search index.
+
+        `active`, or the release the index holds, returns the manifest; any
+        other version is an error. Without an index the result is
+        `{"active_index": null}`.
+        """
         manifest = service.index.get_active_manifest()
         if not manifest:
             return {"active_index": None}
         if version in ("active", manifest.release_version):
             return manifest.to_dict()
-        return error_response(
-            "index_not_active",
-            "The requested index is not active",
-            requested_version=version,
+        return resource_result(
+            error_response(
+                "index_not_active",
+                f"The local index holds release {manifest.release_version}, not {version}",
+                requested_version=version,
+            )
         )
 
     return mcp
-
-
-def run_stdio(settings: Optional[Settings] = None) -> None:
-    create_mcp(settings).run()

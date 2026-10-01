@@ -4,18 +4,20 @@ from __future__ import annotations
 
 import argparse
 import json
-from typing import Any
+import sqlite3
+import sys
+from typing import Any, Dict, TextIO
 
 from .config import Settings, configure_logging
 from .errors import error_response
-from .evaluation import evaluate_retrieval
-from .server import run_stdio
+from .server import create_mcp
 from .service import NCISIService
-from .traversal import DEFAULT_MAX_EDGES
+from .traversal import DEFAULT_MAX_DEPTH, DEFAULT_MAX_EDGES, DEFAULT_MAX_NODES
+from .validation import SEARCH_MODES, TRAVERSAL_DIRECTIONS, TRAVERSAL_EDGE_TYPES
 
-
-def _print_json(value: Any) -> None:
-    print(json.dumps(value, indent=2, sort_keys=True))
+# What can go wrong while opening the index, loading the embedding model or
+# importing the optional MCP package: environment problems, not bugs.
+_STARTUP_ERRORS = (RuntimeError, ValueError, OSError, sqlite3.Error)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -26,30 +28,45 @@ def build_parser() -> argparse.ArgumentParser:
     subcommands.add_parser("release-info", help="Show EVS monthly release and index status")
 
     index_sample = subcommands.add_parser("index-sample", help="Index a small list of NCIt codes")
-    index_sample.add_argument("codes", nargs="+")
+    index_sample.add_argument("codes", nargs="+", help="NCIt codes such as C3262")
 
     search = subcommands.add_parser("search", help="Search the active local NCIt index")
     search.add_argument("query")
-    search.add_argument("--limit", type=int, default=10)
-    search.add_argument("--mode", choices=["hybrid", "bm25", "vector"], default="hybrid")
-    search.add_argument("--include-raw", action="store_true")
+    search.add_argument("--limit", type=int, default=10, help="number of hits, 1 to 100")
+    search.add_argument("--mode", choices=sorted(SEARCH_MODES), default="hybrid")
+    search.add_argument("--include-raw", action="store_true", help="add the full EVS payload")
 
-    lookup = subcommands.add_parser("lookup", help="Look up one NCIt concept")
+    lookup = subcommands.add_parser("lookup", help="Look up one NCIt concept in live EVS")
     lookup.add_argument("code")
-    lookup.add_argument("--live-only", action="store_true")
-    lookup.add_argument("--include-raw", action="store_true")
+    lookup.add_argument(
+        "--live-only",
+        action="store_true",
+        help="skip the index release check and the cache fallback",
+    )
+    lookup.add_argument("--include-raw", action="store_true", help="add the full EVS payload")
 
     traverse = subcommands.add_parser("traverse", help="Traverse NCIt graph relationships")
     traverse.add_argument("start_codes", nargs="+")
-    traverse.add_argument("--direction", choices=["in", "out", "both"], default="out")
-    traverse.add_argument("--max-depth", type=int, default=2)
-    traverse.add_argument("--max-nodes", type=int, default=200)
+    traverse.add_argument("--direction", choices=sorted(TRAVERSAL_DIRECTIONS), default="out")
+    traverse.add_argument("--max-depth", type=int, default=DEFAULT_MAX_DEPTH)
+    traverse.add_argument("--max-nodes", type=int, default=DEFAULT_MAX_NODES)
     traverse.add_argument("--max-edges", type=int, default=DEFAULT_MAX_EDGES)
     traverse.add_argument("--no-hierarchy", action="store_true")
     traverse.add_argument("--no-roles", action="store_true")
     traverse.add_argument("--no-associations", action="store_true")
-    traverse.add_argument("--relationship-name", action="append", dest="relationship_names")
-    traverse.add_argument("--edge-type", action="append", dest="edge_types")
+    traverse.add_argument(
+        "--relationship-name",
+        action="append",
+        dest="relationship_names",
+        help="keep only edges with this name; repeatable",
+    )
+    traverse.add_argument(
+        "--edge-type",
+        action="append",
+        dest="edge_types",
+        choices=sorted(TRAVERSAL_EDGE_TYPES),
+        help="follow only this edge type; repeatable",
+    )
 
     subcommands.add_parser(
         "evaluate",
@@ -58,29 +75,34 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _print_result(value: Any) -> int:
-    _print_json(value)
-    return 1 if isinstance(value, dict) and value.get("isError") else 0
+def _print_result(value: Dict[str, Any], stream: TextIO) -> int:
+    """Print a result as JSON and return the exit code: 1 for an error envelope."""
+
+    print(json.dumps(value, indent=2, sort_keys=True), file=stream)
+    return 1 if value.get("isError") else 0
 
 
 def main() -> int:
-    parser = build_parser()
-
-    args = parser.parse_args()
+    args = build_parser().parse_args()
+    # The MCP server speaks its protocol on stdout, so its failures go to stderr.
+    serve = args.command == "serve"
+    errors = sys.stderr if serve else sys.stdout
     try:
         settings = Settings.from_env()
-        configure_logging(settings.log_level)
     except ValueError as exc:
-        return _print_result(error_response("invalid_configuration", str(exc)))
-    if args.command == "serve":
-        run_stdio(settings)
-        return 0
-
+        return _print_result(error_response("invalid_configuration", str(exc)), errors)
+    configure_logging(settings.log_level)
     try:
         service = NCISIService(settings)
-    except (RuntimeError, ValueError) as exc:
-        return _print_result(error_response("startup_failed", str(exc)))
-    result: Any
+        mcp = create_mcp(settings, service=service) if serve else None
+    except _STARTUP_ERRORS as exc:
+        message = f"{type(exc).__name__}: {exc}"
+        return _print_result(error_response("startup_failed", message), errors)
+    if mcp:
+        mcp.run()
+        return 0
+
+    result: Dict[str, Any]
     if args.command == "release-info":
         result = service.release_info()
     elif args.command == "index-sample":
@@ -111,17 +133,9 @@ def main() -> int:
             relationship_names=args.relationship_names,
             edge_types=args.edge_types,
         )
-    elif args.command == "evaluate":
-        try:
-            result = [
-                result.to_dict()
-                for result in evaluate_retrieval(service.index, service.embedding_provider)
-            ]
-        except (RuntimeError, ValueError) as exc:
-            result = error_response("evaluation_unavailable", str(exc))
-    else:  # pragma: no cover - argparse enforces known commands
-        result = error_response("invalid_request", "Unknown command")
-    return _print_result(result)
+    else:
+        result = service.evaluate()
+    return _print_result(result, sys.stdout)
 
 
 if __name__ == "__main__":

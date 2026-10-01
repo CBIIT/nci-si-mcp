@@ -2,12 +2,12 @@
 
 The MCP layer returns dictionaries produced from these dataclasses. Keeping the
 core models dependency-free makes the indexing and EVS behavior easy to test
-without importing FastMCP.
+without importing the optional `mcp` package.
 """
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, fields
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -27,6 +27,12 @@ class ReleaseInfo:
     monthly: bool
     weekly: bool
     raw: Dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def pinned_terminology(self) -> str:
+        """EVS path segment that pins a request to exactly this release."""
+
+        return self.terminology_version or f"{self.terminology}_{self.version}"
 
     def to_dict(self, include_raw: bool = False) -> Dict[str, Any]:
         data = asdict(self)
@@ -67,6 +73,32 @@ class IndexManifest:
     index_path: str
     embedding_dimensions: Optional[int] = None
     active: bool = False
+
+    @classmethod
+    def from_payload(cls, payload: Dict[str, Any]) -> "IndexManifest":
+        """Rebuild a stored manifest, ignoring keys this version does not know."""
+
+        known = {item.name for item in fields(cls)}
+        return cls(**{key: value for key, value in payload.items() if key in known})
+
+    def embedding_matches(
+        self, provider: str, model: str, dimensions: Optional[int] = None
+    ) -> bool:
+        """Whether vectors from this provider share the index's embedding space.
+
+        Dimensions are compared only when both sides know them; an index built
+        before dimensions were recorded stores None.
+        """
+
+        return (
+            self.embedding_provider == provider
+            and self.embedding_model == model
+            and (
+                dimensions is None
+                or self.embedding_dimensions is None
+                or self.embedding_dimensions == dimensions
+            )
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)

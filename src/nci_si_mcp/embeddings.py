@@ -24,6 +24,8 @@ class EmbeddingProvider(ABC):
 
 class HashingEmbeddingProvider(EmbeddingProvider):
     def __init__(self, dimensions: int = 128) -> None:
+        if dimensions < 1:
+            raise ValueError("Hashing embedding dimensions must be at least 1")
         self.name = "hashing"
         self.model = f"hashing-{dimensions}"
         self.dimensions = dimensions
@@ -50,7 +52,8 @@ class SentenceTransformersProvider(EmbeddingProvider):
             from sentence_transformers import SentenceTransformer
         except ImportError as exc:  # pragma: no cover - optional dependency
             raise RuntimeError(
-                "sentence-transformers is not installed. Install nci-si-mcp[embeddings]."
+                "The sentence-transformers provider needs the 'embeddings' extra "
+                f"(pip install -e '.[embeddings]'). Import failed: {exc}"
             ) from exc
         self.name = "sentence-transformers"
         self.model = model_name
@@ -66,10 +69,17 @@ def create_embedding_provider(provider: str, model: str) -> EmbeddingProvider:
     normalized_model = model.strip()
     if normalized_provider == "hashing":
         if normalized_model not in {"hashing", "hashing-128"}:
-            raise ValueError("The hashing provider requires the hashing model")
+            raise ValueError(
+                "NCI_SI_EMBEDDING_MODEL must be 'hashing' when NCI_SI_EMBEDDING_PROVIDER is 'hashing'"
+            )
         return HashingEmbeddingProvider()
     if normalized_provider == "sentence-transformers":
         if not normalized_model or normalized_model == "hashing":
-            raise ValueError("The sentence-transformers provider requires a model name")
+            raise ValueError(
+                "NCI_SI_EMBEDDING_MODEL must name a model when NCI_SI_EMBEDDING_PROVIDER "
+                "is 'sentence-transformers'"
+            )
         return SentenceTransformersProvider(normalized_model)
-    raise ValueError(f"Unknown embedding provider: {provider}")
+    raise ValueError(
+        f"NCI_SI_EMBEDDING_PROVIDER must be 'hashing' or 'sentence-transformers', not {provider!r}"
+    )

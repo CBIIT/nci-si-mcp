@@ -5,7 +5,9 @@ from __future__ import annotations
 import re
 from typing import Dict, List, Sequence
 
-TOKEN_RE = re.compile(r"[A-Za-z0-9_]+")
+# Unicode-aware so that non-ASCII query terms reach FTS5, whose unicode61
+# tokenizer folds case and diacritics on both sides of the match.
+TOKEN_RE = re.compile(r"\w+")
 
 
 def tokenize(text: str) -> List[str]:
@@ -13,6 +15,11 @@ def tokenize(text: str) -> List[str]:
 
 
 def cosine_similarity(left: Sequence[float], right: Sequence[float]) -> float:
+    """Dot product of two vectors; equals cosine similarity for unit vectors.
+
+    Both shipped embedding providers return unit vectors.
+    """
+
     if not left or not right or len(left) != len(right):
         return 0.0
     return float(sum(a * b for a, b in zip(left, right)))

@@ -1,24 +1,40 @@
-"""SQLite-backed concept cache and local retrieval index."""
+"""SQLite-backed concept cache and local retrieval index.
+
+The database holds one NCIt release at a time. Indexing concepts from a
+different release replaces the previous one in the same transaction.
+"""
 
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
+from contextlib import contextmanager
+from functools import lru_cache
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, Iterator, List, Optional, Sequence, Set, Tuple
 
 from .embeddings import EmbeddingProvider
-from .errors import IndexCompatibilityError
+from .errors import IndexBuildError, IndexCompatibilityError, NoActiveIndexError
 from .evs import normalize_concept
 from .models import IndexManifest, NcitConcept, SearchHit, utc_now_iso
 from .retrieval import cosine_similarity, min_max_normalize, tokenize
+from .validation import validate_search
+
+logger = logging.getLogger(__name__)
 
 SCHEMA_VERSION = 3
-SEARCH_MODES = frozenset({"bm25", "vector", "hybrid"})
 MAX_FTS_CANDIDATES = 1000
+# A release of up to this many concepts is scored exactly: every stored vector
+# is compared with the query (about 12 ms per 1,000 128-dimension vectors).
+EXACT_VECTOR_SCAN_LIMIT = 20_000
+# A larger release is narrowed to this many LSH and BM25 candidates first.
 MAX_VECTOR_CANDIDATES = 2000
+# The LSH layout and the sign hash below are part of the stored format: changing
+# them needs a SCHEMA_VERSION bump whose migration rebuilds vector_lsh.
 LSH_BANDS = 4
 LSH_BITS_PER_BAND = 8
+_SQL_CHUNK = 500
 
 
 def _projection_sign(bit: int, dimension: int) -> float:
@@ -29,20 +45,36 @@ def _projection_sign(bit: int, dimension: int) -> float:
     return 1.0 if value & 1 else -1.0
 
 
-def vector_lsh_buckets(vector: List[float]) -> List[Tuple[int, int]]:
+@lru_cache(maxsize=8)
+def _projection_signs(dimensions: int) -> Tuple[Tuple[float, ...], ...]:
+    return tuple(
+        tuple(_projection_sign(bit, dimension) for dimension in range(dimensions))
+        for bit in range(LSH_BANDS * LSH_BITS_PER_BAND)
+    )
+
+
+def vector_lsh_buckets(vector: Sequence[float]) -> List[Tuple[int, int]]:
+    """Return one (band, bucket) pair per band from signed random projections.
+
+    Two vectors land in the same bucket of a band only when all of its
+    projection bits agree, so similar vectors share buckets more often.
+    """
+
+    signs = _projection_signs(len(vector))
     buckets: List[Tuple[int, int]] = []
     for band in range(LSH_BANDS):
         bucket = 0
         for offset in range(LSH_BITS_PER_BAND):
-            bit = band * LSH_BITS_PER_BAND + offset
-            projection = sum(
-                value * _projection_sign(bit, dimension)
-                for dimension, value in enumerate(vector)
-            )
-            if projection >= 0:
+            row = signs[band * LSH_BITS_PER_BAND + offset]
+            if sum(value * sign for value, sign in zip(vector, row)) >= 0:
                 bucket |= 1 << offset
         buckets.append((band, bucket))
     return buckets
+
+
+def _chunks(items: Sequence[str]) -> Iterator[Sequence[str]]:
+    for offset in range(0, len(items), _SQL_CHUNK):
+        yield items[offset : offset + _SQL_CHUNK]
 
 
 class LocalIndex:
@@ -52,21 +84,29 @@ class LocalIndex:
         self.db_path = self.data_dir / "nci_si.sqlite3"
         self._init_db()
 
-    def _connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        """Open a connection, commit or roll back its transaction, then close it."""
+
         conn = sqlite3.connect(str(self.db_path))
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA foreign_keys = ON")
-        conn.execute("PRAGMA busy_timeout = 5000")
-        return conn
+        try:
+            conn.row_factory = sqlite3.Row
+            with conn:
+                yield conn
+        finally:
+            conn.close()
 
     def _init_db(self) -> None:
         with self._connect() as conn:
-            conn.execute("PRAGMA journal_mode = WAL")
             version = int(conn.execute("PRAGMA user_version").fetchone()[0])
+            if version == SCHEMA_VERSION:
+                return
             if version > SCHEMA_VERSION:
-                raise RuntimeError(
-                    f"Index schema {version} is newer than supported schema {SCHEMA_VERSION}"
+                raise IndexCompatibilityError(
+                    f"Index schema {version} at {self.db_path} is newer than the "
+                    f"supported schema {SCHEMA_VERSION}"
                 )
+            conn.execute("PRAGMA journal_mode = WAL")
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS manifests (
@@ -143,59 +183,27 @@ class LocalIndex:
                 vector_rows = conn.execute(
                     "SELECT release_version, code, vector FROM concepts"
                 ).fetchall()
-                lsh_rows = []
-                for row in vector_rows:
-                    for band, bucket in vector_lsh_buckets(json.loads(row["vector"])):
-                        lsh_rows.append(
-                            (row["release_version"], row["code"], band, bucket)
-                        )
                 conn.executemany(
                     """
                     INSERT INTO vector_lsh (release_version, code, band, bucket)
                     VALUES (?, ?, ?, ?)
                     """,
-                    lsh_rows,
+                    [
+                        (row["release_version"], row["code"], band, bucket)
+                        for row in vector_rows
+                        for band, bucket in vector_lsh_buckets(json.loads(row["vector"]))
+                    ],
                 )
             conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
+    @staticmethod
+    def _active_manifest(conn: sqlite3.Connection) -> Optional[IndexManifest]:
+        row = conn.execute("SELECT payload FROM manifests WHERE active = 1").fetchone()
+        return IndexManifest.from_payload(json.loads(row["payload"])) if row else None
+
     def get_active_manifest(self) -> Optional[IndexManifest]:
         with self._connect() as conn:
-            row = conn.execute("SELECT payload FROM manifests WHERE active = 1").fetchone()
-        if not row:
-            return None
-        payload = json.loads(row["payload"])
-        return IndexManifest(**payload)
-
-    def get_manifest(self, release_version: str) -> Optional[IndexManifest]:
-        with self._connect() as conn:
-            row = conn.execute(
-                "SELECT payload, active FROM manifests WHERE release_version = ?",
-                (release_version,),
-            ).fetchone()
-        if not row:
-            return None
-        payload = json.loads(row["payload"])
-        payload["active"] = bool(row["active"])
-        return IndexManifest(**payload)
-
-    @staticmethod
-    def _set_active_manifest(conn: sqlite3.Connection, manifest: IndexManifest) -> None:
-        payload = manifest.to_dict()
-        payload["active"] = True
-        conn.execute("UPDATE manifests SET active = 0")
-        conn.execute(
-            """
-            INSERT INTO manifests (release_version, payload, active)
-            VALUES (?, ?, 1)
-            ON CONFLICT(release_version)
-            DO UPDATE SET payload = excluded.payload, active = 1
-            """,
-            (manifest.release_version, json.dumps(payload, sort_keys=True)),
-        )
-
-    def set_active_manifest(self, manifest: IndexManifest) -> None:
-        with self._connect() as conn:
-            self._set_active_manifest(conn, manifest)
+            return self._active_manifest(conn)
 
     def upsert_concepts(
         self,
@@ -204,60 +212,87 @@ class LocalIndex:
         embedding_provider: EmbeddingProvider,
         expected_release_version: Optional[str] = None,
     ) -> IndexManifest:
-        concepts: List[NcitConcept] = []
-        for raw in raw_concepts:
-            concept = normalize_concept(raw, release_date=release_date, source="active_cache")
-            concepts.append(concept)
+        """Add concepts of one release to the index and make that release active.
+
+        Concepts of the active release are added to it, provided the embedding
+        space is the same. Concepts of any other release replace the index.
+        Every check runs before the first write, and all writes share one
+        transaction, so a failure leaves the previous index untouched.
+        """
+
+        by_code = {
+            str(raw.get("code") or ""): normalize_concept(
+                raw, release_date=release_date, source="active_cache"
+            )
+            for raw in raw_concepts
+        }
+        concepts = list(by_code.values())
         if not concepts:
-            raise ValueError("No concepts were provided for indexing")
+            raise IndexBuildError("No concepts were provided for indexing")
+        if "" in by_code:
+            raise IndexBuildError("Indexed concepts must include a code")
         release_version = concepts[0].release_version
         if not release_version:
-            raise ValueError("Indexed concepts must include a release version")
+            raise IndexBuildError("Indexed concepts must include a release version")
         if any(concept.release_version != release_version for concept in concepts):
-            raise ValueError("Cannot mix concept release versions in one index build")
+            raise IndexBuildError("Cannot mix concept release versions in one index build")
         if expected_release_version and release_version != expected_release_version:
             raise IndexCompatibilityError(
                 "EVS concept payload release did not match selected monthly release: "
                 f"{release_version} != {expected_release_version}"
             )
 
-        existing_manifest = self.get_manifest(release_version)
-        if existing_manifest and (
-            existing_manifest.embedding_provider != embedding_provider.name
-            or existing_manifest.embedding_model != embedding_provider.model
-        ):
-            raise IndexCompatibilityError(
-                "Cannot incrementally update a release with a different embedding provider or model"
-            )
-
         search_texts = [concept_search_text(concept) for concept in concepts]
         vectors = embedding_provider.embed(search_texts)
         if len(vectors) != len(concepts):
             raise IndexCompatibilityError("Embedding provider returned an unexpected vector count")
-        dimensions = len(vectors[0]) if vectors else 0
+        dimensions = len(vectors[0])
         if dimensions < 1 or any(len(vector) != dimensions for vector in vectors):
             raise IndexCompatibilityError("Embedding provider returned inconsistent vector dimensions")
-        if (
-            existing_manifest
-            and existing_manifest.embedding_dimensions is not None
-            and existing_manifest.embedding_dimensions != dimensions
-        ):
-            raise IndexCompatibilityError(
-                "Cannot incrementally update a release with different embedding dimensions"
-            )
 
-        rows: List[Tuple[str, str, str, str, str]] = []
-        for concept, search_text, vector in zip(concepts, search_texts, vectors):
-            rows.append(
-                (
-                    concept.release_version,
-                    concept.code,
-                    json.dumps(concept.to_dict(include_raw=True), sort_keys=True),
-                    search_text,
-                    json.dumps(vector),
-                )
-            )
+        codes = [concept.code for concept in concepts]
+        keys = [(release_version, code) for code in codes]
         with self._connect() as conn:
+            # Take the write lock first so the checks and the writes see one state.
+            conn.execute("BEGIN IMMEDIATE")
+            active = self._active_manifest(conn)
+            if active and active.release_version == release_version:
+                stored_dimensions = active.embedding_dimensions or self._stored_dimensions(
+                    conn, release_version
+                )
+                if not active.embedding_matches(
+                    embedding_provider.name, embedding_provider.model
+                ) or stored_dimensions not in (None, dimensions):
+                    raise IndexCompatibilityError(
+                        "The active index was built with a different embedding provider, "
+                        f"model or dimensions; delete {self.db_path} to rebuild it"
+                    )
+                # Only codes already indexed have rows to replace. Deleting from
+                # the FTS table scans it, so skip the codes that are new.
+                replaced = [
+                    (release_version, row["code"])
+                    for chunk in _chunks(codes)
+                    for row in conn.execute(
+                        "SELECT code FROM concepts WHERE release_version = ? AND code IN "
+                        f"({','.join('?' for _ in chunk)})",
+                        [release_version, *chunk],
+                    )
+                ]
+                conn.executemany(
+                    "DELETE FROM concepts_fts WHERE release_version = ? AND code = ?", replaced
+                )
+                conn.executemany(
+                    "DELETE FROM vector_lsh WHERE release_version = ? AND code = ?", replaced
+                )
+            else:
+                for table in ("concepts", "concepts_fts", "vector_lsh"):
+                    conn.execute(f"DELETE FROM {table}")
+                if active:
+                    logger.info(
+                        "index_release_replaced previous=%s new=%s",
+                        active.release_version,
+                        release_version,
+                    )
             conn.executemany(
                 """
                 INSERT INTO concepts (release_version, code, payload, search_text, vector)
@@ -267,40 +302,32 @@ class LocalIndex:
                               search_text = excluded.search_text,
                               vector = excluded.vector
                 """,
-                rows,
-            )
-            conn.executemany(
-                "DELETE FROM concepts_fts WHERE release_version = ? AND code = ?",
-                [(row[0], row[1]) for row in rows],
-            )
-            conn.executemany(
-                """
-                INSERT INTO concepts_fts (release_version, code, search_text)
-                VALUES (?, ?, ?)
-                """,
-                [(row[0], row[1], row[3]) for row in rows],
-            )
-            conn.executemany(
-                "DELETE FROM vector_lsh WHERE release_version = ? AND code = ?",
-                [(row[0], row[1]) for row in rows],
-            )
-            lsh_rows = []
-            for concept, vector in zip(concepts, vectors):
-                for band, bucket in vector_lsh_buckets(vector):
-                    lsh_rows.append(
-                        (concept.release_version, concept.code, band, bucket)
+                [
+                    (
+                        release_version,
+                        concept.code,
+                        json.dumps(concept.to_dict(include_raw=True), sort_keys=True),
+                        search_text,
+                        json.dumps(vector),
                     )
+                    for concept, search_text, vector in zip(concepts, search_texts, vectors)
+                ],
+            )
             conn.executemany(
-                """
-                INSERT INTO vector_lsh (release_version, code, band, bucket)
-                VALUES (?, ?, ?, ?)
-                """,
-                lsh_rows,
+                "INSERT INTO concepts_fts (release_version, code, search_text) VALUES (?, ?, ?)",
+                [(*key, search_text) for key, search_text in zip(keys, search_texts)],
+            )
+            conn.executemany(
+                "INSERT INTO vector_lsh (release_version, code, band, bucket) VALUES (?, ?, ?, ?)",
+                [
+                    (*key, band, bucket)
+                    for key, vector in zip(keys, vectors)
+                    for band, bucket in vector_lsh_buckets(vector)
+                ],
             )
             count = conn.execute(
-                "SELECT COUNT(*) AS count FROM concepts WHERE release_version = ?",
-                (release_version,),
-            ).fetchone()["count"]
+                "SELECT COUNT(*) FROM concepts WHERE release_version = ?", (release_version,)
+            ).fetchone()[0]
             manifest = IndexManifest(
                 terminology="ncit",
                 release_version=release_version,
@@ -313,25 +340,35 @@ class LocalIndex:
                 embedding_dimensions=dimensions,
                 active=True,
             )
-            self._set_active_manifest(conn, manifest)
+            conn.execute("DELETE FROM manifests")
+            conn.execute(
+                "INSERT INTO manifests (release_version, payload, active) VALUES (?, ?, 1)",
+                (release_version, json.dumps(manifest.to_dict(), sort_keys=True)),
+            )
         return manifest
 
-    def get_concept(self, code: str, release_version: Optional[str] = None) -> Optional[NcitConcept]:
-        manifest = self.get_active_manifest()
-        selected_release = release_version or (manifest.release_version if manifest else None)
-        if not selected_release:
-            return None
+    @staticmethod
+    def _stored_dimensions(conn: sqlite3.Connection, release_version: str) -> Optional[int]:
+        """Vector length of an index built before manifests recorded dimensions."""
+
+        row = conn.execute(
+            "SELECT vector FROM concepts WHERE release_version = ? LIMIT 1", (release_version,)
+        ).fetchone()
+        return len(json.loads(row["vector"])) if row else None
+
+    def get_concept(self, code: str) -> Optional[NcitConcept]:
+        """Return a concept of the active release as it was fetched at index time."""
+
         with self._connect() as conn:
             row = conn.execute(
-                "SELECT payload FROM concepts WHERE release_version = ? AND code = ?",
-                (selected_release, code),
+                """
+                SELECT concepts.payload FROM concepts
+                JOIN manifests ON manifests.release_version = concepts.release_version
+                WHERE manifests.active = 1 AND concepts.code = ?
+                """,
+                (code,),
             ).fetchone()
-        if not row:
-            return None
-        payload = json.loads(row["payload"])
-        payload["source"] = "active_cache"
-        payload["retrieved_at"] = utc_now_iso()
-        return NcitConcept(**payload)
+        return NcitConcept(**json.loads(row["payload"])) if row else None
 
     def search(
         self,
@@ -340,151 +377,146 @@ class LocalIndex:
         limit: int = 10,
         mode: str = "hybrid",
     ) -> List[SearchHit]:
-        normalized_query = query.strip()
-        if not normalized_query:
-            raise ValueError("Search query must not be blank")
-        if mode not in SEARCH_MODES:
-            raise ValueError(f"Unknown search mode: {mode}")
-        if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1:
-            raise ValueError("Search limit must be a positive integer")
-        manifest = self.get_active_manifest()
-        if not manifest:
-            raise RuntimeError("No active NCIt index is available. Build an index first.")
-        if (
-            manifest.embedding_provider != embedding_provider.name
-            or manifest.embedding_model != embedding_provider.model
+        """Rank concepts of the active release by BM25, vector similarity, or both.
+
+        Each component is min-max normalized over the concepts scored for this
+        query, so scores rank hits within one result but are not comparable
+        across queries. The hybrid score is 0.55 * BM25 + 0.45 * vector.
+        """
+
+        query, limit, mode = validate_search(query, limit, mode)
+        with self._connect() as conn:
+            manifest = self._active_manifest(conn)
+            if not manifest:
+                raise NoActiveIndexError(
+                    "No active NCIt index is available; build one with the index-sample command"
+                )
+            if not manifest.embedding_matches(embedding_provider.name, embedding_provider.model):
+                raise IndexCompatibilityError(
+                    "Active index embedding provider/model does not match runtime configuration"
+                )
+            release = manifest.release_version
+            bm25_scores: Dict[str, float] = {}
+            if mode != "vector":
+                bm25_scores = self._bm25_scores(conn, release, query, limit)
+            vector_scores: Dict[str, float] = {}
+            if mode != "bm25":
+                vector_scores = self._vector_scores(
+                    conn, manifest, embedding_provider, query, set(bm25_scores)
+                )
+
+            norm_bm25 = min_max_normalize(bm25_scores)
+            norm_vector = min_max_normalize(vector_scores)
+            combined: Dict[str, Tuple[float, Dict[str, float]]] = {}
+            for code in set(norm_bm25) | set(norm_vector):
+                bm25 = norm_bm25.get(code, 0.0)
+                vector = norm_vector.get(code, 0.0)
+                if mode == "bm25":
+                    score = bm25
+                elif mode == "vector":
+                    score = vector
+                else:
+                    score = 0.55 * bm25 + 0.45 * vector
+                combined[code] = (score, {"bm25": bm25, "vector": vector})
+            ranked = sorted(combined.items(), key=lambda item: (-item[1][0], item[0]))[:limit]
+            placeholders = ",".join("?" for _ in ranked)
+            payload_by_code = {
+                row["code"]: json.loads(row["payload"])
+                for row in conn.execute(
+                    f"SELECT code, payload FROM concepts WHERE release_version = ? "
+                    f"AND code IN ({placeholders})",
+                    [release, *(code for code, _ in ranked)],
+                )
+            }
+        return [
+            SearchHit(
+                concept=NcitConcept(**payload_by_code[code]),
+                score=float(score),
+                rank=rank,
+                score_components=components,
+            )
+            for rank, (code, (score, components)) in enumerate(ranked, start=1)
+        ]
+
+    @staticmethod
+    def _bm25_scores(
+        conn: sqlite3.Connection, release: str, query: str, limit: int
+    ) -> Dict[str, float]:
+        tokens = tokenize(query)
+        if not tokens:
+            return {}
+        rows = conn.execute(
+            """
+            SELECT code, -bm25(concepts_fts) AS score
+            FROM concepts_fts
+            WHERE concepts_fts MATCH ? AND release_version = ?
+            ORDER BY bm25(concepts_fts)
+            LIMIT ?
+            """,
+            (
+                " OR ".join(f'"{token}"' for token in tokens),
+                release,
+                min(MAX_FTS_CANDIDATES, max(limit * 10, 100)),
+            ),
+        ).fetchall()
+        return {row["code"]: float(row["score"]) for row in rows}
+
+    @staticmethod
+    def _vector_scores(
+        conn: sqlite3.Connection,
+        manifest: IndexManifest,
+        embedding_provider: EmbeddingProvider,
+        query: str,
+        bm25_codes: Set[str],
+    ) -> Dict[str, float]:
+        query_vectors = embedding_provider.embed([query])
+        if len(query_vectors) != 1:
+            raise IndexCompatibilityError("Embedding provider returned an unexpected query vector count")
+        query_vector = query_vectors[0]
+        if not manifest.embedding_matches(
+            embedding_provider.name, embedding_provider.model, len(query_vector)
         ):
-            raise IndexCompatibilityError(
-                "Active index embedding provider/model does not match runtime configuration"
-            )
+            raise IndexCompatibilityError("Query embedding dimensions do not match the active index")
 
-        bm25_scores: Dict[str, float] = {}
-        vector_scores: Dict[str, float] = {}
-        with self._connect() as conn:
-            if mode in {"bm25", "hybrid"}:
-                tokens = tokenize(normalized_query)
-                if tokens:
-                    match_query = " OR ".join(f'"{token}"' for token in tokens)
-                    candidate_limit = min(MAX_FTS_CANDIDATES, max(limit * 10, 100))
-                    fts_rows = conn.execute(
-                        """
-                        SELECT code, -bm25(concepts_fts) AS score
-                        FROM concepts_fts
-                        WHERE concepts_fts MATCH ? AND release_version = ?
-                        ORDER BY bm25(concepts_fts)
-                        LIMIT ?
-                        """,
-                        (match_query, manifest.release_version, candidate_limit),
-                    ).fetchall()
-                    bm25_scores = {row["code"]: float(row["score"]) for row in fts_rows}
-
-            if mode in {"vector", "hybrid"}:
-                query_vectors = embedding_provider.embed([normalized_query])
-                if len(query_vectors) != 1:
-                    raise IndexCompatibilityError(
-                        "Embedding provider returned an unexpected query vector count"
-                    )
-                query_vector = query_vectors[0]
-                if (
-                    manifest.embedding_dimensions is not None
-                    and len(query_vector) != manifest.embedding_dimensions
-                ):
-                    raise IndexCompatibilityError(
-                        "Query embedding dimensions do not match the active index"
-                    )
-                buckets = vector_lsh_buckets(query_vector)
-                bucket_predicates = " OR ".join(
-                    "(band = ? AND bucket = ?)" for _ in buckets
-                )
-                bucket_parameters: List[object] = [manifest.release_version]
-                for band, bucket in buckets:
-                    bucket_parameters.extend([band, bucket])
-                lsh_limit = MAX_VECTOR_CANDIDATES
-                if mode == "hybrid":
-                    lsh_limit = max(1, MAX_VECTOR_CANDIDATES - len(bm25_scores))
-                bucket_parameters.append(lsh_limit)
-                candidate_rows = conn.execute(
-                    f"SELECT DISTINCT code FROM vector_lsh "
-                    f"WHERE release_version = ? AND ({bucket_predicates}) LIMIT ?",
-                    bucket_parameters,
-                ).fetchall()
-                candidate_codes = {row["code"] for row in candidate_rows}
-                if mode == "hybrid":
-                    candidate_codes.update(bm25_scores)
-                if not candidate_codes:
-                    fallback_rows = conn.execute(
-                        """
-                        SELECT code FROM concepts
-                        WHERE release_version = ? ORDER BY code LIMIT ?
-                        """,
-                        (manifest.release_version, MAX_VECTOR_CANDIDATES),
-                    ).fetchall()
-                    candidate_codes = {row["code"] for row in fallback_rows}
-
-                vector_rows = []
-                candidate_list = sorted(candidate_codes)[:MAX_VECTOR_CANDIDATES]
-                for offset in range(0, len(candidate_list), 500):
-                    chunk = candidate_list[offset : offset + 500]
-                    placeholders = ",".join("?" for _ in chunk)
-                    vector_rows.extend(
-                        conn.execute(
-                            f"SELECT code, vector FROM concepts WHERE release_version = ? "
-                            f"AND code IN ({placeholders})",
-                            [manifest.release_version, *chunk],
-                        ).fetchall()
-                    )
-                for row in vector_rows:
-                    stored_vector = json.loads(row["vector"])
-                    if len(stored_vector) != len(query_vector):
-                        raise IndexCompatibilityError(
-                            "Stored vector dimensions are inconsistent with the active index"
-                        )
-                    vector_scores[row["code"]] = cosine_similarity(
-                        query_vector, stored_vector
-                    )
-
-        norm_bm25 = min_max_normalize(bm25_scores)
-        norm_vector = min_max_normalize(vector_scores)
-        combined: Dict[str, Tuple[float, Dict[str, float]]] = {}
-        candidate_codes = set(norm_bm25) | set(norm_vector)
-        for code in candidate_codes:
-            bm25 = norm_bm25.get(code, 0.0)
-            vector = norm_vector.get(code, 0.0)
-            if mode == "bm25":
-                score = bm25
-            elif mode == "vector":
-                score = vector
-            else:
-                score = 0.55 * bm25 + 0.45 * vector
-            combined[code] = (score, {"bm25": bm25, "vector": vector})
-        ranked = sorted(combined.items(), key=lambda item: (-item[1][0], item[0]))[:limit]
-        if not ranked:
-            return []
-        ranked_codes = [code for code, _ in ranked]
-        placeholders = ",".join("?" for _ in ranked_codes)
-        with self._connect() as conn:
-            payload_rows = conn.execute(
-                f"SELECT code, payload FROM concepts WHERE release_version = ? "
-                f"AND code IN ({placeholders})",
-                [manifest.release_version, *ranked_codes],
+        release = manifest.release_version
+        if manifest.concept_count <= EXACT_VECTOR_SCAN_LIMIT:
+            rows = conn.execute(
+                "SELECT code, vector FROM concepts WHERE release_version = ?", (release,)
             ).fetchall()
-        payload_by_code = {
-            row["code"]: json.loads(row["payload"]) for row in payload_rows
-        }
-        hits: List[SearchHit] = []
-        for rank, (code, (score, components)) in enumerate(ranked, start=1):
-            payload = payload_by_code[code]
-            payload["source"] = "active_cache"
-            payload["retrieved_at"] = utc_now_iso()
-            hits.append(
-                SearchHit(
-                    concept=NcitConcept(**payload),
-                    score=float(score),
-                    rank=rank,
-                    score_components=components,
+        else:
+            # Approximate: prefer the concepts that share the most LSH bands with
+            # the query, and always score the BM25 candidates as well.
+            buckets = vector_lsh_buckets(query_vector)
+            predicates = " OR ".join("(band = ? AND bucket = ?)" for _ in buckets)
+            lsh_rows = conn.execute(
+                f"SELECT code FROM vector_lsh WHERE release_version = ? AND ({predicates}) "
+                "GROUP BY code ORDER BY COUNT(*) DESC, code LIMIT ?",
+                [
+                    release,
+                    *(value for pair in buckets for value in pair),
+                    MAX_VECTOR_CANDIDATES - len(bm25_codes),
+                ],
+            ).fetchall()
+            rows = []
+            for chunk in _chunks(sorted(bm25_codes.union(row["code"] for row in lsh_rows))):
+                placeholders = ",".join("?" for _ in chunk)
+                rows.extend(
+                    conn.execute(
+                        f"SELECT code, vector FROM concepts WHERE release_version = ? "
+                        f"AND code IN ({placeholders})",
+                        [release, *chunk],
+                    ).fetchall()
                 )
-            )
-        return hits
+
+        scores: Dict[str, float] = {}
+        for row in rows:
+            stored_vector = json.loads(row["vector"])
+            if len(stored_vector) != len(query_vector):
+                raise IndexCompatibilityError(
+                    "Stored vector dimensions are inconsistent with the active index"
+                )
+            scores[row["code"]] = cosine_similarity(query_vector, stored_vector)
+        return scores
 
 
 def concept_search_text(concept: NcitConcept) -> str:

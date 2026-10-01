@@ -1,7 +1,8 @@
 """Compatibility shim for older pip editable installs.
 
 Some managed Python environments still require setup.py for
-`pip install -e .` even when pyproject.toml is present.
+`pip install -e .` even when pyproject.toml is present. The metadata below
+repeats pyproject.toml and must be changed together with it.
 """
 
 from pathlib import Path
