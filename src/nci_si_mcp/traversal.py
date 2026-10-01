@@ -46,6 +46,7 @@ RELATIONS: Dict[str, Tuple[str, str]] = {
     "association": ("associations", "association"),
     "inverse_association": ("inverseAssociations", "inverse_association"),
 }
+HIERARCHY_EDGE_TYPES = frozenset({"parent", "child", "descendant"})
 
 
 def clamp_limits(max_depth: int, max_nodes: int) -> Tuple[int, int]:
@@ -198,8 +199,8 @@ def traverse_ncit(
     # have their own request.
     payload_types = [edge_type for edge_type in edge_types if edge_type != "descendant"]
     include = ",".join(["minimal", *(RELATIONS[edge_type][0] for edge_type in payload_types)])
-    inward = any(edge_type.startswith("inverse") for edge_type in edge_types)
-    batch_size = INVERSE_BATCH_SIZE if inward else BATCH_SIZE
+    inverse = any(edge_type.startswith("inverse") for edge_type in edge_types)
+    batch_size = INVERSE_BATCH_SIZE if inverse else BATCH_SIZE
 
     nodes: Dict[str, TraversalNode] = {}
     edges: List[TraversalEdge] = []
@@ -244,7 +245,10 @@ def traverse_ncit(
                 )
             if oversized:
                 # Their relation lists are empty in `concepts`, so they add no edges.
-                logger.warning("traverse_relations_too_large codes=%s", ",".join(oversized))
+                logger.warning(
+                    "traverse_relations_too_large codes=%s limit=NCI_SI_EVS_MAX_RESPONSE_BYTES",
+                    ",".join(oversized),
+                )
                 unexpanded += oversized
                 truncated = True
         if depth == 0:
@@ -284,7 +288,10 @@ def traverse_ncit(
         found += [(code, "descendant", item) for code, item in descendants.get(depth + 1, [])]
         frontier = []
         for code, edge_type, item in found:
-            target = str(item.get("relatedCode") or item.get("code") or "")
+            # A role or association item names its target in `relatedCode`; its
+            # own `code` is that of the relationship.
+            hierarchy = edge_type in HIERARCHY_EDGE_TYPES
+            target = str(item.get("code" if hierarchy else "relatedCode") or "")
             if not target:
                 raise EVSResponseError(f"EVS returned a {edge_type} relation of {code} without a code")
             relationship_name = str(item.get("type") or RELATIONS[edge_type][1])
@@ -299,7 +306,7 @@ def traverse_ncit(
             if len(edges) >= edge_limit:
                 truncated = True
                 return result()
-            target_name = str(item.get("relatedName") or item.get("name") or "")
+            target_name = str(item.get("name" if hierarchy else "relatedName") or "")
             seen_edges.add(edge_key)
             edges.append(
                 TraversalEdge(

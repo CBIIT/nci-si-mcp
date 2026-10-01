@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from fakes import FakeEVS, concept, release
 
@@ -12,6 +13,7 @@ from nci_si_mcp.evs import (
     LOOKUP_INCLUDE,
     EVSClient,
     EVSResponseError,
+    EVSResponseTooLargeError,
     EVSUnavailableError,
     ReleaseResolutionError,
 )
@@ -154,6 +156,15 @@ class LookupTest(ServiceTestCase):
                 self.assertError(self.service.lookup(code), "invalid_request")
         self.assertEqual(self.evs.calls, [])
 
+    def test_an_oversized_response_is_an_invalid_response_not_an_outage(self):
+        self.index()
+        self.evs.errors = {"get_concept": EVSResponseTooLargeError("too large")}
+
+        result = self.service.lookup("C3262")
+
+        self.assertError(result, "evs_invalid_response")
+        self.assertNotIn("fallback", result)
+
 
 class IndexCodesTest(ServiceTestCase):
     def test_indexing_fetches_pinned_batches_and_activates_the_release(self):
@@ -275,6 +286,14 @@ class SearchTest(ServiceTestCase):
         self.assertError(other.search("tumor"), "index_incompatible")
         self.assertFalse(other.release_info()["embedding"]["active_index_compatible"])
         self.assertTrue(self.service.release_info()["embedding"]["active_index_compatible"])
+
+    def test_search_reports_the_release_of_its_hits(self):
+        self.index()
+        with patch.object(self.service.index, "get_active_manifest", return_value=None):
+            result = self.service.search("neoplasm")
+
+        self.assertTrue(result["hits"])
+        self.assertEqual(result["release_version"], "26.06e")
 
 
 class TraverseTest(ServiceTestCase):

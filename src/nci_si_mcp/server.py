@@ -136,9 +136,10 @@ def create_mcp(settings: Optional[Settings] = None, *, service: Optional[NCISISe
         start code directly to every descendant that EVS places within
         `max_depth` levels. EVS gives a descendant one level, which can be
         deeper than its shortest path, so `descendant` edges can miss concepts
-        that a `child` walk of the same depth reaches: few at depth 2, but a
-        fifth to a third below a broad concept at depth 3 or 4. Use `child`
-        edges when every concept within `max_depth` is needed.
+        that a `child` walk of the same depth reaches: a few percent at depth
+        2, and from a few percent up to a third at depth 3 or 4, depending on
+        the concept. Use `child` edges when every concept within `max_depth`
+        is needed.
         `relationship_names` keeps only edges with those names, ignoring case:
         role and association names such as `Disease_Has_Finding`, or
         `is_a_parent`, `is_a_child` and `is_a_descendant` for hierarchy edges.

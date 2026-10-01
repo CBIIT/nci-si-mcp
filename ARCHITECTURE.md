@@ -76,7 +76,8 @@ flowchart LR
 `errors.py` is used by every layer and is left out of the diagram. Also not
 drawn: `index.py` calls the concept normalization in `evs.py`, and the two
 adapters read the closed value sets in `validation.py` and the default limits
-in `traversal.py`.
+in `traversal.py`, and `validation.py` reads the hard node limit in
+`traversal.py`.
 
 ## Components
 
@@ -94,7 +95,7 @@ in `traversal.py`.
 | `evaluation.py` | Evaluates BM25, vector, and hybrid retrieval against a small built-in gold-query set. | Local index, embedding provider |
 | `cadsr.py` | Exposes an explicit `reuse_pending` boundary; no caDSR search or fabricated CDE results are implemented. | Shared models |
 | `config.py` | Loads EVS, retry, batching, logging, data-directory, and embedding settings from environment variables and validates them; whether the data directory is usable shows only when the index is opened. | Environment, `embeddings.py` |
-| `validation.py` | Defines the closed value sets (search modes, directions, edge types), normalizes NCIt codes, and validates search and traversal inputs. | Shared errors |
+| `validation.py` | Defines the closed value sets (search modes, directions, edge types), normalizes NCIt codes, and validates search and traversal inputs. | Shared errors, hard node limit in `traversal.py` |
 | `errors.py` | Defines the validation and index errors, the error codes, and the serialized error envelope. | Python standard library |
 
 ## Primary flows
@@ -162,8 +163,10 @@ in `traversal.py`.
 5. Edges are deduplicated, every emitted edge references emitted nodes, and the
    result reports whether a limit dropped anything. A concept whose relations
    or descendants exceed the EVS response-size limit is kept as a node, sets
-   `truncated`, and is listed in `unexpanded_codes`; the edges that could not
-   be read are missing, and any other selected edge types are still followed.
+   `truncated`, and is listed in `unexpanded_codes`. Its relation lists come in
+   one response and its descendants in another: the response that was too
+   large contributes no edges, so oversized relations drop every selected
+   relation type of that concept, and the other response is still used.
 
 ## Persistence schema
 

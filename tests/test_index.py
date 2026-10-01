@@ -525,7 +525,7 @@ class SearchTest(IndexTestCase):
         self.assertEqual(min_max_normalize({"a": 2.0, "b": 2.0}), {"a": 1.0, "b": 1.0})
         self.assertEqual(min_max_normalize({}), {})
 
-    def test_concept_without_a_matching_term_has_no_bm25_component(self):
+    def test_concept_without_a_matching_term_has_a_zero_bm25_component(self):
         index = self.build()
 
         hits = index.search("kinase inhibition", self.provider, mode="hybrid")
@@ -668,7 +668,7 @@ class SearchTest(IndexTestCase):
         self.assertEqual(len(hits), 20)
         self.assertEqual(hits[0].concept.code, "C0")
 
-    def test_large_release_scores_lsh_and_bm25_candidates_only(self):
+    def test_large_release_gives_bm25_candidates_a_vector_score(self):
         concepts = synthetic_concepts(60)
         index = self.build(concepts)
 

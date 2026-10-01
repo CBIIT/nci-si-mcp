@@ -142,10 +142,10 @@ Each tool description, as sent to MCP clients, states the contract in full.
 every descendant that EVS places within `max_depth` levels, using one EVS
 request per start code. EVS gives a descendant one level, which can be deeper
 than its shortest path, so `descendant` edges can miss concepts that a `child`
-walk of the same depth reaches: few at depth 2, but a fifth to a third below a
-broad concept at depth 3 or 4 (1,414 against 2,043 concepts for C3262 at depth
-4 in release 26.09d). Use `child` edges when every concept within `max_depth`
-is needed. Naming an edge type that the direction or the include flags exclude
+walk of the same depth reaches: a few percent at depth 2, and from a few
+percent up to a third at depth 3 or 4, depending on the concept (1,414 against
+2,043 concepts for C3262 at depth 4 in release 26.09d, but 2,914 against 2,968
+for C12219). Use `child` edges when every concept within `max_depth` is needed. Naming an edge type that the direction or the include flags exclude
 is an `invalid_request`.
 
 The walk proceeds one depth at a time over all start codes, so nearer nodes

@@ -82,7 +82,8 @@ def validate_traversal(
     node_limit = min(max_nodes, HARD_MAX_NODES)
     if len(codes) > node_limit:
         raise InputValidationError(
-            f"{len(codes)} start codes do not fit within the node limit of {node_limit}"
+            f"{len(codes)} start codes exceed the node limit of {node_limit} "
+            f"(max_nodes, at most {HARD_MAX_NODES})"
         )
 
     normalized_edge_types: Optional[List[str]] = None

@@ -149,14 +149,19 @@ class EVSClientTest(unittest.TestCase):
 
     def test_a_complete_body_at_the_size_limit_is_accepted(self, urlopen, sleep):
         client = self.client(max_response_bytes=10)
-        for label, length in {"declared": "10", "unparsable": "ten", "undeclared": None}.items():
+        for label, headers in {
+            "declared": {"Content-Length": "10"},
+            "unparsable": {"Content-Length": "ten"},
+            "undeclared": {},
+            # http.client decodes a chunked body and ignores its Content-Length.
+            "chunked": {"Content-Length": "50", "Transfer-Encoding": "chunked"},
+        }.items():
             with self.subTest(label):
-                headers = {"Content-Length": length} if length else {}
                 urlopen.return_value = FakeResponse(b'{"a": 123}', headers)
 
                 self.assertEqual(client.get_api_version(), {"a": 123})
 
-        self.assertEqual(urlopen.call_count, 3)
+        self.assertEqual(urlopen.call_count, 4)
 
     def test_response_size_is_bounded_before_and_while_reading(self, urlopen, sleep):
         class UnreadableResponse(FakeResponse):
@@ -247,6 +252,38 @@ class EVSClientTest(unittest.TestCase):
     def test_no_codes_means_no_request(self, urlopen, sleep):
         self.assertEqual(self.client().get_concepts_by_codes([" ", ""]), [])
         urlopen.assert_not_called()
+
+    def test_an_empty_body_without_a_declared_length_is_invalid_not_retried(self, urlopen, sleep):
+        urlopen.return_value = FakeResponse(b"")
+
+        with self.assertRaises(EVSResponseError):
+            self.client().get_api_version()
+
+        self.assertEqual(urlopen.call_count, 1)
+
+    def test_a_body_one_byte_short_is_retried(self, urlopen, sleep):
+        urlopen.side_effect = [
+            FakeResponse(b'{"a": 1}', {"Content-Length": "9"}),
+            FakeResponse(b'{"a": 1}\n', {"Content-Length": "9"}),
+        ]
+
+        with self.assertLogs("nci_si_mcp.evs", level="WARNING"):
+            result = self.client(max_attempts=2).get_api_version()
+
+        self.assertEqual(result, {"a": 1})
+        self.assertEqual(urlopen.call_count, 2)
+
+    def test_a_404_from_a_metadata_request_keeps_what_evs_said(self, urlopen, sleep):
+        urlopen.side_effect = http_error(404, b'{"message": "No static resource"}')
+
+        with self.assertRaises(EVSResponseError) as raised:
+            self.client().get_terminologies()
+
+        message = str(raised.exception)
+        self.assertIn("/api/v1/metadata/terminologies", message)
+        self.assertIn("HTTP 404", message)
+        self.assertIn("No static resource", message)
+        self.assertIn("NCI_SI_EVS_BASE_URL", message)
 
 
 if __name__ == "__main__":

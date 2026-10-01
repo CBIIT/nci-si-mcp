@@ -245,10 +245,13 @@ class EVSClient:
             f"EVS response for {path} exceeded {self.max_response_bytes} bytes "
             "(NCI_SI_EVS_MAX_RESPONSE_BYTES)"
         )
-        try:
-            declared_length = int(response.headers.get("Content-Length") or 0)
-        except ValueError:
-            declared_length = 0
+        declared_length = 0
+        # http.client ignores Content-Length for a chunked body, and so does this.
+        if not response.headers.get("Transfer-Encoding"):
+            try:
+                declared_length = int(response.headers.get("Content-Length") or 0)
+            except ValueError:
+                pass
         if declared_length > self.max_response_bytes:
             raise EVSResponseTooLargeError(too_large)
         payload = response.read(self.max_response_bytes + 1)
