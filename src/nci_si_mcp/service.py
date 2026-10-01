@@ -4,21 +4,20 @@ from __future__ import annotations
 
 import functools
 import logging
-import sqlite3
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type, TypeVar, cast
+from typing import Any, Callable, Dict, Iterable, List, Optional, Type, TypeVar, cast
 
 from .cadsr import CadsrAdapter
 from .config import Settings
 from .embeddings import EmbeddingProvider, create_embedding_provider
 from .errors import (
     ErrorCode,
-    IndexBuildError,
     IndexCompatibilityError,
+    IndexStorageError,
     InputValidationError,
     NoActiveIndexError,
     error_response,
 )
-from .evaluation import evaluate_retrieval
+from .evaluation import DEFAULT_GOLD_QUERIES, evaluate_retrieval
 from .evs import (
     EVSClient,
     EVSError,
@@ -27,10 +26,17 @@ from .evs import (
     EVSUnavailableError,
     ReleaseResolutionError,
     normalize_concept,
+    verify_release,
 )
 from .index import LocalIndex
 from .models import utc_now_iso
-from .traversal import DEFAULT_MAX_DEPTH, DEFAULT_MAX_EDGES, DEFAULT_MAX_NODES, traverse_ncit
+from .traversal import (
+    DEFAULT_MAX_DEPTH,
+    DEFAULT_MAX_EDGES,
+    DEFAULT_MAX_NODES,
+    select_edge_types,
+    traverse_ncit,
+)
 from .validation import (
     validate_ncit_code,
     validate_ncit_codes,
@@ -40,26 +46,25 @@ from .validation import (
 
 logger = logging.getLogger(__name__)
 
-# Expected failures and the error code each is reported under. Order matters:
-# a subclass must come before its base. Anything else is a bug and propagates.
-_ERROR_CODES: Tuple[Tuple[Type[Exception], ErrorCode], ...] = (
-    (InputValidationError, "invalid_request"),
-    (EVSNotFoundError, "concept_not_found"),
-    (ReleaseResolutionError, "release_unresolved"),
-    (EVSResponseError, "evs_invalid_response"),
-    (EVSError, "evs_unavailable"),
-    (NoActiveIndexError, "no_active_index"),
-    (IndexCompatibilityError, "index_incompatible"),
-    (IndexBuildError, "index_build_failed"),
-    (sqlite3.Error, "index_storage_error"),
-)
-_EXPECTED_ERRORS = tuple(error_type for error_type, _ in _ERROR_CODES)
+# Expected failures and the error code each is reported under. An exception
+# gets the code of its nearest listed class. Anything else is a bug and propagates.
+_ERROR_CODES: Dict[Type[Exception], ErrorCode] = {
+    InputValidationError: "invalid_request",
+    EVSNotFoundError: "concept_not_found",
+    ReleaseResolutionError: "release_unresolved",
+    EVSResponseError: "evs_invalid_response",
+    EVSError: "evs_unavailable",
+    NoActiveIndexError: "no_active_index",
+    IndexCompatibilityError: "index_incompatible",
+    IndexStorageError: "index_storage_error",
+}
+_EXPECTED_ERRORS = tuple(_ERROR_CODES)
 
 _Method = TypeVar("_Method", bound=Callable[..., Dict[str, Any]])
 
 
 def _envelope(operation: str, exc: Exception) -> Dict[str, Any]:
-    code = next(code for error_type, code in _ERROR_CODES if isinstance(exc, error_type))
+    code = next(_ERROR_CODES[cls] for cls in type(exc).__mro__ if cls in _ERROR_CODES)
     logger.warning("%s_failed error=%s message=%s", operation, code, exc)
     return error_response(code, str(exc))
 
@@ -121,13 +126,22 @@ class NCISIService:
             "embedding": {
                 "provider": self.embedding_provider.name,
                 "model": self.embedding_provider.model,
-                "active_index_compatible": not manifest
-                or manifest.embedding_matches(
-                    self.embedding_provider.name, self.embedding_provider.model
+                "active_index_compatible": bool(
+                    manifest
+                    and manifest.embedding_matches(
+                        self.embedding_provider.name, self.embedding_provider.model
+                    )
                 ),
             },
             "retrieved_at": utc_now_iso(),
         }
+
+    @_enveloped
+    def index_manifest(self) -> Dict[str, Any]:
+        """Return the manifest of the local index under `active_index`, or null."""
+
+        manifest = self.index.get_active_manifest()
+        return {"active_index": manifest.to_dict() if manifest else None}
 
     @_enveloped
     def index_codes(self, codes: Iterable[str]) -> Dict[str, Any]:
@@ -139,6 +153,7 @@ class NCISIService:
             raw_concepts.extend(
                 self.evs.get_concepts_by_codes(batch, terminology=release.pinned_terminology)
             )
+        verify_release(raw_concepts, release.version)
         returned_codes = {str(raw.get("code") or "").strip().upper() for raw in raw_concepts}
         missing_codes = [code for code in normalized_codes if code not in returned_codes]
         if missing_codes:
@@ -174,11 +189,15 @@ class NCISIService:
     ) -> Dict[str, Any]:
         query, limit, mode = validate_search(query, limit, mode)
         hits = self.index.search(query, self.embedding_provider, limit=limit, mode=mode)
-        manifest = self.index.get_active_manifest()
+        if hits:
+            release_version: Optional[str] = hits[0].concept.release_version
+        else:
+            manifest = self.index.get_active_manifest()
+            release_version = manifest.release_version if manifest else None
         return {
             "query": query,
             "mode": mode,
-            "release_version": manifest.release_version if manifest else None,
+            "release_version": release_version,
             "hits": [hit.to_dict(include_raw=include_raw) for hit in hits],
             "retrieved_at": utc_now_iso(),
         }
@@ -190,13 +209,14 @@ class NCISIService:
         Unless `live_only` is set, the result must agree with the active index:
         a different current release is a `version_mismatch`, and when EVS is
         unreachable the concept is served from the index, marked as a fallback.
+        With `live_only` the index is not opened at all.
         """
 
         code = validate_ncit_code(code)
-        manifest = self.index.get_active_manifest()
+        manifest = None if live_only else self.index.get_active_manifest()
         try:
             release = self.evs.resolve_monthly_ncit_release()
-            if manifest and not live_only and manifest.release_version != release.version:
+            if manifest and manifest.release_version != release.version:
                 logger.warning(
                     "lookup_failed error=version_mismatch live=%s index=%s",
                     release.version,
@@ -220,12 +240,8 @@ class NCISIService:
             result["fallback"] = {"reason": "evs_unavailable", "message": str(exc)}
             return result
 
+        verify_release([raw], release.version)
         concept = normalize_concept(raw, release_date=release.date, source="live_evs")
-        if concept.release_version != release.version:
-            raise EVSResponseError(
-                f"EVS served release {concept.release_version} for a request pinned to "
-                f"{release.version}"
-            )
         return concept.to_dict(include_raw=include_raw)
 
     @_enveloped
@@ -251,21 +267,18 @@ class NCISIService:
             edge_types,
             relationship_names,
         )
-        release = self.evs.resolve_monthly_ncit_release()
+        selected = select_edge_types(
+            direction, include_hierarchy, include_roles, include_associations, edge_types
+        )
         return traverse_ncit(
-            client=self.evs,
-            start_codes=start_codes,
-            release_version=release.version,
-            terminology=release.pinned_terminology,
-            direction=direction,
+            self.evs,
+            start_codes,
+            self.evs.resolve_monthly_ncit_release(),
+            selected,
             max_depth=max_depth,
             max_nodes=max_nodes,
             max_edges=max_edges,
-            include_hierarchy=include_hierarchy,
-            include_roles=include_roles,
-            include_associations=include_associations,
             relationship_names=relationship_names,
-            edge_types=edge_types,
         ).to_dict()
 
     @_enveloped
@@ -273,7 +286,14 @@ class NCISIService:
         """Score BM25, vector and hybrid ranking on the built-in gold queries."""
 
         results = evaluate_retrieval(self.index, self.embedding_provider)
-        return {"results": [result.to_dict() for result in results]}
+        gold_codes = {code for gold in DEFAULT_GOLD_QUERIES for code in gold.expected_codes}
+        return {
+            "results": [result.to_dict() for result in results],
+            # A gold concept that is not indexed can never be found.
+            "gold_codes_not_indexed": sorted(
+                code for code in gold_codes if not self.index.get_concept(code)
+            ),
+        }
 
     def cadsr_status(self) -> Dict[str, Any]:
         return self.cadsr.status().to_dict()

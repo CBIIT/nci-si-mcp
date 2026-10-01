@@ -1,6 +1,6 @@
 """Breadth-first NCIt traversal bounded by depth, node count and edge count.
 
-The walk reads live EVS, one batched concept request per level, so its cost
+The walk reads live EVS level by level in batched concept requests, so its cost
 grows with the number of nodes expanded rather than with the number of edges.
 """
 
@@ -10,8 +10,15 @@ import logging
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from .errors import InputValidationError
-from .evs import EVSClient, EVSNotFoundError, EVSResponseError, EVSResponseTooLargeError
-from .models import TraversalEdge, TraversalNode, TraversalResult, utc_now_iso
+from .evs import (
+    EVSClient,
+    EVSNotFoundError,
+    EVSResponseError,
+    EVSResponseTooLargeError,
+    object_list,
+    verify_release,
+)
+from .models import ReleaseInfo, TraversalEdge, TraversalNode, TraversalResult, utc_now_iso
 
 DEFAULT_MAX_DEPTH = 2
 DEFAULT_MAX_NODES = 200
@@ -20,8 +27,8 @@ HARD_MAX_DEPTH = 4
 HARD_MAX_NODES = 1000
 HARD_MAX_EDGES = 5000
 # Concepts per EVS request. Inverse relations of hub concepts run to megabytes
-# each (3.4 MB for a subset concept that lists its members), so inward walks
-# use small batches to stay under the response-size limit.
+# each (3.4 MB for the subset concept C116977 in release 26.09d), so inward
+# walks use small batches to stay under the response-size limit.
 BATCH_SIZE = 50
 INVERSE_BATCH_SIZE = 10
 
@@ -107,6 +114,7 @@ def _fetch_batch(
     try:
         return client.get_concepts_by_codes(batch, terminology=terminology, include=include), []
     except EVSResponseTooLargeError:
+        logger.info("traverse_batch_too_large concepts=%s", len(batch))
         if len(batch) == 1:
             minimal = client.get_concepts_by_codes(batch, terminology=terminology, include="minimal")
             return minimal, list(batch)
@@ -119,13 +127,17 @@ def _fetch_batch(
 def _fetch_concepts(
     client: EVSClient,
     codes: List[str],
-    terminology: str,
+    release: ReleaseInfo,
     include: str,
-    release_version: str,
     batch_size: int,
-) -> Tuple[Dict[str, Dict[str, Any]], List[str]]:
-    """Fetch concepts with their relations and verify they belong to the release."""
+) -> Tuple[Dict[str, Dict[str, Any]], List[str], List[str]]:
+    """Fetch concepts with their relations, pinned to and verified against the release.
 
+    Returns the payloads by code, the codes EVS did not return, and the codes
+    whose relations were too large to read.
+    """
+
+    terminology = release.pinned_terminology
     found: Dict[str, Dict[str, Any]] = {}
     oversized: List[str] = []
     for offset in range(0, len(codes), batch_size):
@@ -134,59 +146,43 @@ def _fetch_concepts(
         )
         found.update((str(raw.get("code") or ""), raw) for raw in concepts)
         oversized += too_large
-    missing = [code for code in codes if code not in found]
-    if missing:
-        raise EVSNotFoundError(
-            f"NCIt release {release_version} has no concept {', '.join(missing)}"
-        )
-    served = {str(raw.get("version") or "") for raw in found.values()}
-    if served != {release_version}:
-        raise EVSResponseError(
-            f"EVS served release {', '.join(sorted(served))} for a request pinned to "
-            f"{release_version}"
-        )
-    return found, oversized
+    verify_release(found.values(), release.version)
+    return found, [code for code in codes if code not in found], oversized
 
 
 def traverse_ncit(
     client: EVSClient,
     start_codes: List[str],
-    release_version: str,
-    terminology: str = "ncit",
-    direction: str = "out",
+    release: ReleaseInfo,
+    edge_types: List[str],
+    *,
     max_depth: int = DEFAULT_MAX_DEPTH,
     max_nodes: int = DEFAULT_MAX_NODES,
     max_edges: int = DEFAULT_MAX_EDGES,
-    include_hierarchy: bool = True,
-    include_roles: bool = True,
-    include_associations: bool = True,
     relationship_names: Optional[List[str]] = None,
-    edge_types: Optional[List[str]] = None,
 ) -> TraversalResult:
-    """Walk outward from the start codes and return the nodes and edges reached.
+    """Walk breadth-first from the start codes along the given edge types.
 
-    `terminology` is the EVS path segment; pass a release's pinned terminology
-    so every request reads `release_version`, which is then verified on each
-    fetched concept. A node at depth d is d hops from a start code.
-    `descendant` edges run from a start code to every descendant within
-    `max_depth` hierarchy levels and place the target at its level.
+    `edge_types` is the output of `select_edge_types`. Every request is pinned
+    to `release`, and each fetched concept is verified against it. The depth
+    of a node is the length of the shortest path that reaches it; a
+    `descendant` edge, which runs from a start code to every descendant within
+    `max_depth` hierarchy levels, counts as many hops as the descendant's level.
 
     An edge is emitted only when both of its nodes are. `truncated` reports
     that something was dropped: by the node or edge limit, or because the
-    relations of a concept exceeded the EVS response-size limit. Nodes at the
-    depth limit are not expanded, which is not truncation.
+    relations of a concept exceeded the EVS response-size limit, in which case
+    the concept is listed in `unexpanded_codes`. Nodes at the depth limit are
+    not expanded, which is not truncation.
     """
 
     depth_limit, node_limit = clamp_limits(max_depth, max_nodes)
     edge_limit = clamp_edge_limit(max_edges)
-    selected = select_edge_types(
-        direction, include_hierarchy, include_roles, include_associations, edge_types
-    )
     name_filter = {name.lower() for name in relationship_names or []}
     # Relations read from the concept payload; descendants have their own request.
-    payload_keys = [RELATIONS[edge_type][0] for edge_type in selected if edge_type != "descendant"]
+    payload_keys = [RELATIONS[edge_type][0] for edge_type in edge_types if edge_type != "descendant"]
     include = ",".join(["minimal", *payload_keys])
-    inward = any(edge_type.startswith("inverse") for edge_type in selected)
+    inward = any(edge_type.startswith("inverse") for edge_type in edge_types)
     batch_size = INVERSE_BATCH_SIZE if inward else BATCH_SIZE
     start = list(dict.fromkeys(start_codes))
     if len(start) > node_limit:
@@ -195,13 +191,17 @@ def traverse_ncit(
     nodes: Dict[str, TraversalNode] = {}
     edges: List[TraversalEdge] = []
     seen_edges: Set[Tuple[str, str, str, str]] = set()
+    unexpanded: List[str] = []
     truncated = False
+    # A node is expanded at its shallowest known depth. A shorter path found
+    # later moves it to an earlier frontier, and the stale entry is skipped.
+    depth_of: Dict[str, int] = {code: 0 for code in start}
     frontiers: Dict[int, List[str]] = {0: start}
 
     def result() -> TraversalResult:
         return TraversalResult(
             start_codes=start,
-            release_version=release_version,
+            release_version=release.version,
             nodes=list(nodes.values()),
             edges=edges,
             truncated=truncated,
@@ -209,25 +209,31 @@ def traverse_ncit(
             max_nodes=node_limit,
             max_edges=edge_limit,
             retrieved_at=utc_now_iso(),
+            unexpanded_codes=unexpanded,
         )
 
     for depth in range(depth_limit + 1):
-        frontier = frontiers.get(depth, [])
+        frontier = [code for code in frontiers.get(depth, []) if depth_of[code] == depth]
         expand = depth < depth_limit
         if not frontier or (depth > 0 and not (expand and payload_keys)):
             continue
         # Start codes are always fetched, to name them and to prove they exist.
-        concepts, oversized = _fetch_concepts(
-            client,
-            frontier,
-            terminology,
-            include if expand else "minimal",
-            release_version,
-            batch_size,
+        concepts, missing, oversized = _fetch_concepts(
+            client, frontier, release, include if expand else "minimal", batch_size
         )
+        if missing and depth == 0:
+            raise EVSNotFoundError(
+                f"NCIt release {release.version} has no concept {', '.join(missing)}"
+            )
+        if missing:
+            raise EVSResponseError(
+                f"EVS relations in release {release.version} refer to {', '.join(missing)}, "
+                "which it does not serve"
+            )
         if oversized:
             # Their relation lists are empty in `concepts`, so they add no edges.
             logger.warning("traverse_relations_too_large codes=%s", ",".join(oversized))
+            unexpanded += oversized
             truncated = True
         if depth == 0:
             for code in frontier:
@@ -235,18 +241,24 @@ def traverse_ncit(
                     code=code,
                     preferred_name=str(concepts[code].get("name") or ""),
                     terminology="ncit",
-                    release_version=release_version,
+                    release_version=release.version,
                 )
         if not expand:
             break
         for code in frontier:
-            raw = concepts[code]
-            for edge_type in selected:
+            for edge_type in edge_types:
                 payload_key, default_name = RELATIONS[edge_type]
                 if edge_type != "descendant":
-                    items = raw.get(payload_key) or []
+                    items = object_list(concepts[code], payload_key)
                 elif depth == 0:
-                    items = client.get_descendants(code, depth_limit, terminology=terminology)
+                    # EVS orders descendants by name; nearer levels must claim
+                    # the node budget first.
+                    items = sorted(
+                        client.get_descendants(
+                            code, depth_limit, terminology=release.pinned_terminology
+                        ),
+                        key=lambda item: int(item.get("level") or 1),
+                    )
                 else:
                     continue
                 for item in items:
@@ -282,8 +294,10 @@ def traverse_ncit(
                             code=target,
                             preferred_name=target_name,
                             terminology="ncit",
-                            release_version=release_version,
+                            release_version=release.version,
                         )
-                        hops = int(item.get("level") or 1) if edge_type == "descendant" else 1
+                    hops = int(item.get("level") or 1) if edge_type == "descendant" else 1
+                    if depth + hops < depth_of.get(target, depth_limit + 1):
+                        depth_of[target] = depth + hops
                         frontiers.setdefault(depth + hops, []).append(target)
     return result()

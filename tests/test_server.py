@@ -6,7 +6,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fakes import FakeEVS, concept
 
@@ -107,13 +107,16 @@ class ServerTest(unittest.TestCase):
             set(tools),
             {"ncit_search", "ncit_lookup", "ncit_traverse", "ncit_release_info", "cadsr_status"},
         )
-        for tool in tools.values():
-            self.assertGreater(len(tool.description), 80, tool.name)
-        traverse = tools["ncit_traverse"].input_schema["properties"]
-        self.assertEqual(traverse["direction"]["enum"], ["out", "in", "both"])
-        self.assertIn("inverse_role", traverse["edge_types"]["anyOf"][0]["items"]["enum"])
-        search = tools["ncit_search"].input_schema["properties"]
-        self.assertEqual(search["mode"]["enum"], ["hybrid", "bm25", "vector"])
+        # The closed value sets are advertised in the schemas, wherever the
+        # schema generator puts them.
+        traverse_schema = json.dumps(tools["ncit_traverse"].input_schema)
+        for value in ("both", "inverse_role", "descendant"):
+            self.assertIn(f'"{value}"', traverse_schema)
+        self.assertIn('"hybrid"', json.dumps(tools["ncit_search"].input_schema))
+        for term in ("version_mismatch", "concept_not_found", "fallback", "live_only"):
+            self.assertIn(term, tools["ncit_lookup"].description)
+        for term in ("truncated", "unexpanded_codes", "descendant", "relationship_names"):
+            self.assertIn(term, tools["ncit_traverse"].description)
 
     def test_three_resource_templates_are_registered_as_json(self, _):
         templates = self.session(lambda client: client.list_resource_templates()).resource_templates
@@ -152,6 +155,38 @@ class ServerTest(unittest.TestCase):
         is_error, status = self.call("cadsr_status")
         self.assertFalse(is_error)
         self.assertEqual(status["state"], "reuse_pending")
+
+    def test_every_tool_argument_reaches_the_service(self, _):
+        self.service = MagicMock(spec=NCISIService)
+        for method in ("search", "lookup", "traverse"):
+            getattr(self.service, method).return_value = {"ok": True}
+
+        search = {"query": "tumor", "limit": 7, "mode": "vector", "include_raw": True}
+        self.assertEqual(self.call("ncit_search", **search), (False, {"ok": True}))
+        self.service.search.assert_called_once_with(**search)
+
+        lookup = {"code": "C1", "live_only": True, "include_raw": True}
+        self.call("ncit_lookup", **lookup)
+        self.service.lookup.assert_called_once_with(**lookup)
+
+        traverse = {
+            "start_codes": ["C1", "C2"],
+            "direction": "both",
+            "max_depth": 3,
+            "max_nodes": 40,
+            "max_edges": 50,
+            "include_hierarchy": False,
+            "include_roles": False,
+            "include_associations": False,
+            "relationship_names": ["Has_Finding"],
+            "edge_types": ["role", "inverse_role"],
+        }
+        self.call("ncit_traverse", **traverse)
+        self.service.traverse.assert_called_once_with(**traverse)
+
+        self.service.lookup.reset_mock()
+        self.read("nci-si://concept/ncit/C1")
+        self.service.lookup.assert_called_once_with(code="C1")
 
     def test_error_envelopes_are_flagged_as_protocol_errors(self, _):
         failures = {
@@ -209,6 +244,12 @@ class ServerTest(unittest.TestCase):
             self.read("nci-si://release/ncit/26.06e")
         envelope = json.loads(str(raised.exception))
         self.assertEqual((envelope["error"], envelope["message"]), ("evs_unavailable", "down"))
+
+        (self.settings.data_dir / "nci_si.sqlite3").write_bytes(b"not a database" * 100)
+        for uri in ("nci-si://index/ncit/active/manifest", "nci-si://release/ncit/monthly"):
+            with self.subTest(uri), self.assertRaises(MCPError) as raised:
+                self.read(uri)
+            self.assertEqual(json.loads(str(raised.exception))["error"], "index_storage_error")
 
 
 if __name__ == "__main__":

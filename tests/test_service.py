@@ -1,14 +1,13 @@
-import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 from fakes import FakeEVS, concept, release
 
 from nci_si_mcp.config import Settings
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.evs import (
+    EVSClient,
     EVSResponseError,
     EVSUnavailableError,
     ReleaseResolutionError,
@@ -20,8 +19,10 @@ NEOPLASM = concept(
     "C3262",
     "Neoplasm",
     synonyms=[{"name": "Tumor"}],
+    parents=[{"code": "C2991", "name": "Disease or Disorder"}],
     children=[{"code": "C4741", "name": "Neoplasm by Morphology"}],
     roles=[{"type": "Disease_Has_Abnormal_Cell", "relatedCode": "C12922", "relatedName": "Neoplastic Cell"}],
+    associations=[{"type": "Concept_In_Subset", "relatedCode": "C165258", "relatedName": "A Subset"}],
 )
 KINASE = concept("C40704", "Receptor Tyrosine Kinase Inhibition")
 
@@ -63,6 +64,7 @@ class LookupTest(ServiceTestCase):
         self.assertEqual(result["release_date"], "2026-06-29")
         self.assertNotIn("raw", result)
         self.assertNotIn("fallback", result)
+        self.assertEqual(result["evidence"]["synonyms"][0]["name"], "Tumor")
         self.assertIn(("get_concept", "ncit_26.06e", "C3262"), self.evs.calls)
         self.assertIn("raw", self.service.lookup("C3262", include_raw=True))
 
@@ -127,12 +129,12 @@ class LookupTest(ServiceTestCase):
         live = self.service.lookup("C3262", live_only=True)
         self.assertEqual((live["source"], live["release_version"]), ("live_evs", "26.07d"))
 
-    def test_stale_cache_is_not_served_when_the_new_release_cannot_be_fetched(self):
+    def test_live_only_does_not_open_the_index(self):
         self.index()
-        self.evs.release = release("26.07d", "2026-07-27")
-        self.evs.errors = {"get_concept": EVSUnavailableError("connection refused")}
+        (self.path / "nci_si.sqlite3").write_bytes(b"not a database" * 100)
 
-        self.assertError(self.service.lookup("C3262"), "version_mismatch")
+        self.assertError(self.service.lookup("C3262"), "index_storage_error")
+        self.assertEqual(self.service.lookup("C3262", live_only=True)["source"], "live_evs")
 
     def test_concept_served_from_another_release_than_requested_is_rejected(self):
         self.evs.concepts["C3262"] = dict(NEOPLASM, version="26.07a")
@@ -176,19 +178,22 @@ class IndexCodesTest(ServiceTestCase):
         self.assertEqual(result["details"], {"missing_codes": ["C999"]})
         self.assertEqual(self.service.index.get_active_manifest().to_dict(), before)
 
-    def test_payload_from_another_release_does_not_replace_the_index(self):
+    def test_payload_from_another_release_than_requested_changes_nothing(self):
         before = self.index("C3262")
         self.evs.concepts["C40704"] = dict(KINASE, version="26.07a")
 
-        self.assertError(self.service.index_codes(["C40704"]), "index_incompatible")
-        self.assertEqual(self.service.index.get_active_manifest().to_dict(), before)
+        for codes in (["C40704"], ["C3262", "C40704"]):
+            with self.subTest(codes=codes):
+                self.assertError(self.service.index_codes(codes), "evs_invalid_response")
+                self.assertEqual(self.service.index.get_active_manifest().to_dict(), before)
 
-    def test_release_changing_between_batches_fails_the_build(self):
-        self.service = self.make_service(index_batch_size=1)
-        self.evs.concepts["C40704"] = dict(KINASE, version="26.07a")
+    def test_indexed_concepts_carry_their_synonyms_and_definitions(self):
+        self.index("C3262")
 
-        self.assertError(self.service.index_codes(["C3262", "C40704"]), "index_build_failed")
-        self.assertIsNone(self.service.index.get_active_manifest())
+        cached = self.service.index.get_concept("C3262")
+
+        self.assertEqual(cached.evidence["synonyms"][0]["name"], "Tumor")
+        self.assertEqual(self.evs.includes[-1], "summary,definitions,synonyms,properties")
 
     def test_invalid_or_empty_codes_are_rejected(self):
         for codes in ([], ["C3262", "oops"]):
@@ -216,6 +221,21 @@ class SearchTest(ServiceTestCase):
         with_raw = self.service.search("tumor", include_raw=True)
         self.assertIn("raw", with_raw["hits"][0]["concept"])
 
+    def test_search_honours_limit_and_mode(self):
+        self.index()
+
+        self.assertEqual(len(self.service.search("tumor", limit=1, mode="vector")["hits"]), 1)
+        self.assertEqual(len(self.service.search("tumor", mode="vector")["hits"]), 2)
+        self.assertEqual(len(self.service.search("tumor", mode="bm25")["hits"]), 1)
+        self.assertEqual(len(self.service.search("tumor", mode="hybrid")["hits"]), 2)
+
+    def test_search_without_hits_still_names_the_release(self):
+        self.index()
+
+        result = self.service.search("zzzz", mode="bm25")
+
+        self.assertEqual((result["hits"], result["release_version"]), ([], "26.06e"))
+
     def test_search_needs_an_index(self):
         self.assertError(self.service.search("tumor"), "no_active_index")
 
@@ -231,7 +251,8 @@ class SearchTest(ServiceTestCase):
             with self.subTest(arguments=arguments):
                 self.assertError(self.service.search(**arguments), "invalid_request")
 
-    def test_runtime_from_another_embedding_space_is_reported_everywhere(self):
+    def test_index_compatibility_is_reported_consistently(self):
+        self.assertFalse(self.service.release_info()["embedding"]["active_index_compatible"])
         self.index()
         other = self.make_service(provider=HashingEmbeddingProvider(dimensions=64))
 
@@ -252,6 +273,28 @@ class TraverseTest(ServiceTestCase):
         )
         self.assertEqual(result["nodes"][0]["preferred_name"], "Neoplasm")
         self.assertIn(("get_concepts_by_codes", "ncit_26.06e", ["C3262"]), self.evs.calls)
+
+    def test_direction_limits_and_name_filter_reach_the_walk(self):
+        def targets(**arguments):
+            result = self.service.traverse(["C3262"], max_depth=1, **arguments)
+            return [edge["target_code"] for edge in result["edges"]], result["truncated"]
+
+        self.assertEqual(targets(), (["C4741", "C12922", "C165258"], False))
+        self.assertEqual(targets(direction="in"), (["C2991"], False))
+        self.assertEqual(targets(max_edges=1), (["C4741"], True))
+        self.assertEqual(targets(max_nodes=2), (["C4741"], True))
+        self.assertEqual(targets(include_hierarchy=False), (["C12922", "C165258"], False))
+        self.assertEqual(targets(include_roles=False), (["C4741", "C165258"], False))
+        self.assertEqual(targets(include_associations=False), (["C4741", "C12922"], False))
+        self.assertEqual(
+            targets(relationship_names=["Disease_Has_Abnormal_Cell"]), (["C12922"], False)
+        )
+
+    def test_invalid_selection_is_rejected_before_any_request(self):
+        self.evs.errors = {"resolve_monthly_ncit_release": EVSUnavailableError("down")}
+
+        self.assertError(self.service.traverse(["C3262"], edge_types=["parent"]), "invalid_request")
+        self.assertEqual(self.evs.calls, [])
 
     def test_failures_use_the_matching_error_code(self):
         self.assertError(self.service.traverse(["C999"]), "concept_not_found")
@@ -312,13 +355,45 @@ class StatusTest(ServiceTestCase):
         self.assertIn("found 2", result["selected_monthly_release"]["message"])
         self.assertEqual(result["active_index"]["release_version"], "26.06e")
 
-    def test_evaluate_scores_every_mode_and_needs_an_index(self):
+    def test_evaluate_scores_every_mode_and_names_gold_concepts_that_are_not_indexed(self):
         self.assertError(self.service.evaluate(), "no_active_index")
         self.index()
 
         result = self.service.evaluate()
 
         self.assertEqual([item["mode"] for item in result["results"]], ["bm25", "vector", "hybrid"])
+        self.assertEqual(result["gold_codes_not_indexed"], ["C116938"])
+
+    def test_index_manifest_is_null_until_an_index_exists(self):
+        self.assertEqual(self.service.index_manifest(), {"active_index": None})
+        self.index()
+
+        self.assertEqual(self.service.index_manifest()["active_index"]["concept_count"], 2)
+
+    def test_settings_configure_the_evs_client(self):
+        service = NCISIService(
+            Settings(
+                data_dir=self.path,
+                evs_base_url="http://localhost:8080",
+                timeout_seconds=2.5,
+                evs_max_attempts=7,
+                evs_retry_backoff_seconds=1.5,
+                evs_max_response_bytes=123,
+            )
+        )
+
+        self.assertIsInstance(service.evs, EVSClient)
+        self.assertEqual(
+            (
+                service.evs.base_url,
+                service.evs.timeout_seconds,
+                service.evs.max_attempts,
+                service.evs.retry_backoff_seconds,
+                service.evs.max_response_bytes,
+            ),
+            ("http://localhost:8080", 2.5, 7, 1.5, 123),
+        )
+        self.assertEqual(service.embedding_provider.model, "hashing-128")
 
     def test_cadsr_reports_that_reuse_is_pending(self):
         status = self.service.cadsr_status()
@@ -328,21 +403,23 @@ class StatusTest(ServiceTestCase):
 
 
 class FailureHandlingTest(ServiceTestCase):
-    def test_storage_errors_are_reported_and_logged(self):
-        locked = sqlite3.OperationalError("database is locked")
+    def test_unusable_database_is_reported_with_its_path(self):
+        self.index()
+        database = self.path / "nci_si.sqlite3"
+        database.write_bytes(b"not a database" * 100)
         calls = {
             "index_codes": lambda: self.service.index_codes(["C3262"]),
             "search": lambda: self.service.search("tumor"),
             "lookup": lambda: self.service.lookup("C3262"),
             "release_info": self.service.release_info,
+            "index_manifest": self.service.index_manifest,
+            "evaluate": self.service.evaluate,
         }
         for operation, call in calls.items():
-            with self.subTest(operation), patch.object(
-                self.service.index, "_connect", side_effect=locked
-            ), self.assertLogs("nci_si_mcp.service", level="WARNING") as logs:
+            with self.subTest(operation), self.assertLogs("nci_si_mcp.service", level="WARNING"):
                 result = call()
             self.assertError(result, "index_storage_error")
-            self.assertIn(f"{operation}_failed error=index_storage_error", logs.output[0])
+            self.assertIn(str(database), result["message"])
 
     def test_unexpected_exceptions_are_not_disguised_as_results(self):
         class BrokenProvider(HashingEmbeddingProvider):

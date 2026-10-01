@@ -16,7 +16,6 @@ ErrorCode = Literal[
     "version_mismatch",
     "no_active_index",
     "index_incompatible",
-    "index_build_failed",
     "index_storage_error",
     "release_not_active",
     "index_not_active",
@@ -32,11 +31,19 @@ class IndexCompatibilityError(RuntimeError):
 
 
 class IndexBuildError(RuntimeError):
-    """Raised when the concepts supplied for an index build cannot form one release."""
+    """Raised when the concepts handed to the index cannot form one release.
+
+    The service checks its EVS payloads before indexing, so this signals a bug
+    in a caller rather than a condition to report to a user.
+    """
 
 
 class NoActiveIndexError(RuntimeError):
     """Raised when a search is attempted before any index has been built."""
+
+
+class IndexStorageError(RuntimeError):
+    """Raised when SQLite cannot open, read or write the index database."""
 
 
 def error_response(code: ErrorCode, message: str, /, **details: Any) -> Dict[str, Any]:

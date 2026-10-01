@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -10,6 +11,7 @@ from unittest.mock import MagicMock, patch
 
 from fakes import FakeEVS, concept
 
+import nci_si_mcp
 from nci_si_mcp.cli import build_parser, main
 from nci_si_mcp.config import Settings
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
@@ -51,8 +53,12 @@ class MainTest(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         self.path = Path(directory.name)
 
-    def run_cli(self, *argv, fake_service=True, **environment):
-        """Run `main` and return (exit code, parsed stdout, stderr text)."""
+    def run_cli(self, *argv, service="fake", **environment):
+        """Run `main` and return (exit code, parsed stdout, stderr text).
+
+        `service` is "fake" for a real service over FakeEVS, "real" to let the
+        CLI build its own, or an object to hand to the CLI as the service.
+        """
 
         stdout, stderr = io.StringIO(), io.StringIO()
         environment.setdefault("NCI_SI_DATA_DIR", str(self.path))
@@ -62,13 +68,14 @@ class MainTest(unittest.TestCase):
             redirect_stdout(stdout),
             redirect_stderr(stderr),
         ]
-        if fake_service:
+        if service == "fake":
             service = NCISIService(
                 Settings(data_dir=self.path),
                 evs=FakeEVS([NEOPLASM]),
                 index=LocalIndex(self.path),
                 embedding_provider=HashingEmbeddingProvider(),
             )
+        if service != "real":
             patches.append(patch("nci_si_mcp.cli.NCISIService", return_value=service))
         with ExitStack() as stack:
             for item in patches:
@@ -96,6 +103,38 @@ class MainTest(unittest.TestCase):
         code, evaluation, _ = self.run_cli("evaluate")
         self.assertEqual((code, len(evaluation["results"])), (0, 3))
 
+    def test_every_option_reaches_the_service(self, _):
+        service = MagicMock(spec=NCISIService)
+        for method in ("index_codes", "search", "lookup", "traverse"):
+            getattr(service, method).return_value = {"ok": True}
+
+        self.run_cli("index-sample", "C1", "C2", service=service)
+        service.index_codes.assert_called_once_with(["C1", "C2"])
+
+        self.run_cli(
+            "search", "tumor", "--limit", "7", "--mode", "vector", "--include-raw", service=service
+        )
+        service.search.assert_called_once_with("tumor", limit=7, mode="vector", include_raw=True)
+
+        self.run_cli("lookup", "C1", "--live-only", "--include-raw", service=service)
+        service.lookup.assert_called_once_with("C1", live_only=True, include_raw=True)
+
+        options = "--direction both --max-depth 3 --max-nodes 40 --max-edges 50 --no-hierarchy"
+        options += " --no-roles --no-associations --relationship-name Has_Finding --edge-type role"
+        self.run_cli("traverse", "C1", "C2", *options.split(), service=service)
+        service.traverse.assert_called_once_with(
+            start_codes=["C1", "C2"],
+            direction="both",
+            max_depth=3,
+            max_nodes=40,
+            max_edges=50,
+            include_hierarchy=False,
+            include_roles=False,
+            include_associations=False,
+            relationship_names=["Has_Finding"],
+            edge_types=["role"],
+        )
+
     def test_error_envelope_exits_one(self, _):
         for argv, error in (
             (["lookup", "C999"], "concept_not_found"),
@@ -108,23 +147,29 @@ class MainTest(unittest.TestCase):
                 self.assertEqual((code, result["error"]), (1, error))
 
     def test_invalid_configuration_names_the_variable(self, _):
-        code, result, _ = self.run_cli("release-info", NCI_SI_TIMEOUT_SECONDS="0")
-
-        self.assertEqual((code, result["error"]), (1, "invalid_configuration"))
-        self.assertIn("NCI_SI_TIMEOUT_SECONDS", result["message"])
+        for variable, value in (
+            ("NCI_SI_TIMEOUT_SECONDS", "0"),
+            ("NCI_SI_EMBEDDING_PROVIDER", "bogus"),
+            ("NCI_SI_EMBEDDING_MODEL", "all-MiniLM-L6-v2"),
+        ):
+            with self.subTest(variable):
+                code, result, _ = self.run_cli("release-info", service="real", **{variable: value})
+                self.assertEqual((code, result["error"]), (1, "invalid_configuration"))
+                self.assertIn(variable, result["message"])
 
     def test_startup_failures_are_reported_not_raised(self, _):
         occupied = self.path / "occupied"
         occupied.write_text("not a directory")
-        (self.path / "nci_si.sqlite3").write_text("not a database")
-        for label, environment in {
-            "unknown provider": {"NCI_SI_EMBEDDING_PROVIDER": "bogus"},
-            "data dir is a file": {"NCI_SI_DATA_DIR": str(occupied)},
-            "corrupt database": {},
-        }.items():
+        corrupt = self.path / "corrupt"
+        corrupt.mkdir()
+        (corrupt / "nci_si.sqlite3").write_text("not a database" * 100)
+        for label, data_dir in {"data dir is a file": occupied, "corrupt database": corrupt}.items():
             with self.subTest(label):
-                code, result, _ = self.run_cli("search", "tumor", fake_service=False, **environment)
+                code, result, _ = self.run_cli(
+                    "search", "tumor", service="real", NCI_SI_DATA_DIR=str(data_dir)
+                )
                 self.assertEqual((code, result["error"]), (1, "startup_failed"))
+                self.assertIn(str(data_dir), result["message"])
 
     def test_serve_runs_the_server_and_keeps_stdout_for_the_protocol(self, _):
         server = MagicMock()
@@ -135,13 +180,38 @@ class MainTest(unittest.TestCase):
         server.run.assert_called_once_with()
         self.assertIsInstance(create.call_args.kwargs["service"], NCISIService)
 
-    def test_serve_startup_failure_goes_to_stderr(self, _):
+    def test_serve_failures_go_to_stderr(self, _):
         with patch("nci_si_mcp.cli.create_mcp", side_effect=RuntimeError("mcp is missing")):
             code, printed, stderr = self.run_cli("serve")
 
         self.assertEqual((code, printed), (1, None))
         self.assertEqual(json.loads(stderr)["error"], "startup_failed")
         self.assertIn("mcp is missing", stderr)
+
+        code, printed, stderr = self.run_cli("serve", NCI_SI_TIMEOUT_SECONDS="0")
+
+        self.assertEqual((code, printed), (1, None))
+        self.assertEqual(json.loads(stderr)["error"], "invalid_configuration")
+
+
+class ProcessTest(unittest.TestCase):
+    def test_results_go_to_stdout_and_diagnostics_to_stderr(self):
+        with tempfile.TemporaryDirectory() as data_dir:
+            process = subprocess.run(
+                [sys.executable, "-m", "nci_si_mcp.cli", "lookup", "oops"],
+                capture_output=True,
+                text=True,
+                env={
+                    **os.environ,
+                    "PYTHONPATH": str(Path(nci_si_mcp.__file__).parents[1]),
+                    "NCI_SI_DATA_DIR": data_dir,
+                },
+            )
+
+        self.assertEqual(process.returncode, 1)
+        self.assertEqual(json.loads(process.stdout)["error"], "invalid_request")
+        self.assertIn("lookup_failed error=invalid_request", process.stderr)
+        self.assertIn("WARNING", process.stderr)
 
 
 if __name__ == "__main__":

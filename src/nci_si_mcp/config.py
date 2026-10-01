@@ -10,6 +10,11 @@ from pathlib import Path
 from typing import Callable, TypeVar
 from urllib.parse import urlsplit
 
+from .embeddings import normalize_embedding_settings
+
+# Upper bound for the timeout and backoff settings; socket timeouts overflow far above it.
+MAX_SECONDS = 3600
+
 DEFAULT_EVS_BASE_URL = "https://api-evsrest.nci.nih.gov"
 DEFAULT_EMBEDDING_MODEL = "hashing"
 
@@ -21,7 +26,8 @@ def _env_number(name: str, default: str, cast: Callable[[str], _Number]) -> _Num
     try:
         return cast(value)
     except ValueError:
-        raise ValueError(f"{name} must be a number, not {value!r}") from None
+        kind = "an integer" if cast is int else "a number"
+        raise ValueError(f"{name} must be {kind}, not {value!r}") from None
 
 
 @dataclass(frozen=True)
@@ -38,22 +44,40 @@ class Settings:
     log_level: str = "INFO"
 
     def __post_init__(self) -> None:
-        # The comparisons are written so that NaN fails them.
-        url = urlsplit(self.evs_base_url)
-        if url.scheme not in ("http", "https") or not url.netloc:
-            raise ValueError("NCI_SI_EVS_BASE_URL must be an http(s) URL")
-        if not self.timeout_seconds > 0:
-            raise ValueError("NCI_SI_TIMEOUT_SECONDS must be greater than zero")
+        try:
+            url = urlsplit(self.evs_base_url)
+            valid_url = (
+                url.scheme in ("http", "https")
+                and bool(url.hostname)
+                and " " not in self.evs_base_url
+                and not url.query
+                and not url.fragment
+                and (url.port is None or url.port > 0)
+            )
+        except ValueError:
+            valid_url = False
+        if not valid_url:
+            raise ValueError(
+                "NCI_SI_EVS_BASE_URL must be an http(s) URL without query or fragment"
+            )
+        # Written so that NaN fails the comparison.
+        if not 0 < self.timeout_seconds <= MAX_SECONDS:
+            raise ValueError(
+                f"NCI_SI_TIMEOUT_SECONDS must be greater than zero and at most {MAX_SECONDS}"
+            )
         if self.evs_max_attempts < 1:
             raise ValueError("NCI_SI_EVS_MAX_ATTEMPTS must be at least 1")
-        if not self.evs_retry_backoff_seconds >= 0:
-            raise ValueError("NCI_SI_EVS_RETRY_BACKOFF_SECONDS must not be negative")
+        if not 0 <= self.evs_retry_backoff_seconds <= MAX_SECONDS:
+            raise ValueError(
+                f"NCI_SI_EVS_RETRY_BACKOFF_SECONDS must be between zero and {MAX_SECONDS}"
+            )
         if self.evs_max_response_bytes < 1:
             raise ValueError("NCI_SI_EVS_MAX_RESPONSE_BYTES must be at least 1")
         if self.index_batch_size < 1:
             raise ValueError("NCI_SI_INDEX_BATCH_SIZE must be at least 1")
         if self.log_level.upper() not in {"CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"}:
             raise ValueError("NCI_SI_LOG_LEVEL must be a standard logging level")
+        normalize_embedding_settings(self.embedding_provider, self.embedding_model)
 
     @classmethod
     def from_env(cls) -> "Settings":

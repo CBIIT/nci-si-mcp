@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import math
 from abc import ABC, abstractmethod
-from typing import Iterable, List
+from typing import Iterable, List, Tuple
 
 
 class EmbeddingProvider(ABC):
@@ -64,7 +64,9 @@ class SentenceTransformersProvider(EmbeddingProvider):
         return [list(map(float, row)) for row in vectors]
 
 
-def create_embedding_provider(provider: str, model: str) -> EmbeddingProvider:
+def normalize_embedding_settings(provider: str, model: str) -> Tuple[str, str]:
+    """Return the normalized provider and model, or raise if they do not go together."""
+
     normalized_provider = provider.strip().lower()
     normalized_model = model.strip()
     if normalized_provider == "hashing":
@@ -72,14 +74,22 @@ def create_embedding_provider(provider: str, model: str) -> EmbeddingProvider:
             raise ValueError(
                 "NCI_SI_EMBEDDING_MODEL must be 'hashing' when NCI_SI_EMBEDDING_PROVIDER is 'hashing'"
             )
-        return HashingEmbeddingProvider()
-    if normalized_provider == "sentence-transformers":
+    elif normalized_provider == "sentence-transformers":
         if not normalized_model or normalized_model == "hashing":
             raise ValueError(
                 "NCI_SI_EMBEDDING_MODEL must name a model when NCI_SI_EMBEDDING_PROVIDER "
                 "is 'sentence-transformers'"
             )
-        return SentenceTransformersProvider(normalized_model)
-    raise ValueError(
-        f"NCI_SI_EMBEDDING_PROVIDER must be 'hashing' or 'sentence-transformers', not {provider!r}"
-    )
+    else:
+        raise ValueError(
+            "NCI_SI_EMBEDDING_PROVIDER must be 'hashing' or 'sentence-transformers', "
+            f"not {provider!r}"
+        )
+    return normalized_provider, normalized_model
+
+
+def create_embedding_provider(provider: str, model: str) -> EmbeddingProvider:
+    provider, model = normalize_embedding_settings(provider, model)
+    if provider == "hashing":
+        return HashingEmbeddingProvider()
+    return SentenceTransformersProvider(model)

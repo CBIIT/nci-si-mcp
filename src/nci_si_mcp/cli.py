@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import sqlite3
+import logging
 import sys
 from typing import Any, Dict, TextIO
 
@@ -15,9 +15,11 @@ from .service import NCISIService
 from .traversal import DEFAULT_MAX_DEPTH, DEFAULT_MAX_EDGES, DEFAULT_MAX_NODES
 from .validation import SEARCH_MODES, TRAVERSAL_DIRECTIONS, TRAVERSAL_EDGE_TYPES
 
+logger = logging.getLogger(__name__)
+
 # What can go wrong while opening the index, loading the embedding model or
 # importing the optional MCP package: environment problems, not bugs.
-_STARTUP_ERRORS = (RuntimeError, ValueError, OSError, sqlite3.Error)
+_STARTUP_ERRORS = (RuntimeError, ValueError, OSError)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -48,9 +50,15 @@ def build_parser() -> argparse.ArgumentParser:
     traverse = subcommands.add_parser("traverse", help="Traverse NCIt graph relationships")
     traverse.add_argument("start_codes", nargs="+")
     traverse.add_argument("--direction", choices=sorted(TRAVERSAL_DIRECTIONS), default="out")
-    traverse.add_argument("--max-depth", type=int, default=DEFAULT_MAX_DEPTH)
-    traverse.add_argument("--max-nodes", type=int, default=DEFAULT_MAX_NODES)
-    traverse.add_argument("--max-edges", type=int, default=DEFAULT_MAX_EDGES)
+    traverse.add_argument(
+        "--max-depth", type=int, default=DEFAULT_MAX_DEPTH, help="hops from a start code, at most 4"
+    )
+    traverse.add_argument(
+        "--max-nodes", type=int, default=DEFAULT_MAX_NODES, help="at most 1000"
+    )
+    traverse.add_argument(
+        "--max-edges", type=int, default=DEFAULT_MAX_EDGES, help="at most 5000"
+    )
     traverse.add_argument("--no-hierarchy", action="store_true")
     traverse.add_argument("--no-roles", action="store_true")
     traverse.add_argument("--no-associations", action="store_true")
@@ -96,6 +104,7 @@ def main() -> int:
         service = NCISIService(settings)
         mcp = create_mcp(settings, service=service) if serve else None
     except _STARTUP_ERRORS as exc:
+        logger.debug("startup_failed", exc_info=True)
         message = f"{type(exc).__name__}: {exc}"
         return _print_result(error_response("startup_failed", message), errors)
     if mcp:

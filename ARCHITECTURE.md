@@ -54,7 +54,10 @@ flowchart LR
     Service --> Cadsr
     Service --> Embeddings
     Service --> Eval
+    Env --> Service
     Eval --> Index
+    Eval --> Embeddings
+    Index --> Validation
 
     EVS --> EVSAPI
     Traversal --> EVS
@@ -70,8 +73,10 @@ flowchart LR
     Cadsr --> Models
 ```
 
-`errors.py` is used by every layer and is left out of the diagram. `index.py`
-also calls the concept normalization in `evs.py`.
+`errors.py` is used by every layer and is left out of the diagram. Also not
+drawn: `index.py` calls the concept normalization in `evs.py`, and the two
+adapters read the closed value sets in `validation.py` and the default limits
+in `traversal.py`.
 
 ## Components
 
@@ -81,14 +86,14 @@ also calls the concept normalization in `evs.py`.
 | `server.py` | Registers five MCP tools and three MCP resource templates on an `mcp` 2.x `MCPServer` and flags error envelopes as protocol errors. | `NCISIService`, optional `mcp` package |
 | `service.py` | Validates inputs, orchestrates the use cases, pins EVS requests to the monthly release, enforces release consistency with the index, falls back from live EVS to the cache in `lookup`, and maps expected failures to error envelopes. Its collaborators are injectable for testing. | EVS client, local index, traversal, embeddings, evaluation, caDSR adapter |
 | `evs.py` | Calls EVS REST endpoints with bounded retries and response-size limits, classifies failures (unreachable, not found, unusable response), resolves exactly one latest monthly NCIt release, and normalizes EVS payloads. | Python `urllib`, shared models, NCI EVS API |
-| `index.py` | Migrates and transactionally maintains the release manifest, normalized concepts, FTS search text, vectors, and vector LSH buckets; performs BM25/vector/hybrid search. | SQLite FTS5, retrieval utilities, embedding provider |
+| `index.py` | Migrates and transactionally maintains the release manifest, normalized concepts, FTS search text, vectors, and vector LSH buckets; performs BM25/vector/hybrid search. | SQLite FTS5, retrieval utilities, embedding provider, `validation.py`, concept normalization in `evs.py` |
 | `retrieval.py` | Implements tokenization, the dot product used as cosine similarity for unit vectors, and min-max normalization. | Python standard library |
 | `embeddings.py` | Defines the embedding abstraction, a deterministic local hashing provider, an optional sentence-transformers provider, and the check that provider and model settings agree. | Optional `sentence-transformers` package |
 | `traversal.py` | Resolves which edge types to follow and performs a breadth-first traversal of hierarchy, role, and association relations with deduplication and hard depth/node/edge limits. | EVS client, shared models |
 | `models.py` | Defines serializable release, concept, index, search-hit, traversal, and caDSR status dataclasses. | Python standard library |
 | `evaluation.py` | Evaluates BM25, vector, and hybrid retrieval against a small built-in gold-query set. | Local index, embedding provider |
 | `cadsr.py` | Exposes an explicit `reuse_pending` boundary; no caDSR search or fabricated CDE results are implemented. | Shared models |
-| `config.py` | Loads EVS, retry, batching, logging, data-directory, and embedding settings from environment variables and validates the EVS URL, the numeric limits, and the log level. | Environment |
+| `config.py` | Loads EVS, retry, batching, logging, data-directory, and embedding settings from environment variables and validates all of them except the data directory. | Environment, `embeddings.py` |
 | `validation.py` | Defines the closed value sets (search modes, directions, edge types), normalizes NCIt codes, and validates search and traversal inputs. | Shared errors |
 | `errors.py` | Defines the validation and index errors, the error codes, and the serialized error envelope. | Python standard library |
 
@@ -128,7 +133,8 @@ also calls the concept normalization in `evs.py`.
 
 1. The service resolves the current monthly release. If the index holds a
    different release, lookup fails with `version_mismatch` unless `live_only` is
-   set, so that lookups and searches never mix releases.
+   set, so that lookups and searches never mix releases. With `live_only` the
+   index is not opened.
 2. The concept is requested from live EVS, pinned to that release, and the
    release of the answer is verified. A code the release does not contain is
    `concept_not_found`.
@@ -139,21 +145,22 @@ also calls the concept normalization in `evs.py`.
 
 ### Traverse
 
-1. The service resolves the monthly release and calls `traverse_ncit`.
-2. Direction, the include flags, and `edge_types` select the edge types to
+1. Direction, the include flags, and `edge_types` select the edge types to
    follow. A combination that selects nothing, or names an edge type the
-   direction excludes, is rejected.
+   direction excludes, is rejected before any request is made.
+2. The service resolves the monthly release and calls `traverse_ncit`.
 3. The walk is breadth-first. Each level is read with batched concept requests
    that include the selected relation lists, pinned to the release, and every
    fetched concept is checked against it. Requested limits are clamped to a
    maximum depth of 4, 1,000 nodes, and 5,000 edges.
 4. `descendant` edges are followed only on request. They come from one EVS
-   request per start code, limited to `max_depth` levels, and place each
-   descendant at its level.
+   request per start code, pinned to the release and limited to `max_depth`
+   levels, and count as many hops as the descendant's level. A node is
+   expanded at the depth of the shortest path that reaches it.
 5. Edges are deduplicated, every emitted edge references emitted nodes, and the
    result reports whether a limit dropped anything. A concept whose relations
-   exceed the EVS response-size limit is kept as a node, is not expanded, and
-   also sets `truncated`.
+   exceed the EVS response-size limit is kept as a node, is not expanded, sets
+   `truncated`, and is listed in `unexpanded_codes`.
 
 ## Persistence schema
 
@@ -194,10 +201,11 @@ erDiagram
 SQLite holds one release: the concept cache and the search index over it. The
 database does not declare a foreign key, but `release_version` is the logical
 relationship between the tables. `PRAGMA user_version` drives migrations, and a
-partial unique index guarantees that at most one manifest is active. A database
-written by the first prototype can hold rows of several releases; only the
-active one is read, and the others are removed when the release changes. The
-LSH layout (4 bands of 8 bits) is part of the stored format.
+partial unique index guarantees that at most one manifest is active. Earlier
+versions kept every release ever indexed; opening such a database (schema
+version below 4) drops all rows except those of the active release. The LSH
+layout (4 bands of 8 bits) and the hashing embedding are part of the stored
+format.
 
 A cached concept keeps the `retrieved_at` time at which it was fetched from EVS
 for indexing.
@@ -224,16 +232,19 @@ not MCP tools. The README lists the error codes.
 ## Current boundaries
 
 - NCIt is the only implemented terminology path.
-- Search is local and requires an index; the EVS client's remote search method
-  is not used by the service.
+- Search is local and requires an index; the search endpoint of EVS is not
+  used.
 - Traversal is live against EVS rather than cached in SQLite. Inward walks are
   slower than outward ones because the inverse relations of hub concepts are
   megabytes each.
 - Vector search is exact up to 20,000 indexed concepts. Beyond that it scores
   only LSH and BM25 candidates, and vector-only mode then misses most nearest
-  neighbours: on a 3,000-concept synthetic index forced onto this path it
-  returned the exact nearest neighbour for 17 of 100 queries, against 87 of 100
-  in hybrid mode. A full-NCIt index would need a real ANN engine.
+  neighbours. One measurement: a synthetic index of 3,000 concepts, each with a
+  four-word name and a twelve-word definition, forced onto this path and
+  queried with 100 of the names, returned the exact nearest neighbour for 17
+  queries in vector mode and 87 in hybrid mode. The figure depends on how much
+  of the indexed text a query repeats. A full-NCIt index would need a real ANN
+  engine.
 - caDSR/CDE discovery is a status-only adapter until reusable APIs, credentials,
   schemas, indexes, models, and ranking rules are confirmed.
 - Indexing is manual by supplied codes; there is no complete NCIt-universe build

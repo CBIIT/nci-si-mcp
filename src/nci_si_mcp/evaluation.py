@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Dict, Iterable, List
+from typing import Any, Dict, Iterable, List
 
 from .embeddings import EmbeddingProvider
 from .index import LocalIndex
@@ -23,7 +23,7 @@ class EvaluationResult:
     hit_at_5: float
     mean_reciprocal_rank: float
 
-    def to_dict(self) -> Dict[str, float]:
+    def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
 

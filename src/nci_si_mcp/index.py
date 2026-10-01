@@ -15,7 +15,12 @@ from pathlib import Path
 from typing import Dict, Iterable, Iterator, List, Optional, Sequence, Set, Tuple
 
 from .embeddings import EmbeddingProvider
-from .errors import IndexBuildError, IndexCompatibilityError, NoActiveIndexError
+from .errors import (
+    IndexBuildError,
+    IndexCompatibilityError,
+    IndexStorageError,
+    NoActiveIndexError,
+)
 from .evs import normalize_concept
 from .models import IndexManifest, NcitConcept, SearchHit, utc_now_iso
 from .retrieval import cosine_similarity, min_max_normalize, tokenize
@@ -23,10 +28,11 @@ from .validation import validate_search
 
 logger = logging.getLogger(__name__)
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 MAX_FTS_CANDIDATES = 1000
 # A release of up to this many concepts is scored exactly: every stored vector
-# is compared with the query (about 12 ms per 1,000 128-dimension vectors).
+# is compared with the query. In pure Python that costs roughly a quarter of a
+# second at the limit with 128-dimension vectors (measured on Python 3.14).
 EXACT_VECTOR_SCAN_LIMIT = 20_000
 # A larger release is narrowed to this many LSH and BM25 candidates first.
 MAX_VECTOR_CANDIDATES = 2000
@@ -86,15 +92,25 @@ class LocalIndex:
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
-        """Open a connection, commit or roll back its transaction, then close it."""
+        """Open a connection, commit or roll back its transaction, then close it.
 
-        conn = sqlite3.connect(str(self.db_path))
+        Failures of the database itself (locked, unreadable, not a database,
+        disk full) are raised as IndexStorageError naming the file. Constraint
+        and usage errors are bugs and propagate unchanged.
+        """
+
         try:
-            conn.row_factory = sqlite3.Row
-            with conn:
-                yield conn
-        finally:
-            conn.close()
+            conn = sqlite3.connect(str(self.db_path))
+            try:
+                conn.row_factory = sqlite3.Row
+                with conn:
+                    yield conn
+            finally:
+                conn.close()
+        except sqlite3.Error as exc:
+            if isinstance(exc, sqlite3.OperationalError) or type(exc) is sqlite3.DatabaseError:
+                raise IndexStorageError(f"{exc} ({self.db_path})") from exc
+            raise
 
     def _init_db(self) -> None:
         with self._connect() as conn:
@@ -170,6 +186,19 @@ class LocalIndex:
                 ON vector_lsh(release_version, band, bucket)
                 """
             )
+            # Earlier versions kept every release ever indexed. Only the active
+            # one was reachable, and the others skew BM25 statistics.
+            inactive = "release_version NOT IN (SELECT release_version FROM manifests WHERE active = 1)"
+            dropped = [
+                row[0]
+                for row in conn.execute(
+                    f"SELECT DISTINCT release_version FROM concepts WHERE {inactive}"
+                )
+            ]
+            if dropped:
+                logger.warning("index_migration_dropped_releases releases=%s", ",".join(dropped))
+            for table in ("concepts", "concepts_fts", "vector_lsh", "manifests"):
+                conn.execute(f"DELETE FROM {table} WHERE {inactive}")
             if version < 2:
                 conn.execute("DELETE FROM concepts_fts")
                 conn.execute(
@@ -386,6 +415,9 @@ class LocalIndex:
 
         query, limit, mode = validate_search(query, limit, mode)
         with self._connect() as conn:
+            # One read transaction, so a concurrent re-index cannot change the
+            # release between reading the manifest and reading the concepts.
+            conn.execute("BEGIN")
             manifest = self._active_manifest(conn)
             if not manifest:
                 raise NoActiveIndexError(

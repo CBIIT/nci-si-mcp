@@ -14,10 +14,11 @@ from .validation import Direction, EdgeType, SearchMode
 
 INSTRUCTIONS = (
     "NCI Thesaurus (NCIt) lookup and relationship traversal against live NCI EVS, "
-    "plus text search over a small locally indexed sample of concepts. Every result "
-    "names the NCIt monthly release it came from. A failed tool call is flagged as an "
-    "error and carries a JSON object with isError, error (a stable code), message and "
-    "optional details."
+    "plus text search over a small locally indexed sample of concepts. Concept, search "
+    "and traversal results name the NCIt monthly release they came from. A failed tool "
+    "call is flagged as an error. Failures the server handles carry a JSON object with "
+    "isError, error (a stable code), message and optional details; arguments rejected "
+    "by the tool schema are reported as plain text."
 )
 
 
@@ -72,11 +73,17 @@ def create_mcp(settings: Optional[Settings] = None, *, service: Optional[NCISISe
         it. `mode` is `hybrid` (0.55 * BM25 + 0.45 * vector), `bm25` or
         `vector`; `limit` is 1 to 100.
 
-        `score` and `score_components` are min-max normalized over the concepts
-        scored for this query. They order the hits but are not comparable
-        across queries, and the weakest scored concept gets 0.0 even when it
-        matches. Hits have `source: active_cache`, and `retrieved_at` is when
-        the concept was indexed. `include_raw` adds the full EVS payload.
+        Each entry of `score_components` is min-max normalized over the
+        concepts scored for this query: the best is 1.0 however poor the match,
+        the weakest is 0.0 even when it matches, and when only one concept is
+        scored, or all tie, they are all 1.0. Scores therefore order the hits
+        of one query and are not comparable across queries. `vector` and
+        `hybrid` modes rank by similarity and return up to `limit` concepts
+        whether or not anything matches the query; `bm25` returns only
+        concepts that share a term with it.
+
+        Hits have `source: active_cache`, and `retrieved_at` is when the
+        concept was indexed. `include_raw` adds the full EVS payload.
         """
         return tool_result(
             service.search(query=query, limit=limit, mode=mode, include_raw=include_raw)
@@ -88,14 +95,15 @@ def create_mcp(settings: Optional[Settings] = None, *, service: Optional[NCISISe
 
         The request is pinned to the current monthly release, and a live answer
         has `source: live_evs`. A code that release does not contain returns
-        `concept_not_found`. If EVS cannot be reached, the concept is served
-        from the local index instead, with `source: active_cache` and a
-        `fallback` object giving the reason.
+        `concept_not_found`. If EVS cannot be reached and the concept is in the
+        local index, it is served from there instead, with
+        `source: active_cache` and a `fallback` object giving the reason;
+        otherwise the call fails with `evs_unavailable`.
 
         When the local index holds a different release than the current monthly
-        one, the call fails with `version_mismatch` so that results from two
-        releases are never mixed. `live_only=true` skips both that check and
-        the fallback. `include_raw` adds the full EVS payload.
+        one, the call fails with `version_mismatch` for every code, so that
+        results from two releases are never mixed. `live_only=true` skips both
+        that check and the fallback. `include_raw` adds the full EVS payload.
         """
         return tool_result(
             service.lookup(code=code, live_only=live_only, include_raw=include_raw)
@@ -120,7 +128,9 @@ def create_mcp(settings: Optional[Settings] = None, *, service: Optional[NCISISe
         follows `parent`, `inverse_role` and `inverse_association` edges, and
         `both` follows all six. The include flags switch hierarchy, role and
         association edges off. `edge_types` narrows the walk to the listed
-        types and is the only way to get `descendant` edges, which link each
+        types; naming a type that the direction or the include flags exclude
+        is an `invalid_request`. It is also the only way to get `descendant`
+        edges (direction `out` or `both`, hierarchy included), which link each
         start code directly to every descendant within `max_depth` levels.
         `relationship_names` keeps only edges with those names, ignoring case:
         role and association names such as `Disease_Has_Finding`, or
@@ -128,11 +138,13 @@ def create_mcp(settings: Optional[Settings] = None, *, service: Optional[NCISISe
 
         Limits are clamped to depth 4, 1,000 nodes and 5,000 edges, and the
         result reports the effective `max_depth`, `max_nodes` and `max_edges`.
-        `truncated` is true when the node or edge limit dropped something;
-        stopping at `max_depth` does not set it. Every edge connects two nodes
-        of the result, and all data is read from the monthly release named in
-        `release_version`. A start code that release does not contain returns
-        `concept_not_found`.
+        `truncated` is true when something was dropped: by the node limit, by
+        the edge limit, or because the relations of a concept were too large
+        to read, in which case `unexpanded_codes` lists it and raising the
+        limits does not help. Stopping at `max_depth` does not set `truncated`.
+        Every edge connects two nodes of the result, and all data is read from
+        the monthly release named in `release_version`. A start code that
+        release does not contain returns `concept_not_found`.
         """
         return tool_result(
             service.traverse(
@@ -155,8 +167,9 @@ def create_mcp(settings: Optional[Settings] = None, *, service: Optional[NCISISe
 
         The call succeeds even when EVS cannot be reached: `evs_api` and
         `selected_monthly_release` then hold an error object. `active_index` is
-        null until an index has been built, and
-        `embedding.active_index_compatible` says whether `ncit_search` can use it.
+        null until an index has been built. `embedding.active_index_compatible`
+        says whether `ncit_search` can use the index: it is false when there is
+        none or when it was built with other embedding settings.
         """
         return tool_result(service.release_info())
 
@@ -164,8 +177,8 @@ def create_mcp(settings: Optional[Settings] = None, *, service: Optional[NCISISe
     def cadsr_status():
         """Report that caDSR common data element search is not implemented yet.
 
-        Returns the status `reuse_pending` and the integrations under
-        evaluation. It never returns CDE data.
+        Returns `state: reuse_pending` and the integrations under evaluation.
+        It never returns CDE data.
         """
         return service.cadsr_status()
 
@@ -204,15 +217,16 @@ def create_mcp(settings: Optional[Settings] = None, *, service: Optional[NCISISe
         other version is an error. Without an index the result is
         `{"active_index": null}`.
         """
-        manifest = service.index.get_active_manifest()
+        result = resource_result(service.index_manifest())
+        manifest = result["active_index"]
         if not manifest:
-            return {"active_index": None}
-        if version in ("active", manifest.release_version):
-            return manifest.to_dict()
+            return result
+        if version in ("active", manifest["release_version"]):
+            return manifest
         return resource_result(
             error_response(
                 "index_not_active",
-                f"The local index holds release {manifest.release_version}, not {version}",
+                f"The local index holds release {manifest['release_version']}, not {version}",
                 requested_version=version,
             )
         )

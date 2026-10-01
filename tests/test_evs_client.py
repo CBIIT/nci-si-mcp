@@ -62,16 +62,38 @@ class EVSClientTest(unittest.TestCase):
                 self.assertEqual(urlopen.call_count, 2)
 
     def test_exhausted_attempts_raise_unavailable_after_exponential_backoff(self, urlopen, sleep):
-        urlopen.side_effect = [URLError("down"), http_error(503), URLError("still down")]
+        urlopen.side_effect = [
+            URLError("down"),
+            http_error(503),
+            TimeoutError("timed out"),
+            URLError("still down"),
+        ]
 
         with self.assertLogs("nci_si_mcp.evs", level="WARNING"), self.assertRaises(
             EVSUnavailableError
         ) as raised:
-            self.client(max_attempts=3, retry_backoff_seconds=0.25).get_api_version()
+            self.client(max_attempts=4, retry_backoff_seconds=0.25).get_api_version()
 
-        self.assertEqual(urlopen.call_count, 3)
-        self.assertEqual([call.args[0] for call in sleep.call_args_list], [0.25, 0.5])
+        self.assertEqual(urlopen.call_count, 4)
+        self.assertEqual([call.args[0] for call in sleep.call_args_list], [0.25, 0.5, 1.0])
         self.assertIn("still down", str(raised.exception))
+
+    def test_requests_use_the_configured_timeout(self, urlopen, sleep):
+        urlopen.return_value = FakeResponse(b"{}")
+
+        EVSClient("https://example.invalid", timeout_seconds=2.5).get_api_version()
+
+        self.assertEqual(urlopen.call_args.kwargs["timeout"], 2.5)
+
+    def test_missing_metadata_endpoint_is_not_a_missing_concept(self, urlopen, sleep):
+        client = self.client()
+        for call in (client.get_api_version, client.get_terminologies, client.resolve_monthly_ncit_release):
+            with self.subTest(call.__name__):
+                urlopen.side_effect = http_error(404, b'{"message": "No static resource"}')
+                with self.assertRaises(EVSResponseError) as raised:
+                    call()
+                self.assertNotIsInstance(raised.exception, EVSNotFoundError)
+                self.assertIn("NCI_SI_EVS_BASE_URL", str(raised.exception))
 
     def test_not_found_is_distinct_and_carries_the_reason_evs_gives(self, urlopen, sleep):
         urlopen.side_effect = http_error(404, b'{"status": 404, "message": "C999 not found"}')
@@ -162,6 +184,15 @@ class EVSClientTest(unittest.TestCase):
             "/api/v1/concept/ncit/C1/descendants?maxLevel=1": (
                 b"[]",
                 lambda: client.get_descendants("C1", 1),
+            ),
+            "/api/v1/concept/ncit?list=C1&include=summary%2Cdefinitions%2Csynonyms%2Cproperties": (
+                b"[]",
+                lambda: client.get_concepts_by_codes(["C1"]),
+            ),
+            "/api/v1/concept/ncit/C1?include=summary%2Cdefinitions%2Csynonyms%2Cproperties"
+            "%2Cparents%2Cchildren%2Croles%2CinverseRoles%2Cassociations%2CinverseAssociations": (
+                b"{}",
+                lambda: client.get_concept("C1"),
             ),
         }
         for path, (body, call) in calls.items():

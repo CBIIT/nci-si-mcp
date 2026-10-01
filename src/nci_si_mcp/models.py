@@ -41,6 +41,8 @@ class ReleaseInfo:
         return data
 
 
+# NcitConcept and IndexManifest are stored as JSON in the index. A new field
+# needs a default, or a schema migration that rewrites the stored payloads.
 @dataclass(frozen=True)
 class NcitConcept:
     code: str
@@ -135,8 +137,8 @@ class TraversalEdge:
     target_code: str
     edge_type: str
     relationship_name: str
-    target_name: Optional[str] = None
-    source_name: Optional[str] = None
+    target_name: str = ""
+    source_name: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -153,6 +155,8 @@ class TraversalResult:
     max_nodes: int
     max_edges: int
     retrieved_at: str
+    # Nodes whose relations exceeded the EVS response-size limit and were not read.
+    unexpanded_codes: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)

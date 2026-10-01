@@ -11,6 +11,7 @@ from nci_si_mcp.embeddings import EmbeddingProvider, HashingEmbeddingProvider
 from nci_si_mcp.errors import (
     IndexBuildError,
     IndexCompatibilityError,
+    IndexStorageError,
     InputValidationError,
     NoActiveIndexError,
 )
@@ -124,8 +125,32 @@ class UpsertTest(IndexTestCase):
 
         self.assertEqual(manifest.concept_count, 2)
         self.assertEqual(self.counts(index), (2, 2, 2 * LSH_BANDS, 1))
-        self.assertEqual(index.search("renamed", self.provider, mode="bm25")[0].concept.code, "C3262")
+        self.assertEqual(index.get_concept("C3262").preferred_name, "Renamed Growth")
+        for mode in ("bm25", "vector"):
+            hits = index.search("renamed", self.provider, mode=mode)
+            self.assertEqual(hits[0].concept.code, "C3262", mode)
+            self.assertEqual(hits[0].concept.preferred_name, "Renamed Growth")
         self.assertEqual(index.search("tumor", self.provider, mode="bm25"), [])
+
+    def test_upsert_holds_the_write_lock_while_it_checks_compatibility(self):
+        index = self.build()
+        observed = []
+        read_manifest = LocalIndex._active_manifest
+
+        def competing_writer(conn):
+            other = sqlite3.connect(str(index.db_path), timeout=0)
+            try:
+                other.execute("BEGIN IMMEDIATE")
+            except sqlite3.OperationalError as error:
+                observed.append(str(error))
+            finally:
+                other.close()
+            return read_manifest(conn)
+
+        with patch.object(LocalIndex, "_active_manifest", staticmethod(competing_writer)):
+            index.upsert_concepts([RAW_CONCEPTS[0]], "2026-06-29", self.provider)
+
+        self.assertEqual(observed, ["database is locked"])
 
     def test_indexing_another_release_replaces_the_previous_one(self):
         index = self.build()
@@ -208,7 +233,7 @@ class UpsertTest(IndexTestCase):
                 """
             )
 
-        with self.assertRaises(sqlite3.Error):
+        with self.assertRaises(sqlite3.IntegrityError):
             index.upsert_concepts(
                 [dict(RAW_CONCEPTS[0], version="26.07d")], "2026-07-27", self.provider
             )
@@ -259,6 +284,15 @@ class UpsertTest(IndexTestCase):
 
 
 class StorageTest(IndexTestCase):
+    def test_unusable_database_is_a_storage_error_naming_the_file(self):
+        index = self.build()
+        index.db_path.write_bytes(b"not a database" * 100)
+
+        for call in (index.get_active_manifest, lambda: LocalIndex(self.path)):
+            with self.assertRaises(IndexStorageError) as raised:
+                call()
+            self.assertIn(str(index.db_path), str(raised.exception))
+
     def test_connections_are_closed_after_use(self):
         index = self.build()
 
@@ -378,11 +412,34 @@ class MigrationTest(IndexTestCase):
 
         index = LocalIndex(self.path)
 
+        self.assertEqual(index.get_active_manifest().release_version, "26.06e")
+        self.assertEqual(self.counts(index), (1, 1, LSH_BANDS, 1))
+        self.assertIsNone(index.get_concept("C40704"))
+        for mode in ("bm25", "vector", "hybrid"):
+            hits = index.search("kinase inhibition tumor", self.provider, mode=mode)
+            self.assertEqual([hit.concept.code for hit in hits], ["C3262"], mode)
+
+    def test_releases_left_behind_by_earlier_versions_are_dropped_with_a_warning(self):
+        index = self.build()
         with index._connect() as conn:
-            active = conn.execute("SELECT release_version FROM manifests WHERE active = 1").fetchall()
-        self.assertEqual([row[0] for row in active], ["26.06e"])
-        self.assertEqual(index.search("tumor", self.provider, mode="bm25")[0].concept.code, "C3262")
-        self.assertEqual(index.search("kinase", self.provider, mode="bm25"), [])
+            conn.execute(
+                "INSERT INTO concepts SELECT '26.05d', code, payload, search_text, vector FROM concepts"
+            )
+            conn.execute(
+                "INSERT INTO concepts_fts SELECT '26.05d', code, search_text FROM concepts_fts"
+            )
+            conn.execute(
+                "INSERT INTO vector_lsh SELECT '26.05d', code, band, bucket FROM vector_lsh"
+            )
+            conn.execute("INSERT INTO manifests VALUES ('26.05d', '{}', 0)")
+            conn.execute("PRAGMA user_version = 3")
+
+        with self.assertLogs("nci_si_mcp.index", level="WARNING") as logs:
+            migrated = LocalIndex(self.path)
+
+        self.assertIn("26.05d", logs.output[0])
+        self.assertEqual(self.counts(migrated), (2, 2, 2 * LSH_BANDS, 1))
+        self.assertEqual(migrated.get_active_manifest().release_version, "26.06e")
 
     def test_schema_two_database_gains_the_lsh_table(self):
         index = self.build()
@@ -408,6 +465,45 @@ class SearchTest(IndexTestCase):
         self.assertNotIn("raw", hits[0].to_dict()["concept"])
         self.assertIn("raw", hits[0].to_dict(include_raw=True)["concept"])
 
+    def test_hybrid_score_weighs_bm25_and_vector(self):
+        index = self.build(synthetic_concepts(30))
+
+        hits = index.search("alpha1 bravo10 alpha100", self.provider, limit=30, mode="hybrid")
+
+        self.assertEqual(len(hits), 30)
+        for hit in hits:
+            components = hit.score_components
+            self.assertAlmostEqual(hit.score, 0.55 * components["bm25"] + 0.45 * components["vector"])
+        self.assertTrue(any(h.score_components["bm25"] != h.score_components["vector"] for h in hits))
+        self.assertEqual([hit.score for hit in hits], sorted((hit.score for hit in hits), reverse=True))
+
+    def test_search_text_holds_code_name_synonyms_definitions_types_and_sources(self):
+        raw = dict(
+            RAW_CONCEPTS[1],
+            properties=[
+                {"type": "Semantic_Type", "value": "Neoplastic Process"},
+                {"type": "Contributing_Source", "value": "GDC"},
+            ],
+        )
+
+        text = concept_search_text(normalize_concept(raw, release_date=None, source="active_cache"))
+
+        self.assertEqual(
+            text, "C3262 Neoplasm Tumor A benign or malignant tissue growth. Neoplastic Process GDC"
+        )
+
+    def test_stored_formats_are_stable(self):
+        # Stored vectors and LSH buckets depend on these; a change needs a migration.
+        vector = HashingEmbeddingProvider(8).embed(["tumor growth factor tumor"])[0]
+        self.assertEqual(
+            [round(value, 6) for value in vector],
+            [-0.316228, 0.0, 0.0, 0.0, 0.0, -0.948683, 0.0, 0.0],
+        )
+        self.assertEqual(
+            vector_lsh_buckets(self.provider.embed(["neoplasm tumor growth"])[0]),
+            [(0, 235), (1, 12), (2, 219), (3, 64)],
+        )
+
     def test_search_without_an_index_is_refused(self):
         with self.assertRaises(NoActiveIndexError):
             LocalIndex(self.path).search("tumor", self.provider)
@@ -428,6 +524,16 @@ class SearchTest(IndexTestCase):
         for label, provider in providers.items():
             with self.subTest(label), self.assertRaises(IndexCompatibilityError):
                 index.search("tumor", provider, mode="vector")
+
+    def test_stored_vectors_of_another_width_are_detected_on_a_legacy_manifest(self):
+        index = self.build()
+        with index._connect() as conn:
+            payload = json.loads(conn.execute("SELECT payload FROM manifests").fetchone()[0])
+            del payload["embedding_dimensions"]
+            conn.execute("UPDATE manifests SET payload = ?", (json.dumps(payload),))
+
+        with self.assertRaises(IndexCompatibilityError):
+            index.search("tumor", RenamedProvider(dimensions=64), mode="vector")
 
     def test_bm25_mode_does_not_compute_embeddings(self):
         class NoEmbedProvider(EmbeddingProvider):
@@ -483,24 +589,21 @@ class SearchTest(IndexTestCase):
 
         with patch("nci_si_mcp.index.EXACT_VECTOR_SCAN_LIMIT", 20), patch(
             "nci_si_mcp.index.MAX_VECTOR_CANDIDATES", 20
-        ), patch(
-            "nci_si_mcp.index.cosine_similarity", wraps=lambda left, right: 0.5
-        ) as scored:
+        ):
             # The stored search text of a concept lands in all of its own buckets.
             own_text = concept_search_text(
                 normalize_concept(concepts[7], release_date=None, source="active_cache")
             )
             vector_hits = index.search(own_text, self.provider, limit=60, mode="vector")
-            vector_scored = scored.call_count
             hybrid_hits = index.search("garnet1", self.provider, limit=60, mode="hybrid")
 
-        self.assertIn("C7", [hit.concept.code for hit in vector_hits])
-        self.assertLessEqual(vector_scored, 20)
-        self.assertLess(len(vector_hits), 60)
-        self.assertTrue(
-            {f"C{number}" for number in range(6, 60, 10)}
-            <= {hit.concept.code for hit in hybrid_hits}
-        )
+        self.assertEqual(vector_hits[0].concept.code, "C7")
+        self.assertLessEqual(len(vector_hits), 20)
+        bm25_matches = {f"C{number}" for number in range(6, 60, 10)}
+        by_code = {hit.concept.code: hit for hit in hybrid_hits}
+        self.assertTrue(bm25_matches <= set(by_code))
+        # A BM25 candidate is given a vector score too, not only its BM25 score.
+        self.assertTrue(any(by_code[code].score_components["vector"] > 0 for code in bm25_matches))
 
     def test_search_only_returns_the_active_release(self):
         index = self.build()
