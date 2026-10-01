@@ -21,32 +21,29 @@ EVS-first MVP for exposing NCI Thesaurus search, lookup, and graph traversal thr
 
 ## Quick Start
 
-The project needs Python 3.13 or newer and is managed with [PDM](https://pdm-project.org),
-which resolves and installs through [uv](https://docs.astral.sh/uv/) (`use_uv` in `pdm.toml`),
-so both must be installed.
+The project needs Python 3.13 or newer and is managed with [PDM](https://pdm-project.org).
 
 ```bash
-pdm install -G server
+pdm install
 pdm run nci-si-mcp release-info
 pdm run nci-si-mcp serve
 ```
 
-`pdm install` creates `.venv` and installs the package in editable mode with the test and lint
-tools. `-G server` adds the `mcp` package, which the `serve` command and the server tests need;
-every other command works without it. The commands below are written as
-`python -m nci_si_mcp.cli ...`: run them inside the environment (`eval $(pdm venv activate)`)
-or prefix them with `pdm run`.
+`pdm install` creates `.venv` from `pdm.lock` and installs the package in editable mode with
+the test and lint tools and the `server` extra (the `mcp` package, which the `serve` command
+and the server tests need). The commands below are written as `python -m nci_si_mcp.cli ...`:
+run them inside the environment (`eval $(pdm venv activate)`) or prefix them with `pdm run`.
 
 The package version is not written in any file. It is derived from the nearest `vX.Y.Z` git
 tag when the package is installed or built; a commit after the tag gets a development version
 such as `0.1.1.dev1+g<commit>`. Install from a git clone that has its tags: a clone without
-tags silently gets `0.1.devN`, and a source archive without git metadata does not build unless
-`PDM_BUILD_SCM_VERSION` is set. Run `pdm install` again after a new tag to refresh the version.
+tags silently gets `0.1.devN`, and a source archive without git metadata gets `0.0.0`. Run
+`pdm install` again after a new tag to refresh the version.
 
 For real embeddings, set both variables:
 
 ```bash
-pdm install -G server -G embeddings
+pdm install -G embeddings
 export NCI_SI_EMBEDDING_PROVIDER=sentence-transformers
 export NCI_SI_EMBEDDING_MODEL=cambridgeltl/SapBERT-from-PubMedBERT-fulltext
 ```

@@ -25,12 +25,13 @@ jobs:
         with:
           fetch-depth: 0  # the package version is derived from the latest tag
           persist-credentials: false
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
       - uses: pdm-project/setup-pdm@544d7237314ee09c256785bd360f6b30add38b37  # v4.6
         with:
           python-version: "3.13"
+          version: "2.29.2"
           cache: true
-      - run: pdm install -G server
+      # --check fails on a lock file that no longer matches pyproject.toml.
+      - run: pdm install --check
       - run: pdm run lint
 
   test:
@@ -46,11 +47,15 @@ jobs:
         with:
           fetch-depth: 0  # the package version is derived from the latest tag
           persist-credentials: false
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
       - uses: pdm-project/setup-pdm@544d7237314ee09c256785bd360f6b30add38b37  # v4.6
         with:
           python-version: ${{ matrix.python-version }}
+          version: "2.29.2"
           cache: true
-      - run: pdm install -G server
+      - run: pdm install --check
+      - name: Confirm the interpreter under test
+        env:
+          EXPECTED: ${{ matrix.python-version }}
+        run: pdm run python -c "import os, sys; assert sys.version.startswith(os.environ['EXPECTED'] + '.'), sys.version"
       # Runs the suite with line and branch coverage; the floor is in pyproject.toml.
       - run: pdm run test

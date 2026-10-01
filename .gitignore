@@ -7,6 +7,8 @@ __pycache__/
 .ruff_cache/
 *.egg-info/
 .pdm-python
+.python-version
+pdm.toml
 .pdm-build/
 .coverage
 dist/

@@ -34,10 +34,18 @@ lint = [
 [tool.pdm]
 distribution = true
 
+# `pdm install` always includes the server extra, which the server tests need,
+# and `pdm lock` covers every group.
+[tool.pdm.options]
+install = ["-G", "server"]
+lock = ["-G", ":all"]
+
 # The version is the latest `vX.Y.Z` tag, or a development version after it.
-# A clone without tags falls back to `0.1.devN`.
+# A clone without tags gets `0.1.devN`, and a source tree without git metadata
+# gets the fallback.
 [tool.pdm.version]
 source = "scm"
+fallback_version = "0.0.0"
 
 [tool.pdm.scripts]
 # `test` is the whole suite with the coverage floor; `pytest` runs a selection without it.
