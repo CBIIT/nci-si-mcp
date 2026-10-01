@@ -275,3 +275,4 @@ not MCP tools. The README lists the error codes.
 - `tests/test_server.py`: tool and resource registration, results, and protocol-level errors over an in-process MCP session.
 - `tests/test_docs.py`: the settings, error codes and modules the documentation names against the code.
 - `tests/test_quality_gates.py`: the complexity and test-quality gates in `scripts/validation`.
+- `tests/test_release_config.py`: the pull request title check against the release configuration.

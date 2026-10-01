@@ -1,0 +1,64 @@
+name: PR title
+run-name: "Validate PR title: ${{ github.event.pull_request.title }}"
+
+# A pull request is squash-merged with its title as the commit subject and an
+# empty body, and the release workflow computes the next version from that
+# subject alone. A title that is not a Conventional Commit would land as a commit
+# the release cannot read, so it fails here, at review time.
+#
+# The rule is one regular expression, so it is checked inline and not by a
+# third-party action.
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: pr-title-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  conventional:
+    name: conventional commit subject
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+
+          # type(optional-scope)optional-!: subject
+          # The types are those of [tool.semantic_release.commit_parser_options] in
+          # pyproject.toml; tests/test_release_config.py compares the two.
+          pattern='^(feat|fix|perf|docs|style|refactor|test|chore|build|ci|revert|security|deprecate)(\([a-z0-9._/-]+\))?!?: .+'
+
+          if [[ ! "$TITLE" =~ $pattern ]]; then
+            {
+              echo "## The PR title is not a Conventional Commit"
+              echo
+              echo '```'
+              echo "$TITLE"
+              echo '```'
+              echo
+              echo "Expected \`type(scope)?!?: subject\`, for example:"
+              echo
+              echo '- `feat(traversal): follow role edges in both directions`'
+              echo '- `fix(index): reject a vector of another dimension`'
+              echo '- `docs: describe the release pinning`'
+              echo '- `feat(server)!: rename the lookup tool`'
+              echo
+              echo "\`feat\` releases a minor version, \`fix\` and \`perf\` a patch version, and"
+              echo "\`!\` a minor version while the version is below 1.0. Every other type"
+              echo "releases nothing. Only the title counts: the squash commit has no body,"
+              echo "so a \`BREAKING CHANGE:\` footer is never seen. See CONTRIBUTING.md."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error title=The PR title is not a Conventional Commit::$TITLE"
+            exit 1
+          fi
+
+          echo "OK: $TITLE"

@@ -61,3 +61,26 @@ skipped (`--no-verify` and `SKIP=` are not used).
 A finding is fixed in the code. Where a rule does not fit, it is suppressed as narrowly as
 possible (a line, then a file or a directory, then the project, in `pyproject.toml`), with the
 reason beside the suppression, or once in the module when it repeats.
+
+## Pull requests and releases
+
+Every change reaches `main` through a pull request that is squash-merged. The pull request
+title becomes the commit subject, and the next version is computed from it, so the title is a
+[Conventional Commit](https://www.conventionalcommits.org) subject. A check on the pull request
+fails otherwise.
+
+| Title | Release (while the version is below 1.0) |
+| --- | --- |
+| `feat: …` | Minor: 0.3.1 → 0.4.0 |
+| `fix: …`, `perf: …` | Patch: 0.3.1 → 0.3.2 |
+| `!` after the type, as in `feat!: …` | Minor |
+| `docs`, `style`, `refactor`, `test`, `chore`, `build`, `ci`, `revert`, `security`, `deprecate` | None |
+
+A scope is optional: `fix(index): …`. Only the title counts: the squash commit has no body, so
+a `BREAKING CHANGE:` footer is never seen. Choose the type with care, because it decides the
+version.
+
+When CI passes on `main`, the release workflow tags that commit `vX.Y.Z` and creates a GitHub
+release. Nothing else is needed: no file holds the version, and the workflow never commits to
+`main`. If a release is missing although `main` is green, start the Release workflow by hand
+(`gh workflow run release.yml`). Version 1.0.0 is tagged by hand.
