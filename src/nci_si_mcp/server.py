@@ -1,4 +1,4 @@
-"""FastMCP stdio server entrypoint."""
+"""MCP stdio server entrypoint."""
 
 from __future__ import annotations
 
@@ -20,14 +20,17 @@ def create_mcp(settings: Optional[Settings] = None):
             "environment before running 'serve'."
         )
     try:
-        from mcp.server.fastmcp import FastMCP
+        from mcp.server.mcpserver import MCPServer
     except ImportError as exc:  # pragma: no cover - depends on optional runtime install
-        raise RuntimeError("FastMCP is not installed. Install project dependencies first.") from exc
+        raise RuntimeError(
+            "The MCP server needs the 'server' extra, which installs mcp>=2,<3 "
+            f"(pip install -e '.[server]'). Import failed: {exc}"
+        ) from exc
 
     resolved_settings = settings or Settings.from_env()
     configure_logging(resolved_settings.log_level)
     service = NCISIService(resolved_settings)
-    mcp = FastMCP("nci-si-mcp")
+    mcp = MCPServer("nci-si-mcp")
 
     @mcp.tool()
     def ncit_search(

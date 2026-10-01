@@ -23,7 +23,7 @@ setup(
     python_requires=">=3.9",
     install_requires=[],
     extras_require={
-        "server": ["mcp>=1.2.0; python_version >= '3.10'"],
+        "server": ["mcp>=2.0,<3; python_version >= '3.10'"],
         "embeddings": ["sentence-transformers>=3.0.0"],
         "test": ["pytest>=7.0.0", "pytest-cov>=4.1.0"],
         "dev": ["mypy>=1.8.0", "ruff>=0.5.0"],

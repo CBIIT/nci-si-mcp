@@ -22,7 +22,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="nci-si-mcp")
     subcommands = parser.add_subparsers(dest="command", required=True)
 
-    subcommands.add_parser("serve", help="Run the FastMCP stdio server")
+    subcommands.add_parser("serve", help="Run the MCP stdio server")
     subcommands.add_parser("release-info", help="Show EVS monthly release and index status")
 
     index_sample = subcommands.add_parser("index-sample", help="Index a small list of NCIt codes")
