@@ -8,25 +8,25 @@ without importing the optional `mcp` package.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field, fields
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 
 def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ReleaseInfo:
     terminology: str
     version: str
-    date: Optional[str]
+    date: str | None
     name: str
-    terminology_version: Optional[str]
+    terminology_version: str | None
     latest: bool
     monthly: bool
     weekly: bool
-    raw: Dict[str, Any] = field(default_factory=dict)
+    raw: dict[str, Any] = field(default_factory=dict)
 
     @property
     def pinned_terminology(self) -> str:
@@ -34,7 +34,7 @@ class ReleaseInfo:
 
         return self.terminology_version or f"{self.terminology}_{self.version}"
 
-    def to_dict(self, include_raw: bool = False) -> Dict[str, Any]:
+    def to_dict(self, include_raw: bool = False) -> dict[str, Any]:
         data = asdict(self)
         if not include_raw:
             data.pop("raw", None)
@@ -43,48 +43,48 @@ class ReleaseInfo:
 
 # NcitConcept and IndexManifest are stored as JSON in the index. A new field
 # needs a default, or a schema migration that rewrites the stored payloads.
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class NcitConcept:
     code: str
     preferred_name: str
     source_vocabulary: str
     terminology: str
     release_version: str
-    release_date: Optional[str]
+    release_date: str | None
     retrieved_at: str
     source: str
-    evidence: Dict[str, Any] = field(default_factory=dict)
-    raw: Dict[str, Any] = field(default_factory=dict)
+    evidence: dict[str, Any] = field(default_factory=dict)
+    raw: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self, include_raw: bool = False) -> Dict[str, Any]:
+    def to_dict(self, include_raw: bool = False) -> dict[str, Any]:
         data = asdict(self)
         if not include_raw:
             data.pop("raw", None)
         return data
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class IndexManifest:
     terminology: str
     release_version: str
-    release_date: Optional[str]
+    release_date: str | None
     embedding_provider: str
     embedding_model: str
     concept_count: int
     built_at: str
     index_path: str
-    embedding_dimensions: Optional[int] = None
+    embedding_dimensions: int | None = None
     active: bool = False
 
     @classmethod
-    def from_payload(cls, payload: Dict[str, Any]) -> "IndexManifest":
+    def from_payload(cls, payload: dict[str, Any]) -> IndexManifest:
         """Rebuild a stored manifest, ignoring keys this version does not know."""
 
         known = {item.name for item in fields(cls)}
         return cls(**{key: value for key, value in payload.items() if key in known})
 
     def embedding_matches(
-        self, provider: str, model: str, dimensions: Optional[int] = None
+        self, provider: str, model: str, dimensions: int | None = None
     ) -> bool:
         """Whether vectors from this provider share the index's embedding space.
 
@@ -102,24 +102,24 @@ class IndexManifest:
             )
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class SearchHit:
     concept: NcitConcept
     score: float
     rank: int
-    score_components: Dict[str, float] = field(default_factory=dict)
+    score_components: dict[str, float] = field(default_factory=dict)
 
-    def to_dict(self, include_raw: bool = False) -> Dict[str, Any]:
+    def to_dict(self, include_raw: bool = False) -> dict[str, Any]:
         data = asdict(self)
         data["concept"] = self.concept.to_dict(include_raw=include_raw)
         return data
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class TraversalNode:
     code: str
     preferred_name: str
@@ -127,11 +127,11 @@ class TraversalNode:
     release_version: str
     source_vocabulary: str = "NCI Thesaurus"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class TraversalEdge:
     source_code: str
     target_code: str
@@ -140,37 +140,37 @@ class TraversalEdge:
     target_name: str = ""
     source_name: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class TraversalResult:
-    start_codes: List[str]
+    start_codes: list[str]
     release_version: str
-    nodes: List[TraversalNode]
-    edges: List[TraversalEdge]
+    nodes: list[TraversalNode]
+    edges: list[TraversalEdge]
     truncated: bool
     max_depth: int
     max_nodes: int
     max_edges: int
     retrieved_at: str
     # Nodes whose relations or descendants exceeded the EVS response-size limit and were not read.
-    unexpanded_codes: List[str] = field(default_factory=list)
+    unexpanded_codes: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
         data["nodes"] = [node.to_dict() for node in self.nodes]
         data["edges"] = [edge.to_dict() for edge in self.edges]
         return data
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class CadsrStatus:
     state: str
     message: str
-    reuse_targets: List[str]
-    findings: List[str] = field(default_factory=list)
+    reuse_targets: list[str]
+    findings: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)

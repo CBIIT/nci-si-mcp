@@ -8,34 +8,58 @@ on:
 permissions:
   contents: read
 
+# A newer push to a pull request replaces the run in progress. Every commit on
+# main gets its own run, which is never cancelled or replaced: it validates the
+# commit that a release is cut from.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   quality:
+    name: quality
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
-          python-version: "3.12"
-          cache: pip
-      - run: python -m pip install --upgrade pip
-      - run: python -m pip install -e ".[test,dev,server]"
-      - run: ruff check src tests
-      - run: mypy src
-      - run: pytest
+          fetch-depth: 0  # the package version is derived from the nearest tag
+          persist-credentials: false
+      - uses: pdm-project/setup-pdm@544d7237314ee09c256785bd360f6b30add38b37  # v4.6
+        with:
+          python-version: "3.13"
+          version: "2.29.2"
+          cache: true
+          # An environment built from another lock file may hold packages this one dropped.
+          cache-restore-exact-match: true
+      # --check fails on a lock file that no longer matches pyproject.toml.
+      - run: pdm install --check
+      - run: pdm run lint
 
-  compatibility:
+  test:
+    name: test (${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0  # the package version is derived from the nearest tag
+          persist-credentials: false
+      - uses: pdm-project/setup-pdm@544d7237314ee09c256785bd360f6b30add38b37  # v4.6
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
-      - run: python -m pip install --upgrade pip
-      # The server extra installs nothing on 3.9, where the MCP tests are skipped.
-      - run: python -m pip install -e ".[test,server]"
-      - run: pytest
+          version: "2.29.2"
+          cache: true
+          # An environment built from another lock file may hold packages this one dropped.
+          cache-restore-exact-match: true
+      - run: pdm install --check
+      - name: Confirm the interpreter under test
+        env:
+          EXPECTED: ${{ matrix.python-version }}
+        run: pdm run python -c "import os, sys; assert sys.version.startswith(os.environ['EXPECTED'] + '.'), sys.version"
+      # Runs the suite with line and branch coverage; the floor is in pyproject.toml.
+      - run: pdm run test

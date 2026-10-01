@@ -6,6 +6,12 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 *.egg-info/
+.pdm-python
+.python-version
+pdm.toml
+.pdm-build/
+.coverage
+dist/
 .DS_Store
 
 # Claude Code artifacts

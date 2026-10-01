@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import json
-import sys
-from typing import Any, Dict, List, Optional
+from typing import Any
 
+from . import __version__
 from .config import Settings, configure_logging
 from .errors import error_response
 from .service import NCISIService
@@ -22,14 +22,7 @@ INSTRUCTIONS = (
 )
 
 
-def create_mcp(settings: Optional[Settings] = None, *, service: Optional[NCISIService] = None):
-    if sys.version_info < (3, 10):
-        raise RuntimeError(
-            "The MCP server requires Python 3.10+ because the upstream 'mcp' "
-            f"package does. Current Python is {sys.version.split()[0]}. "
-            "Use the core CLI/tests on Python 3.9, or create a Python 3.10+ "
-            "environment before running 'serve'."
-        )
+def create_mcp(settings: Settings | None = None, *, service: NCISIService | None = None):
     try:
         from mcp.server.mcpserver import MCPServer
         from mcp.server.mcpserver.exceptions import ResourceError
@@ -37,15 +30,15 @@ def create_mcp(settings: Optional[Settings] = None, *, service: Optional[NCISISe
     except ImportError as exc:
         raise RuntimeError(
             "The MCP server needs the 'server' extra, which installs mcp>=2,<3 "
-            f"(pip install -e '.[server]'). Import failed: {exc}"
+            f"(pdm install). Import failed: {exc}"
         ) from exc
 
     resolved_settings = settings or Settings.from_env()
     configure_logging(resolved_settings.log_level)
     service = service or NCISIService(resolved_settings)
-    mcp = MCPServer("nci-si-mcp", instructions=INSTRUCTIONS)
+    mcp = MCPServer("nci-si-mcp", instructions=INSTRUCTIONS, version=__version__)
 
-    def tool_result(result: Dict[str, Any]) -> Any:
+    def tool_result(result: dict[str, Any]) -> Any:
         """Flag an error envelope as an error at the protocol level as well."""
 
         if result.get("isError"):
@@ -53,7 +46,7 @@ def create_mcp(settings: Optional[Settings] = None, *, service: Optional[NCISISe
             return CallToolResult(content=[TextContent(type="text", text=text)], is_error=True)
         return result
 
-    def resource_result(result: Dict[str, Any]) -> Dict[str, Any]:
+    def resource_result(result: dict[str, Any]) -> dict[str, Any]:
         if result.get("isError"):
             raise ResourceError(json.dumps(result))
         return result
@@ -113,7 +106,7 @@ def create_mcp(settings: Optional[Settings] = None, *, service: Optional[NCISISe
 
     @mcp.tool()
     def ncit_traverse(
-        start_codes: List[str],
+        start_codes: list[str],
         direction: Direction = "out",
         max_depth: int = DEFAULT_MAX_DEPTH,
         max_nodes: int = DEFAULT_MAX_NODES,
@@ -121,8 +114,8 @@ def create_mcp(settings: Optional[Settings] = None, *, service: Optional[NCISISe
         include_hierarchy: bool = True,
         include_roles: bool = True,
         include_associations: bool = True,
-        relationship_names: Optional[List[str]] = None,
-        edge_types: Optional[List[EdgeType]] = None,
+        relationship_names: list[str] | None = None,
+        edge_types: list[EdgeType] | None = None,
     ):
         """Walk NCIt relationships breadth-first from the start codes, in live EVS.
 

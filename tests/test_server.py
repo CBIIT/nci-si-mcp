@@ -1,10 +1,10 @@
 import asyncio
-import importlib.util
 import json
 import logging
 import sys
 import tempfile
 import unittest
+from importlib import metadata
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -17,7 +17,6 @@ from nci_si_mcp.index import LocalIndex
 from nci_si_mcp.server import create_mcp
 from nci_si_mcp.service import NCISIService
 
-HAS_MCP = sys.version_info >= (3, 10) and importlib.util.find_spec("mcp") is not None
 NEOPLASM = concept(
     "C3262",
     "Neoplasm",
@@ -27,17 +26,6 @@ NEOPLASM = concept(
 
 @patch("nci_si_mcp.server.configure_logging")
 class ServerStartupTest(unittest.TestCase):
-    def test_old_python_is_refused_with_an_explanation(self, _):
-        with patch("nci_si_mcp.server.sys") as fake_sys:
-            fake_sys.version_info = (3, 9, 6)
-            fake_sys.version = "3.9.6 (default)"
-            with self.assertRaises(RuntimeError) as raised:
-                create_mcp(Settings())
-
-        self.assertIn("3.10+", str(raised.exception))
-        self.assertIn("3.9.6", str(raised.exception))
-
-    @unittest.skipUnless(sys.version_info >= (3, 10), "the import is only attempted on Python 3.10+")
     def test_missing_or_incompatible_mcp_package_is_explained(self, _):
         with patch.dict(sys.modules, {"mcp.server.mcpserver": None}):
             with self.assertRaises(RuntimeError) as raised:
@@ -47,7 +35,6 @@ class ServerStartupTest(unittest.TestCase):
         self.assertIn("Import failed", str(raised.exception))
 
 
-@unittest.skipUnless(HAS_MCP, "MCP server tests require Python 3.10+ and the server extra")
 @patch("nci_si_mcp.server.configure_logging")
 class ServerTest(unittest.TestCase):
     def setUp(self):
@@ -99,6 +86,14 @@ class ServerTest(unittest.TestCase):
             raise result
         self.assertEqual(result.contents[0].mime_type, "application/json")
         return json.loads(result.contents[0].text)
+
+    def test_server_reports_the_installed_package_version(self, _):
+        async def server_info(client):
+            return client.server_info
+
+        info = self.session(server_info)
+
+        self.assertEqual((info.name, info.version), ("nci-si-mcp", metadata.version("nci-si-mcp")))
 
     def test_five_tools_are_registered_with_descriptions_and_closed_value_sets(self, _):
         tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}

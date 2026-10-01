@@ -2,20 +2,21 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, Iterable, List
+from typing import Any
 
 from .embeddings import EmbeddingProvider
 from .index import LocalIndex
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class GoldQuery:
     query: str
-    expected_codes: List[str]
+    expected_codes: list[str]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class EvaluationResult:
     mode: str
     query_count: int
@@ -23,7 +24,7 @@ class EvaluationResult:
     hit_at_5: float
     mean_reciprocal_rank: float
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
@@ -40,13 +41,13 @@ def evaluate_retrieval(
     gold_queries: Iterable[GoldQuery] = DEFAULT_GOLD_QUERIES,
     modes: Iterable[str] = ("bm25", "vector", "hybrid"),
     limit: int = 10,
-) -> List[EvaluationResult]:
+) -> list[EvaluationResult]:
     queries = list(gold_queries)
-    results: List[EvaluationResult] = []
+    results: list[EvaluationResult] = []
     for mode in modes:
         hit_1 = 0
         hit_5 = 0
-        reciprocal_ranks: List[float] = []
+        reciprocal_ranks: list[float] = []
         for gold in queries:
             hits = index.search(gold.query, embedding_provider, limit=limit, mode=mode)
             ranked_codes = [hit.concept.code for hit in hits]

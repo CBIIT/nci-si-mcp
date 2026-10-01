@@ -21,36 +21,29 @@ EVS-first MVP for exposing NCI Thesaurus search, lookup, and graph traversal thr
 
 ## Quick Start
 
-```bash
-python3 -m venv .venv
-. .venv/bin/activate
-python -m pip install --upgrade pip setuptools wheel
-pip install -e ".[test]"
-python -m nci_si_mcp.cli release-info
-```
-
-The core CLI and tests support Python 3.9+. The MCP server dependency
-requires Python 3.10+, so install the server extra in a Python 3.10+ environment.
-Check first:
+The project needs Python 3.13 or newer and is managed with [PDM](https://pdm-project.org).
 
 ```bash
-python --version
+pdm install
+pdm run nci-si-mcp release-info
+pdm run nci-si-mcp serve
 ```
 
-Then, only if it reports Python 3.10 or newer:
+`pdm install` creates `.venv` from `pdm.lock` and installs the package in editable mode with
+the test and lint tools and the `server` extra (the `mcp` package, which the `serve` command
+and the server tests need). The commands below are written as `python -m nci_si_mcp.cli ...`:
+run them inside the environment (`eval $(pdm venv activate)`) or prefix them with `pdm run`.
 
-```bash
-pip install -e ".[server,test]"
-python -m nci_si_mcp.cli serve
-```
-
-If your machine only has Apple Python 3.9, install Python 3.10+ through an approved
-NIH/NCI software channel, Homebrew, pyenv, or conda before using the MCP server.
+The package version is not written in any file. It is derived from the nearest `vX.Y.Z` git
+tag when the package is installed or built; a commit after the tag gets a development version
+such as `0.1.1.dev1+g<commit>`. Install from a git clone that has its tags: a clone without
+tags silently gets `0.1.devN`, and a source archive without git metadata gets `0.0.0`. Run
+`pdm install` again after a new tag to refresh the version.
 
 For real embeddings, set both variables:
 
 ```bash
-pip install -e ".[embeddings,test]"
+pdm install -G embeddings
 export NCI_SI_EMBEDDING_PROVIDER=sentence-transformers
 export NCI_SI_EMBEDDING_MODEL=cambridgeltl/SapBERT-from-PubMedBERT-fulltext
 ```
@@ -215,23 +208,16 @@ The caDSR adapter is intentionally non-fabricating. It reports `reuse_pending` u
 
 ## Tests
 
-The dependency-free local path uses `unittest`:
-
 ```bash
-PYTHONPATH=src python -m unittest discover -s tests
-PYTHONPATH=src python -m unittest discover -s tests -k LookupTest    # by name
+pdm run test                                  # the whole suite with the coverage floor
+pdm run pytest tests/test_index.py            # one file
+pdm run pytest tests/test_service.py -k LookupTest   # by name
+pdm run lint                                  # Ruff and mypy
 ```
 
-For coverage and quality gates:
+The tests are written with `unittest` and also run without the test tools:
+`python -m unittest discover -s tests`.
 
-```bash
-pip install -e ".[test,dev,server]"
-pytest
-ruff check src tests
-mypy src
-```
-
-Coverage is required to remain at or above 70%. GitHub Actions runs Ruff, mypy,
-and the tests on Python 3.12, and the tests alone on Python 3.9 through 3.14.
-The MCP server tests need Python 3.10+ and are skipped on 3.9. No test contacts
-EVS: network behavior is tested with deterministic fakes.
+Line and branch coverage must stay at or above 90%. GitHub Actions runs Ruff and mypy on
+Python 3.13 and the tests on Python 3.13 and 3.14. No test contacts EVS: network behavior is
+tested with deterministic fakes.

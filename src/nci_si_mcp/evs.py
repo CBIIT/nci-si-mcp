@@ -5,8 +5,9 @@ from __future__ import annotations
 import json
 import logging
 import time
+from collections.abc import Iterable
 from http.client import HTTPException, IncompleteRead
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any
 from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -48,25 +49,25 @@ class ReleaseResolutionError(EVSError):
     """Raised when monthly NCIt cannot be resolved exactly."""
 
 
-def _object(data: Any, what: str) -> Dict[str, Any]:
+def _object(data: Any, what: str) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise EVSResponseError(f"EVS {what} was not an object")
     return data
 
 
-def _object_list(data: Any, what: str) -> List[Dict[str, Any]]:
+def _object_list(data: Any, what: str) -> list[dict[str, Any]]:
     if not isinstance(data, list) or not all(isinstance(item, dict) for item in data):
         raise EVSResponseError(f"EVS {what} was not a list of objects")
     return data
 
 
-def object_list(payload: Dict[str, Any], key: str) -> List[Dict[str, Any]]:
+def object_list(payload: dict[str, Any], key: str) -> list[dict[str, Any]]:
     """Return the list of objects under `key` of an EVS payload; absent means empty."""
 
     return _object_list(payload.get(key) or [], f"field '{key}'")
 
 
-def verify_release(concepts: Iterable[Dict[str, Any]], release_version: str) -> None:
+def verify_release(concepts: Iterable[dict[str, Any]], release_version: str) -> None:
     """Fail unless every concept payload was served from the release that was requested."""
 
     other = {str(raw.get("version") or "unknown") for raw in concepts} - {release_version}
@@ -85,11 +86,11 @@ def _source_vocabulary(terminology: str) -> str:
     return terminology
 
 
-def _tags(raw: Dict[str, Any]) -> Dict[str, Any]:
+def _tags(raw: dict[str, Any]) -> dict[str, Any]:
     return _object(raw.get("tags") or {}, "field 'tags'")
 
 
-def release_from_terminology(raw: Dict[str, Any]) -> ReleaseInfo:
+def release_from_terminology(raw: dict[str, Any]) -> ReleaseInfo:
     tags = _tags(raw)
     return ReleaseInfo(
         terminology=str(raw.get("terminology", "")),
@@ -104,7 +105,7 @@ def release_from_terminology(raw: Dict[str, Any]) -> ReleaseInfo:
     )
 
 
-def select_monthly_ncit_release(terminologies: Iterable[Dict[str, Any]]) -> ReleaseInfo:
+def select_monthly_ncit_release(terminologies: Iterable[dict[str, Any]]) -> ReleaseInfo:
     """Pick the one NCIt row that is both `latest` and tagged monthly, or refuse.
 
     EVS lists every release it serves and marks `latest` per channel, so the
@@ -130,10 +131,10 @@ def select_monthly_ncit_release(terminologies: Iterable[Dict[str, Any]]) -> Rele
 
 
 def normalize_concept(
-    raw: Dict[str, Any],
-    release_date: Optional[str],
+    raw: dict[str, Any],
+    release_date: str | None,
     source: str,
-    retrieved_at: Optional[str] = None,
+    retrieved_at: str | None = None,
 ) -> NcitConcept:
     terminology = str(raw.get("terminology") or "ncit")
     properties = object_list(raw, "properties")
@@ -265,7 +266,7 @@ class EVSClient:
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise EVSResponseError(f"EVS returned invalid JSON for {path}: {exc}") from exc
 
-    def _get_json(self, path: str, params: Optional[Dict[str, Any]] = None) -> Any:
+    def _get_json(self, path: str, params: dict[str, Any] | None = None) -> Any:
         """GET a JSON document, retrying transport failures, HTTP 429 and HTTP 5xx.
 
         HTTP 404 raises EVSNotFoundError. That means "no such concept" only for a
@@ -299,7 +300,7 @@ class EVSClient:
                 raise EVSUnavailableError(message) from failure
             self._retry(path, attempt, message)
 
-    def _get_existing(self, path: str, params: Optional[Dict[str, Any]] = None) -> Any:
+    def _get_existing(self, path: str, params: dict[str, Any] | None = None) -> Any:
         """GET a document that must exist, so a 404 means a wrong endpoint or release."""
 
         try:
@@ -309,10 +310,10 @@ class EVSClient:
                 f"{exc}; EVS does not serve this endpoint or release, check NCI_SI_EVS_BASE_URL"
             ) from exc
 
-    def get_api_version(self) -> Dict[str, Any]:
+    def get_api_version(self) -> dict[str, Any]:
         return _object(self._get_existing("/api/v1/version"), "version response")
 
-    def get_terminologies(self) -> List[Dict[str, Any]]:
+    def get_terminologies(self) -> list[dict[str, Any]]:
         return _object_list(
             self._get_existing("/api/v1/metadata/terminologies"), "terminology metadata"
         )
@@ -325,7 +326,7 @@ class EVSClient:
         codes: Iterable[str],
         terminology: str = "ncit",
         include: str = INDEX_INCLUDE,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Fetch several concepts in one request; EVS omits codes it does not know."""
 
         code_list = [code.strip() for code in codes if code and code.strip()]
@@ -342,13 +343,13 @@ class EVSClient:
         code: str,
         terminology: str = "ncit",
         include: str = LOOKUP_INCLUDE,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         data = self._get_json(f"/api/v1/concept/{terminology}/{code}", {"include": include})
         return _object(data, "concept response")
 
     def get_descendants(
         self, code: str, max_level: int, terminology: str = "ncit"
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Fetch the descendants EVS places within `max_level` levels, each with its `level`.
 
         The concept must be known to exist: a 404 here is not reported as a

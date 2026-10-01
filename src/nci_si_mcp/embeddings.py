@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import math
 from abc import ABC, abstractmethod
-from typing import Iterable, List, Tuple
+from collections.abc import Iterable
 
 
 class EmbeddingProvider(ABC):
@@ -18,7 +18,7 @@ class EmbeddingProvider(ABC):
     model: str
 
     @abstractmethod
-    def embed(self, texts: Iterable[str]) -> List[List[float]]:
+    def embed(self, texts: Iterable[str]) -> list[list[float]]:
         raise NotImplementedError
 
 
@@ -30,10 +30,10 @@ class HashingEmbeddingProvider(EmbeddingProvider):
         self.model = f"hashing-{dimensions}"
         self.dimensions = dimensions
 
-    def embed(self, texts: Iterable[str]) -> List[List[float]]:
+    def embed(self, texts: Iterable[str]) -> list[list[float]]:
         return [self._embed_one(text) for text in texts]
 
-    def _embed_one(self, text: str) -> List[float]:
+    def _embed_one(self, text: str) -> list[float]:
         vector = [0.0] * self.dimensions
         for token in text.lower().split():
             digest = hashlib.sha256(token.encode("utf-8")).digest()
@@ -53,18 +53,18 @@ class SentenceTransformersProvider(EmbeddingProvider):
         except ImportError as exc:  # pragma: no cover - optional dependency
             raise RuntimeError(
                 "The sentence-transformers provider needs the 'embeddings' extra "
-                f"(pip install -e '.[embeddings]'). Import failed: {exc}"
+                f"(pdm install -G embeddings). Import failed: {exc}"
             ) from exc
         self.name = "sentence-transformers"
         self.model = model_name
         self._model = SentenceTransformer(model_name)
 
-    def embed(self, texts: Iterable[str]) -> List[List[float]]:
+    def embed(self, texts: Iterable[str]) -> list[list[float]]:
         vectors = self._model.encode(list(texts), normalize_embeddings=True)
         return [list(map(float, row)) for row in vectors]
 
 
-def normalize_embedding_settings(provider: str, model: str) -> Tuple[str, str]:
+def normalize_embedding_settings(provider: str, model: str) -> tuple[str, str]:
     """Return the normalized provider and model, or raise if they do not go together."""
 
     normalized_provider = provider.strip().lower()
