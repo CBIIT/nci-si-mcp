@@ -197,12 +197,15 @@ class MainTest(unittest.TestCase):
 class ProcessTest(unittest.TestCase):
     def test_results_go_to_stdout_and_diagnostics_to_stderr(self):
         with tempfile.TemporaryDirectory() as data_dir:
+            # The developer's own NCI_SI_* settings must not reach the subprocess.
+            inherited = {key: value for key, value in os.environ.items() if not key.startswith("NCI_SI_")}
             process = subprocess.run(
                 [sys.executable, "-m", "nci_si_mcp.cli", "lookup", "oops"],
                 capture_output=True,
                 text=True,
+                timeout=60,
                 env={
-                    **os.environ,
+                    **inherited,
                     "PYTHONPATH": str(Path(nci_si_mcp.__file__).parents[1]),
                     "NCI_SI_DATA_DIR": data_dir,
                 },

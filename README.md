@@ -99,14 +99,16 @@ the server, so give the server an absolute path:
 export NCI_SI_DATA_DIR=/path/to/data
 ```
 
+A leading `~` is expanded, and an empty value is rejected.
+
 Additional runtime controls:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `NCI_SI_EVS_BASE_URL` | NCI EVS production API | EVS endpoint (`http` or `https`) |
 | `NCI_SI_TIMEOUT_SECONDS` | `30` | Per-request timeout |
-| `NCI_SI_EVS_MAX_ATTEMPTS` | `3` | Bounded request attempts |
-| `NCI_SI_EVS_RETRY_BACKOFF_SECONDS` | `0.25` | Initial exponential backoff |
+| `NCI_SI_EVS_MAX_ATTEMPTS` | `3` | Request attempts, 1 to 10 |
+| `NCI_SI_EVS_RETRY_BACKOFF_SECONDS` | `0.25` | Initial exponential backoff; a single wait is capped at 60 seconds |
 | `NCI_SI_EVS_MAX_RESPONSE_BYTES` | `10485760` | Maximum accepted EVS response |
 | `NCI_SI_INDEX_BATCH_SIZE` | `100` | Codes per EVS indexing request |
 | `NCI_SI_LOG_LEVEL` | `INFO` | Stderr diagnostic level |
@@ -137,14 +139,17 @@ Each tool description, as sent to MCP clients, states the contract in full.
 
 `descendant` edges are followed only when named in `edge_types`, with direction
 `out` or `both` and hierarchy included. They link each start code directly to
-every descendant within `max_depth` levels, using one EVS request per start
-code. Naming an edge type that the direction or the include flags exclude is an
-`invalid_request`.
+every descendant that EVS places within `max_depth` levels, using one EVS
+request per start code. EVS gives a descendant one level, which can be deeper
+than its shortest path, so a `child` walk of the same depth can reach a few
+more concepts. Naming an edge type that the direction or the include flags
+exclude is an `invalid_request`.
 
-`truncated` in the result means the node limit, the edge limit, or the EVS
-response-size limit dropped something. In the last case `unexpanded_codes`
-lists the concepts whose relations were too large to read; raising
-`max_nodes` or `max_edges` does not help there, raising
+The walk proceeds one depth at a time over all start codes, so nearer nodes
+claim the limits first. `truncated` in the result means the node limit, the
+edge limit, or the EVS response-size limit dropped something. In the last case
+`unexpanded_codes` lists the concepts whose relations or descendants were too
+large to read; raising `max_nodes` or `max_edges` does not help there, raising
 `NCI_SI_EVS_MAX_RESPONSE_BYTES` does.
 
 ## Errors

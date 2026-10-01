@@ -70,8 +70,8 @@ def select_edge_types(
 ) -> List[str]:
     """Resolve the direction, include flags and explicit edge types to follow.
 
-    `descendant` is followed only when named in `edge_types`, because it
-    repeats what `child` edges already reach within the depth limit.
+    `descendant` is followed only when named in `edge_types`, because `child`
+    edges already reach those concepts within the depth limit.
     """
 
     outward = direction in ("out", "both")
@@ -150,6 +150,15 @@ def _fetch_concepts(
     return found, [code for code in codes if code not in found], oversized
 
 
+def _level(item: Dict[str, Any], depth_limit: int) -> int:
+    level = item.get("level")
+    if not isinstance(level, int) or isinstance(level, bool) or not 1 <= level <= depth_limit:
+        raise EVSResponseError(
+            f"EVS returned a descendant at level {level!r}; expected 1 to {depth_limit}"
+        )
+    return level
+
+
 def traverse_ncit(
     client: EVSClient,
     start_codes: List[str],
@@ -164,24 +173,28 @@ def traverse_ncit(
     """Walk breadth-first from the start codes along the given edge types.
 
     `edge_types` is the output of `select_edge_types`. Every request is pinned
-    to `release`, and each fetched concept is verified against it. The depth
-    of a node is the length of the shortest path that reaches it; a
-    `descendant` edge, which runs from a start code to every descendant within
-    `max_depth` hierarchy levels, counts as many hops as the descendant's level.
+    to `release`, and each fetched concept is verified against it.
+
+    The walk proceeds one depth at a time over all start codes together, so
+    nearer nodes claim the node and edge limits before farther ones. A
+    `descendant` edge runs from a start code to a descendant that EVS places
+    within `max_depth` hierarchy levels, and reaches as deep as that level.
+    EVS gives a descendant one level, which can exceed its shortest path.
 
     An edge is emitted only when both of its nodes are. `truncated` reports
     that something was dropped: by the node or edge limit, or because the
-    relations of a concept exceeded the EVS response-size limit, in which case
-    the concept is listed in `unexpanded_codes`. Nodes at the depth limit are
-    not expanded, which is not truncation.
+    relations or descendants of a concept exceeded the EVS response-size
+    limit, in which case the concept is listed in `unexpanded_codes`. Nodes at
+    the depth limit are not expanded, which is not truncation.
     """
 
     depth_limit, node_limit = clamp_limits(max_depth, max_nodes)
     edge_limit = clamp_edge_limit(max_edges)
     name_filter = {name.lower() for name in relationship_names or []}
-    # Relations read from the concept payload; descendants have their own request.
-    payload_keys = [RELATIONS[edge_type][0] for edge_type in edge_types if edge_type != "descendant"]
-    include = ",".join(["minimal", *payload_keys])
+    # Edge types whose relations come with the concept payload; descendants
+    # have their own request.
+    payload_types = [edge_type for edge_type in edge_types if edge_type != "descendant"]
+    include = ",".join(["minimal", *(RELATIONS[edge_type][0] for edge_type in payload_types)])
     inward = any(edge_type.startswith("inverse") for edge_type in edge_types)
     batch_size = INVERSE_BATCH_SIZE if inward else BATCH_SIZE
     start = list(dict.fromkeys(start_codes))
@@ -193,10 +206,9 @@ def traverse_ncit(
     seen_edges: Set[Tuple[str, str, str, str]] = set()
     unexpanded: List[str] = []
     truncated = False
-    # A node is expanded at its shallowest known depth. A shorter path found
-    # later moves it to an earlier frontier, and the stale entry is skipped.
-    depth_of: Dict[str, int] = {code: 0 for code in start}
-    frontiers: Dict[int, List[str]] = {0: start}
+    # Descendants of the start codes by level; level n is emitted with the
+    # other edges that reach depth n.
+    descendants: Dict[int, List[Tuple[str, Dict[str, Any]]]] = {}
 
     def result() -> TraversalResult:
         return TraversalResult(
@@ -212,92 +224,97 @@ def traverse_ncit(
             unexpanded_codes=unexpanded,
         )
 
+    frontier = start
     for depth in range(depth_limit + 1):
-        frontier = [code for code in frontiers.get(depth, []) if depth_of[code] == depth]
         expand = depth < depth_limit
-        if not frontier or (depth > 0 and not (expand and payload_keys)):
-            continue
+        concepts: Dict[str, Dict[str, Any]] = {}
         # Start codes are always fetched, to name them and to prove they exist.
-        concepts, missing, oversized = _fetch_concepts(
-            client, frontier, release, include if expand else "minimal", batch_size
-        )
-        if missing and depth == 0:
-            raise EVSNotFoundError(
-                f"NCIt release {release.version} has no concept {', '.join(missing)}"
+        if depth == 0 or (expand and payload_types and frontier):
+            concepts, missing, oversized = _fetch_concepts(
+                client, frontier, release, include if expand else "minimal", batch_size
             )
-        if missing:
-            raise EVSResponseError(
-                f"EVS relations in release {release.version} refer to {', '.join(missing)}, "
-                "which it does not serve"
-            )
-        if oversized:
-            # Their relation lists are empty in `concepts`, so they add no edges.
-            logger.warning("traverse_relations_too_large codes=%s", ",".join(oversized))
-            unexpanded += oversized
-            truncated = True
+            if missing and depth == 0:
+                raise EVSNotFoundError(
+                    f"NCIt release {release.version} has no concept {', '.join(missing)}"
+                )
+            if missing:
+                raise EVSResponseError(
+                    f"EVS relations in release {release.version} refer to {', '.join(missing)}, "
+                    "which it does not serve"
+                )
+            if oversized:
+                # Their relation lists are empty in `concepts`, so they add no edges.
+                logger.warning("traverse_relations_too_large codes=%s", ",".join(oversized))
+                unexpanded += oversized
+                truncated = True
         if depth == 0:
-            for code in frontier:
+            for code in start:
                 nodes[code] = TraversalNode(
                     code=code,
                     preferred_name=str(concepts[code].get("name") or ""),
                     terminology="ncit",
                     release_version=release.version,
                 )
+            if expand and "descendant" in edge_types:
+                for code in start:
+                    try:
+                        items = client.get_descendants(
+                            code, depth_limit, terminology=release.pinned_terminology
+                        )
+                    except EVSResponseTooLargeError:
+                        logger.warning("traverse_descendants_too_large code=%s", code)
+                        unexpanded.append(code)
+                        truncated = True
+                        continue
+                    for item in items:
+                        descendants.setdefault(_level(item, depth_limit), []).append((code, item))
         if not expand:
             break
-        for code in frontier:
-            for edge_type in edge_types:
-                payload_key, default_name = RELATIONS[edge_type]
-                if edge_type != "descendant":
-                    items = object_list(concepts[code], payload_key)
-                elif depth == 0:
-                    # EVS orders descendants by name; nearer levels must claim
-                    # the node budget first.
-                    items = sorted(
-                        client.get_descendants(
-                            code, depth_limit, terminology=release.pinned_terminology
-                        ),
-                        key=lambda item: int(item.get("level") or 1),
-                    )
-                else:
-                    continue
-                for item in items:
-                    target = str(item.get("relatedCode") or item.get("code") or "")
-                    if not target:
-                        continue
-                    relationship_name = str(item.get("type") or default_name)
-                    if name_filter and relationship_name.lower() not in name_filter:
-                        continue
-                    edge_key = (code, target, edge_type, relationship_name)
-                    if edge_key in seen_edges:
-                        continue
-                    if target not in nodes and len(nodes) >= node_limit:
-                        truncated = True
-                        continue
-                    if len(edges) >= edge_limit:
-                        truncated = True
-                        return result()
-                    target_name = str(item.get("relatedName") or item.get("name") or "")
-                    seen_edges.add(edge_key)
-                    edges.append(
-                        TraversalEdge(
-                            source_code=code,
-                            target_code=target,
-                            edge_type=edge_type,
-                            relationship_name=relationship_name,
-                            target_name=target_name,
-                            source_name=nodes[code].preferred_name,
-                        )
-                    )
-                    if target not in nodes:
-                        nodes[target] = TraversalNode(
-                            code=target,
-                            preferred_name=target_name,
-                            terminology="ncit",
-                            release_version=release.version,
-                        )
-                    hops = int(item.get("level") or 1) if edge_type == "descendant" else 1
-                    if depth + hops < depth_of.get(target, depth_limit + 1):
-                        depth_of[target] = depth + hops
-                        frontiers.setdefault(depth + hops, []).append(target)
+
+        # Every edge found here leads to depth + 1.
+        found = [
+            (code, edge_type, item)
+            for code in frontier
+            if code in concepts
+            for edge_type in payload_types
+            for item in object_list(concepts[code], RELATIONS[edge_type][0])
+        ]
+        found += [(code, "descendant", item) for code, item in descendants.get(depth + 1, [])]
+        frontier = []
+        for code, edge_type, item in found:
+            target = str(item.get("relatedCode") or item.get("code") or "")
+            if not target:
+                continue
+            relationship_name = str(item.get("type") or RELATIONS[edge_type][1])
+            if name_filter and relationship_name.lower() not in name_filter:
+                continue
+            edge_key = (code, target, edge_type, relationship_name)
+            if edge_key in seen_edges:
+                continue
+            if target not in nodes and len(nodes) >= node_limit:
+                truncated = True
+                continue
+            if len(edges) >= edge_limit:
+                truncated = True
+                return result()
+            target_name = str(item.get("relatedName") or item.get("name") or "")
+            seen_edges.add(edge_key)
+            edges.append(
+                TraversalEdge(
+                    source_code=code,
+                    target_code=target,
+                    edge_type=edge_type,
+                    relationship_name=relationship_name,
+                    target_name=target_name,
+                    source_name=nodes[code].preferred_name,
+                )
+            )
+            if target not in nodes:
+                nodes[target] = TraversalNode(
+                    code=target,
+                    preferred_name=target_name,
+                    terminology="ncit",
+                    release_version=release.version,
+                )
+                frontier.append(target)
     return result()

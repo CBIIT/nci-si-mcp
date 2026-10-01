@@ -4,9 +4,12 @@ from pathlib import Path
 
 from fakes import FakeEVS, concept, release
 
+from nci_si_mcp import service as service_module
 from nci_si_mcp.config import Settings
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
+from nci_si_mcp.errors import IndexBuildError
 from nci_si_mcp.evs import (
+    LOOKUP_INCLUDE,
     EVSClient,
     EVSResponseError,
     EVSUnavailableError,
@@ -66,6 +69,7 @@ class LookupTest(ServiceTestCase):
         self.assertNotIn("fallback", result)
         self.assertEqual(result["evidence"]["synonyms"][0]["name"], "Tumor")
         self.assertIn(("get_concept", "ncit_26.06e", "C3262"), self.evs.calls)
+        self.assertEqual(self.evs.includes[-1], LOOKUP_INCLUDE)
         self.assertIn("raw", self.service.lookup("C3262", include_raw=True))
 
     def test_unknown_concept_is_not_found_even_when_evs_is_otherwise_healthy(self):
@@ -186,6 +190,18 @@ class IndexCodesTest(ServiceTestCase):
             with self.subTest(codes=codes):
                 self.assertError(self.service.index_codes(codes), "evs_invalid_response")
                 self.assertEqual(self.service.index.get_active_manifest().to_dict(), before)
+
+    def test_concept_that_was_not_requested_is_an_evs_fault(self):
+        class ExtraEVS(FakeEVS):
+            def get_concepts_by_codes(self, codes, terminology="ncit", include=""):
+                found = super().get_concepts_by_codes(codes, terminology, include)
+                return [*found, concept("", "No Code")]
+
+        self.evs = ExtraEVS([NEOPLASM])
+        self.service = self.make_service()
+
+        self.assertError(self.service.index_codes(["C3262"]), "evs_invalid_response")
+        self.assertIsNone(self.service.index.get_active_manifest())
 
     def test_indexed_concepts_carry_their_synonyms_and_definitions(self):
         self.index("C3262")
@@ -416,10 +432,16 @@ class FailureHandlingTest(ServiceTestCase):
             "evaluate": self.service.evaluate,
         }
         for operation, call in calls.items():
-            with self.subTest(operation), self.assertLogs("nci_si_mcp.service", level="WARNING"):
-                result = call()
-            self.assertError(result, "index_storage_error")
-            self.assertIn(str(database), result["message"])
+            with self.subTest(operation):
+                with self.assertLogs("nci_si_mcp.service", level="WARNING"):
+                    result = call()
+                self.assertError(result, "index_storage_error")
+                self.assertIn(str(database), result["message"])
+
+    def test_misuse_of_the_index_is_not_disguised_as_a_result(self):
+        with self.assertRaises(IndexBuildError):
+            self.service.index.upsert_concepts([], None, HashingEmbeddingProvider())
+        self.assertNotIn(IndexBuildError, service_module._ERROR_CODES)
 
     def test_unexpected_exceptions_are_not_disguised_as_results(self):
         class BrokenProvider(HashingEmbeddingProvider):

@@ -27,14 +27,15 @@ class InputValidationError(ValueError):
 
 
 class IndexCompatibilityError(RuntimeError):
-    """Raised when an index write or search would mix releases or embedding spaces."""
+    """Raised when an index write or search would mix releases or embedding spaces,
+    or when the database was written by a newer schema than this code supports."""
 
 
 class IndexBuildError(RuntimeError):
     """Raised when the concepts handed to the index cannot form one release.
 
-    The service checks its EVS payloads before indexing, so this signals a bug
-    in a caller rather than a condition to report to a user.
+    The service rejects such EVS payloads before indexing, so this signals a
+    bug in a caller rather than a condition to report to a user.
     """
 
 

@@ -130,6 +130,7 @@ class UpsertTest(IndexTestCase):
             hits = index.search("renamed", self.provider, mode=mode)
             self.assertEqual(hits[0].concept.code, "C3262", mode)
             self.assertEqual(hits[0].concept.preferred_name, "Renamed Growth")
+        self.assertGreater(hits[0].score, hits[1].score)
         self.assertEqual(index.search("tumor", self.provider, mode="bm25"), [])
 
     def test_upsert_holds_the_write_lock_while_it_checks_compatibility(self):
@@ -208,19 +209,29 @@ class UpsertTest(IndexTestCase):
 
     def test_count_and_search_ignore_rows_of_an_inactive_release(self):
         index = self.build()
+        stale = normalize_concept(
+            concept("C9999", "Tumor Marker", version="26.99z"), None, "active_cache"
+        )
+        text = concept_search_text(stale)
         with index._connect() as conn:
             conn.execute(
-                "INSERT INTO concepts SELECT '26.05d', code, payload, search_text, vector FROM concepts"
+                "INSERT INTO concepts VALUES ('26.99z', 'C9999', ?, ?, ?)",
+                (
+                    json.dumps(stale.to_dict(include_raw=True)),
+                    text,
+                    json.dumps(self.provider.embed([text])[0]),
+                ),
             )
-            conn.execute(
-                "INSERT INTO concepts_fts SELECT '26.05d', code, search_text FROM concepts_fts"
-            )
+            conn.execute("INSERT INTO concepts_fts VALUES ('26.99z', 'C9999', ?)", (text,))
 
         manifest = index.upsert_concepts([RAW_CONCEPTS[0]], "2026-06-29", self.provider)
 
         self.assertEqual(manifest.concept_count, 2)
-        self.assertEqual(len(index.search("tumor", self.provider, mode="bm25")), 1)
-        self.assertEqual(len(index.search("tumor", self.provider, limit=10, mode="vector")), 2)
+        self.assertIsNone(index.get_concept("C9999"))
+        for mode in ("bm25", "vector", "hybrid"):
+            hits = index.search("tumor marker", self.provider, limit=10, mode=mode)
+            self.assertNotIn("C9999", [hit.concept.code for hit in hits], mode)
+            self.assertEqual({hit.concept.release_version for hit in hits}, {"26.06e"}, mode)
 
     def test_failed_write_rolls_back_every_table_and_keeps_the_previous_release(self):
         index = self.build()
@@ -292,6 +303,34 @@ class StorageTest(IndexTestCase):
             with self.assertRaises(IndexStorageError) as raised:
                 call()
             self.assertIn(str(index.db_path), str(raised.exception))
+
+    def test_database_that_cannot_be_opened_is_a_storage_error_naming_the_file(self):
+        (self.path / "nci_si.sqlite3").mkdir()
+
+        with self.assertRaises(IndexStorageError) as raised:
+            LocalIndex(self.path)
+
+        self.assertIn(str(self.path / "nci_si.sqlite3"), str(raised.exception))
+
+    def test_search_reads_one_snapshot_while_the_release_is_replaced(self):
+        index = self.build()
+        read_manifest = LocalIndex._active_manifest
+        replaced = []
+
+        def replace_release_then_read(conn):
+            manifest = read_manifest(conn)
+            if not replaced:
+                replaced.append(True)
+                LocalIndex(self.path).upsert_concepts(
+                    [concept("C9999", "Tumor Marker", version="26.07d")], "2026-07-27", self.provider
+                )
+            return manifest
+
+        with patch.object(LocalIndex, "_active_manifest", staticmethod(replace_release_then_read)):
+            hits = index.search("tumor", self.provider, mode="hybrid")
+
+        self.assertEqual({hit.concept.release_version for hit in hits}, {"26.06e"})
+        self.assertEqual(index.get_active_manifest().release_version, "26.07d")
 
     def test_connections_are_closed_after_use(self):
         index = self.build()

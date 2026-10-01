@@ -15,6 +15,9 @@ from .models import NcitConcept, ReleaseInfo, utc_now_iso
 
 logger = logging.getLogger(__name__)
 
+# Longest wait before a retry, whatever the backoff setting and attempt number.
+MAX_RETRY_DELAY_SECONDS = 60.0
+
 # What a concept request asks EVS to include: enough to build the search text
 # for indexing, and additionally every relation list for a lookup.
 INDEX_INCLUDE = "summary,definitions,synonyms,properties"
@@ -66,11 +69,11 @@ def object_list(payload: Dict[str, Any], key: str) -> List[Dict[str, Any]]:
 def verify_release(concepts: Iterable[Dict[str, Any]], release_version: str) -> None:
     """Fail unless every concept payload was served from the release that was requested."""
 
-    served = {str(raw.get("version") or "") for raw in concepts}
-    if served - {release_version}:
+    other = {str(raw.get("version") or "unknown") for raw in concepts} - {release_version}
+    if other:
         raise EVSResponseError(
-            f"EVS served release {', '.join(sorted(served)) or 'unknown'} for a request "
-            f"pinned to {release_version}"
+            f"EVS served release {', '.join(sorted(other))} for a request pinned to "
+            f"{release_version}"
         )
 
 
@@ -225,7 +228,7 @@ class EVSClient:
         self.max_response_bytes = max_response_bytes
 
     def _retry(self, path: str, attempt: int, message: str) -> None:
-        delay = self.retry_backoff_seconds * (2 ** (attempt - 1))
+        delay = min(self.retry_backoff_seconds * (2 ** (attempt - 1)), MAX_RETRY_DELAY_SECONDS)
         logger.warning(
             "evs_request_retry path=%s attempt=%s max_attempts=%s delay_seconds=%.3f reason=%s",
             path,
@@ -261,8 +264,8 @@ class EVSClient:
     def _get_json(self, path: str, params: Optional[Dict[str, Any]] = None) -> Any:
         """GET a JSON document, retrying transport failures, HTTP 429 and HTTP 5xx.
 
-        HTTP 404 raises EVSNotFoundError; that means "no such concept" only on a
-        concept path, so the metadata methods convert it.
+        HTTP 404 raises EVSNotFoundError. That means "no such concept" only for a
+        single-concept request; the other methods go through `_get_existing`.
         """
 
         query = ""
@@ -292,30 +295,24 @@ class EVSClient:
                 raise EVSUnavailableError(message) from failure
             self._retry(path, attempt, message)
 
-    def _get_metadata(self, path: str) -> Any:
-        """GET a document that always exists, so a 404 means a wrong endpoint."""
+    def _get_existing(self, path: str, params: Optional[Dict[str, Any]] = None) -> Any:
+        """GET a document that must exist, so a 404 means a wrong endpoint or release."""
 
         try:
-            return self._get_json(path)
+            return self._get_json(path, params)
         except EVSNotFoundError as exc:
             raise EVSResponseError(f"{exc}; check NCI_SI_EVS_BASE_URL") from exc
 
     def get_api_version(self) -> Dict[str, Any]:
-        return _object(self._get_metadata("/api/v1/version"), "version response")
+        return _object(self._get_existing("/api/v1/version"), "version response")
 
     def get_terminologies(self) -> List[Dict[str, Any]]:
         return _object_list(
-            self._get_metadata("/api/v1/metadata/terminologies"), "terminology metadata"
+            self._get_existing("/api/v1/metadata/terminologies"), "terminology metadata"
         )
 
     def resolve_monthly_ncit_release(self) -> ReleaseInfo:
         return select_monthly_ncit_release(self.get_terminologies())
-
-    def get_codes(self, terminology: str = "ncit") -> List[str]:
-        data = self._get_json(f"/api/v1/concept/{terminology}/codes")
-        if not isinstance(data, list):
-            raise EVSResponseError("EVS code response was not a list")
-        return [str(code) for code in data]
 
     def get_concepts_by_codes(
         self,
@@ -328,7 +325,7 @@ class EVSClient:
         code_list = [code.strip() for code in codes if code and code.strip()]
         if not code_list:
             return []
-        data = self._get_json(
+        data = self._get_existing(
             f"/api/v1/concept/{terminology}",
             {"list": ",".join(code_list), "include": include},
         )
@@ -346,9 +343,13 @@ class EVSClient:
     def get_descendants(
         self, code: str, max_level: int, terminology: str = "ncit"
     ) -> List[Dict[str, Any]]:
-        """Fetch every descendant within `max_level` hierarchy levels, each with its `level`."""
+        """Fetch the descendants EVS places within `max_level` levels, each with its `level`.
 
-        data = self._get_json(
+        The concept must be known to exist: a 404 here is not reported as a
+        missing concept.
+        """
+
+        data = self._get_existing(
             f"/api/v1/concept/{terminology}/{code}/descendants", {"maxLevel": max_level}
         )
         return _object_list(data, "descendants response")

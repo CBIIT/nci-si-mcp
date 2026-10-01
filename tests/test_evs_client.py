@@ -85,15 +85,35 @@ class EVSClientTest(unittest.TestCase):
 
         self.assertEqual(urlopen.call_args.kwargs["timeout"], 2.5)
 
-    def test_missing_metadata_endpoint_is_not_a_missing_concept(self, urlopen, sleep):
+    def test_retry_wait_is_capped(self, urlopen, sleep):
+        urlopen.side_effect = [URLError("down")] * 10
+
+        with self.assertLogs("nci_si_mcp.evs", level="WARNING"), self.assertRaises(
+            EVSUnavailableError
+        ):
+            self.client(max_attempts=10, retry_backoff_seconds=3600).get_api_version()
+
+        self.assertEqual({call.args[0] for call in sleep.call_args_list}, {60.0})
+
+    def test_only_a_single_concept_request_reports_a_missing_concept(self, urlopen, sleep):
         client = self.client()
-        for call in (client.get_api_version, client.get_terminologies, client.resolve_monthly_ncit_release):
-            with self.subTest(call.__name__):
+        calls = {
+            "version": client.get_api_version,
+            "terminologies": client.get_terminologies,
+            "release": client.resolve_monthly_ncit_release,
+            "batch": lambda: client.get_concepts_by_codes(["C1"]),
+            "descendants": lambda: client.get_descendants("C1", 1),
+        }
+        for label, call in calls.items():
+            with self.subTest(label):
                 urlopen.side_effect = http_error(404, b'{"message": "No static resource"}')
                 with self.assertRaises(EVSResponseError) as raised:
                     call()
                 self.assertNotIsInstance(raised.exception, EVSNotFoundError)
                 self.assertIn("NCI_SI_EVS_BASE_URL", str(raised.exception))
+        urlopen.side_effect = http_error(404, b'{"message": "C1 not found"}')
+        with self.assertRaises(EVSNotFoundError):
+            client.get_concept("C1")
 
     def test_not_found_is_distinct_and_carries_the_reason_evs_gives(self, urlopen, sleep):
         urlopen.side_effect = http_error(404, b'{"status": 404, "message": "C999 not found"}')

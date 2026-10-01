@@ -114,9 +114,14 @@ class EVSTest(unittest.TestCase):
     def test_verify_release_accepts_only_the_requested_release(self):
         verify_release([], "26.06e")
         verify_release([{"version": "26.06e"}, {"version": "26.06e"}], "26.06e")
-        for concepts in ([{"version": "26.07a"}], [{"version": "26.06e"}, {}]):
-            with self.subTest(concepts=concepts), self.assertRaises(EVSResponseError):
+        for concepts, named in (
+            ([{"version": "26.07a"}], "release 26.07a for"),
+            ([{"version": "26.06e"}, {}], "release unknown for"),
+            ([{"version": "26.06e"}, {"version": "26.05d"}], "release 26.05d for"),
+        ):
+            with self.subTest(concepts=concepts), self.assertRaises(EVSResponseError) as raised:
                 verify_release(concepts, "26.06e")
+            self.assertIn(named, str(raised.exception))
 
     def test_normalize_concept_includes_required_provenance(self):
         concept = normalize_concept(

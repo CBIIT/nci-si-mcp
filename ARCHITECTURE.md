@@ -93,7 +93,7 @@ in `traversal.py`.
 | `models.py` | Defines serializable release, concept, index, search-hit, traversal, and caDSR status dataclasses. | Python standard library |
 | `evaluation.py` | Evaluates BM25, vector, and hybrid retrieval against a small built-in gold-query set. | Local index, embedding provider |
 | `cadsr.py` | Exposes an explicit `reuse_pending` boundary; no caDSR search or fabricated CDE results are implemented. | Shared models |
-| `config.py` | Loads EVS, retry, batching, logging, data-directory, and embedding settings from environment variables and validates all of them except the data directory. | Environment, `embeddings.py` |
+| `config.py` | Loads EVS, retry, batching, logging, data-directory, and embedding settings from environment variables and validates them; whether the data directory is usable shows only when the index is opened. | Environment, `embeddings.py` |
 | `validation.py` | Defines the closed value sets (search modes, directions, edge types), normalizes NCIt codes, and validates search and traversal inputs. | Shared errors |
 | `errors.py` | Defines the validation and index errors, the error codes, and the serialized error envelope. | Python standard library |
 
@@ -134,7 +134,7 @@ in `traversal.py`.
 1. The service resolves the current monthly release. If the index holds a
    different release, lookup fails with `version_mismatch` unless `live_only` is
    set, so that lookups and searches never mix releases. With `live_only` the
-   index is not opened.
+   call does not read the index; the CLI still opens it at startup.
 2. The concept is requested from live EVS, pinned to that release, and the
    release of the answer is verified. A code the release does not contain is
    `concept_not_found`.
@@ -149,18 +149,20 @@ in `traversal.py`.
    follow. A combination that selects nothing, or names an edge type the
    direction excludes, is rejected before any request is made.
 2. The service resolves the monthly release and calls `traverse_ncit`.
-3. The walk is breadth-first. Each level is read with batched concept requests
-   that include the selected relation lists, pinned to the release, and every
-   fetched concept is checked against it. Requested limits are clamped to a
-   maximum depth of 4, 1,000 nodes, and 5,000 edges.
+3. The walk is breadth-first, one depth at a time over all start codes, so
+   nearer nodes claim the limits before farther ones. Each level is read with
+   batched concept requests that include the selected relation lists, pinned to
+   the release, and every fetched concept is checked against it. Requested
+   limits are clamped to a maximum depth of 4, 1,000 nodes, and 5,000 edges.
 4. `descendant` edges are followed only on request. They come from one EVS
    request per start code, pinned to the release and limited to `max_depth`
-   levels, and count as many hops as the descendant's level. A node is
-   expanded at the depth of the shortest path that reaches it.
+   levels, and each is emitted together with the other edges that reach the
+   depth of its level. EVS gives a descendant one level, which can be deeper
+   than its shortest path.
 5. Edges are deduplicated, every emitted edge references emitted nodes, and the
    result reports whether a limit dropped anything. A concept whose relations
-   exceed the EVS response-size limit is kept as a node, is not expanded, sets
-   `truncated`, and is listed in `unexpanded_codes`.
+   or descendants exceed the EVS response-size limit is kept as a node, is not
+   expanded, sets `truncated`, and is listed in `unexpanded_codes`.
 
 ## Persistence schema
 
@@ -248,7 +250,7 @@ not MCP tools. The README lists the error codes.
 - caDSR/CDE discovery is a status-only adapter until reusable APIs, credentials,
   schemas, indexes, models, and ranking rules are confirmed.
 - Indexing is manual by supplied codes; there is no complete NCIt-universe build
-  workflow even though the EVS client can list codes. An index cannot be
+  workflow. An index cannot be
   re-embedded in place: changing the embedding settings means deleting the
   database file and indexing again.
 - The MCP dependency requires Python 3.10+, while the core CLI and tests support

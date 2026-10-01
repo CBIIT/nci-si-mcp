@@ -54,6 +54,16 @@ class SettingsTest(unittest.TestCase):
             ("NCI_SI_EVS_BASE_URL", "https://example.org?x=1"),
             ("NCI_SI_EVS_BASE_URL", "https://example.org/api#top"),
             ("NCI_SI_EVS_BASE_URL", "https://exa mple.org"),
+            ("NCI_SI_EVS_BASE_URL", "https://api-evsrest..nci.nih.gov"),
+            ("NCI_SI_EVS_BASE_URL", "https://.example.org"),
+            ("NCI_SI_EVS_BASE_URL", "https://" + "a" * 64 + ".org"),
+            ("NCI_SI_EVS_BASE_URL", "https://example.org\r"),
+            ("NCI_SI_EVS_BASE_URL", "https://user:secret@example.org"),
+            ("NCI_SI_EVS_BASE_URL", "https://example.org/pr\u00e4"),
+            ("NCI_SI_EVS_BASE_URL", "https://example.org:0"),
+            ("NCI_SI_DATA_DIR", ""),
+            ("NCI_SI_DATA_DIR", "  "),
+            ("NCI_SI_EVS_MAX_ATTEMPTS", "11"),
             ("NCI_SI_EVS_BASE_URL", ""),
             ("NCI_SI_TIMEOUT_SECONDS", "0"),
             ("NCI_SI_TIMEOUT_SECONDS", "nan"),
@@ -72,18 +82,37 @@ class SettingsTest(unittest.TestCase):
             ("NCI_SI_INDEX_BATCH_SIZE", "0"),
             ("NCI_SI_LOG_LEVEL", "loud"),
         ):
-            with self.subTest(variable=variable, value=value), self.assertRaises(ValueError) as raised:
-                settings_from(**{variable: value})
-            self.assertIn(variable, str(raised.exception))
+            with self.subTest(variable=variable, value=value):
+                with self.assertRaises(ValueError) as raised:
+                    settings_from(**{variable: value})
+                self.assertIn(variable, str(raised.exception))
+
+
+    def test_usable_base_urls_are_accepted(self):
+        for url in (
+            "https://api-evsrest.nci.nih.gov",
+            "HTTPS://EXAMPLE.ORG",
+            "http://localhost:8080/prefix/",
+            "http://127.0.0.1:9",
+            "http://[::1]:8080",
+            "https://example.org.",
+        ):
+            with self.subTest(url):
+                self.assertEqual(settings_from(NCI_SI_EVS_BASE_URL=url).evs_base_url, url.rstrip("/"))
+
+    def test_data_dir_expands_the_home_directory(self):
+        settings = settings_from(NCI_SI_DATA_DIR="~/nci-index", HOME="/home/someone")
+
+        self.assertEqual(settings.data_dir, Path("/home/someone/nci-index"))
 
 
 class LoggingTest(unittest.TestCase):
     def test_diagnostics_go_to_stderr_at_the_configured_level(self):
         with patch("nci_si_mcp.config.logging.basicConfig") as basic_config:
-            configure_logging("debug")
+            configure_logging("warning")
 
         self.assertIs(basic_config.call_args.kwargs["stream"], sys.stderr)
-        self.assertEqual(basic_config.call_args.kwargs["level"], logging.DEBUG)
+        self.assertEqual(basic_config.call_args.kwargs["level"], logging.WARNING)
 
 
 if __name__ == "__main__":

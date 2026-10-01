@@ -235,9 +235,10 @@ class ServerTest(unittest.TestCase):
             "nci-si://index/ncit/99.99z/manifest": "index_not_active",
         }
         for uri, code in failures.items():
-            with self.subTest(uri), self.assertRaises(MCPError) as raised:
-                self.read(uri)
-            self.assertEqual(json.loads(str(raised.exception))["error"], code)
+            with self.subTest(uri):
+                with self.assertRaises(MCPError) as raised:
+                    self.read(uri)
+                self.assertEqual(json.loads(str(raised.exception))["error"], code)
 
         self.evs.errors = {"resolve_monthly_ncit_release": EVSUnavailableError("down")}
         with self.assertRaises(MCPError) as raised:
@@ -247,9 +248,10 @@ class ServerTest(unittest.TestCase):
 
         (self.settings.data_dir / "nci_si.sqlite3").write_bytes(b"not a database" * 100)
         for uri in ("nci-si://index/ncit/active/manifest", "nci-si://release/ncit/monthly"):
-            with self.subTest(uri), self.assertRaises(MCPError) as raised:
-                self.read(uri)
-            self.assertEqual(json.loads(str(raised.exception))["error"], "index_storage_error")
+            with self.subTest(uri):
+                with self.assertRaises(MCPError) as raised:
+                    self.read(uri)
+                self.assertEqual(json.loads(str(raised.exception))["error"], "index_storage_error")
 
 
 if __name__ == "__main__":

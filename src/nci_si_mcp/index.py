@@ -195,8 +195,6 @@ class LocalIndex:
                     f"SELECT DISTINCT release_version FROM concepts WHERE {inactive}"
                 )
             ]
-            if dropped:
-                logger.warning("index_migration_dropped_releases releases=%s", ",".join(dropped))
             for table in ("concepts", "concepts_fts", "vector_lsh", "manifests"):
                 conn.execute(f"DELETE FROM {table} WHERE {inactive}")
             if version < 2:
@@ -224,6 +222,8 @@ class LocalIndex:
                     ],
                 )
             conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+        if dropped:
+            logger.warning("index_migration_dropped_releases releases=%s", ",".join(dropped))
 
     @staticmethod
     def _active_manifest(conn: sqlite3.Connection) -> Optional[IndexManifest]:

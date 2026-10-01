@@ -76,8 +76,10 @@ def create_mcp(settings: Optional[Settings] = None, *, service: Optional[NCISISe
         Each entry of `score_components` is min-max normalized over the
         concepts scored for this query: the best is 1.0 however poor the match,
         the weakest is 0.0 even when it matches, and when only one concept is
-        scored, or all tie, they are all 1.0. Scores therefore order the hits
-        of one query and are not comparable across queries. `vector` and
+        scored, or all tie, they are all 1.0. A component that was not computed
+        for a concept (the other one in `bm25` or `vector` mode, or `bm25` for
+        a concept without a matching term) is 0.0. Scores therefore order the
+        hits of one query and are not comparable across queries. `vector` and
         `hybrid` modes rank by similarity and return up to `limit` concepts
         whether or not anything matches the query; `bm25` returns only
         concepts that share a term with it.
@@ -131,17 +133,21 @@ def create_mcp(settings: Optional[Settings] = None, *, service: Optional[NCISISe
         types; naming a type that the direction or the include flags exclude
         is an `invalid_request`. It is also the only way to get `descendant`
         edges (direction `out` or `both`, hierarchy included), which link each
-        start code directly to every descendant within `max_depth` levels.
+        start code directly to every descendant that EVS places within
+        `max_depth` levels. EVS gives a descendant one level, which can be
+        deeper than its shortest path, so a `child` walk of the same depth can
+        reach a few more concepts.
         `relationship_names` keeps only edges with those names, ignoring case:
         role and association names such as `Disease_Has_Finding`, or
         `is_a_parent`, `is_a_child` and `is_a_descendant` for hierarchy edges.
 
         Limits are clamped to depth 4, 1,000 nodes and 5,000 edges, and the
         result reports the effective `max_depth`, `max_nodes` and `max_edges`.
-        `truncated` is true when something was dropped: by the node limit, by
-        the edge limit, or because the relations of a concept were too large
-        to read, in which case `unexpanded_codes` lists it and raising the
-        limits does not help. Stopping at `max_depth` does not set `truncated`.
+        Nearer nodes claim the limits before farther ones. `truncated` is true
+        when something was dropped: by the node limit, by the edge limit, or
+        because the relations or descendants of a concept were too large to
+        read, in which case `unexpanded_codes` lists it and raising the limits
+        does not help. Stopping at `max_depth` does not set `truncated`.
         Every edge connects two nodes of the result, and all data is read from
         the monthly release named in `release_version`. A start code that
         release does not contain returns `concept_not_found`.

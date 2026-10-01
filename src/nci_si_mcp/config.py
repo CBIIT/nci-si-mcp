@@ -14,6 +14,30 @@ from .embeddings import normalize_embedding_settings
 
 # Upper bound for the timeout and backoff settings; socket timeouts overflow far above it.
 MAX_SECONDS = 3600
+MAX_ATTEMPTS = 10
+
+
+def _is_evs_url(value: str) -> bool:
+    """Whether urllib can request `value` and append a path to it."""
+
+    # urlsplit drops tabs and newlines, and urllib rejects them later.
+    if not (value.isascii() and value.isprintable()) or " " in value:
+        return False
+    try:
+        url = urlsplit(value)
+        host = url.hostname or ""
+        host.encode("idna")  # an empty or over-long label raises UnicodeError
+        port = url.port
+    except ValueError:
+        return False
+    return (
+        url.scheme in ("http", "https")
+        and bool(host)
+        and "@" not in url.netloc
+        and not url.query
+        and not url.fragment
+        and (port is None or port > 0)
+    )
 
 DEFAULT_EVS_BASE_URL = "https://api-evsrest.nci.nih.gov"
 DEFAULT_EMBEDDING_MODEL = "hashing"
@@ -44,29 +68,18 @@ class Settings:
     log_level: str = "INFO"
 
     def __post_init__(self) -> None:
-        try:
-            url = urlsplit(self.evs_base_url)
-            valid_url = (
-                url.scheme in ("http", "https")
-                and bool(url.hostname)
-                and " " not in self.evs_base_url
-                and not url.query
-                and not url.fragment
-                and (url.port is None or url.port > 0)
-            )
-        except ValueError:
-            valid_url = False
-        if not valid_url:
+        if not _is_evs_url(self.evs_base_url):
             raise ValueError(
-                "NCI_SI_EVS_BASE_URL must be an http(s) URL without query or fragment"
+                "NCI_SI_EVS_BASE_URL must be a plain http(s) URL without credentials, query "
+                f"or fragment, not {self.evs_base_url!r}"
             )
         # Written so that NaN fails the comparison.
         if not 0 < self.timeout_seconds <= MAX_SECONDS:
             raise ValueError(
                 f"NCI_SI_TIMEOUT_SECONDS must be greater than zero and at most {MAX_SECONDS}"
             )
-        if self.evs_max_attempts < 1:
-            raise ValueError("NCI_SI_EVS_MAX_ATTEMPTS must be at least 1")
+        if not 1 <= self.evs_max_attempts <= MAX_ATTEMPTS:
+            raise ValueError(f"NCI_SI_EVS_MAX_ATTEMPTS must be between 1 and {MAX_ATTEMPTS}")
         if not 0 <= self.evs_retry_backoff_seconds <= MAX_SECONDS:
             raise ValueError(
                 f"NCI_SI_EVS_RETRY_BACKOFF_SECONDS must be between zero and {MAX_SECONDS}"
@@ -81,9 +94,12 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> "Settings":
+        data_dir = os.getenv("NCI_SI_DATA_DIR", ".nci-si-mcp")
+        if not data_dir.strip():
+            raise ValueError("NCI_SI_DATA_DIR must not be empty")
         return cls(
             evs_base_url=os.getenv("NCI_SI_EVS_BASE_URL", DEFAULT_EVS_BASE_URL).rstrip("/"),
-            data_dir=Path(os.getenv("NCI_SI_DATA_DIR", ".nci-si-mcp")),
+            data_dir=Path(data_dir).expanduser(),
             embedding_provider=os.getenv("NCI_SI_EMBEDDING_PROVIDER", "hashing"),
             embedding_model=os.getenv("NCI_SI_EMBEDDING_MODEL", DEFAULT_EMBEDDING_MODEL),
             timeout_seconds=_env_number("NCI_SI_TIMEOUT_SECONDS", "30", float),

@@ -154,7 +154,9 @@ class NCISIService:
                 self.evs.get_concepts_by_codes(batch, terminology=release.pinned_terminology)
             )
         verify_release(raw_concepts, release.version)
-        returned_codes = {str(raw.get("code") or "").strip().upper() for raw in raw_concepts}
+        returned_codes = {str(raw.get("code") or "") for raw in raw_concepts}
+        if not returned_codes <= set(normalized_codes):
+            raise EVSResponseError("EVS returned a concept that was not requested")
         missing_codes = [code for code in normalized_codes if code not in returned_codes]
         if missing_codes:
             logger.warning("index_codes_failed error=concepts_missing codes=%s", missing_codes)
@@ -209,7 +211,7 @@ class NCISIService:
         Unless `live_only` is set, the result must agree with the active index:
         a different current release is a `version_mismatch`, and when EVS is
         unreachable the concept is served from the index, marked as a fallback.
-        With `live_only` the index is not opened at all.
+        With `live_only` the index is not read.
         """
 
         code = validate_ncit_code(code)
