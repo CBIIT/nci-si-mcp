@@ -291,9 +291,12 @@ def traverse_ncit(
             # A role or association item names its target in `relatedCode`; its
             # own `code` is that of the relationship.
             hierarchy = edge_type in HIERARCHY_EDGE_TYPES
-            target = str(item.get("code" if hierarchy else "relatedCode") or "")
+            target_key = "code" if hierarchy else "relatedCode"
+            target = str(item.get(target_key) or "")
             if not target:
-                raise EVSResponseError(f"EVS returned a {edge_type} relation of {code} without a code")
+                raise EVSResponseError(
+                    f"EVS returned a {edge_type} relation of {code} without a {target_key}"
+                )
             relationship_name = str(item.get("type") or RELATIONS[edge_type][1])
             if name_filter and relationship_name.lower() not in name_filter:
                 continue

@@ -247,7 +247,7 @@ class EVSClient:
         )
         declared_length = 0
         # http.client ignores Content-Length for a chunked body, and so does this.
-        if not response.headers.get("Transfer-Encoding"):
+        if response.headers.get("Transfer-Encoding", "").lower() != "chunked":
             try:
                 declared_length = int(response.headers.get("Content-Length") or 0)
             except ValueError:

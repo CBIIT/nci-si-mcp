@@ -1,5 +1,6 @@
 import io
 import unittest
+from email.message import Message
 from http.client import IncompleteRead
 from unittest.mock import patch
 from urllib.error import HTTPError, URLError
@@ -16,7 +17,10 @@ from nci_si_mcp.evs import (
 class FakeResponse:
     def __init__(self, payload, headers=None):
         self.payload = payload
-        self.headers = headers or {}
+        # Header names are case-insensitive, as on a real response.
+        self.headers = Message()
+        for name, value in (headers or {}).items():
+            self.headers[name] = value
 
     def __enter__(self):
         return self
@@ -50,6 +54,10 @@ class EVSClientTest(unittest.TestCase):
             "http 503": http_error(503),
             "truncated body": FakeResponse(IncompleteRead(b"")),
             "body shorter than declared": FakeResponse(b'{"vers', {"Content-Length": "20"}),
+            # Only a chunked body makes http.client ignore the declared length.
+            "short body in another encoding": FakeResponse(
+                b'{"vers', {"Content-Length": "20", "Transfer-Encoding": "identity"}
+            ),
         }
         for label, failure in failures.items():
             with self.subTest(label):
@@ -154,7 +162,7 @@ class EVSClientTest(unittest.TestCase):
             "unparsable": {"Content-Length": "ten"},
             "undeclared": {},
             # http.client decodes a chunked body and ignores its Content-Length.
-            "chunked": {"Content-Length": "50", "Transfer-Encoding": "chunked"},
+            "chunked": {"content-length": "50", "transfer-encoding": "Chunked"},
         }.items():
             with self.subTest(label):
                 urlopen.return_value = FakeResponse(b'{"a": 123}', headers)
@@ -284,6 +292,20 @@ class EVSClientTest(unittest.TestCase):
         self.assertIn("HTTP 404", message)
         self.assertIn("No static resource", message)
         self.assertIn("NCI_SI_EVS_BASE_URL", message)
+
+    def test_an_empty_body_with_an_ignored_length_is_invalid_not_retried(self, urlopen, sleep):
+        for label, headers in {
+            "chunked": {"Content-Length": "5", "Transfer-Encoding": "chunked"},
+            "unparsable": {"Content-Length": "five"},
+        }.items():
+            with self.subTest(label):
+                urlopen.reset_mock()
+                urlopen.return_value = FakeResponse(b"", headers)
+
+                with self.assertRaises(EVSResponseError):
+                    self.client().get_api_version()
+
+                self.assertEqual(urlopen.call_count, 1)
 
 
 if __name__ == "__main__":

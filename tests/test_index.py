@@ -723,6 +723,23 @@ class SearchTest(IndexTestCase):
                 hits = index.search("kinase tumor", self.provider, mode=mode)
                 self.assertEqual({hit.concept.release_version for hit in hits}, {"26.07d"})
 
+    def test_bm25_scores_of_the_top_hits_do_not_depend_on_a_small_limit(self):
+        # Thirty concepts match "kinase", each with its own document length and so its own score.
+        concepts = [
+            concept(f"C{number}", "kinase " + " ".join(f"filler{n}" for n in range(number)))
+            for number in range(1, 31)
+        ]
+        index = self.build(concepts)
+
+        every = index.search("kinase", self.provider, limit=30, mode="bm25")
+        few = index.search("kinase", self.provider, limit=2, mode="bm25")
+
+        self.assertEqual(len({hit.score for hit in every}), 30)
+        self.assertEqual(
+            [(hit.concept.code, hit.score) for hit in few],
+            [(hit.concept.code, hit.score) for hit in every[:2]],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

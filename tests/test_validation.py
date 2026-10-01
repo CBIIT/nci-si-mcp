@@ -89,7 +89,10 @@ class ValidationTest(unittest.TestCase):
 
         self.assertEqual(len(traversal(2, 2)[0]), 2)
         self.assertEqual(len(traversal(1000, 5000)[0]), 1000)
-        with self.assertRaisesRegex(InputValidationError, "3 start codes .* node limit of 2"):
+        with self.assertRaisesRegex(
+            InputValidationError,
+            r"^3 start codes exceed the node limit of 2 \(max_nodes, at most 1000\)$",
+        ):
             traversal(3, 2)
         # Codes are counted after duplicates are removed.
         with self.assertRaisesRegex(InputValidationError, "^3 start codes"):

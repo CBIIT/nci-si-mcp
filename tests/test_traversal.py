@@ -646,7 +646,8 @@ class TraversalTest(unittest.TestCase):
                 with self.assertRaises(EVSResponseError) as raised:
                     walk(client, max_depth=1, edge_types=[edge_type])
 
-                self.assertIn(f"{edge_type} relation of C1", str(raised.exception))
+                key = "relatedCode" if edge_type == "role" else "code"
+                self.assertIn(f"{edge_type} relation of C1 without a {key}", str(raised.exception))
 
     def test_nothing_unexpanded_when_everything_fits(self):
         result = walk(chain(), max_depth=3)
@@ -751,13 +752,65 @@ class TraversalTest(unittest.TestCase):
 
         self.assertIn("C404, C405", str(raised.exception))
 
-    def test_target_name_prefers_the_related_name(self):
+    def test_a_role_target_is_named_by_its_related_name(self):
         row = dict(related("Has_Finding", "C2"), name="Has Finding (role name)")
         client = FakeEVS([concept("C1", roles=[row])])
 
         result = walk(client, max_depth=1, edge_types=["role"])
 
         self.assertEqual(result.edges[0].target_name, "Concept C2")
+
+    def test_every_edge_type_names_its_target(self):
+        result = walk(star(), direction="both", max_depth=1, edge_types=sorted(RELATIONS))
+
+        self.assertEqual(
+            sorted((edge.edge_type, edge.target_code, edge.target_name) for edge in result.edges),
+            [
+                ("association", "C15", "Concept C15"),
+                ("child", "C11", "Concept C11"),
+                ("descendant", "C11", "Concept C11"),
+                ("inverse_association", "C16", "Concept C16"),
+                ("inverse_role", "C14", "Concept C14"),
+                ("parent", "C10", "Concept C10"),
+                ("role", "C12", "Concept C12"),
+                ("role", "C13", "Concept C13"),
+            ],
+        )
+        self.assertEqual(
+            {node.code: node.preferred_name for node in result.nodes},
+            dict({"C1": "Root"}, **{f"C{number}": f"Concept C{number}" for number in range(10, 17)}),
+        )
+
+    def test_a_descendant_reached_by_no_other_edge_is_named(self):
+        result = walk(star(), max_depth=3, edge_types=["descendant"])
+
+        self.assertEqual(
+            {node.code: node.preferred_name for node in result.nodes},
+            {"C1": "Root", "C11": "Concept C11", "C21": "Concept C21", "C31": "Concept C31"},
+        )
+
+    def test_a_role_without_a_related_name_is_not_named_after_the_role(self):
+        row = {"code": "R1", "type": "Has_Finding", "relatedCode": "C2", "name": "Has Finding"}
+        client = FakeEVS([concept("C1", roles=[row])])
+
+        result = walk(client, max_depth=1, edge_types=["role"])
+
+        self.assertEqual(result.edges[0].target_name, "")
+
+    def test_the_oversized_relations_warning_names_every_code_and_the_setting(self):
+        client = HubEVS(
+            [concept("C1", children=[child("C2"), child("C3"), child("C4")])]
+            + [concept(code) for code in ("C2", "C3", "C4")]
+        )
+        client.hubs = frozenset({"C2", "C4"})
+
+        with self.assertLogs("nci_si_mcp.traversal", level="WARNING") as logs:
+            walk(client, max_depth=2)
+
+        self.assertIn(
+            "traverse_relations_too_large codes=C2,C4 limit=NCI_SI_EVS_MAX_RESPONSE_BYTES",
+            logs.output[-1],
+        )
 
 
 if __name__ == "__main__":
