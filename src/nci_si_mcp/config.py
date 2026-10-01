@@ -5,9 +5,9 @@ from __future__ import annotations
 import logging
 import os
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, TypeVar
 from urllib.parse import urlsplit
 
 from .embeddings import normalize_embedding_settings
@@ -15,7 +15,7 @@ from .embeddings import normalize_embedding_settings
 # Upper bound for the timeout and backoff settings; socket timeouts overflow far above it.
 MAX_SECONDS = 3600
 MAX_ATTEMPTS = 10
-# Python 3.9 allocates the read buffer up front, so the limit must be an amount of memory.
+# A response is read into memory whole, so the limit must be an amount of memory.
 MAX_RESPONSE_BYTES = 1024**3
 
 
@@ -44,10 +44,9 @@ def _is_evs_url(value: str) -> bool:
 DEFAULT_EVS_BASE_URL = "https://api-evsrest.nci.nih.gov"
 DEFAULT_EMBEDDING_MODEL = "hashing"
 
-_Number = TypeVar("_Number", int, float)
-
-
-def _env_number(name: str, default: str, cast: Callable[[str], _Number]) -> _Number:
+def _env_number[Number: (int, float)](
+    name: str, default: str, cast: Callable[[str], Number]
+) -> Number:
     value = os.getenv(name, default)
     try:
         return cast(value)
@@ -56,7 +55,7 @@ def _env_number(name: str, default: str, cast: Callable[[str], _Number]) -> _Num
         raise ValueError(f"{name} must be {kind}, not {value!r}") from None
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Settings:
     evs_base_url: str = DEFAULT_EVS_BASE_URL
     data_dir: Path = Path(".nci-si-mcp")
@@ -97,7 +96,7 @@ class Settings:
         normalize_embedding_settings(self.embedding_provider, self.embedding_model)
 
     @classmethod
-    def from_env(cls) -> "Settings":
+    def from_env(cls) -> Settings:
         data_dir = os.getenv("NCI_SI_DATA_DIR", ".nci-si-mcp")
         if not data_dir.strip():
             raise ValueError("NCI_SI_DATA_DIR must not be empty")

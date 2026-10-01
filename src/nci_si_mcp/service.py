@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import Any, Callable, Dict, Iterable, List, Optional, Type, TypeVar, cast
+from collections.abc import Callable, Iterable
+from itertools import batched
+from typing import Any, cast
 
 from .cadsr import CadsrAdapter
 from .config import Settings
@@ -48,7 +50,7 @@ logger = logging.getLogger(__name__)
 
 # Expected failures and the error code each is reported under. An exception
 # gets the code of its nearest listed class. Anything else is a bug and propagates.
-_ERROR_CODES: Dict[Type[Exception], ErrorCode] = {
+_ERROR_CODES: dict[type[Exception], ErrorCode] = {
     InputValidationError: "invalid_request",
     EVSNotFoundError: "concept_not_found",
     ReleaseResolutionError: "release_unresolved",
@@ -60,26 +62,24 @@ _ERROR_CODES: Dict[Type[Exception], ErrorCode] = {
 }
 _EXPECTED_ERRORS = tuple(_ERROR_CODES)
 
-_Method = TypeVar("_Method", bound=Callable[..., Dict[str, Any]])
 
-
-def _envelope(operation: str, exc: Exception) -> Dict[str, Any]:
+def _envelope(operation: str, exc: Exception) -> dict[str, Any]:
     code = next(_ERROR_CODES[cls] for cls in type(exc).__mro__ if cls in _ERROR_CODES)
     logger.warning("%s_failed error=%s message=%s", operation, code, exc)
     return error_response(code, str(exc))
 
 
-def _enveloped(method: _Method) -> _Method:
+def _enveloped[Method: Callable[..., dict[str, Any]]](method: Method) -> Method:
     """Report a method's expected failures as error envelopes instead of raising."""
 
     @functools.wraps(method)
-    def wrapper(*args: Any, **kwargs: Any) -> Dict[str, Any]:
+    def wrapper(*args: Any, **kwargs: Any) -> dict[str, Any]:
         try:
             return method(*args, **kwargs)
         except _EXPECTED_ERRORS as exc:
             return _envelope(method.__name__, exc)
 
-    return cast(_Method, wrapper)
+    return cast(Method, wrapper)
 
 
 class NCISIService:
@@ -87,10 +87,10 @@ class NCISIService:
         self,
         settings: Settings,
         *,
-        evs: Optional[EVSClient] = None,
-        index: Optional[LocalIndex] = None,
-        embedding_provider: Optional[EmbeddingProvider] = None,
-        cadsr: Optional[CadsrAdapter] = None,
+        evs: EVSClient | None = None,
+        index: LocalIndex | None = None,
+        embedding_provider: EmbeddingProvider | None = None,
+        cadsr: CadsrAdapter | None = None,
     ) -> None:
         self.settings = settings
         self.evs = evs or EVSClient(
@@ -107,10 +107,10 @@ class NCISIService:
         self.cadsr = cadsr or CadsrAdapter()
 
     @_enveloped
-    def release_info(self) -> Dict[str, Any]:
+    def release_info(self) -> dict[str, Any]:
         """Report EVS, release and index status; EVS failures are nested, not fatal."""
 
-        def evs_status(fetch: Callable[[], Dict[str, Any]]) -> Dict[str, Any]:
+        def evs_status(fetch: Callable[[], dict[str, Any]]) -> dict[str, Any]:
             try:
                 return fetch()
             except EVSError as exc:
@@ -137,19 +137,19 @@ class NCISIService:
         }
 
     @_enveloped
-    def index_manifest(self) -> Dict[str, Any]:
+    def index_manifest(self) -> dict[str, Any]:
         """Return the manifest of the local index under `active_index`, or null."""
 
         manifest = self.index.get_active_manifest()
         return {"active_index": manifest.to_dict() if manifest else None}
 
     @_enveloped
-    def index_codes(self, codes: Iterable[str]) -> Dict[str, Any]:
+    def index_codes(self, codes: Iterable[str]) -> dict[str, Any]:
         normalized_codes = validate_ncit_codes(codes)
         release = self.evs.resolve_monthly_ncit_release()
-        raw_concepts: List[Dict[str, object]] = []
-        for offset in range(0, len(normalized_codes), self.settings.index_batch_size):
-            batch = normalized_codes[offset : offset + self.settings.index_batch_size]
+        raw_concepts: list[dict[str, object]] = []
+        batch_size = self.settings.index_batch_size
+        for batch in batched(normalized_codes, batch_size, strict=False):
             raw_concepts.extend(
                 self.evs.get_concepts_by_codes(batch, terminology=release.pinned_terminology)
             )
@@ -188,11 +188,11 @@ class NCISIService:
         limit: int = 10,
         mode: str = "hybrid",
         include_raw: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         query, limit, mode = validate_search(query, limit, mode)
         hits = self.index.search(query, self.embedding_provider, limit=limit, mode=mode)
         if hits:
-            release_version: Optional[str] = hits[0].concept.release_version
+            release_version: str | None = hits[0].concept.release_version
         else:
             manifest = self.index.get_active_manifest()
             release_version = manifest.release_version if manifest else None
@@ -205,7 +205,7 @@ class NCISIService:
         }
 
     @_enveloped
-    def lookup(self, code: str, live_only: bool = False, include_raw: bool = False) -> Dict[str, Any]:
+    def lookup(self, code: str, live_only: bool = False, include_raw: bool = False) -> dict[str, Any]:
         """Read one concept from live EVS, pinned to the current monthly release.
 
         Unless `live_only` is set, the result must agree with the active index:
@@ -249,7 +249,7 @@ class NCISIService:
     @_enveloped
     def traverse(
         self,
-        start_codes: List[str],
+        start_codes: list[str],
         direction: str = "out",
         max_depth: int = DEFAULT_MAX_DEPTH,
         max_nodes: int = DEFAULT_MAX_NODES,
@@ -257,9 +257,9 @@ class NCISIService:
         include_hierarchy: bool = True,
         include_roles: bool = True,
         include_associations: bool = True,
-        relationship_names: Optional[List[str]] = None,
-        edge_types: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        relationship_names: list[str] | None = None,
+        edge_types: list[str] | None = None,
+    ) -> dict[str, Any]:
         start_codes, direction, edge_types, relationship_names = validate_traversal(
             start_codes,
             direction,
@@ -284,7 +284,7 @@ class NCISIService:
         ).to_dict()
 
     @_enveloped
-    def evaluate(self) -> Dict[str, Any]:
+    def evaluate(self) -> dict[str, Any]:
         """Score BM25, vector and hybrid ranking on the built-in gold queries."""
 
         results = evaluate_retrieval(self.index, self.embedding_provider)
@@ -297,5 +297,5 @@ class NCISIService:
             ),
         }
 
-    def cadsr_status(self) -> Dict[str, Any]:
+    def cadsr_status(self) -> dict[str, Any]:
         return self.cadsr.status().to_dict()

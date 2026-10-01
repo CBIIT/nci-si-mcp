@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import re
-from typing import Iterable, List, Literal, Optional, Tuple, get_args
+from collections.abc import Iterable
+from typing import Literal, get_args
 
 from .errors import InputValidationError
 from .traversal import HARD_MAX_NODES
@@ -40,14 +41,14 @@ def validate_ncit_code(code: str) -> str:
     return normalized
 
 
-def validate_ncit_codes(codes: Iterable[str]) -> List[str]:
+def validate_ncit_codes(codes: Iterable[str]) -> list[str]:
     normalized = list(dict.fromkeys(validate_ncit_code(code) for code in codes))
     if not normalized:
         raise InputValidationError("At least one NCIt code is required")
     return normalized
 
 
-def validate_search(query: str, limit: int, mode: str) -> Tuple[str, int, str]:
+def validate_search(query: str, limit: int, mode: str) -> tuple[str, int, str]:
     normalized_query = str(query or "").strip()
     if not normalized_query:
         raise InputValidationError("Search query must not be blank")
@@ -66,9 +67,9 @@ def validate_traversal(
     max_depth: int,
     max_nodes: int,
     max_edges: int,
-    edge_types: Optional[Iterable[str]],
-    relationship_names: Optional[Iterable[str]] = None,
-) -> Tuple[List[str], str, Optional[List[str]], Optional[List[str]]]:
+    edge_types: Iterable[str] | None,
+    relationship_names: Iterable[str] | None = None,
+) -> tuple[list[str], str, list[str] | None, list[str] | None]:
     codes = validate_ncit_codes(start_codes)
     normalized_direction = str(direction or "").lower()
     if normalized_direction not in TRAVERSAL_DIRECTIONS:
@@ -86,7 +87,7 @@ def validate_traversal(
             f"(max_nodes, at most {HARD_MAX_NODES})"
         )
 
-    normalized_edge_types: Optional[List[str]] = None
+    normalized_edge_types: list[str] | None = None
     if edge_types:
         normalized_edge_types = list(
             dict.fromkeys(str(edge_type or "").strip().lower() for edge_type in edge_types)
@@ -95,7 +96,7 @@ def validate_traversal(
             allowed = ", ".join(sorted(TRAVERSAL_EDGE_TYPES))
             raise InputValidationError(f"Edge type must be one of: {allowed}")
 
-    normalized_names: Optional[List[str]] = None
+    normalized_names: list[str] | None = None
     if relationship_names:
         normalized_names = list(
             dict.fromkeys(str(name or "").strip() for name in relationship_names)

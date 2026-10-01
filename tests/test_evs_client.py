@@ -58,6 +58,9 @@ class EVSClientTest(unittest.TestCase):
             "short body in another encoding": FakeResponse(
                 b'{"vers', {"Content-Length": "20", "Transfer-Encoding": "identity"}
             ),
+            "short body in a compound encoding": FakeResponse(
+                b'{"vers', {"Content-Length": "20", "Transfer-Encoding": "gzip, chunked"}
+            ),
         }
         for label, failure in failures.items():
             with self.subTest(label):

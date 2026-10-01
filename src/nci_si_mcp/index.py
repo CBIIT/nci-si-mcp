@@ -9,10 +9,11 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from collections.abc import Iterable, Iterator, Sequence
 from contextlib import contextmanager
 from functools import lru_cache
+from itertools import batched
 from pathlib import Path
-from typing import Dict, Iterable, Iterator, List, Optional, Sequence, Set, Tuple
 
 from .embeddings import EmbeddingProvider
 from .errors import (
@@ -52,14 +53,14 @@ def _projection_sign(bit: int, dimension: int) -> float:
 
 
 @lru_cache(maxsize=8)
-def _projection_signs(dimensions: int) -> Tuple[Tuple[float, ...], ...]:
+def _projection_signs(dimensions: int) -> tuple[tuple[float, ...], ...]:
     return tuple(
         tuple(_projection_sign(bit, dimension) for dimension in range(dimensions))
         for bit in range(LSH_BANDS * LSH_BITS_PER_BAND)
     )
 
 
-def vector_lsh_buckets(vector: Sequence[float]) -> List[Tuple[int, int]]:
+def vector_lsh_buckets(vector: Sequence[float]) -> list[tuple[int, int]]:
     """Return one (band, bucket) pair per band from signed random projections.
 
     Two vectors land in the same bucket of a band only when all of its
@@ -67,20 +68,15 @@ def vector_lsh_buckets(vector: Sequence[float]) -> List[Tuple[int, int]]:
     """
 
     signs = _projection_signs(len(vector))
-    buckets: List[Tuple[int, int]] = []
+    buckets: list[tuple[int, int]] = []
     for band in range(LSH_BANDS):
         bucket = 0
         for offset in range(LSH_BITS_PER_BAND):
             row = signs[band * LSH_BITS_PER_BAND + offset]
-            if sum(value * sign for value, sign in zip(vector, row)) >= 0:
+            if sum(value * sign for value, sign in zip(vector, row, strict=True)) >= 0:
                 bucket |= 1 << offset
         buckets.append((band, bucket))
     return buckets
-
-
-def _chunks(items: Sequence[str]) -> Iterator[Sequence[str]]:
-    for offset in range(0, len(items), _SQL_CHUNK):
-        yield items[offset : offset + _SQL_CHUNK]
 
 
 class LocalIndex:
@@ -229,20 +225,20 @@ class LocalIndex:
             logger.warning("index_migration_dropped_releases releases=%s", ",".join(dropped))
 
     @staticmethod
-    def _active_manifest(conn: sqlite3.Connection) -> Optional[IndexManifest]:
+    def _active_manifest(conn: sqlite3.Connection) -> IndexManifest | None:
         row = conn.execute("SELECT payload FROM manifests WHERE active = 1").fetchone()
         return IndexManifest.from_payload(json.loads(row["payload"])) if row else None
 
-    def get_active_manifest(self) -> Optional[IndexManifest]:
+    def get_active_manifest(self) -> IndexManifest | None:
         with self._connect() as conn:
             return self._active_manifest(conn)
 
     def upsert_concepts(
         self,
-        raw_concepts: Iterable[Dict[str, object]],
-        release_date: Optional[str],
+        raw_concepts: Iterable[dict[str, object]],
+        release_date: str | None,
         embedding_provider: EmbeddingProvider,
-        expected_release_version: Optional[str] = None,
+        expected_release_version: str | None = None,
     ) -> IndexManifest:
         """Add concepts of one release to the index and make that release active.
 
@@ -303,7 +299,7 @@ class LocalIndex:
                 # the FTS table scans it, so skip the codes that are new.
                 replaced = [
                     (release_version, row["code"])
-                    for chunk in _chunks(codes)
+                    for chunk in batched(codes, _SQL_CHUNK, strict=False)
                     for row in conn.execute(
                         "SELECT code FROM concepts WHERE release_version = ? AND code IN "
                         f"({','.join('?' for _ in chunk)})",
@@ -342,18 +338,18 @@ class LocalIndex:
                         search_text,
                         json.dumps(vector),
                     )
-                    for concept, search_text, vector in zip(concepts, search_texts, vectors)
+                    for concept, search_text, vector in zip(concepts, search_texts, vectors, strict=True)
                 ],
             )
             conn.executemany(
                 "INSERT INTO concepts_fts (release_version, code, search_text) VALUES (?, ?, ?)",
-                [(*key, search_text) for key, search_text in zip(keys, search_texts)],
+                [(*key, search_text) for key, search_text in zip(keys, search_texts, strict=True)],
             )
             conn.executemany(
                 "INSERT INTO vector_lsh (release_version, code, band, bucket) VALUES (?, ?, ?, ?)",
                 [
                     (*key, band, bucket)
-                    for key, vector in zip(keys, vectors)
+                    for key, vector in zip(keys, vectors, strict=True)
                     for band, bucket in vector_lsh_buckets(vector)
                 ],
             )
@@ -380,7 +376,7 @@ class LocalIndex:
         return manifest
 
     @staticmethod
-    def _stored_dimensions(conn: sqlite3.Connection, release_version: str) -> Optional[int]:
+    def _stored_dimensions(conn: sqlite3.Connection, release_version: str) -> int | None:
         """Vector length of an index built before manifests recorded dimensions."""
 
         row = conn.execute(
@@ -388,7 +384,7 @@ class LocalIndex:
         ).fetchone()
         return len(json.loads(row["vector"])) if row else None
 
-    def get_concept(self, code: str) -> Optional[NcitConcept]:
+    def get_concept(self, code: str) -> NcitConcept | None:
         """Return a concept of the active release as it was fetched at index time."""
 
         with self._connect() as conn:
@@ -408,7 +404,7 @@ class LocalIndex:
         embedding_provider: EmbeddingProvider,
         limit: int = 10,
         mode: str = "hybrid",
-    ) -> List[SearchHit]:
+    ) -> list[SearchHit]:
         """Rank concepts of the active release by BM25, vector similarity, or both.
 
         Each component is min-max normalized over the concepts scored for this
@@ -431,10 +427,10 @@ class LocalIndex:
                     "Active index embedding provider/model does not match runtime configuration"
                 )
             release = manifest.release_version
-            bm25_scores: Dict[str, float] = {}
+            bm25_scores: dict[str, float] = {}
             if mode != "vector":
                 bm25_scores = self._bm25_scores(conn, release, query, limit)
-            vector_scores: Dict[str, float] = {}
+            vector_scores: dict[str, float] = {}
             if mode != "bm25":
                 vector_scores = self._vector_scores(
                     conn, manifest, embedding_provider, query, set(bm25_scores)
@@ -442,7 +438,7 @@ class LocalIndex:
 
             norm_bm25 = min_max_normalize(bm25_scores)
             norm_vector = min_max_normalize(vector_scores)
-            combined: Dict[str, Tuple[float, Dict[str, float]]] = {}
+            combined: dict[str, tuple[float, dict[str, float]]] = {}
             for code in set(norm_bm25) | set(norm_vector):
                 bm25 = norm_bm25.get(code, 0.0)
                 vector = norm_vector.get(code, 0.0)
@@ -476,7 +472,7 @@ class LocalIndex:
     @staticmethod
     def _bm25_scores(
         conn: sqlite3.Connection, release: str, query: str, limit: int
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         tokens = tokenize(query)
         if not tokens:
             return {}
@@ -502,8 +498,8 @@ class LocalIndex:
         manifest: IndexManifest,
         embedding_provider: EmbeddingProvider,
         query: str,
-        bm25_codes: Set[str],
-    ) -> Dict[str, float]:
+        bm25_codes: set[str],
+    ) -> dict[str, float]:
         query_vectors = embedding_provider.embed([query])
         if len(query_vectors) != 1:
             raise IndexCompatibilityError("Embedding provider returned an unexpected query vector count")
@@ -533,7 +529,8 @@ class LocalIndex:
                 ],
             ).fetchall()
             rows = []
-            for chunk in _chunks(sorted(bm25_codes.union(row["code"] for row in lsh_rows))):
+            candidates = sorted(bm25_codes.union(row["code"] for row in lsh_rows))
+            for chunk in batched(candidates, _SQL_CHUNK, strict=False):
                 placeholders = ",".join("?" for _ in chunk)
                 rows.extend(
                     conn.execute(
@@ -543,7 +540,7 @@ class LocalIndex:
                     ).fetchall()
                 )
 
-        scores: Dict[str, float] = {}
+        scores: dict[str, float] = {}
         for row in rows:
             stored_vector = json.loads(row["vector"])
             if len(stored_vector) != len(query_vector):

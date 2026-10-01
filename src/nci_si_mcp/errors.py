@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Literal
+from typing import Any, Literal
 
 ErrorCode = Literal[
     "invalid_request",
@@ -47,14 +47,14 @@ class IndexStorageError(RuntimeError):
     """Raised when SQLite cannot open, read or write the index database."""
 
 
-def error_response(code: ErrorCode, message: str, /, **details: Any) -> Dict[str, Any]:
+def error_response(code: ErrorCode, message: str, /, **details: Any) -> dict[str, Any]:
     """Return the error envelope for failures that the service and adapters handle.
 
     Argument parsing (argparse, MCP schema validation) and unexpected exceptions
     are reported by the CLI and MCP runtimes themselves and do not use it.
     """
 
-    response: Dict[str, Any] = {
+    response: dict[str, Any] = {
         "isError": True,
         "error": code,
         "message": message,

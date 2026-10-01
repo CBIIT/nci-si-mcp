@@ -6,7 +6,7 @@ import argparse
 import json
 import logging
 import sys
-from typing import Any, Dict, TextIO
+from typing import Any, TextIO
 
 from .config import Settings, configure_logging
 from .errors import error_response
@@ -83,7 +83,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _print_result(value: Dict[str, Any], stream: TextIO) -> int:
+def _print_result(value: dict[str, Any], stream: TextIO) -> int:
     """Print a result as JSON and return the exit code: 1 for an error envelope."""
 
     print(json.dumps(value, indent=2, sort_keys=True), file=stream)
@@ -111,7 +111,7 @@ def main() -> int:
         mcp.run()
         return 0
 
-    result: Dict[str, Any]
+    result: dict[str, Any]
     if args.command == "release-info":
         result = service.release_info()
     elif args.command == "index-sample":

@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import re
-from typing import Dict, List, Sequence
+from collections.abc import Sequence
 
 # Unicode-aware so that non-ASCII query terms reach FTS5, whose unicode61
 # tokenizer folds case and diacritics on both sides of the match.
 TOKEN_RE = re.compile(r"\w+")
 
 
-def tokenize(text: str) -> List[str]:
+def tokenize(text: str) -> list[str]:
     return [match.group(0).lower() for match in TOKEN_RE.finditer(text)]
 
 
@@ -22,10 +22,10 @@ def cosine_similarity(left: Sequence[float], right: Sequence[float]) -> float:
 
     if not left or not right or len(left) != len(right):
         return 0.0
-    return float(sum(a * b for a, b in zip(left, right)))
+    return float(sum(a * b for a, b in zip(left, right, strict=True)))
 
 
-def min_max_normalize(scores: Dict[str, float]) -> Dict[str, float]:
+def min_max_normalize(scores: dict[str, float]) -> dict[str, float]:
     if not scores:
         return {}
     values = list(scores.values())

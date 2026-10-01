@@ -7,7 +7,9 @@ grows with the number of nodes expanded rather than with the number of edges.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from collections.abc import Iterable
+from itertools import batched
+from typing import Any
 
 from .errors import InputValidationError
 from .evs import (
@@ -37,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 # Edge type -> (key of the relation list in an EVS concept payload, name given
 # to edges that carry no relationship name of their own).
-RELATIONS: Dict[str, Tuple[str, str]] = {
+RELATIONS: dict[str, tuple[str, str]] = {
     "parent": ("parents", "is_a_parent"),
     "child": ("children", "is_a_child"),
     "descendant": ("descendants", "is_a_descendant"),
@@ -49,7 +51,7 @@ RELATIONS: Dict[str, Tuple[str, str]] = {
 HIERARCHY_EDGE_TYPES = frozenset({"parent", "child", "descendant"})
 
 
-def clamp_limits(max_depth: int, max_nodes: int) -> Tuple[int, int]:
+def clamp_limits(max_depth: int, max_nodes: int) -> tuple[int, int]:
     if max_depth < 0:
         max_depth = 0
     if max_nodes < 1:
@@ -68,8 +70,8 @@ def select_edge_types(
     include_hierarchy: bool,
     include_roles: bool,
     include_associations: bool,
-    edge_types: Optional[Iterable[str]],
-) -> List[str]:
+    edge_types: Iterable[str] | None,
+) -> list[str]:
     """Resolve the direction, include flags and explicit edge types to follow.
 
     `descendant` is followed only when named in `edge_types`, because `child`
@@ -78,7 +80,7 @@ def select_edge_types(
 
     outward = direction in ("out", "both")
     inward = direction in ("in", "both")
-    available: List[str] = []
+    available: list[str] = []
     if include_hierarchy:
         available += ["child", "descendant"] if outward else []
         available += ["parent"] if inward else []
@@ -105,8 +107,8 @@ def select_edge_types(
 
 
 def _fetch_batch(
-    client: EVSClient, batch: List[str], terminology: str, include: str
-) -> Tuple[List[Dict[str, Any]], List[str]]:
+    client: EVSClient, batch: list[str], terminology: str, include: str
+) -> tuple[list[dict[str, Any]], list[str]]:
     """Fetch one batch, halving it while the response is too large.
 
     Returns the concepts and the codes whose relations alone exceed the limit;
@@ -128,11 +130,11 @@ def _fetch_batch(
 
 def _fetch_concepts(
     client: EVSClient,
-    codes: List[str],
+    codes: list[str],
     release: ReleaseInfo,
     include: str,
     batch_size: int,
-) -> Tuple[Dict[str, Dict[str, Any]], List[str], List[str]]:
+) -> tuple[dict[str, dict[str, Any]], list[str], list[str]]:
     """Fetch concepts with their relations, pinned to and verified against the release.
 
     Returns the payloads by code, the codes EVS did not return, and the codes
@@ -140,19 +142,17 @@ def _fetch_concepts(
     """
 
     terminology = release.pinned_terminology
-    found: Dict[str, Dict[str, Any]] = {}
-    oversized: List[str] = []
-    for offset in range(0, len(codes), batch_size):
-        concepts, too_large = _fetch_batch(
-            client, codes[offset : offset + batch_size], terminology, include
-        )
+    found: dict[str, dict[str, Any]] = {}
+    oversized: list[str] = []
+    for batch in batched(codes, batch_size, strict=False):
+        concepts, too_large = _fetch_batch(client, list(batch), terminology, include)
         found.update((str(raw.get("code") or ""), raw) for raw in concepts)
         oversized += too_large
     verify_release(found.values(), release.version)
     return found, [code for code in codes if code not in found], oversized
 
 
-def _level(item: Dict[str, Any], depth_limit: int) -> int:
+def _level(item: dict[str, Any], depth_limit: int) -> int:
     level = item.get("level")
     if not isinstance(level, int) or isinstance(level, bool) or not 1 <= level <= depth_limit:
         raise EVSResponseError(
@@ -163,14 +163,14 @@ def _level(item: Dict[str, Any], depth_limit: int) -> int:
 
 def traverse_ncit(
     client: EVSClient,
-    start_codes: List[str],
+    start_codes: list[str],
     release: ReleaseInfo,
-    edge_types: List[str],
+    edge_types: list[str],
     *,
     max_depth: int = DEFAULT_MAX_DEPTH,
     max_nodes: int = DEFAULT_MAX_NODES,
     max_edges: int = DEFAULT_MAX_EDGES,
-    relationship_names: Optional[List[str]] = None,
+    relationship_names: list[str] | None = None,
 ) -> TraversalResult:
     """Walk breadth-first from the start codes along the given edge types.
 
@@ -202,14 +202,14 @@ def traverse_ncit(
     inverse = any(edge_type.startswith("inverse") for edge_type in edge_types)
     batch_size = INVERSE_BATCH_SIZE if inverse else BATCH_SIZE
 
-    nodes: Dict[str, TraversalNode] = {}
-    edges: List[TraversalEdge] = []
-    seen_edges: Set[Tuple[str, str, str, str]] = set()
-    unexpanded: List[str] = []
+    nodes: dict[str, TraversalNode] = {}
+    edges: list[TraversalEdge] = []
+    seen_edges: set[tuple[str, str, str, str]] = set()
+    unexpanded: list[str] = []
     truncated = False
     # Descendants of the start codes by level; level n is emitted with the
     # other edges that reach depth n.
-    descendants: Dict[int, List[Tuple[str, Dict[str, Any]]]] = {}
+    descendants: dict[int, list[tuple[str, dict[str, Any]]]] = {}
 
     def result() -> TraversalResult:
         return TraversalResult(
@@ -228,7 +228,7 @@ def traverse_ncit(
     frontier = start_codes
     for depth in range(depth_limit + 1):
         expand = depth < depth_limit
-        concepts: Dict[str, Dict[str, Any]] = {}
+        concepts: dict[str, dict[str, Any]] = {}
         # Start codes are always fetched, to name them and to prove they exist.
         if depth == 0 or (expand and payload_types and frontier):
             concepts, missing, oversized = _fetch_concepts(
