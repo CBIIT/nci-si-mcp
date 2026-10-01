@@ -273,3 +273,5 @@ not MCP tools. The README lists the error codes.
 - `tests/test_evaluation.py`: ranking metrics.
 - `tests/test_cli.py`: argument parsing, command dispatch, exit codes, and startup failures.
 - `tests/test_server.py`: tool and resource registration, results, and protocol-level errors over an in-process MCP session.
+- `tests/test_docs.py`: the settings, error codes and modules the documentation names against the code.
+- `tests/test_quality_gates.py`: the complexity and test-quality gates in `scripts/validation`.

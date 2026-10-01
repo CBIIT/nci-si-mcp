@@ -9,12 +9,12 @@ from contextlib import ExitStack, redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from fakes import FakeEVS, concept
-
 import nci_si_mcp
+from fakes import FakeEVS, concept
 from nci_si_mcp.cli import build_parser, main
 from nci_si_mcp.config import Settings
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
+from nci_si_mcp.evs import EVSUnavailableError
 from nci_si_mcp.index import LocalIndex
 from nci_si_mcp.service import NCISIService
 
@@ -22,14 +22,29 @@ NEOPLASM = concept(
     "C3262",
     "Neoplasm",
     synonyms=[{"name": "Tumor"}],
+    parents=[{"code": "C2991", "name": "Disease or Disorder"}],
     children=[{"code": "C4741", "name": "Neoplasm by Morphology"}],
+    roles=[{"type": "Disease_Has_Abnormal_Cell", "relatedCode": "C12922", "relatedName": "Cell"}],
+    associations=[
+        {"type": "Concept_In_Subset", "relatedCode": "C165258", "relatedName": "A Subset"}
+    ],
 )
+KINASE = concept("C40704", "Receptor Tyrosine Kinase Inhibition")
 
 
 class ParserTest(unittest.TestCase):
     def test_traverse_options(self):
         args = build_parser().parse_args(
-            ["traverse", "C3262", "--max-edges", "25", "--edge-type", "role", "--edge-type", "child"]
+            [
+                "traverse",
+                "C3262",
+                "--max-edges",
+                "25",
+                "--edge-type",
+                "role",
+                "--edge-type",
+                "child",
+            ]
         )
 
         self.assertEqual(args.max_edges, 25)
@@ -43,7 +58,11 @@ class ParserTest(unittest.TestCase):
             ["traverse", "C3262", "--direction", "sideways"],
             ["search", "tumor", "--mode", "fuzzy"],
         ):
-            with self.subTest(argv=argv), redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            with (
+                self.subTest(argv=argv),
+                redirect_stderr(io.StringIO()),
+                self.assertRaises(SystemExit),
+            ):
                 build_parser().parse_args(argv)
 
 
@@ -53,6 +72,14 @@ class MainTest(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.path = Path(directory.name)
+
+    def fake_service(self):
+        return NCISIService(
+            Settings(data_dir=self.path),
+            evs=FakeEVS([NEOPLASM, KINASE]),
+            index=LocalIndex(self.path),
+            embedding_provider=HashingEmbeddingProvider(),
+        )
 
     def run_cli(self, *argv, service="fake", **environment):
         """Run `main` and return (exit code, parsed stdout, stderr text).
@@ -70,12 +97,7 @@ class MainTest(unittest.TestCase):
             redirect_stderr(stderr),
         ]
         if service == "fake":
-            service = NCISIService(
-                Settings(data_dir=self.path),
-                evs=FakeEVS([NEOPLASM]),
-                index=LocalIndex(self.path),
-                embedding_provider=HashingEmbeddingProvider(),
-            )
+            service = self.fake_service()
         if service != "real":
             patches.append(patch("nci_si_mcp.cli.NCISIService", return_value=service))
         with ExitStack() as stack:
@@ -104,37 +126,49 @@ class MainTest(unittest.TestCase):
         code, evaluation, _ = self.run_cli("evaluate")
         self.assertEqual((code, len(evaluation["results"])), (0, 3))
 
-    def test_every_option_reaches_the_service(self, _):
-        service = MagicMock(spec=NCISIService)
-        for method in ("index_codes", "search", "lookup", "traverse"):
-            getattr(service, method).return_value = {"ok": True}
+    def test_index_search_and_lookup_options_shape_the_result(self, _):
+        code, manifest, _ = self.run_cli("index-sample", "C3262", "C40704")
+        self.assertEqual((code, manifest["concept_count"]), (0, 2))
 
-        self.run_cli("index-sample", "C1", "C2", service=service)
-        service.index_codes.assert_called_once_with(["C1", "C2"])
+        options = ("--limit", "1", "--mode", "vector", "--include-raw")
+        _, search, _ = self.run_cli("search", "kinase tumor", *options)
+        self.assertEqual((search["mode"], len(search["hits"])), ("vector", 1))
+        self.assertIn("raw", search["hits"][0]["concept"])
 
-        self.run_cli(
-            "search", "tumor", "--limit", "7", "--mode", "vector", "--include-raw", service=service
+        # With EVS down, a lookup falls back to the index unless --live-only forbids it.
+        service = self.fake_service()
+        service.evs.errors = {"get_concept": EVSUnavailableError("down")}
+        code, cached, _ = self.run_cli("lookup", "C3262", "--include-raw", service=service)
+        self.assertEqual((code, cached["source"]), (0, "active_cache"))
+        self.assertIn("raw", cached)
+        code, failed, _ = self.run_cli("lookup", "C3262", "--live-only", service=service)
+        self.assertEqual((code, failed["error"]), (1, "evs_unavailable"))
+
+    def test_traverse_options_shape_the_result(self, _):
+        def traverse(*options):
+            code, result, _ = self.run_cli("traverse", "C3262", "--max-depth", "1", *options)
+            self.assertEqual(code, 0)
+            return result, sorted({edge["edge_type"] for edge in result["edges"]})
+
+        self.assertEqual(traverse()[1], ["association", "child", "role"])
+        self.assertEqual(traverse("--no-hierarchy")[1], ["association", "role"])
+        self.assertEqual(traverse("--no-roles")[1], ["association", "child"])
+        self.assertEqual(traverse("--no-associations")[1], ["child", "role"])
+        self.assertEqual(
+            traverse("--edge-type", "role", "--edge-type", "child")[1], ["child", "role"]
         )
-        service.search.assert_called_once_with("tumor", limit=7, mode="vector", include_raw=True)
 
-        self.run_cli("lookup", "C1", "--live-only", "--include-raw", service=service)
-        service.lookup.assert_called_once_with("C1", live_only=True, include_raw=True)
-
-        options = "--direction both --max-depth 3 --max-nodes 40 --max-edges 50 --no-hierarchy"
-        options += " --no-roles --no-associations --relationship-name Has_Finding --edge-type role"
-        self.run_cli("traverse", "C1", "C2", *options.split(), service=service)
-        service.traverse.assert_called_once_with(
-            start_codes=["C1", "C2"],
-            direction="both",
-            max_depth=3,
-            max_nodes=40,
-            max_edges=50,
-            include_hierarchy=False,
-            include_roles=False,
-            include_associations=False,
-            relationship_names=["Has_Finding"],
-            edge_types=["role"],
+        result, edge_types = traverse("--direction", "in", "--max-nodes", "40", "--max-edges", "50")
+        self.assertEqual(edge_types, ["parent"])
+        self.assertEqual(
+            (result["max_depth"], result["max_nodes"], result["max_edges"]), (1, 40, 50)
         )
+
+        result, _ = traverse("--relationship-name", "Disease_Has_Abnormal_Cell")
+        self.assertEqual([edge["target_code"] for edge in result["edges"]], ["C12922"])
+
+        code, result, _ = self.run_cli("traverse", "C3262", "C40704", "--max-depth", "0")
+        self.assertEqual((code, result["start_codes"]), (0, ["C3262", "C40704"]))
 
     def test_error_envelope_exits_one(self, _):
         for argv, error in (
@@ -164,7 +198,10 @@ class MainTest(unittest.TestCase):
         corrupt = self.path / "corrupt"
         corrupt.mkdir()
         (corrupt / "nci_si.sqlite3").write_text("not a database" * 100)
-        for label, data_dir in {"data dir is a file": occupied, "corrupt database": corrupt}.items():
+        for label, data_dir in {
+            "data dir is a file": occupied,
+            "corrupt database": corrupt,
+        }.items():
             with self.subTest(label):
                 code, result, _ = self.run_cli(
                     "search", "tumor", service="real", NCI_SI_DATA_DIR=str(data_dir)
@@ -205,12 +242,15 @@ class ProcessTest(unittest.TestCase):
     def test_results_go_to_stdout_and_diagnostics_to_stderr(self):
         with tempfile.TemporaryDirectory() as data_dir:
             # The developer's own NCI_SI_* settings must not reach the subprocess.
-            inherited = {key: value for key, value in os.environ.items() if not key.startswith("NCI_SI_")}
+            inherited = {
+                key: value for key, value in os.environ.items() if not key.startswith("NCI_SI_")
+            }
             process = subprocess.run(
                 [sys.executable, "-m", "nci_si_mcp.cli", "lookup", "oops"],
                 capture_output=True,
                 text=True,
                 timeout=60,
+                check=False,
                 env={
                     **inherited,
                     "PYTHONPATH": str(Path(nci_si_mcp.__file__).parents[1]),

@@ -4,7 +4,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 from fakes import FakeEVS, concept, release
-
 from nci_si_mcp import service as service_module
 from nci_si_mcp.config import Settings
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
@@ -26,8 +25,16 @@ NEOPLASM = concept(
     synonyms=[{"name": "Tumor"}],
     parents=[{"code": "C2991", "name": "Disease or Disorder"}],
     children=[{"code": "C4741", "name": "Neoplasm by Morphology"}],
-    roles=[{"type": "Disease_Has_Abnormal_Cell", "relatedCode": "C12922", "relatedName": "Neoplastic Cell"}],
-    associations=[{"type": "Concept_In_Subset", "relatedCode": "C165258", "relatedName": "A Subset"}],
+    roles=[
+        {
+            "type": "Disease_Has_Abnormal_Cell",
+            "relatedCode": "C12922",
+            "relatedName": "Neoplastic Cell",
+        }
+    ],
+    associations=[
+        {"type": "Concept_In_Subset", "relatedCode": "C165258", "relatedName": "A Subset"}
+    ],
 )
 KINASE = concept("C40704", "Receptor Tyrosine Kinase Inhibition")
 

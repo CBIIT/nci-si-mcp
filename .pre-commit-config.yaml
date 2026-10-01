@@ -1,0 +1,111 @@
+---
+# Pre-commit is the primary quality gate: every check runs locally on commit.
+# CI runs the same hooks on all files, so a CI failure means a hook was skipped
+# locally. Hooks are never skipped; a failing hook is fixed.
+#
+# Install once:  pdm run pre-commit install
+default_language_version:
+  python: python3.13
+exclude: ^tmp/
+
+repos:
+  # ---------------------------------------------------------------------------
+  # 1. Fixers
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.10  # keep equal to the ruff pin in pyproject.toml
+    hooks:
+      - id: ruff-format
+
+  # ---------------------------------------------------------------------------
+  # 2. Syntax, structure and security
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-json
+      - id: check-yaml
+      - id: check-toml
+      - id: check-ast
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: debug-statements
+      - id: check-builtin-literals
+      - id: check-docstring-first
+      - id: check-symlinks
+      - id: destroyed-symlinks
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+        exclude: ^pdm\.lock$
+      - id: name-tests-test
+        args: [--pytest-test-first]
+        exclude: ^tests/fakes\.py$
+
+  # Secrets
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  # GitHub Actions: unpinned actions, token permissions, injection. Offline, so
+  # it needs no token; a justified finding is suppressed in the workflow file
+  # with `# zizmor: ignore[...]` and a reason.
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.30.1
+    hooks:
+      - id: zizmor
+        args: [--offline]
+
+  # ---------------------------------------------------------------------------
+  # 3. Python lint and types
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.10
+    hooks:
+      # Ruff repairs what it can and still fails, so the fix is looked at and staged.
+      - id: ruff-check
+        args: [--fix, --exit-non-zero-on-fix]
+
+  - repo: local
+    hooks:
+      # The whole project, not the staged files: a change to a model can break
+      # a file that was not touched.
+      - id: basedpyright
+        name: basedpyright (whole project)
+        entry: pdm run basedpyright
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      # -----------------------------------------------------------------------
+      # 4. Project gates
+      # -----------------------------------------------------------------------
+      - id: complexity
+        name: cyclomatic complexity below 8
+        entry: pdm run python scripts/validation/check_complexity.py
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: test-quality
+        name: tests that can catch a regression
+        entry: pdm run python scripts/validation/check_test_quality.py
+        language: system
+        files: ^tests/test_.*\.py$
+
+      - id: dead-code
+        name: dead code
+        entry: pdm run vulture
+        language: system
+        types: [python]
+        pass_filenames: false

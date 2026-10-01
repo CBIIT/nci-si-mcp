@@ -206,18 +206,13 @@ The caDSR adapter is intentionally non-fabricating. It reports `reuse_pending` u
 - fine-tuned embedding models
 - confidence scoring and ranking rules
 
-## Tests
+## Development
 
 ```bash
-pdm run test                                  # the whole suite with the coverage floor
-pdm run pytest tests/test_index.py            # one file
-pdm run pytest tests/test_service.py -k LookupTest   # by name
-pdm run lint                                  # Ruff and mypy
+pdm install       # set up the environment
+pdm run test      # run the tests
+pdm run lint      # lint and type-check
 ```
 
-The tests are written with `unittest` and also run without the test tools:
-`python -m unittest discover -s tests`.
-
-Line and branch coverage must stay at or above 90%. GitHub Actions runs Ruff and mypy on
-Python 3.13 and the tests on Python 3.13 and 3.14. No test contacts EVS: network behavior is
-tested with deterministic fakes.
+[CONTRIBUTING.md](CONTRIBUTING.md) describes the commands, the standards and the gates;
+[ARCHITECTURE.md](ARCHITECTURE.md) describes how the server is built.

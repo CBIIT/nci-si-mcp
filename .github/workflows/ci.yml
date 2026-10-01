@@ -16,6 +16,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # The same hooks that run on every local commit, on all files. A failure here
+  # means a hook was skipped locally.
   quality:
     name: quality
     runs-on: ubuntu-latest
@@ -34,7 +36,11 @@ jobs:
           cache-restore-exact-match: true
       # --check fails on a lock file that no longer matches pyproject.toml.
       - run: pdm install --check
-      - run: pdm run lint
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+      - run: pdm run pre-commit run --all-files --show-diff-on-failure
 
   test:
     name: test (${{ matrix.python-version }})
@@ -61,5 +67,14 @@ jobs:
         env:
           EXPECTED: ${{ matrix.python-version }}
         run: pdm run python -c "import os, sys; assert sys.version.startswith(os.environ['EXPECTED'] + '.'), sys.version"
-      # Runs the suite with line and branch coverage; the floor is in pyproject.toml.
+      # The suite with line and branch coverage; it fails below the minimum in pyproject.toml.
       - run: pdm run test
+      # The aim is above the minimum. Falling short of it is reported, not
+      # enforced, so that nobody writes a test for the number.
+      - name: Report coverage against the aim
+        run: |
+          total="$(pdm run coverage report --format=total --precision=2)"
+          echo "Coverage ${total}% (checked minimum 90%, aim above 95%)" >> "$GITHUB_STEP_SUMMARY"
+          if awk -v total="$total" 'BEGIN { exit !(total <= 95) }'; then
+            echo "::warning title=Coverage is not above 95%::${total}%. Cover the untested behaviour; do not pad."
+          fi

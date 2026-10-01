@@ -53,16 +53,13 @@ HIERARCHY_EDGE_TYPES = frozenset({"parent", "child", "descendant"})
 
 
 def clamp_limits(max_depth: int, max_nodes: int) -> tuple[int, int]:
-    if max_depth < 0:
-        max_depth = 0
-    if max_nodes < 1:
-        max_nodes = 1
+    max_depth = max(max_depth, 0)
+    max_nodes = max(max_nodes, 1)
     return min(max_depth, HARD_MAX_DEPTH), min(max_nodes, HARD_MAX_NODES)
 
 
 def clamp_edge_limit(max_edges: int) -> int:
-    if max_edges < 1:
-        max_edges = 1
+    max_edges = max(max_edges, 1)
     return min(max_edges, HARD_MAX_EDGES)
 
 
@@ -139,7 +136,9 @@ def _fetch_batch(
     except EVSResponseTooLargeError as exc:
         logger.info("traverse_batch_too_large concepts=%s reason=%s", len(batch), exc)
         if len(batch) == 1:
-            minimal = client.get_concepts_by_codes(batch, terminology=terminology, include="minimal")
+            minimal = client.get_concepts_by_codes(
+                batch, terminology=terminology, include="minimal"
+            )
             return minimal, list(batch)
     middle = len(batch) // 2
     left, left_oversized = _fetch_batch(client, batch[:middle], terminology, include)
@@ -413,13 +412,11 @@ def traverse_ncit(
         name_filter={name.lower() for name in relationship_names or []},
     )
     frontier = start_codes
-    for depth in range(depth_limit + 1):
-        concepts = walk.fetch(frontier, depth)
-        if depth == 0:
-            walk.start(start_codes, concepts)
-        if depth == depth_limit:
-            break
+    concepts = walk.fetch(frontier, 0)
+    walk.start(start_codes, concepts)
+    for depth in range(depth_limit):
         frontier = walk.follow(frontier, concepts, depth)
         if walk.edge_limit_reached:
             break
+        concepts = walk.fetch(frontier, depth + 1)
     return walk.result(start_codes)

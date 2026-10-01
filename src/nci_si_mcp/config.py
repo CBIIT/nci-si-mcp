@@ -45,8 +45,10 @@ def _require_between(name: str, value: float, low: int, high: int) -> None:
     if not low <= value <= high:
         raise ValueError(f"{name} must be between {low} and {high}")
 
+
 DEFAULT_EVS_BASE_URL = "https://api-evsrest.nci.nih.gov"
 DEFAULT_EMBEDDING_MODEL = "hashing"
+
 
 def _env_number[Number: (int, float)](
     name: str, default: str, cast: Callable[[str], Number]

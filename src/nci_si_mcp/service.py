@@ -64,7 +64,7 @@ _EXPECTED_ERRORS = tuple(_ERROR_CODES)
 
 
 def _envelope(operation: str, exc: Exception) -> dict[str, Any]:
-    code = next(_ERROR_CODES[cls] for cls in type(exc).__mro__ if cls in _ERROR_CODES)
+    code: ErrorCode = next(_ERROR_CODES[cls] for cls in type(exc).__mro__ if cls in _ERROR_CODES)
     logger.warning("%s_failed error=%s message=%s", operation, code, exc)
     return error_response(code, str(exc))
 
@@ -79,7 +79,7 @@ def _enveloped[Method: Callable[..., dict[str, Any]]](method: Method) -> Method:
         except _EXPECTED_ERRORS as exc:
             return _envelope(method.__name__, exc)
 
-    return cast(Method, wrapper)
+    return cast("Method", wrapper)
 
 
 class NCISIService:
@@ -215,7 +215,9 @@ class NCISIService:
         }
 
     @_enveloped
-    def lookup(self, code: str, live_only: bool = False, include_raw: bool = False) -> dict[str, Any]:
+    def lookup(
+        self, code: str, live_only: bool = False, include_raw: bool = False
+    ) -> dict[str, Any]:
         """Read one concept from live EVS, pinned to the current monthly release.
 
         Unless `live_only` is set, the result must agree with the active index:

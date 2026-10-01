@@ -17,13 +17,17 @@ from .models import NcitConcept, ReleaseInfo, utc_now_iso
 
 logger = logging.getLogger(__name__)
 
+SOURCE_VOCABULARIES = {"ncit": "NCI Thesaurus"}
+
 # Longest wait before a retry, whatever the backoff setting and attempt number.
 MAX_RETRY_DELAY_SECONDS = 60.0
 
 # What a concept request asks EVS to include: enough to build the search text
 # for indexing, and additionally every relation list for a lookup.
 INDEX_INCLUDE = "summary,definitions,synonyms,properties"
-LOOKUP_INCLUDE = f"{INDEX_INCLUDE},parents,children,roles,inverseRoles,associations,inverseAssociations"
+LOOKUP_INCLUDE = (
+    f"{INDEX_INCLUDE},parents,children,roles,inverseRoles,associations,inverseAssociations"
+)
 
 
 class EVSError(RuntimeError):
@@ -79,14 +83,6 @@ def verify_release(concepts: Iterable[dict[str, Any]], release_version: str) -> 
         )
 
 
-def _source_vocabulary(terminology: str) -> str:
-    if terminology.lower() == "ncit":
-        return "NCI Thesaurus"
-    if terminology.lower() == "ncim":
-        return "NCI Metathesaurus"
-    return terminology
-
-
 def _tags(raw: dict[str, Any]) -> dict[str, Any]:
     return _object(raw.get("tags") or {}, "field 'tags'")
 
@@ -102,7 +98,6 @@ def release_from_terminology(raw: dict[str, Any]) -> ReleaseInfo:
         latest=bool(raw.get("latest")),
         monthly=str(tags.get("monthly", "")).lower() == "true",
         weekly=str(tags.get("weekly", "")).lower() == "true",
-        raw=raw,
     )
 
 
@@ -180,7 +175,8 @@ def normalize_concept(
     return NcitConcept(
         code=str(raw.get("code", "")),
         preferred_name=str(raw.get("name", "")),
-        source_vocabulary=_source_vocabulary(terminology),
+        # A payload of another terminology is labelled with its own name.
+        source_vocabulary=SOURCE_VOCABULARIES.get(terminology.lower(), terminology),
         terminology=terminology,
         release_version=str(raw.get("version", "")),
         release_date=release_date,
@@ -194,8 +190,6 @@ def normalize_concept(
 def _error_detail(exc: HTTPError) -> str:
     """The reason EVS gives in the body of an error response, if it gives one."""
 
-    if exc.fp is None:
-        return ""
     try:
         body = json.loads(exc.read(4096).decode("utf-8"))
     except (OSError, ValueError, HTTPException):
@@ -293,7 +287,10 @@ class EVSClient:
         if params:
             filtered = {key: value for key, value in params.items() if value is not None}
             query = "?" + urlencode(filtered, doseq=True) if filtered else ""
-        return Request(f"{self.base_url}{path}{query}", headers={"Accept": "application/json"})
+        # Settings accepts only an http or https base URL.
+        return Request(  # noqa: S310
+            f"{self.base_url}{path}{query}", headers={"Accept": "application/json"}
+        )
 
     def _get_json(self, path: str, params: dict[str, Any] | None = None) -> Any:
         """GET a JSON document, retrying transport failures, HTTP 429 and HTTP 5xx.
@@ -308,7 +305,7 @@ class EVSClient:
             attempt += 1
             failure: Exception
             try:
-                with urlopen(request, timeout=self.timeout_seconds) as response:
+                with urlopen(request, timeout=self.timeout_seconds) as response:  # noqa: S310
                     return self._read_response(response, path)
             except HTTPError as exc:
                 message = f"EVS request failed for {path}: {_http_error_message(exc)}"

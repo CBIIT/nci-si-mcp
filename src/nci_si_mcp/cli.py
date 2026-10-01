@@ -53,12 +53,8 @@ def build_parser() -> argparse.ArgumentParser:
     traverse.add_argument(
         "--max-depth", type=int, default=DEFAULT_MAX_DEPTH, help="hops from a start code, at most 4"
     )
-    traverse.add_argument(
-        "--max-nodes", type=int, default=DEFAULT_MAX_NODES, help="at most 1000"
-    )
-    traverse.add_argument(
-        "--max-edges", type=int, default=DEFAULT_MAX_EDGES, help="at most 5000"
-    )
+    traverse.add_argument("--max-nodes", type=int, default=DEFAULT_MAX_NODES, help="at most 1000")
+    traverse.add_argument("--max-edges", type=int, default=DEFAULT_MAX_EDGES, help="at most 5000")
     traverse.add_argument("--no-hierarchy", action="store_true")
     traverse.add_argument("--no-roles", action="store_true")
     traverse.add_argument("--no-associations", action="store_true")
