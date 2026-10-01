@@ -30,7 +30,7 @@ def create_mcp(settings: Settings | None = None, *, service: NCISIService | None
     except ImportError as exc:
         raise RuntimeError(
             "The MCP server needs the 'server' extra, which installs mcp>=2,<3 "
-            f"(pip install -e '.[server]'). Import failed: {exc}"
+            f"(pdm install -G server). Import failed: {exc}"
         ) from exc
 
     resolved_settings = settings or Settings.from_env()

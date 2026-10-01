@@ -53,7 +53,7 @@ class SentenceTransformersProvider(EmbeddingProvider):
         except ImportError as exc:  # pragma: no cover - optional dependency
             raise RuntimeError(
                 "The sentence-transformers provider needs the 'embeddings' extra "
-                f"(pip install -e '.[embeddings]'). Import failed: {exc}"
+                f"(pdm install -G embeddings). Import failed: {exc}"
             ) from exc
         self.name = "sentence-transformers"
         self.model = model_name

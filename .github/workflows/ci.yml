@@ -8,10 +8,11 @@ on:
 permissions:
   contents: read
 
-# A newer push to a pull request replaces the run in progress. Runs on main are
-# never cancelled: each one validates the commit that a release is cut from.
+# A newer push to a pull request replaces the run in progress. Every commit on
+# main gets its own run, which is never cancelled or replaced: it validates the
+# commit that a release is cut from.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:

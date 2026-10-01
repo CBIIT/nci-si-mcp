@@ -15,7 +15,7 @@ from .embeddings import normalize_embedding_settings
 # Upper bound for the timeout and backoff settings; socket timeouts overflow far above it.
 MAX_SECONDS = 3600
 MAX_ATTEMPTS = 10
-# A response is read into memory whole, so the limit must be an amount of memory.
+# A response is read into memory whole before it is parsed, so the limit is capped.
 MAX_RESPONSE_BYTES = 1024**3
 
 

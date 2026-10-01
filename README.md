@@ -37,8 +37,11 @@ every other command works without it. The commands below are written as
 `python -m nci_si_mcp.cli ...`: run them inside the environment (`eval $(pdm venv activate)`)
 or prefix them with `pdm run`.
 
-The package version is not written in any file. It is derived from the latest `vX.Y.Z` git
-tag when the package is installed or built, so a checkout needs its tags.
+The package version is not written in any file. It is derived from the nearest `vX.Y.Z` git
+tag when the package is installed or built; a commit after the tag gets a development version
+such as `0.1.1.dev1+g<commit>`. Install from a git clone that has its tags: a clone without
+tags silently gets `0.1.devN`, and a source archive without git metadata does not build unless
+`PDM_BUILD_SCM_VERSION` is set. Run `pdm install` again after a new tag to refresh the version.
 
 For real embeddings, set both variables:
 
@@ -209,7 +212,7 @@ The caDSR adapter is intentionally non-fabricating. It reports `reuse_pending` u
 ## Tests
 
 ```bash
-pdm run test                                  # the whole suite with coverage
+pdm run test                                  # the whole suite with the coverage floor
 pdm run pytest tests/test_index.py            # one file
 pdm run pytest tests/test_service.py -k LookupTest   # by name
 pdm run lint                                  # Ruff and mypy

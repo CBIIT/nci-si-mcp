@@ -257,8 +257,9 @@ not MCP tools. The README lists the error codes.
   workflow. An index cannot be
   re-embedded in place: changing the embedding settings means deleting the
   database file and indexing again.
-- The package requires Python 3.13. The `mcp` package is an optional extra that
-  only the `serve` command needs.
+- The package requires Python 3.13 or newer. The `mcp` package comes with the
+  optional `server` extra, which only the `serve` command and the server tests
+  need.
 
 ## Verification map
 

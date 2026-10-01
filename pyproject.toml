@@ -35,18 +35,19 @@ lint = [
 distribution = true
 
 # The version is the latest `vX.Y.Z` tag, or a development version after it.
+# A clone without tags falls back to `0.1.devN`.
 [tool.pdm.version]
 source = "scm"
 
 [tool.pdm.scripts]
-test = "pytest"
+# `test` is the whole suite with the coverage floor; `pytest` runs a selection without it.
+test = "pytest --cov=nci_si_mcp --cov-report=term-missing"
 pytest = "pytest"
 lint = { composite = ["ruff check src tests", "mypy"] }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["tests"]
-addopts = "--cov=nci_si_mcp --cov-report=term-missing"
 
 [tool.coverage.run]
 branch = true
