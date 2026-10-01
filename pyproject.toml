@@ -13,13 +13,18 @@ dependencies = [
 
 [project.optional-dependencies]
 server = [
-  "mcp>=1.2.0; python_version >= '3.10'",
+  "mcp>=2.0,<3; python_version >= '3.10'",
 ]
 embeddings = [
   "sentence-transformers>=3.0.0",
 ]
 test = [
   "pytest>=7.0.0",
+  "pytest-cov>=4.1.0",
+]
+dev = [
+  "mypy>=1.8.0",
+  "ruff>=0.5.0",
 ]
 
 [project.scripts]
@@ -30,4 +35,30 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "tests"]
+addopts = "--cov=nci_si_mcp --cov-report=term-missing"
+
+[tool.coverage.run]
+branch = true
+source = ["nci_si_mcp"]
+
+[tool.coverage.report]
+fail_under = 70
+show_missing = true
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B"]
+
+[tool.mypy]
+# mypy 2.x cannot target Python 3.9; ruff's py39 target and the 3.9 CI job cover it.
+python_version = "3.10"
+files = ["src/nci_si_mcp"]
+check_untyped_defs = true
+ignore_missing_imports = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true

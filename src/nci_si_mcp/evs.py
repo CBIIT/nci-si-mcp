@@ -3,19 +3,78 @@
 from __future__ import annotations
 
 import json
+import logging
+import time
+from http.client import HTTPException, IncompleteRead
 from typing import Any, Dict, Iterable, List, Optional
+from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from .models import NcitConcept, ReleaseInfo, utc_now_iso
+
+logger = logging.getLogger(__name__)
+
+# Longest wait before a retry, whatever the backoff setting and attempt number.
+MAX_RETRY_DELAY_SECONDS = 60.0
+
+# What a concept request asks EVS to include: enough to build the search text
+# for indexing, and additionally every relation list for a lookup.
+INDEX_INCLUDE = "summary,definitions,synonyms,properties"
+LOOKUP_INCLUDE = f"{INDEX_INCLUDE},parents,children,roles,inverseRoles,associations,inverseAssociations"
 
 
 class EVSError(RuntimeError):
     """Base error for EVS client failures."""
 
 
+class EVSUnavailableError(EVSError):
+    """EVS could not be reached, or kept failing after the bounded retries."""
+
+
+class EVSNotFoundError(EVSError):
+    """The requested concept does not exist in the release that was asked for."""
+
+
+class EVSResponseError(EVSError):
+    """EVS rejected the request or answered with something the client cannot use."""
+
+
+class EVSResponseTooLargeError(EVSResponseError):
+    """EVS answered with more bytes than the configured response limit."""
+
+
 class ReleaseResolutionError(EVSError):
     """Raised when monthly NCIt cannot be resolved exactly."""
+
+
+def _object(data: Any, what: str) -> Dict[str, Any]:
+    if not isinstance(data, dict):
+        raise EVSResponseError(f"EVS {what} was not an object")
+    return data
+
+
+def _object_list(data: Any, what: str) -> List[Dict[str, Any]]:
+    if not isinstance(data, list) or not all(isinstance(item, dict) for item in data):
+        raise EVSResponseError(f"EVS {what} was not a list of objects")
+    return data
+
+
+def object_list(payload: Dict[str, Any], key: str) -> List[Dict[str, Any]]:
+    """Return the list of objects under `key` of an EVS payload; absent means empty."""
+
+    return _object_list(payload.get(key) or [], f"field '{key}'")
+
+
+def verify_release(concepts: Iterable[Dict[str, Any]], release_version: str) -> None:
+    """Fail unless every concept payload was served from the release that was requested."""
+
+    other = {str(raw.get("version") or "unknown") for raw in concepts} - {release_version}
+    if other:
+        raise EVSResponseError(
+            f"EVS served release {', '.join(sorted(other))} for a request pinned to "
+            f"{release_version}"
+        )
 
 
 def _source_vocabulary(terminology: str) -> str:
@@ -26,8 +85,12 @@ def _source_vocabulary(terminology: str) -> str:
     return terminology
 
 
+def _tags(raw: Dict[str, Any]) -> Dict[str, Any]:
+    return _object(raw.get("tags") or {}, "field 'tags'")
+
+
 def release_from_terminology(raw: Dict[str, Any]) -> ReleaseInfo:
-    tags = raw.get("tags") or {}
+    tags = _tags(raw)
     return ReleaseInfo(
         terminology=str(raw.get("terminology", "")),
         version=str(raw.get("version", "")),
@@ -42,12 +105,18 @@ def release_from_terminology(raw: Dict[str, Any]) -> ReleaseInfo:
 
 
 def select_monthly_ncit_release(terminologies: Iterable[Dict[str, Any]]) -> ReleaseInfo:
+    """Pick the one NCIt row that is both `latest` and tagged monthly, or refuse.
+
+    EVS lists every release it serves and marks `latest` per channel, so the
+    weekly and the monthly channel can each have a latest row.
+    """
+
     candidates = [
         release_from_terminology(item)
         for item in terminologies
         if str(item.get("terminology", "")).lower() == "ncit"
         and bool(item.get("latest"))
-        and str((item.get("tags") or {}).get("monthly", "")).lower() == "true"
+        and str(_tags(item).get("monthly", "")).lower() == "true"
     ]
     if len(candidates) != 1:
         versions = [candidate.version for candidate in candidates]
@@ -55,6 +124,8 @@ def select_monthly_ncit_release(terminologies: Iterable[Dict[str, Any]]) -> Rele
             "Expected exactly one latest monthly NCIt release; "
             f"found {len(candidates)} ({versions}). Refusing to fall back to weekly."
         )
+    if not candidates[0].version:
+        raise ReleaseResolutionError("The latest monthly NCIt release has no version")
     return candidates[0]
 
 
@@ -65,9 +136,9 @@ def normalize_concept(
     retrieved_at: Optional[str] = None,
 ) -> NcitConcept:
     terminology = str(raw.get("terminology") or "ncit")
-    properties = raw.get("properties") or []
-    definitions = raw.get("definitions") or []
-    synonyms = raw.get("synonyms") or []
+    properties = object_list(raw, "properties")
+    definitions = object_list(raw, "definitions")
+    synonyms = object_list(raw, "synonyms")
 
     semantic_types = [
         item.get("value")
@@ -118,96 +189,173 @@ def normalize_concept(
     )
 
 
+def _http_error_message(exc: HTTPError) -> str:
+    """Describe an HTTP failure, including the reason EVS gives in its error body."""
+
+    detail = ""
+    if exc.fp is not None:
+        try:
+            body = json.loads(exc.read(4096).decode("utf-8"))
+        except (OSError, ValueError, HTTPException):
+            body = None
+        if isinstance(body, dict):
+            detail = str(body.get("message") or "")
+    parts = [f"HTTP {exc.code}", str(exc.reason or ""), f"({detail})" if detail else ""]
+    return " ".join(part for part in parts if part)
+
+
 class EVSClient:
-    def __init__(self, base_url: str, timeout_seconds: float = 30.0) -> None:
+    """Read-only EVS REST client.
+
+    Concept methods take a `terminology` path segment. Passing a release's
+    `pinned_terminology` (for example `ncit_26.06e`) pins the request to that
+    release; plain `ncit` lets EVS choose.
+    """
+
+    def __init__(
+        self,
+        base_url: str,
+        timeout_seconds: float = 30.0,
+        *,
+        max_attempts: int = 3,
+        retry_backoff_seconds: float = 0.25,
+        max_response_bytes: int = 10 * 1024 * 1024,
+    ) -> None:
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
+        self.max_attempts = max(1, max_attempts)
+        self.retry_backoff_seconds = max(0.0, retry_backoff_seconds)
+        self.max_response_bytes = max_response_bytes
+
+    def _retry(self, path: str, attempt: int, message: str) -> None:
+        delay = min(self.retry_backoff_seconds * (2 ** (attempt - 1)), MAX_RETRY_DELAY_SECONDS)
+        logger.warning(
+            "evs_request_retry path=%s attempt=%s max_attempts=%s delay_seconds=%.3f reason=%s",
+            path,
+            attempt,
+            self.max_attempts,
+            delay,
+            message,
+        )
+        if delay:
+            time.sleep(delay)
+
+    def _read_response(self, response: Any, path: str) -> Any:
+        too_large = (
+            f"EVS response for {path} exceeded {self.max_response_bytes} bytes "
+            "(NCI_SI_EVS_MAX_RESPONSE_BYTES)"
+        )
+        declared_length = 0
+        # http.client ignores Content-Length for a chunked body, and so does this.
+        if response.headers.get("Transfer-Encoding", "").lower() != "chunked":
+            try:
+                declared_length = int(response.headers.get("Content-Length") or 0)
+            except ValueError:
+                pass
+        if declared_length > self.max_response_bytes:
+            raise EVSResponseTooLargeError(too_large)
+        payload = response.read(self.max_response_bytes + 1)
+        if len(payload) > self.max_response_bytes:
+            raise EVSResponseTooLargeError(too_large)
+        if len(payload) < declared_length:
+            # http.client returns a body cut short by a dropped connection without raising.
+            raise IncompleteRead(payload, declared_length - len(payload))
+        try:
+            return json.loads(payload.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise EVSResponseError(f"EVS returned invalid JSON for {path}: {exc}") from exc
 
     def _get_json(self, path: str, params: Optional[Dict[str, Any]] = None) -> Any:
+        """GET a JSON document, retrying transport failures, HTTP 429 and HTTP 5xx.
+
+        HTTP 404 raises EVSNotFoundError. That means "no such concept" only for a
+        single-concept request; the other methods go through `_get_existing`.
+        """
+
         query = ""
         if params:
             filtered = {key: value for key, value in params.items() if value is not None}
             query = "?" + urlencode(filtered, doseq=True) if filtered else ""
-        url = f"{self.base_url}{path}{query}"
-        request = Request(url, headers={"Accept": "application/json"})
+        request = Request(f"{self.base_url}{path}{query}", headers={"Accept": "application/json"})
+        attempt = 0
+        while True:
+            attempt += 1
+            failure: Exception
+            try:
+                with urlopen(request, timeout=self.timeout_seconds) as response:
+                    return self._read_response(response, path)
+            except HTTPError as exc:
+                message = f"EVS request failed for {path}: {_http_error_message(exc)}"
+                exc.close()
+                if exc.code == 404:
+                    raise EVSNotFoundError(message) from exc
+                if exc.code != 429 and exc.code < 500:
+                    raise EVSResponseError(message) from exc
+                failure = exc
+            except (OSError, HTTPException) as exc:
+                message = f"EVS request failed for {path}: {getattr(exc, 'reason', None) or exc}"
+                failure = exc
+            if attempt >= self.max_attempts:
+                raise EVSUnavailableError(message) from failure
+            self._retry(path, attempt, message)
+
+    def _get_existing(self, path: str, params: Optional[Dict[str, Any]] = None) -> Any:
+        """GET a document that must exist, so a 404 means a wrong endpoint or release."""
+
         try:
-            with urlopen(request, timeout=self.timeout_seconds) as response:
-                return json.loads(response.read().decode("utf-8"))
-        except Exception as exc:  # pragma: no cover - exercised through callers with fakes
-            raise EVSError(f"EVS request failed for {path}: {exc}") from exc
+            return self._get_json(path, params)
+        except EVSNotFoundError as exc:
+            raise EVSResponseError(
+                f"{exc}; EVS does not serve this endpoint or release, check NCI_SI_EVS_BASE_URL"
+            ) from exc
 
     def get_api_version(self) -> Dict[str, Any]:
-        return self._get_json("/api/v1/version")
+        return _object(self._get_existing("/api/v1/version"), "version response")
 
     def get_terminologies(self) -> List[Dict[str, Any]]:
-        data = self._get_json("/api/v1/metadata/terminologies")
-        if not isinstance(data, list):
-            raise EVSError("EVS terminology metadata response was not a list")
-        return data
+        return _object_list(
+            self._get_existing("/api/v1/metadata/terminologies"), "terminology metadata"
+        )
 
     def resolve_monthly_ncit_release(self) -> ReleaseInfo:
         return select_monthly_ncit_release(self.get_terminologies())
-
-    def get_codes(self, terminology: str = "ncit") -> List[str]:
-        data = self._get_json(f"/api/v1/concept/{terminology}/codes")
-        if not isinstance(data, list):
-            raise EVSError("EVS code response was not a list")
-        return [str(code) for code in data]
 
     def get_concepts_by_codes(
         self,
         codes: Iterable[str],
         terminology: str = "ncit",
-        include: str = "summary,definitions,synonyms,properties",
+        include: str = INDEX_INCLUDE,
     ) -> List[Dict[str, Any]]:
+        """Fetch several concepts in one request; EVS omits codes it does not know."""
+
         code_list = [code.strip() for code in codes if code and code.strip()]
         if not code_list:
             return []
-        data = self._get_json(
+        data = self._get_existing(
             f"/api/v1/concept/{terminology}",
             {"list": ",".join(code_list), "include": include},
         )
-        if not isinstance(data, list):
-            raise EVSError("EVS concept list response was not a list")
-        return data
+        return _object_list(data, "concept list response")
 
     def get_concept(
         self,
         code: str,
         terminology: str = "ncit",
-        include: str = "summary,definitions,synonyms,properties,parents,children,roles,inverseRoles,associations,inverseAssociations",
+        include: str = LOOKUP_INCLUDE,
     ) -> Dict[str, Any]:
-        return self._get_json(
-            f"/api/v1/concept/{terminology}/{code}",
-            {"include": include},
-        )
+        data = self._get_json(f"/api/v1/concept/{terminology}/{code}", {"include": include})
+        return _object(data, "concept response")
 
-    def search(
-        self,
-        term: str,
-        terminology: str = "ncit",
-        match_type: str = "contains",
-        page_size: int = 10,
-        include: str = "minimal",
-    ) -> Dict[str, Any]:
-        return self._get_json(
-            f"/api/v1/concept/{terminology}/search",
-            {
-                "term": term,
-                "type": match_type,
-                "pageSize": page_size,
-                "include": include,
-            },
-        )
+    def get_descendants(
+        self, code: str, max_level: int, terminology: str = "ncit"
+    ) -> List[Dict[str, Any]]:
+        """Fetch the descendants EVS places within `max_level` levels, each with its `level`.
 
-    def get_related(self, code: str, relation: str, terminology: str = "ncit") -> List[Dict[str, Any]]:
-        data = self._get_json(f"/api/v1/concept/{terminology}/{code}/{relation}")
-        if isinstance(data, dict):
-            for key in ("concepts", "roles", "associations", "associationEntries"):
-                value = data.get(key)
-                if isinstance(value, list):
-                    return value
-            return [data]
-        if isinstance(data, list):
-            return data
-        raise EVSError(f"EVS relation response for {relation} was not a list or object")
+        The concept must be known to exist: a 404 here is not reported as a
+        missing concept.
+        """
+
+        data = self._get_existing(
+            f"/api/v1/concept/{terminology}/{code}/descendants", {"maxLevel": max_level}
+        )
+        return _object_list(data, "descendants response")

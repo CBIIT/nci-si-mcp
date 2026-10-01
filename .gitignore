@@ -6,3 +6,13 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 *.egg-info/
+.DS_Store
+
+# Claude Code artifacts
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.mcp.json
+
+# ephemeral working artifacts, never committed
+tmp/

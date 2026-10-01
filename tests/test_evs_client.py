@@ -1,0 +1,312 @@
+import io
+import unittest
+from email.message import Message
+from http.client import IncompleteRead
+from unittest.mock import patch
+from urllib.error import HTTPError, URLError
+
+from nci_si_mcp.evs import (
+    EVSClient,
+    EVSNotFoundError,
+    EVSResponseError,
+    EVSResponseTooLargeError,
+    EVSUnavailableError,
+)
+
+
+class FakeResponse:
+    def __init__(self, payload, headers=None):
+        self.payload = payload
+        # Header names are case-insensitive, as on a real response.
+        self.headers = Message()
+        for name, value in (headers or {}).items():
+            self.headers[name] = value
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, traceback):
+        return False
+
+    def read(self, limit):
+        if isinstance(self.payload, Exception):
+            raise self.payload
+        return self.payload[:limit]
+
+
+def http_error(status, body=b""):
+    return HTTPError("https://example.invalid", status, "Reason", {}, io.BytesIO(body))
+
+
+@patch("nci_si_mcp.evs.time.sleep")
+@patch("nci_si_mcp.evs.urlopen")
+class EVSClientTest(unittest.TestCase):
+    def client(self, **options):
+        return EVSClient("https://example.invalid/", **options)
+
+    def test_transient_failures_are_retried_until_one_succeeds(self, urlopen, sleep):
+        failures = {
+            "network": URLError("temporary"),
+            "timeout": TimeoutError("timed out"),
+            "reset": ConnectionResetError("reset"),
+            "http 429": http_error(429),
+            "http 500": http_error(500),
+            "http 503": http_error(503),
+            "truncated body": FakeResponse(IncompleteRead(b"")),
+            "body shorter than declared": FakeResponse(b'{"vers', {"Content-Length": "20"}),
+            # Only a chunked body makes http.client ignore the declared length.
+            "short body in another encoding": FakeResponse(
+                b'{"vers', {"Content-Length": "20", "Transfer-Encoding": "identity"}
+            ),
+        }
+        for label, failure in failures.items():
+            with self.subTest(label):
+                urlopen.reset_mock()
+                urlopen.side_effect = [failure, FakeResponse(b'{"version": "test"}')]
+
+                with self.assertLogs("nci_si_mcp.evs", level="WARNING"):
+                    result = self.client(max_attempts=2).get_api_version()
+
+                self.assertEqual(result, {"version": "test"})
+                self.assertEqual(urlopen.call_count, 2)
+
+    def test_exhausted_attempts_raise_unavailable_after_exponential_backoff(self, urlopen, sleep):
+        urlopen.side_effect = [
+            URLError("down"),
+            http_error(503),
+            TimeoutError("timed out"),
+            URLError("still down"),
+        ]
+
+        with self.assertLogs("nci_si_mcp.evs", level="WARNING"), self.assertRaises(
+            EVSUnavailableError
+        ) as raised:
+            self.client(max_attempts=4, retry_backoff_seconds=0.25).get_api_version()
+
+        self.assertEqual(urlopen.call_count, 4)
+        self.assertEqual([call.args[0] for call in sleep.call_args_list], [0.25, 0.5, 1.0])
+        self.assertIn("still down", str(raised.exception))
+
+    def test_requests_use_the_configured_timeout(self, urlopen, sleep):
+        urlopen.return_value = FakeResponse(b"{}")
+
+        EVSClient("https://example.invalid", timeout_seconds=2.5).get_api_version()
+
+        self.assertEqual(urlopen.call_args.kwargs["timeout"], 2.5)
+
+    def test_retry_wait_is_capped(self, urlopen, sleep):
+        urlopen.side_effect = [URLError("down")] * 10
+
+        with self.assertLogs("nci_si_mcp.evs", level="WARNING"), self.assertRaises(
+            EVSUnavailableError
+        ):
+            self.client(max_attempts=10, retry_backoff_seconds=3600).get_api_version()
+
+        self.assertEqual({call.args[0] for call in sleep.call_args_list}, {60.0})
+
+    def test_only_a_single_concept_request_reports_a_missing_concept(self, urlopen, sleep):
+        client = self.client()
+        calls = {
+            "version": client.get_api_version,
+            "terminologies": client.get_terminologies,
+            "release": client.resolve_monthly_ncit_release,
+            "batch": lambda: client.get_concepts_by_codes(["C1"]),
+            "descendants": lambda: client.get_descendants("C1", 1),
+        }
+        for label, call in calls.items():
+            with self.subTest(label):
+                urlopen.side_effect = http_error(404, b'{"message": "No static resource"}')
+                with self.assertRaises(EVSResponseError) as raised:
+                    call()
+                self.assertNotIsInstance(raised.exception, EVSNotFoundError)
+                self.assertIn("NCI_SI_EVS_BASE_URL", str(raised.exception))
+        urlopen.side_effect = http_error(404, b'{"message": "C1 not found"}')
+        with self.assertRaises(EVSNotFoundError):
+            client.get_concept("C1")
+
+    def test_not_found_is_distinct_and_carries_the_reason_evs_gives(self, urlopen, sleep):
+        urlopen.side_effect = http_error(404, b'{"status": 404, "message": "C999 not found"}')
+
+        with self.assertRaises(EVSNotFoundError) as raised:
+            self.client().get_concept("C999")
+
+        self.assertEqual(urlopen.call_count, 1)
+        self.assertIn("HTTP 404", str(raised.exception))
+        self.assertIn("C999 not found", str(raised.exception))
+
+    def test_other_client_errors_are_not_retried(self, urlopen, sleep):
+        for status in (400, 401, 403):
+            with self.subTest(status=status):
+                urlopen.reset_mock()
+                urlopen.side_effect = http_error(status, b"<html>")
+
+                with self.assertRaises(EVSResponseError) as raised:
+                    self.client().get_api_version()
+
+                self.assertNotIsInstance(raised.exception, EVSNotFoundError)
+                self.assertEqual(urlopen.call_count, 1)
+
+    def test_one_attempt_means_no_retry(self, urlopen, sleep):
+        urlopen.side_effect = URLError("down")
+
+        with self.assertRaises(EVSUnavailableError):
+            self.client(max_attempts=1).get_api_version()
+
+        self.assertEqual(urlopen.call_count, 1)
+        sleep.assert_not_called()
+
+    def test_a_complete_body_at_the_size_limit_is_accepted(self, urlopen, sleep):
+        client = self.client(max_response_bytes=10)
+        for label, headers in {
+            "declared": {"Content-Length": "10"},
+            "unparsable": {"Content-Length": "ten"},
+            "undeclared": {},
+            # http.client decodes a chunked body and ignores its Content-Length.
+            "chunked": {"content-length": "50", "transfer-encoding": "Chunked"},
+        }.items():
+            with self.subTest(label):
+                urlopen.return_value = FakeResponse(b'{"a": 123}', headers)
+
+                self.assertEqual(client.get_api_version(), {"a": 123})
+
+        self.assertEqual(urlopen.call_count, 4)
+
+    def test_response_size_is_bounded_before_and_while_reading(self, urlopen, sleep):
+        class UnreadableResponse(FakeResponse):
+            def read(self, limit):
+                raise AssertionError("an oversized response must not be read")
+
+        client = self.client(max_response_bytes=10)
+        responses = {
+            "declared": UnreadableResponse(b"", {"Content-Length": "11"}),
+            "undeclared": FakeResponse(b'{"a": 12345}'),
+        }
+        for label, response in responses.items():
+            with self.subTest(label):
+                urlopen.reset_mock()
+                urlopen.side_effect = None
+                urlopen.return_value = response
+
+                with self.assertRaises(EVSResponseTooLargeError):
+                    client.get_api_version()
+
+                self.assertEqual(urlopen.call_count, 1)
+
+        urlopen.return_value = FakeResponse(b'{"a": 123}')
+        self.assertEqual(client.get_api_version(), {"a": 123})
+
+    def test_unusable_bodies_raise_response_errors(self, urlopen, sleep):
+        for body in (b"<html>", b"\xff"):
+            with self.subTest(body=body):
+                urlopen.return_value = FakeResponse(body)
+                with self.assertRaises(EVSResponseError):
+                    self.client().get_api_version()
+
+    def test_unexpected_shapes_raise_response_errors(self, urlopen, sleep):
+        client = self.client()
+        calls = {
+            "version as list": (b"[]", client.get_api_version),
+            "terminologies as object": (b"{}", client.get_terminologies),
+            "terminologies of strings": (b'["ncit"]', client.get_terminologies),
+            "concept as list": (b"[]", lambda: client.get_concept("C1")),
+            "concept list as object": (b"{}", lambda: client.get_concepts_by_codes(["C1"])),
+            "descendants as object": (b"{}", lambda: client.get_descendants("C1", 1)),
+        }
+        for label, (body, call) in calls.items():
+            with self.subTest(label):
+                urlopen.return_value = FakeResponse(body)
+                with self.assertRaises(EVSResponseError):
+                    call()
+
+    def test_requests_address_the_given_terminology(self, urlopen, sleep):
+        client = self.client()
+        calls = {
+            "/api/v1/concept/ncit_26.06e/C1?include=minimal": (
+                b"{}",
+                lambda: client.get_concept("C1", terminology="ncit_26.06e", include="minimal"),
+            ),
+            "/api/v1/concept/ncit_26.06e?list=C1%2CC2&include=minimal": (
+                b"[]",
+                lambda: client.get_concepts_by_codes(
+                    ["C1", " C2 ", ""], terminology="ncit_26.06e", include="minimal"
+                ),
+            ),
+            "/api/v1/concept/ncit_26.06e/C1/descendants?maxLevel=2": (
+                b"[]",
+                lambda: client.get_descendants("C1", 2, terminology="ncit_26.06e"),
+            ),
+            "/api/v1/concept/ncit/C1/descendants?maxLevel=1": (
+                b"[]",
+                lambda: client.get_descendants("C1", 1),
+            ),
+            "/api/v1/concept/ncit?list=C1&include=summary%2Cdefinitions%2Csynonyms%2Cproperties": (
+                b"[]",
+                lambda: client.get_concepts_by_codes(["C1"]),
+            ),
+            "/api/v1/concept/ncit/C1?include=summary%2Cdefinitions%2Csynonyms%2Cproperties"
+            "%2Cparents%2Cchildren%2Croles%2CinverseRoles%2Cassociations%2CinverseAssociations": (
+                b"{}",
+                lambda: client.get_concept("C1"),
+            ),
+        }
+        for path, (body, call) in calls.items():
+            with self.subTest(path):
+                urlopen.return_value = FakeResponse(body)
+                call()
+                request = urlopen.call_args.args[0]
+                self.assertEqual(request.full_url, f"https://example.invalid{path}")
+                self.assertEqual(request.get_header("Accept"), "application/json")
+
+    def test_no_codes_means_no_request(self, urlopen, sleep):
+        self.assertEqual(self.client().get_concepts_by_codes([" ", ""]), [])
+        urlopen.assert_not_called()
+
+    def test_an_empty_body_without_a_declared_length_is_invalid_not_retried(self, urlopen, sleep):
+        urlopen.return_value = FakeResponse(b"")
+
+        with self.assertRaises(EVSResponseError):
+            self.client().get_api_version()
+
+        self.assertEqual(urlopen.call_count, 1)
+
+    def test_a_body_one_byte_short_is_retried(self, urlopen, sleep):
+        urlopen.side_effect = [
+            FakeResponse(b'{"a": 1}', {"Content-Length": "9"}),
+            FakeResponse(b'{"a": 1}\n', {"Content-Length": "9"}),
+        ]
+
+        with self.assertLogs("nci_si_mcp.evs", level="WARNING"):
+            result = self.client(max_attempts=2).get_api_version()
+
+        self.assertEqual(result, {"a": 1})
+        self.assertEqual(urlopen.call_count, 2)
+
+    def test_a_404_from_a_metadata_request_keeps_what_evs_said(self, urlopen, sleep):
+        urlopen.side_effect = http_error(404, b'{"message": "No static resource"}')
+
+        with self.assertRaises(EVSResponseError) as raised:
+            self.client().get_terminologies()
+
+        message = str(raised.exception)
+        self.assertIn("/api/v1/metadata/terminologies", message)
+        self.assertIn("HTTP 404", message)
+        self.assertIn("No static resource", message)
+        self.assertIn("NCI_SI_EVS_BASE_URL", message)
+
+    def test_an_empty_body_with_an_ignored_length_is_invalid_not_retried(self, urlopen, sleep):
+        for label, headers in {
+            "chunked": {"Content-Length": "5", "Transfer-Encoding": "chunked"},
+            "unparsable": {"Content-Length": "five"},
+        }.items():
+            with self.subTest(label):
+                urlopen.reset_mock()
+                urlopen.return_value = FakeResponse(b"", headers)
+
+                with self.assertRaises(EVSResponseError):
+                    self.client().get_api_version()
+
+                self.assertEqual(urlopen.call_count, 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

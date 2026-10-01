@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import math
 from abc import ABC, abstractmethod
-from typing import Iterable, List
+from typing import Iterable, List, Tuple
 
 
 class EmbeddingProvider(ABC):
@@ -24,6 +24,8 @@ class EmbeddingProvider(ABC):
 
 class HashingEmbeddingProvider(EmbeddingProvider):
     def __init__(self, dimensions: int = 128) -> None:
+        if dimensions < 1:
+            raise ValueError("Hashing embedding dimensions must be at least 1")
         self.name = "hashing"
         self.model = f"hashing-{dimensions}"
         self.dimensions = dimensions
@@ -50,7 +52,8 @@ class SentenceTransformersProvider(EmbeddingProvider):
             from sentence_transformers import SentenceTransformer
         except ImportError as exc:  # pragma: no cover - optional dependency
             raise RuntimeError(
-                "sentence-transformers is not installed. Install nci-si-mcp[embeddings]."
+                "The sentence-transformers provider needs the 'embeddings' extra "
+                f"(pip install -e '.[embeddings]'). Import failed: {exc}"
             ) from exc
         self.name = "sentence-transformers"
         self.model = model_name
@@ -61,9 +64,32 @@ class SentenceTransformersProvider(EmbeddingProvider):
         return [list(map(float, row)) for row in vectors]
 
 
+def normalize_embedding_settings(provider: str, model: str) -> Tuple[str, str]:
+    """Return the normalized provider and model, or raise if they do not go together."""
+
+    normalized_provider = provider.strip().lower()
+    normalized_model = model.strip()
+    if normalized_provider == "hashing":
+        if normalized_model not in {"hashing", "hashing-128"}:
+            raise ValueError(
+                "NCI_SI_EMBEDDING_MODEL must be 'hashing' when NCI_SI_EMBEDDING_PROVIDER is 'hashing'"
+            )
+    elif normalized_provider == "sentence-transformers":
+        if not normalized_model or normalized_model == "hashing":
+            raise ValueError(
+                "NCI_SI_EMBEDDING_MODEL must name a model when NCI_SI_EMBEDDING_PROVIDER "
+                "is 'sentence-transformers'"
+            )
+    else:
+        raise ValueError(
+            "NCI_SI_EMBEDDING_PROVIDER must be 'hashing' or 'sentence-transformers', "
+            f"not {provider!r}"
+        )
+    return normalized_provider, normalized_model
+
+
 def create_embedding_provider(provider: str, model: str) -> EmbeddingProvider:
-    if provider == "hashing" or model == "hashing":
+    provider, model = normalize_embedding_settings(provider, model)
+    if provider == "hashing":
         return HashingEmbeddingProvider()
-    if provider == "sentence-transformers":
-        return SentenceTransformersProvider(model)
-    raise ValueError(f"Unknown embedding provider: {provider}")
+    return SentenceTransformersProvider(model)
