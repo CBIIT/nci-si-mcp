@@ -13,3 +13,6 @@ __pycache__/
 CLAUDE.md
 CLAUDE.local.md
 .mcp.json
+
+# ephemeral working artifacts, never committed
+tmp/
