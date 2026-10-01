@@ -34,13 +34,15 @@ lint = [
 [tool.pdm]
 distribution = true
 
-# `pdm install` always includes the server extra, which the server tests need,
-# and `pdm lock` covers every group.
+# `pdm install` and `pdm sync` always include the server extra, which the server
+# tests need, and never the embeddings extra unless it is named. `pdm lock`
+# covers every group.
 [tool.pdm.options]
 install = ["-G", "server"]
+sync = ["-G", "server"]
 lock = ["-G", ":all"]
 
-# The version is the latest `vX.Y.Z` tag, or a development version after it.
+# The version is the nearest `vX.Y.Z` tag, or a development version after it.
 # A clone without tags gets `0.1.devN`, and a source tree without git metadata
 # gets the fallback.
 [tool.pdm.version]
