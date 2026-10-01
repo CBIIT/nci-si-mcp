@@ -15,6 +15,8 @@ from .embeddings import normalize_embedding_settings
 # Upper bound for the timeout and backoff settings; socket timeouts overflow far above it.
 MAX_SECONDS = 3600
 MAX_ATTEMPTS = 10
+# Python 3.9 allocates the read buffer up front, so the limit must be an amount of memory.
+MAX_RESPONSE_BYTES = 1024**3
 
 
 def _is_evs_url(value: str) -> bool:
@@ -34,8 +36,8 @@ def _is_evs_url(value: str) -> bool:
         url.scheme in ("http", "https")
         and bool(host)
         and "@" not in url.netloc
-        and not url.query
-        and not url.fragment
+        and "?" not in value
+        and "#" not in value
         and (port is None or port > 0)
     )
 
@@ -84,8 +86,10 @@ class Settings:
             raise ValueError(
                 f"NCI_SI_EVS_RETRY_BACKOFF_SECONDS must be between zero and {MAX_SECONDS}"
             )
-        if self.evs_max_response_bytes < 1:
-            raise ValueError("NCI_SI_EVS_MAX_RESPONSE_BYTES must be at least 1")
+        if not 1 <= self.evs_max_response_bytes <= MAX_RESPONSE_BYTES:
+            raise ValueError(
+                f"NCI_SI_EVS_MAX_RESPONSE_BYTES must be between 1 and {MAX_RESPONSE_BYTES}"
+            )
         if self.index_batch_size < 1:
             raise ValueError("NCI_SI_INDEX_BATCH_SIZE must be at least 1")
         if self.log_level.upper() not in {"CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"}:
@@ -97,9 +101,15 @@ class Settings:
         data_dir = os.getenv("NCI_SI_DATA_DIR", ".nci-si-mcp")
         if not data_dir.strip():
             raise ValueError("NCI_SI_DATA_DIR must not be empty")
+        try:
+            expanded_data_dir = Path(data_dir).expanduser()
+        except RuntimeError as exc:
+            raise ValueError(
+                f"NCI_SI_DATA_DIR names a home directory that cannot be resolved: {data_dir!r}"
+            ) from exc
         return cls(
             evs_base_url=os.getenv("NCI_SI_EVS_BASE_URL", DEFAULT_EVS_BASE_URL).rstrip("/"),
-            data_dir=Path(data_dir).expanduser(),
+            data_dir=expanded_data_dir,
             embedding_provider=os.getenv("NCI_SI_EMBEDDING_PROVIDER", "hashing"),
             embedding_model=os.getenv("NCI_SI_EMBEDDING_MODEL", DEFAULT_EMBEDDING_MODEL),
             timeout_seconds=_env_number("NCI_SI_TIMEOUT_SECONDS", "30", float),

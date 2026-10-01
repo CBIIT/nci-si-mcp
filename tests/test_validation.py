@@ -81,6 +81,20 @@ class ValidationTest(unittest.TestCase):
             with self.subTest(field=field, value=value), self.assertRaises(InputValidationError):
                 validate_traversal(**dict(valid, **{field: value}))
 
+    def test_start_codes_must_fit_the_effective_node_limit(self):
+        def traversal(count, max_nodes):
+            return validate_traversal(
+                [f"C{number}" for number in range(count)], "out", 1, max_nodes, 10, None
+            )
+
+        self.assertEqual(len(traversal(2, 2)[0]), 2)
+        self.assertEqual(len(traversal(1000, 5000)[0]), 1000)
+        with self.assertRaisesRegex(InputValidationError, "3 start codes .* node limit of 2"):
+            traversal(3, 2)
+        # max_nodes is clamped to 1,000, and the message names that limit.
+        with self.assertRaisesRegex(InputValidationError, "1001 start codes .* node limit of 1000"):
+            traversal(1001, 5000)
+
 
 class EmbeddingConfigurationTest(unittest.TestCase):
     def test_hashing_provider_is_the_default_pair(self):

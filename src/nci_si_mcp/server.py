@@ -135,8 +135,10 @@ def create_mcp(settings: Optional[Settings] = None, *, service: Optional[NCISISe
         edges (direction `out` or `both`, hierarchy included), which link each
         start code directly to every descendant that EVS places within
         `max_depth` levels. EVS gives a descendant one level, which can be
-        deeper than its shortest path, so a `child` walk of the same depth can
-        reach a few more concepts.
+        deeper than its shortest path, so `descendant` edges can miss concepts
+        that a `child` walk of the same depth reaches: few at depth 2, but a
+        fifth to a third below a broad concept at depth 3 or 4. Use `child`
+        edges when every concept within `max_depth` is needed.
         `relationship_names` keeps only edges with those names, ignoring case:
         role and association names such as `Disease_Has_Finding`, or
         `is_a_parent`, `is_a_child` and `is_a_descendant` for hierarchy edges.
@@ -147,7 +149,8 @@ def create_mcp(settings: Optional[Settings] = None, *, service: Optional[NCISISe
         when something was dropped: by the node limit, by the edge limit, or
         because the relations or descendants of a concept were too large to
         read, in which case `unexpanded_codes` lists it and raising the limits
-        does not help. Stopping at `max_depth` does not set `truncated`.
+        does not help (for descendants, a smaller `max_depth` can). Stopping
+        at `max_depth` does not set `truncated`.
         Every edge connects two nodes of the result, and all data is read from
         the monthly release named in `release_version`. A start code that
         release does not contain returns `concept_not_found`.

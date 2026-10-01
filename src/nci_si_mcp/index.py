@@ -96,7 +96,10 @@ class LocalIndex:
 
         Failures of the database itself (locked, unreadable, not a database,
         disk full) are raised as IndexStorageError naming the file. Constraint
-        and usage errors are bugs and propagate unchanged.
+        violations and API misuse (IntegrityError, ProgrammingError) are bugs
+        and propagate unchanged. sqlite3 reports a mistake in a SQL statement
+        (unknown table, syntax error) as OperationalError as well, so that
+        surfaces as IndexStorageError too.
         """
 
         try:

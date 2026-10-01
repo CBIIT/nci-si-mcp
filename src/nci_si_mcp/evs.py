@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import time
-from http.client import HTTPException
+from http.client import HTTPException, IncompleteRead
 from typing import Any, Dict, Iterable, List, Optional
 from urllib.error import HTTPError
 from urllib.parse import urlencode
@@ -245,17 +245,18 @@ class EVSClient:
             f"EVS response for {path} exceeded {self.max_response_bytes} bytes "
             "(NCI_SI_EVS_MAX_RESPONSE_BYTES)"
         )
-        content_length = response.headers.get("Content-Length")
-        if content_length:
-            try:
-                declared_length = int(content_length)
-            except (TypeError, ValueError):
-                declared_length = None
-            if declared_length is not None and declared_length > self.max_response_bytes:
-                raise EVSResponseTooLargeError(too_large)
+        try:
+            declared_length = int(response.headers.get("Content-Length") or 0)
+        except ValueError:
+            declared_length = 0
+        if declared_length > self.max_response_bytes:
+            raise EVSResponseTooLargeError(too_large)
         payload = response.read(self.max_response_bytes + 1)
         if len(payload) > self.max_response_bytes:
             raise EVSResponseTooLargeError(too_large)
+        if len(payload) < declared_length:
+            # http.client returns a body cut short by a dropped connection without raising.
+            raise IncompleteRead(payload, declared_length - len(payload))
         try:
             return json.loads(payload.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
@@ -301,7 +302,9 @@ class EVSClient:
         try:
             return self._get_json(path, params)
         except EVSNotFoundError as exc:
-            raise EVSResponseError(f"{exc}; check NCI_SI_EVS_BASE_URL") from exc
+            raise EVSResponseError(
+                f"{exc}; EVS does not serve this endpoint or release, check NCI_SI_EVS_BASE_URL"
+            ) from exc
 
     def get_api_version(self) -> Dict[str, Any]:
         return _object(self._get_existing("/api/v1/version"), "version response")

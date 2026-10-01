@@ -23,6 +23,7 @@ from nci_si_mcp.index import (
     concept_search_text,
     vector_lsh_buckets,
 )
+from nci_si_mcp.retrieval import min_max_normalize
 
 RAW_CONCEPTS = [
     {
@@ -480,6 +481,18 @@ class MigrationTest(IndexTestCase):
         self.assertEqual(self.counts(migrated), (2, 2, 2 * LSH_BANDS, 1))
         self.assertEqual(migrated.get_active_manifest().release_version, "26.06e")
 
+    def test_schema_one_database_gains_the_search_rows(self):
+        index = self.build()
+        with index._connect() as conn:
+            conn.execute("DELETE FROM concepts_fts")
+            conn.execute("PRAGMA user_version = 1")
+
+        migrated = LocalIndex(self.path)
+
+        self.assertEqual(self.counts(migrated), (2, 2, 2 * LSH_BANDS, 1))
+        hits = migrated.search("kinase", self.provider, mode="bm25")
+        self.assertEqual([hit.concept.code for hit in hits], ["C40704"])
+
     def test_schema_two_database_gains_the_lsh_table(self):
         index = self.build()
         with index._connect() as conn:
@@ -503,6 +516,23 @@ class SearchTest(IndexTestCase):
         self.assertEqual(hits[0].concept.source, "active_cache")
         self.assertNotIn("raw", hits[0].to_dict()["concept"])
         self.assertIn("raw", hits[0].to_dict(include_raw=True)["concept"])
+
+    def test_scores_are_min_max_normalized(self):
+        self.assertEqual(
+            min_max_normalize({"a": 2.0, "b": 3.0, "c": 4.0}), {"a": 0.0, "b": 0.5, "c": 1.0}
+        )
+        self.assertEqual(min_max_normalize({"a": -1.0, "b": 0.0}), {"a": 0.0, "b": 1.0})
+        self.assertEqual(min_max_normalize({"a": 2.0, "b": 2.0}), {"a": 1.0, "b": 1.0})
+        self.assertEqual(min_max_normalize({}), {})
+
+    def test_concept_without_a_matching_term_has_no_bm25_component(self):
+        index = self.build()
+
+        hits = index.search("kinase inhibition", self.provider, mode="hybrid")
+
+        self.assertEqual([hit.concept.code for hit in hits], ["C40704", "C3262"])
+        self.assertEqual(hits[1].score_components, {"bm25": 0.0, "vector": 0.0})
+        self.assertEqual((hits[0].score, hits[1].score), (1.0, 0.0))
 
     def test_hybrid_score_weighs_bm25_and_vector(self):
         index = self.build(synthetic_concepts(30))
@@ -563,6 +593,22 @@ class SearchTest(IndexTestCase):
         for label, provider in providers.items():
             with self.subTest(label), self.assertRaises(IndexCompatibilityError):
                 index.search("tumor", provider, mode="vector")
+
+    def test_bm25_search_also_refuses_another_embedding_space(self):
+        index = self.build()
+
+        with self.assertRaises(IndexCompatibilityError):
+            index.search("tumor", RenamedProvider(model="hashing-v2"), mode="bm25")
+
+    def test_query_vector_count_is_checked(self):
+        class TwoVectors(RenamedProvider):
+            def embed(self, texts):
+                return super().embed(texts) * 2
+
+        index = self.build()
+
+        with self.assertRaises(IndexCompatibilityError):
+            index.search("tumor", TwoVectors(), mode="vector")
 
     def test_stored_vectors_of_another_width_are_detected_on_a_legacy_manifest(self):
         index = self.build()
@@ -637,12 +683,36 @@ class SearchTest(IndexTestCase):
             hybrid_hits = index.search("garnet1", self.provider, limit=60, mode="hybrid")
 
         self.assertEqual(vector_hits[0].concept.code, "C7")
-        self.assertLessEqual(len(vector_hits), 20)
         bm25_matches = {f"C{number}" for number in range(6, 60, 10)}
         by_code = {hit.concept.code: hit for hit in hybrid_hits}
         self.assertTrue(bm25_matches <= set(by_code))
         # A BM25 candidate is given a vector score too, not only its BM25 score.
         self.assertTrue(any(by_code[code].score_components["vector"] > 0 for code in bm25_matches))
+
+    def test_large_release_scores_at_most_the_candidate_cap(self):
+        concepts = synthetic_concepts(200)
+        index = self.build(concepts)
+        own_text = concept_search_text(
+            normalize_concept(concepts[7], release_date=None, source="active_cache")
+        )
+
+        with patch("nci_si_mcp.index.EXACT_VECTOR_SCAN_LIMIT", 20), patch(
+            "nci_si_mcp.index.MAX_VECTOR_CANDIDATES", 5
+        ), patch("nci_si_mcp.index.MAX_FTS_CANDIDATES", 3):
+            vector_hits = index.search(own_text, self.provider, limit=100, mode="vector")
+            # Three BM25 candidates leave room for two LSH candidates.
+            hybrid_hits = index.search(
+                "C7 harbor1 alpha10 alpha100", self.provider, limit=100, mode="hybrid"
+            )
+
+        # Of the many concepts sharing a band, those sharing the most are kept.
+        self.assertEqual(len(vector_hits), 5)
+        self.assertEqual(vector_hits[0].concept.code, "C7")
+        self.assertLessEqual(len(hybrid_hits), 5)
+        self.assertGreater(len(hybrid_hits), 3)
+
+    def test_zero_projection_falls_in_the_set_bit(self):
+        self.assertEqual(vector_lsh_buckets([0.0] * 8), [(0, 255), (1, 255), (2, 255), (3, 255)])
 
     def test_search_only_returns_the_active_release(self):
         index = self.build()

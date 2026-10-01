@@ -161,8 +161,9 @@ in `traversal.py`.
    than its shortest path.
 5. Edges are deduplicated, every emitted edge references emitted nodes, and the
    result reports whether a limit dropped anything. A concept whose relations
-   or descendants exceed the EVS response-size limit is kept as a node, is not
-   expanded, sets `truncated`, and is listed in `unexpanded_codes`.
+   or descendants exceed the EVS response-size limit is kept as a node, sets
+   `truncated`, and is listed in `unexpanded_codes`; the edges that could not
+   be read are missing, and any other selected edge types are still followed.
 
 ## Persistence schema
 

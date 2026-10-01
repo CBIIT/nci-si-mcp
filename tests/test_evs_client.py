@@ -49,6 +49,7 @@ class EVSClientTest(unittest.TestCase):
             "http 500": http_error(500),
             "http 503": http_error(503),
             "truncated body": FakeResponse(IncompleteRead(b"")),
+            "body shorter than declared": FakeResponse(b'{"vers', {"Content-Length": "20"}),
         }
         for label, failure in failures.items():
             with self.subTest(label):
@@ -136,6 +137,26 @@ class EVSClientTest(unittest.TestCase):
 
                 self.assertNotIsInstance(raised.exception, EVSNotFoundError)
                 self.assertEqual(urlopen.call_count, 1)
+
+    def test_one_attempt_means_no_retry(self, urlopen, sleep):
+        urlopen.side_effect = URLError("down")
+
+        with self.assertRaises(EVSUnavailableError):
+            self.client(max_attempts=1).get_api_version()
+
+        self.assertEqual(urlopen.call_count, 1)
+        sleep.assert_not_called()
+
+    def test_a_complete_body_at_the_size_limit_is_accepted(self, urlopen, sleep):
+        client = self.client(max_response_bytes=10)
+        for label, length in {"declared": "10", "unparsable": "ten", "undeclared": None}.items():
+            with self.subTest(label):
+                headers = {"Content-Length": length} if length else {}
+                urlopen.return_value = FakeResponse(b'{"a": 123}', headers)
+
+                self.assertEqual(client.get_api_version(), {"a": 123})
+
+        self.assertEqual(urlopen.call_count, 3)
 
     def test_response_size_is_bounded_before_and_while_reading(self, urlopen, sleep):
         class UnreadableResponse(FakeResponse):

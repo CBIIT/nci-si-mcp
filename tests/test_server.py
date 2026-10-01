@@ -189,18 +189,25 @@ class ServerTest(unittest.TestCase):
         self.service.lookup.assert_called_once_with(code="C1")
 
     def test_error_envelopes_are_flagged_as_protocol_errors(self, _):
-        failures = {
-            "concept_not_found": ("ncit_lookup", {"code": "C999"}),
-            "invalid_request": ("ncit_lookup", {"code": "oops"}),
-            "no_active_index": ("ncit_search", {"query": "tumor"}),
-        }
-        for code, (tool, arguments) in failures.items():
-            with self.subTest(code):
+        failures = (
+            ("concept_not_found", "ncit_lookup", {"code": "C999"}),
+            ("invalid_request", "ncit_lookup", {"code": "oops"}),
+            ("no_active_index", "ncit_search", {"query": "tumor"}),
+            ("concept_not_found", "ncit_traverse", {"start_codes": ["C999"]}),
+        )
+        for code, tool, arguments in failures:
+            with self.subTest(tool=tool, code=code):
                 is_error, envelope = self.call(tool, **arguments)
                 self.assertTrue(is_error)
                 self.assertTrue(envelope["isError"])
                 self.assertEqual(envelope["error"], code)
                 self.assertTrue(envelope["message"])
+
+        self.service.index_codes(["C3262"])
+        (self.settings.data_dir / "nci_si.sqlite3").write_bytes(b"not a database" * 100)
+        is_error, envelope = self.call("ncit_release_info")
+        self.assertTrue(is_error)
+        self.assertEqual(envelope["error"], "index_storage_error")
 
     def test_release_info_stays_a_success_when_evs_is_down(self, _):
         self.evs.errors = {

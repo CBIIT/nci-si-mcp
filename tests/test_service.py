@@ -133,7 +133,7 @@ class LookupTest(ServiceTestCase):
         live = self.service.lookup("C3262", live_only=True)
         self.assertEqual((live["source"], live["release_version"]), ("live_evs", "26.07d"))
 
-    def test_live_only_does_not_open_the_index(self):
+    def test_live_only_does_not_read_the_index(self):
         self.index()
         (self.path / "nci_si.sqlite3").write_bytes(b"not a database" * 100)
 
@@ -279,10 +279,11 @@ class SearchTest(ServiceTestCase):
 
 class TraverseTest(ServiceTestCase):
     def test_traversal_reads_the_pinned_monthly_release(self):
-        result = self.service.traverse(["c3262"], max_depth=1, edge_types=["Role"])
+        result = self.service.traverse(["c3262", "C3262"], max_depth=1, edge_types=["Role"])
 
         self.assertEqual(result["release_version"], "26.06e")
         self.assertEqual(result["start_codes"], ["C3262"])
+        self.assertEqual([node["code"] for node in result["nodes"]], ["C3262", "C12922"])
         self.assertEqual(
             [(edge["source_code"], edge["target_code"]) for edge in result["edges"]],
             [("C3262", "C12922")],
@@ -310,6 +311,9 @@ class TraverseTest(ServiceTestCase):
         self.evs.errors = {"resolve_monthly_ncit_release": EVSUnavailableError("down")}
 
         self.assertError(self.service.traverse(["C3262"], edge_types=["parent"]), "invalid_request")
+        self.assertEqual(self.evs.calls, [])
+        too_many = self.service.traverse(["C3262", "C40704"], max_nodes=1)
+        self.assertError(too_many, "invalid_request")
         self.assertEqual(self.evs.calls, [])
 
     def test_failures_use_the_matching_error_code(self):

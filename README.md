@@ -109,7 +109,7 @@ Additional runtime controls:
 | `NCI_SI_TIMEOUT_SECONDS` | `30` | Per-request timeout |
 | `NCI_SI_EVS_MAX_ATTEMPTS` | `3` | Request attempts, 1 to 10 |
 | `NCI_SI_EVS_RETRY_BACKOFF_SECONDS` | `0.25` | Initial exponential backoff; a single wait is capped at 60 seconds |
-| `NCI_SI_EVS_MAX_RESPONSE_BYTES` | `10485760` | Maximum accepted EVS response |
+| `NCI_SI_EVS_MAX_RESPONSE_BYTES` | `10485760` | Maximum accepted EVS response, up to 1 GiB |
 | `NCI_SI_INDEX_BATCH_SIZE` | `100` | Codes per EVS indexing request |
 | `NCI_SI_LOG_LEVEL` | `INFO` | Stderr diagnostic level |
 
@@ -141,16 +141,20 @@ Each tool description, as sent to MCP clients, states the contract in full.
 `out` or `both` and hierarchy included. They link each start code directly to
 every descendant that EVS places within `max_depth` levels, using one EVS
 request per start code. EVS gives a descendant one level, which can be deeper
-than its shortest path, so a `child` walk of the same depth can reach a few
-more concepts. Naming an edge type that the direction or the include flags
-exclude is an `invalid_request`.
+than its shortest path, so `descendant` edges can miss concepts that a `child`
+walk of the same depth reaches: few at depth 2, but a fifth to a third below a
+broad concept at depth 3 or 4 (1,414 against 2,043 concepts for C3262 at depth
+4 in release 26.09d). Use `child` edges when every concept within `max_depth`
+is needed. Naming an edge type that the direction or the include flags exclude
+is an `invalid_request`.
 
 The walk proceeds one depth at a time over all start codes, so nearer nodes
 claim the limits first. `truncated` in the result means the node limit, the
 edge limit, or the EVS response-size limit dropped something. In the last case
 `unexpanded_codes` lists the concepts whose relations or descendants were too
 large to read; raising `max_nodes` or `max_edges` does not help there, raising
-`NCI_SI_EVS_MAX_RESPONSE_BYTES` does.
+`NCI_SI_EVS_MAX_RESPONSE_BYTES` does, and so can a smaller `max_depth` for
+descendants.
 
 ## Errors
 
@@ -180,7 +184,7 @@ converted into an envelope.
 | `version_mismatch` | The local index holds a different release than the current monthly one |
 | `release_unresolved` | EVS did not report exactly one latest monthly NCIt release |
 | `evs_unavailable` | EVS could not be reached, or kept failing after the retries |
-| `evs_invalid_response` | EVS rejected the request or returned something unusable: an oversized or malformed response, a concept from another release than requested, or a 404 from a metadata endpoint (check `NCI_SI_EVS_BASE_URL`) |
+| `evs_invalid_response` | EVS rejected the request or returned something unusable: an oversized or malformed response, a concept from another release than requested, or a 404 from any request other than a single-concept lookup (check `NCI_SI_EVS_BASE_URL`) |
 | `no_active_index` | `search` or `evaluate` was called before an index was built |
 | `index_incompatible` | The index was built with other embedding settings than the runtime uses |
 | `index_storage_error` | SQLite could not open, read or write the index file named in the message |

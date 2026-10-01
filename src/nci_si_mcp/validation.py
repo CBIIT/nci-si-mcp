@@ -6,6 +6,7 @@ import re
 from typing import Iterable, List, Literal, Optional, Tuple, get_args
 
 from .errors import InputValidationError
+from .traversal import HARD_MAX_NODES
 
 SearchMode = Literal["hybrid", "bm25", "vector"]
 Direction = Literal["out", "in", "both"]
@@ -78,6 +79,11 @@ def validate_traversal(
     for field, value in (("max_nodes", max_nodes), ("max_edges", max_edges)):
         if not _is_int(value) or value < 1:
             raise InputValidationError(f"{field} must be a positive integer")
+    node_limit = min(max_nodes, HARD_MAX_NODES)
+    if len(codes) > node_limit:
+        raise InputValidationError(
+            f"{len(codes)} start codes do not fit within the node limit of {node_limit}"
+        )
 
     normalized_edge_types: Optional[List[str]] = None
     if edge_types:

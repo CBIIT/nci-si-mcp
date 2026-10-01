@@ -171,6 +171,12 @@ class MainTest(unittest.TestCase):
                 self.assertEqual((code, result["error"]), (1, "startup_failed"))
                 self.assertIn(str(data_dir), result["message"])
 
+    def test_value_error_at_startup_is_reported(self, _):
+        with patch("nci_si_mcp.cli.NCISIService", side_effect=ValueError("bad model name")):
+            code, result, _ = self.run_cli("release-info", service="real")
+
+        self.assertEqual((code, result["error"]), (1, "startup_failed"))
+
     def test_serve_runs_the_server_and_keeps_stdout_for_the_protocol(self, _):
         server = MagicMock()
         with patch("nci_si_mcp.cli.create_mcp", return_value=server) as create:

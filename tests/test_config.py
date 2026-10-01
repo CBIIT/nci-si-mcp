@@ -61,6 +61,10 @@ class SettingsTest(unittest.TestCase):
             ("NCI_SI_EVS_BASE_URL", "https://user:secret@example.org"),
             ("NCI_SI_EVS_BASE_URL", "https://example.org/pr\u00e4"),
             ("NCI_SI_EVS_BASE_URL", "https://example.org:0"),
+            ("NCI_SI_EVS_BASE_URL", "https://example.org?"),
+            ("NCI_SI_EVS_BASE_URL", "https://example.org/api#"),
+            ("NCI_SI_DATA_DIR", "~no_such_user_xyz/data"),
+            ("NCI_SI_EVS_MAX_RESPONSE_BYTES", str(1024**3 + 1)),
             ("NCI_SI_DATA_DIR", ""),
             ("NCI_SI_DATA_DIR", "  "),
             ("NCI_SI_EVS_MAX_ATTEMPTS", "11"),
@@ -87,6 +91,24 @@ class SettingsTest(unittest.TestCase):
                     settings_from(**{variable: value})
                 self.assertIn(variable, str(raised.exception))
 
+
+    def test_bounds_are_inclusive(self):
+        settings = settings_from(
+            NCI_SI_EVS_MAX_ATTEMPTS="10",
+            NCI_SI_EVS_RETRY_BACKOFF_SECONDS="0",
+            NCI_SI_TIMEOUT_SECONDS="3600",
+            NCI_SI_EVS_MAX_RESPONSE_BYTES=str(1024**3),
+        )
+
+        self.assertEqual(
+            (
+                settings.evs_max_attempts,
+                settings.evs_retry_backoff_seconds,
+                settings.timeout_seconds,
+                settings.evs_max_response_bytes,
+            ),
+            (10, 0.0, 3600.0, 1024**3),
+        )
 
     def test_usable_base_urls_are_accepted(self):
         for url in (
