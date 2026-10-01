@@ -90,6 +90,42 @@ def _print_result(value: dict[str, Any], stream: TextIO) -> int:
     return 1 if value.get("isError") else 0
 
 
+def _run(service: NCISIService, args: argparse.Namespace) -> dict[str, Any]:
+    """Call the service method that the parsed command names."""
+
+    if args.command == "release-info":
+        return service.release_info()
+    if args.command == "index-sample":
+        return service.index_codes(args.codes)
+    if args.command == "search":
+        return service.search(
+            args.query,
+            limit=args.limit,
+            mode=args.mode,
+            include_raw=args.include_raw,
+        )
+    if args.command == "lookup":
+        return service.lookup(
+            args.code,
+            live_only=args.live_only,
+            include_raw=args.include_raw,
+        )
+    if args.command == "traverse":
+        return service.traverse(
+            start_codes=args.start_codes,
+            direction=args.direction,
+            max_depth=args.max_depth,
+            max_nodes=args.max_nodes,
+            max_edges=args.max_edges,
+            include_hierarchy=not args.no_hierarchy,
+            include_roles=not args.no_roles,
+            include_associations=not args.no_associations,
+            relationship_names=args.relationship_names,
+            edge_types=args.edge_types,
+        )
+    return service.evaluate()
+
+
 def main() -> int:
     args = build_parser().parse_args()
     # The MCP server speaks its protocol on stdout, so its failures go to stderr.
@@ -110,41 +146,7 @@ def main() -> int:
     if mcp:
         mcp.run()
         return 0
-
-    result: dict[str, Any]
-    if args.command == "release-info":
-        result = service.release_info()
-    elif args.command == "index-sample":
-        result = service.index_codes(args.codes)
-    elif args.command == "search":
-        result = service.search(
-            args.query,
-            limit=args.limit,
-            mode=args.mode,
-            include_raw=args.include_raw,
-        )
-    elif args.command == "lookup":
-        result = service.lookup(
-            args.code,
-            live_only=args.live_only,
-            include_raw=args.include_raw,
-        )
-    elif args.command == "traverse":
-        result = service.traverse(
-            start_codes=args.start_codes,
-            direction=args.direction,
-            max_depth=args.max_depth,
-            max_nodes=args.max_nodes,
-            max_edges=args.max_edges,
-            include_hierarchy=not args.no_hierarchy,
-            include_roles=not args.no_roles,
-            include_associations=not args.no_associations,
-            relationship_names=args.relationship_names,
-            edge_types=args.edge_types,
-        )
-    else:
-        result = service.evaluate()
-    return _print_result(result, sys.stdout)
+    return _print_result(_run(service, args), sys.stdout)
 
 
 if __name__ == "__main__":

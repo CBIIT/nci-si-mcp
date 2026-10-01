@@ -31,7 +31,7 @@ from .evs import (
     verify_release,
 )
 from .index import LocalIndex
-from .models import utc_now_iso
+from .models import ReleaseInfo, utc_now_iso
 from .traversal import (
     DEFAULT_MAX_DEPTH,
     DEFAULT_MAX_EDGES,
@@ -143,21 +143,28 @@ class NCISIService:
         manifest = self.index.get_active_manifest()
         return {"active_index": manifest.to_dict() if manifest else None}
 
-    @_enveloped
-    def index_codes(self, codes: Iterable[str]) -> dict[str, Any]:
-        normalized_codes = validate_ncit_codes(codes)
-        release = self.evs.resolve_monthly_ncit_release()
-        raw_concepts: list[dict[str, object]] = []
-        batch_size = self.settings.index_batch_size
-        for batch in batched(normalized_codes, batch_size, strict=False):
+    def _fetch_for_index(
+        self, codes: list[str], release: ReleaseInfo
+    ) -> dict[str, dict[str, Any]]:
+        """Fetch the payloads by code, pinned to the release. EVS omits unknown codes."""
+
+        raw_concepts: list[dict[str, Any]] = []
+        for batch in batched(codes, self.settings.index_batch_size, strict=False):
             raw_concepts.extend(
                 self.evs.get_concepts_by_codes(batch, terminology=release.pinned_terminology)
             )
         verify_release(raw_concepts, release.version)
-        returned_codes = {str(raw.get("code") or "") for raw in raw_concepts}
-        if not returned_codes <= set(normalized_codes):
+        concepts = {str(raw.get("code") or ""): raw for raw in raw_concepts}
+        if not concepts.keys() <= set(codes):
             raise EVSResponseError("EVS returned a concept that was not requested")
-        missing_codes = [code for code in normalized_codes if code not in returned_codes]
+        return concepts
+
+    @_enveloped
+    def index_codes(self, codes: Iterable[str]) -> dict[str, Any]:
+        normalized_codes = validate_ncit_codes(codes)
+        release = self.evs.resolve_monthly_ncit_release()
+        concepts = self._fetch_for_index(normalized_codes, release)
+        missing_codes = [code for code in normalized_codes if code not in concepts]
         if missing_codes:
             logger.warning("index_codes_failed error=concepts_missing codes=%s", missing_codes)
             return error_response(
@@ -167,7 +174,7 @@ class NCISIService:
                 missing_codes=missing_codes,
             )
         manifest = self.index.upsert_concepts(
-            raw_concepts=raw_concepts,
+            raw_concepts=concepts.values(),
             release_date=release.date,
             embedding_provider=self.embedding_provider,
             expected_release_version=release.version,

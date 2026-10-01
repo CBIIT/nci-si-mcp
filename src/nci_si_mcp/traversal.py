@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
+from dataclasses import dataclass, field
 from itertools import batched
 from typing import Any
 
@@ -65,6 +66,34 @@ def clamp_edge_limit(max_edges: int) -> int:
     return min(max_edges, HARD_MAX_EDGES)
 
 
+# Edge types in the order they are followed, each with the direction and the
+# include flag that make it available.
+_EDGE_TYPE_RULES = (
+    ("child", "out", "hierarchy"),
+    ("descendant", "out", "hierarchy"),
+    ("parent", "in", "hierarchy"),
+    ("role", "out", "roles"),
+    ("inverse_role", "in", "roles"),
+    ("association", "out", "associations"),
+    ("inverse_association", "in", "associations"),
+)
+
+
+def _available_edge_types(direction: str, included: dict[str, bool]) -> list[str]:
+    return [
+        edge_type
+        for edge_type, way, group in _EDGE_TYPE_RULES
+        if included[group] and direction in (way, "both")
+    ]
+
+
+def _default_edge_types(available: list[str]) -> list[str]:
+    selected = [edge_type for edge_type in available if edge_type != "descendant"]
+    if not selected:
+        raise InputValidationError("The include flags leave no edge type to traverse")
+    return selected
+
+
 def select_edge_types(
     direction: str,
     include_hierarchy: bool,
@@ -78,32 +107,22 @@ def select_edge_types(
     edges already reach those concepts within the depth limit.
     """
 
-    outward = direction in ("out", "both")
-    inward = direction in ("in", "both")
-    available: list[str] = []
-    if include_hierarchy:
-        available += ["child", "descendant"] if outward else []
-        available += ["parent"] if inward else []
-    if include_roles:
-        available += ["role"] if outward else []
-        available += ["inverse_role"] if inward else []
-    if include_associations:
-        available += ["association"] if outward else []
-        available += ["inverse_association"] if inward else []
-
-    requested = list(edge_types or [])
-    if requested:
-        excluded = sorted(set(requested) - set(available))
-        if excluded:
-            raise InputValidationError(
-                f"Edge types {', '.join(excluded)} are excluded by direction "
-                f"'{direction}' and the include flags"
-            )
-        return [edge_type for edge_type in available if edge_type in requested]
-    selected = [edge_type for edge_type in available if edge_type != "descendant"]
-    if not selected:
-        raise InputValidationError("The include flags leave no edge type to traverse")
-    return selected
+    included = {
+        "hierarchy": include_hierarchy,
+        "roles": include_roles,
+        "associations": include_associations,
+    }
+    available = _available_edge_types(direction, included)
+    if not edge_types:
+        return _default_edge_types(available)
+    requested = set(edge_types)
+    excluded = sorted(requested - set(available))
+    if excluded:
+        raise InputValidationError(
+            f"Edge types {', '.join(excluded)} are excluded by direction "
+            f"'{direction}' and the include flags"
+        )
+    return [edge_type for edge_type in available if edge_type in requested]
 
 
 def _fetch_batch(
@@ -161,6 +180,195 @@ def _level(item: dict[str, Any], depth_limit: int) -> int:
     return level
 
 
+def _edge(code: str, source_name: str, edge_type: str, item: dict[str, Any]) -> TraversalEdge:
+    """Build the edge that a relation item of concept `code` stands for."""
+
+    # A role or association item names its target in `relatedCode`; its own
+    # `code` is that of the relationship.
+    hierarchy = edge_type in HIERARCHY_EDGE_TYPES
+    target_key, name_key = ("code", "name") if hierarchy else ("relatedCode", "relatedName")
+    target = str(item.get(target_key) or "")
+    if not target:
+        raise EVSResponseError(
+            f"EVS returned a {edge_type} relation of {code} without a {target_key}"
+        )
+    return TraversalEdge(
+        source_code=code,
+        target_code=target,
+        edge_type=edge_type,
+        relationship_name=str(item.get("type") or RELATIONS[edge_type][1]),
+        target_name=str(item.get(name_key) or ""),
+        source_name=source_name,
+    )
+
+
+def _missing_concepts(release: ReleaseInfo, missing: list[str], depth: int) -> Exception:
+    codes = ", ".join(missing)
+    if depth == 0:
+        return EVSNotFoundError(f"NCIt release {release.version} has no concept {codes}")
+    return EVSResponseError(
+        f"EVS relations in release {release.version} refer to {codes}, which it does not serve"
+    )
+
+
+@dataclass
+class _Walk:
+    """One traversal in progress: its limits and what it has emitted so far."""
+
+    client: EVSClient
+    release: ReleaseInfo
+    edge_types: list[str]
+    depth_limit: int
+    node_limit: int
+    edge_limit: int
+    name_filter: set[str]
+    nodes: dict[str, TraversalNode] = field(default_factory=dict)
+    edges: list[TraversalEdge] = field(default_factory=list)
+    seen_edges: set[tuple[str, str, str, str]] = field(default_factory=set)
+    unexpanded: list[str] = field(default_factory=list)
+    truncated: bool = False
+    # Set when the edge limit stops the walk.
+    full: bool = False
+    # Descendants of the start codes by level; level n is emitted with the
+    # other edges that reach depth n.
+    descendants: dict[int, list[tuple[str, dict[str, Any]]]] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        # Edge types whose relations come with the concept payload; descendants
+        # have their own request.
+        self.payload_types = [
+            edge_type for edge_type in self.edge_types if edge_type != "descendant"
+        ]
+        inverse = any(edge_type.startswith("inverse") for edge_type in self.edge_types)
+        self.batch_size = INVERSE_BATCH_SIZE if inverse else BATCH_SIZE
+
+    def _node(self, code: str, name: str) -> TraversalNode:
+        return TraversalNode(
+            code=code,
+            preferred_name=name,
+            terminology="ncit",
+            release_version=self.release.version,
+        )
+
+    def _mark_unexpanded(self, codes: Iterable[str]) -> None:
+        self.unexpanded += [code for code in codes if code not in self.unexpanded]
+        self.truncated = True
+
+    def _reads(self, frontier: list[str], depth: int) -> bool:
+        # Start codes are always fetched, to name them and to prove they exist.
+        expand = depth < self.depth_limit
+        return depth == 0 or bool(expand and self.payload_types and frontier)
+
+    def fetch(self, frontier: list[str], depth: int) -> dict[str, dict[str, Any]]:
+        """Read the concepts of the frontier, with the relations to follow from them."""
+
+        if not self._reads(frontier, depth):
+            return {}
+        relations = [RELATIONS[edge_type][0] for edge_type in self.payload_types]
+        include = ",".join(["minimal", *relations]) if depth < self.depth_limit else "minimal"
+        concepts, missing, oversized = _fetch_concepts(
+            self.client, frontier, self.release, include, self.batch_size
+        )
+        if missing:
+            raise _missing_concepts(self.release, missing, depth)
+        if oversized:
+            # Their relation lists are empty in `concepts`, so they add no edges.
+            logger.warning(
+                "traverse_relations_too_large codes=%s limit=NCI_SI_EVS_MAX_RESPONSE_BYTES",
+                ",".join(oversized),
+            )
+            self._mark_unexpanded(oversized)
+        return concepts
+
+    def start(self, start_codes: list[str], concepts: dict[str, dict[str, Any]]) -> None:
+        """Emit the start nodes and read their descendants when those are followed."""
+
+        for code in start_codes:
+            self.nodes[code] = self._node(code, str(concepts[code].get("name") or ""))
+        if self.depth_limit > 0 and "descendant" in self.edge_types:
+            self._read_descendants(start_codes)
+
+    def _read_descendants(self, start_codes: list[str]) -> None:
+        for code in start_codes:
+            try:
+                items = self.client.get_descendants(
+                    code, self.depth_limit, terminology=self.release.pinned_terminology
+                )
+            except EVSResponseTooLargeError as exc:
+                logger.warning("traverse_descendants_too_large code=%s reason=%s", code, exc)
+                self._mark_unexpanded([code])
+                continue
+            for item in items:
+                level = _level(item, self.depth_limit)
+                self.descendants.setdefault(level, []).append((code, item))
+
+    def _found(
+        self, frontier: list[str], concepts: dict[str, dict[str, Any]], depth: int
+    ) -> list[tuple[str, str, dict[str, Any]]]:
+        """The relation items that lead from the frontier to depth + 1."""
+
+        found = [
+            (code, edge_type, item)
+            for code in frontier
+            for edge_type in self.payload_types
+            for item in object_list(concepts[code], RELATIONS[edge_type][0])
+        ]
+        return found + [
+            (code, "descendant", item) for code, item in self.descendants.get(depth + 1, [])
+        ]
+
+    def _skips(self, edge: TraversalEdge, key: tuple[str, str, str, str]) -> bool:
+        """Whether the name filter excludes the edge or it was emitted before."""
+
+        filtered = self.name_filter and edge.relationship_name.lower() not in self.name_filter
+        return bool(filtered) or key in self.seen_edges
+
+    def _add(self, edge: TraversalEdge, frontier: list[str]) -> None:
+        """Emit the edge unless a filter or a limit drops it."""
+
+        key = (edge.source_code, edge.target_code, edge.edge_type, edge.relationship_name)
+        if self._skips(edge, key):
+            return
+        new_node = edge.target_code not in self.nodes
+        if new_node and len(self.nodes) >= self.node_limit:
+            self.truncated = True
+            return
+        if len(self.edges) >= self.edge_limit:
+            self.truncated = self.full = True
+            return
+        self.seen_edges.add(key)
+        self.edges.append(edge)
+        if new_node:
+            self.nodes[edge.target_code] = self._node(edge.target_code, edge.target_name)
+            frontier.append(edge.target_code)
+
+    def follow(
+        self, frontier: list[str], concepts: dict[str, dict[str, Any]], depth: int
+    ) -> list[str]:
+        """Emit the edges that leave the frontier and return the nodes they newly reach."""
+
+        reached: list[str] = []
+        for code, edge_type, item in self._found(frontier, concepts, depth):
+            self._add(_edge(code, self.nodes[code].preferred_name, edge_type, item), reached)
+            if self.full:
+                break
+        return reached
+
+    def result(self, start_codes: list[str]) -> TraversalResult:
+        return TraversalResult(
+            start_codes=start_codes,
+            release_version=self.release.version,
+            nodes=list(self.nodes.values()),
+            edges=self.edges,
+            truncated=self.truncated,
+            max_depth=self.depth_limit,
+            max_nodes=self.node_limit,
+            max_edges=self.edge_limit,
+            retrieved_at=utc_now_iso(),
+            unexpanded_codes=self.unexpanded,
+        )
+
+
 def traverse_ncit(
     client: EVSClient,
     start_codes: list[str],
@@ -193,140 +401,23 @@ def traverse_ncit(
     """
 
     depth_limit, node_limit = clamp_limits(max_depth, max_nodes)
-    edge_limit = clamp_edge_limit(max_edges)
-    name_filter = {name.lower() for name in relationship_names or []}
-    # Edge types whose relations come with the concept payload; descendants
-    # have their own request.
-    payload_types = [edge_type for edge_type in edge_types if edge_type != "descendant"]
-    include = ",".join(["minimal", *(RELATIONS[edge_type][0] for edge_type in payload_types)])
-    inverse = any(edge_type.startswith("inverse") for edge_type in edge_types)
-    batch_size = INVERSE_BATCH_SIZE if inverse else BATCH_SIZE
-
-    nodes: dict[str, TraversalNode] = {}
-    edges: list[TraversalEdge] = []
-    seen_edges: set[tuple[str, str, str, str]] = set()
-    unexpanded: list[str] = []
-    truncated = False
-    # Descendants of the start codes by level; level n is emitted with the
-    # other edges that reach depth n.
-    descendants: dict[int, list[tuple[str, dict[str, Any]]]] = {}
-
-    def result() -> TraversalResult:
-        return TraversalResult(
-            start_codes=start_codes,
-            release_version=release.version,
-            nodes=list(nodes.values()),
-            edges=edges,
-            truncated=truncated,
-            max_depth=depth_limit,
-            max_nodes=node_limit,
-            max_edges=edge_limit,
-            retrieved_at=utc_now_iso(),
-            unexpanded_codes=unexpanded,
-        )
-
+    walk = _Walk(
+        client=client,
+        release=release,
+        edge_types=edge_types,
+        depth_limit=depth_limit,
+        node_limit=node_limit,
+        edge_limit=clamp_edge_limit(max_edges),
+        name_filter={name.lower() for name in relationship_names or []},
+    )
     frontier = start_codes
     for depth in range(depth_limit + 1):
-        expand = depth < depth_limit
-        concepts: dict[str, dict[str, Any]] = {}
-        # Start codes are always fetched, to name them and to prove they exist.
-        if depth == 0 or (expand and payload_types and frontier):
-            concepts, missing, oversized = _fetch_concepts(
-                client, frontier, release, include if expand else "minimal", batch_size
-            )
-            if missing and depth == 0:
-                raise EVSNotFoundError(
-                    f"NCIt release {release.version} has no concept {', '.join(missing)}"
-                )
-            if missing:
-                raise EVSResponseError(
-                    f"EVS relations in release {release.version} refer to {', '.join(missing)}, "
-                    "which it does not serve"
-                )
-            if oversized:
-                # Their relation lists are empty in `concepts`, so they add no edges.
-                logger.warning(
-                    "traverse_relations_too_large codes=%s limit=NCI_SI_EVS_MAX_RESPONSE_BYTES",
-                    ",".join(oversized),
-                )
-                unexpanded += oversized
-                truncated = True
+        concepts = walk.fetch(frontier, depth)
         if depth == 0:
-            for code in start_codes:
-                nodes[code] = TraversalNode(
-                    code=code,
-                    preferred_name=str(concepts[code].get("name") or ""),
-                    terminology="ncit",
-                    release_version=release.version,
-                )
-            if expand and "descendant" in edge_types:
-                for code in start_codes:
-                    try:
-                        items = client.get_descendants(
-                            code, depth_limit, terminology=release.pinned_terminology
-                        )
-                    except EVSResponseTooLargeError as exc:
-                        logger.warning(
-                            "traverse_descendants_too_large code=%s reason=%s", code, exc
-                        )
-                        if code not in unexpanded:
-                            unexpanded.append(code)
-                        truncated = True
-                        continue
-                    for item in items:
-                        descendants.setdefault(_level(item, depth_limit), []).append((code, item))
-        if not expand:
+            walk.start(start_codes, concepts)
+        if depth == depth_limit:
             break
-
-        # Every edge found here leads to depth + 1.
-        found = [
-            (code, edge_type, item)
-            for code in frontier
-            for edge_type in payload_types
-            for item in object_list(concepts[code], RELATIONS[edge_type][0])
-        ]
-        found += [(code, "descendant", item) for code, item in descendants.get(depth + 1, [])]
-        frontier = []
-        for code, edge_type, item in found:
-            # A role or association item names its target in `relatedCode`; its
-            # own `code` is that of the relationship.
-            hierarchy = edge_type in HIERARCHY_EDGE_TYPES
-            target_key = "code" if hierarchy else "relatedCode"
-            target = str(item.get(target_key) or "")
-            if not target:
-                raise EVSResponseError(
-                    f"EVS returned a {edge_type} relation of {code} without a {target_key}"
-                )
-            relationship_name = str(item.get("type") or RELATIONS[edge_type][1])
-            if name_filter and relationship_name.lower() not in name_filter:
-                continue
-            edge_key = (code, target, edge_type, relationship_name)
-            if edge_key in seen_edges:
-                continue
-            if target not in nodes and len(nodes) >= node_limit:
-                truncated = True
-                continue
-            if len(edges) >= edge_limit:
-                truncated = True
-                return result()
-            target_name = str(item.get("name" if hierarchy else "relatedName") or "")
-            seen_edges.add(edge_key)
-            edges.append(
-                TraversalEdge(
-                    source_code=code,
-                    target_code=target,
-                    edge_type=edge_type,
-                    relationship_name=relationship_name,
-                    target_name=target_name,
-                    source_name=nodes[code].preferred_name,
-                )
-            )
-            if target not in nodes:
-                nodes[target] = TraversalNode(
-                    code=target,
-                    preferred_name=target_name,
-                    terminology="ncit",
-                    release_version=release.version,
-                )
-                frontier.append(target)
-    return result()
+        frontier = walk.follow(frontier, concepts, depth)
+        if walk.full:
+            break
+    return walk.result(start_codes)
