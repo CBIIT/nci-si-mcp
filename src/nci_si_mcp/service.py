@@ -31,7 +31,7 @@ from .evs import (
     verify_release,
 )
 from .index import LocalIndex
-from .models import utc_now_iso
+from .models import ReleaseInfo, utc_now_iso
 from .traversal import (
     DEFAULT_MAX_DEPTH,
     DEFAULT_MAX_EDGES,
@@ -143,20 +143,30 @@ class NCISIService:
         manifest = self.index.get_active_manifest()
         return {"active_index": manifest.to_dict() if manifest else None}
 
-    @_enveloped
-    def index_codes(self, codes: Iterable[str]) -> dict[str, Any]:
-        normalized_codes = validate_ncit_codes(codes)
-        release = self.evs.resolve_monthly_ncit_release()
-        raw_concepts: list[dict[str, object]] = []
-        batch_size = self.settings.index_batch_size
-        for batch in batched(normalized_codes, batch_size, strict=False):
+    def _fetch_for_index(
+        self, codes: list[str], release: ReleaseInfo
+    ) -> tuple[list[dict[str, Any]], set[str]]:
+        """Fetch the payloads pinned to the release, and the codes EVS returned.
+
+        EVS omits the codes it does not know.
+        """
+
+        raw_concepts: list[dict[str, Any]] = []
+        for batch in batched(codes, self.settings.index_batch_size, strict=False):
             raw_concepts.extend(
                 self.evs.get_concepts_by_codes(batch, terminology=release.pinned_terminology)
             )
         verify_release(raw_concepts, release.version)
         returned_codes = {str(raw.get("code") or "") for raw in raw_concepts}
-        if not returned_codes <= set(normalized_codes):
+        if not returned_codes <= set(codes):
             raise EVSResponseError("EVS returned a concept that was not requested")
+        return raw_concepts, returned_codes
+
+    @_enveloped
+    def index_codes(self, codes: Iterable[str]) -> dict[str, Any]:
+        normalized_codes = validate_ncit_codes(codes)
+        release = self.evs.resolve_monthly_ncit_release()
+        raw_concepts, returned_codes = self._fetch_for_index(normalized_codes, release)
         missing_codes = [code for code in normalized_codes if code not in returned_codes]
         if missing_codes:
             logger.warning("index_codes_failed error=concepts_missing codes=%s", missing_codes)

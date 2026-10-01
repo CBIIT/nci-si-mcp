@@ -61,6 +61,41 @@ def validate_search(query: str, limit: int, mode: str) -> tuple[str, int, str]:
     return normalized_query, limit, normalized_mode
 
 
+def _validate_limits(codes: list[str], max_depth: int, max_nodes: int, max_edges: int) -> None:
+    if not _is_int(max_depth) or max_depth < 0:
+        raise InputValidationError("max_depth must be a non-negative integer")
+    for field, value in (("max_nodes", max_nodes), ("max_edges", max_edges)):
+        if not _is_int(value) or value < 1:
+            raise InputValidationError(f"{field} must be a positive integer")
+    node_limit = min(max_nodes, HARD_MAX_NODES)
+    if len(codes) > node_limit:
+        raise InputValidationError(
+            f"{len(codes)} start codes exceed the node limit of {node_limit} "
+            f"(max_nodes, at most {HARD_MAX_NODES})"
+        )
+
+
+def _normalize_edge_types(edge_types: Iterable[str] | None) -> list[str] | None:
+    if not edge_types:
+        return None
+    normalized = list(
+        dict.fromkeys(str(edge_type or "").strip().lower() for edge_type in edge_types)
+    )
+    if not TRAVERSAL_EDGE_TYPES.issuperset(normalized):
+        allowed = ", ".join(sorted(TRAVERSAL_EDGE_TYPES))
+        raise InputValidationError(f"Edge type must be one of: {allowed}")
+    return normalized
+
+
+def _normalize_relationship_names(names: Iterable[str] | None) -> list[str] | None:
+    if not names:
+        return None
+    normalized = list(dict.fromkeys(str(name or "").strip() for name in names))
+    if "" in normalized:
+        raise InputValidationError("Relationship names must not be blank")
+    return normalized
+
+
 def validate_traversal(
     start_codes: Iterable[str],
     direction: str,
@@ -75,32 +110,10 @@ def validate_traversal(
     if normalized_direction not in TRAVERSAL_DIRECTIONS:
         allowed = ", ".join(sorted(TRAVERSAL_DIRECTIONS))
         raise InputValidationError(f"Traversal direction must be one of: {allowed}")
-    if not _is_int(max_depth) or max_depth < 0:
-        raise InputValidationError("max_depth must be a non-negative integer")
-    for field, value in (("max_nodes", max_nodes), ("max_edges", max_edges)):
-        if not _is_int(value) or value < 1:
-            raise InputValidationError(f"{field} must be a positive integer")
-    node_limit = min(max_nodes, HARD_MAX_NODES)
-    if len(codes) > node_limit:
-        raise InputValidationError(
-            f"{len(codes)} start codes exceed the node limit of {node_limit} "
-            f"(max_nodes, at most {HARD_MAX_NODES})"
-        )
-
-    normalized_edge_types: list[str] | None = None
-    if edge_types:
-        normalized_edge_types = list(
-            dict.fromkeys(str(edge_type or "").strip().lower() for edge_type in edge_types)
-        )
-        if not TRAVERSAL_EDGE_TYPES.issuperset(normalized_edge_types):
-            allowed = ", ".join(sorted(TRAVERSAL_EDGE_TYPES))
-            raise InputValidationError(f"Edge type must be one of: {allowed}")
-
-    normalized_names: list[str] | None = None
-    if relationship_names:
-        normalized_names = list(
-            dict.fromkeys(str(name or "").strip() for name in relationship_names)
-        )
-        if "" in normalized_names:
-            raise InputValidationError("Relationship names must not be blank")
-    return codes, normalized_direction, normalized_edge_types, normalized_names
+    _validate_limits(codes, max_depth, max_nodes, max_edges)
+    return (
+        codes,
+        normalized_direction,
+        _normalize_edge_types(edge_types),
+        _normalize_relationship_names(relationship_names),
+    )

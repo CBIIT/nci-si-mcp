@@ -19,27 +19,31 @@ MAX_ATTEMPTS = 10
 MAX_RESPONSE_BYTES = 1024**3
 
 
+def _has_plain_characters(value: str) -> bool:
+    # urlsplit drops tabs and newlines, and urllib rejects them later. A query
+    # or a fragment would swallow the path that is appended to the base URL.
+    return value.isascii() and value.isprintable() and not any(char in value for char in " ?#")
+
+
 def _is_evs_url(value: str) -> bool:
     """Whether urllib can request `value` and append a path to it."""
 
-    # urlsplit drops tabs and newlines, and urllib rejects them later.
-    if not (value.isascii() and value.isprintable()) or " " in value:
+    if not _has_plain_characters(value):
         return False
     try:
         url = urlsplit(value)
         host = url.hostname or ""
         host.encode("idna")  # an empty or over-long label raises UnicodeError
-        port = url.port
+        port = url.port  # None, or 0 to 65535: anything else raises
     except ValueError:
         return False
-    return (
-        url.scheme in ("http", "https")
-        and bool(host)
-        and "@" not in url.netloc
-        and "?" not in value
-        and "#" not in value
-        and (port is None or port > 0)
-    )
+    return url.scheme in ("http", "https") and bool(host) and "@" not in url.netloc and port != 0
+
+
+def _require_between(name: str, value: float, low: int, high: int) -> None:
+    # Written so that NaN fails the comparison.
+    if not low <= value <= high:
+        raise ValueError(f"{name} must be between {low} and {high}")
 
 DEFAULT_EVS_BASE_URL = "https://api-evsrest.nci.nih.gov"
 DEFAULT_EMBEDDING_MODEL = "hashing"
@@ -79,16 +83,13 @@ class Settings:
             raise ValueError(
                 f"NCI_SI_TIMEOUT_SECONDS must be greater than zero and at most {MAX_SECONDS}"
             )
-        if not 1 <= self.evs_max_attempts <= MAX_ATTEMPTS:
-            raise ValueError(f"NCI_SI_EVS_MAX_ATTEMPTS must be between 1 and {MAX_ATTEMPTS}")
-        if not 0 <= self.evs_retry_backoff_seconds <= MAX_SECONDS:
-            raise ValueError(
-                f"NCI_SI_EVS_RETRY_BACKOFF_SECONDS must be between zero and {MAX_SECONDS}"
-            )
-        if not 1 <= self.evs_max_response_bytes <= MAX_RESPONSE_BYTES:
-            raise ValueError(
-                f"NCI_SI_EVS_MAX_RESPONSE_BYTES must be between 1 and {MAX_RESPONSE_BYTES}"
-            )
+        _require_between("NCI_SI_EVS_MAX_ATTEMPTS", self.evs_max_attempts, 1, MAX_ATTEMPTS)
+        _require_between(
+            "NCI_SI_EVS_RETRY_BACKOFF_SECONDS", self.evs_retry_backoff_seconds, 0, MAX_SECONDS
+        )
+        _require_between(
+            "NCI_SI_EVS_MAX_RESPONSE_BYTES", self.evs_max_response_bytes, 1, MAX_RESPONSE_BYTES
+        )
         if self.index_batch_size < 1:
             raise ValueError("NCI_SI_INDEX_BATCH_SIZE must be at least 1")
         if self.log_level.upper() not in {"CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"}:

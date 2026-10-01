@@ -6,6 +6,7 @@ import json
 import logging
 import time
 from collections.abc import Iterable
+from http import HTTPStatus
 from http.client import HTTPException, IncompleteRead
 from typing import Any
 from urllib.error import HTTPError
@@ -105,6 +106,14 @@ def release_from_terminology(raw: dict[str, Any]) -> ReleaseInfo:
     )
 
 
+def _is_latest_monthly_ncit(item: dict[str, Any]) -> bool:
+    return (
+        str(item.get("terminology", "")).lower() == "ncit"
+        and bool(item.get("latest"))
+        and str(_tags(item).get("monthly", "")).lower() == "true"
+    )
+
+
 def select_monthly_ncit_release(terminologies: Iterable[dict[str, Any]]) -> ReleaseInfo:
     """Pick the one NCIt row that is both `latest` and tagged monthly, or refuse.
 
@@ -113,11 +122,7 @@ def select_monthly_ncit_release(terminologies: Iterable[dict[str, Any]]) -> Rele
     """
 
     candidates = [
-        release_from_terminology(item)
-        for item in terminologies
-        if str(item.get("terminology", "")).lower() == "ncit"
-        and bool(item.get("latest"))
-        and str(_tags(item).get("monthly", "")).lower() == "true"
+        release_from_terminology(item) for item in terminologies if _is_latest_monthly_ncit(item)
     ]
     if len(candidates) != 1:
         versions = [candidate.version for candidate in candidates]
@@ -130,36 +135,24 @@ def select_monthly_ncit_release(terminologies: Iterable[dict[str, Any]]) -> Rele
     return candidates[0]
 
 
-def normalize_concept(
-    raw: dict[str, Any],
-    release_date: str | None,
-    source: str,
-    retrieved_at: str | None = None,
-) -> NcitConcept:
-    terminology = str(raw.get("terminology") or "ncit")
+def _property_values(properties: list[dict[str, Any]], kind: str) -> list[Any]:
+    return [
+        item.get("value") for item in properties if item.get("type") == kind and item.get("value")
+    ]
+
+
+def _evidence(raw: dict[str, Any]) -> dict[str, Any]:
+    """The definitions, synonyms and classifying properties of a concept payload."""
+
     properties = object_list(raw, "properties")
-    definitions = object_list(raw, "definitions")
-    synonyms = object_list(raw, "synonyms")
-
-    semantic_types = [
-        item.get("value")
-        for item in properties
-        if item.get("type") == "Semantic_Type" and item.get("value")
-    ]
-    contributing_sources = [
-        item.get("value")
-        for item in properties
-        if item.get("type") == "Contributing_Source" and item.get("value")
-    ]
-
-    evidence = {
+    return {
         "definitions": [
             {
                 "definition": item.get("definition"),
                 "type": item.get("type"),
                 "source": item.get("source"),
             }
-            for item in definitions
+            for item in object_list(raw, "definitions")
             if item.get("definition")
         ],
         "synonyms": [
@@ -169,13 +162,21 @@ def normalize_concept(
                 "type": item.get("type"),
                 "source": item.get("source"),
             }
-            for item in synonyms
+            for item in object_list(raw, "synonyms")
             if item.get("name")
         ],
-        "semantic_types": semantic_types,
-        "contributing_sources": contributing_sources,
+        "semantic_types": _property_values(properties, "Semantic_Type"),
+        "contributing_sources": _property_values(properties, "Contributing_Source"),
     }
 
+
+def normalize_concept(
+    raw: dict[str, Any],
+    release_date: str | None,
+    source: str,
+    retrieved_at: str | None = None,
+) -> NcitConcept:
+    terminology = str(raw.get("terminology") or "ncit")
     return NcitConcept(
         code=str(raw.get("code", "")),
         preferred_name=str(raw.get("name", "")),
@@ -185,24 +186,51 @@ def normalize_concept(
         release_date=release_date,
         retrieved_at=retrieved_at or utc_now_iso(),
         source=source,
-        evidence=evidence,
+        evidence=_evidence(raw),
         raw=raw,
     )
+
+
+def _error_detail(exc: HTTPError) -> str:
+    """The reason EVS gives in the body of an error response, if it gives one."""
+
+    if exc.fp is None:
+        return ""
+    try:
+        body = json.loads(exc.read(4096).decode("utf-8"))
+    except (OSError, ValueError, HTTPException):
+        return ""
+    return str(body.get("message") or "") if isinstance(body, dict) else ""
 
 
 def _http_error_message(exc: HTTPError) -> str:
     """Describe an HTTP failure, including the reason EVS gives in its error body."""
 
-    detail = ""
-    if exc.fp is not None:
-        try:
-            body = json.loads(exc.read(4096).decode("utf-8"))
-        except (OSError, ValueError, HTTPException):
-            body = None
-        if isinstance(body, dict):
-            detail = str(body.get("message") or "")
+    detail = _error_detail(exc)
     parts = [f"HTTP {exc.code}", str(exc.reason or ""), f"({detail})" if detail else ""]
     return " ".join(part for part in parts if part)
+
+
+def _permanent_failure(exc: HTTPError, message: str) -> EVSError | None:
+    """The error for a status that a retry cannot change, or None for one it can."""
+
+    if exc.code == HTTPStatus.NOT_FOUND:
+        return EVSNotFoundError(message)
+    if exc.code != HTTPStatus.TOO_MANY_REQUESTS and exc.code < HTTPStatus.INTERNAL_SERVER_ERROR:
+        return EVSResponseError(message)
+    return None
+
+
+def _declared_length(response: Any) -> int:
+    """The Content-Length of a response, or 0 when none applies."""
+
+    # http.client ignores Content-Length for a chunked body, and so does this.
+    if response.headers.get("Transfer-Encoding", "").lower() == "chunked":
+        return 0
+    try:
+        return int(response.headers.get("Content-Length") or 0)
+    except ValueError:
+        return 0
 
 
 class EVSClient:
@@ -246,13 +274,7 @@ class EVSClient:
             f"EVS response for {path} exceeded {self.max_response_bytes} bytes "
             "(NCI_SI_EVS_MAX_RESPONSE_BYTES)"
         )
-        declared_length = 0
-        # http.client ignores Content-Length for a chunked body, and so does this.
-        if response.headers.get("Transfer-Encoding", "").lower() != "chunked":
-            try:
-                declared_length = int(response.headers.get("Content-Length") or 0)
-            except ValueError:
-                pass
+        declared_length = _declared_length(response)
         if declared_length > self.max_response_bytes:
             raise EVSResponseTooLargeError(too_large)
         payload = response.read(self.max_response_bytes + 1)
@@ -266,6 +288,13 @@ class EVSClient:
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise EVSResponseError(f"EVS returned invalid JSON for {path}: {exc}") from exc
 
+    def _request(self, path: str, params: dict[str, Any] | None) -> Request:
+        query = ""
+        if params:
+            filtered = {key: value for key, value in params.items() if value is not None}
+            query = "?" + urlencode(filtered, doseq=True) if filtered else ""
+        return Request(f"{self.base_url}{path}{query}", headers={"Accept": "application/json"})
+
     def _get_json(self, path: str, params: dict[str, Any] | None = None) -> Any:
         """GET a JSON document, retrying transport failures, HTTP 429 and HTTP 5xx.
 
@@ -273,11 +302,7 @@ class EVSClient:
         single-concept request; the other methods go through `_get_existing`.
         """
 
-        query = ""
-        if params:
-            filtered = {key: value for key, value in params.items() if value is not None}
-            query = "?" + urlencode(filtered, doseq=True) if filtered else ""
-        request = Request(f"{self.base_url}{path}{query}", headers={"Accept": "application/json"})
+        request = self._request(path, params)
         attempt = 0
         while True:
             attempt += 1
@@ -288,10 +313,9 @@ class EVSClient:
             except HTTPError as exc:
                 message = f"EVS request failed for {path}: {_http_error_message(exc)}"
                 exc.close()
-                if exc.code == 404:
-                    raise EVSNotFoundError(message) from exc
-                if exc.code != 429 and exc.code < 500:
-                    raise EVSResponseError(message) from exc
+                permanent = _permanent_failure(exc, message)
+                if permanent is not None:
+                    raise permanent from exc
                 failure = exc
             except (OSError, HTTPException) as exc:
                 message = f"EVS request failed for {path}: {getattr(exc, 'reason', None) or exc}"

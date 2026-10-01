@@ -167,6 +167,18 @@ class LookupTest(ServiceTestCase):
 
 
 class IndexCodesTest(ServiceTestCase):
+    def test_every_returned_payload_is_validated_even_a_repeated_one(self):
+        class RepeatingEVS(FakeEVS):
+            def get_concepts_by_codes(self, codes, terminology="ncit", include=""):
+                found = super().get_concepts_by_codes(codes, terminology, include)
+                return [dict(found[0], properties="not a list"), *found]
+
+        self.evs = RepeatingEVS([NEOPLASM])
+        self.service = self.make_service()
+
+        self.assertError(self.service.index_codes(["C3262"]), "evs_invalid_response")
+        self.assertIsNone(self.service.index.get_active_manifest())
+
     def test_indexing_fetches_pinned_batches_and_activates_the_release(self):
         self.service = self.make_service(index_batch_size=2)
         self.evs.concepts["C2991"] = concept("C2991", "Disease or Disorder")
