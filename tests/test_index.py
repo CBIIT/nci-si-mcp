@@ -92,6 +92,7 @@ class IndexTestCase(unittest.TestCase):
     def counts(self, index):
         with index._connect() as conn:
             return tuple(
+                # The table names are the literals below.
                 conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]  # noqa: S608
                 for table in ("concepts", "concepts_fts", "vector_lsh", "manifests")
             )

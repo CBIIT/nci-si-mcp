@@ -26,10 +26,16 @@ NEOPLASM = concept(
     parents=[{"code": "C2991", "name": "Disease or Disorder"}],
     children=[{"code": "C4741", "name": "Neoplasm by Morphology"}],
     roles=[{"type": "Disease_Has_Abnormal_Cell", "relatedCode": "C12922", "relatedName": "Cell"}],
+    inverseRoles=[
+        {"type": "Gene_Associated_With_Disease", "relatedCode": "C16612", "relatedName": "Gene"}
+    ],
     associations=[
         {"type": "Concept_In_Subset", "relatedCode": "C165258", "relatedName": "A Subset"}
     ],
 )
+
+
+MORPHOLOGY = concept("C4741", "Neoplasm by Morphology")
 
 
 @patch("nci_si_mcp.server.configure_logging")
@@ -58,7 +64,7 @@ class ServerTest(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.settings = Settings(data_dir=Path(directory.name))
-        self.evs = FakeEVS([NEOPLASM])
+        self.evs = FakeEVS([NEOPLASM, MORPHOLOGY])
         self.service = NCISIService(
             self.settings,
             evs=self.evs,
@@ -155,11 +161,13 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(status["state"], "reuse_pending")
 
     def test_every_tool_argument_shapes_the_result(self, _):
-        self.service.index_codes(["C3262"])
-        arguments = {"query": "tumor", "limit": 1, "mode": "vector", "include_raw": True}
+        self.service.index_codes(["C3262", "C4741"])
+        arguments = {"query": "neoplasm", "mode": "vector", "include_raw": True}
         is_error, search = self.call("ncit_search", **arguments)
-        self.assertEqual((is_error, search["mode"], len(search["hits"])), (False, "vector", 1))
+        self.assertEqual((is_error, search["mode"], len(search["hits"])), (False, "vector", 2))
         self.assertIn("raw", search["hits"][0]["concept"])
+        _, search = self.call("ncit_search", limit=1, **arguments)
+        self.assertEqual(len(search["hits"]), 1)
 
         traverse = {
             "start_codes": ["C3262"],
@@ -172,7 +180,7 @@ class ServerTest(unittest.TestCase):
         }
         _, walk = self.call("ncit_traverse", **traverse)
         self.assertEqual((walk["max_depth"], walk["max_nodes"], walk["max_edges"]), (1, 40, 50))
-        self.assertEqual({edge["edge_type"] for edge in walk["edges"]}, {"role"})
+        self.assertEqual({edge["edge_type"] for edge in walk["edges"]}, {"role", "inverse_role"})
         _, walk = self.call("ncit_traverse", **dict(traverse, include_roles=False))
         self.assertEqual(walk["error"], "invalid_request")
         selection = {"edge_types": ["child", "role"], "relationship_names": ["is_a_child"]}

@@ -16,8 +16,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # The same hooks that run on every local commit, on all files. A failure here
-  # means a hook was skipped locally.
+  # The hooks of a local commit, on all files: this also catches what a commit of
+  # other files did not check again.
   quality:
     name: quality
     runs-on: ubuntu-latest
@@ -73,8 +73,8 @@ jobs:
       # enforced, so that nobody writes a test for the number.
       - name: Report coverage against the aim
         run: |
-          total="$(pdm run coverage report --format=total --precision=2)"
-          echo "Coverage ${total}% (checked minimum 90%, aim above 95%)" >> "$GITHUB_STEP_SUMMARY"
+          total="$(pdm run coverage report --format=total)"
+          echo "Coverage ${total}% (the aim is above 95%)" >> "$GITHUB_STEP_SUMMARY"
           if awk -v total="$total" 'BEGIN { exit !(total <= 95) }'; then
             echo "::warning title=Coverage is not above 95%::${total}%. Cover the untested behaviour; do not pad."
           fi

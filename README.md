@@ -208,11 +208,6 @@ The caDSR adapter is intentionally non-fabricating. It reports `reuse_pending` u
 
 ## Development
 
-```bash
-pdm install       # set up the environment
-pdm run test      # run the tests
-pdm run lint      # lint and type-check
-```
-
+`pdm run test` runs the tests, and `pdm run lint` the linter and the type checker.
 [CONTRIBUTING.md](CONTRIBUTING.md) describes the commands, the standards and the gates;
 [ARCHITECTURE.md](ARCHITECTURE.md) describes how the server is built.

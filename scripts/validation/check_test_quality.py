@@ -7,12 +7,15 @@ A test function (`test_*`) is rejected when it
 - asserts only how a mock was used (`assert_called*`, `call_count`, ...), or
 - asserts only that something is callable.
 
-A test module is rejected when its docstring states a coverage aim: a test
-exists for the behaviour it protects, not for a number.
+A test module is rejected when its docstring states a coverage aim ("improve
+coverage", "coverage to 95%"): a test exists for the behaviour it protects, not
+for a number.
 
-An assertion is an `assert` statement, a `unittest` assertion method
-(`self.assertEqual`, `self.assertRaises`, `self.fail`, ...), or a call to a
-helper whose name starts with `assert_` or `check_`.
+The tests are `unittest` style. An assertion is an `assert` statement, a
+`unittest` assertion method (`self.assertEqual`, `self.assertRaises`,
+`self.fail`, ...), or a call to a helper whose name starts with `assert_` and is
+not a mock assertion. An assertion inside a function that the test defines but
+never names again does not count: it never runs.
 
     python scripts/validation/check_test_quality.py tests/test_a.py [...]
 """
@@ -20,12 +23,20 @@ helper whose name starts with `assert_` or `check_`.
 import ast
 import re
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 
-COVERAGE_AIM = re.compile(r"improve\s+coverage|to\s+\d+\s*%", re.IGNORECASE)
+TestFunction = ast.FunctionDef | ast.AsyncFunctionDef
+
+COVERAGE_AIM = re.compile(
+    r"(improve|increase|raise)s?\s+(the\s+)?coverage|coverage\s+to\s+\d+\s*%", re.IGNORECASE
+)
 # `assert`, a unittest method such as assertEqual or fail, or a helper such as assert_valid.
-ASSERTION = re.compile(r"assert|assert[A-Z]\w*|fail|_?(assert|check)_\w+")
-MOCK_ASSERTION = re.compile(r"assert_(called|awaited|not_called|not_awaited|any_|has_)\w*")
+ASSERTION = re.compile(r"assert|assert[A-Z]\w*|fail|_?assert_\w+")
+MOCK_ASSERTION = re.compile(
+    r"assert_(not_)?(called|awaited)\w*|assert_any_(call|await)|assert_has_(calls|awaits)"
+)
+WEAK = {"mock": "how a mock was used", "callable": "that something is callable"}
 MOCK_STATE = {"call_count", "called", "call_args", "call_args_list", "await_count"}
 
 
@@ -67,15 +78,27 @@ def _kind(node: ast.AST) -> str | None:
     return "callable" if _is_callable_check(subject) else "behaviour"
 
 
-def _finding(test: ast.FunctionDef | ast.AsyncFunctionDef) -> str | None:
-    kinds = {kind for node in ast.walk(test) if (kind := _kind(node))}
+def _nodes_that_run(test: TestFunction) -> Iterator[ast.AST]:
+    """The nodes of a test, without the functions it defines and never names again."""
+
+    named = {node.id for node in ast.walk(test) if isinstance(node, ast.Name)}
+    pending = list(ast.iter_child_nodes(test))
+    while pending:
+        node = pending.pop()
+        if isinstance(node, TestFunction) and node.name not in named:
+            continue
+        yield node
+        pending.extend(ast.iter_child_nodes(node))
+
+
+def _finding(test: TestFunction) -> str | None:
+    kinds = {kind for node in _nodes_that_run(test) if (kind := _kind(node))}
     if "behaviour" in kinds:
         return None
     if not kinds:
         return "asserts nothing"
-    if kinds == {"mock"}:
-        return "only asserts how a mock was used; assert the result or the effect as well"
-    return "only asserts that something is callable"
+    weak = " and ".join(WEAK[kind] for kind in sorted(kinds))
+    return f"only asserts {weak}; assert the result or the effect as well"
 
 
 def findings(path: Path) -> list[str]:
@@ -86,9 +109,7 @@ def findings(path: Path) -> list[str]:
     if COVERAGE_AIM.search(ast.get_docstring(tree) or ""):
         found.append(f"{path}:1: the module docstring states a coverage aim")
     for node in ast.walk(tree):
-        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name.startswith(
-            "test_"
-        ):
+        if isinstance(node, TestFunction) and node.name.startswith("test_"):
             problem = _finding(node)
             if problem:
                 found.append(f"{path}:{node.lineno}: {node.name} {problem}")

@@ -31,7 +31,6 @@ logger = logging.getLogger(__name__)
 
 # SQL built with f-strings below interpolates only table names and predicates
 # written in this module, or lists of "?" placeholders; every value is bound.
-# Those statements carry `noqa: S608`.
 
 SCHEMA_VERSION = 4
 MAX_FTS_CANDIDATES = 1000

@@ -175,7 +175,7 @@ def normalize_concept(
     return NcitConcept(
         code=str(raw.get("code", "")),
         preferred_name=str(raw.get("name", "")),
-        # A payload of another terminology is labelled with its own name.
+        # Any other terminology keeps its identifier as the label.
         source_vocabulary=SOURCE_VOCABULARIES.get(terminology.lower(), terminology),
         terminology=terminology,
         release_version=str(raw.get("version", "")),
@@ -287,7 +287,7 @@ class EVSClient:
         if params:
             filtered = {key: value for key, value in params.items() if value is not None}
             query = "?" + urlencode(filtered, doseq=True) if filtered else ""
-        # Settings accepts only an http or https base URL.
+        # The base URL comes from Settings, which accepts only http and https.
         return Request(  # noqa: S310
             f"{self.base_url}{path}{query}", headers={"Accept": "application/json"}
         )
@@ -305,6 +305,7 @@ class EVSClient:
             attempt += 1
             failure: Exception
             try:
+                # The request is built by `_request`, from an http or https base URL.
                 with urlopen(request, timeout=self.timeout_seconds) as response:  # noqa: S310
                     return self._read_response(response, path)
             except HTTPError as exc:

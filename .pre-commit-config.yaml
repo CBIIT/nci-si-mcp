@@ -1,11 +1,10 @@
 ---
-# Pre-commit is the primary quality gate: every check runs locally on commit.
-# CI runs the same hooks on all files, so a CI failure means a hook was skipped
-# locally. Hooks are never skipped; a failing hook is fixed.
+# Pre-commit is the primary quality gate. It runs these hooks on the files of each
+# commit, and CI runs them on all files. The test suite with its coverage minimum
+# runs in CI and with `pdm run test`. Hooks are never skipped; a failing hook is
+# fixed.
 #
 # Install once:  pdm run pre-commit install
-default_language_version:
-  python: python3.13
 exclude: ^tmp/
 
 repos:
@@ -21,10 +20,15 @@ repos:
       - id: mixed-line-ending
         args: [--fix=lf]
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.10  # keep equal to the ruff pin in pyproject.toml
+  # Ruff and the other project tools run from the PDM environment, so pdm.lock is
+  # the one place that says which version runs, here and in CI.
+  - repo: local
     hooks:
       - id: ruff-format
+        name: ruff format
+        entry: pdm run ruff format --force-exclude
+        language: system
+        types_or: [python, pyi]
 
   # ---------------------------------------------------------------------------
   # 2. Syntax, structure and security
@@ -69,19 +73,19 @@ repos:
   # ---------------------------------------------------------------------------
   # 3. Python lint and types
   # ---------------------------------------------------------------------------
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.10
+  - repo: local
     hooks:
       # Ruff repairs what it can and still fails, so the fix is looked at and staged.
       - id: ruff-check
-        args: [--fix, --exit-non-zero-on-fix]
+        name: ruff check
+        entry: pdm run ruff check --fix --exit-non-zero-on-fix --force-exclude
+        language: system
+        types_or: [python, pyi]
 
-  - repo: local
-    hooks:
-      # The whole project, not the staged files: a change to a model can break
-      # a file that was not touched.
+      # All of src and scripts, not the staged files: a change to a model can
+      # break a file that was not touched.
       - id: basedpyright
-        name: basedpyright (whole project)
+        name: basedpyright (src and scripts)
         entry: pdm run basedpyright
         language: system
         pass_filenames: false

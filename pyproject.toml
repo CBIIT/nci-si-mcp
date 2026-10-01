@@ -26,9 +26,8 @@ test = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
 ]
-# Ruff and basedpyright are pinned exactly: a new release can add findings and turn
-# a green tree red without a code change. Keep the Ruff pin equal to the hook
-# revision in .pre-commit-config.yaml.
+# Ruff and basedpyright are pinned exactly, so that `pdm update` does not move them:
+# a new release can add findings.
 lint = [
     "ruff==0.16.10",
     "basedpyright==1.40.1",
@@ -72,10 +71,12 @@ pythonpath = ["tests", "scripts/validation"]
 branch = true
 source = ["nci_si_mcp"]
 
-# The checked minimum. The aim is above 95%, which CI reports but does not enforce:
-# the gap keeps anyone from writing tests for the number.
+# The checked minimum. The aim is higher (CONTRIBUTING.md); CI reports a shortfall
+# against it but does not enforce it: the gap keeps anyone from writing tests for
+# the number.
 [tool.coverage.report]
 fail_under = 90
+precision = 2
 show_missing = true
 exclude_also = ["if __name__ == .__main__.:"]
 
@@ -87,8 +88,7 @@ src = ["src", "tests", "scripts"]
 [tool.ruff.lint]
 select = [
     "F", "E", "W",  # pyflakes and pycodestyle
-    "BLE",          # a broad except that neither re-raises nor logs
-    "C90",          # mccabe complexity
+    "BLE",          # a broad except that neither raises nor logs the traceback
     "I",            # isort
     "N",            # pep8-naming
     "UP",           # pyupgrade
@@ -106,8 +106,9 @@ ignore = [
     # An MCP tool takes one parameter per argument, and so do the service and
     # traversal functions behind it.
     "PLR0913", "PLR0917",
-    # The MCP SDK resolves tool annotations at run time, so the imports they
-    # name must stay real imports.
+    # An import that only annotations use stays an ordinary import. The MCP SDK
+    # resolves the tool annotations at run time, and elsewhere a TYPE_CHECKING
+    # block would be ceremony without a gain.
     "TC001", "TC002", "TC003",
 ]
 
@@ -128,10 +129,11 @@ ignore = [
 paths = ["src", "tests", "scripts"]
 min_confidence = 60
 ignore_decorators = ["@mcp.tool", "@mcp.resource"]
-ignore_names = ["row_factory", "built_at", "index_path", "state", "reuse_targets", "findings"]
+ignore_names = ["row_factory", "built_at", "index_path", "state", "reuse_targets"]
 
 [tool.basedpyright]
 pythonVersion = "3.13"
 typeCheckingMode = "standard"
+# The tests are left out: they pass wrong types on purpose, to check that they are rejected.
 include = ["src", "scripts"]
 reportMissingImports = true

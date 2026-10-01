@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 """Fail when a function or method has a cyclomatic complexity of 8 or more.
 
-The count is radon's: one, plus one for each branch, loop, exception handler,
-boolean operator and comprehension. Assertions are not counted. A class has no
-count of its own here; its methods are checked one by one.
+The count is radon's cyclomatic complexity, with assertions left out. A class has
+no count of its own; its methods are checked one by one, and so are the functions
+and classes defined inside a function or a class.
 
     python scripts/validation/check_complexity.py [path ...]
 
-Without arguments the source package and the scripts are checked.
+Without arguments the source package, the scripts and the tests are checked.
 """
 
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 
-from radon.complexity import cc_visit
-from radon.visitors import Class
+from radon.visitors import Class, ComplexityVisitor, Function
 
 THRESHOLD = 8
-DEFAULT_PATHS = ("src", "scripts")
+DEFAULT_PATHS = ("src", "scripts", "tests")
 
 
 def python_files(paths: list[str]) -> list[Path]:
@@ -27,14 +27,26 @@ def python_files(paths: list[str]) -> list[Path]:
     return files
 
 
+def _functions(blocks: list[Function | Class], scope: str = "") -> Iterator[tuple[str, Function]]:
+    """Every function with its qualified name, at any depth of nesting."""
+
+    for block in blocks:
+        name = scope + block.name
+        if isinstance(block, Class):
+            yield from _functions([*block.methods, *block.inner_classes], f"{name}.")
+        else:
+            yield name, block
+            yield from _functions(block.closures, f"{name}.")
+
+
 def violations(path: Path) -> list[str]:
     """One line for each function or method of the file at or above the threshold."""
 
-    blocks = cc_visit(path.read_text(encoding="utf-8"), no_assert=True)
+    visitor = ComplexityVisitor.from_code(path.read_text(encoding="utf-8"), no_assert=True)
     return [
-        f"{path}:{block.lineno}: {block.fullname} has complexity {block.complexity}"
-        for block in blocks
-        if not isinstance(block, Class) and block.complexity >= THRESHOLD
+        f"{path}:{function.lineno}: {name} has complexity {function.complexity}"
+        for name, function in _functions([*visitor.functions, *visitor.classes])
+        if function.complexity >= THRESHOLD
     ]
 
 

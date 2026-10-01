@@ -20,9 +20,10 @@ pdm run pre-commit install     # run the gates on every commit
 | `pdm run pytest tests/test_index.py -k name` | A selection of tests, without the minimum |
 | `pdm run lint` | Ruff and basedpyright: the fast check while you work |
 | `pdm run fmt` | Format with Ruff |
-| `pdm run pre-commit run --all-files` | Every gate, as CI runs them |
+| `pdm run pre-commit run --all-files` | Every hook, as the CI `quality` job runs them |
 
-No test contacts EVS: `tests/fakes.py` stands in for it.
+The tests are `unittest.TestCase` classes, run by pytest. None contacts EVS: `FakeEVS` in
+`tests/fakes.py` stands in for the client, and the client's own tests replace `urlopen`.
 
 ## Standards
 
@@ -43,17 +44,20 @@ No test contacts EVS: `tests/fakes.py` stands in for it.
 
 ## The gates
 
-Every gate runs on commit through pre-commit, and CI runs the same hooks on all files. A gate
-that fails is fixed, not skipped (`--no-verify` and `SKIP=` are not used).
+Pre-commit runs every gate except the last on the files of a commit, and CI runs the same hooks
+on all files. The tests run in CI and with `pdm run test`. A gate that fails is fixed, not
+skipped (`--no-verify` and `SKIP=` are not used).
 
 | Gate | What it enforces |
 | --- | --- |
-| Ruff format and lint | Style, imports, likely bugs, security patterns, `print` outside the CLI, a broad `except` that neither logs nor re-raises |
-| basedpyright | Types, over the whole project |
-| Complexity | Every function below cyclomatic complexity 8 (`scripts/validation/check_complexity.py`) |
+| Ruff format and lint | Style, imports, likely bugs, security patterns, `print` outside the CLI and the gate scripts, a broad `except` that neither raises nor logs the traceback |
+| basedpyright | Types, over `src` and `scripts` |
+| Complexity | Every function below cyclomatic complexity 8, in the tests too (`scripts/validation/check_complexity.py`) |
 | Test quality | No test without an assertion, or with only mock or `callable` assertions (`scripts/validation/check_test_quality.py`) |
 | Dead code | No unused functions, classes or variables (vulture) |
 | gitleaks, zizmor | No secrets; safe GitHub Actions workflows |
-| Coverage | CI fails below 90% and warns at or below 95% |
+| Tests and coverage | The suite passes; CI fails below the coverage minimum of standard 3 and warns when the aim is missed |
 
-A finding is fixed in the code. A suppression is per line, with the reason next to it.
+A finding is fixed in the code. Where a rule does not fit, it is suppressed as narrowly as
+possible (a line, then a file in `pyproject.toml`), with the reason beside the suppression, or
+once in the module when it repeats.

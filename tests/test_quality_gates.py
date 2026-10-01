@@ -59,6 +59,17 @@ class ComplexityGateTest(GateTestCase):
 
         self.assertEqual(check_complexity.violations(path), [f"{path}:3: Thing.m has complexity 8"])
 
+    def test_functions_and_classes_nested_in_others_are_checked(self):
+        tangled = textwrap.dedent(self.BRANCHY.format(last="if value == 7: return 7"))
+        method = textwrap.indent(tangled.replace("def tangled(", "def m(self, "), " " * 8)
+        path = self.write(
+            "def outer():" + textwrap.indent(tangled, "    ") + "\nclass A:\n    class B:" + method
+        )
+
+        names = sorted(line.split(": ")[1] for line in check_complexity.violations(path))
+
+        self.assertEqual(names, ["A.B.m has complexity 8", "outer.tangled has complexity 8"])
+
     def test_exit_code_and_report(self):
         clean = self.write("def simple():\n    return 1\n", "clean.py")
         tangled = self.write(self.BRANCHY.format(last="if value == 7: return 7"))
@@ -99,6 +110,8 @@ class TestQualityGateTest(GateTestCase):
         for body in (
             "mock.assert_called_once_with(1)",
             "mock.assert_not_called()",
+            "mock.assert_has_calls([])",
+            "mock.assert_any_await(1)",
             "self.assertEqual(mock.call_count, 2)",
             "assert mock.called",
             "self.assertEqual(mock.call_args.kwargs['timeout'], 2)",
@@ -107,19 +120,54 @@ class TestQualityGateTest(GateTestCase):
                 self.assertEqual(len(self.findings(body)), 1)
                 self.assertIn("only asserts how a mock was used", self.findings(body)[0])
 
+    def test_a_call_that_is_not_an_assertion_does_not_count(self):
+        for body in ("subprocess.check_output(['true'])", "failed = compute()"):
+            with self.subTest(body):
+                self.assertEqual(self.findings(body), ["test_it asserts nothing"])
+
+    def test_an_assertion_in_a_nested_function_counts_only_when_the_function_is_used(self):
+        nested = "def verify():\n    assert compute() == 2\n"
+
+        self.assertEqual(self.findings(nested), ["test_it asserts nothing"])
+        self.assertEqual(self.findings(nested + "verify()"), [])
+        self.assertEqual(self.findings(nested + "run(verify)"), [])
+        self.assertEqual(self.findings("run(lambda: self.assertEqual(compute(), 2))"), [])
+
     def test_a_test_that_only_checks_callability_is_rejected(self):
         self.assertEqual(
             self.findings("assert callable(compute)"),
-            ["test_it only asserts that something is callable"],
+            [
+                "test_it only asserts that something is callable; "
+                "assert the result or the effect as well"
+            ],
         )
 
+    def test_mock_and_callability_assertions_together_are_both_named(self):
+        (finding,) = self.findings("assert callable(compute)\nmock.assert_called_once()")
+
+        self.assertIn("that something is callable and how a mock was used", finding)
+
+    def test_a_helper_named_like_a_mock_assertion_is_an_assertion(self):
+        for body in ("assert_has_keys(compute(), 'a')", "self.assert_any_hit(compute())"):
+            with self.subTest(body):
+                self.assertEqual(self.findings(body), [])
+
     def test_a_coverage_aim_in_the_module_docstring_is_rejected(self):
-        for docstring in ("Improve coverage of the index.", "Bring index.py to 95%."):
+        for docstring in (
+            "Improve coverage of the index.",
+            "Raises the coverage of index.py.",
+            "Bring the coverage to 95%.",
+        ):
             with self.subTest(docstring):
                 self.assertEqual(
                     self.findings("assert compute() == 2", docstring),
                     ["the module docstring states a coverage aim"],
                 )
+
+    def test_a_percentage_in_the_module_docstring_is_not_a_coverage_aim(self):
+        docstring = "Scores are normalized to 100% of the best hit."
+
+        self.assertEqual(self.findings("assert compute() == 2", docstring), [])
 
     def test_helpers_are_not_tests(self):
         path = self.write("def helper():\n    return 1\n", "test_helpers.py")
