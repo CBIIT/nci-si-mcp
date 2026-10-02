@@ -12,6 +12,8 @@ SUITE = Path(__file__).parent.parent / "tests"
 CROSS_CUTTING = "tests/test_crosscutting.py"
 UNKNOWN_RELEASE = "test_a_release_the_platform_does_not_serve_fails_closed"
 LICENCE_ERROR = "test_an_error_carries_no_licence_key"
+EMPTY = "test_a_query_that_matches_nothing_is_an_empty_result_with_provenance"
+TRUNCATED = "test_a_bound_reached_is_reported_with_how_much_was_left_out"
 LICENCE_REACHES = "test_the_licence_key_reaches_the_platform_and_nothing_the_server_returns_or_logs"
 BACKOFF = "test_a_rate_limited_request_is_asked_once_more_after_the_wait"
 # Each defect of the compliant server, and the cross-cutting test whose every case must fail.
@@ -43,6 +45,14 @@ DEFECTS = [
     ("key-in-meta", LICENCE_ERROR),
     ("gives-up", BACKOFF),
     ("no-backoff", BACKOFF),
+    ("empty-as-error", EMPTY),
+    ("empty-without-provenance", EMPTY),
+    ("upstream-renamed", "test_what_the_platform_says_of_an_item_s_origin_is_passed_through"),
+    ("upstream-altered", "test_what_the_platform_says_of_an_item_s_origin_is_passed_through"),
+    ("truncation-flag-only", TRUNCATED),
+    ("omitted-unknown", TRUNCATED),
+    ("exact-missing", TRUNCATED),
+    ("reached-over", TRUNCATED),
 ]
 
 

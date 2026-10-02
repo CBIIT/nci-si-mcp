@@ -63,8 +63,8 @@ X-3:
   planned: "#55"
 X-4:
   statement: A query that legitimately matches nothing returns an empty result with provenance, not an error.
-  basis: [A2.5, A2.6, M3.2]
-  planned: "#52"
+  basis: [A2.5, A2.6, M3.2, provenance]
+  planned: "#55"
 X-5:
   statement: An upstream failure (a refused or closed connection, a server error, no answer in time) is an upstream error or a timeout, never an empty success.
   basis: [A2.5, M3.2]
@@ -80,15 +80,15 @@ X-7:
 X-8:
   statement: Fields the upstream supplied appear unchanged in provenance; none is dropped or renamed.
   basis: [A4.3, provenance]
-  planned: "#52"
+  planned: "#55"
 X-9:
   statement: A code is returned bare, with its terminology in a separate field; never with an embedded prefix or as a URI.
   basis: [A1.2, A1.3]
   planned: "#55"
 X-10:
   statement: With a caller limit smaller than the result, truncation is reported with the bound reached and the magnitude omitted.
-  basis: [A5.1, A5.4]
-  planned: "#52"
+  basis: [A5.1, A5.4, truncation]
+  planned: "#55"
 X-11:
   statement: Within one tool call, no upstream request is made again with identical parameters, except to retry one that failed.
   basis: [A5.8]
@@ -112,6 +112,10 @@ X-16:
   statement: After a 429 with Retry-After, the module waits at least that long before it asks again, and makes no request to that endpoint in between.
   basis: [A6.5, A5.3]
   planned: "#54"
+X-17:
+  statement: A page smaller than the result carries nextCursor; following it returns the rest, repeats no item, and keeps the release the first page was pinned to.
+  basis: [M6.1, M2.4]
+  planned: "#53"
 
 # EVS tools.
 resolve_release-1:
