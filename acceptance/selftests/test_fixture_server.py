@@ -602,12 +602,13 @@ def test_a_fixture_ignoring_every_parameter_answers_whatever_is_asked(tmp_path):
     assert logged == {"include": ["summary"], "limit": ["5"]}
 
 
-def test_a_fixture_ignoring_every_parameter_matches_on_none(tmp_path):
+def test_a_fixture_ignoring_every_parameter_keeps_what_was_asked_without_matching_it(tmp_path):
     request = {"surface": "evs", "method": "GET", "path": "/x", "ignored": {"*": "evidence"}}
-    fixture_file(tmp_path, "x.json", request=request | {"params": {"a": ["1"]}})
+    fixture_file(tmp_path, "x.json", request=request | {"params": {"list": ["C1"]}})
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        statuses = [fetch(running.base_url("evs") + target)[0] for target in ("/x", "/x?list=C2")]
 
-    with pytest.raises(ValueError, match="an ignored parameter is not also matched"):
-        load_fixtures(tmp_path)
+    assert statuses == [200, 200]
 
 
 def test_no_fixture_may_match_on_a_parameter_its_path_ignores_altogether(tmp_path):

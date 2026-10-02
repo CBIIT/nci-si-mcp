@@ -1,0 +1,24 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/history/ncit_26.09d/replacements",
+  "params": {
+   "list": [
+    "C154421,CBOGUS999999"
+   ]
+  }
+ },
+ "response": {
+  "status": 404,
+  "body": {
+   "timestamp": 1790929198716,
+   "status": 404,
+   "error": "Not Found",
+   "message": "CBOGUS999999 not found",
+   "path": "/api/v1/history/ncit_26.09d/replacements"
+  }
+ }
+}

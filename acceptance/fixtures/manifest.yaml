@@ -102,22 +102,14 @@ record:
     - fixture: recorded/evs/paths-to-root.json
       surface: evs
       path: /api/v1/concept/ncit_26.09d/C4817/pathsToRoot?include=minimal
-    # Retired codes: one retired and one active (OP-E21), and the batch of both.
-    - fixture: recorded/evs/replacement-retired.json
-      surface: evs
-      path: /api/v1/history/ncit_26.09d/C154421/replacements
+    # An active code's replacements (OP-E21, and the ?list= batch form); the retired
+    # code is in scenarios/retired/with-replacement.
     - fixture: recorded/evs/replacement-active.json
       surface: evs
       path: /api/v1/history/ncit_26.09d/C4817/replacements
-    - fixture: recorded/evs/replacements-retired.json
-      surface: evs
-      path: /api/v1/history/ncit_26.09d/replacements?list=C154421
     - fixture: recorded/evs/replacements-active.json
       surface: evs
       path: /api/v1/history/ncit_26.09d/replacements?list=C4817
-    - fixture: recorded/evs/replacements-both.json
-      surface: evs
-      path: /api/v1/history/ncit_26.09d/replacements?list=C154421,C4817
     # Subsets: the GDC Value Terminology, unpinned (the pinned form is crafted under
     # `derived`) and the first page of its members.
     - fixture: recorded/evs/subset-gdc-unpinned.json
@@ -152,6 +144,64 @@ record:
         offset: *expand-ignores
         activeOnly: *expand-ignores
 
+    # Scenarios recorded from live (the crafted ones come from craft.py).
+    # release/unknown: every content path of an unknown release answers 404 "Terminology
+    # not found", whatever is asked; recorded with the parameters a tool would send.
+    - &unknown
+      fixture: scenarios/release/unknown/concept.json
+      surface: evs
+      path: /api/v1/concept/ncit_99.99z/C4817?include=summary
+      ignored:
+        "*": >-
+          Verified 2 October 2026: EVS answers 404 "Terminology not found" for an unknown
+          release on every content path, whatever the parameters
+    - {<<: *unknown, fixture: scenarios/release/unknown/concepts.json, path: "/api/v1/concept/ncit_99.99z?list=C4817&include=summary"}
+    - {<<: *unknown, fixture: scenarios/release/unknown/parents.json, path: /api/v1/concept/ncit_99.99z/C4817/parents}
+    - {<<: *unknown, fixture: scenarios/release/unknown/children.json, path: /api/v1/concept/ncit_99.99z/C4817/children}
+    - {<<: *unknown, fixture: scenarios/release/unknown/roles.json, path: /api/v1/concept/ncit_99.99z/C4817/roles}
+    - {<<: *unknown, fixture: scenarios/release/unknown/inverse-roles.json, path: /api/v1/concept/ncit_99.99z/C4817/inverseRoles}
+    - {<<: *unknown, fixture: scenarios/release/unknown/associations.json, path: /api/v1/concept/ncit_99.99z/C4817/associations}
+    - {<<: *unknown, fixture: scenarios/release/unknown/inverse-associations.json, path: /api/v1/concept/ncit_99.99z/C4817/inverseAssociations}
+    - {<<: *unknown, fixture: scenarios/release/unknown/maps.json, path: /api/v1/concept/ncit_99.99z/C4817/maps}
+    - {<<: *unknown, fixture: scenarios/release/unknown/search.json, path: "/api/v1/concept/ncit_99.99z/search?term=ewing sarcoma&type=contains&include=minimal,highlights&fromRecord=0&pageSize=10"}
+    - {<<: *unknown, fixture: scenarios/release/unknown/paths-to-root.json, path: "/api/v1/concept/ncit_99.99z/C4817/pathsToRoot?include=minimal"}
+    - {<<: *unknown, fixture: scenarios/release/unknown/role-catalogue.json, path: /api/v1/metadata/ncit_99.99z/roles}
+    - {<<: *unknown, fixture: scenarios/release/unknown/association-catalogue.json, path: /api/v1/metadata/ncit_99.99z/associations}
+    - {<<: *unknown, fixture: scenarios/release/unknown/replacement.json, path: /api/v1/history/ncit_99.99z/C154421/replacements}
+    - {<<: *unknown, fixture: scenarios/release/unknown/replacements.json, path: "/api/v1/history/ncit_99.99z/replacements?list=C154421"}
+    - {<<: *unknown, fixture: scenarios/release/unknown/subset.json, path: /api/v1/subset/ncit_99.99z/C177537}
+    - {<<: *unknown, fixture: scenarios/release/unknown/subset-members.json, path: "/api/v1/subset/ncit_99.99z/C177537/members?fromRecord=0&pageSize=10&include=minimal"}
+    # batch/silent-drop: a code EVS does not know, which a batch leaves out (E-5).
+    - fixture: scenarios/batch/silent-drop/concepts/CBOGUS999999.json
+      surface: evs
+      path: /api/v1/concept/ncit_26.09d/CBOGUS999999?include=full
+    # retired/with-replacement: C154421, retired with a replacement (A8), and a batch
+    # that one unknown code fails as a whole.
+    - fixture: scenarios/retired/with-replacement/concepts/C154421.json
+      surface: evs
+      path: /api/v1/concept/ncit_26.09d/C154421?include=full
+    - fixture: scenarios/retired/with-replacement/replacement.json
+      surface: evs
+      path: /api/v1/history/ncit_26.09d/C154421/replacements
+    - fixture: scenarios/retired/with-replacement/replacements.json
+      surface: evs
+      path: /api/v1/history/ncit_26.09d/replacements?list=C154421
+    - fixture: scenarios/retired/with-replacement/replacements-with-active.json
+      surface: evs
+      path: /api/v1/history/ncit_26.09d/replacements?list=C154421,C4817
+    - fixture: scenarios/retired/with-replacement/replacements-with-unknown.json
+      surface: evs
+      path: /api/v1/history/ncit_26.09d/replacements?list=C154421,CBOGUS999999
+    # license/restricted: EVS's refusal without the licence key; craft.py adds the answer
+    # with it.
+    - fixture: scenarios/license/restricted/refused.json
+      surface: evs
+      path: /api/v1/concept/mdr_29_0/10000000?include=summary
+      ignored:
+        "*": >-
+          Verified 2 October 2026: EVS refuses every request for mdr without the licence
+          key (403), whatever the path or parameters
+
   # Crafted fixtures for the form a requirement prescribes where EVS does not yet answer
   # it, each carrying the answer of a recording (Acceptance Suite §2.1): the live run shows
   # the gap.
@@ -175,9 +225,8 @@ record:
 
   # Concepts, by the include each is recorded at (concepts.py).
   concepts:
-    # Ewing sarcoma, the batch of the Platform API Specification's E-5 example, and a
-    # retired code.
-    full: [C4817, C17049, C41259, C154421]
+    # Ewing sarcoma and the batch of the Platform API Specification's E-5 example.
+    full: [C4817, C17049, C41259]
     # The depth-1 neighbourhood of C4817 over every relation. Without the inverse
     # lists, which run to megabytes for the subset and cell concepts among them.
     summary,parents,children,roles,associations,maps,history:
@@ -220,5 +269,4 @@ record:
     - /api/v1/concept/ncit_26.09d/C4817/associations
     - /api/v1/concept/ncit_26.09d/C4817/inverseAssociations
     - /api/v1/concept/ncit_26.09d/C4817/maps
-    - /api/v1/concept/ncit_26.09d/C154421/children
     - /api/v1/concept/ncit_26.09d/C7806/roles

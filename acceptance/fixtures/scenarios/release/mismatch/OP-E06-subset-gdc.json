@@ -1,0 +1,22 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/subset/ncit_26.09d/C177537"
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C177537",
+   "name": "GDC Value Terminology",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "subsetLink": "https://evs.nci.nih.gov/ftp1/GDC",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true
+  }
+ }
+}

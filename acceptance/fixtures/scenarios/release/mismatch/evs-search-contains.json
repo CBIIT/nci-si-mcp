@@ -1,0 +1,145 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/search",
+  "params": {
+   "term": [
+    "ewing sarcoma"
+   ],
+   "type": [
+    "contains"
+   ],
+   "include": [
+    "minimal,highlights"
+   ],
+   "fromRecord": [
+    "0"
+   ],
+   "pageSize": [
+    "10"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "total": 1027,
+   "timeTaken": 47,
+   "parameters": {
+    "term": "ewing sarcoma",
+    "type": "contains",
+    "include": "minimal,highlights",
+    "fromRecord": 0,
+    "pageSize": 10,
+    "terminology": [
+     "ncit_26.09d"
+    ]
+   },
+   "concepts": [
+    {
+     "code": "C4817",
+     "name": "Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "<em>Ewing</em> <em>Sarcoma</em>",
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C103038",
+     "name": "NCI CTEP SDC Ewing Sarcoma Sub-Category Terminology",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "NCI CTEP SDC <em>Ewing</em> <em>Sarcoma</em> Sub-Category Terminology",
+     "conceptStatus": "DEFAULT",
+     "leaf": true,
+     "active": true
+    },
+    {
+     "code": "C189002",
+     "name": "Childhood Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "Childhood <em>Ewing</em> <em>Sarcoma</em>",
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C4835",
+     "name": "Bone Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "Bone <em>Ewing</em> <em>Sarcoma</em>",
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C132849",
+     "name": "Unresectable Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "Unresectable <em>Ewing</em> <em>Sarcoma</em>",
+     "conceptStatus": "DEFAULT",
+     "leaf": true,
+     "active": true
+    },
+    {
+     "code": "C142853",
+     "name": "Refractory Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "Refractory <em>Ewing</em> <em>Sarcoma</em>",
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C159208",
+     "name": "Kidney Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "Kidney <em>Ewing</em> <em>Sarcoma</em>",
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C172634",
+     "name": "Skin Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "Skin <em>Ewing</em> <em>Sarcoma</em>",
+     "conceptStatus": "DEFAULT",
+     "leaf": true,
+     "active": true
+    },
+    {
+     "code": "C173175",
+     "name": "Sinonasal Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "Sinonasal <em>Ewing</em> <em>Sarcoma</em>",
+     "conceptStatus": "DEFAULT",
+     "leaf": true,
+     "active": true
+    },
+    {
+     "code": "C174456",
+     "name": "Atypical Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "Atypical <em>Ewing</em> <em>Sarcoma</em>",
+     "conceptStatus": "DEFAULT",
+     "leaf": true,
+     "active": true
+    }
+   ]
+  }
+ }
+}

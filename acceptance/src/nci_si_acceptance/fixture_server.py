@@ -15,7 +15,8 @@ with runs of whitespace collapsed (SPARQL). A fixture without a `body` matches a
 request body. A parameter the live service is shown to ignore may be declared under
 `ignored`, with the evidence; it is then left out of the match, and `"*"` leaves out
 every parameter (an unknown release answers 404 whatever is asked; a fault fixture
-fails whatever is asked). A fixture's `headers` must be present with those values,
+fails whatever is asked), the fixture's `params` then only recording what was asked
+when it was captured. A fixture's `headers` must be present with those values,
 header names in any case; among the fixtures of one path, the one naming the most
 headers the request carries answers (a licence key granted, else the refusal). A
 request that no fixture answers gets HTTP 501.
@@ -235,7 +236,7 @@ def _ignored_problem(request: dict[str, Any]) -> str | None:
         isinstance(evidence, str) and evidence for evidence in ignored.values()
     ):
         return "an ignored parameter names the evidence that the service ignores it"
-    if _left_out(set(request.get("params", {})), frozenset(ignored)):
+    if "*" not in ignored and set(ignored) & set(request.get("params", {})):
         return "an ignored parameter is not also matched"
     return None
 
@@ -270,6 +271,12 @@ def _provenance_problem(document: dict[str, Any]) -> str | None:
     return "kind is recorded or crafted"
 
 
+def _matched_params(request: dict[str, Any]) -> Params:
+    """The parameters a fixture matches on: none where it ignores them all."""
+
+    return {} if "*" in request.get("ignored", {}) else request.get("params", {})
+
+
 def _read_fixture(path: Path, root: Path) -> tuple[Key, Fixture]:
     document = json.loads(path.read_text(encoding="utf-8"))
     name = path.relative_to(root).as_posix()
@@ -280,7 +287,7 @@ def _read_fixture(path: Path, root: Path) -> tuple[Key, Fixture]:
         request["surface"],
         request["method"],
         request["path"],
-        request.get("params", {}),
+        _matched_params(request),
         request.get("body"),
         request.get("headers"),
     )

@@ -1,0 +1,30 @@
+{
+ "kind": "crafted",
+ "requirement": "A2.5, A5.3: bounded retries, counted, then a structured error",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C4817",
+  "ignored": {
+   "*": "a fault answers whatever is asked"
+  }
+ },
+ "responses": [
+  {
+   "fault": "close"
+  },
+  {
+   "status": 503,
+   "body": {
+    "message": "Service Unavailable"
+   }
+  },
+  {
+   "status": 504,
+   "delay_seconds": 3,
+   "body": {
+    "message": "Gateway Timeout"
+   }
+  }
+ ]
+}

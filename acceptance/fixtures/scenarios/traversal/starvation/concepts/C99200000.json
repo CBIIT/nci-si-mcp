@@ -1,0 +1,1842 @@
+{
+ "kind": "crafted",
+ "requirement": "A5.5: a budget per relationship kind; no kind starved",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C99200000",
+  "params": {
+   "include": [
+    "full"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C99200000",
+   "name": "Synthetic Starvation Hub",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "roles": [
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200001",
+     "relatedName": "Synthetic Role Target 1"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200002",
+     "relatedName": "Synthetic Role Target 2"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200003",
+     "relatedName": "Synthetic Role Target 3"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200004",
+     "relatedName": "Synthetic Role Target 4"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200005",
+     "relatedName": "Synthetic Role Target 5"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200006",
+     "relatedName": "Synthetic Role Target 6"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200007",
+     "relatedName": "Synthetic Role Target 7"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200008",
+     "relatedName": "Synthetic Role Target 8"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200009",
+     "relatedName": "Synthetic Role Target 9"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200010",
+     "relatedName": "Synthetic Role Target 10"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200011",
+     "relatedName": "Synthetic Role Target 11"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200012",
+     "relatedName": "Synthetic Role Target 12"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200013",
+     "relatedName": "Synthetic Role Target 13"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200014",
+     "relatedName": "Synthetic Role Target 14"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200015",
+     "relatedName": "Synthetic Role Target 15"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200016",
+     "relatedName": "Synthetic Role Target 16"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200017",
+     "relatedName": "Synthetic Role Target 17"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200018",
+     "relatedName": "Synthetic Role Target 18"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200019",
+     "relatedName": "Synthetic Role Target 19"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200020",
+     "relatedName": "Synthetic Role Target 20"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200021",
+     "relatedName": "Synthetic Role Target 21"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200022",
+     "relatedName": "Synthetic Role Target 22"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200023",
+     "relatedName": "Synthetic Role Target 23"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200024",
+     "relatedName": "Synthetic Role Target 24"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200025",
+     "relatedName": "Synthetic Role Target 25"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200026",
+     "relatedName": "Synthetic Role Target 26"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200027",
+     "relatedName": "Synthetic Role Target 27"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200028",
+     "relatedName": "Synthetic Role Target 28"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200029",
+     "relatedName": "Synthetic Role Target 29"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200030",
+     "relatedName": "Synthetic Role Target 30"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200031",
+     "relatedName": "Synthetic Role Target 31"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200032",
+     "relatedName": "Synthetic Role Target 32"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200033",
+     "relatedName": "Synthetic Role Target 33"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200034",
+     "relatedName": "Synthetic Role Target 34"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200035",
+     "relatedName": "Synthetic Role Target 35"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200036",
+     "relatedName": "Synthetic Role Target 36"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200037",
+     "relatedName": "Synthetic Role Target 37"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200038",
+     "relatedName": "Synthetic Role Target 38"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200039",
+     "relatedName": "Synthetic Role Target 39"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200040",
+     "relatedName": "Synthetic Role Target 40"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200041",
+     "relatedName": "Synthetic Role Target 41"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200042",
+     "relatedName": "Synthetic Role Target 42"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200043",
+     "relatedName": "Synthetic Role Target 43"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200044",
+     "relatedName": "Synthetic Role Target 44"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200045",
+     "relatedName": "Synthetic Role Target 45"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200046",
+     "relatedName": "Synthetic Role Target 46"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200047",
+     "relatedName": "Synthetic Role Target 47"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200048",
+     "relatedName": "Synthetic Role Target 48"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200049",
+     "relatedName": "Synthetic Role Target 49"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200050",
+     "relatedName": "Synthetic Role Target 50"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200051",
+     "relatedName": "Synthetic Role Target 51"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200052",
+     "relatedName": "Synthetic Role Target 52"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200053",
+     "relatedName": "Synthetic Role Target 53"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200054",
+     "relatedName": "Synthetic Role Target 54"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200055",
+     "relatedName": "Synthetic Role Target 55"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200056",
+     "relatedName": "Synthetic Role Target 56"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200057",
+     "relatedName": "Synthetic Role Target 57"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200058",
+     "relatedName": "Synthetic Role Target 58"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200059",
+     "relatedName": "Synthetic Role Target 59"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200060",
+     "relatedName": "Synthetic Role Target 60"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200061",
+     "relatedName": "Synthetic Role Target 61"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200062",
+     "relatedName": "Synthetic Role Target 62"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200063",
+     "relatedName": "Synthetic Role Target 63"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200064",
+     "relatedName": "Synthetic Role Target 64"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200065",
+     "relatedName": "Synthetic Role Target 65"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200066",
+     "relatedName": "Synthetic Role Target 66"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200067",
+     "relatedName": "Synthetic Role Target 67"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200068",
+     "relatedName": "Synthetic Role Target 68"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200069",
+     "relatedName": "Synthetic Role Target 69"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200070",
+     "relatedName": "Synthetic Role Target 70"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200071",
+     "relatedName": "Synthetic Role Target 71"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200072",
+     "relatedName": "Synthetic Role Target 72"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200073",
+     "relatedName": "Synthetic Role Target 73"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200074",
+     "relatedName": "Synthetic Role Target 74"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200075",
+     "relatedName": "Synthetic Role Target 75"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200076",
+     "relatedName": "Synthetic Role Target 76"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200077",
+     "relatedName": "Synthetic Role Target 77"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200078",
+     "relatedName": "Synthetic Role Target 78"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200079",
+     "relatedName": "Synthetic Role Target 79"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200080",
+     "relatedName": "Synthetic Role Target 80"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200081",
+     "relatedName": "Synthetic Role Target 81"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200082",
+     "relatedName": "Synthetic Role Target 82"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200083",
+     "relatedName": "Synthetic Role Target 83"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200084",
+     "relatedName": "Synthetic Role Target 84"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200085",
+     "relatedName": "Synthetic Role Target 85"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200086",
+     "relatedName": "Synthetic Role Target 86"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200087",
+     "relatedName": "Synthetic Role Target 87"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200088",
+     "relatedName": "Synthetic Role Target 88"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200089",
+     "relatedName": "Synthetic Role Target 89"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200090",
+     "relatedName": "Synthetic Role Target 90"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200091",
+     "relatedName": "Synthetic Role Target 91"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200092",
+     "relatedName": "Synthetic Role Target 92"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200093",
+     "relatedName": "Synthetic Role Target 93"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200094",
+     "relatedName": "Synthetic Role Target 94"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200095",
+     "relatedName": "Synthetic Role Target 95"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200096",
+     "relatedName": "Synthetic Role Target 96"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200097",
+     "relatedName": "Synthetic Role Target 97"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200098",
+     "relatedName": "Synthetic Role Target 98"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200099",
+     "relatedName": "Synthetic Role Target 99"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200100",
+     "relatedName": "Synthetic Role Target 100"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200101",
+     "relatedName": "Synthetic Role Target 101"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200102",
+     "relatedName": "Synthetic Role Target 102"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200103",
+     "relatedName": "Synthetic Role Target 103"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200104",
+     "relatedName": "Synthetic Role Target 104"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200105",
+     "relatedName": "Synthetic Role Target 105"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200106",
+     "relatedName": "Synthetic Role Target 106"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200107",
+     "relatedName": "Synthetic Role Target 107"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200108",
+     "relatedName": "Synthetic Role Target 108"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200109",
+     "relatedName": "Synthetic Role Target 109"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200110",
+     "relatedName": "Synthetic Role Target 110"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200111",
+     "relatedName": "Synthetic Role Target 111"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200112",
+     "relatedName": "Synthetic Role Target 112"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200113",
+     "relatedName": "Synthetic Role Target 113"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200114",
+     "relatedName": "Synthetic Role Target 114"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200115",
+     "relatedName": "Synthetic Role Target 115"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200116",
+     "relatedName": "Synthetic Role Target 116"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200117",
+     "relatedName": "Synthetic Role Target 117"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200118",
+     "relatedName": "Synthetic Role Target 118"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200119",
+     "relatedName": "Synthetic Role Target 119"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200120",
+     "relatedName": "Synthetic Role Target 120"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200121",
+     "relatedName": "Synthetic Role Target 121"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200122",
+     "relatedName": "Synthetic Role Target 122"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200123",
+     "relatedName": "Synthetic Role Target 123"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200124",
+     "relatedName": "Synthetic Role Target 124"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200125",
+     "relatedName": "Synthetic Role Target 125"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200126",
+     "relatedName": "Synthetic Role Target 126"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200127",
+     "relatedName": "Synthetic Role Target 127"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200128",
+     "relatedName": "Synthetic Role Target 128"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200129",
+     "relatedName": "Synthetic Role Target 129"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200130",
+     "relatedName": "Synthetic Role Target 130"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200131",
+     "relatedName": "Synthetic Role Target 131"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200132",
+     "relatedName": "Synthetic Role Target 132"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200133",
+     "relatedName": "Synthetic Role Target 133"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200134",
+     "relatedName": "Synthetic Role Target 134"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200135",
+     "relatedName": "Synthetic Role Target 135"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200136",
+     "relatedName": "Synthetic Role Target 136"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200137",
+     "relatedName": "Synthetic Role Target 137"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200138",
+     "relatedName": "Synthetic Role Target 138"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200139",
+     "relatedName": "Synthetic Role Target 139"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200140",
+     "relatedName": "Synthetic Role Target 140"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200141",
+     "relatedName": "Synthetic Role Target 141"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200142",
+     "relatedName": "Synthetic Role Target 142"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200143",
+     "relatedName": "Synthetic Role Target 143"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200144",
+     "relatedName": "Synthetic Role Target 144"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200145",
+     "relatedName": "Synthetic Role Target 145"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200146",
+     "relatedName": "Synthetic Role Target 146"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200147",
+     "relatedName": "Synthetic Role Target 147"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200148",
+     "relatedName": "Synthetic Role Target 148"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200149",
+     "relatedName": "Synthetic Role Target 149"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200150",
+     "relatedName": "Synthetic Role Target 150"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200151",
+     "relatedName": "Synthetic Role Target 151"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200152",
+     "relatedName": "Synthetic Role Target 152"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200153",
+     "relatedName": "Synthetic Role Target 153"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200154",
+     "relatedName": "Synthetic Role Target 154"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200155",
+     "relatedName": "Synthetic Role Target 155"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200156",
+     "relatedName": "Synthetic Role Target 156"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200157",
+     "relatedName": "Synthetic Role Target 157"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200158",
+     "relatedName": "Synthetic Role Target 158"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200159",
+     "relatedName": "Synthetic Role Target 159"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200160",
+     "relatedName": "Synthetic Role Target 160"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200161",
+     "relatedName": "Synthetic Role Target 161"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200162",
+     "relatedName": "Synthetic Role Target 162"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200163",
+     "relatedName": "Synthetic Role Target 163"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200164",
+     "relatedName": "Synthetic Role Target 164"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200165",
+     "relatedName": "Synthetic Role Target 165"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200166",
+     "relatedName": "Synthetic Role Target 166"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200167",
+     "relatedName": "Synthetic Role Target 167"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200168",
+     "relatedName": "Synthetic Role Target 168"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200169",
+     "relatedName": "Synthetic Role Target 169"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200170",
+     "relatedName": "Synthetic Role Target 170"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200171",
+     "relatedName": "Synthetic Role Target 171"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200172",
+     "relatedName": "Synthetic Role Target 172"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200173",
+     "relatedName": "Synthetic Role Target 173"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200174",
+     "relatedName": "Synthetic Role Target 174"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200175",
+     "relatedName": "Synthetic Role Target 175"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200176",
+     "relatedName": "Synthetic Role Target 176"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200177",
+     "relatedName": "Synthetic Role Target 177"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200178",
+     "relatedName": "Synthetic Role Target 178"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200179",
+     "relatedName": "Synthetic Role Target 179"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200180",
+     "relatedName": "Synthetic Role Target 180"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200181",
+     "relatedName": "Synthetic Role Target 181"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200182",
+     "relatedName": "Synthetic Role Target 182"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200183",
+     "relatedName": "Synthetic Role Target 183"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200184",
+     "relatedName": "Synthetic Role Target 184"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200185",
+     "relatedName": "Synthetic Role Target 185"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200186",
+     "relatedName": "Synthetic Role Target 186"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200187",
+     "relatedName": "Synthetic Role Target 187"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200188",
+     "relatedName": "Synthetic Role Target 188"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200189",
+     "relatedName": "Synthetic Role Target 189"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200190",
+     "relatedName": "Synthetic Role Target 190"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200191",
+     "relatedName": "Synthetic Role Target 191"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200192",
+     "relatedName": "Synthetic Role Target 192"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200193",
+     "relatedName": "Synthetic Role Target 193"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200194",
+     "relatedName": "Synthetic Role Target 194"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200195",
+     "relatedName": "Synthetic Role Target 195"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200196",
+     "relatedName": "Synthetic Role Target 196"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200197",
+     "relatedName": "Synthetic Role Target 197"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200198",
+     "relatedName": "Synthetic Role Target 198"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200199",
+     "relatedName": "Synthetic Role Target 199"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200200",
+     "relatedName": "Synthetic Role Target 200"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200201",
+     "relatedName": "Synthetic Role Target 201"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200202",
+     "relatedName": "Synthetic Role Target 202"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200203",
+     "relatedName": "Synthetic Role Target 203"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200204",
+     "relatedName": "Synthetic Role Target 204"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200205",
+     "relatedName": "Synthetic Role Target 205"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200206",
+     "relatedName": "Synthetic Role Target 206"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200207",
+     "relatedName": "Synthetic Role Target 207"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200208",
+     "relatedName": "Synthetic Role Target 208"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200209",
+     "relatedName": "Synthetic Role Target 209"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200210",
+     "relatedName": "Synthetic Role Target 210"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200211",
+     "relatedName": "Synthetic Role Target 211"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200212",
+     "relatedName": "Synthetic Role Target 212"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200213",
+     "relatedName": "Synthetic Role Target 213"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200214",
+     "relatedName": "Synthetic Role Target 214"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200215",
+     "relatedName": "Synthetic Role Target 215"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200216",
+     "relatedName": "Synthetic Role Target 216"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200217",
+     "relatedName": "Synthetic Role Target 217"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200218",
+     "relatedName": "Synthetic Role Target 218"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200219",
+     "relatedName": "Synthetic Role Target 219"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200220",
+     "relatedName": "Synthetic Role Target 220"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200221",
+     "relatedName": "Synthetic Role Target 221"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200222",
+     "relatedName": "Synthetic Role Target 222"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200223",
+     "relatedName": "Synthetic Role Target 223"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200224",
+     "relatedName": "Synthetic Role Target 224"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200225",
+     "relatedName": "Synthetic Role Target 225"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200226",
+     "relatedName": "Synthetic Role Target 226"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200227",
+     "relatedName": "Synthetic Role Target 227"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200228",
+     "relatedName": "Synthetic Role Target 228"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200229",
+     "relatedName": "Synthetic Role Target 229"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200230",
+     "relatedName": "Synthetic Role Target 230"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200231",
+     "relatedName": "Synthetic Role Target 231"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200232",
+     "relatedName": "Synthetic Role Target 232"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200233",
+     "relatedName": "Synthetic Role Target 233"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200234",
+     "relatedName": "Synthetic Role Target 234"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200235",
+     "relatedName": "Synthetic Role Target 235"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200236",
+     "relatedName": "Synthetic Role Target 236"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200237",
+     "relatedName": "Synthetic Role Target 237"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200238",
+     "relatedName": "Synthetic Role Target 238"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200239",
+     "relatedName": "Synthetic Role Target 239"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200240",
+     "relatedName": "Synthetic Role Target 240"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200241",
+     "relatedName": "Synthetic Role Target 241"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200242",
+     "relatedName": "Synthetic Role Target 242"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200243",
+     "relatedName": "Synthetic Role Target 243"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200244",
+     "relatedName": "Synthetic Role Target 244"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200245",
+     "relatedName": "Synthetic Role Target 245"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200246",
+     "relatedName": "Synthetic Role Target 246"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200247",
+     "relatedName": "Synthetic Role Target 247"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200248",
+     "relatedName": "Synthetic Role Target 248"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200249",
+     "relatedName": "Synthetic Role Target 249"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200250",
+     "relatedName": "Synthetic Role Target 250"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200251",
+     "relatedName": "Synthetic Role Target 251"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200252",
+     "relatedName": "Synthetic Role Target 252"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200253",
+     "relatedName": "Synthetic Role Target 253"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200254",
+     "relatedName": "Synthetic Role Target 254"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200255",
+     "relatedName": "Synthetic Role Target 255"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200256",
+     "relatedName": "Synthetic Role Target 256"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200257",
+     "relatedName": "Synthetic Role Target 257"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200258",
+     "relatedName": "Synthetic Role Target 258"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200259",
+     "relatedName": "Synthetic Role Target 259"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200260",
+     "relatedName": "Synthetic Role Target 260"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200261",
+     "relatedName": "Synthetic Role Target 261"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200262",
+     "relatedName": "Synthetic Role Target 262"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200263",
+     "relatedName": "Synthetic Role Target 263"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200264",
+     "relatedName": "Synthetic Role Target 264"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200265",
+     "relatedName": "Synthetic Role Target 265"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200266",
+     "relatedName": "Synthetic Role Target 266"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200267",
+     "relatedName": "Synthetic Role Target 267"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200268",
+     "relatedName": "Synthetic Role Target 268"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200269",
+     "relatedName": "Synthetic Role Target 269"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200270",
+     "relatedName": "Synthetic Role Target 270"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200271",
+     "relatedName": "Synthetic Role Target 271"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200272",
+     "relatedName": "Synthetic Role Target 272"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200273",
+     "relatedName": "Synthetic Role Target 273"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200274",
+     "relatedName": "Synthetic Role Target 274"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200275",
+     "relatedName": "Synthetic Role Target 275"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200276",
+     "relatedName": "Synthetic Role Target 276"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200277",
+     "relatedName": "Synthetic Role Target 277"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200278",
+     "relatedName": "Synthetic Role Target 278"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200279",
+     "relatedName": "Synthetic Role Target 279"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200280",
+     "relatedName": "Synthetic Role Target 280"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200281",
+     "relatedName": "Synthetic Role Target 281"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200282",
+     "relatedName": "Synthetic Role Target 282"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200283",
+     "relatedName": "Synthetic Role Target 283"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200284",
+     "relatedName": "Synthetic Role Target 284"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200285",
+     "relatedName": "Synthetic Role Target 285"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200286",
+     "relatedName": "Synthetic Role Target 286"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200287",
+     "relatedName": "Synthetic Role Target 287"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200288",
+     "relatedName": "Synthetic Role Target 288"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200289",
+     "relatedName": "Synthetic Role Target 289"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200290",
+     "relatedName": "Synthetic Role Target 290"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200291",
+     "relatedName": "Synthetic Role Target 291"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200292",
+     "relatedName": "Synthetic Role Target 292"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200293",
+     "relatedName": "Synthetic Role Target 293"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200294",
+     "relatedName": "Synthetic Role Target 294"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200295",
+     "relatedName": "Synthetic Role Target 295"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200296",
+     "relatedName": "Synthetic Role Target 296"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200297",
+     "relatedName": "Synthetic Role Target 297"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200298",
+     "relatedName": "Synthetic Role Target 298"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200299",
+     "relatedName": "Synthetic Role Target 299"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200300",
+     "relatedName": "Synthetic Role Target 300"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200301",
+     "relatedName": "Synthetic Associated Concept 1"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200302",
+     "relatedName": "Synthetic Associated Concept 2"
+    }
+   ]
+  }
+ }
+}
