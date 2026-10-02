@@ -30,7 +30,7 @@ def test_the_recorded_set_is_exactly_what_the_manifest_records():
     planned = plan(MANIFEST)
 
     assert [each.file for each in planned if each.file not in DOCUMENTS] == []
-    assert stale(FIXTURES, planned) == []
+    assert stale(FIXTURES, MANIFEST) == []
 
 
 @pytest.mark.parametrize("name", sorted(DOCUMENTS))
@@ -47,7 +47,7 @@ def test_no_fixture_holds_licensed_content(name):
 
     for status in statuses:
         assert LICENSING.request_problem(request["path"], request.get("params", {}), status) is None
-    assert [line for body in bodies for line in LICENSING.redact(body)[1]] == []
+    assert [name for body in bodies for name in LICENSING.licensed_names(body)] == []
     assert [name for body in bodies for name in LICENSING.undecided(body)] == []
 
 

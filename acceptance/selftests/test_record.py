@@ -152,8 +152,70 @@ def test_a_derived_fixture_needs_its_recording():
 def test_nothing_is_recorded_against_another_release_than_the_pinned_one():
     live = upstream({RELEASE_QUERY: (200, [{"terminologyVersion": "ncit_26.10d"}])})
 
+    with pytest.raises(RecordingError, match=r"answered 200 with \['ncit_26\.10d'\]"):
+        Recorder(manifest(), live, "2026-10-02").record(plan(manifest()))
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        (200, [{"terminologyVersion": "ncit_26.09d"}, {"terminologyVersion": "ncit_26.09d"}]),
+        (503, [{"terminologyVersion": "ncit_26.09d"}]),
+        (200, []),
+    ],
+)
+def test_the_pin_holds_only_for_one_row_naming_the_pinned_release(answer):
+    with pytest.raises(RecordingError, match="re-pinning is a re-recording"):
+        Recorder(manifest(), upstream({RELEASE_QUERY: answer}), "2026-10-02").record(
+            plan(manifest())
+        )
+
+
+def test_an_answer_with_another_status_than_expected_stops_the_recording():
+    live = upstream({("evs", "/api/v1/version", "detail=all"): (503, "<html>busy</html>")})
+
+    with pytest.raises(RecordingError, match=r"version\.json: answered 503, where 200 is expected"):
+        Recorder(manifest(), live, "2026-10-02").record(plan(manifest()))
+
+
+def test_an_entry_may_expect_another_status():
+    entry = {"fixture": "scenarios/x/y/gone.json", "surface": "evs", "path": "/gone", "status": 404}
+    section = manifest(requests=[entry], concepts={}, samples=[])
+    live = upstream({("evs", "/gone", ""): (404, {"message": "gone"})})
+
+    documents = Recorder(section, live, "2026-10-02").record(plan(section))
+
+    assert documents["scenarios/x/y/gone.json"]["response"] == {
+        "status": 404,
+        "body": {"message": "gone"},
+    }
+
+
+def test_a_concept_recording_the_fixture_server_would_refuse_stops_the_recording():
+    section = manifest(concepts={"paths": ["C1"]}, samples=[])
+    live = upstream({("evs", "/api/v1/concept/ncit_26.09d/C1", "include=paths"): (200, C1)})
+
+    with pytest.raises(RecordingError, match=r"C1\.json: include paths is outside the manifest"):
+        Recorder(section, live, "2026-10-02").record(plan(section))
+
+
+def test_an_unreachable_service_is_a_problem_naming_the_request():
+    def unreachable(surface, path, params):
+        raise OSError("Connection refused")
+
+    with pytest.raises(RecordingError) as raised:
+        Recorder(manifest(), unreachable, "2026-10-02").record(plan(manifest()))
+
+    assert "the release query: Connection refused" in raised.value.problems
+    assert "recorded/evs/version.json: Connection refused" in raised.value.problems
+
+
+def test_a_licensed_name_redaction_cannot_remove_stops_the_recording():
+    licensed = {"code": "C2", "name": "Two", "origin": {"source": "MedDRA"}}
+    live = upstream({("evs", "/api/v1/concept/ncit_26.09d/C2", "include=full"): (200, licensed)})
+
     with pytest.raises(
-        RecordingError, match=r"the live monthly NCIt release is \['ncit_26\.10d'\]"
+        RecordingError, match=r"C2\.json: names MedDRA where redaction cannot remove"
     ):
         Recorder(manifest(), live, "2026-10-02").record(plan(manifest()))
 
@@ -167,6 +229,7 @@ def test_a_request_for_licensed_content_is_refused_unless_it_was_refused():
         Recorder(section, upstream({path: (200, {"code": "1"})}), "2026-10-02").record(
             plan(section)
         )
+    section = manifest(requests=[entry | {"status": 403}], concepts={}, samples=[])
     refused = Recorder(section, upstream({path: (403, {"message": "key"})}), "2026-10-02")
     response = refused.record(plan(section))["recorded/evs/mdr.json"]["response"]
     assert response == {"status": 403, "body": {"message": "key"}}
@@ -185,6 +248,16 @@ def test_a_request_for_licensed_content_is_refused_unless_it_was_refused():
             (200, C1),
             "the recordings cannot answer it",
         ),
+        (
+            "/api/v1/concept/ncit_26.09d?list=C1,C2&include=synonyms",
+            (200, [C2, C2, {"code": "C1", "name": "One", "synonyms": C1["synonyms"]}]),
+            "the composed answer differs from EVS's",
+        ),
+        (
+            "/api/v1/concept/ncit_26.09d/C1/maps",
+            (200, [{"targetName": "Zwei", "targetTerminology": "NCI"}, *C1["maps"]]),
+            "the composed answer differs from EVS's",
+        ),
     ],
 )
 def test_a_sample_the_recordings_do_not_reproduce_stops_the_recording(sample, answer, problem):
@@ -197,12 +270,69 @@ def test_a_sample_the_recordings_do_not_reproduce_stops_the_recording(sample, an
         Recorder(section, live, "2026-10-02").record(plan(section))
 
 
-def test_files_the_manifest_does_not_produce_are_named(tmp_path):
-    planned = plan(manifest())
-    write(tmp_path, {"recorded/evs/version.json": {}, "recorded/evs/old.json": {}})
+def test_a_batch_sample_compares_without_order_and_a_live_answer_without_licensed_items():
+    live = upstream(
+        {
+            ("evs", "/api/v1/concept/ncit_26.09d", "include=synonyms&list=C1,C2"): (
+                200,
+                [{"code": "C1", "name": "One", "synonyms": C1["synonyms"]}, C2],
+            ),
+            ("evs", "/api/v1/concept/ncit_26.09d/C1/maps", ""): (200, C1["maps"]),
+        }
+    )
+    section = manifest(
+        samples=[
+            "/api/v1/concept/ncit_26.09d?list=C1,C2&include=synonyms",
+            "/api/v1/concept/ncit_26.09d/C1/maps",
+        ]
+    )
 
-    assert stale(tmp_path, planned) == [
-        "recorded/evs/old.json: not produced by manifest.yaml; remove it or add it there"
+    assert Recorder(section, live, "2026-10-02").record(plan(section))
+
+
+def test_a_sample_beyond_what_a_recording_covers_cannot_be_answered():
+    section = manifest(
+        concepts={"synonyms": ["C1", "C2"]}, samples=["/api/v1/concept/ncit_26.09d/C1/maps"]
+    )
+    live = upstream(
+        {
+            ("evs", "/api/v1/concept/ncit_26.09d/C1", "include=synonyms"): (200, C1),
+            ("evs", "/api/v1/concept/ncit_26.09d/C2", "include=synonyms"): (200, C2),
+            ("evs", "/api/v1/concept/ncit_26.09d/C1/maps", ""): (200, []),
+        }
+    )
+
+    with pytest.raises(RecordingError, match="maps: the recordings cannot answer it"):
+        Recorder(section, live, "2026-10-02").record(plan(section))
+
+
+def test_a_derived_fixture_from_another_release_than_the_pinned_one_stops_the_recording():
+    entry = {
+        "fixture": "crafted/OP-E06/version.json",
+        "from": "recorded/evs/version.json",
+        "path": "/api/v1/version_pinned",
+        "requirement": "OP-E06",
+    }
+    live = upstream({("evs", "/api/v1/version", "detail=all"): (200, {"version": "26.08e"})})
+
+    with pytest.raises(RecordingError, match=r"version\.json serves 26\.08e"):
+        Recorder(manifest(derived=[entry]), live, "2026-10-02").record(plan(manifest()))
+
+
+def test_files_the_manifest_does_not_produce_are_named(tmp_path):
+    write(
+        tmp_path,
+        {
+            "recorded/evs/version.json": {},
+            "recorded/evs/old.json": {},
+            "crafted/OP-E06/old.json": {"derived_from": "recorded/evs/old.json"},
+            "crafted/A1/hand.json": {"kind": "crafted"},
+        },
+    )
+
+    assert stale(tmp_path, manifest()) == [
+        "recorded/evs/old.json: not produced by manifest.yaml; remove it or add it there",
+        "crafted/OP-E06/old.json: not produced by manifest.yaml; remove it or add it there",
     ]
 
 

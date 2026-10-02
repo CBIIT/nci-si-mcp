@@ -41,9 +41,14 @@ surfaces:
 licensing:
   # The terminologies whose EVS metadata (licenseText) requires a licence beyond EVS, by
   # every name EVS gives them, and ICD-O-3, withheld while its terms are unsettled.
-  licensed: [mdr, MedDRA, snomedct_us, SNOMEDCT, icd10, ncim, ICDO3]
-  # The sources NCIt's own synonyms and definitions name, published under NCIt's terms.
-  allowed: [ACC/AHA, CCPS, CDC, CDISC, CDISC-GLOSS, CPTAC, CTCAE, CTDC, CTEP, CTRP, Cellosaurus,
+  # Their FHIR system URIs are listed with them.
+  licensed: [mdr, MedDRA, snomedct_us, SNOMEDCT, icd10, ncim, ICDO3,
+             "https://www.meddra.org", "http://snomed.info/sct", "http://hl7.org/fhir/sid/icd-10",
+             "https://ncim.nci.nih.gov/ncimbrowser/"]
+  # NCIt itself, by its EVS name and FHIR system URI, and the sources NCIt's own synonyms
+  # and definitions name, published under NCIt's terms.
+  allowed: [ncit, "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+            ACC/AHA, CCPS, CDC, CDISC, CDISC-GLOSS, CPTAC, CTCAE, CTDC, CTEP, CTRP, Cellosaurus,
             DIPG/DMG, FDA, GDC, HGNC, HemOnc, ICDC, NCI, NCI-GLOSS, NICHD, OORO, PCDC, SeroNet,
             caDSR, mCode]
   # The mapsets with a licensed terminology on either side.
@@ -128,6 +133,14 @@ record:
     - fixture: recorded/evs/mapset-gdc.json
       surface: evs
       path: /api/v1/mapset/NCIt_Maps_To_GDC
+    # Its maps (issue #6: the cross-domain tests need them), by a GDC value and by a
+    # concept code; `term` matches as a prefix (C4817 also finds C48177).
+    - fixture: recorded/evs/mapset-gdc-maps-value.json
+      surface: evs
+      path: /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=Ewing sarcoma&fromRecord=0&pageSize=10
+    - fixture: recorded/evs/mapset-gdc-maps-code.json
+      surface: evs
+      path: /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C4817&fromRecord=0&pageSize=10
     # A value set of 534 members (CDISC SDTM Method Terminology) through FHIR $expand.
     - fixture: recorded/evs-fhir/expand-c85492.json
       surface: evs-fhir

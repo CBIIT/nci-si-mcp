@@ -7,7 +7,7 @@ from nci_si_acceptance.licensing import Licensing, named_terminologies
 
 DENY = Licensing.from_manifest(
     {
-        "licensed": ["mdr", "MedDRA", "snomedct_us"],
+        "licensed": ["mdr", "MedDRA", "snomedct_us", "http://snomed.info/sct"],
         "allowed": ["NCI", "GDC"],
         "mapsets": ["NCIt_Maps_To_MedDRA"],
     }
@@ -22,6 +22,9 @@ DENY = Licensing.from_manifest(
         ("/api/v1/metadata/snomedct_us/roles", {}),
         ("/api/v1/mapset/NCIt_Maps_To_MedDRA/maps", {}),
         ("/api/v1/concept/search", {"terminology": ["ncit,MDR"]}),
+        ("/ConceptMap/ncit_maps_to_meddra_26.09d", {}),
+        ("/ConceptMap/$translate", {"url": ["http://x?fhir_cm=NCIt_Maps_To_MedDRA"]}),
+        ("/ValueSet/$expand", {"url": ["http://snomed.info/sct?fhir_vs"]}),
     ],
 )
 def test_a_request_naming_licensed_content_is_refused_unless_the_service_refused_it(path, params):
@@ -83,6 +86,13 @@ def test_every_terminology_a_payload_names_is_found_at_any_depth():
     }
 
     assert named_terminologies(payload) == {"NCI", "CTRP", "GDC", "ICDO3"}
+
+
+def test_a_licensed_name_left_anywhere_is_found_even_where_redaction_cannot_reach():
+    payload = {"source": "MDR", "contains": [{"system": "http://snomed.info/sct?fhir_vs"}]}
+
+    assert DENY.licensed_names(DENY.redact(payload)[0]) == ["MDR"]
+    assert DENY.redact(payload)[1] == ["/contains/0 (http://snomed.info/sct?fhir_vs)"]
 
 
 def test_a_terminology_neither_licensed_nor_allowed_is_undecided_in_any_case():

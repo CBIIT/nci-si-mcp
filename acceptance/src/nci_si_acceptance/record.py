@@ -11,14 +11,18 @@ where EVS does not answer it yet, carrying the answer of a recording (Acceptance
 
 - the live monthly NCIt release is the one the manifest pins (`evs.release`):
   re-pinning is a re-recording under change control;
+- every request is answered, with the status its entry expects (`status`, 200 unless
+  given), and every concept recording is one the fixture server accepts;
 - no request names licensed content, every terminology a payload names is licensed
   or allowed, and the licensed items are removed and listed in the fixture's
-  `redacted` (licensing.py);
+  `redacted`, leaving no licensed name behind (licensing.py);
 - every sample under `record.samples`, asked live, equals the answer the concept
   rules compose from the new recordings, a batch compared code by code because EVS
   keeps no order;
-- every derived fixture comes from a recording the manifest makes;
-- every file under the recorded surfaces is one the manifest produces.
+- every derived fixture comes from a recording the manifest makes, of the pinned
+  release where the answer names one;
+- every file under the recorded surfaces, and every derived fixture, is one the
+  manifest produces.
 """
 
 from __future__ import annotations
@@ -70,6 +74,7 @@ class Planned:
     params: Params
     # Parameters the service is shown to ignore, with the evidence (fixture_server.py).
     ignored: dict[str, str] = field(default_factory=dict)
+    status: int = HTTPStatus.OK
 
 
 def _split(target: str) -> tuple[str, Params]:
@@ -83,7 +88,11 @@ def plan(manifest: dict[str, Any]) -> list[Planned]:
     record, release = manifest["record"], manifest["evs"]["release"]
     planned = [
         Planned(
-            entry["fixture"], entry["surface"], *_split(entry["path"]), entry.get("ignored", {})
+            entry["fixture"],
+            entry["surface"],
+            *_split(entry["path"]),
+            entry.get("ignored", {}),
+            entry.get("status", HTTPStatus.OK),
         )
         for entry in record.get("requests", [])
     ]
@@ -128,12 +137,21 @@ class Recorder:
         """The fixture documents by file; RecordingError if anything does not hold."""
 
         self._check_pin()
-        documents = {each.file: self._one(each) for each in planned}
+        documents = {each.file: document for each in planned if (document := self._one(each))}
         self._check_samples(documents)
         derived = self._derive(documents)
         if self.problems:
             raise RecordingError(self.problems)
         return documents | derived
+
+    def _fetch(self, label: str, surface: str, path: str, params: Params) -> tuple[int, Any] | None:
+        """The live answer, or None with the failure among the problems."""
+
+        try:
+            return self.fetch(surface, path, params)
+        except OSError as error:
+            self.problems.append(f"{label}: {error}")
+            return None
 
     def _derive(self, documents: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
         derived = {}
@@ -142,30 +160,70 @@ class Recorder:
             if source is None:
                 self.problems.append(f"{entry['fixture']}: {entry['from']} is not recorded")
                 continue
+            if (served := _served_release(source)) not in (None, self.version):
+                self.problems.append(f"{entry['fixture']}: {entry['from']} serves {served}")
             derived[entry["fixture"]] = _derived(entry, source)
         return derived
 
-    def _one(self, planned: Planned) -> dict[str, Any]:
-        status, body = self.fetch(planned.surface, planned.path, planned.params)
-        if problem := self.licensing.request_problem(planned.path, planned.params, status):
-            self.problems.append(f"{planned.file}: {problem}")
-        if undecided := self.licensing.undecided(body):
-            self.problems.append(
-                f"{planned.file}: names {', '.join(undecided)}, neither licensed nor allowed "
-                f"in {MANIFEST}: decide each"
-            )
+    @property
+    def version(self) -> str:
+        """The pinned release as a payload names it: `26.09d` for `ncit_26.09d`."""
+
+        return self.manifest["evs"]["release"].rpartition("_")[2]
+
+    def _one(self, planned: Planned) -> dict[str, Any] | None:
+        answer = self._fetch(planned.file, planned.surface, planned.path, planned.params)
+        if answer is None:
+            return None
+        status, body = answer
+        problems = [
+            self._status_problem(planned, status),
+            self.licensing.request_problem(planned.path, planned.params, status),
+            self._undecided_problem(body),
+        ]
         body, redacted = self.licensing.redact(body)
-        return _document(planned, status, body, redacted, self.today)
+        document = _document(planned, status, body, redacted, self.today)
+        problems += [self._licensed_problem(body), self._recording_problem(planned, document)]
+        self.problems += [f"{planned.file}: {problem}" for problem in problems if problem]
+        return None if problems[-1] else document
+
+    @staticmethod
+    def _status_problem(planned: Planned, status: int) -> str | None:
+        if status != planned.status:
+            return f"answered {status}, where {planned.status} is expected"
+        return None
+
+    def _undecided_problem(self, body: Any) -> str | None:
+        if undecided := self.licensing.undecided(body):
+            names = ", ".join(undecided)
+            return f"names {names}, neither licensed nor allowed in {MANIFEST}: decide each"
+        return None
+
+    def _licensed_problem(self, body: Any) -> str | None:
+        if remaining := self.licensing.licensed_names(body):
+            return f"names {', '.join(remaining)} where redaction cannot remove it"
+        return None
+
+    def _recording_problem(self, planned: Planned, document: dict[str, Any]) -> str | None:
+        if Path(planned.file).parent.name != CONCEPTS:
+            return None
+        response = document["response"]
+        return self.rules.recording_problem(
+            document["request"], response["status"], response["body"]
+        )
 
     def _check_pin(self) -> None:
         pinned = self.manifest["evs"]["release"]
         query = {"terminology": ["ncit"], "latest": ["true"], "tag": ["monthly"]}
-        status, rows = self.fetch("evs", "/api/v1/metadata/terminologies", query)
+        answer = self._fetch("the release query", "evs", "/api/v1/metadata/terminologies", query)
+        if answer is None:
+            return
+        status, rows = answer
         live = [row.get("terminologyVersion") for row in rows] if status == HTTPStatus.OK else []
         if live != [pinned]:
             self.problems.append(
-                f"the live monthly NCIt release is {live or status}, the fixture set is pinned to "
-                f"{pinned}: re-pinning is a re-recording under change control"
+                f"the live monthly release query answered {status} with {live}, the fixture set "
+                f"is pinned to {pinned}: re-pinning is a re-recording under change control"
             )
 
     def _check_samples(self, documents: dict[str, dict[str, Any]]) -> None:
@@ -173,21 +231,29 @@ class Recorder:
         for sample in self.manifest["record"].get("samples", []):
             path, params = _split(sample)
             composed = self.rules.answer(path, params, lambda *key: recordings.get(key))
-            status, body = self.fetch("evs", path, params)
+            answer = self._fetch(f"sample {sample}", "evs", path, params)
+            if answer is None:
+                continue
             batch = "list" in params
-            live = (status, _by_code(self.licensing.redact(body)[0], batch=batch))
+            live = (answer[0], _ordered(self.licensing.redact(answer[1])[0], batch=batch))
             if composed is None:
                 self.problems.append(f"sample {sample}: the recordings cannot answer it")
-            elif (composed.status, _by_code(composed.body, batch=batch)) != live:
+            elif (composed.status, _ordered(composed.body, batch=batch)) != live:
                 self.problems.append(f"sample {sample}: the composed answer differs from EVS's")
 
 
-def _by_code(body: Any, *, batch: bool) -> Any:
-    """A batch answer keyed by code, so that it compares without its order."""
+def _ordered(body: Any, *, batch: bool) -> Any:
+    """A batch answer sorted by code, so that it compares without its order but with
+    any duplicate."""
 
     if batch and isinstance(body, list):
-        return {concept["code"]: concept for concept in body}
+        return sorted(body, key=lambda concept: concept["code"])
     return body
+
+
+def _served_release(document: dict[str, Any]) -> str | None:
+    body = document["response"]["body"]
+    return body.get("version") if isinstance(body, dict) else None
 
 
 def _derived(entry: dict[str, Any], source: dict[str, Any]) -> dict[str, Any]:
@@ -228,16 +294,34 @@ def _recordings(
     return recordings
 
 
-def stale(root: Path, planned: Iterable[Planned]) -> list[str]:
-    """Files under the recorded surfaces that the manifest does not produce."""
+def stale(root: Path, manifest: dict[str, Any]) -> list[str]:
+    """Files under the recorded surfaces, and derived fixtures, that the manifest does
+    not produce."""
 
-    planned = list(planned)
-    files = {each.file for each in planned}
+    planned = plan(manifest)
+    produced = {each.file for each in planned}
+    produced |= {entry["fixture"] for entry in manifest["record"].get("derived", [])}
+    found = [*_recorded_files(root, {each.surface for each in planned}), *_derived_files(root)]
     return [
         f"{name}: not produced by {MANIFEST}; remove it or add it there"
-        for surface in sorted({each.surface for each in planned})
+        for path in found
+        if (name := path.relative_to(root).as_posix()) not in produced
+    ]
+
+
+def _recorded_files(root: Path, surfaces: set[str]) -> list[Path]:
+    return [
+        path
+        for surface in sorted(surfaces)
         for path in sorted((root / RECORDED / surface).rglob("*.json"))
-        if (name := path.relative_to(root).as_posix()) not in files
+    ]
+
+
+def _derived_files(root: Path) -> list[Path]:
+    return [
+        path
+        for path in sorted(root.glob("crafted/**/*.json"))
+        if "derived_from" in json.loads(path.read_text(encoding="utf-8"))
     ]
 
 
@@ -282,7 +366,7 @@ def main(arguments: Iterable[str] | None = None) -> int:
     recorder = Recorder(manifest, live_fetch(manifest["surfaces"]), today)
     try:
         documents = recorder.record(planned)
-        if problems := stale(options.fixtures, planned):
+        if problems := stale(options.fixtures, manifest):
             raise RecordingError(problems)
     except RecordingError as error:
         sys.stderr.write(f"Nothing was written:\n{error}\n")

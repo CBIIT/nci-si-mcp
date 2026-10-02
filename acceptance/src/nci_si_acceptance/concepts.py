@@ -12,11 +12,12 @@ composition against real projections, batches and relation lists:
   adds (the manifest's table); a request without include gets the default. EVS
   leaves out an empty list, and so does a recording.
 - select by list: a batch answer holds each requested code once and leaves out a
-  code EVS does not know. EVS keeps no order: the same request answered in two orders
-  a minute apart on 2 October 2026, mostly but not always lexicographic. The rules
-  answer in the request's order rotated by one, which differs from it whenever two
-  codes are found, so that pairing answers with requests by position fails here
-  rather than only sometimes against EVS.
+  code EVS does not know; EVS refuses a list of more than 1,000 codes (400), counted
+  before duplicates are dropped, and so do the rules. EVS keeps no order: the same
+  request answered in two orders a minute apart on 2 October 2026, mostly but not
+  always lexicographic. The rules answer the found concepts in request order rotated
+  by one, which differs from it whenever two are found, so that pairing answers with
+  requests by position fails here rather than only sometimes against EVS.
 - one relation: the list under that key of the concept, or an empty list where it has
   none, for the relations the manifest names (verified 2 October 2026: each equals
   its include projection; `history` answers in another shape and is not one).
@@ -35,11 +36,13 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from http import HTTPStatus
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Self, TypeGuard
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+# The most codes EVS answers in one batch (verified 2 October 2026: 1,001 answer 400).
+MAX_BATCH = 1000
 CONCEPT_PATH = re.compile(
     r"/api/v1/concept/(?P<terminology>[^/]+)(?:/(?P<code>[^/]+)(?:/(?P<relation>[^/]+))?)?"
 )
@@ -136,7 +139,8 @@ class ConceptRules:
             return None
         if code:
             return _single(find(terminology, code), keys)
-        return _batch([find(terminology, each) for each in _codes(params["list"][0])], keys)
+        listed = dict.fromkeys(params["list"][0].split(","))
+        return _batch([find(terminology, each) for each in listed], keys)
 
     def _relation(
         self, recording: Recording | None, relation: str, params: dict[str, list[str]]
@@ -174,31 +178,26 @@ def _answer_problem(code: str, status: int, body: Any) -> str | None:
 
 
 def _composable(params: dict[str, list[str]], *, single: bool) -> bool:
-    """Whether the rules know the request's parameters: include, and list for a batch."""
+    """Whether the rules know the request's parameters: include, and for a batch a list
+    EVS would answer."""
 
     if any(len(values) != 1 for values in params.values()):
         return False
     if single:
         return set(params) <= {"include"}
-    return "list" in params and set(params) <= {"include", "list"}
+    if "list" not in params or not set(params) <= {"include", "list"}:
+        return False
+    return len(params["list"][0].split(",")) <= MAX_BATCH
 
 
-def _codes(listed: str) -> list[str]:
-    """The codes of a batch in the order the rules answer them: once each, in the
-    request's order rotated by one."""
-
-    codes = list(dict.fromkeys(listed.split(",")))
-    return codes[1:] + codes[:1]
-
-
-def _usable(recording: Recording | None, keys: frozenset[str]) -> bool:
+def _usable(recording: Recording | None, keys: frozenset[str]) -> TypeGuard[Recording]:
     if recording is None:
         return False
     return recording.status == HTTPStatus.NOT_FOUND or keys <= recording.covers
 
 
 def _single(recording: Recording | None, keys: frozenset[str]) -> Answer | None:
-    if recording is None or not _usable(recording, keys):
+    if not _usable(recording, keys):
         return None
     if recording.status == HTTPStatus.NOT_FOUND:
         return Answer([recording.name], recording.status, recording.body)
@@ -213,6 +212,8 @@ def _batch(recordings: list[Recording | None], keys: frozenset[str]) -> Answer |
 
 
 def _known(recordings: list[Recording], keys: frozenset[str]) -> list[dict[str, Any]]:
-    """The projected concepts of a batch; the codes EVS does not know are left out."""
+    """The projected concepts of a batch, rotated by one; the codes EVS does not know
+    are left out."""
 
-    return [project(each.body, keys) for each in recordings if each.status == HTTPStatus.OK]
+    known = [project(each.body, keys) for each in recordings if each.status == HTTPStatus.OK]
+    return known[1:] + known[:1]

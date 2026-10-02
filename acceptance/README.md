@@ -48,8 +48,8 @@ has a documented upstream limitation (`--limitations`, YAML of test id to requir
 required tools, `fixture_server.py` serves the fixtures (its docstring documents the format),
 `report.py` writes and renders the per-tool report, `inventory.py` lists the required tools and
 `suite.py` the rules of a run. `concepts.py` composes EVS concept answers from one recording per
-concept, `licensing.py` keeps licensed content out, and `record.py` records the set from live. `fixtures/` holds the fixtures
-([fixtures/README.md](fixtures/README.md)), `tests/` the suite, `selftests/` the tests of the
-harness itself.
+concept, `licensing.py` keeps licensed content out, and `record.py` records the set from live.
+`fixtures/` holds the fixtures ([fixtures/README.md](fixtures/README.md)), `tests/` the suite,
+`selftests/` the tests of the harness itself.
 
 The suite is versioned on its own (`pyproject.toml` here), independently of the server.

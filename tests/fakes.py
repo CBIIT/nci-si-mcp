@@ -52,8 +52,8 @@ class FakeEVS:
     include string of each concept request. Like EVS, a concept request returns
     only the optional fields its include string names, and a batch request
     returns only the known concepts. EVS keeps no order in a batch, so the fake
-    answers in the request's order rotated by one: code that pairs answers with
-    requests by position fails here. Set `errors[method]` to an exception to make
+    answers the known concepts in request order rotated by one: code that pairs
+    answers with requests by position fails here. Set `errors[method]` to an exception to make
     that method fail.
     """
 
@@ -96,9 +96,10 @@ class FakeEVS:
         codes = list(codes)
         self._record("get_concepts_by_codes", terminology, codes)
         self.includes.append(include)
-        unique = list(dict.fromkeys(codes))
-        rotated = unique[1:] + unique[:1]
-        return [self._concept(code, include) for code in rotated if code in self.concepts]
+        known = [
+            self._concept(code, include) for code in dict.fromkeys(codes) if code in self.concepts
+        ]
+        return known[1:] + known[:1]
 
     def get_descendants(self, code, max_level, terminology="ncit"):
         self._record("get_descendants", terminology, (code, max_level))

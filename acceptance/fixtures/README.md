@@ -17,11 +17,14 @@ service does not produce on demand (and which requirement it stands in for).
 
 ## Recording
 
-`pdm run acceptance-record` re-records the set from live and writes nothing unless the live
-monthly release is still the pinned one, no request names licensed content, the composed concept
-answers equal real ones, and no file under `recorded/` is left over. The set grows with the
-tests: a test that needs another upstream answer adds its request to the manifest and re-records.
-Re-pinning the release is a re-recording under change control.
+`pdm run acceptance-record` re-records the set from live and writes nothing unless every check
+holds: the live monthly release is still the pinned one; every request answers with the status
+its entry expects; no request names licensed content and no licensed or undecided terminology is
+left in a payload; every concept recording is one the fixture server accepts and the composed
+concept answers equal real ones; every derived fixture comes from a recording of the pinned
+release; and no file under `recorded/`, and no derived fixture, is left over. The set grows with
+the tests: a test that needs another upstream answer adds its request to the manifest and
+re-records. Re-pinning the release is a re-recording under change control.
 
 ## Request forms
 

@@ -4,7 +4,7 @@ import json
 import re
 from http import HTTPStatus
 from urllib.error import HTTPError
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 import pytest
 import yaml
@@ -95,7 +95,7 @@ def test_a_batch_holds_each_code_once_never_in_the_order_requested(rules):
     )
 
     assert [each["code"] for each in answer.body] == ["C2", "C3", "C1"]
-    assert answer.names == ["C2.json", "C3.json", "C1.json"]
+    assert answer.names == ["C1.json", "C2.json", "C3.json"]
 
 
 @pytest.mark.parametrize(
@@ -111,10 +111,34 @@ def test_a_batch_holds_each_code_once_never_in_the_order_requested(rules):
         ("/api/v1/concept/ncit_26.09d/C1/children", {}),
         ("/api/v1/concept/ncit_99.99z/C1", {"include": ["minimal"]}),
         ("/api/v1/version", {}),
+        ("/api/v1/concept/ncit_26.09d", {"list": ["C1"], "limit": ["5"]}),
+        ("/api/v1/concept/ncit_26.09d/C1", {"include": ["minimal,paths"]}),
+        ("/api/v1/concept/ncit_26.09d", {"list": [",".join(["C1"] * 1001)]}),
     ],
 )
 def test_what_the_recordings_do_not_cover_goes_unanswered(rules, path, params):
     assert rules.answer(path, params, finder(full(C1))) is None
+
+
+def test_a_batch_of_up_to_a_thousand_codes_is_answered_counting_duplicates(rules):
+    answer = rules.answer(
+        "/api/v1/concept/ncit_26.09d", {"list": [",".join(["C1"] * 1000)]}, finder(full(C1))
+    )
+
+    assert [each["code"] for each in answer.body] == ["C1"]
+
+
+def test_the_found_concepts_are_rotated_whatever_the_request_left_out(rules):
+    unknown = Recording("C404.json", 404, {"message": "C404 not found"}, frozenset())
+    table = {("ncit_26.09d", "C1"): full(C1), ("ncit_26.09d", "C2"): full(concept("C2"))}
+    table[("ncit_26.09d", "C404")] = unknown
+
+    def find(terminology, code):
+        return table.get((terminology, code))
+
+    answer = rules.answer("/api/v1/concept/ncit_26.09d", {"list": ["C404,C1,C2"]}, find)
+
+    assert [each["code"] for each in answer.body] == ["C2", "C1"]
 
 
 def test_a_key_outside_a_recordings_include_goes_unanswered(rules):
@@ -139,7 +163,7 @@ def test_a_recorded_404_answers_alone_and_drops_out_of_a_batch(rules):
 
     assert (single.status, single.body) == (404, {"message": "C404 not found"})
     assert (batch.status, [each["code"] for each in batch.body]) == (200, ["C1"])
-    assert batch.names == ["C1.json", "C404.json"]
+    assert batch.names == ["C404.json", "C1.json"]
 
 
 def test_a_relation_is_answered_with_its_list_or_an_empty_one(rules):
@@ -157,7 +181,8 @@ def test_a_relation_is_answered_with_its_list_or_an_empty_one(rules):
 
 def test_a_relation_the_recording_does_not_cover_or_of_an_unknown_code_goes_unanswered(rules):
     partial = Recording("C1.json", 200, C1, frozenset({"code", "name"}))
-    unknown = Recording("C404.json", 404, {"message": "C404 not found"}, frozenset())
+    covers = frozenset({"code", "name", "parents"})
+    unknown = Recording("C404.json", 404, {"message": "C404 not found"}, covers)
     table = {("ncit_26.09d", "C1"): partial, ("ncit_26.09d", "C404"): unknown}
 
     def find(terminology, code):
@@ -216,7 +241,7 @@ def test_the_fixture_server_composes_answers_and_logs_the_recordings_used(tmp_pa
     assert missing[0] == HTTPStatus.NOT_IMPLEMENTED
     assert logged == [
         "recorded/evs/concepts/C1.json",
-        "recorded/evs/concepts/C2.json, recorded/evs/concepts/C1.json",
+        "recorded/evs/concepts/C1.json, recorded/evs/concepts/C2.json",
         None,
     ]
 
@@ -234,6 +259,40 @@ def test_an_exact_fixture_and_a_scenarios_recording_come_before_the_ordinary_rec
         during = fetch_json(url)[1]["name"]
 
     assert (ordinary, during) == ("One", "Changed")
+
+
+def test_an_exact_fixture_answers_before_the_rules_and_only_a_get_is_composed(tmp_path):
+    write_manifest(tmp_path)
+    recording(tmp_path, "C1", body=C1)
+    exact = {
+        "kind": "crafted",
+        "requirement": "A2.5",
+        "request": {
+            "surface": "evs",
+            "method": "GET",
+            "path": "/api/v1/concept/ncit_26.09d/C1",
+            "params": {"include": ["minimal"]},
+        },
+        "response": {"status": 503, "body": {"message": "down"}},
+    }
+    (tmp_path / "scenarios/upstream/down").mkdir(parents=True)
+    (tmp_path / "scenarios/upstream/down/c1.json").write_text(json.dumps(exact), encoding="utf-8")
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        url = running.base_url("evs") + "/api/v1/concept/ncit_26.09d/C1?include=minimal"
+        running.activate("upstream/down")
+        faulted = fetch_json(url)[0]
+        running.activate()
+        statuses = [faulted, post_status(url), fetch_json(url)[0]]
+
+    assert statuses == [503, HTTPStatus.NOT_IMPLEMENTED, 200]
+
+
+def post_status(url):
+    try:
+        with urlopen(Request(url, data=b"{}", method="POST"), timeout=10) as response:  # noqa: S310
+            return response.status
+    except HTTPError as error:
+        return error.code
 
 
 def test_two_active_scenarios_recording_one_concept_are_refused(tmp_path):
@@ -302,6 +361,11 @@ def test_an_unusable_recording_is_refused_naming_its_problem(tmp_path, change, p
             {"params": {"include": ["full"], "limit": ["5"]}},
             "a concept recording names exactly the include it was recorded with",
         ),
+        (
+            {"params": {"include": ["full", "summary"]}},
+            "a concept recording names exactly the include it was recorded with",
+        ),
+        ({"method": "POST"}, "a concept recording is a GET of /api/v1/concept/"),
     ],
 )
 def test_a_recording_is_a_plain_concept_request(tmp_path, request_change, problem):
@@ -313,6 +377,18 @@ def test_a_recording_is_a_plain_concept_request(tmp_path, request_change, proble
     path.write_text(json.dumps(document), encoding="utf-8")
 
     with pytest.raises(ValueError, match=problem):
+        load_fixtures(tmp_path)
+
+
+def test_a_recording_is_a_fixture_with_its_provenance(tmp_path):
+    write_manifest(tmp_path)
+    recording(tmp_path, "C1")
+    path = tmp_path / "recorded/evs/concepts/C1.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    del document["recorded_on"]
+    path.write_text(json.dumps(document), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"C1\.json: a recorded fixture names recorded_on"):
         load_fixtures(tmp_path)
 
 
