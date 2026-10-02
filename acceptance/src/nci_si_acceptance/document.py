@@ -76,7 +76,10 @@ def _tool_row(name: str, tool: dict[str, Any]) -> str:
         for argument, choices in tool.get("values", {}).items()
     )
     signature = _cell(f"{tool['inputs']} → {tool['returns']}")
-    return f"| `{name}` | `{signature}` | {_cell(tool['summary'])}{values} |"
+    items = (
+        f" Items: {', '.join(f'`{path}`' for path in tool['items'])}." if "items" in tool else ""
+    )
+    return f"| `{name}` | `{signature}` | {_cell(tool['summary'])}{values}{items} |"
 
 
 def _tools() -> list[str]:

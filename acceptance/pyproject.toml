@@ -29,6 +29,7 @@ markers = [
     "requirement(*ids): the requirements of spec/requirements.yaml the test enforces",
     "gate: a protocol-level gate (a P requirement); a failure fails every tool",
     "scenario(*names): the scenarios active for the test, on a server process of its own",
+    "own_server: the test runs on a server process of its own, with nothing cached from others",
     "live_capable: also runs in live mode",
     "unmatched_upstream: expects upstream requests without a fixture, and checks them itself",
 ]

@@ -367,7 +367,8 @@ acceptance/
   request-forms/            the register of request forms: views for the EVS team, the caDSR team, and both
   tests/
     test_protocol.py        the P requirements (protocol gates)
-    test_crosscutting.py    the X requirements, parameterised over the required tools
+    test_crosscutting.py    the X requirements, one case per tool with a call in calls.yaml
+    calls.yaml              that call of each content-returning tool, answered by the fixture set
     test_evs.py, test_cadsr.py, test_cross_domain.py, test_workflow.py   each group's tool requirements
   selftests/                the harness's own tests, run in the unit CI job
 ```

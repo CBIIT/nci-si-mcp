@@ -1,8 +1,40 @@
-"""The specification read as data: the parameters each tool takes, and the tools of a profile."""
+"""The specification read as data: where a result's items are, the parameters each tool takes,
+and the tools of a profile."""
 
 import pytest
 
-from nci_si_acceptance.spec import REQUIRED_TOOLS, parameters, profile_tools
+from nci_si_acceptance.spec import REQUIRED_TOOLS, items_of, parameters, profile_tools
+
+CONCEPT = {"code": "C4817"}
+
+
+@pytest.mark.parametrize(
+    ("tool", "result", "items"),
+    [
+        ("get_concept", CONCEPT, [CONCEPT]),
+        ("get_concepts", {"concepts": [CONCEPT, CONCEPT], "missing": []}, [CONCEPT, CONCEPT]),
+        (
+            "resolve_retired_code",
+            {**CONCEPT, "replacements": [CONCEPT]},
+            [{**CONCEPT, "replacements": [CONCEPT]}, CONCEPT],
+        ),
+        ("search_concepts", {"results": [{"concept": CONCEPT, "score": 1}]}, [CONCEPT]),
+        (
+            "get_concept_neighborhood",
+            {"nodes": [CONCEPT], "edges": [{"code": "R1"}]},
+            [CONCEPT, {"code": "R1"}],
+        ),
+        # A result without the parts its items name has none: the tests then fail, saying so.
+        ("search_concepts", {"hits": [CONCEPT]}, []),
+        ("search_concepts", {"results": [{"concept": None}]}, []),
+        ("get_concepts", "an error, in words", []),
+        ("get_concept", None, []),
+        # A tool that declares no items yet.
+        ("get_data_element", {"publicId": "2200604"}, []),
+    ],
+)
+def test_the_items_of_a_result_are_where_the_tool_says(tool, result, items):
+    assert items_of(tool, result) == items
 
 
 @pytest.mark.parametrize(

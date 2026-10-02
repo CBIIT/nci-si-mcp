@@ -2,70 +2,90 @@
 # optional argument, | alternatives), the values an enumerated argument takes, and what it
 # does. Groups: evs, cadsr, cross-domain and workflow. The conventions of
 # conventions.yaml apply to every tool; requirements.yaml says what the suite tests of each.
+#
+# `items` says where a result's items are, each carrying its provenance (A4.4): "." is the
+# result itself, `nodes[]` each element of the result's `nodes`, and `results[].concept` the
+# concept of each element of its `results`. A tool with items is content-returning, and the
+# cross-cutting requirements apply to it. `traversal: true` marks a tool whose items are
+# reached by traversal (A4.2).
 
 resolve_release:
   group: evs
   inputs: (terminology, channel?)
   returns: "{ terminology, channel, version, date, alternatives[] }"
+  items: ["."]
   summary: Which release of a terminology is current, by channel; called explicitly, and its answer is passed to every later call.
 get_concept:
   group: evs
   inputs: (terminology, release, code, include[]?)
   returns: concept
+  items: ["."]
   values: {include: [synonyms, definitions, properties, semanticType, status]}
   summary: One concept with the detail selected.
 get_concepts:
   group: evs
   inputs: (terminology, release, codes[], include[]?)
-  returns: concept[]
+  returns: "{ concepts[], missing[] }"
+  items: ["concepts[]"]
   summary: Many concepts in one platform call, with the detail selected.
 search_concepts:
   group: evs
   inputs: (terminology, release, query, mode?, limit?, cursor?)
   returns: "{ results[{ concept, score?, matchedOn? }], nextCursor? }"
+  items: ["results[].concept"]
   values: {mode: [lexical, typeahead, semantic, hybrid]}
   summary: Ranked search of a terminology; semantic and hybrid from the interim NCIt index (M4.1).
 get_concept_hierarchy:
   group: evs
   inputs: (terminology, release, code, direction, depth?, limit?, cursor?)
   returns: "{ nodes[], truncation }"
+  items: ["nodes[]"]
+  traversal: true
   values: {direction: [parent, child, pathsToRoot]}
   summary: A concept's parents, children or paths to the root, bounded.
 expand_value_set:
   group: evs
   inputs: (terminology, release, valueSet | code, count?, offset?, activeOnly?)
   returns: "{ members[], total?, truncation }"
+  items: ["members[]"]
   summary: The members of a value set, paged and bounded by the tool itself; $lookup, $validate-code, $subsumes and $translate where a caller asks.
 get_concept_neighborhood:
   group: evs
   inputs: (terminology, release, code, depth?, kinds[]?, maxNodes?, maxEdges?, budgetPerKind?, includeNegative?)
   returns: "{ nodes[], edges[], truncation }"
+  items: ["nodes[]", "edges[]"]
+  traversal: true
   values: {kinds: [parent, child, role, association, inverseRole, inverseAssociation]}
   summary: Bounded traversal across roles and associations with a budget per kind; negative assertions returned marked, left out of positive expansion unless includeNegative.
 get_concept_subsets:
   group: evs
   inputs: (terminology, release, code)
-  returns: subset[]
+  returns: "{ subsets[] }"
+  items: ["subsets[]"]
   summary: The subsets and value sets a concept belongs to.
 get_concept_mappings:
   group: evs
   inputs: (terminology, release, code, targetTerminology?)
-  returns: mapping[]
+  returns: "{ mappings[] }"
+  items: ["mappings[]"]
   summary: A concept's mappings to other terminologies, each mapset with its own name and version.
 resolve_retired_code:
   group: evs
   inputs: (terminology, release, code)
-  returns: "{ status, replacements[] }"
+  returns: "{ code, terminology, status, replacements[] }"
+  items: [".", "replacements[]"]
   summary: Whether a code is retired, and what replaces it.
 list_relationships:
   group: evs
   inputs: (terminology, release)
-  returns: "relationship[{ code, name, kind, polarity, axisFamily }]"
+  returns: "{ relationships[{ code, name, kind, polarity, axisFamily }] }"
+  items: ["relationships[]"]
   summary: The relationship catalogue of a release, polarity marked by code.
 list_terminologies:
   group: evs
   inputs: ()
-  returns: terminology[]
+  returns: "{ terminologies[] }"
+  items: ["terminologies[]"]
   summary: The terminologies available, with their current releases.
 
 resolve_registry_release:
@@ -108,17 +128,17 @@ get_permissible_value:
 get_code_map:
   group: cadsr
   inputs: (sourceSystem?, targetContext?, dataElementId?, cursor?)
-  returns: codeMap[]
+  returns: "{ codeMaps[], nextCursor? }"
   summary: Code maps between source code systems and registered value sets, the CRDC crosswalk included.
 list_contexts:
   group: cadsr
   inputs: (cursor?)
-  returns: context[]
+  returns: "{ contexts[], nextCursor? }"
   summary: The registry's contexts.
 list_classification_schemes:
   group: cadsr
   inputs: (context?, cursor?)
-  returns: classificationScheme[]
+  returns: "{ classificationSchemes[], nextCursor? }"
   summary: Classification schemes as objects with their nested items.
 
 find_data_elements_for_concept:

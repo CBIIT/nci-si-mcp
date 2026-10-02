@@ -1,0 +1,251 @@
+"""A server of the evs profile that meets the protocol gates and the cross-cutting
+requirements, for the harness's own tests.
+
+`COMPLIANT_SERVER_DEFECT` names one defect, so that a test can show the test concerned failing:
+
+    missing-tool      lists one tool of the profile too few                       (P-1)
+    no-error-shape    an outputSchema that refuses the error record                 (P-2)
+    declares-no-shape an outputSchema that admits any object                        (P-2)
+    one-code          an outputSchema whose error code admits one value only        (P-2)
+    placeholder       a description holding TODO                                    (P-3)
+    misnamed          a tool whose name is not verb-led and lowercase               (P-4)
+    no-ttl            tools/list with ttlMs 0                                       (P-5)
+    listing-changes   tools/list loses a tool after the first call                  (P-6)
+    redescribed       a tool's description changes after the first call             (P-6)
+    hides-tools       tools/list loses a tool once a call finds the platform down   (P-6)
+    no-correlation    the correlation identifier is not sent upstream               (P-7)
+    destructive       destructiveHint true                                          (P-10)
+    not-idempotent    idempotentHint false                                          (P-10)
+    closed-world      openWorldHint false                                           (P-10)
+    parameter-renamed get_concept takes conceptCode in place of code                (P-12)
+    release-optional  get_concept does not require release                          (P-12)
+    wrong-release     items name another release than the one requested             (X-1)
+    wrong-terminology items name another terminology than the one requested         (X-1)
+    invalid-result    a result its outputSchema refuses                             (X-6)
+    no-served-by      provenance without servedBy                                   (X-7)
+    bad-timestamp     a retrievedAt that is no ISO-8601 timestamp                   (X-7)
+    no-polarity       an item reached by traversal without polarity                 (X-7)
+    nothing-reached   a traversal whose items are all at depth 0                    (X-7)
+    prefixed-code     codes written NCIT:C4817                                      (X-9)
+    repeated-request  each call asks EVS twice for the same thing                   (X-11)
+    asks-nothing      calls that ask EVS nothing                                    (X-11)
+    uncached-result   results with ttlMs 0                                          (X-13)
+    private-scope     results with cacheScope private                               (X-13)
+    list-result       a result that is a bare list of its items                     (X-14)
+
+A call asks EVS for `/api/v1/version` unless the same call was made before: the server caches
+by call, as A9.4 allows. It answers with items where the tool's `items` say: the concept asked
+about and, at depth 1 for a traversal tool, one it reaches.
+"""
+
+import json
+import os
+import urllib.request
+from datetime import UTC, datetime
+
+import anyio
+import mcp_types as types
+from mcp.server.caching import CacheHint
+from mcp.server.lowlevel.server import Server
+from mcp.server.stdio import stdio_server
+
+from nci_si_acceptance.spec import RECORDS, TOOLS, parameters, profile_tools
+
+DEFECT = os.environ.get("COMPLIANT_SERVER_DEFECT", "")
+VERSION = os.environ["NCI_SI_EVS_BASE_URL"] + "/api/v1/version"
+# Whether each call so far reached EVS, and the calls already answered.
+reached = []
+answered = set()
+
+
+def _reaches_evs(headers: dict[str, str]) -> bool:
+    try:
+        with urllib.request.urlopen(urllib.request.Request(VERSION, headers=headers)):  # noqa: S310
+            return True
+    except OSError:
+        return False
+
+
+def _input_schema(name: str) -> dict:
+    names, required = parameters(name)
+    if DEFECT == "parameter-renamed" and name == "get_concept":
+        names, required = names - {"code"} | {"conceptCode"}, required - {"code"} | {"conceptCode"}
+    if DEFECT == "release-optional" and name == "get_concept":
+        required -= {"release"}
+    return {
+        "type": "object",
+        "properties": {key: {} for key in names},
+        "required": sorted(required),
+    }
+
+
+# A result is either an error record or a success.
+CODES = RECORDS["error"]["fields"]["code"]["values"]
+ERROR = {
+    "type": "object",
+    "required": ["code", "message"],
+    "properties": {"code": {"enum": CODES[:1] if DEFECT == "one-code" else CODES}},
+}
+# A success is anything but an error record, so that a list result reaches the suite (X-14).
+OUTPUT_SCHEMAS = {
+    "": {
+        "oneOf": [
+            {"type": "object", "required": ["error"], "properties": {"error": ERROR}},
+            {"not": {"type": "object", "required": ["error"]}},
+        ],
+    },
+    "no-error-shape": {"type": "object", "required": ["provenance"]},
+    "declares-no-shape": {"type": "object"},
+}
+
+
+def _description(name: str) -> str:
+    if DEFECT == "placeholder":
+        return "TODO"
+    when = " Called before." if DEFECT == "redescribed" and reached else ""
+    return f"The {name} tool of EVS.{when}"
+
+
+def _tool(name: str) -> types.Tool:
+    return types.Tool(
+        name=name,
+        description=_description(name),
+        input_schema=_input_schema(name),
+        output_schema=OUTPUT_SCHEMAS.get(DEFECT, OUTPUT_SCHEMAS[""]),
+        annotations=types.ToolAnnotations(
+            read_only_hint=True,
+            destructive_hint=DEFECT == "destructive",
+            idempotent_hint=DEFECT != "not-idempotent",
+            open_world_hint=DEFECT != "closed-world",
+        ),
+    )
+
+
+def _names() -> list[str]:
+    names = sorted(profile_tools("evs"))
+    if DEFECT == "misnamed":
+        names.append("ConceptLookup")
+    dropped = {
+        "missing-tool": True,
+        "listing-changes": bool(reached),
+        "hides-tools": False in reached,
+    }
+    return names[1:] if dropped.get(DEFECT) else names
+
+
+async def list_tools(_context, _params) -> types.ListToolsResult:
+    return types.ListToolsResult(tools=[_tool(name) for name in _names()])
+
+
+def _provenance(arguments: dict, correlation: str) -> dict:
+    release = "26.08e" if DEFECT == "wrong-release" else arguments.get("release")
+    terminology = "mdr" if DEFECT == "wrong-terminology" else arguments.get("terminology")
+    provenance = {
+        "release": {"terminology": terminology, "identifier": release},
+        "source": "evs_rest",
+        "retrievedAt": "today" if DEFECT == "bad-timestamp" else datetime.now(UTC).isoformat(),
+        "servedBy": "live",
+        "correlationId": correlation,
+    }
+    if DEFECT == "no-served-by":
+        del provenance["servedBy"]
+    return provenance
+
+
+def _items(name: str, provenance: dict) -> list[dict]:
+    code = "NCIT:C4817" if DEFECT == "prefixed-code" else "C4817"
+    items = [{"code": code, "terminology": "ncit", "provenance": provenance}]
+    if TOOLS[name].get("traversal"):
+        how = {"relationship": {"code": "R101"}, "direction": "outward", "polarity": "positive"}
+        if DEFECT == "no-polarity":
+            del how["polarity"]
+        items[0]["provenance"] = provenance | {"depth": 0}
+        depth = 0 if DEFECT == "nothing-reached" else 1
+        items.append(
+            {
+                "code": "C3262",
+                "terminology": "ncit",
+                "provenance": provenance | {"depth": depth} | how,
+            }
+        )
+    return items
+
+
+def _placed(steps: list[str], items: list[dict]) -> object:
+    """`items` placed under `steps`: none is the first item itself, and a step ending in []
+    spreads them over a list."""
+
+    if not steps:
+        return items[0]
+    step, rest = steps[0], steps[1:]
+    if step.endswith("[]"):
+        value = [_placed(rest, [item]) for item in items]
+    else:
+        value = _placed(rest, items)
+    return {step.removesuffix("[]"): value}
+
+
+def _content(name: str, arguments: dict, correlation: str) -> object:
+    if DEFECT == "invalid-result":
+        return {"error": "not an error record"}
+    items = _items(name, _provenance(arguments, correlation))
+    if DEFECT == "list-result":
+        return items
+    paths = TOOLS[name].get("items", ["."])
+    placed = [_placed([step for step in path.split(".") if step], items) for path in paths]
+    return placed[0] if len(placed) == 1 else _merged(placed)
+
+
+def _merged(parts: list) -> dict:
+    """Results of several item paths, such as nodes and edges, as one."""
+
+    return {key: value for part in parts for key, value in part.items()}
+
+
+def _ask_evs(name: str, arguments: dict, correlation: str) -> None:
+    """Ask EVS, unless the same call was answered before."""
+
+    call = json.dumps([name, arguments], sort_keys=True)
+    if call not in answered and DEFECT != "asks-nothing":
+        headers = {} if DEFECT == "no-correlation" else {"X-Correlation-ID": correlation}
+        asked = 2 if DEFECT == "repeated-request" else 1
+        reached.extend(_reaches_evs(headers) for _ in range(asked))
+    answered.add(call)
+
+
+def _meta() -> dict:
+    return {
+        "ttlMs": 0 if DEFECT == "uncached-result" else 86_400_000,
+        "cacheScope": "private" if DEFECT == "private-scope" else "public",
+    }
+
+
+async def call_tool(_context, params: types.CallToolRequestParams) -> types.CallToolResult:
+    correlation = (params.meta or {}).get("correlationId", "")
+    arguments = params.arguments or {}
+    _ask_evs(params.name, arguments, correlation)
+    content = _content(params.name, arguments, correlation)
+    return types.CallToolResult(
+        content=[types.TextContent(type="text", text=json.dumps(content))],
+        structured_content=content,
+        _meta=_meta(),
+    )
+
+
+SERVER = Server(
+    "compliant-server",
+    cache_hints={
+        "tools/list": CacheHint(ttl_ms=0 if DEFECT == "no-ttl" else 86_400_000, scope="public")
+    },
+    on_list_tools=list_tools,
+    on_call_tool=call_tool,
+)
+
+
+async def main() -> None:
+    async with stdio_server() as (read, write):
+        await SERVER.run(read, write, SERVER.create_initialization_options())
+
+
+if __name__ == "__main__":
+    anyio.run(main)

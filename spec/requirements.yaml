@@ -52,7 +52,7 @@ P-12:
 X-1:
   statement: The release in every returned item's provenance equals the release requested.
   basis: [A3.1, A3.3]
-  planned: "#52"
+  planned: "#55"
 X-2:
   statement: A request for a release the platform does not serve fails closed, with the requested-release-not-available error and no content.
   basis: [A3.4, A3.5]
@@ -76,7 +76,7 @@ X-6:
 X-7:
   statement: Every item carries release, source surface, retrieval time and servedBy, and, where reached by traversal, depth, relationship, direction and polarity.
   basis: [A4.1, A4.2, A4.4, provenance, traversal]
-  planned: "#52"
+  planned: "#55"
 X-8:
   statement: Fields the upstream supplied appear unchanged in provenance; none is dropped or renamed.
   basis: [A4.3, provenance]
@@ -84,7 +84,7 @@ X-8:
 X-9:
   statement: A code is returned bare, with its terminology in a separate field; never with an embedded prefix or as a URI.
   basis: [A1.2, A1.3]
-  planned: "#52"
+  planned: "#55"
 X-10:
   statement: With a caller limit smaller than the result, truncation is reported with the bound reached and the magnitude omitted.
   basis: [A5.1, A5.4]
@@ -92,7 +92,7 @@ X-10:
 X-11:
   statement: No upstream endpoint is called twice with identical parameters within one tool call.
   basis: [A5.8]
-  planned: "#52"
+  planned: "#55"
 X-12:
   statement: The licence key reaches the upstream request and appears in no log, error message or result.
   basis: [A7.5]
@@ -100,7 +100,11 @@ X-12:
 X-13:
   statement: Every release-pinned result carries a positive ttlMs in its _meta, with cacheScope public for governed content and private for results computed from caller-supplied values.
   basis: [M2.2, M2.3, M2.5]
-  planned: "#52"
+  planned: "#55"
+X-14:
+  statement: Every result is a JSON object, its lists of items named fields of it.
+  basis: [M3.3]
+  planned: "#55"
 
 # EVS tools.
 resolve_release-1:
