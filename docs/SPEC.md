@@ -2,7 +2,7 @@
 
 **Status:** accepted for implementation · **Written:** 1 October 2026 · **Updated:** 2 October 2026, to the code on `main` after `v0.2.0` · **Baseline:** the commit tagged `baseline-2026-10` (§1.2)
 
-The work is tracked on GitHub as one milestone per phase (§11) with one issue per deliverable; issues cite this document by section. Where a section describes the code "today", it means `main` at the date above.
+The work is tracked on GitHub as one milestone per phase (§11) with one issue per deliverable; issues cite this document by section. Where a section describes the code "today", it means `main` at the *Updated* date above.
 
 This document specifies how `nci_si_mcp` is extended from the current EVS-first prototype into the shared platform, EVS module and caDSR module that *Reconciled SOW v2.1 (EVS)* and *SOW v1.1 (caDSR)* describe, together with the government-furnished *MCP Behavioral Acceptance Suite* that is the acceptance instrument for both. It is written against the code as it is, so every change is stated as a delta from a named module, and it is ordered so that each phase leaves the repository releasable.
 
@@ -29,7 +29,7 @@ Twenty-nine tools in total, named and typed exactly as in *MCP API Specification
 
 Done:
 
-- The hardening branch is merged (#1) and released as `v0.1.0`. It changed traversal node codes, embedding-provider selection, the release check in `upsert_concepts` and the error module, and added `ARCHITECTURE.md` and CI.
+- The hardening branch is merged (#1) and tagged `v0.1.0`. It changed traversal node codes, embedding-provider selection, the release check in `upsert_concepts` and the error module, and added `ARCHITECTURE.md` and CI.
 - The migration to `mcp>=2.0,<3` is committed.
 - Since `v0.1.0`: Python 3.13 and PDM (#43), every function below cyclomatic complexity 8 (#44), the lint and quality gates with the engineering standards in `CONTRIBUTING.md` (#45), and automatic releases from Conventional Commit pull request titles (#46). `v0.2.0` is the first automatic release.
 
@@ -51,22 +51,14 @@ These hold today and continue to hold:
 
 | Today | After |
 |---|---|
-| Every concept request addresses `ncit_{release}` of the one current monthly release, and each payload's `version` is checked; the terminology and the release cannot be chosen, and an unknown release or a mismatch is reported as `evs_invalid_response` | Every content request addresses `{terminology}_{release}` from the call's `ReleaseContext` (verified to work and to fail closed with 404 on an unknown release); an unknown release and a payload mismatch are both `release_unavailable` (A3.1) |
-| One error path (`service._enveloped`) maps exceptions to a fourteen-value `ErrorCode` | One taxonomy of six classes (A2.5) and one serialisation, owned by the registry (§3.1) |
+| Every concept request addresses `ncit_{release}` of the one current monthly release, and each concept payload's `version` is checked; the terminology and the release cannot be chosen. An unknown release is `evs_invalid_response` on the batch and descendants endpoints but `concept_not_found` on a single-concept lookup (a 404 there cannot be told from an unknown code), and a payload mismatch is `evs_invalid_response` | Every content request addresses `{terminology}_{release}` from the call's `ReleaseContext` explicitly (verified to work and to fail closed with 404 on an unknown release); the payload check becomes a second guard, not the only one; an unknown release and a payload mismatch are both `release_unavailable` (A3.1) |
+| Expected exceptions are mapped to codes by one table (`_ERROR_CODES`, applied by `service._enveloped`); with the envelopes that the service, the CLI and the resources build directly, `ErrorCode` has fourteen values | One error model, one taxonomy of six classes (A2.5), one serialisation — every tool returns a structured error through the same path (§3.1) |
 | `include_raw` and `live_only` are MCP tool parameters | Both are removed from the MCP surface. `include_raw` stays on the CLI for debugging; `live_only` becomes the `servedBy` field in provenance, reported rather than requested |
-| Edge types and relationship names are independent filters, but hierarchy edges carry the pseudo-names `is_a_parent`, `is_a_child`, `is_a_descendant` | Edge kinds and relationship names are separate fields, and hierarchy edges carry no invented name; a filter on one never silently removes the other (A5.5) |
+| Edge types are selected independently of relationship names, but the name filter also applies to hierarchy edges, which carry the pseudo-names `is_a_parent`, `is_a_child`, `is_a_descendant`: a role-name filter drops them unless those names are listed | Edge kinds and relationship names are separate fields, and hierarchy edges carry no invented name; a filter on one never silently removes the other (A5.5) |
 | Exclusion polarity is not represented | Polarity is derived from the relationship **code** against the pinned release's catalogue, never from the label (A5.7) |
-| Traversal bounds nodes and edges, nearest first; outbound requests are not counted | The budget also counts outbound requests **including retries** (A5.3) |
+| Traversal bounds nodes and edges, nearest first; outbound requests are not counted | The budget counts outbound requests **including retries** (A5.3), with nodes and edges as additional bounds |
 | `cadsr_status` is a stub | The caDSR module is real; the stub is deleted |
 
----|---|
-| EVS requests carry no version; consistency is checked afterwards from the payload's `version` field | Every content request addresses `{terminology}_{release}` explicitly (verified to work and to fail closed with 404 on an unknown release); the payload check becomes a second guard, not the only one (A3.1) |
-| `lookup` returns `isError` dicts, `search` raises `RuntimeError`, `traverse` lets `EVSError` propagate | One error model, one taxonomy (A2.5), one serialisation — every tool returns a structured error through the same path |
-| `include_raw` and `live_only` are MCP tool parameters | Both are removed from the MCP surface. `include_raw` stays on the CLI for debugging; `live_only` becomes the `servedBy` field in provenance, reported rather than requested |
-| Hierarchy edges in traversal are named `is_a_parent` etc. and the role filter drops them | Edge kinds and relationship names are separate fields; a filter on one never silently removes the other (A5.5) |
-| Exclusion polarity is not represented | Polarity is derived from the relationship **code** against the pinned release's catalogue, never from the label (A5.7) |
-| The traversal budget counts nodes | The budget counts outbound requests **including retries** (A5.3), with nodes and edges as additional bounds |
-| `cadsr_status` is a stub | The caDSR module is real; the stub is deleted |
 
 ---
 
@@ -196,7 +188,7 @@ A cursor encodes the release it was issued against; presenting it after that rel
 
 ### 3.7 Schema generation (`platform/schema.py`)
 
-`outputSchema` is generated from the result dataclasses for every tool, success and error shapes alike, and checked by a unit test that renders `tools/list` for each profile and validates every schema. A second test asserts the rendered surface is byte-identical across terminology, release and upstream mode (static surface, §8.1). A third asserts no description contains placeholder text or an operator a tool test shows unsupported (A2.3, A2.4).
+`outputSchema` is generated from the result dataclasses for every tool, success and error shapes alike, and checked by a unit test that renders `tools/list` for each profile and validates every schema. A second test asserts the rendered surface is byte-identical across terminology, release and upstream mode (static surface, *MCP API Specification* §8.1). A third asserts no description contains placeholder text or an operator a tool test shows unsupported (A2.3, A2.4).
 
 ### 3.8 Transport (`platform/transport.py`)
 
@@ -231,11 +223,12 @@ Per release: roles and associations with `code`, `name`, `kind`, and `polarity`.
 
 ### 4.3 Traversal (`evs/traversal.py`)
 
-In place today: one batched fetch per depth through the batch endpoint, asking only for the selected relation lists (A5.8; SOW v2 §5), with smaller batches for inverse relations and halving on an oversized response; node and edge limits claimed nearest first; edge types selected independently of relationship names; concepts whose relations exceed the response-size limit reported under `unexpanded_codes`.
+In place today: each depth is read in batched requests to the batch endpoint (50 concepts a request, 10 when inverse relations are followed), asking only for the selected relation lists (A5.8; SOW v2 §5), with halving on an oversized response; `descendant` edges come from one `/descendants` request per start code; node and edge limits are claimed nearest first; edge types are selected independently of relationship names (the name filter still applies to hierarchy edges); concepts whose relations exceed the response-size limit are reported under `unexpanded_codes`.
 
 Remaining, around `Budget`:
 
 - `get_concept_hierarchy` (`parent` | `child` | `pathsToRoot`) split from `get_concept_neighborhood`.
+- Each visited node fetched **once**, its `summary` in the same batched request as its relation lists (today the walk asks for `minimal` plus the lists).
 - `kinds` filter (`parent`, `child`, `role`, `association`, `inverseRole`, `inverseAssociation`) selects edge kinds; `relationshipNames` filters within a kind; neither removes the other. The `is_a_*` pseudo-names go.
 - Every edge carries `TraversalProvenance` with polarity from the catalogue. `includeNegative=false` (default) withholds negative edges from the returned node set and lists them under `excluded[]`; it never drops them silently.
 - Per-kind rotation; truncation per kind; outbound budget includes retries.
@@ -248,7 +241,7 @@ The interim index SOW v2 §3 requires, built from `index.py` / `embeddings.py` /
 - **Per-release tables**, keyed `(release, code)`, plus a `manifests` table carrying release, embedding provider, model, dimension, build timestamp, evaluation-set version and score, and `active` flag. Today the index holds exactly one release (schema 4), and indexing another release replaces it in place.
 - **Atomic activation and rollback**: a build writes under a new manifest; activation flips `active` in one transaction; rollback flips it back. `search_concepts` reads only the active manifest's release and refuses with `release_unavailable` if it differs from the requested release.
 - **Full NCIt build** from the batch endpoint in pages of 1,000 (the enforced `pageSize` maximum), release-pinned; the current `index-sample` stays as a developer command.
-- **The two traps are fixed** (since `v0.1.0`): provider and model are validated together at startup, and a provider, model or dimension mismatch is refused on every write and search instead of scoring `0.0`. Changing provider or model invalidates the manifest.
+- **The two traps** — provider selection requires both provider and model to be set, and a mismatch is `invalid_configuration` at startup; `cosine_similarity` normalises, and a dimension mismatch is `index_incompatible`, never `0.0`. Changing provider or model invalidates the manifest. Today: provider and model are validated together at startup (a failure is `invalid_configuration`), and a provider, model or dimension mismatch is refused on every write and search. `cosine_similarity` is a dot product that relies on the providers returning unit vectors, which both do; it does not normalise itself.
 - **Evaluation set** (`evaluate.py`): versioned NCIt scenarios with expected concepts and scoring thresholds; run on every build; score recorded in the manifest. This is the SOW's retrieval evaluation deliverable in executable form.
 - **Retirement condition**: when EVS exposes a semantic mode (E-9), `search_concepts(mode=semantic|hybrid)` is re-pointed to it behind the same tool and the index is deactivated. The tool surface does not change.
 
@@ -336,7 +329,7 @@ Three composites per *MCP API Specification* §8.4, implemented as orchestration
 
 ## 8. Configuration and profiles (`config.py`)
 
-New settings, beside those the README documents today (EVS retries, backoff and response limit, index batch size, log level). Each is validated at startup with a message naming its variable, as the existing ones are.
+Settings after the change. `NCI_SI_EVS_BASE_URL`, `NCI_SI_TIMEOUT_SECONDS`, `NCI_SI_DATA_DIR` and the embedding pair exist today; the README's other settings (EVS retries, backoff and response limit, index batch size, log level) stay as they are. Each is validated at startup with a message naming its variable, as the existing ones are.
 
 | Setting | Default | Purpose |
 |---|---|---|
@@ -348,7 +341,7 @@ New settings, beside those the README documents today (EVS retries, backoff and 
 | `NCI_SI_RELEASE_CHANNEL` | `monthly` | |
 | `NCI_SI_EXCLUSION_ROLE_CODES` | `R135,…,R142` | validated against the catalogue at startup |
 | `NCI_SI_EVS_LICENSE_KEY`, `NCI_SI_CADSR_CREDENTIAL` | unset | never logged |
-| `NCI_SI_EMBEDDING_PROVIDER`, `NCI_SI_EMBEDDING_MODEL` | `hashing` | exists today; a real provider needs both set |
+| `NCI_SI_EMBEDDING_PROVIDER`, `NCI_SI_EMBEDDING_MODEL` | unset | both required together (today both default to `hashing`) |
 | `NCI_SI_DATA_DIR` | `.nci-si-mcp/` | |
 | `NCI_SI_TIMEOUT_SECONDS`, `NCI_SI_MATCH_TIMEOUT_SECONDS` | 30, 45 | |
 
@@ -397,7 +390,7 @@ For `baseline-2026-10`, written against the furnished commit:
 |---|---|---|
 | `search_concepts` | `ncit_search` | `query`, `limit`; `mode` lexical → unsupported, semantic → `hybrid` |
 | `get_concept` | `ncit_lookup` | `code` |
-| `get_concept_hierarchy`, `get_concept_neighborhood` | `ncit_traverse` | `code`; `depth` → `max_depth`; `kinds` → `edge_types` |
+| `get_concept_hierarchy`, `get_concept_neighborhood` | `ncit_traverse` | `code` → `start_codes` (a list of one); `depth` → `max_depth`; `kinds` → `edge_types` (`inverseRole` → `inverse_role`, `inverseAssociation` → `inverse_association`) |
 | `resolve_release` | `ncit_release_info` | — |
 | all others | — | NOT IMPLEMENTED |
 
@@ -427,11 +420,11 @@ Keep `unittest`-style tests under the gates in `CONTRIBUTING.md`. Extend `tests/
 
 ## 11. Phases and definition of done
 
-Each phase ends with the unit suite green, the acceptance suite green in `fixture` mode for every tool implemented so far, and a release (a merged `feat` pull request is released automatically).
+Each phase ends with the unit suite green, the acceptance suite green in `fixture` mode for every tool implemented so far, and a tag: a `vX.Y.Z` release, which a merged `feat` or `fix` pull request cuts automatically, or for Phase 0 the manual `baseline-2026-10`.
 
 | Phase | Delivers | Done when |
 |---|---|---|
-| **0 · Baseline** | §1.2: licence, `baseline-2026-10` tag; acceptance harness skeleton; baseline tool map; baseline run report | the furnished package exists and the baseline report is produced |
+| **0 · Baseline** | §1.2: licence, `baseline-2026-10` tag; acceptance harness skeleton; EVS fixture set; baseline tool map; baseline run report; acceptance CI job (§9.5) | the furnished package exists and the baseline report is produced |
 | **1 · Platform** | §3 in full; `service.py` retired; EVS tools re-homed on the registry with no behaviour change | §3 protocol gates pass; existing EVS behaviour unchanged under the new error and provenance model |
 | **2 · EVS module** | §4: release-pinned addressing, batch reconciliation, catalogue polarity, traversal rewrite, FHIR, mapsets, retired codes; index with activation and rollback | all Group A tools PASS in fixture mode; live-capable tests PASS live |
 | **3 · caDSR module** | §5 | all Group B tools PASS in fixture mode; PASS (fixture only) rows name their upstream requirement |
