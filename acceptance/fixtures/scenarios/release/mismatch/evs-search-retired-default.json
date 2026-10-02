@@ -1,0 +1,139 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/search",
+  "params": {
+   "term": [
+    "Transgender Identity"
+   ],
+   "type": [
+    "contains"
+   ],
+   "include": [
+    "minimal,highlights"
+   ],
+   "fromRecord": [
+    "0"
+   ],
+   "pageSize": [
+    "10"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "total": 914,
+   "timeTaken": 94,
+   "parameters": {
+    "term": "Transgender Identity",
+    "type": "contains",
+    "include": "minimal,highlights",
+    "fromRecord": 0,
+    "pageSize": 10,
+    "terminology": [
+     "ncit_26.09d"
+    ]
+   },
+   "concepts": [
+    {
+     "code": "C154421",
+     "name": "Transgender Identity",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "<em>Transgender</em> <em>Identity</em>",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "C165015",
+     "name": "Person Gender Identity Code",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "Person Gender <em>Identity</em> Code",
+     "conceptStatus": "DEFAULT",
+     "leaf": true,
+     "active": true
+    },
+    {
+     "code": "C46120",
+     "name": "Transgender Woman",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "<em>Transgender</em> Woman",
+     "conceptStatus": "DEFAULT",
+     "leaf": true,
+     "active": true
+    },
+    {
+     "code": "C46121",
+     "name": "Transgender Man",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "<em>Transgender</em> Man",
+     "conceptStatus": "DEFAULT",
+     "leaf": true,
+     "active": true
+    },
+    {
+     "code": "C101669",
+     "name": "Manufacturing Date Production Identifier",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "conceptStatus": "DEFAULT",
+     "leaf": true,
+     "active": true
+    },
+    {
+     "code": "C101670",
+     "name": "Expiration Date Production Identifier",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "conceptStatus": "DEFAULT",
+     "leaf": true,
+     "active": true
+    },
+    {
+     "code": "C101671",
+     "name": "Serial Number Production Identifier",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "conceptStatus": "DEFAULT",
+     "leaf": true,
+     "active": true
+    },
+    {
+     "code": "C101672",
+     "name": "Lot or Batch Number Production Identifier",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "conceptStatus": "DEFAULT",
+     "leaf": true,
+     "active": true
+    },
+    {
+     "code": "C101678",
+     "name": "Direct Marking Device Identifier",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "conceptStatus": "DEFAULT",
+     "leaf": true,
+     "active": true
+    },
+    {
+     "code": "C101698",
+     "name": "Primary Identifier",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    }
+   ]
+  }
+ }
+}

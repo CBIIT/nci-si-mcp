@@ -116,6 +116,16 @@ record:
       rationale: 'Typeahead: type=startsWith.'
       surface: evs
       path: /api/v1/concept/ncit_26.09d/search?term=ewing&type=startsWith&include=minimal,highlights&fromRecord=0&pageSize=10
+    - fixture: recorded/evs/search-retired-default.json
+      operation: OP-E08
+      rationale: 'Retired concepts in a lexical search: the default returns them with the others, C154421 first.'
+      surface: evs
+      path: /api/v1/concept/ncit_26.09d/search?term=Transgender Identity&type=contains&include=minimal,highlights&fromRecord=0&pageSize=10
+    - fixture: recorded/evs/search-retired-only.json
+      operation: OP-E08
+      rationale: 'The same search for retired concepts alone: conceptStatus with the status the listing names as retired.'
+      surface: evs
+      path: /api/v1/concept/ncit_26.09d/search?term=Transgender Identity&type=contains&include=minimal,highlights&fromRecord=0&pageSize=10&conceptStatus=Retired_Concept
     - fixture: recorded/evs/search-no-match.json
       operation: OP-E08
       rationale: 'A search matching nothing: empty is not an error.'

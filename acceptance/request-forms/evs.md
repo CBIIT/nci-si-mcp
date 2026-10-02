@@ -42,6 +42,8 @@ content state of its own, named in provenance and not presented as release-verif
 | OP-E08 | `GET evs /api/v1/concept/ncit_26.09d/search?term=ewing sarcoma&type=contains&include=minimal,highlights&fromRecord=0&pageSize=10` | 200 | recorded | Lexical search: type=contains, minimal concepts with highlights for matchedOn, the page given in full. | `recorded/evs/search-contains.json` |
 | OP-E08 | `GET evs /api/v1/concept/ncit_26.09d/search?term=ewing sarcoma&type=contains&include=minimal,highlights&fromRecord=10&pageSize=10` | 200 | recorded | The second page of the same search. | `recorded/evs/search-contains-page-2.json` |
 | OP-E08 | `GET evs /api/v1/concept/ncit_26.09d/search?term=ewing&type=startsWith&include=minimal,highlights&fromRecord=0&pageSize=10` | 200 | recorded | Typeahead: type=startsWith. | `recorded/evs/search-starts-with.json` |
+| OP-E08 | `GET evs /api/v1/concept/ncit_26.09d/search?term=Transgender Identity&type=contains&include=minimal,highlights&fromRecord=0&pageSize=10` | 200 | recorded | Retired concepts in a lexical search: the default returns them with the others, C154421 first. | `recorded/evs/search-retired-default.json` |
+| OP-E08 | `GET evs /api/v1/concept/ncit_26.09d/search?term=Transgender Identity&type=contains&include=minimal,highlights&fromRecord=0&pageSize=10&conceptStatus=Retired_Concept` | 200 | recorded | The same search for retired concepts alone: conceptStatus with the status the listing names as retired. | `recorded/evs/search-retired-only.json` |
 | OP-E08 | `GET evs /api/v1/concept/ncit_26.09d/search?term=qqxyzzyqq&type=contains&include=minimal,highlights&fromRecord=0&pageSize=10` | 200 | recorded | A search matching nothing: empty is not an error. | `recorded/evs/search-no-match.json` |
 | OP-E13 | `GET evs /api/v1/concept/ncit_26.09d/C4817/pathsToRoot?include=minimal` | 200 | recorded | The paths from the concept to the root of the hierarchy. | `recorded/evs/paths-to-root.json` |
 | OP-E21 | `GET evs /api/v1/history/ncit_26.09d/C4817/replacements` | 200 | recorded | An active code's replacements, one code. | `recorded/evs/replacement-active.json` |
@@ -107,7 +109,7 @@ Each request: An unknown release answers 404 on every content path: the server f
 
 ### `release/mismatch`
 
-Every payload that reports the pinned release names 26.08e instead, the unpinned forms included; release discovery is left as recorded. Crafted, 158 fixtures, for A3.4: the content served names another release than the one requested.
+Every payload that reports the pinned release names 26.08e instead, the unpinned forms included; release discovery is left as recorded. Crafted, 160 fixtures, for A3.4: the content served names another release than the one requested.
 
 ### `release/two-latest`
 

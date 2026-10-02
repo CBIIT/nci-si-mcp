@@ -1,0 +1,146 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/search",
+  "params": {
+   "term": [
+    "Transgender Identity"
+   ],
+   "type": [
+    "contains"
+   ],
+   "include": [
+    "minimal,highlights"
+   ],
+   "fromRecord": [
+    "0"
+   ],
+   "pageSize": [
+    "10"
+   ],
+   "conceptStatus": [
+    "Retired_Concept"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "total": 17,
+   "timeTaken": 80,
+   "parameters": {
+    "term": "Transgender Identity",
+    "type": "contains",
+    "include": "minimal,highlights",
+    "fromRecord": 0,
+    "pageSize": 10,
+    "conceptStatus": [
+     "Retired_Concept"
+    ],
+    "terminology": [
+     "ncit_26.09d"
+    ]
+   },
+   "concepts": [
+    {
+     "code": "C154421",
+     "name": "Transgender Identity",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "highlight": "<em>Transgender</em> <em>Identity</em>",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "C103197",
+     "name": "Identification of Medicinal Products Terminology",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "C160854",
+     "name": "Gender Identity Measure",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "highlight": "Gender <em>Identity</em> Measure",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "C160940",
+     "name": "Gender Fluid Identity",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "highlight": "Gender Fluid <em>Identity</em>",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "C162196",
+     "name": "Sponsor-Defined Identifier",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "C162197",
+     "name": "Respiratory System Findings Sponsor-Defined Identifier",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "C164332",
+     "name": "Sample Identifier",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "C180328",
+     "name": "Gender Questioning Identity",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "highlight": "Gender Questioning <em>Identity</em>",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "C200588",
+     "name": "Gender Identifier X",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "C205466",
+     "name": "Female Gender Identity",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "highlight": "Female Gender <em>Identity</em>",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    }
+   ]
+  }
+ }
+}
