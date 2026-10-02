@@ -52,6 +52,11 @@ class ParserTest(unittest.TestCase):
         self.assertEqual((args.direction, args.max_depth, args.max_nodes), ("out", 2, 200))
         self.assertEqual(build_parser().parse_args(["traverse", "C3262"]).max_edges, 1000)
 
+    def test_search_defaults(self):
+        args = build_parser().parse_args(["search", "tumor"])
+
+        self.assertEqual((args.limit, args.mode), (10, "hybrid"))
+
     def test_unknown_choices_are_rejected_by_the_parser(self):
         for argv in (
             ["traverse", "C3262", "--edge-type", "sibling"],

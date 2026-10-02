@@ -94,9 +94,10 @@ class EVSClientTest(unittest.TestCase):
 
     def test_requests_use_the_configured_timeout(self, urlopen, sleep):
         # The transport answers with the timeout it was given.
-        urlopen.side_effect = lambda request, timeout: FakeResponse(
-            json.dumps({"timeout": timeout}).encode()
-        )
+        def transport(request, data=None, timeout=None):
+            return FakeResponse(json.dumps({"timeout": timeout}).encode())
+
+        urlopen.side_effect = transport
 
         version = EVSClient("https://example.invalid", timeout_seconds=2.5).get_api_version()
 
@@ -135,8 +136,12 @@ class EVSClientTest(unittest.TestCase):
 
     def test_an_error_without_a_usable_body_is_described_by_its_status(self, urlopen, sleep):
         class BrokenBody(io.BytesIO):
+            def __init__(self, error):
+                super().__init__()
+                self.error = error
+
             def read(self, *_):
-                raise OSError("connection reset")
+                raise self.error
 
         bodies = {
             "no body": None,
@@ -147,7 +152,8 @@ class EVSClientTest(unittest.TestCase):
             "longer than the part that is read": io.BytesIO(
                 json.dumps({"message": "x" * 5000}).encode()
             ),
-            "unreadable": BrokenBody(),
+            "unreadable": BrokenBody(OSError("connection reset")),
+            "cut short": BrokenBody(IncompleteRead(b"")),
         }
         for case, body in bodies.items():
             with self.subTest(case):

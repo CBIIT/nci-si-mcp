@@ -49,7 +49,7 @@ class ServerStartupTest(unittest.TestCase):
             create_mcp(Settings())
 
         self.assertIn("'server' extra", str(raised.exception))
-        self.assertIn("Import failed", str(raised.exception))
+        self.assertIn(f"Import failed: {raised.exception.__cause__}", str(raised.exception))
 
 
 @patch("nci_si_mcp.server.configure_logging")
@@ -100,7 +100,7 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(result.contents[0].mime_type, "application/json")
         return json.loads(result.contents[0].text)
 
-    def test_server_reports_the_installed_package_version(self, _):
+    def test_server_reports_its_version_and_its_instructions(self, _):
         async def server_info(client):
             return client.server_info, client.instructions
 
@@ -113,27 +113,53 @@ class ServerTest(unittest.TestCase):
         tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
 
         self.assertEqual(len(tools), 5)
-        # The first list of the section names the tools; later lists describe arguments.
-        tool_list = section(README, "MCP Tools").strip().split("\n\n", 1)[0]
-        self.assertEqual(set(tools), set(bullet_names(tool_list)))
         # The closed value sets are advertised in the schemas, wherever the
         # schema generator puts them.
         traverse_schema = json.dumps(tools["ncit_traverse"].input_schema)
         for value in ("both", "inverse_role", "descendant"):
             self.assertIn(f'"{value}"', traverse_schema)
         self.assertIn('"hybrid"', json.dumps(tools["ncit_search"].input_schema))
-        # The README lists every argument of ncit_traverse.
-        arguments = section(README, "MCP Tools").split("`ncit_traverse` supports:\n\n")[1]
-        documented = {
-            name
-            for bullet in arguments.split("\n\n")[0].splitlines()
-            for name in re.findall(r"`(\w+)`", bullet.split(":")[0])
-        }
-        self.assertEqual(documented, set(tools["ncit_traverse"].input_schema["properties"]))
         for term in ("version_mismatch", "concept_not_found", "fallback", "live_only"):
             self.assertIn(term, tools["ncit_lookup"].description)
         for term in ("truncated", "unexpanded_codes", "descendant", "relationship_names"):
             self.assertIn(term, tools["ncit_traverse"].description)
+
+    def test_readme_lists_the_tools_and_every_argument_of_traverse(self, _):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+
+        # The names in backticks that start the bullets of the section.
+        leads = re.findall(
+            r"^- ((?:`\w+`(?:, )?)+)", section(README, "MCP Tools"), flags=re.MULTILINE
+        )
+        names = {name for lead in leads for name in re.findall(r"`(\w+)`", lead)}
+
+        self.assertEqual(names, set(tools) | set(tools["ncit_traverse"].input_schema["properties"]))
+
+    def test_optional_arguments_have_the_documented_defaults(self, _):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+
+        def defaults(tool):
+            properties = tools[tool].input_schema["properties"]
+            return {name: spec["default"] for name, spec in properties.items() if "default" in spec}
+
+        self.assertEqual(
+            defaults("ncit_search"), {"limit": 10, "mode": "hybrid", "include_raw": False}
+        )
+        self.assertEqual(defaults("ncit_lookup"), {"live_only": False, "include_raw": False})
+        self.assertEqual(
+            defaults("ncit_traverse"),
+            {
+                "direction": "out",
+                "max_depth": 2,
+                "max_nodes": 200,
+                "max_edges": 1000,
+                "include_hierarchy": True,
+                "include_roles": True,
+                "include_associations": True,
+                "relationship_names": None,
+                "edge_types": None,
+            },
+        )
 
     def test_three_resource_templates_are_registered_as_json(self, _):
         templates = self.session(lambda client: client.list_resource_templates()).resource_templates

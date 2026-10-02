@@ -52,12 +52,12 @@ class DocumentationTest(unittest.TestCase):
 
     def test_readme_states_the_default_of_each_setting_in_the_table(self):
         table = section(README, "Build A Small Local Index")
-        documented = dict(re.findall(r"^\| `(\w+)` \| `([^`]+)` \|", table, flags=re.MULTILINE))
+        row = re.compile(r"^\|\s*`(\w+)`\s*\|\s*`([^`]+)`", flags=re.MULTILINE)
+        documented = dict(row.findall(table))
         with patch.dict(os.environ, clear=True):
             defaults = Settings.from_env()
 
-        # The default of the base URL is described in words.
-        self.assertEqual(set(documented), first_column(table) - {"NCI_SI_EVS_BASE_URL"})
+        self.assertEqual(set(documented), first_column(table))
         for name, default in documented.items():
             with self.subTest(name):
                 actual = getattr(defaults, name.removeprefix("NCI_SI_").lower())

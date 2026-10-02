@@ -84,7 +84,7 @@ class ComplexityGateTest(GateTestCase):
 
                 self.assertTrue(violation.endswith(f": {name} has complexity 8"), violation)
 
-    def test_directories_are_searched_at_every_depth(self):
+    def test_exit_code_and_report_for_files_and_for_directories_at_every_depth(self):
         clean = self.write("def simple():\n    return 1\n", "clean.py")
         tangled = self.write(self.BRANCHY.format(last="if value == 7: return 7"), "a/b/module.py")
         output = io.StringIO()
@@ -92,11 +92,12 @@ class ComplexityGateTest(GateTestCase):
         with redirect_stdout(output):
             codes = (
                 check_complexity.main([str(clean)]),
+                check_complexity.main([str(tangled)]),
                 check_complexity.main([str(tangled.parent.parent.parent)]),
             )
 
-        self.assertEqual(codes, (0, 1))
-        self.assertIn("tangled has complexity 8", output.getvalue())
+        self.assertEqual(codes, (0, 1, 1))
+        self.assertEqual(output.getvalue().count("tangled has complexity 8"), 2)
 
     def test_without_arguments_the_source_the_scripts_and_the_tests_are_checked(self):
         with chdir(Path(__file__).parent.parent):
@@ -125,6 +126,7 @@ class TestQualityGateTest(GateTestCase):
             "with self.assertRaises(ValueError):\n    compute()",
             "self.fail('unreachable')",
             "assert_valid(compute())",
+            "self._assert_valid(compute())",
             "self.assertEqual(compute(), 2)\nmock.assert_called_once_with(1)",
         ):
             with self.subTest(body):
@@ -138,11 +140,18 @@ class TestQualityGateTest(GateTestCase):
             "mock.assert_called_once_with(1)",
             "mock.assert_not_called()",
             "mock.assert_has_calls([])",
+            "mock.assert_has_awaits([])",
+            "mock.assert_any_call(1)",
             "mock.assert_any_await(1)",
+            "mock.assert_awaited_once_with(1)",
+            "mock.assert_not_awaited()",
             "self.assertEqual(mock.call_count, 2)",
             "self.assertEqual(mock.await_count, 2)",
             "self.assertEqual(len(mock.call_args_list), 2)",
+            "self.assertEqual(mock.await_args, 2)",
+            "self.assertEqual(len(mock.await_args_list), 2)",
             "self.assertEqual(mock.mock_calls, [])",
+            "self.assertEqual(mock.method_calls, [])",
             "assert mock.called",
             "self.assertEqual(mock.call_args.kwargs['timeout'], 2)",
         ):
@@ -151,7 +160,11 @@ class TestQualityGateTest(GateTestCase):
                 self.assertIn("only asserts how a mock was used", self.findings(body)[0])
 
     def test_a_call_that_is_not_an_assertion_does_not_count(self):
-        for body in ("subprocess.check_output(['true'])", "failed = compute()"):
+        for body in (
+            "subprocess.check_output(['true'])",
+            "failures(compute())",
+            "assertion_count(compute())",
+        ):
             with self.subTest(body):
                 self.assertEqual(self.findings(body), ["test_it asserts nothing"])
 
@@ -159,6 +172,7 @@ class TestQualityGateTest(GateTestCase):
         nested = "def verify():\n    assert compute() == 2\n"
 
         self.assertEqual(self.findings(nested), ["test_it asserts nothing"])
+        self.assertEqual(self.findings("async " + nested), ["test_it asserts nothing"])
         self.assertEqual(self.findings(nested + "verify()"), [])
         self.assertEqual(self.findings(nested + "run(verify)"), [])
         self.assertEqual(self.findings("run(lambda: self.assertEqual(compute(), 2))"), [])
@@ -185,6 +199,7 @@ class TestQualityGateTest(GateTestCase):
     def test_a_coverage_aim_in_the_module_docstring_is_rejected(self):
         for docstring in (
             "Improve coverage of the index.",
+            "Increase coverage of the service.",
             "Raises the coverage of index.py.",
             "Bring the coverage to 95%.",
         ):

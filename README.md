@@ -98,7 +98,7 @@ Additional runtime controls:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `NCI_SI_EVS_BASE_URL` | NCI EVS production API | EVS endpoint (`http` or `https`) |
+| `NCI_SI_EVS_BASE_URL` | `https://api-evsrest.nci.nih.gov` | EVS endpoint (`http` or `https`) |
 | `NCI_SI_TIMEOUT_SECONDS` | `30` | Per-request timeout |
 | `NCI_SI_EVS_MAX_ATTEMPTS` | `3` | Request attempts, 1 to 10 |
 | `NCI_SI_EVS_RETRY_BACKOFF_SECONDS` | `0.25` | Initial exponential backoff; a single wait is capped at 60 seconds |

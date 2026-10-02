@@ -173,7 +173,7 @@ class EmbeddingConfigurationTest(unittest.TestCase):
             create_embedding_provider("sentence-transformers", "all-MiniLM-L6-v2")
 
         self.assertIn("'embeddings' extra", str(raised.exception))
-        self.assertIn("Import failed", str(raised.exception))
+        self.assertIn(f"Import failed: {raised.exception.__cause__}", str(raised.exception))
 
 
 if __name__ == "__main__":
