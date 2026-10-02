@@ -211,11 +211,13 @@ mapping:
       content: The target's name
       of: A9.1
     targetTermType:
-      content: The target's term type, where the platform gives one
+      content: The target's term type, where the platform gives one; absent, never null, where it does not
       optional: true
       of: A9.1
     targetTerminologyVersion:
-      content: The target terminology's version, where the platform gives one
+      content: >-
+        The target terminology's version, where the platform gives one; absent, never null,
+        where it does not
       optional: true
       of: A9.1
     type:

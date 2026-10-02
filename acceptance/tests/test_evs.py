@@ -589,16 +589,11 @@ def test_the_subsets_are_the_concept_s_subset_associations_in_order(tools, pinne
 
 
 def _maps(result):
-    """Each mapping as the platform's map: the fields the map has, from the mapping."""
+    """Each mapping without its provenance: the platform's map, field for field, a field the
+    map lacks absent rather than null."""
 
-    return items_of("get_concept_mappings", result.content)
-
-
-def _as_recorded(mappings, maps):
-    return [
-        {field: mapping.get(field) for field in recorded}
-        for mapping, recorded in zip(mappings, maps, strict=False)
-    ]
+    mappings = items_of("get_concept_mappings", result.content)
+    return [{key: value for key, value in m.items() if key != "provenance"} for m in mappings]
 
 
 @pytest.mark.tool("get_concept_mappings")
@@ -608,8 +603,7 @@ def test_the_mappings_are_the_concept_s_maps_unchanged_in_order(tools, pinned, r
 
     mappings = _maps(_traverse(tools, pinned, "get_concept_mappings", CONCEPT))
 
-    assert len(mappings) == len(maps)
-    assert _as_recorded(mappings, maps) == maps
+    assert mappings == maps
 
 
 @pytest.mark.tool("get_concept_mappings")
@@ -627,8 +621,7 @@ def test_target_terminology_keeps_the_maps_with_that_target_and_no_other(tools, 
         _traverse(tools, pinned, "get_concept_mappings", CONCEPT, targetTerminology=target)
     )
 
-    assert len(mappings) == len(kept)
-    assert _as_recorded(mappings, kept) == kept
+    assert mappings == kept
 
 
 # Retired in the retired/with-replacement scenario, with its replacements from EVS's history.

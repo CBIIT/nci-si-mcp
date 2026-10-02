@@ -297,8 +297,8 @@ A map the platform carries on a concept, from it to another terminology, as get_
 | `targetCode` | The target's code, as the platform gives it | A9.1 |
 | `targetTerminology` | The target terminology, as the platform names it on the map | A9.1 |
 | `targetName` | The target's name | A9.1 |
-| `targetTermType` | The target's term type, where the platform gives one (optional) | A9.1 |
-| `targetTerminologyVersion` | The target terminology's version, where the platform gives one (optional) | A9.1 |
+| `targetTermType` | The target's term type, where the platform gives one; absent, never null, where it does not (optional) | A9.1 |
+| `targetTerminologyVersion` | The target terminology's version, where the platform gives one; absent, never null, where it does not (optional) | A9.1 |
 | `type` | The map's relation (EVS's type, such as Related To or Has Synonym), unchanged | A9.1 |
 | `provenance` | The provenance record | A4.4 |
 
@@ -513,7 +513,7 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 | resolve_retired_code-2 | An active code returns active true, its status, and no replacement. | resolve_retired_code, A8.1 | `tests/test_evs.py::test_an_active_code_is_active_with_its_status_and_no_replacement` | tested |
 | list_relationships-1 | Every role and association of the release's catalogue is listed, by code, name and kind. | list_relationships, relationship, A9.1 | `tests/test_evs.py::test_every_relationship_of_the_catalogue_is_listed_by_code_name_and_kind` | tested |
 | list_relationships-2 | A relationship is negative exactly when its code is in the terminology's exclusion set, whatever it is named. | list_relationships, relationship, traversal, A5.7 | `tests/test_evs.py::test_a_relationship_s_polarity_follows_its_code_not_its_name` | tested |
-| list_relationships-3 | For a release whose catalogue lacks a code of the exclusion set, list_relationships and get_concept_neighborhood fail closed with internal_error naming the absent codes; a new exclusion relationship the set does not know is not caught. | list_relationships, get_concept_neighborhood, relationship, A5.7 | `tests/test_evs.py::test_a_catalogue_without_a_code_of_the_exclusion_set_fails_closed[list_relationships]`, `tests/test_evs.py::test_a_catalogue_without_a_code_of_the_exclusion_set_fails_closed[get_concept_neighborhood]` | tested |
+| list_relationships-3 | For a release whose catalogue lacks a code of the exclusion set, list_relationships and get_concept_neighborhood fail closed with internal_error naming the absent codes. | list_relationships, get_concept_neighborhood, relationship, A5.7 | `tests/test_evs.py::test_a_catalogue_without_a_code_of_the_exclusion_set_fails_closed[list_relationships]`, `tests/test_evs.py::test_a_catalogue_without_a_code_of_the_exclusion_set_fails_closed[get_concept_neighborhood]` | tested |
 | list_terminologies-1 | The available terminologies are listed with their current releases, none the platform offers left out. | list_terminologies, A7.2, terminology | `tests/test_evs.py::test_every_terminology_the_platform_serves_is_listed_with_its_current_release` | tested |
 
 ### caDSR tools

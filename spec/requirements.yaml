@@ -231,7 +231,7 @@ list_relationships-2:
   statement: A relationship is negative exactly when its code is in the terminology's exclusion set, whatever it is named.
   basis: [list_relationships, relationship, traversal, A5.7]
 list_relationships-3:
-  statement: For a release whose catalogue lacks a code of the exclusion set, list_relationships and get_concept_neighborhood fail closed with internal_error naming the absent codes; a new exclusion relationship the set does not know is not caught.
+  statement: For a release whose catalogue lacks a code of the exclusion set, list_relationships and get_concept_neighborhood fail closed with internal_error naming the absent codes.
   basis: [list_relationships, get_concept_neighborhood, relationship, A5.7]
 list_terminologies-1:
   statement: The available terminologies are listed with their current releases, none the platform offers left out.
