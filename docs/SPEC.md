@@ -420,7 +420,7 @@ Keep `unittest`-style tests under the gates in `CONTRIBUTING.md`. Extend `tests/
 
 ## 11. Phases and definition of done
 
-Each phase ends with the unit suite green, the acceptance suite green in `fixture` mode for every tool implemented so far, and a tag: a `vX.Y.Z` release, which a merged `feat` or `fix` pull request cuts automatically, or for Phase 0 the manual `baseline-2026-10`.
+Each phase ends with the unit suite green, the acceptance suite green in `fixture` mode for every tool implemented so far, and a tag: a `vX.Y.Z` release, which a merged `feat`, `fix` or `perf` pull request cuts automatically, or for Phase 0 the manual `baseline-2026-10`.
 
 | Phase | Delivers | Done when |
 |---|---|---|
