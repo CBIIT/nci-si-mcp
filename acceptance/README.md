@@ -13,6 +13,8 @@ NCI_SI_ACCEPTANCE_SERVER="..." pdm run acceptance    # another server (default: 
 pdm run python -m nci_si_acceptance.report acceptance/fixture.json --live acceptance/live.json
 pdm run acceptance-selftest                          # the harness's own tests
 pdm run acceptance-record                            # re-record fixtures/recorded/ from live
+pdm run acceptance-craft                             # rebuild the crafted scenarios
+pdm run acceptance-register                          # regenerate request-forms/ from the manifest
 ```
 
 ## Writing a test
@@ -48,7 +50,9 @@ has a documented upstream limitation (`--limitations`, YAML of test id to requir
 required tools, `fixture_server.py` serves the fixtures (its docstring documents the format),
 `report.py` writes and renders the per-tool report, `inventory.py` lists the required tools and
 `suite.py` the rules of a run. `concepts.py` composes EVS concept answers from one recording per
-concept, `licensing.py` keeps licensed content out, and `record.py` records the set from live.
+concept, `licensing.py` keeps licensed content out, `record.py` records the set from live,
+`craft.py` crafts the scenarios EVS does not produce on demand, and `register.py` writes the
+register of request forms (`request-forms/`).
 `fixtures/` holds the fixtures ([fixtures/README.md](fixtures/README.md)), `tests/` the suite,
 `selftests/` the tests of the harness itself.
 

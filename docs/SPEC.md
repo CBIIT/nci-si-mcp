@@ -362,13 +362,16 @@ acceptance/
     concepts.py             composes EVS concept answers from one recording per concept (§9.6)
     licensing.py            the deny list: licensed content is neither recorded nor left in a payload
     record.py               re-records `recorded/` from live against the manifest's pins (`pdm run acceptance-record`)
+    craft.py                crafts the scenario fixtures EVS does not produce on demand (`pdm run acceptance-craft`)
+    register.py             writes the register of request forms from the manifest (`pdm run acceptance-register`)
     tools.py                baseline tool map application
     report.py               per-tool outcome: PASS | PASS (fixture only) | FAIL | NO FIXTURE | INCOMPLETE | NOT IMPLEMENTED | NOT RUN | NO TESTS; marks rows served through the tool map
   fixtures/
     manifest.yaml           pinned NCIt release (caDSR export date and SI graph dates to come), concept rules, deny list, the requests recorded
     recorded/<surface>/…    captured responses with the request that produced them
     crafted/<requirement>/… hand-written responses naming the requirement they stand in for
-    scenarios/…             the sixteen scenario fixtures
+    scenarios/…             the sixteen scenario fixtures (the eleven EVS ones so far)
+  request-forms/            the register of request forms: views for the EVS team, the caDSR team, and both
     baseline_toolmap.yaml   required tool → prototype tool + parameter renaming, for the server before Phase 2 (§9.4)
   tests/
     test_protocol.py        §3 gates

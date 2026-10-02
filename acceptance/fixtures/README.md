@@ -5,19 +5,42 @@ Each is a JSON file in the format `src/nci_si_acceptance/fixture_server.py` desc
 whether it was **recorded** from a live service (and when) or **crafted** for a case the live
 service does not produce on demand (and which requirement it stands in for).
 
-- `manifest.yaml`: the pinned release (NCIt `ncit_26.09d`), the concept rules, the licence deny
-  list, and every request `pdm run acceptance-record` records.
+- `manifest.yaml`: the pinned release (NCIt `ncit_26.09d`), the concept rules, the licensing
+  lists, and every request `pdm run acceptance-record` records, with its operation and rationale.
 - `recorded/<surface>/`: captured from the live service by `acceptance-record`; concepts in
   `recorded/evs/concepts/`.
-- `crafted/<requirement>/`: hand-written.
+- `crafted/<requirement>/`: the form a requirement prescribes where EVS does not answer it yet,
+  carrying a recording's answer (`acceptance-record`, the manifest's `derived`).
 - `scenarios/<group>/<name>/`: the fixtures of one scenario, which answer before the ordinary
   ones while a test selects it (`@pytest.mark.scenario("<group>/<name>")`). A `settings.json`
   there holds the `NCI_SI_*` settings the scenario's server process starts with.
 - `baseline_toolmap.yaml`: the stand-ins for required tools the server lacks.
 
+## Scenarios
+
+The scenario fixtures of *Acceptance Suite* §2.3, recorded from live where EVS produces the case
+on demand (`acceptance-record`), crafted otherwise (`pdm run acceptance-craft`, from the recorded
+set where they change a real answer):
+
+| Scenario | Made | What it provokes |
+|---|---|---|
+| `release/unknown` | recorded | every content path of `ncit_99.99z` answers 404 |
+| `release/mismatch` | crafted | content, including the unpinned forms, names release 26.08e |
+| `release/two-latest` | crafted | a monthly and a weekly row both `latest` |
+| `batch/silent-drop` | recorded | a code EVS does not know, left out of a batch |
+| `retired/with-replacement` | recorded | C154421 retired with a replacement; one bad code fails a batch |
+| `traversal/deep-fanout` | crafted | 1,001 children of one root, and a chain deeper than depth 4 |
+| `traversal/exclusions` | crafted | exclusion roles named as positive ones, and two the other way |
+| `traversal/starvation` | crafted | 300 roles and 2 associations on one concept |
+| `upstream/unavailable` | crafted | closed connection, 503, then no answer within the timeout |
+| `upstream/rate-limited` | crafted | 429 with `Retry-After` on the release query, then the answer |
+| `license/restricted` | both | 403 without the licence key (recorded); invented content with it |
+
 ## Recording
 
-`pdm run acceptance-record` re-records the set from live and writes nothing unless every check
+After `pdm run acceptance-record`, run `pdm run acceptance-craft` and `pdm run
+acceptance-register`: the self-tests check that crafted scenarios and the register are current.
+`acceptance-record` re-records the set from live and writes nothing unless every check
 holds: the live monthly release is still the pinned one; every request answers with the status
 its entry expects; no request names licensed content and no licensed or undecided terminology is
 left in a payload; every concept recording is one the fixture server accepts and the composed
@@ -28,26 +51,12 @@ re-records. Re-pinning the release is a re-recording under change control.
 
 ## Request forms
 
-The request forms are those of the platform operations in *MCP API Specification* §10, in the
-release-pinned form (`ncit_26.09d`) and with the parameters given there: the one-row release query
-(`terminology=ncit&latest=true&tag={channel}`, OP-E01), the catalogues (OP-E02, E03), concepts
-and batches (OP-E05, E07), relation lists (OP-E10, E11, E14 to E17, E20), search (OP-E08),
-replacements (OP-E21, and the `?list=` batch form), `$expand` (OP-F05). Where §10 differs from
-what EVS serves:
-
-- OP-E13 is spelled `paths-to-root`; EVS serves `pathsToRoot`, which is recorded.
-- OP-E19 names `/{code}/subsetMembers`; EVS serves `/subsetMembers/{subset code}`. The subsets a
-  concept belongs to are its `Concept_In_Subset` associations, answered by the concept rules.
-- Mapsets are not in §10; they are recorded because *Acceptance Suite* §5.1 requires them as
-  first-class objects.
-- §10 does not fix search's parameters: `term`, `type`, `include=minimal,highlights`,
-  `fromRecord` and `pageSize` are all given.
-
+The register of request forms, generated from the manifest, lists every request with the platform
+operation it serves (*MCP API Specification* §10) and the reason for its form, in a view for the
+EVS team, one for the caDSR team and one for both: [`../request-forms/`](../request-forms/). It
+also lists the operations without a pinned form upstream, with the release each payload reports.
 Where EVS does not yet answer the form a requirement prescribes, the ordinary fixture is crafted
-to the requirement and names it, carrying a recording's answer, and the live run shows the gap
-(*Acceptance Suite* §2.1): the pinned subset (OP-E06, 404 today) and `$expand` pinned by
-`system-version` (OP-F05, 400 today), in `crafted/`. Today's working unpinned forms are recorded
-beside them.
+to the requirement and names it, and the live run shows the gap (*Acceptance Suite* §2.1).
 
 Two kinds of request are answered whatever their form:
 
@@ -75,9 +84,12 @@ names the terminologies whose EVS metadata requires a licence beyond EVS (MedDRA
 ICD-10, the NCI Metathesaurus), the mapsets that carry them, and the terminologies allowed. A
 request naming a licensed one is not recorded unless EVS refused it, and an item of a payload
 that comes from or maps to one is removed. ICD-O-3 (WHO) is withheld as well until its terms are
-settled. The check fails closed: a terminology a payload names that is on neither list stops the
-recording until someone decides it, and `selftests/test_fixture_set.py` fails on any licensed or
-undecided name left in the set.
+settled. Codes NCIt carries as its own properties (`ICD-O-3_Code`, `UMLS_CUI`, `NCI_META_CUI`)
+are NCIt content and stay; only items that come from or map to a licensed terminology go. The
+check fails closed: a terminology a payload names that is on neither list stops the recording
+until someone decides it, and `selftests/test_fixture_set.py` fails on any licensed or
+undecided name left in the set. A crafted fixture may answer for a licensed terminology only with
+invented content it declares under `placeholder` (`license/restricted`).
 
 Redaction makes a recording differ from live on purpose. A live-capable test therefore asserts
 nothing about what redaction touches: not the count or the members of a concept's `maps`, nor

@@ -100,6 +100,8 @@ fmt = "ruff format ."
 acceptance = { cmd = "pytest", working_dir = "acceptance" }
 acceptance-selftest = { cmd = "pytest selftests --cov --cov-report=term-missing", working_dir = "acceptance" }
 acceptance-record = "python -m nci_si_acceptance.record"
+acceptance-craft = "python -m nci_si_acceptance.craft"
+acceptance-register = "python -m nci_si_acceptance.register"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
