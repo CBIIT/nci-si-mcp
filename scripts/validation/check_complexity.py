@@ -7,7 +7,8 @@ class nested in another has its own count, and a class has none.
 
     python scripts/validation/check_complexity.py [path ...]
 
-Without arguments the source package, the scripts and the tests are checked.
+Without arguments the source package, the scripts, the tests and the acceptance suite are
+checked.
 """
 
 import ast
@@ -20,7 +21,7 @@ from radon.visitors import ComplexityVisitor
 Function = ast.FunctionDef | ast.AsyncFunctionDef
 
 THRESHOLD = 8
-DEFAULT_PATHS = ("src", "scripts", "tests")
+DEFAULT_PATHS = ("src", "scripts", "tests", "acceptance")
 
 
 def python_files(paths: list[str]) -> list[Path]:

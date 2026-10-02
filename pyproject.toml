@@ -38,6 +38,11 @@ lint = [
     "vulture>=2.16",
 ]
 
+# The acceptance suite is a package of its own, installed editable beside the server.
+acceptance = [
+    "-e file:///${PROJECT_ROOT}/acceptance#egg=nci-si-acceptance",
+]
+
 [tool.pdm]
 distribution = true
 
@@ -88,6 +93,10 @@ pytest = "pytest"
 # The fast check before a commit; the commit itself runs every hook.
 lint = { composite = ["ruff check .", "basedpyright"] }
 fmt = "ruff format ."
+# The acceptance suite against the server (fixture mode unless NCI_SI_ACCEPTANCE_MODE says
+# otherwise), and the harness's own tests with its coverage minimum.
+acceptance = { cmd = "pytest", working_dir = "acceptance" }
+acceptance-selftest = { cmd = "pytest selftests --cov --cov-report=term-missing", working_dir = "acceptance" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -108,7 +117,7 @@ exclude_also = ["if __name__ == .__main__.:"]
 [tool.ruff]
 target-version = "py313"
 line-length = 100
-src = ["src", "tests", "scripts"]
+src = ["src", "tests", "scripts", "acceptance/src"]
 
 [tool.ruff.lint]
 select = [
@@ -143,20 +152,27 @@ ignore = [
 "src/nci_si_mcp/server.py" = ["PLC0415"]
 # The gate scripts report on the terminal.
 "scripts/**/*.py" = ["T20"]
+# The acceptance suite is written in pytest's style, which asserts with `assert`.
+"acceptance/{tests,selftests}/**/*.py" = ["S101"]
 
 # Dead code. The names listed are used in ways vulture cannot see: the MCP SDK
-# calls the decorated tools and resources, sqlite3 reads `row_factory`, and the
-# dataclass fields named here are only ever serialized.
+# calls the decorated tools and resources, pytest its fixtures and hooks, http.server
+# the handler methods, sqlite3 reads `row_factory`, and the dataclass fields named
+# here are only ever serialized.
 [tool.vulture]
-paths = ["src", "tests", "scripts"]
+paths = ["src", "tests", "scripts", "acceptance"]
 min_confidence = 60
-ignore_decorators = ["@mcp.tool", "@mcp.resource"]
-ignore_names = ["row_factory", "built_at", "index_path", "state", "reuse_targets"]
+ignore_decorators = ["@mcp.tool", "@mcp.resource", "@pytest.fixture"]
+ignore_names = [
+    "row_factory", "built_at", "index_path", "state", "reuse_targets",
+    "pytest_*", "do_GET", "do_DELETE", "do_HEAD", "log_message",
+]
 
 [tool.basedpyright]
 pythonVersion = "3.13"
 typeCheckingMode = "standard"
-# The tests are left out. They pass wrong types on purpose, and they are not written
-# to type-check: fakes that are not subclasses, results used without narrowing.
-include = ["src", "scripts"]
+# The tests (and the acceptance suite's tests) are left out. They pass wrong types on
+# purpose, and they are not written to type-check: fakes that are not subclasses,
+# results used without narrowing.
+include = ["src", "scripts", "acceptance/src"]
 reportMissingImports = true

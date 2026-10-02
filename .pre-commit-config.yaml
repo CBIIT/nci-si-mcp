@@ -103,7 +103,7 @@ repos:
         name: tests that can catch a regression
         entry: pdm run python scripts/validation/check_test_quality.py
         language: system
-        files: ^tests/test_.*\.py$
+        files: ^(tests|acceptance/(tests|selftests))/test_.*\.py$
 
       - id: dead-code
         name: dead code

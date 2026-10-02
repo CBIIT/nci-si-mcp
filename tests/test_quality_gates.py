@@ -125,6 +125,7 @@ class TestQualityGateTest(GateTestCase):
             "self.assertEqual(compute(), 2)",
             "with self.assertRaises(ValueError):\n    compute()",
             "self.fail('unreachable')",
+            "with pytest.raises(ValueError):\n    compute()",
             "assert_valid(compute())",
             "self._assert_valid(compute())",
             "self.assertEqual(compute(), 2)\nmock.assert_called_once_with(1)",

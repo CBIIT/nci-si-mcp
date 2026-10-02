@@ -21,6 +21,7 @@ pdm run pre-commit install     # run the gates on every commit
 | `pdm run lint` | Ruff and basedpyright: the fast check while you work |
 | `pdm run fmt` | Format with Ruff |
 | `pdm run pre-commit run --all-files` | Every hook, as the CI `quality` job runs them |
+| `pdm run acceptance` | The acceptance suite against the server ([acceptance/README.md](acceptance/README.md)) |
 
 The tests are `unittest.TestCase` classes, run by pytest. None contacts EVS: `FakeEVS` in
 `tests/fakes.py` stands in for the client, and the client's own tests replace `urlopen`.
