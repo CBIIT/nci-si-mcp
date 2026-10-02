@@ -33,7 +33,7 @@ P-6:
   planned: "#52"
 P-7:
   statement: A correlation identifier supplied on a call appears in the result and in the upstream request log.
-  basis: [A6]
+  basis: [A6.2]
   planned: "#52"
 P-8:
   statement: prompts/list and resources/list list the furnished prompts and resources with their arguments, and a prompt names only tools present in the profile.
@@ -90,8 +90,10 @@ X-11:
   basis: [A5.8]
   planned: "#52"
 X-12:
+  # A7.5 is the project's own convention, stated in spec/conventions.yaml when that file lands
+  # (#59); until then this statement is its source.
   statement: The licence key reaches the upstream request and appears in no log, error message or result.
-  basis: [A6]
+  basis: [A7.5]
   planned: "#52"
 
 # Group A, terminology tools (Acceptance Suite §5.1).
