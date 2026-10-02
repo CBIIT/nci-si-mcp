@@ -25,6 +25,12 @@ server lacks the tool, the baseline tool map (`fixtures/baseline_toolmap.yaml`) 
 that stands in for it; otherwise the test is skipped as NOT IMPLEMENTED. Each test cites the
 section of the specification it asserts, and asserts only what that section says.
 
+Each test also cites the requirements it enforces, `@pytest.mark.requirement("X-2")`, by their
+ids in [`../spec/requirements.yaml`](../spec/requirements.yaml), the project's statement of the
+behaviour the suite tests and the server implements. Every requirement is cited by a test or
+planned in an issue; `selftests/test_requirements.py` fails otherwise, and on a test that cites
+nothing.
+
 `@pytest.mark.scenario("release/unknown")` serves the scenario's fixtures before the ordinary
 ones, to a server process of its own started with the scenario's settings. A test marked
 `live_capable` also runs in live mode, unless it selects a scenario; every other test runs

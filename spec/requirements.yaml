@@ -1,0 +1,215 @@
+# The behaviour the acceptance suite tests and the server implements, one entry per row of
+# MCP Behavioral Acceptance Suite §3 to §5. Each has a plain statement and its basis: the
+# conventions (A1 to A11, Platform API Specification Part 6) or the MCP API Specification
+# section (`MCP API §8.2`) that states it in full. A suite test cites the ids it enforces
+# (`@pytest.mark.requirement("X-2")`); a requirement that no test covers yet names the issue
+# whose tests will (`planned`). Ids are never renumbered once merged: a removed entry leaves
+# a gap. acceptance/selftests/test_requirements.py holds the rules.
+
+# Protocol gates (Acceptance Suite §3): once per server, before any tool test.
+P-1:
+  statement: tools/list names every tool of the profile under test, and no other.
+  basis: [MCP API §2-§4, MCP API §8.4]
+  planned: "#52"
+P-2:
+  statement: Every tool declares an outputSchema that is valid JSON Schema and covers both the success and the error shape.
+  basis: [MCP API §8.3]
+  planned: "#52"
+P-3:
+  statement: No tool description contains an operator, wildcard or parameter value a tool test shows unsupported, nor placeholder or debug text.
+  basis: [A2.3, A2.4]
+  planned: "#52"
+P-4:
+  statement: Tool names are verb-led, lowercase and underscore-separated, and equivalent operations share a name pattern across the EVS and caDSR modules.
+  basis: [A2.1, A2.2]
+  planned: "#52"
+P-5:
+  statement: tools/list carries ttlMs and cacheScope public; release discovery results carry ttlMs 0 and release-pinned results a positive ttlMs.
+  basis: [MCP API §8.2]
+  planned: "#52"
+P-6:
+  statement: tools/list is identical whatever the terminology selected, the release pinned and the run mode.
+  basis: [MCP API §8.1]
+  planned: "#52"
+P-7:
+  statement: A correlation identifier supplied on a call appears in the result and in the upstream request log.
+  basis: [A6]
+  planned: "#52"
+P-8:
+  statement: prompts/list and resources/list list the furnished prompts and resources with their arguments, and a prompt names only tools present in the profile.
+  basis: [MCP API §8.5]
+  planned: "#60"
+P-9:
+  statement: resources/read results carry ttlMs, cacheScope and a provenance record.
+  basis: [MCP API §8.2]
+  planned: "#60"
+
+# Cross-cutting tests (Acceptance Suite §4): against every content-returning tool.
+X-1:
+  statement: The release in every returned item's provenance equals the release requested.
+  basis: [A3.1, A3.3]
+  planned: "#52"
+X-2:
+  statement: A request for a release the platform does not serve fails closed, with the requested-release-not-available error and no content.
+  basis: [A3.4, A3.5]
+  planned: "#52"
+X-3:
+  statement: Content the upstream serves from another release than the one requested fails closed, with the mismatch error.
+  basis: [A3.4]
+  planned: "#52"
+X-4:
+  statement: A query that legitimately matches nothing returns an empty result with provenance, not an error.
+  basis: [A2.5, MCP API §8.3]
+  planned: "#52"
+X-5:
+  statement: An upstream failure, including one masked as a successful response, is an upstream error, never an empty success.
+  basis: [S-5, MCP API §8.3]
+  planned: "#52"
+X-6:
+  statement: structuredContent validates against the tool's declared outputSchema, for successes and errors alike.
+  basis: [MCP API §8.3]
+  planned: "#52"
+X-7:
+  statement: Every item carries release, source surface, retrieval time and servedBy, and, where reached by traversal, depth, relationship, direction and polarity.
+  basis: [A4.1, A4.2, A4.4]
+  planned: "#52"
+X-8:
+  statement: Fields the upstream supplied appear unchanged in provenance; none is dropped or renamed.
+  basis: [A4.3]
+  planned: "#52"
+X-9:
+  statement: A code is returned bare, with its terminology in a separate field; never with an embedded prefix or as a URI.
+  basis: [A1.2, A1.3]
+  planned: "#52"
+X-10:
+  statement: With a caller limit smaller than the result, truncation is reported with the bound reached and the magnitude omitted.
+  basis: [A5.1, A5.4]
+  planned: "#52"
+X-11:
+  statement: No upstream endpoint is called twice with identical parameters within one tool call.
+  basis: [A5.8]
+  planned: "#52"
+X-12:
+  statement: The licence key reaches the upstream request and appears in no log, error message or result.
+  basis: [A6]
+  planned: "#52"
+
+# Group A, terminology tools (Acceptance Suite §5.1).
+resolve_release-1:
+  statement: One release per channel, resolved by tag and never by the first latest row; with two latest rows and no channel it fails closed; ttlMs 0.
+  basis: [MCP API §2, A3.6]
+  planned: "#53"
+get_concept-1:
+  statement: Each include value returns its section and nothing else; descendants is refused as an include value.
+  basis: [MCP API §2]
+  planned: "#53"
+get_concepts-1:
+  statement: A batch of n codes is one upstream call; a code the upstream omits is named in the result; results are in request order or keyed by code, never positional.
+  basis: [MCP API §2, A5.8]
+  planned: "#53"
+search_concepts-1:
+  statement: lexical and typeahead return ranked results with matchedOn; semantic and hybrid return a score and the field matched from the interim index, its release in provenance; a mode the profile does not offer is an invalid request, not an empty result.
+  basis: [MCP API §2, MCP API §5.5]
+  planned: "#53"
+get_concept_hierarchy-1:
+  statement: The depth bound holds, pathsToRoot returns complete paths, and truncation is reported.
+  basis: [MCP API §2, A5.1]
+  planned: "#53"
+expand_value_set-1:
+  statement: The tool applies count, offset and activeOnly itself, which the upstream ignores, and reports the total; activeOnly leaves out retired members.
+  basis: [MCP API §2, A5.1]
+  planned: "#53"
+get_concept_neighborhood-1:
+  statement: Per-kind budgets hold and no kind is starved; exclusion edges are marked and left out of positive expansion unless includeNegative; polarity follows the role code; the outbound budget counts retries; truncation names cause and magnitude.
+  basis: [MCP API §2, A5.5, A5.6, A5.7]
+  planned: "#53"
+get_concept_subsets-1:
+  statement: Membership is returned with subset codes, and the GDC Value Terminology subset resolves.
+  basis: [MCP API §2]
+  planned: "#53"
+get_concept_mappings-1:
+  statement: Mapsets are first-class objects; licensed targets carry attribution; a mapset whose version is not the NCIt release is a content state of its own.
+  basis: [MCP API §2]
+  planned: "#53"
+resolve_retired_code-1:
+  statement: A retired code returns status retired with its replacement and an active code status active; a batch fails as a whole on one bad code only where the upstream does, and says which.
+  basis: [MCP API §2, A8]
+  planned: "#53"
+list_relationships-1:
+  statement: The pinned release's roles are listed, the exclusion roles with negative polarity, derived from the code and not the name.
+  basis: [MCP API §2, A5.6]
+  planned: "#53"
+list_terminologies-1:
+  statement: The available terminologies are listed with their current releases, none the platform offers left out.
+  basis: [MCP API §2]
+  planned: "#53"
+
+# Group B, metadata tools (Acceptance Suite §5.2).
+resolve_registry_release-1:
+  statement: Without a registry release identifier upstream, the export date is returned and the absence stated, never an invented identifier; with one, it is returned; ttlMs 0.
+  basis: [MCP API §3, A3.8]
+  planned: "#54"
+get_data_element-1:
+  statement: Each include returns its section; the data element's own version and status are surfaced; the caller may pin an item version.
+  basis: [MCP API §3]
+  planned: "#54"
+search_data_elements-1:
+  statement: Filters by context, workflow status, registration status and value-domain type apply; totalKnown is present where the upstream counts; truncation at the upstream cap is reported.
+  basis: [MCP API §3, A5.4]
+  planned: "#54"
+match_data_elements-1:
+  statement: Matches are scored and rule-attributed; modelVariant and similarityThreshold are honoured or refused as an invalid request, never ignored; beyond the tool's declared timeout the error is a structured timeout.
+  basis: [MCP API §3]
+  planned: "#54"
+match_value_meanings-1:
+  statement: As match_data_elements, for value meanings, with crosswalk codes per match.
+  basis: [MCP API §3]
+  planned: "#54"
+get_form-1:
+  statement: A form retrieved by public id returns its modules and questions; a keyword search works or is an invalid request stating that the upstream needs an identifier.
+  basis: [MCP API §3]
+  planned: "#54"
+get_permissible_value-1:
+  statement: The value is returned with its NCIt concept and the absence of a stable identifier stated; where an identifier exists, retrieval by it works.
+  basis: [MCP API §3]
+  planned: "#54"
+get_code_map-1:
+  statement: The crosswalk is returned per commons with coverage per node; a commons without value-level binding says so rather than returning empty.
+  basis: [MCP API §3]
+  planned: "#54"
+list_contexts-1:
+  statement: Contexts come from the registry's context names; classification schemes are first-class objects with their nested items (list_contexts, list_classification_schemes).
+  basis: [MCP API §3]
+  planned: "#54"
+
+# Group C, cross-domain tools (Acceptance Suite §5.3).
+find_data_elements_for_concept-1:
+  statement: The batch form is used where available; descendant expansion is bounded and reported; both release identities are recorded; a masked upstream failure is an error.
+  basis: [MCP API §4, A3.7]
+  planned: "#55"
+get_concept_for_permissible_value-1:
+  statement: Resolves to a concept with both release identities.
+  basis: [MCP API §4]
+  planned: "#55"
+resolve_stored_value-1:
+  statement: A GDC value resolves through the mapset named in provenance; a node without a mapping reports no mapping with its coverage, never the preferred term as if stored.
+  basis: [MCP API §4]
+  planned: "#55"
+get_release_alignment-1:
+  statement: Every dataset's release and date are returned with the interval, and a warning above the configured threshold; ttlMs 0.
+  basis: [MCP API §4]
+  planned: "#55"
+
+# Group W, workflow tools (Acceptance Suite §5.4).
+ground_value-1:
+  statement: One provenance envelope names both content states and fails closed if either cannot be named; each hop's truncation is carried through.
+  basis: [MCP API §8.4]
+  planned: "#55"
+expand_cohort-1:
+  statement: Exclusion codes are withheld from codes and listed in excluded by default; the result equals composing the fine-grained tools.
+  basis: [MCP API §8.4, A5.6]
+  planned: "#55"
+harmonize_data_dictionary-1:
+  statement: One upstream match call per column, batched where the upstream allows; unmatched columns listed; one registry release across all matches.
+  basis: [MCP API §8.4]
+  planned: "#55"
