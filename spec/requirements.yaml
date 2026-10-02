@@ -99,7 +99,7 @@ X-12:
   basis: [A7.5]
   planned: "#52"
 
-# Group A, terminology tools.
+# EVS tools.
 resolve_release-1:
   statement: One release per channel, resolved by tag and never by the first latest row; with two latest rows and no channel it fails closed; ttlMs 0.
   basis: [resolve_release, A3.6, M2.2]
@@ -149,7 +149,7 @@ list_terminologies-1:
   basis: [list_terminologies, A7.2]
   planned: "#53"
 
-# Group B, metadata tools.
+# caDSR tools.
 resolve_registry_release-1:
   statement: Without a registry release identifier upstream, the export date is returned and the absence stated, never an invented identifier; with one, it is returned; ttlMs 0.
   basis: [resolve_registry_release, A3.8, M2.2]
@@ -187,7 +187,7 @@ list_contexts-1:
   basis: [list_contexts, list_classification_schemes, A7.2]
   planned: "#54"
 
-# Group C, cross-domain tools.
+# Cross-domain tools.
 find_data_elements_for_concept-1:
   statement: The batch form is used where available; descendant expansion is bounded and reported; where served from the Shared SI Service, both graphs' release identities are recorded; a masked upstream failure is an error.
   basis: [find_data_elements_for_concept, A3.7, A5.4, M3.2]
@@ -205,7 +205,7 @@ get_release_alignment-1:
   basis: [get_release_alignment, A3.7, M2.2]
   planned: "#55"
 
-# Group W, workflow tools.
+# Workflow tools.
 ground_value-1:
   statement: One provenance envelope names both content states and fails closed if either cannot be named; each hop's truncation is carried through.
   basis: [ground_value]

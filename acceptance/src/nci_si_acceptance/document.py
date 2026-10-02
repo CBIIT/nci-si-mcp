@@ -23,7 +23,7 @@ from nci_si_acceptance.spec import CONVENTIONS, RECORDS, SPEC, TOOLS
 
 DOCUMENT = SPEC.parent / "docs" / "specification.md"
 SUITE = Path(__file__).parents[2] / "tests"
-GROUPS = {"A": "Terminology", "B": "Metadata", "C": "Cross-domain", "W": "Workflow"}
+GROUPS = {"evs": "EVS", "cadsr": "caDSR", "cross-domain": "Cross-domain", "workflow": "Workflow"}
 # The requirements, in the order the suite runs them: the gates, the tests every
 # content-returning tool takes, and each tool's own, by group.
 SECTIONS = {
@@ -82,7 +82,7 @@ def _tools() -> list[str]:
     lines = ["## 2. Tools", ""]
     for group, title in GROUPS.items():
         rows = [_tool_row(name, tool) for name, tool in TOOLS.items() if tool["group"] == group]
-        lines += [f"### {group} · {title}", "", "| Tool | Inputs → result | What it does |"]
+        lines += [f"### {title} tools", "", "| Tool | Inputs → result | What it does |"]
         lines += ["|---|---|---|", *rows, ""]
     return lines
 

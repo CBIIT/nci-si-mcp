@@ -123,7 +123,7 @@ M1:
   rules:
     M1.1: Each tool description stands alone, naming its domain, its object and how it pins a release, without reference to another tool.
     M1.2: The tool surface does not vary with the terminology, the release pinned or what the platform offers today; a capability not yet available is a tool returning a structured unavailable error, never an absent tool.
-    M1.3: Each tool's group (terminology, metadata, cross-domain, workflow) is carried in its metadata.
+    M1.3: Each tool's group (evs, cadsr, cross-domain, workflow) is carried in its metadata.
     # M1.4: owner decision, 2 October 2026.
     M1.4: Every tool declares the read-only annotations readOnlyHint true, destructiveHint false, idempotentHint true and openWorldHint true.
 M2:

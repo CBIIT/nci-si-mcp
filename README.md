@@ -40,10 +40,10 @@ The [specification](docs/specification.md) names 29 tools in four groups.
 
 | Group | Tools | Status |
 |---|---|---|
-| A · Terminology (EVS) | 12 | Four prototype tools stand in, in part, for five: `resolve_release`, `get_concept`, `search_concepts`, `get_concept_hierarchy`, `get_concept_neighborhood`. The required tools come in Phase 2 |
-| B · Metadata (caDSR) | 10 | Not implemented; Phase 3 |
-| C · Cross-domain | 4 | Not implemented; Phase 4 |
-| W · Workflow | 3 | Not implemented; Phase 5 |
+| EVS tools | 12 | Four prototype tools stand in, in part, for five: `resolve_release`, `get_concept`, `search_concepts`, `get_concept_hierarchy`, `get_concept_neighborhood`. The required tools come in Phase 2 |
+| caDSR tools | 10 | Not implemented; Phase 3 |
+| Cross-domain tools | 4 | Not implemented; Phase 4 |
+| Workflow tools | 3 | Not implemented; Phase 5 |
 
 The acceptance suite comes first (Phase 0): its mechanics and the EVS fixture set are in place,
 and the tests of each group follow. The

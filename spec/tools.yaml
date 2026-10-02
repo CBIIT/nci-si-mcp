@@ -1,159 +1,159 @@
 # The required MCP tools: for each, its group, its inputs and result (a trailing ? marks an
 # optional argument, | alternatives), the values an enumerated argument takes, and what it
-# does. Groups: A terminology, B metadata, C cross-domain, W workflow. The conventions of
+# does. Groups: evs, cadsr, cross-domain and workflow. The conventions of
 # conventions.yaml apply to every tool; requirements.yaml says what the suite tests of each.
 
 resolve_release:
-  group: A
+  group: evs
   inputs: (terminology, channel?)
   returns: "{ terminology, channel, version, date, alternatives[] }"
   summary: Which release of a terminology is current, by channel; called explicitly, and its answer is passed to every later call.
 get_concept:
-  group: A
+  group: evs
   inputs: (terminology, release, code, include[]?)
   returns: concept
   values: {include: [synonyms, definitions, properties, semanticType, status]}
   summary: One concept with the detail selected.
 get_concepts:
-  group: A
+  group: evs
   inputs: (terminology, release, codes[], include[]?)
   returns: concept[]
   summary: Many concepts in one platform call, with the detail selected.
 search_concepts:
-  group: A
+  group: evs
   inputs: (terminology, release, query, mode?, limit?, cursor?)
   returns: "{ results[{ concept, score?, matchedOn? }], nextCursor? }"
   values: {mode: [lexical, typeahead, semantic, hybrid]}
   summary: Ranked search of a terminology; semantic and hybrid from the interim NCIt index (M4.1).
 get_concept_hierarchy:
-  group: A
+  group: evs
   inputs: (terminology, release, code, direction, depth?, limit?, cursor?)
   returns: "{ nodes[], truncation }"
   values: {direction: [parent, child, pathsToRoot]}
   summary: A concept's parents, children or paths to the root, bounded.
 expand_value_set:
-  group: A
+  group: evs
   inputs: (terminology, release, valueSet | code, count?, offset?, activeOnly?)
   returns: "{ members[], total?, truncation }"
   summary: The members of a value set, paged and bounded by the tool itself; $lookup, $validate-code, $subsumes and $translate where a caller asks.
 get_concept_neighborhood:
-  group: A
+  group: evs
   inputs: (terminology, release, code, depth?, kinds[]?, maxNodes?, maxEdges?, budgetPerKind?, includeNegative?)
   returns: "{ nodes[], edges[], truncation }"
   values: {kinds: [parent, child, role, association, inverseRole, inverseAssociation]}
   summary: Bounded traversal across roles and associations with a budget per kind; negative assertions returned marked, left out of positive expansion unless includeNegative.
 get_concept_subsets:
-  group: A
+  group: evs
   inputs: (terminology, release, code)
   returns: subset[]
   summary: The subsets and value sets a concept belongs to.
 get_concept_mappings:
-  group: A
+  group: evs
   inputs: (terminology, release, code, targetTerminology?)
   returns: mapping[]
   summary: A concept's mappings to other terminologies, each mapset with its own name and version.
 resolve_retired_code:
-  group: A
+  group: evs
   inputs: (terminology, release, code)
   returns: "{ status, replacements[] }"
   summary: Whether a code is retired, and what replaces it.
 list_relationships:
-  group: A
+  group: evs
   inputs: (terminology, release)
   returns: "relationship[{ code, name, kind, polarity, axisFamily }]"
   summary: The relationship catalogue of a release, polarity marked by code.
 list_terminologies:
-  group: A
+  group: evs
   inputs: ()
   returns: terminology[]
   summary: The terminologies available, with their current releases.
 
 resolve_registry_release:
-  group: B
+  group: cadsr
   inputs: ()
   returns: "{ identifier, generatedAt, sourceDistribution }"
   summary: The registry's content state; no identifier is invented where caDSR publishes none.
 get_data_element:
-  group: B
+  group: cadsr
   inputs: (publicId, version? | longName? | questionText?, include[]?)
   returns: dataElement
   values: {include: [permissibleValues, valueDomain, conceptAssociations, alternateNames, provenance]}
   summary: One data element with the detail selected.
 search_data_elements:
-  group: B
+  group: cadsr
   inputs: (query, mode?, filters?, limit?, cursor?)
   returns: "{ results[{ dataElement, score?, matchedOn? }], nextCursor?, totalKnown? }"
   values: {mode: [lexical, semantic, hybrid], filters: [context, workflowStatus, registrationStatus, valueDomainType]}
   summary: Search of data elements, filtered by context, status and value-domain type.
 match_data_elements:
-  group: B
+  group: cadsr
   inputs: "(entities[{ name, userTip?, permissibleValues[]? }], matchLimit?, modelVariant?, similarityThreshold?, filters?, cursor?)"
   returns: "{ matches[{ dataElement, score, rule, matchedText }], nextCursor? }"
   summary: Data elements matched to described entities, keyword and AI-enhanced, scored.
 match_value_meanings:
-  group: B
+  group: cadsr
   inputs: (values[], strictness?, terminologyScope?, cursor?)
   returns: "{ matches[{ valueMeaning, score, crosswalk[] }], nextCursor? }"
   summary: Value meanings matched to values, with crosswalk codes.
 get_form:
-  group: B
+  group: cadsr
   inputs: (publicId? | keyword?, version?, includeModules?)
   returns: form
   summary: A form or case report form with its modules and questions.
 get_permissible_value:
-  group: B
+  group: cadsr
   inputs: (permissibleValueId)
   returns: permissibleValue
   summary: A permissible value by its identifier.
 get_code_map:
-  group: B
+  group: cadsr
   inputs: (sourceSystem?, targetContext?, dataElementId?, cursor?)
   returns: codeMap[]
   summary: Code maps between source code systems and registered value sets, the CRDC crosswalk included.
 list_contexts:
-  group: B
+  group: cadsr
   inputs: (cursor?)
   returns: context[]
   summary: The registry's contexts.
 list_classification_schemes:
-  group: B
+  group: cadsr
   inputs: (context?, cursor?)
   returns: classificationScheme[]
   summary: Classification schemes as objects with their nested items.
 
 find_data_elements_for_concept:
-  group: C
+  group: cross-domain
   inputs: (conceptCode, terminology?, release?, expandDescendants?, includePermissibleValues?, limit?, cursor?)
   returns: "{ dataElements[], truncation }"
   summary: The data elements and permissible values that use a concept, optionally across its descendants.
 get_concept_for_permissible_value:
-  group: C
+  group: cross-domain
   inputs: "(permissibleValueId | { dataElementId, value })"
   returns: concept
   summary: The concept a permissible value stands for.
 resolve_stored_value:
-  group: C
+  group: cross-domain
   inputs: (conceptCode, commons, dataElementId?)
   returns: "{ storedValues[], confidence, evidence }"
   summary: The literal a data commons stores for a concept.
 get_release_alignment:
-  group: C
+  group: cross-domain
   inputs: ()
   returns: "{ datasets[{ name, version, date }], maxIntervalDays, warning? }"
   summary: The release of every dataset a cross-domain answer touches, and the interval between them.
 
 ground_value:
-  group: W
+  group: workflow
   inputs: (conceptCode | text, commons?, release, registryRelease)
   returns: "{ concept, dataElements[], permissibleValues[], storedValues[], provenance, truncation }"
   summary: Concept to data element to permissible value to stored value, under one provenance envelope naming both content states.
 expand_cohort:
-  group: W
+  group: workflow
   inputs: (conceptCode, release, maxDepth?, includeNegative?, maxNodes?)
   returns: "{ codes[], excluded[], edges[], truncation, provenance }"
   summary: The codes a cohort query should use, exclusion assertions withheld and listed.
 harmonize_data_dictionary:
-  group: W
+  group: workflow
   inputs: "(columns[{ name, description?, sampleValues[]? }], registryRelease, filters?)"
   returns: "{ columns[{ matches[{ dataElement, score, rule }], permissibleValueAlignment }], unmatched[], provenance }"
   summary: A data dictionary's columns matched to data elements, with permissible-value alignment.
