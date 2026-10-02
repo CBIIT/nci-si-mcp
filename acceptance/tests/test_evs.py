@@ -259,6 +259,143 @@ def test_typeahead_returns_the_platform_s_prefix_matches_in_its_order(tools, pin
     assert _matches(result) == _recorded_matches(recording)
 
 
+# A lexical search whose first page holds retired concepts with the others, recorded as the
+# platform answers it by default and, two pages, for retired concepts alone (conceptStatus).
+RETIRED_SEARCH = "recorded/evs/search-retired-default.json"
+RETIRED_ONLY = [
+    "recorded/evs/search-retired-only.json",
+    "recorded/evs/search-retired-only-page-2.json",
+]
+LISTING = "recorded/evs/terminologies.json"
+# GO, whose listing names a retired status that is no concept status; searched by default.
+GO_SEARCH = "recorded/evs/search-go-obsolete.json"
+# Typeahead for retired concepts alone.
+RETIRED_TYPEAHEAD = "recorded/evs/search-retired-typeahead.json"
+
+
+def _listed(recorded, terminology, release=None):
+    """A terminology's row in the recorded listing: the release given, or the first listed."""
+
+    rows = recorded(LISTING)["response"]["body"]
+    return next(
+        row
+        for row in rows
+        if row["terminology"] == terminology and (release is None or row["version"] == release)
+    )
+
+
+def _selectable(row):
+    """The retired status a search can select for a listing row, or None."""
+
+    metadata = row.get("metadata", {})
+    retired = metadata.get("retiredStatusValue")
+    return retired if retired in metadata.get("conceptStatuses", []) else None
+
+
+def _states(result):
+    """Each result's concept by code, active and status."""
+
+    assert not result.is_error, result.content
+    concepts = [entry.get("concept") or {} for entry in result.content.get("results", [])]
+    return [
+        (concept.get("code"), concept.get("active"), concept.get("status")) for concept in concepts
+    ]
+
+
+def _recorded_states(recording):
+    concepts = recording["response"]["body"].get("concepts", [])
+    return [(concept["code"], concept["active"], concept["conceptStatus"]) for concept in concepts]
+
+
+@pytest.mark.tool("search_concepts")
+@pytest.mark.requirement("search_concepts-6")
+@pytest.mark.parametrize("given", [{}, {"retired": "include"}], ids=["default", "include"])
+def test_retired_concepts_are_returned_with_the_others_by_default(tools, pinned, recorded, given):
+    recording = recorded(RETIRED_SEARCH)
+    # The page holds a retired concept and an active one, or the case would show nothing.
+    assert {active for _, active, _ in _recorded_states(recording)} == {True, False}
+
+    result = _search(tools, pinned, recording, "lexical", **given)
+
+    assert _states(result) == _recorded_states(recording)
+
+
+@pytest.mark.tool("search_concepts")
+@pytest.mark.requirement("search_concepts-6")
+def test_retired_only_returns_the_retired_concepts_alone(tools, pinned, recorded):
+    first, second = (recorded(file) for file in RETIRED_ONLY)
+    retired = _selectable(_listed(recorded, pinned["terminology"], pinned["release"]))
+    # The listing names a retired status among its concept statuses, and the platform is asked
+    # by it: the recording's request says so.
+    assert retired is not None
+    assert first["request"]["params"]["conceptStatus"] == [retired]
+
+    page = _search(tools, pinned, first, "lexical", retired="only")
+    following = _search(
+        tools, pinned, first, "lexical", retired="only", cursor=page.content.get("nextCursor")
+    )
+
+    states = [_states(page), _states(following)]
+    assert states == [_recorded_states(first), _recorded_states(second)]
+    assert {(active, status) for each in states for _, active, status in each} == {(False, retired)}
+    assert page.content.get("totalKnown") == first["response"]["body"]["total"]
+
+
+@pytest.mark.tool("search_concepts")
+@pytest.mark.requirement("search_concepts-6")
+def test_typeahead_takes_retired_only_as_lexical_search_does(tools, pinned, recorded):
+    recording = recorded(RETIRED_TYPEAHEAD)
+    retired = _selectable(_listed(recorded, pinned["terminology"], pinned["release"]))
+    assert recording["request"]["params"]["conceptStatus"] == [retired]
+
+    result = _search(tools, pinned, recording, "typeahead", retired="only")
+
+    assert _states(result) == _recorded_states(recording)
+
+
+@pytest.mark.tool("search_concepts")
+@pytest.mark.requirement("search_concepts-6")
+# exclude, which the platform cannot serve, and values a lenient server might take for one.
+@pytest.mark.parametrize("value", ["exclude", "ONLY", ""])
+def test_a_retired_value_outside_the_two_is_invalid(tools, pinned, recorded, value):
+    result = _search(tools, pinned, recorded(RETIRED_SEARCH), "lexical", retired=value)
+
+    assert error_code(result) == "invalid_request", result.content
+
+
+@pytest.mark.tool("search_concepts")
+@pytest.mark.requirement("search_concepts-7")
+def test_retired_only_where_the_status_is_none_the_search_selects_is_invalid(tools, recorded):
+    recording = recorded(GO_SEARCH)
+    row = _listed(recorded, "go")
+    # GO names a retired status, but not one of its concept statuses.
+    assert row["metadata"].get("retiredStatusValue") and _selectable(row) is None
+    pin = {"terminology": row["terminology"], "release": row["version"]}
+
+    # include given, as a caller may give the default, is served wherever search is.
+    searched = _search(tools, pin, recording, "lexical", retired="include")
+    only = _search(tools, pin, recording, "lexical", retired="only")
+
+    # The terminology is searched by default; only the selection is refused.
+    assert _states(searched) == _recorded_states(recording)
+    assert error_code(only) == "invalid_request", only.content
+
+
+@pytest.mark.tool("search_concepts")
+@pytest.mark.requirement("search_concepts-7")
+def test_retired_only_where_the_listing_names_no_retired_status_is_invalid(tools, recorded):
+    row = _listed(recorded, "hgnc")
+    assert "retiredStatusValue" not in row["metadata"]
+    pin = {"terminology": row["terminology"], "release": row["version"]}
+
+    result = tools.call(
+        "search_concepts",
+        {**pin, "query": "kinase", "mode": "lexical", "limit": 10, "retired": "only"},
+    )
+
+    assert error_code(result) == "invalid_request", result.content
+
+
 # Value set C85492 (CDISC SDTM Method Terminology), recorded whole: FHIR $expand ignores count,
 # offset and activeOnly (fixtures/manifest.yaml).
 VALUE_SET = "C85492"

@@ -1,0 +1,69 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/search",
+  "params": {
+   "term": [
+    "transgender"
+   ],
+   "type": [
+    "startsWith"
+   ],
+   "include": [
+    "minimal,highlights"
+   ],
+   "fromRecord": [
+    "0"
+   ],
+   "pageSize": [
+    "10"
+   ],
+   "conceptStatus": [
+    "Retired_Concept"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "total": 2,
+   "timeTaken": 43,
+   "parameters": {
+    "term": "transgender",
+    "type": "startsWith",
+    "include": "minimal,highlights",
+    "fromRecord": 0,
+    "pageSize": 10,
+    "conceptStatus": [
+     "Retired_Concept"
+    ],
+    "terminology": [
+     "ncit_26.09d"
+    ]
+   },
+   "concepts": [
+    {
+     "code": "C205471",
+     "name": "Transgender",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "C154421",
+     "name": "Transgender Identity",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    }
+   ]
+  }
+ }
+}

@@ -38,11 +38,19 @@ get_concepts:
   summary: Many concepts in one platform call, with the detail selected.
 search_concepts:
   group: evs
-  inputs: (terminology, release, query, mode?, limit?, cursor?)
+  inputs: (terminology, release, query, mode?, limit?, cursor?, retired?)
   returns: "{ results[{ concept, score?, matchedOn? }], nextCursor?, totalKnown? }"
   items: ["results[].concept"]
-  values: {mode: [lexical, typeahead, semantic, hybrid]}
-  summary: Ranked search of a terminology; semantic and hybrid from the interim NCIt index (M4.1).
+  values: {mode: [lexical, typeahead, semantic, hybrid], retired: [include, only]}
+  summary: >-
+    Ranked search of a terminology; semantic and hybrid from the interim NCIt index (M4.1).
+    Retired concepts are returned with the others (retired include, the default, as the
+    platform returns them), or alone (retired only), where retirement is a concept status the
+    search can select: the listing's metadata.retiredStatusValue is among its
+    metadata.conceptStatuses, and that status is what is sent. On 2 October 2026 this holds
+    for NCIt alone. Every mode takes the same two values. Search cannot leave retired
+    concepts out: the platform offers no such selection, and each result's active and status
+    let a caller drop them itself.
 get_concept_hierarchy:
   group: evs
   inputs: (terminology, release, code, direction, depth?, limit?, cursor?)

@@ -1,0 +1,144 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/go_2026-07-26/search",
+  "params": {
+   "term": [
+    "obsolete"
+   ],
+   "type": [
+    "contains"
+   ],
+   "include": [
+    "minimal,highlights"
+   ],
+   "fromRecord": [
+    "0"
+   ],
+   "pageSize": [
+    "10"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "total": 10249,
+   "timeTaken": 175,
+   "parameters": {
+    "term": "obsolete",
+    "type": "contains",
+    "include": "minimal,highlights",
+    "fromRecord": 0,
+    "pageSize": 10,
+    "terminology": [
+     "go_2026-07-26"
+    ]
+   },
+   "concepts": [
+    {
+     "code": "GO:0160155",
+     "name": "crinophagy",
+     "terminology": "go",
+     "version": "2026-07-26",
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "GO:0000003",
+     "name": "obsolete reproduction",
+     "terminology": "go",
+     "version": "2026-07-26",
+     "highlight": "<em>obsolete reproduction</em>",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "GO:0000008",
+     "name": "obsolete thioredoxin",
+     "terminology": "go",
+     "version": "2026-07-26",
+     "highlight": "<em>obsolete thioredoxin</em>",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "GO:0000108",
+     "name": "obsolete repairosome",
+     "terminology": "go",
+     "version": "2026-07-26",
+     "highlight": "<em>obsolete repairosome</em>",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "GO:0000746",
+     "name": "obsolete conjugation",
+     "terminology": "go",
+     "version": "2026-07-26",
+     "highlight": "<em>obsolete conjugation</em>",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "GO:0001511",
+     "name": "obsolete fibrillin",
+     "terminology": "go",
+     "version": "2026-07-26",
+     "highlight": "<em>obsolete fibrillin</em>",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "GO:0001524",
+     "name": "obsolete globin",
+     "terminology": "go",
+     "version": "2026-07-26",
+     "highlight": "<em>obsolete globin</em>",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "GO:0001528",
+     "name": "obsolete elastin",
+     "terminology": "go",
+     "version": "2026-07-26",
+     "highlight": "<em>obsolete elastin</em>",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "GO:0001529",
+     "name": "obsolete elastin",
+     "terminology": "go",
+     "version": "2026-07-26",
+     "highlight": "<em>obsolete elastin</em>",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "GO:0001577",
+     "name": "obsolete galectin",
+     "terminology": "go",
+     "version": "2026-07-26",
+     "highlight": "<em>obsolete galectin</em>",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    }
+   ]
+  }
+ }
+}

@@ -136,12 +136,21 @@ def _fallback_rows(manifest: dict[str, Any], root: Path, surfaces: set[str] | No
 
     requests = {entry["fixture"]: entry for entry in manifest["record"].get("requests", [])}
     prescribed = {entry["from"]: entry for entry in manifest["record"].get("derived", [])}
-    release = manifest["evs"]["release"]
+    releases = {manifest["evs"]["release"], *_listed_releases(root)}
     return [
         _fallback_row(entry, prescribed.get(entry["fixture"]), root)
         for entry in requests.values()
-        if _unpinned(entry, release) and _shown(entry, surfaces)
+        if _unpinned(entry, releases) and _shown(entry, surfaces)
     ]
+
+
+def _listed_releases(root: Path) -> set[str]:
+    """Each release the recorded terminology listing names, as a path names it
+    (`go_2026-07-26`), so that a request pinned to another terminology counts as pinned."""
+
+    listing = root / "recorded/evs/terminologies.json"
+    rows = json.loads(listing.read_text(encoding="utf-8"))["response"]["body"]
+    return {f"{row['terminology']}_{row['version']}" for row in rows}
 
 
 def _fallback_row(entry: dict[str, Any], pinned: dict[str, Any] | None, root: Path) -> str:
@@ -151,11 +160,12 @@ def _fallback_row(entry: dict[str, Any], pinned: dict[str, Any] | None, root: Pa
     return f"| {entry['operation']} | {pinned_form} | {_split_form(entry)} | {releases} |"
 
 
-def _unpinned(entry: dict[str, Any], release: str) -> bool:
+def _unpinned(entry: dict[str, Any], releases: set[str]) -> bool:
     """A recorded request naming no release that is not release discovery."""
 
     recorded = entry["fixture"].startswith("recorded/")
-    return recorded and entry["fixture"] not in DISCOVERY and release not in entry["path"]
+    named = any(release in entry["path"] for release in releases)
+    return recorded and entry["fixture"] not in DISCOVERY and not named
 
 
 def _table(header: str, rows: list[str]) -> list[str]:

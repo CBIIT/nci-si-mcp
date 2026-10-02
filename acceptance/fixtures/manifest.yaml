@@ -116,6 +116,31 @@ record:
       rationale: 'Typeahead: type=startsWith.'
       surface: evs
       path: /api/v1/concept/ncit_26.09d/search?term=ewing&type=startsWith&include=minimal,highlights&fromRecord=0&pageSize=10
+    - fixture: recorded/evs/search-retired-default.json
+      operation: OP-E08
+      rationale: 'Retired concepts in a lexical search: the default returns them with the others, C154421 first.'
+      surface: evs
+      path: /api/v1/concept/ncit_26.09d/search?term=Transgender Identity&type=contains&include=minimal,highlights&fromRecord=0&pageSize=10
+    - fixture: recorded/evs/search-retired-only.json
+      operation: OP-E08
+      rationale: 'The same search for retired concepts alone: conceptStatus with the status the listing names as retired.'
+      surface: evs
+      path: /api/v1/concept/ncit_26.09d/search?term=Transgender Identity&type=contains&include=minimal,highlights&fromRecord=0&pageSize=10&conceptStatus=Retired_Concept
+    - fixture: recorded/evs/search-retired-only-page-2.json
+      operation: OP-E08
+      rationale: The second page of the retired-only search, which the cursor continues with the same selection.
+      surface: evs
+      path: /api/v1/concept/ncit_26.09d/search?term=Transgender Identity&type=contains&include=minimal,highlights&fromRecord=10&pageSize=10&conceptStatus=Retired_Concept
+    - fixture: recorded/evs/search-retired-typeahead.json
+      operation: OP-E08
+      rationale: 'Typeahead for retired concepts alone: startsWith honours conceptStatus as contains does.'
+      surface: evs
+      path: /api/v1/concept/ncit_26.09d/search?term=transgender&type=startsWith&include=minimal,highlights&fromRecord=0&pageSize=10&conceptStatus=Retired_Concept
+    - fixture: recorded/evs/search-go-obsolete.json
+      operation: OP-E08
+      rationale: 'A lexical search of GO, whose listing names a retired status ("true") that is no concept status: searched by default, it is answered; retired only is refused (search_concepts-7).'
+      surface: evs
+      path: /api/v1/concept/go_2026-07-26/search?term=obsolete&type=contains&include=minimal,highlights&fromRecord=0&pageSize=10
     - fixture: recorded/evs/search-no-match.json
       operation: OP-E08
       rationale: 'A search matching nothing: empty is not an error.'
