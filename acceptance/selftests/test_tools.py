@@ -140,7 +140,7 @@ def test_fixed_arguments_are_passed_and_a_checked_argument_is_not():
     [
         ({"cursor": "abc"}, "cursor"),
         ({"direction": "pathsToRoot"}, "direction=pathsToRoot"),
-        ({"direction": ["parents", "pathsToRoot"]}, "direction=pathsToRoot"),
+        ({"direction": ["parent", "pathsToRoot"]}, "direction=pathsToRoot"),
         ({"channel": "weekly"}, "channel=weekly"),
     ],
 )
@@ -151,7 +151,7 @@ def test_a_capability_the_stand_in_lacks_is_not_implemented(arguments, unsupport
             "cursor": None,
             "direction": {
                 "name": "edge_types",
-                "values": {"parents": "parent", "pathsToRoot": None},
+                "values": {"parent": "parent", "pathsToRoot": None},
             },
             "channel": {"values": {"weekly": None}},
         },

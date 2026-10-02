@@ -398,7 +398,7 @@ The map lets the suite call today's tools under the required names, so the tests
 | `resolve_release` | `ncit_release_info` | `channel` weekly unsupported |
 | `get_concept` | `ncit_lookup` | `code`; `include` unsupported |
 | `search_concepts` | `ncit_search` | `query`, `limit`; `mode` semantic → `vector`, hybrid → `hybrid`, lexical and typeahead unsupported (the prototype searches its local index, not EVS); `cursor` unsupported |
-| `get_concept_hierarchy` | `ncit_traverse` | `code` → `start_codes` (a list of one); `direction` → `edge_types` (parents → `parent`, children → `child`, pathsToRoot unsupported) with `direction: both` fixed; `depth` → `max_depth`; `limit` → `max_nodes`; `cursor` unsupported |
+| `get_concept_hierarchy` | `ncit_traverse` | `code` → `start_codes` (a list of one); `direction` → `edge_types` (`parent`, `child`; `pathsToRoot` unsupported) with `direction: both` fixed; `depth` → `max_depth`; `limit` → `max_nodes`; `cursor` unsupported |
 | `get_concept_neighborhood` | `ncit_traverse` | `code` → `start_codes`; `depth` → `max_depth`; `kinds` → `edge_types` (`inverseRole` → `inverse_role`, `inverseAssociation` → `inverse_association`) with `direction: both` fixed; `maxNodes`, `maxEdges` → `max_nodes`, `max_edges`; `budgetPerKind` and `includeNegative` unsupported |
 | all others | — | NOT IMPLEMENTED |
 

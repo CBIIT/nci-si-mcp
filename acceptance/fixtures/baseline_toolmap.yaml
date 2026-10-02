@@ -29,10 +29,10 @@ search_concepts:
 
 get_concept_hierarchy:
   tool: ncit_traverse
-  fixed: {direction: both}              # the edge type alone then selects parents or children
+  fixed: {direction: both}              # the edge type alone then selects parent or child
   arguments:
     code: {name: start_codes, list: true}
-    direction: {name: edge_types, list: true, values: {parents: parent, children: child, pathsToRoot: null}}
+    direction: {name: edge_types, list: true, values: {parent: parent, child: child, pathsToRoot: null}}
     depth: max_depth
     limit: max_nodes
     cursor: null
