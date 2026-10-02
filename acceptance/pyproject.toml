@@ -21,7 +21,10 @@ distribution = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["live_capable: also runs in live mode"]
+markers = [
+    "live_capable: also runs in live mode",
+    "unmatched_upstream: expects upstream requests without a fixture, and checks them itself",
+]
 
 [tool.coverage.run]
 branch = true

@@ -79,13 +79,50 @@ def test_a_request_is_answered_by_its_fixture_and_recorded(server):
     assert entry["fixture"] == "recorded/evs/version.json"
 
 
-def test_query_parameters_match_in_any_order(server):
-    url = server.base_url("evs") + "/api/v1/concept/ncit_26.09d?include=summary&list=C1,C2"
+def test_query_parameters_match_decoded_and_in_any_order(server):
+    url = server.base_url("evs") + "/api/v1/concept/ncit_26.09d?include=summary&list=C1%2CC2"
 
     status, _, body = fetch(url)
 
     assert (status, json.loads(body)) == (200, [{"code": "C1"}])
     assert server.log()[0]["params"] == {"include": ["summary"], "list": ["C1,C2"]}
+
+
+def test_a_blank_parameter_is_part_of_the_request(server):
+    status, _, _ = fetch(server.base_url("evs") + "/api/v1/version?q=")
+
+    assert status == HTTPStatus.NOT_IMPLEMENTED
+    assert server.log()[0]["params"] == {"q": [""]}
+
+
+def test_paths_match_decoded(tmp_path):
+    fixture_file(
+        tmp_path,
+        "search.json",
+        request={"surface": "evs", "method": "GET", "path": "/api/v1/concept/ncit/C 1"},
+    )
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        status, _, _ = fetch(running.base_url("evs") + "/api/v1/concept/ncit/C%201")
+
+    assert status == HTTPStatus.OK
+
+
+def test_a_request_of_any_method_is_recorded_with_its_body(server):
+    request = Request(  # noqa: S310 - a local test server
+        server.base_url("ssis-sparql") + "/sparql", data=b"query=ASK{}", method="POST"
+    )
+    try:
+        urlopen(request, timeout=10)  # noqa: S310
+    except HTTPError as error:
+        status = error.code
+
+    assert status == HTTPStatus.NOT_IMPLEMENTED
+    (entry,) = server.log()
+    assert (entry["method"], entry["surface"], entry["body"]) == (
+        "POST",
+        "ssis-sparql",
+        "query=ASK{}",
+    )
 
 
 def test_a_request_without_a_fixture_is_refused_with_501_and_recorded(server):
@@ -114,7 +151,7 @@ def test_the_headers_of_a_fixture_are_sent_and_override_the_content_type(tmp_pat
         requirement="E-7",
         response={
             "status": 429,
-            "headers": {"Retry-After": "2", "Content-Type": "application/problem+json"},
+            "headers": {"Retry-After": "2", "content-type": "application/problem+json"},
             "body": {"title": "slow down"},
         },
     )
@@ -125,10 +162,10 @@ def test_the_headers_of_a_fixture_are_sent_and_override_the_content_type(tmp_pat
         except HTTPError as error:
             status, headers, body = error.code, error.headers, error.read()
 
-    assert (status, headers["Retry-After"], headers["Content-Type"]) == (
+    assert (status, headers["Retry-After"], headers.get_all("Content-Type")) == (
         429,
         "2",
-        "application/problem+json",
+        ["application/problem+json"],
     )
     assert json.loads(body) == {"title": "slow down"}
 
@@ -180,9 +217,18 @@ def test_two_fixtures_for_the_same_request_are_refused(tmp_path):
         load_fixtures(tmp_path)
 
 
+def test_a_fixture_directory_must_exist(tmp_path):
+    with pytest.raises(ValueError, match="is not a fixture directory"):
+        load_fixtures(tmp_path / "missing")
+
+
 @pytest.mark.parametrize(
     ("document", "problem"),
     [
+        (
+            {"response": {"status": 200, "headers": {"Transfer-Encoding": "chunked"}}},
+            "the server frames the response; remove transfer-encoding",
+        ),
         ({"recorded_on": None}, "a recorded fixture names recorded_on"),
         ({"kind": "crafted"}, "a crafted fixture names its requirement"),
         ({"kind": "invented"}, "kind is recorded or crafted"),

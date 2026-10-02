@@ -9,16 +9,30 @@ import pytest
 
 from nci_si_acceptance.client import Session, Target, open_session, server_environment
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
+from nci_si_acceptance.suite import UNMATCHED_UPSTREAM, skip_fixture_only, unmatched_requests
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
+TARGET = pytest.StashKey[Target]()
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    try:
+        config.stash[TARGET] = Target.from_env()
+    except ValueError as error:
+        raise pytest.UsageError(str(error)) from error
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    if config.stash[TARGET].mode == "live":
+        skip_fixture_only(items)
 
 
 @pytest.fixture(scope="session")
-def target() -> Target:
-    return Target.from_env()
+def target(pytestconfig: pytest.Config) -> Target:
+    return pytestconfig.stash[TARGET]
 
 
 @pytest.fixture(scope="session")
@@ -43,19 +57,14 @@ def mcp(
 
 
 @pytest.fixture(autouse=True)
-def fresh_log(upstream: FixtureServer | None) -> None:
-    """Each test reads only the upstream requests it caused."""
+def upstream_log(request: pytest.FixtureRequest, upstream: FixtureServer | None) -> Iterator[None]:
+    """Each test reads only the upstream requests it caused, and each had a fixture."""
 
-    if upstream is not None:
-        upstream.clear_log()
-
-
-def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
-    """In live mode only the tests marked live_capable run."""
-
-    if Target.from_env().mode != "live":
+    if upstream is None:
+        yield
         return
-    skip = pytest.mark.skip(reason="fixture mode only")
-    for item in items:
-        if "live_capable" not in item.keywords:
-            item.add_marker(skip)
+    upstream.clear_log()
+    yield
+    unmatched = unmatched_requests(upstream.log())
+    if unmatched and request.node.get_closest_marker(UNMATCHED_UPSTREAM) is None:
+        pytest.fail("upstream requests without a fixture:\n" + "\n".join(unmatched))

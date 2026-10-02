@@ -52,7 +52,7 @@ skipped (`--no-verify` and `SKIP=` are not used).
 | Gate | What it enforces |
 | --- | --- |
 | Ruff format and lint | Style, imports, likely bugs, security patterns, a bare `print` outside the gate scripts, a broad `except` that neither passes the exception on nor logs the traceback |
-| basedpyright | Types, over `src` and `scripts` |
+| basedpyright | Types, over `src`, `scripts` and `acceptance/src` |
 | Complexity | Every function below cyclomatic complexity 8, nested ones and the tests included (`scripts/validation/check_complexity.py`) |
 | Test quality | No test without an assertion, or with only mock or `callable` assertions (`scripts/validation/check_test_quality.py`) |
 | Dead code | No unused functions, classes or variables (vulture) |

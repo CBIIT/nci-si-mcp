@@ -13,8 +13,13 @@ NCI_SI_ACCEPTANCE_SERVER="..." pdm run acceptance    # another server command (d
 pdm run acceptance-selftest                          # the harness's own tests
 ```
 
-`src/nci_si_acceptance/` holds the harness (`client.py`) and the fixture server
-(`fixture_server.py`, which documents the fixture format); `fixtures/` the recorded and crafted
-fixtures; `tests/` the suite; `selftests/` the tests of the harness itself.
+`src/nci_si_acceptance/` holds the harness (`client.py`), the fixture server (`fixture_server.py`,
+which documents the fixture format) and the rules of a run (`suite.py`); `fixtures/` the fixtures
+([fixtures/README.md](fixtures/README.md)); `tests/` the suite; `selftests/` the tests of the
+harness itself.
+
+In fixture mode a test fails when one of its upstream requests found no fixture: the server may
+treat the refusal as an outage and still answer plausibly. A test that provokes such requests on
+purpose is marked `unmatched_upstream`.
 
 The suite is versioned on its own (`pyproject.toml` here), independently of the server.

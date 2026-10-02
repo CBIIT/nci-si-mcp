@@ -2,9 +2,10 @@
 
 The server under test is pointed at this server instead of the live services, one
 path prefix per upstream surface (`/evs`, `/cadsr`, ...). A request is answered by the
-fixture whose surface, method, path and query parameters match it exactly. A request
-without a fixture gets HTTP 501, so that a missing fixture is never mistaken for an
-upstream answer such as "not found". Every request is recorded, answered or not:
+fixture whose surface, method, path and query parameters match it exactly; paths and
+values are compared decoded, and the order of different parameters does not matter.
+A request without a fixture gets HTTP 501. Every request is recorded, answered or
+not, whatever its method:
 
     GET    /_log    the requests received since the log was last cleared, as JSON
     DELETE /_log    clear the log
@@ -20,8 +21,9 @@ A fixture is a JSON file:
       "response": {"status": 200, "headers": {}, "body": {...}}
     }
 
-A string `body` is sent as HTML, any other body as JSON, and no body as nothing; the
-fixture's headers are sent too, and override the content type.
+A string `body` is sent as HTML, any other body as JSON, and no body as nothing. The
+fixture's headers are sent too and override the content type; headers that frame the
+message (`Content-Length`, `Transfer-Encoding`, ...) are the server's and are refused.
 """
 
 from __future__ import annotations
@@ -32,7 +34,7 @@ from dataclasses import dataclass
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import TYPE_CHECKING, Any, Self
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, unquote, urlsplit
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -40,6 +42,9 @@ if TYPE_CHECKING:
 # The upstream surfaces, each served under its own path prefix.
 SURFACES = ("evs", "evs-fhir", "cadsr", "cadsr-ftp", "ssis", "ssis-sparql")
 LOG_PATH = "/_log"
+FRAMING_HEADERS = frozenset(
+    {"content-length", "transfer-encoding", "content-encoding", "connection"}
+)
 _JSON = {"Content-Type": "application/json"}
 
 type Params = dict[str, list[str]]
@@ -47,10 +52,18 @@ type Key = tuple[str, str, str, tuple[tuple[str, tuple[str, ...]], ...]]
 
 
 def request_key(surface: str, method: str, path: str, params: Params) -> Key:
-    """What a request is matched on: the order of the query parameters does not matter."""
+    """What a request is matched on. Repeated values of one parameter keep their order."""
 
     query = tuple(sorted((name, tuple(values)) for name, values in params.items()))
     return (surface, method.upper(), path, query)
+
+
+def _merge(defaults: dict[str, str], headers: dict[str, str]) -> dict[str, str]:
+    """`defaults` overridden by `headers`, matching header names in any case."""
+
+    overridden = {name.lower() for name in headers}
+    kept = {name: value for name, value in defaults.items() if name.lower() not in overridden}
+    return kept | headers
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,11 +79,17 @@ class Fixture:
         if self.body is None:
             return b"", self.headers
         if isinstance(self.body, str):
-            return self.body.encode(), {"Content-Type": "text/html; charset=utf-8"} | self.headers
-        return json.dumps(self.body).encode(), _JSON | self.headers
+            html = {"Content-Type": "text/html; charset=utf-8"}
+            return self.body.encode(), _merge(html, self.headers)
+        return json.dumps(self.body).encode(), _merge(_JSON, self.headers)
 
 
-def _provenance_problem(document: dict[str, Any]) -> str | None:
+def _problem(document: dict[str, Any]) -> str | None:
+    """What makes a fixture document unusable, if anything."""
+
+    framing = sorted(set(map(str.lower, document["response"].get("headers", {}))) & FRAMING_HEADERS)
+    if framing:
+        return f"the server frames the response; remove {', '.join(framing)}"
     kind = document.get("kind")
     if kind == "recorded":
         return None if document.get("recorded_on") else "a recorded fixture names recorded_on"
@@ -82,7 +101,7 @@ def _provenance_problem(document: dict[str, Any]) -> str | None:
 def _read_fixture(path: Path, root: Path) -> tuple[Key, Fixture]:
     document = json.loads(path.read_text(encoding="utf-8"))
     name = path.relative_to(root).as_posix()
-    if problem := _provenance_problem(document):
+    if problem := _problem(document):
         raise ValueError(f"{name}: {problem}")
     request, response = document["request"], document["response"]
     key = request_key(
@@ -95,6 +114,8 @@ def _read_fixture(path: Path, root: Path) -> tuple[Key, Fixture]:
 def load_fixtures(root: Path) -> dict[Key, Fixture]:
     """Every fixture below `root`; two fixtures for the same request are an error."""
 
+    if not root.is_dir():
+        raise ValueError(f"{root} is not a fixture directory")
     fixtures: dict[Key, Fixture] = {}
     for path in sorted(root.rglob("*.json")):
         key, fixture = _read_fixture(path, root)
@@ -136,16 +157,16 @@ class FixtureServer:
             self._log.clear()
 
     def answer(
-        self, method: str, target: str, headers: dict[str, str]
+        self, method: str, target: str, headers: dict[str, str], body: str = ""
     ) -> tuple[int, bytes, dict[str, str]]:
         """Answer one upstream request from the fixtures and record it."""
 
         url = urlsplit(target)
-        surface, _, rest = url.path.removeprefix("/").partition("/")
+        surface, _, rest = unquote(url.path).removeprefix("/").partition("/")
         path, params = f"/{rest}", parse_qs(url.query, keep_blank_values=True)
         fixture = self.fixtures.get(request_key(surface, method, path, params))
         entry = {"surface": surface, "method": method, "path": path, "params": params}
-        entry |= {"headers": headers, "fixture": fixture.name if fixture else None}
+        entry |= {"headers": headers, "body": body, "fixture": fixture.name if fixture else None}
         with self._lock:
             self._log.append(entry)
         if fixture is None:
@@ -165,21 +186,26 @@ def _handler(server: FixtureServer) -> type[BaseHTTPRequestHandler]:
             if self.command != "HEAD":
                 self.wfile.write(body)
 
+        def _upstream(self) -> None:
+            length = int(self.headers.get("Content-Length") or 0)
+            body = self.rfile.read(length).decode("utf-8", "replace")
+            self._send(*server.answer(self.command, self.path, dict(self.headers), body))
+
         def do_GET(self) -> None:
             if self.path == LOG_PATH:
                 self._send(HTTPStatus.OK, json.dumps(server.log()).encode(), _JSON)
             else:
-                self._send(*server.answer("GET", self.path, dict(self.headers)))
+                self._upstream()
 
         def do_DELETE(self) -> None:
             if self.path == LOG_PATH:
                 server.clear_log()
                 self._send(HTTPStatus.NO_CONTENT, b"", {})
             else:
-                self._send(*server.answer("DELETE", self.path, dict(self.headers)))
+                self._upstream()
 
-        def do_HEAD(self) -> None:
-            self._send(*server.answer("HEAD", self.path, dict(self.headers)))
+        # http.server finds a handler by these names.
+        do_HEAD = do_POST = do_PUT = do_PATCH = do_OPTIONS = _upstream  # noqa: N815
 
         def log_message(self, format: str, *args: object) -> None:
             """Silent: the request log is the record."""

@@ -3,7 +3,9 @@
 import sys
 
 import pytest
+from mcp.shared.exceptions import MCPError
 
+from nci_si_acceptance import client
 from nci_si_acceptance.client import (
     MODE_VARIABLE,
     SERVER_VARIABLE,
@@ -52,9 +54,14 @@ def test_in_fixture_mode_every_upstream_names_the_fixture_server(monkeypatch, tm
 
     environment = server_environment("fixture", tmp_path, "http://127.0.0.1:9")
 
-    assert environment["NCI_SI_EVS_BASE_URL"] == "http://127.0.0.1:9/evs"
+    # The upstream settings of docs/SPEC.md §8, each naming its fixture surface.
     assert {name: environment[name] for name in UPSTREAM_VARIABLES} == {
-        name: f"http://127.0.0.1:9/{surface}" for name, surface in UPSTREAM_VARIABLES.items()
+        "NCI_SI_EVS_BASE_URL": "http://127.0.0.1:9/evs",
+        "NCI_SI_EVS_FHIR_BASE_URL": "http://127.0.0.1:9/evs-fhir",
+        "NCI_SI_CADSR_BASE_URL": "http://127.0.0.1:9/cadsr",
+        "NCI_SI_CADSR_FTP_URL": "http://127.0.0.1:9/cadsr-ftp",
+        "NCI_SI_SSIS_FACADE_URL": "http://127.0.0.1:9/ssis",
+        "NCI_SI_SSIS_SPARQL_URL": "http://127.0.0.1:9/ssis-sparql",
     }
     assert set(UPSTREAM_VARIABLES.values()) == set(SURFACES)
     assert (environment["NCI_SI_UPSTREAM_MODE"], environment["NCI_SI_DATA_DIR"]) == (
@@ -64,13 +71,16 @@ def test_in_fixture_mode_every_upstream_names_the_fixture_server(monkeypatch, tm
     assert "NCI_SI_LOG_LEVEL" not in environment
 
 
-def test_in_live_mode_the_server_keeps_its_own_upstream(monkeypatch, tmp_path):
+def test_in_live_mode_the_server_keeps_its_upstream_and_gets_the_credentials(monkeypatch, tmp_path):
     monkeypatch.setenv("NCI_SI_EVS_BASE_URL", "https://developer.example")
+    monkeypatch.setenv("NCI_SI_EVS_LICENSE_KEY", "key")
 
-    environment = server_environment("live", tmp_path, None)
+    live = server_environment("live", tmp_path, None)
+    fixture = server_environment("fixture", tmp_path, "http://127.0.0.1:9")
 
-    assert not set(UPSTREAM_VARIABLES) & set(environment)
-    assert environment["NCI_SI_UPSTREAM_MODE"] == "live"
+    assert not set(UPSTREAM_VARIABLES) & set(live)
+    assert (live["NCI_SI_UPSTREAM_MODE"], live["NCI_SI_EVS_LICENSE_KEY"]) == ("live", "key")
+    assert "NCI_SI_EVS_LICENSE_KEY" not in fixture
 
 
 def test_fixture_mode_needs_the_fixture_server(tmp_path):
@@ -92,5 +102,17 @@ def test_every_upstream_request_of_the_server_under_test_is_recorded(tmp_path):
     assert results
     log = upstream.log()
     assert log
-    assert {entry["surface"] for entry in log} == {"evs"}
+    assert {entry["surface"] for entry in log} <= set(SURFACES)
     assert all(entry["fixture"] is None for entry in log)
+
+
+def test_a_server_that_never_answers_ends_the_session_with_a_timeout(monkeypatch, tmp_path):
+    monkeypatch.setattr(client, "READ_TIMEOUT_SECONDS", 1)
+
+    with (
+        pytest.raises(ExceptionGroup) as raised,
+        open_session(["sleep", "30"], server_environment("live", tmp_path, None)) as session,
+    ):
+        session.list_tools()
+
+    assert raised.group_contains(MCPError, match="timed out", depth=None)

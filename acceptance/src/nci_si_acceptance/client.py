@@ -3,7 +3,8 @@
 The harness knows nothing of the server's implementation. It launches the server's
 command over stdio with an environment that names the upstream of the run mode:
 in `fixture` mode every upstream base URL points at the fixture server, in `live`
-mode the server's own defaults (the production services) apply.
+mode the server's own defaults (the production services) apply, and the developer's
+upstream credentials are passed on.
 
     NCI_SI_ACCEPTANCE_MODE     fixture (default) or live
     NCI_SI_ACCEPTANCE_SERVER   the command that starts the server, default "nci-si-mcp serve"
@@ -32,6 +33,8 @@ type Mode = Literal["fixture", "live"]
 MODE_VARIABLE = "NCI_SI_ACCEPTANCE_MODE"
 SERVER_VARIABLE = "NCI_SI_ACCEPTANCE_SERVER"
 DEFAULT_SERVER = "nci-si-mcp serve"
+# How long the harness waits for any one answer of the server, startup included.
+READ_TIMEOUT_SECONDS = 60
 
 # The server's upstream settings (docs/SPEC.md §8) and the fixture surface each one names.
 UPSTREAM_VARIABLES = {
@@ -42,6 +45,8 @@ UPSTREAM_VARIABLES = {
     "NCI_SI_SSIS_FACADE_URL": "ssis",
     "NCI_SI_SSIS_SPARQL_URL": "ssis-sparql",
 }
+# Credentials for licensed upstream content (docs/SPEC.md §8), used in live mode only.
+CREDENTIAL_VARIABLES = ("NCI_SI_EVS_LICENSE_KEY", "NCI_SI_CADSR_CREDENTIAL")
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,22 +67,27 @@ class Target:
         return cls(mode, command)
 
 
+def _upstream_settings(mode: Mode, fixture_url: str | None) -> dict[str, str]:
+    """Fixture mode: every upstream names the fixture server. Live: only the credentials."""
+
+    if mode == "live":
+        return {name: os.environ[name] for name in CREDENTIAL_VARIABLES if name in os.environ}
+    if fixture_url is None:
+        raise ValueError("fixture mode needs the fixture server's URL")
+    return {name: f"{fixture_url}/{surface}" for name, surface in UPSTREAM_VARIABLES.items()}
+
+
 def server_environment(mode: Mode, data_dir: Path, fixture_url: str | None) -> dict[str, str]:
     """The environment of the server under test.
 
     The developer's own `NCI_SI_*` settings never reach it, so a run depends only on
-    the mode. In fixture mode every upstream base URL names the fixture server.
+    the mode; in live mode the upstream credentials are the exception. In fixture mode
+    every upstream base URL names the fixture server.
     """
 
     environment = {key: value for key, value in os.environ.items() if not key.startswith("NCI_SI_")}
     environment |= {"NCI_SI_UPSTREAM_MODE": mode, "NCI_SI_DATA_DIR": str(data_dir)}
-    if mode == "fixture":
-        if fixture_url is None:
-            raise ValueError("fixture mode needs the fixture server's URL")
-        environment |= {
-            name: f"{fixture_url}/{surface}" for name, surface in UPSTREAM_VARIABLES.items()
-        }
-    return environment
+    return environment | _upstream_settings(mode, fixture_url)
 
 
 class Session:
@@ -101,6 +111,8 @@ def open_session(command: list[str], environment: dict[str, str]) -> Iterator[Se
     server = StdioServerParameters(command=command[0], args=command[1:], env=environment)
     with (
         start_blocking_portal() as portal,
-        portal.wrap_async_context_manager(Client(server)) as client,
+        portal.wrap_async_context_manager(
+            Client(server, read_timeout_seconds=READ_TIMEOUT_SECONDS)
+        ) as client,
     ):
         yield Session(portal, client)

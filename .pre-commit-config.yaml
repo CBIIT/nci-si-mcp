@@ -80,10 +80,10 @@ repos:
         language: system
         types_or: [python, pyi]
 
-      # All of src and scripts, not the staged files: a change to a model can
+      # Every checked directory, not the staged files: a change to a model can
       # break a file that was not touched.
       - id: basedpyright
-        name: basedpyright (src and scripts)
+        name: basedpyright
         entry: pdm run basedpyright
         language: system
         pass_filenames: false
