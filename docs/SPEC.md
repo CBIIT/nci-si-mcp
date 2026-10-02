@@ -366,7 +366,7 @@ acceptance/
     tools.py                baseline tool map application
     report.py               per-tool outcome: PASS | PASS (fixture only) | FAIL | NO FIXTURE | INCOMPLETE | NOT IMPLEMENTED | NOT RUN | NO TESTS; marks rows served through the tool map
   fixtures/
-    manifest.yaml           pinned NCIt release (caDSR export date and SI graph dates to come), concept rules, deny list, the requests recorded
+    manifest.yaml           pinned NCIt release (caDSR export date and SI graph dates to come), concept rules, the scenarios, the requests recorded
     recorded/<surface>/…    captured responses with the request that produced them
     crafted/<requirement>/… hand-written responses naming the requirement they stand in for
     scenarios/…             the sixteen scenario fixtures (the eleven EVS ones so far)

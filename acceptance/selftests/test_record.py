@@ -198,6 +198,18 @@ def test_a_concept_recording_the_fixture_server_would_refuse_stops_the_recording
         Recorder(section, live, "2026-10-02").record(plan(section))
 
 
+def test_an_unusable_concept_answer_is_withheld_and_named_even_where_a_sample_needs_it():
+    page = "<html>Down for maintenance</html>"
+    live = upstream({("evs", "/api/v1/concept/ncit_26.09d/C1", "include=full"): (200, page)})
+
+    with pytest.raises(RecordingError) as raised:
+        Recorder(manifest(), live, "2026-10-02").record(plan(manifest()))
+
+    assert "recorded/evs/concepts/C1.json: a concept recording's body is the concept C1" in (
+        raised.value.problems
+    )
+
+
 def test_an_unreachable_service_is_a_problem_naming_the_request():
     def unreachable(surface, path, params):
         raise OSError("Connection refused")

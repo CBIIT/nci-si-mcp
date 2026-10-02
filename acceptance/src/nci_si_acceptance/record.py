@@ -182,12 +182,12 @@ class Recorder:
             return None
         status, body = answer
         document = _document(planned, status, body, self.today)
-        problems = [
-            self._status_problem(planned, status),
-            self._recording_problem(planned, document),
-        ]
+        refused = self._recording_problem(planned, document)
+        problems = [self._status_problem(planned, status), refused]
         self.problems += [f"{planned.file}: {problem}" for problem in problems if problem]
-        return None if problems[-1] else document
+        # A concept recording the fixture server would refuse is withheld, so that the
+        # samples are composed only from usable ones.
+        return None if refused else document
 
     @staticmethod
     def _status_problem(planned: Planned, status: int) -> str | None:

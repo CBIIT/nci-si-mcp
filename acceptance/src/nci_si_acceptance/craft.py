@@ -362,7 +362,6 @@ def license_restricted(_: Recorded) -> Documents:
         "ignored": {"*": "placeholder content answers every projection alike"},
     }
     document = crafted(requirement, request, response={"status": 200, "body": LICENSED_CONCEPT})
-    document["placeholder"] = "invented: the code and name stand for a licensed MedDRA concept"
     return {
         "scenarios/license/restricted/settings.json": {"NCI_SI_EVS_LICENSE_KEY": LICENCE_KEY},
         "scenarios/license/restricted/granted.json": document,
