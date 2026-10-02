@@ -1,45 +1,69 @@
 # NCI SI MCP
 
+[![CI](https://github.com/hniedner/nci_si_mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/hniedner/nci_si_mcp/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13%2B-blue.svg)](pyproject.toml)
+
 The government-furnished prototype of the Model Context Protocol (MCP) server for the NCI
 Semantic Infrastructure, and the acceptance suite it and its successors are measured by. Two
 Statements of Work build on it: *EVS SOW v2.1* (terminology: NCI Thesaurus through EVS) and
-*caDSR SOW v1.1* (metadata: common data elements through caDSR), with the cross-domain tools
-that join them.
+*caDSR SOW v1.1* (metadata: common data elements through caDSR), with the cross-domain tools that
+join them. It is a prototype, not a production service, and it never returns caDSR content it
+did not retrieve.
 
-It is for the contractors who extend the server under those SOWs, for the NCI teams who review
-their work, and for whoever maintains the suite. [docs/SPEC.md](docs/SPEC.md) specifies the work,
-phase by phase.
+## Try it
 
-## What is here
+```bash
+pdm install                  # Python 3.13+ and PDM
+pdm run nci-si-mcp serve     # the server, over MCP stdio
+pdm run acceptance           # the acceptance suite against it, on recorded upstream answers
+```
 
-- `src/nci_si_mcp/`: the prototype server. It answers NCI Thesaurus search, lookup and traversal
-  over the EVS REST API, served over MCP `stdio`.
-- `acceptance/`: the behavioural acceptance suite. It tests the MCP tool surface of any server
-  against recorded and crafted upstream answers; [acceptance/README.md](acceptance/README.md).
-- `docs/SPEC.md`: how the prototype becomes the platform the SOWs describe.
+[QUICKSTART.md](QUICKSTART.md) has the rest: connecting a client, settings, tools and errors.
+
+## How the pieces fit
+
+```mermaid
+flowchart LR
+    suite["Acceptance suite"] -- "MCP over stdio" --> server["Server under test"]
+    server -- "fixture mode" --> fixtures["Fixture server<br/>recorded and crafted answers"]
+    server -- "live mode" --> live["EVS · caDSR · Shared SI"]
+    fixtures -. "request log" .-> suite
+```
+
+The suite tests the MCP tool surface of whatever server it starts, against fixtures or the live
+services; it knows nothing of the server's code.
 
 ## Status
 
-The *MCP API Specification* names 29 tools in four groups. Today:
+The *MCP API Specification* names 29 tools in four groups.
 
 | Group | Tools | Status |
 |---|---|---|
-| A · Terminology (EVS) | 12 | The prototype's `ncit_search`, `ncit_lookup`, `ncit_traverse` and `ncit_release_info` cover parts of five of them; the required tools come in Phase 2 |
-| B · Metadata (caDSR) | 10 | Not implemented: `cadsr_status` reports so and returns no data elements; Phase 3 |
+| A · Terminology (EVS) | 12 | Four prototype tools stand in, in part, for five: `resolve_release`, `get_concept`, `search_concepts`, `get_concept_hierarchy`, `get_concept_neighborhood`. The required tools come in Phase 2 |
+| B · Metadata (caDSR) | 10 | Not implemented; Phase 3 |
 | C · Cross-domain | 4 | Not implemented; Phase 4 |
 | W · Workflow | 3 | Not implemented; Phase 5 |
 
 The acceptance suite comes first (Phase 0): its mechanics and the EVS fixture set are in place,
-and the tests of each group follow. The [milestones](https://github.com/hniedner/nci_si_mcp/milestones)
-track the phases.
+and the tests of each group follow. The
+[milestones](https://github.com/hniedner/nci_si_mcp/milestones) track the phases.
 
-## Next
+## Start here
 
-- [QUICKSTART.md](QUICKSTART.md): install and run the server, its settings, tools, resources and
-  errors.
-- [CONTRIBUTING.md](CONTRIBUTING.md): how to work on it, the commands, standards and gates.
-- [ARCHITECTURE.md](ARCHITECTURE.md): how the server is built.
+- **Contractors**: [docs/SPEC.md](docs/SPEC.md) specifies the work, phase by phase;
+  [acceptance/README.md](acceptance/README.md) runs the suite against your server and renders the
+  per-tool report.
+- **The EVS and caDSR teams**: the upstream requests the tools rest on, each with its operation
+  and rationale, for [EVS](acceptance/request-forms/evs.md), for
+  [caDSR](acceptance/request-forms/cadsr.md) and for [both](acceptance/request-forms/all.md).
+- **NCI reviewers and the suite's maintainers**: [acceptance/README.md](acceptance/README.md) and
+  [acceptance/fixtures/README.md](acceptance/fixtures/README.md), where the fixtures come from and
+  under which terms.
+- **Working on this repository**: [CONTRIBUTING.md](CONTRIBUTING.md) for the commands, standards
+  and gates; [ARCHITECTURE.md](ARCHITECTURE.md) for how the server is built.
 
 ## License
 
-[Apache License 2.0](LICENSE).
+[Apache License 2.0](LICENSE). The recorded NCI Thesaurus content in the fixtures is under its own
+terms, stated in [acceptance/fixtures/README.md](acceptance/fixtures/README.md).

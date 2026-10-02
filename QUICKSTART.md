@@ -40,6 +40,40 @@ export NCI_SI_EMBEDDING_PROVIDER=sentence-transformers
 export NCI_SI_EMBEDDING_MODEL=cambridgeltl/SapBERT-from-PubMedBERT-fulltext
 ```
 
+## Connect a client
+
+An MCP client starts the server as a command. In a client that reads an `mcpServers`
+configuration (Claude Desktop, for one), with absolute paths:
+
+```json
+{
+  "mcpServers": {
+    "nci-si": {
+      "command": "/path/to/nci_si_mcp/.venv/bin/nci-si-mcp",
+      "args": ["serve"],
+      "env": {"NCI_SI_DATA_DIR": "/path/to/data"}
+    }
+  }
+}
+```
+
+A call of `ncit_lookup` with `{"code": "C4817"}` answers, abridged:
+
+```json
+{
+  "code": "C4817",
+  "preferred_name": "Ewing Sarcoma",
+  "terminology": "ncit",
+  "release_version": "26.09d",
+  "release_date": "2026-09-28",
+  "source": "live_evs",
+  "evidence": {
+    "semantic_types": ["Neoplastic Process"],
+    "definitions": [{"source": "NCI", "type": "DEFINITION", "definition": "A small round cell tumor that lacks ..."}]
+  }
+}
+```
+
 ## Settings
 
 The local data directory defaults to `.nci-si-mcp/`, relative to the working directory of the
