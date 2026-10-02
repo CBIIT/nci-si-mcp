@@ -168,14 +168,28 @@ class TestQualityGateTest(GateTestCase):
             with self.subTest(body):
                 self.assertEqual(self.findings(body), ["test_it asserts nothing"])
 
-    def test_an_assertion_in_a_nested_function_counts_only_when_the_function_is_used(self):
-        nested = "def verify():\n    assert compute() == 2\n"
-
-        self.assertEqual(self.findings(nested), ["test_it asserts nothing"])
-        self.assertEqual(self.findings("async " + nested), ["test_it asserts nothing"])
-        self.assertEqual(self.findings(nested + "verify()"), [])
-        self.assertEqual(self.findings(nested + "run(verify)"), [])
-        self.assertEqual(self.findings("run(lambda: self.assertEqual(compute(), 2))"), [])
+    def test_an_assertion_in_a_nested_definition_counts_only_when_the_definition_is_used(self):
+        function = "def verify():\n    assert compute() == 2\n"
+        fake = "class Fake:\n    def get(self, code):\n        assert code == 'C1'\n"
+        unused = {
+            "a function": function,
+            "an async function": "async " + function,
+            "a function whose name is reassigned": function + "verify = compute()",
+            "a class": fake,
+        }
+        used = {
+            "a function that is called": function + "verify()",
+            "a function that is passed on": function + "run(verify)",
+            "a function that a decorator registers": "@registry.register\n" + function,
+            "a class that is instantiated": fake + "run(Fake())",
+            "a lambda": "run(lambda: self.assertEqual(compute(), 2))",
+        }
+        for case, body in unused.items():
+            with self.subTest(case):
+                self.assertEqual(self.findings(body), ["test_it asserts nothing"])
+        for case, body in used.items():
+            with self.subTest(case):
+                self.assertEqual(self.findings(body), [])
 
     def test_a_test_that_only_checks_callability_is_rejected(self):
         self.assertEqual(
@@ -199,8 +213,11 @@ class TestQualityGateTest(GateTestCase):
     def test_a_coverage_aim_in_the_module_docstring_is_rejected(self):
         for docstring in (
             "Improve coverage of the index.",
-            "Increase coverage of the service.",
+            "Tests to improve test coverage of index.py.",
+            "Increasing coverage of the CLI.",
+            "Improved coverage for server.py",
             "Raises the coverage of index.py.",
+            "Boost code coverage.",
             "Bring the coverage to 95%.",
         ):
             with self.subTest(docstring):

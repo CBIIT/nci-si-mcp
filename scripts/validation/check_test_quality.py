@@ -14,9 +14,9 @@ for a number.
 The tests are `unittest` style. An assertion is an `assert` statement, a
 `unittest` assertion method (`self.assertEqual`, `self.assertRaises`,
 `self.fail`, ...), or a call to a helper whose name starts with `assert_` and is
-not a mock assertion. An assertion inside a function that the test defines and
-never refers to by name does not count, nor does one in a method of a class that
-the test defines: the test itself has to assert.
+not a mock assertion. An assertion inside a function or a class that the test
+defines and then never uses does not count: it never runs. A definition counts as
+used when the test reads its name or it carries a decorator.
 
     python scripts/validation/check_test_quality.py tests/test_a.py [...]
 """
@@ -28,9 +28,11 @@ from collections.abc import Iterator
 from pathlib import Path
 
 TestFunction = ast.FunctionDef | ast.AsyncFunctionDef
+Definition = TestFunction | ast.ClassDef
 
 COVERAGE_AIM = re.compile(
-    r"(improve|increase|raise)s?\s+(the\s+)?coverage|coverage\s+to\s+\d+\s*%", re.IGNORECASE
+    r"\b(improv|increas|rais|boost)\w*\s+(the\s+)?(\w+\s+)?coverage\b|coverage\s+to\s+\d+\s*%",
+    re.IGNORECASE,
 )
 # `assert`, a unittest method such as assertEqual or fail, or a helper such as assert_valid.
 ASSERTION = re.compile(r"assert|assert[A-Z]\w*|fail|_?assert_\w+")
@@ -89,17 +91,29 @@ def _kind(node: ast.AST) -> str | None:
     return "callable" if _is_callable_check(subject) else "behaviour"
 
 
-def _nodes_that_run(test: TestFunction) -> Iterator[ast.AST]:
-    """The nodes of a test, without the functions it defines and never names again."""
+def _names_read(test: TestFunction) -> set[str]:
+    return {
+        node.id
+        for node in ast.walk(test)
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+    }
 
-    named = {node.id for node in ast.walk(test) if isinstance(node, ast.Name)}
+
+def _nodes_that_run(test: TestFunction) -> Iterator[ast.AST]:
+    """The nodes of a test, without the functions and classes it defines and never uses."""
+
+    read = _names_read(test)
     pending = list(ast.iter_child_nodes(test))
     while pending:
         node = pending.pop()
-        if isinstance(node, TestFunction) and node.name not in named:
+        if isinstance(node, Definition) and not node.decorator_list and node.name not in read:
             continue
-        yield node
-        pending.extend(ast.iter_child_nodes(node))
+        if isinstance(node, ast.ClassDef):
+            # The methods of a class in use are called through its instances.
+            yield from ast.walk(node)
+        else:
+            yield node
+            pending.extend(ast.iter_child_nodes(node))
 
 
 def _finding(test: TestFunction) -> str | None:
