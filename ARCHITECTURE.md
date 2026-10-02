@@ -233,7 +233,7 @@ MCP resources:
 - `nci-si://index/ncit/{version}/manifest`
 
 The CLI additionally exposes sample indexing and retrieval evaluation, which are
-not MCP tools. The README lists the error codes.
+not MCP tools. QUICKSTART.md lists the error codes.
 
 ## Current boundaries
 

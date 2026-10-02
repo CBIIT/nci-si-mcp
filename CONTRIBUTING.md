@@ -1,7 +1,8 @@
 # Contributing
 
-How to work on this repository. What the server does is in [README.md](README.md); how it is
-built is in [ARCHITECTURE.md](ARCHITECTURE.md).
+How to work on this repository. What it is, and its status, is in [README.md](README.md); how to
+install and run the server is in [QUICKSTART.md](QUICKSTART.md); how it is built is in
+[ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Set up
 
