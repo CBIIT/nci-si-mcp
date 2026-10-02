@@ -55,7 +55,7 @@ RULES: tuple[tuple[Callable[[Any], bool], str], ...] = (
             and bool(entry["basis"])
             and all(isinstance(b, str) for b in entry["basis"])
         ),
-        "names its basis, a list of conventions or specification sections",
+        "names its basis, a list of conventions, records or tools",
     ),
     (
         lambda entry: all(is_basis(name) for name in entry["basis"]),

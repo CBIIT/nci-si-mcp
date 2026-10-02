@@ -17,7 +17,8 @@ required tool one outcome:
 | NOT IMPLEMENTED | The server exposes the tool neither by name nor through the baseline tool map (the Prototype Baseline Assessment) |
 
 An upstream limitation excuses a failing live test only test by test, each with its
-requirement named, and each such limitation is an entry in the upstream requirements package. A
+requirement named; one known limitation does not excuse another live failure of the same tool,
+and each such limitation is an entry in the upstream requirements package. A
 gate that fails live fails every tool, as a failing live test does. A module is accepted when
 every one of its tools is PASS or PASS (fixture only) and the gates pass; INCOMPLETE, NOT RUN, NO FIXTURE, NO TESTS and NOT IMPLEMENTED are not accepted.
 Every report names the suite version, the fixture-set version,
@@ -38,6 +39,8 @@ Changes to this specification, the suite, the fixture set and the request forms 
 versioned change request, an impact assessment and the written approval of the branch chief or
 a delegate, from the furnished tag. The request forms, prompt templates and resource definitions
 are furnished as initial versions for the EVS and caDSR teams to refine through that record.
+The suite and the fixture set are versioned independently. A contractor may propose a test, but
+may not substitute its own tests for the suite as the basis of acceptance.
 Every suite test cites the requirements it enforces, and at the furnished tag every requirement
 is cited by one; a report whose digest is not that of an approved release reads MODIFIED;
 changes under `spec/` and `acceptance/` need a code owner's approval; and the change log records

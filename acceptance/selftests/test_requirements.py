@@ -70,6 +70,10 @@ def write(tmp_path, requirements):
         ({"statement": "s", "basis": [3]}, "names its basis"),
         ({"statement": "s", "basis": "A1"}, "names its basis"),
         ({"statement": "s", "basis": ["A3.9"]}, "names its basis among the conventions and tools"),
+        (
+            {"statement": "s", "basis": ["A1", "A3.9"]},
+            "names its basis among the conventions and tools",
+        ),
         ({"statement": "s", "basis": ["A1"], "planned": "52"}, "is planned in an issue"),
         ({"statement": "s", "basis": ["A1"], "planned": "#52 later"}, "is planned in an issue"),
     ],

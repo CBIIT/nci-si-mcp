@@ -337,7 +337,7 @@ Settings after the change. `NCI_SI_EVS_BASE_URL`, `NCI_SI_TIMEOUT_SECONDS`, `NCI
 
 ## 9. Acceptance suite (`acceptance/`)
 
-The requirements it tests and its acceptance rules are in the specification (§3, §4); this section states how it lives in the repository.
+The requirements it tests and its acceptance rules are in the specification's §3 and §4; this section states how it lives in the repository.
 
 ### 9.1 Layout
 
@@ -362,8 +362,8 @@ acceptance/
     baseline_toolmap.yaml   required tool → prototype tool + parameter renaming, for the server before Phase 2 (§9.4)
   request-forms/            the register of request forms: views for the EVS team, the caDSR team, and both
   tests/
-    test_protocol.py        §3 gates
-    test_crosscutting.py    §4, parameterised over the inventory
+    test_protocol.py        the P requirements (protocol gates)
+    test_crosscutting.py    the X requirements, parameterised over the required tools
     test_group_a.py … test_group_w.py
   selftests/                the harness's own tests, run in the unit CI job
 ```
@@ -402,7 +402,7 @@ Because the suite and the tools are written by the same hands, two rules keep th
 
 ### 9.6 Request forms
 
-The fixtures use the request forms of the platform operations (the `OP-` ids of the programme's operation inventory), release-pinned; the generated register (`acceptance/request-forms/`) gives each form's operation and rationale, including where the inventory's form and EVS differ. Where EVS does not yet answer the form a requirement prescribes, the ordinary fixture is crafted to the requirement and names it, and the live run shows the gap (*Acceptance Suite* §2.1). Two kinds of request are answered whatever their form:
+The fixtures use the request forms of the platform operations (their `OP-` ids, from `operations.yaml` of the programme's platform conformance suite), release-pinned; the generated register (`acceptance/request-forms/`) gives each form's operation and rationale, including where the inventory's form and EVS differ. Where EVS does not yet answer the form a requirement prescribes, the ordinary fixture is crafted to the requirement and names it, and the live run shows the gap (*Acceptance Suite* §2.1). Two kinds of request are answered whatever their form:
 
 - **EVS concepts.** One recording per concept answers every projection and relation list of that concept, and every batch is composed from the recordings of the concepts it names, through declared rules (`concepts.py`): project by `include` (the include-to-key table in the manifest; EVS's `include` is a clean key projection, verified 2 October 2026), select by `list` (each code once, unknown codes left out, in no particular order, since EVS keeps none), and one relation list on its own. `record.py` checks composed answers against real ones.
 - **Ignored parameters.** A parameter the service is shown to ignore is declared with its evidence and left out of the match.
@@ -445,7 +445,7 @@ Each phase ends with the unit suite green, the acceptance suite's expected outco
 | **3 · caDSR module** | §5 | all Group B tools PASS in fixture mode; PASS (fixture only) rows name their upstream requirement |
 | **Furnished package** | §1.2: the tag and the Prototype Baseline Package, with the baseline run report against that commit, naming the tools whose tests have never passed against any implementation | the tag is on the commit the report ran against and both SOWs' package checklists are met (#3); cut when the owner decides, not before Phase 3 is done (*Project Plan* §7: "repository Phases 0–3 to the point where both modules yield a meaningful baseline report") |
 | **4 · Cross-domain** | §6 | Group C PASS; both release identities on every result |
-| **5 · Workflows, remote transport, audit** | §7, §3.8, §3.9 | Group W PASS; unified profile accepted under §6 of the acceptance specification |
+| **5 · Workflows, remote transport, audit** | §7, §3.8, §3.9 | Group W PASS; unified profile accepted under the specification's §4 |
 
 Work proceeds in the order of the table above until award. What remains at the furnished commit is the contractors' work under the two Statements of Work, and the specification is what the Prototype Baseline Assessment measures the prototype against.
 

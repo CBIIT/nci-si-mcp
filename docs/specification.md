@@ -18,7 +18,7 @@ Binding on every tool.
 | Id | Convention |
 |---|---|
 | A1.1 | A caller uses both modules in one workflow without translating identifiers, reconciling error formats or reading provenance differently. |
-| A1.2 | A concept code is exchanged as the bare code the terminology publishes (C4817), with the terminology in a separate field; never with an embedded prefix, URI expansion or terminology punctuation as its primary form. |
+| A1.2 | A concept code is exchanged as the bare code the terminology publishes (C4817), with the terminology in a separate field; never with an embedded prefix, URI expansion or terminology punctuation as its primary form. A URI may be given as an additional field. |
 | A1.3 | A code of the other module's domain is returned in the A1.2 form, ready to pass to the other module unchanged. |
 | A1.4 | Neither module needs the other to be present to work. |
 | A1.5 | Content obtained from the Shared Semantic Infrastructure Service says so in its provenance, with the release identity of both source graphs. |
@@ -46,14 +46,14 @@ Binding on every tool.
 | Id | Convention |
 |---|---|
 | A3.1 | Every platform request names the release explicitly; resolving it once at start-up does not count. |
-| A3.2 | Unversioned platform access is used only to discover which releases exist. |
+| A3.2 | Unversioned platform access is used only to discover which releases exist, and, where the platform offers no release-pinned form of an operation, to call its unpinned form, verify the release the payload reports and fail closed on a difference (the verified fallback). |
 | A3.3 | The release in effect is recorded in the provenance of every result. |
 | A3.4 | A cache or index derived from platform content is bound to its release; any mismatch between the release requested, the release the content reports and the release of derived content fails closed with a structured error. |
 | A3.5 | Acceptance tests show fail-closed behaviour for each mismatch of A3.4. |
 | A3.6.1 | The NCIt release is resolved by tag (monthly), never by the latest flag. |
 | A3.6.2 | Monthly and weekly builds are told apart by tag, and the choice is explicit in configuration. |
 | A3.6.3 | A release with conflicting or duplicate tags fails closed and is reported in a form fit to send upstream. |
-| A3.7.1 | A query of the Shared SI Service reports the release identity of each graph it touched and the interval between them, with a warning above a configured threshold. |
+| A3.7.1 | A query of the Shared SI Service reports the release identity of each graph it touched (owl:versionInfo and dc:date of the NCIt graph, dc:date of the caDSR graph) and the interval between them, and warns rather than fails above a configured threshold. |
 | A3.8.1 | caDSR publishes no registry release identifier, and none is implied; a data element's version is never presented as the registry's state. |
 | A3.8.2 | Until a registry release identifier exists, the most specific provenance the platform gives (a generation timestamp) is surfaced, and registry-level reproducibility is documented as not achievable. |
 | A3.8.3 | Every data element is returned with its own version and registration status. |
@@ -64,7 +64,7 @@ Binding on every tool.
 
 | Id | Convention |
 |---|---|
-| A4.1 | Every item carries its canonical identifier and, where published, its status as fields of the item, and a camelCase provenance record of at least release, source and retrievedAt. |
+| A4.1 | Every item carries its canonical identifier and, where published, its status as fields of the item, and a camelCase provenance record sufficient to reproduce, audit or discard it: at least release (terminology or registry, identifier and date), source and retrievedAt; the full record is the provenance record below. |
 | A4.2 | An item reached by traversal adds depth, relationship (code, name, kind), direction, qualifiers, polarity and evidence. |
 | A4.3 | Every provenance field the platform supplies is passed through, including those not listed here. |
 | A4.4 | Provenance is attached per item, not per response. |
@@ -77,7 +77,7 @@ Binding on every tool.
 | A5.2 | Result size, traversal depth and outbound requests per tool call are bounded. |
 | A5.3 | The outbound request bound counts retries. |
 | A5.4 | A bound reached is reported with which bound and how much was omitted, exactly or as a stated estimate; a flag alone is not enough. |
-| A5.5 | Traversal over several relationship kinds does not spend its budget on one kind at the expense of another, and reports truncation per kind. |
+| A5.5 | Traversal over several relationship kinds does not spend its budget on one kind at the expense of another, and reports truncation per kind; a response missing a whole category of relationship says so. |
 | A5.6 | Negative assertions are kept, marked with negative polarity and full provenance, and left out of positive expansion by default, which the caller can override. |
 | A5.7 | Negative assertions are identified by relationship code against the release's relationship catalogue, never by the relationship's name. |
 | A5.8 | The same information is not retrieved twice within one operation. |
@@ -88,7 +88,7 @@ Binding on every tool.
 
 | Id | Convention |
 |---|---|
-| A6.0 | The authoritative audit record, rate limits and quotas are the platform's; the module supplies what only it knows. |
+| A6.0 | The authoritative audit record, rate limits, quotas and authorisation are the platform's; the module supplies what only it knows. |
 | A6.1 | Every tool call emits telemetry of timestamp, tool, parameters, release, outbound requests with retries, result size, truncation, response code and elapsed time. |
 | A6.2 | A caller's correlation identifier is accepted, recorded on every telemetry entry, passed upstream on every platform request and returned; one is generated where none is supplied. |
 | A6.2a | The platform is given the audit context only the module knows (tool, consumer, workflow correlation) through the parameters or headers it defines. |
@@ -102,7 +102,7 @@ Binding on every tool.
 
 | Id | Convention |
 |---|---|
-| A7.1 | Terminology and context identifiers come from the platform's metadata, never hard-coded or guessed. |
+| A7.1 | Terminology and context identifiers come from the platform's metadata at build or start-up, never hard-coded or guessed. |
 | A7.2 | A tool lists the terminologies, contexts or classification schemes available, with identifiers and current releases. |
 | A7.3 | Results from a terminology with licence conditions carry its attribution. |
 | A7.4 | A credentialed operation degrades explicitly when the credential is absent and is never presented as public. |
@@ -114,7 +114,7 @@ Binding on every tool.
 
 | Id | Convention |
 |---|---|
-| A8.1 | An item's published status (retired, obsolete, provisional) is always surfaced. |
+| A8.1 | An item's published status (retired, obsolete, provisional, pending approval) is always surfaced. |
 | A8.2 | Replacement and history of a retired identifier are exposed, and a retired identifier never resolves silently as current. |
 | A8.3 | How search and expansion treat retired content is documented and caller-overridable. |
 
@@ -123,11 +123,11 @@ Binding on every tool.
 | Id | Convention |
 |---|---|
 | A9.1 | The module is a thin interface over its platform; it returns results unmodified in substance. |
-| A9.2 | Without a written amendment naming the capability, the module keeps no embeddings, search index or persistent copy of platform content, computes no ranking or score, and derives no content (the interim NCIt index is that amendment, M4.1). |
+| A9.2 | Without a written amendment naming the capability and its owner, the module keeps no embeddings, vector or search index or persistent copy of platform content, computes no similarity, ranking or score the platform did not return, reconciles, maps or enriches nothing between the two modules' content, and derives no content (the interim NCIt index is that amendment, M4.1). |
 | A9.3 | A capability that needs more is a platform dependency, recorded as such. |
 | A9.4 | Request-scoped caching and caching bound to a release under A3.4 are allowed. |
 | A9.5 | An absent platform capability is shown to the caller, never compensated for silently. |
-| A9.6 | Reading from a governed SI service that joins or scores is allowed; the module does not own such capability. |
+| A9.6 | Reading from a governed SI service that joins or scores is allowed; the module does not own such capability, and documents the dependency's refresh cadence, service level and what it does when the service is unavailable. |
 
 *Why A9.6.* Capability in the platform reaches every consumer, the repository backends and batch pipelines that never call a module included; inside a module it reaches only that module's callers and makes a second copy of governed content.
 
@@ -138,7 +138,7 @@ Binding on every tool.
 | A10.1 | A joint conformance test spans both modules and checks A1.2, A3, A4, A5.4 and correlation propagation. |
 | A10.2 | Where the two modules are contracted to different parties, responsibility for the joint test is assigned explicitly, and neither party's acceptance depends on the other's delivery schedule. |
 | A10.3 | No tool description contains placeholder text or an unsupported operator, parameter or syntax example. |
-| A10.4 | Response-time criteria are relative to the platform's capability at delivery. |
+| A10.4 | Response-time criteria are relative to the platform's capability at delivery: a module that passes a slow platform call through faithfully conforms. |
 
 ### A11 · Performance measurement
 
@@ -163,7 +163,7 @@ Binding on every tool.
 
 | Id | Convention |
 |---|---|
-| M2.1 | tools/list, resources/list and resources/read carry ttlMs and cacheScope. |
+| M2.1 | tools/list, resources/list, resources/read and server/discover carry ttlMs and cacheScope. |
 | M2.2 | A release-pinned result has a long ttlMs, an unpinned one a short ttlMs, and resolve_release, resolve_registry_release and get_release_alignment ttlMs 0; tools/list is long and public. |
 | M2.3 | cacheScope is public for governed content and private for results computed from caller-supplied values. |
 | M2.4 | A cursor pins the release it was issued against; presented after that release is superseded, it is a structured error. |
@@ -179,13 +179,19 @@ Binding on every tool.
 
 | Id | Convention |
 |---|---|
-| M4.1 | NCIt semantic and hybrid search are served from a release-bound local index (the amendment A9.2 asks for) until EVS serves them; the index's release is in provenance, and the index is activated and rolled back atomically. |
+| M4.1 | NCIt semantic and hybrid search are served from a release-bound local index (the amendment A9.2 asks for) until EVS serves them. The index is re-embedded for each approved monthly release, activated and rolled back atomically, and its release is in provenance and in the index-manifest resource, from which resolve_release learns it. |
 
 ### M5 · Prompts and resources
 
 | Id | Convention |
 |---|---|
 | M5.1 | The furnished prompt templates and resources are listed by prompts/list and resources/list with their arguments, and a prompt names only tools present in the profile. |
+
+### M6 · Pagination
+
+| Id | Convention |
+|---|---|
+| M6.1 | Pagination is cursor-based, cursor in and nextCursor out, with totalKnown where it can be determined. |
 
 ### The provenance record
 
@@ -304,26 +310,26 @@ The provenance record, with these fields added (A4.2).
 
 | Id | Requirement | Basis | Tests | Status |
 |---|---|---|---|---|
-| resolve_release-1 | One release per channel, resolved by tag and never by the first latest row; with two latest rows and no channel it fails closed; ttlMs 0. | resolve_release, A3.6 | — | planned #53 |
+| resolve_release-1 | One release per channel, resolved by tag and never by the first latest row; with two latest rows and no channel it fails closed; ttlMs 0. | resolve_release, A3.6, M2.2 | — | planned #53 |
 | get_concept-1 | Each include value returns its section and nothing else; descendants is refused as an include value. | get_concept | — | planned #53 |
 | get_concepts-1 | A batch of n codes is one upstream call; a code the upstream omits is named in the result; results are in request order or keyed by code, never positional. | get_concepts, A5.8 | — | planned #53 |
 | search_concepts-1 | lexical and typeahead return ranked results with matchedOn; semantic and hybrid return a score and the field matched from the interim index, its release in provenance; a mode the profile does not offer is an invalid request, not an empty result; an index built for another release fails closed. | search_concepts, M4.1, A3.4 | — | planned #53 |
 | get_concept_hierarchy-1 | The depth bound holds, pathsToRoot returns complete paths, and truncation is reported. | get_concept_hierarchy, A5.1 | — | planned #53 |
 | expand_value_set-1 | The tool applies count, offset and activeOnly itself, which the upstream ignores, and reports the total; activeOnly leaves out retired members. | expand_value_set, A5.1 | — | planned #53 |
-| get_concept_neighborhood-1 | Per-kind budgets hold and no kind is starved; exclusion edges are marked and left out of positive expansion unless includeNegative; polarity follows the role code; the outbound budget counts retries; truncation names cause and magnitude. | get_concept_neighborhood, A5.5, A5.6, A5.7 | — | planned #53 |
+| get_concept_neighborhood-1 | Per-kind budgets hold and no kind is starved; exclusion edges are marked and left out of positive expansion unless includeNegative; polarity follows the role code; the outbound budget counts retries; truncation names cause and magnitude. | get_concept_neighborhood, A5.3, A5.4, A5.5, A5.6, A5.7 | — | planned #53 |
 | get_concept_subsets-1 | Membership is returned with subset codes, and the GDC Value Terminology subset resolves. | get_concept_subsets | — | planned #53 |
 | get_concept_mappings-1 | Mapsets are first-class objects; licensed targets carry attribution; a mapset whose version is not the NCIt release is a content state of its own. | get_concept_mappings, A7.3 | — | planned #53 |
 | resolve_retired_code-1 | A retired code returns status retired with its replacement and an active code status active; a batch fails as a whole on one bad code only where the upstream does, and says which. | resolve_retired_code, A8 | — | planned #53 |
-| list_relationships-1 | The pinned release's roles are listed, the exclusion roles with negative polarity, derived from the code and not the name. | list_relationships, A5.6 | — | planned #53 |
+| list_relationships-1 | The pinned release's roles are listed, the exclusion roles with negative polarity, derived from the code and not the name. | list_relationships, A5.6, A5.7 | — | planned #53 |
 | list_terminologies-1 | The available terminologies are listed with their current releases, none the platform offers left out. | list_terminologies, A7.2 | — | planned #53 |
 
 ### Metadata tools
 
 | Id | Requirement | Basis | Tests | Status |
 |---|---|---|---|---|
-| resolve_registry_release-1 | Without a registry release identifier upstream, the export date is returned and the absence stated, never an invented identifier; with one, it is returned; ttlMs 0. | resolve_registry_release, A3.8 | — | planned #54 |
+| resolve_registry_release-1 | Without a registry release identifier upstream, the export date is returned and the absence stated, never an invented identifier; with one, it is returned; ttlMs 0. | resolve_registry_release, A3.8, M2.2 | — | planned #54 |
 | get_data_element-1 | Each include returns its section; the data element's own version and status are surfaced; the caller may pin an item version. | get_data_element, A3.8.3 | — | planned #54 |
-| search_data_elements-1 | Filters by context, workflow status, registration status and value-domain type apply; totalKnown is present where the upstream counts; truncation at the upstream cap is reported. | search_data_elements, A5.4 | — | planned #54 |
+| search_data_elements-1 | Filters by context, workflow status, registration status and value-domain type apply; totalKnown is present where the upstream counts; truncation at the upstream cap is reported. | search_data_elements, A5.4, M6.1 | — | planned #54 |
 | match_data_elements-1 | Matches are scored and rule-attributed; modelVariant and similarityThreshold are honoured or refused as an invalid request, never ignored; a slow upstream (28.9 s measured) is answered within the tool's declared timeout, and beyond it the error is a structured timeout. | match_data_elements | — | planned #54 |
 | match_value_meanings-1 | As match_data_elements, for value meanings, with crosswalk codes per match. | match_value_meanings | — | planned #54 |
 | get_form-1 | A form retrieved by public id returns its modules and questions; a keyword search works or is an invalid request stating that the upstream needs an identifier. | get_form | — | planned #54 |
@@ -335,10 +341,10 @@ The provenance record, with these fields added (A4.2).
 
 | Id | Requirement | Basis | Tests | Status |
 |---|---|---|---|---|
-| find_data_elements_for_concept-1 | The batch form is used where available; descendant expansion is bounded and reported; where served from the Shared SI Service, both graphs' release identities are recorded; a masked upstream failure is an error. | find_data_elements_for_concept, A3.7 | — | planned #55 |
+| find_data_elements_for_concept-1 | The batch form is used where available; descendant expansion is bounded and reported; where served from the Shared SI Service, both graphs' release identities are recorded; a masked upstream failure is an error. | find_data_elements_for_concept, A3.7, A5.4, M3.2 | — | planned #55 |
 | get_concept_for_permissible_value-1 | Resolves to a concept with both release identities. | get_concept_for_permissible_value | — | planned #55 |
 | resolve_stored_value-1 | A GDC value resolves through the mapset named in provenance; a node without a mapping reports no mapping with its coverage, never the preferred term as if stored. | resolve_stored_value | — | planned #55 |
-| get_release_alignment-1 | Every dataset's release and date are returned with the interval, and a warning above the configured threshold; ttlMs 0. | get_release_alignment, A3.7 | — | planned #55 |
+| get_release_alignment-1 | Every dataset's release and date are returned with the interval, and a warning above the configured threshold; ttlMs 0. | get_release_alignment, A3.7, M2.2 | — | planned #55 |
 
 ### Workflow tools
 
@@ -367,7 +373,8 @@ required tool one outcome:
 | NOT IMPLEMENTED | The server exposes the tool neither by name nor through the baseline tool map (the Prototype Baseline Assessment) |
 
 An upstream limitation excuses a failing live test only test by test, each with its
-requirement named, and each such limitation is an entry in the upstream requirements package. A
+requirement named; one known limitation does not excuse another live failure of the same tool,
+and each such limitation is an entry in the upstream requirements package. A
 gate that fails live fails every tool, as a failing live test does. A module is accepted when
 every one of its tools is PASS or PASS (fixture only) and the gates pass; INCOMPLETE, NOT RUN, NO FIXTURE, NO TESTS and NOT IMPLEMENTED are not accepted.
 Every report names the suite version, the fixture-set version,
@@ -388,6 +395,8 @@ Changes to this specification, the suite, the fixture set and the request forms 
 versioned change request, an impact assessment and the written approval of the branch chief or
 a delegate, from the furnished tag. The request forms, prompt templates and resource definitions
 are furnished as initial versions for the EVS and caDSR teams to refine through that record.
+The suite and the fixture set are versioned independently. A contractor may propose a test, but
+may not substitute its own tests for the suite as the basis of acceptance.
 Every suite test cites the requirements it enforces, and at the furnished tag every requirement
 is cited by one; a report whose digest is not that of an approved release reads MODIFIED;
 changes under `spec/` and `acceptance/` need a code owner's approval; and the change log records

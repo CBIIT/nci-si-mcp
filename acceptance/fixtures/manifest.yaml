@@ -272,7 +272,7 @@ record:
         pinned path with 404 "Subset not found" on 2 October 2026
     - fixture: crafted/OP-F05/expand-c85492.json
       operation: OP-F05
-      rationale: "$expand pinned by system-version, as \xA710 prescribes, carrying the unpinned answer."
+      rationale: "$expand pinned by system-version, as the operation inventory prescribes (OP-F05), carrying the unpinned answer."
       from: recorded/evs-fhir/expand-c85492.json
       path: /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492&system-version=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl|26.09d
       requirement: >-

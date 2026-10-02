@@ -8,7 +8,7 @@ A1:
   title: One platform, two modules
   rules:
     A1.1: A caller uses both modules in one workflow without translating identifiers, reconciling error formats or reading provenance differently.
-    A1.2: A concept code is exchanged as the bare code the terminology publishes (C4817), with the terminology in a separate field; never with an embedded prefix, URI expansion or terminology punctuation as its primary form.
+    A1.2: A concept code is exchanged as the bare code the terminology publishes (C4817), with the terminology in a separate field; never with an embedded prefix, URI expansion or terminology punctuation as its primary form. A URI may be given as an additional field.
     A1.3: A code of the other module's domain is returned in the A1.2 form, ready to pass to the other module unchanged.
     A1.4: Neither module needs the other to be present to work.
     A1.5: Content obtained from the Shared Semantic Infrastructure Service says so in its provenance, with the release identity of both source graphs.
@@ -31,14 +31,14 @@ A3:
   title: Release identity
   rules:
     A3.1: Every platform request names the release explicitly; resolving it once at start-up does not count.
-    A3.2: Unversioned platform access is used only to discover which releases exist.
+    A3.2: Unversioned platform access is used only to discover which releases exist, and, where the platform offers no release-pinned form of an operation, to call its unpinned form, verify the release the payload reports and fail closed on a difference (the verified fallback).
     A3.3: The release in effect is recorded in the provenance of every result.
     A3.4: A cache or index derived from platform content is bound to its release; any mismatch between the release requested, the release the content reports and the release of derived content fails closed with a structured error.
     A3.5: Acceptance tests show fail-closed behaviour for each mismatch of A3.4.
     A3.6.1: The NCIt release is resolved by tag (monthly), never by the latest flag.
     A3.6.2: Monthly and weekly builds are told apart by tag, and the choice is explicit in configuration.
     A3.6.3: A release with conflicting or duplicate tags fails closed and is reported in a form fit to send upstream.
-    A3.7.1: A query of the Shared SI Service reports the release identity of each graph it touched and the interval between them, with a warning above a configured threshold.
+    A3.7.1: A query of the Shared SI Service reports the release identity of each graph it touched (owl:versionInfo and dc:date of the NCIt graph, dc:date of the caDSR graph) and the interval between them, and warns rather than fails above a configured threshold.
     A3.8.1: caDSR publishes no registry release identifier, and none is implied; a data element's version is never presented as the registry's state.
     A3.8.2: Until a registry release identifier exists, the most specific provenance the platform gives (a generation timestamp) is surfaced, and registry-level reproducibility is documented as not achievable.
     A3.8.3: Every data element is returned with its own version and registration status.
@@ -47,7 +47,7 @@ A3:
 A4:
   title: Provenance and citation
   rules:
-    A4.1: Every item carries its canonical identifier and, where published, its status as fields of the item, and a camelCase provenance record of at least release, source and retrievedAt.
+    A4.1: "Every item carries its canonical identifier and, where published, its status as fields of the item, and a camelCase provenance record sufficient to reproduce, audit or discard it: at least release (terminology or registry, identifier and date), source and retrievedAt; the full record is the provenance record below."
     A4.2: An item reached by traversal adds depth, relationship (code, name, kind), direction, qualifiers, polarity and evidence.
     A4.3: Every provenance field the platform supplies is passed through, including those not listed here.
     A4.4: Provenance is attached per item, not per response.
@@ -58,7 +58,7 @@ A5:
     A5.2: Result size, traversal depth and outbound requests per tool call are bounded.
     A5.3: The outbound request bound counts retries.
     A5.4: A bound reached is reported with which bound and how much was omitted, exactly or as a stated estimate; a flag alone is not enough.
-    A5.5: Traversal over several relationship kinds does not spend its budget on one kind at the expense of another, and reports truncation per kind.
+    A5.5: Traversal over several relationship kinds does not spend its budget on one kind at the expense of another, and reports truncation per kind; a response missing a whole category of relationship says so.
     A5.6: Negative assertions are kept, marked with negative polarity and full provenance, and left out of positive expansion by default, which the caller can override.
     A5.7: Negative assertions are identified by relationship code against the release's relationship catalogue, never by the relationship's name.
     A5.8: The same information is not retrieved twice within one operation.
@@ -67,7 +67,7 @@ A5:
 A6:
   title: Audit context, correlation and telemetry
   rules:
-    A6.0: The authoritative audit record, rate limits and quotas are the platform's; the module supplies what only it knows.
+    A6.0: The authoritative audit record, rate limits, quotas and authorisation are the platform's; the module supplies what only it knows.
     A6.1: Every tool call emits telemetry of timestamp, tool, parameters, release, outbound requests with retries, result size, truncation, response code and elapsed time.
     A6.2: A caller's correlation identifier is accepted, recorded on every telemetry entry, passed upstream on every platform request and returned; one is generated where none is supplied.
     A6.2a: The platform is given the audit context only the module knows (tool, consumer, workflow correlation) through the parameters or headers it defines.
@@ -79,7 +79,7 @@ A6:
 A7:
   title: Identifiers, terminologies and scoping
   rules:
-    A7.1: Terminology and context identifiers come from the platform's metadata, never hard-coded or guessed.
+    A7.1: Terminology and context identifiers come from the platform's metadata at build or start-up, never hard-coded or guessed.
     A7.2: A tool lists the terminologies, contexts or classification schemes available, with identifiers and current releases.
     A7.3: Results from a terminology with licence conditions carry its attribution.
     A7.4: A credentialed operation degrades explicitly when the credential is absent and is never presented as public.
@@ -89,18 +89,18 @@ A7:
 A8:
   title: Content status and retired identifiers
   rules:
-    A8.1: An item's published status (retired, obsolete, provisional) is always surfaced.
+    A8.1: An item's published status (retired, obsolete, provisional, pending approval) is always surfaced.
     A8.2: Replacement and history of a retired identifier are exposed, and a retired identifier never resolves silently as current.
     A8.3: How search and expansion treat retired content is documented and caller-overridable.
 A9:
   title: The lean module
   rules:
     A9.1: The module is a thin interface over its platform; it returns results unmodified in substance.
-    A9.2: Without a written amendment naming the capability, the module keeps no embeddings, search index or persistent copy of platform content, computes no ranking or score, and derives no content (the interim NCIt index is that amendment, M4.1).
+    A9.2: Without a written amendment naming the capability and its owner, the module keeps no embeddings, vector or search index or persistent copy of platform content, computes no similarity, ranking or score the platform did not return, reconciles, maps or enriches nothing between the two modules' content, and derives no content (the interim NCIt index is that amendment, M4.1).
     A9.3: A capability that needs more is a platform dependency, recorded as such.
     A9.4: Request-scoped caching and caching bound to a release under A3.4 are allowed.
     A9.5: An absent platform capability is shown to the caller, never compensated for silently.
-    A9.6: Reading from a governed SI service that joins or scores is allowed; the module does not own such capability.
+    A9.6: Reading from a governed SI service that joins or scores is allowed; the module does not own such capability, and documents the dependency's refresh cadence, service level and what it does when the service is unavailable.
   why:
     A9.6: Capability in the platform reaches every consumer, the repository backends and batch pipelines that never call a module included; inside a module it reaches only that module's callers and makes a second copy of governed content.
 A10:
@@ -109,7 +109,7 @@ A10:
     A10.1: A joint conformance test spans both modules and checks A1.2, A3, A4, A5.4 and correlation propagation.
     A10.2: Where the two modules are contracted to different parties, responsibility for the joint test is assigned explicitly, and neither party's acceptance depends on the other's delivery schedule.
     A10.3: No tool description contains placeholder text or an unsupported operator, parameter or syntax example.
-    A10.4: Response-time criteria are relative to the platform's capability at delivery.
+    A10.4: "Response-time criteria are relative to the platform's capability at delivery: a module that passes a slow platform call through faithfully conforms."
 A11:
   title: Performance measurement
   rules:
@@ -129,7 +129,7 @@ M1:
 M2:
   title: Caching hints
   rules:
-    M2.1: tools/list, resources/list and resources/read carry ttlMs and cacheScope.
+    M2.1: tools/list, resources/list, resources/read and server/discover carry ttlMs and cacheScope.
     M2.2: A release-pinned result has a long ttlMs, an unpinned one a short ttlMs, and resolve_release, resolve_registry_release and get_release_alignment ttlMs 0; tools/list is long and public.
     M2.3: cacheScope is public for governed content and private for results computed from caller-supplied values.
     M2.4: A cursor pins the release it was issued against; presented after that release is superseded, it is a structured error.
@@ -141,8 +141,12 @@ M3:
 M4:
   title: The interim NCIt index
   rules:
-    M4.1: NCIt semantic and hybrid search are served from a release-bound local index (the amendment A9.2 asks for) until EVS serves them; the index's release is in provenance, and the index is activated and rolled back atomically.
+    M4.1: NCIt semantic and hybrid search are served from a release-bound local index (the amendment A9.2 asks for) until EVS serves them. The index is re-embedded for each approved monthly release, activated and rolled back atomically, and its release is in provenance and in the index-manifest resource, from which resolve_release learns it.
 M5:
   title: Prompts and resources
   rules:
     M5.1: The furnished prompt templates and resources are listed by prompts/list and resources/list with their arguments, and a prompt names only tools present in the profile.
+M6:
+  title: Pagination
+  rules:
+    M6.1: Pagination is cursor-based, cursor in and nextCursor out, with totalKnown where it can be determined.

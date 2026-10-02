@@ -102,7 +102,7 @@ X-12:
 # Group A, terminology tools.
 resolve_release-1:
   statement: One release per channel, resolved by tag and never by the first latest row; with two latest rows and no channel it fails closed; ttlMs 0.
-  basis: [resolve_release, A3.6]
+  basis: [resolve_release, A3.6, M2.2]
   planned: "#53"
 get_concept-1:
   statement: Each include value returns its section and nothing else; descendants is refused as an include value.
@@ -126,7 +126,7 @@ expand_value_set-1:
   planned: "#53"
 get_concept_neighborhood-1:
   statement: Per-kind budgets hold and no kind is starved; exclusion edges are marked and left out of positive expansion unless includeNegative; polarity follows the role code; the outbound budget counts retries; truncation names cause and magnitude.
-  basis: [get_concept_neighborhood, A5.5, A5.6, A5.7]
+  basis: [get_concept_neighborhood, A5.3, A5.4, A5.5, A5.6, A5.7]
   planned: "#53"
 get_concept_subsets-1:
   statement: Membership is returned with subset codes, and the GDC Value Terminology subset resolves.
@@ -142,7 +142,7 @@ resolve_retired_code-1:
   planned: "#53"
 list_relationships-1:
   statement: The pinned release's roles are listed, the exclusion roles with negative polarity, derived from the code and not the name.
-  basis: [list_relationships, A5.6]
+  basis: [list_relationships, A5.6, A5.7]
   planned: "#53"
 list_terminologies-1:
   statement: The available terminologies are listed with their current releases, none the platform offers left out.
@@ -152,7 +152,7 @@ list_terminologies-1:
 # Group B, metadata tools.
 resolve_registry_release-1:
   statement: Without a registry release identifier upstream, the export date is returned and the absence stated, never an invented identifier; with one, it is returned; ttlMs 0.
-  basis: [resolve_registry_release, A3.8]
+  basis: [resolve_registry_release, A3.8, M2.2]
   planned: "#54"
 get_data_element-1:
   statement: Each include returns its section; the data element's own version and status are surfaced; the caller may pin an item version.
@@ -160,7 +160,7 @@ get_data_element-1:
   planned: "#54"
 search_data_elements-1:
   statement: Filters by context, workflow status, registration status and value-domain type apply; totalKnown is present where the upstream counts; truncation at the upstream cap is reported.
-  basis: [search_data_elements, A5.4]
+  basis: [search_data_elements, A5.4, M6.1]
   planned: "#54"
 match_data_elements-1:
   statement: Matches are scored and rule-attributed; modelVariant and similarityThreshold are honoured or refused as an invalid request, never ignored; a slow upstream (28.9 s measured) is answered within the tool's declared timeout, and beyond it the error is a structured timeout.
@@ -190,7 +190,7 @@ list_contexts-1:
 # Group C, cross-domain tools.
 find_data_elements_for_concept-1:
   statement: The batch form is used where available; descendant expansion is bounded and reported; where served from the Shared SI Service, both graphs' release identities are recorded; a masked upstream failure is an error.
-  basis: [find_data_elements_for_concept, A3.7]
+  basis: [find_data_elements_for_concept, A3.7, A5.4, M3.2]
   planned: "#55"
 get_concept_for_permissible_value-1:
   statement: Resolves to a concept with both release identities.
@@ -202,7 +202,7 @@ resolve_stored_value-1:
   planned: "#55"
 get_release_alignment-1:
   statement: Every dataset's release and date are returned with the interval, and a warning above the configured threshold; ttlMs 0.
-  basis: [get_release_alignment, A3.7]
+  basis: [get_release_alignment, A3.7, M2.2]
   planned: "#55"
 
 # Group W, workflow tools.
