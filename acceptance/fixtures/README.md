@@ -33,15 +33,23 @@ its entry expects; every concept recording is one the fixture server accepts and
 concept answers equal real ones; every derived fixture comes from a recording of the pinned
 release; and no file under `recorded/`, and no derived fixture, is left over. The set grows with
 the tests: a test that needs another upstream answer adds its request to the manifest and
-re-records. Re-pinning the release is a re-recording under change control.
+re-records. Re-pinning the release is a re-recording under change control. The fixture set is
+versioned on its own: a re-recording or a re-pinning makes a new fixture-set version,
+independent of the suite's.
 
 ## Request forms
+
+The fixture set constrains the form of an upstream request only where the specification
+prescribes it: the release-pinned path, the batch endpoint in place of one request per concept,
+the one-row release query, `Accept: application/json`, and the licence key. Elsewhere it answers
+any form a fixture records.
 
 The register of request forms, generated from the manifest, is written for the service teams, in
 a view for the EVS team, one for the caDSR team and one for both:
 [`../request-forms/`](../request-forms/). It opens with the operations without a pinned form
 upstream, with the release each payload reports; then lists every ordinary request with the
-platform operation it serves (its `OP-` id in the programme's operation inventory), whether it is recorded or crafted
+platform operation it serves (its `OP-` id, from `operations.yaml` of the programme's platform
+conformance suite), whether it is recorded or crafted
 (and for which requirement), and the reason for its form; then each scenario.
 Where EVS does not yet answer the form a requirement prescribes, the ordinary fixture is crafted
 to the requirement and names it, and the live run shows the gap.

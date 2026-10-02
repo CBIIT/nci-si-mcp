@@ -49,6 +49,7 @@ def _conventions() -> list[str]:
         rows = [f"| {rule} | {_cell(text)} |" for rule, text in section["rules"].items()]
         lines += [f"### {key} · {section['title']}", "", "| Id | Convention |", "|---|---|"]
         lines += [*rows, ""]
+        lines += [f"*Why {rule}.* {_cell(text)}\n" for rule, text in section.get("why", {}).items()]
     return lines + [line for record in RECORDS.values() for line in _record(record)]
 
 

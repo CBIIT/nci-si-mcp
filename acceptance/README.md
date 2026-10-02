@@ -38,6 +38,16 @@ ones, to a server process of its own started with the scenario's settings. A tes
 `live_capable` also runs in live mode, unless it selects a scenario; every other test runs
 against fixtures only.
 
+A test that passes against fixtures and fails live means a fixture is wrong (corrected by
+re-recording, under change control) or the live service has changed: both are findings. One
+that passes live and fails against fixtures means the server behaves differently against
+different upstreams: a defect.
+
+A run may begin with one operator-supplied prepare command, run in the server's environment
+against the ordinary fixtures before any test; the server under test starts from what it
+produced (for this server, a small NCIt index built from the recorded concepts). Without it the
+tests that need its result are NOT RUN. It comes with the search tests (#53).
+
 In fixture mode a test fails when one of its upstream requests found no fixture, and so does a
 server whose requests while it starts found none: the server may treat the refusal as an outage
 and still answer plausibly. A test that provokes such requests on purpose is marked

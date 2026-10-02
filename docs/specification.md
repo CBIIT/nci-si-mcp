@@ -23,6 +23,8 @@ Binding on every tool.
 | A1.4 | Neither module needs the other to be present to work. |
 | A1.5 | Content obtained from the Shared Semantic Infrastructure Service says so in its provenance, with the release identity of both source graphs. |
 
+*Why A1.5.* The Shared SI Service's NCIt and caDSR graphs are refreshed on independent schedules and were two months apart when last checked, so a result joined across them describes two content states.
+
 ### A2 · Tool schema conventions
 
 | Id | Convention |
@@ -34,6 +36,10 @@ Binding on every tool.
 | A2.5 | Errors are structured, from one model that distinguishes at least: invalid request; content not found; release not available; upstream unavailable; result bound exceeded; internal error; and never resemble an empty result. |
 | A2.6 | An empty result is distinguishable from a suppressed, truncated or failed one. |
 | A2.7 | Where a platform serves an operation through a standard terminology interface (FHIR), it is preferred over a proprietary equivalent, and the choice is documented. |
+
+*Why A2.3.* A model generates calls from a description; an operator the platform does not support produces a rejected call, after which the model improvises, as has been observed.
+
+*Why A2.7.* EVS serves FHIR R4 and R5 ($lookup, $expand, $validate-code, $subsumes, $translate); a schema on standard operations is better specified and survives a platform change. Where they fall short, as for bounded traversal over roles, the native surface is used.
 
 ### A3 · Release identity
 
@@ -51,6 +57,8 @@ Binding on every tool.
 | A3.8.1 | caDSR publishes no registry release identifier, and none is implied; a data element's version is never presented as the registry's state. |
 | A3.8.2 | Until a registry release identifier exists, the most specific provenance the platform gives (a generation timestamp) is surfaced, and registry-level reproducibility is documented as not achievable. |
 | A3.8.3 | Every data element is returned with its own version and registration status. |
+
+*Why A3.6.1.* On 10 September 2026 the listing flagged two releases latest at once, the newest weekly and the newest monthly, so a client taking the first such row could request one release and receive another without an error.
 
 ### A4 · Provenance and citation
 
@@ -74,6 +82,8 @@ Binding on every tool.
 | A5.7 | Negative assertions are identified by relationship code against the release's relationship catalogue, never by the relationship's name. |
 | A5.8 | The same information is not retrieved twice within one operation. |
 
+*Why A5.7.* NCIt's exclusion relationships are exactly eight roles, R135 to R142. Matching their names fails open: a renamed label turns an exclusion into the assertion that the disease has the very finding it rules out.
+
 ### A6 · Audit context, correlation and telemetry
 
 | Id | Convention |
@@ -86,6 +96,8 @@ Binding on every tool.
 | A6.4 | Telemetry records no more content than needed, and no caller free text where a hash suffices. |
 | A6.5 | The module does not rate-limit in place of the platform; it honours 429 and Retry-After with jittered back-off and counts retries against its budget. |
 
+*Why A6.2a.* One question may cross both modules; without a shared correlation identifier the two audit trails cannot be joined.
+
 ### A7 · Identifiers, terminologies and scoping
 
 | Id | Convention |
@@ -95,6 +107,8 @@ Binding on every tool.
 | A7.3 | Results from a terminology with licence conditions carry its attribution. |
 | A7.4 | A credentialed operation degrades explicitly when the credential is absent and is never presented as public. |
 | A7.5 | A credential or licence key reaches only the platform request that needs it, and appears in no log, error message or result. |
+
+*Why A7.1.* A public EVS MCP server sends the terminology key loinc where EVS expects lnc, so every LOINC call answers 404, and its own tests assert the wrong value.
 
 ### A8 · Content status and retired identifiers
 
@@ -115,11 +129,14 @@ Binding on every tool.
 | A9.5 | An absent platform capability is shown to the caller, never compensated for silently. |
 | A9.6 | Reading from a governed SI service that joins or scores is allowed; the module does not own such capability. |
 
+*Why A9.6.* Capability in the platform reaches every consumer, the repository backends and batch pipelines that never call a module included; inside a module it reaches only that module's callers and makes a second copy of governed content.
+
 ### A10 · Joint conformance and acceptance
 
 | Id | Convention |
 |---|---|
 | A10.1 | A joint conformance test spans both modules and checks A1.2, A3, A4, A5.4 and correlation propagation. |
+| A10.2 | Where the two modules are contracted to different parties, responsibility for the joint test is assigned explicitly, and neither party's acceptance depends on the other's delivery schedule. |
 | A10.3 | No tool description contains placeholder text or an unsupported operator, parameter or syntax example. |
 | A10.4 | Response-time criteria are relative to the platform's capability at delivery. |
 
@@ -130,6 +147,8 @@ Binding on every tool.
 | A11.1 | A benchmark reports, per representative scenario, release, cache state, result size, outbound calls, error rate and p50/p95 response time. |
 | A11.2 | The benchmark reports what the platform supports and what it does not. |
 | A11.3 | The scenarios include a workflow across both modules, measured end to end. |
+
+*Why A11.1.* The only caDSR response-time figures in circulation come from one session in November 2025 and cannot be confirmed either way.
 
 ### M1 · A static, self-describing tool surface
 
