@@ -20,7 +20,7 @@ get_concept:
   inputs: (terminology, release, code, include[]?)
   returns: concept
   items: ["."]
-  values: {include: [synonyms, definitions, properties, semanticType, status]}
+  values: {include: [synonyms, definitions, properties, semanticType]}
   summary: One concept with the detail selected.
 get_concepts:
   group: evs

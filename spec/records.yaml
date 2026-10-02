@@ -62,6 +62,62 @@ traversal:
     evidence:
       content: Supporting evidence, where the platform supplies it
       of: A4.2
+concept:
+  title: The concept record
+  about: >-
+    A concept as a terminology tool returns it: these fields always, and the sections the
+    caller's include selects. Status is the platform's own, unchanged: a status set of the
+    module's would lose what the platform said and differ between terminologies (A7.1, A9.1).
+  fields:
+    code:
+      content: The bare code the terminology publishes
+      of: A1.2
+    terminology:
+      content: The terminology the code belongs to, as the platform names it
+      of: A1.2
+    name:
+      content: The preferred name
+      of: A4.1
+    active:
+      content: Whether the platform publishes the concept as active, its boolean unchanged
+      of: A8.1
+    status:
+      content: >-
+        The platform's own status value, unchanged (from EVS: DEFAULT, Header_Concept,
+        Retired_Concept, ...)
+      of: A8.1
+    provenance:
+      content: The provenance record
+      of: A4.4
+    synonyms:
+      content: The synonyms, when include selects them
+      optional: true
+      of: get_concept
+    definitions:
+      content: The definitions, when include selects them
+      optional: true
+      of: get_concept
+    properties:
+      content: The properties, when include selects them
+      optional: true
+      of: get_concept
+    semanticType:
+      content: The semantic types, when include selects them
+      optional: true
+      of: get_concept
+terminology:
+  title: The terminology record
+  about: A terminology the platform serves, as list_terminologies returns it.
+  fields:
+    terminology:
+      content: The terminology's identifier, as the platform's metadata names it
+      of: A7.1
+    release:
+      content: Its current release identifier
+      of: A7.2
+    provenance:
+      content: The provenance record
+      of: A4.4
 truncation:
   title: The truncation record
   about: >-
@@ -109,7 +165,9 @@ error:
     code:
       content: >-
         The class of the failure: those A2.5 names, a release mismatch (A3.4), a timeout, a
-        capability not yet available (M1.2) and a cursor whose release is superseded (M2.4)
+        capability not yet available (M1.2) and a cursor whose release is superseded (M2.4).
+        release_not_available also covers a channel whose current release cannot be named, as
+        when one channel's query names two releases (A3.6.3)
       values: [invalid_request, not_found, release_not_available, release_mismatch,
                upstream_unavailable, timeout, bound_exceeded, capability_unavailable,
                cursor_expired, internal_error]

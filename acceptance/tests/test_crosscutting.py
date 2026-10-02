@@ -12,6 +12,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 from nci_si_acceptance.client import CREDENTIAL_VARIABLES
+from nci_si_acceptance.results import error_code
 from nci_si_acceptance.spec import RECORDS, TOOLS, items_of, parameters
 
 CALLS = yaml.safe_load((Path(__file__).parent / "calls.yaml").read_text(encoding="utf-8"))
@@ -219,15 +220,6 @@ def _schema_errors(tools, result):
     return [error.message for error in Draft202012Validator(schema).iter_errors(result.content)]
 
 
-def _error_code(result):
-    """The code of an error result: one error record and nothing else, or None."""
-
-    record = result.content.get("error") if isinstance(result.content, dict) else None
-    if not result.is_error or set(result.content or {}) != {"error"} or not record:
-        return None
-    return record.get("code")
-
-
 @pytest.mark.requirement("X-2")
 @pytest.mark.parametrize("name", _per_tool(PINNED_TOOLS, "release/unknown"))
 def test_a_release_the_platform_does_not_serve_fails_closed(tools, pinned, name):
@@ -235,7 +227,7 @@ def test_a_release_the_platform_does_not_serve_fails_closed(tools, pinned, name)
 
     # A tool that can only verify the release of an unpinned answer reports the mismatch.
     unpinned = {"release_mismatch"} if CALLS[name].get("unpinned") else set()
-    assert _error_code(result) in {"release_not_available", *unpinned}, result.content
+    assert error_code(result) in {"release_not_available", *unpinned}, result.content
 
 
 @pytest.mark.requirement("X-3")
@@ -243,7 +235,7 @@ def test_a_release_the_platform_does_not_serve_fails_closed(tools, pinned, name)
 def test_content_of_another_release_fails_closed(tools, pinned, name):
     result = _call(tools, pinned, name)
 
-    assert _error_code(result) == "release_mismatch", result.content
+    assert error_code(result) == "release_mismatch", result.content
 
 
 @pytest.mark.requirement("X-5")
@@ -251,7 +243,7 @@ def test_content_of_another_release_fails_closed(tools, pinned, name):
 def test_an_unavailable_platform_is_an_upstream_error(tools, pinned, name):
     result = _call(tools, pinned, name)
 
-    assert _error_code(result) in {"upstream_unavailable", "timeout"}, result.content
+    assert error_code(result) in {"upstream_unavailable", "timeout"}, result.content
 
 
 @pytest.mark.requirement("X-6")

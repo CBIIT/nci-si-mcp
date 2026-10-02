@@ -119,17 +119,32 @@ X-17:
 
 # EVS tools.
 resolve_release-1:
-  statement: One release per channel, resolved by tag and never by the first latest row; with two latest rows and no channel it fails closed; ttlMs 0.
-  basis: [resolve_release, A3.6, M2.2]
-  planned: "#53"
+  statement: A channel's release is resolved by its tag, never by the first row flagged latest; with a weekly and a monthly row both latest, each channel gets its own.
+  basis: [resolve_release, A3.6.1, A3.6.2]
+resolve_release-2:
+  statement: Where one channel's query names two releases, the tool fails closed with release_not_available, naming both in details.
+  basis: [resolve_release, A3.6.3, error]
+resolve_release-3:
+  statement: The result carries ttlMs 0.
+  basis: [resolve_release, M2.2]
 get_concept-1:
-  statement: Each include value returns its section and nothing else; descendants is refused as an include value.
-  basis: [get_concept]
-  planned: "#53"
+  statement: Each include value returns its section and no other section.
+  basis: [get_concept, concept]
+get_concept-2:
+  statement: descendants as an include value is an invalid request.
+  basis: [get_concept, error]
+get_concept-3:
+  statement: The concept carries code, terminology, name, active and status always, active and status as the platform publishes them.
+  basis: [get_concept, concept, A8.1, A9.1]
 get_concepts-1:
-  statement: A batch of n codes is one upstream call; a code the upstream omits is named in the result; results are in request order or keyed by code, never positional.
+  statement: A batch of codes is one upstream request.
   basis: [get_concepts, A5.8]
-  planned: "#53"
+get_concepts-2:
+  statement: A code the upstream omits is named in missing.
+  basis: [get_concepts]
+get_concepts-3:
+  statement: The concepts come back in request order, never in the upstream's order.
+  basis: [get_concepts]
 search_concepts-1:
   statement: lexical and typeahead return ranked results with matchedOn; semantic and hybrid return a score and the field matched from the interim index, its release in provenance; a mode the profile does not offer is an invalid request, not an empty result; an index built for another release fails closed.
   basis: [search_concepts, M4.1, A3.4]
@@ -164,8 +179,7 @@ list_relationships-1:
   planned: "#53"
 list_terminologies-1:
   statement: The available terminologies are listed with their current releases, none the platform offers left out.
-  basis: [list_terminologies, A7.2]
-  planned: "#53"
+  basis: [list_terminologies, A7.2, terminology]
 
 # caDSR tools.
 resolve_registry_release-1:

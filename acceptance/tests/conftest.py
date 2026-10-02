@@ -8,6 +8,7 @@ server makes while it starts must find fixtures too.
 
 from __future__ import annotations
 
+import json
 import sys
 from contextlib import contextmanager
 from pathlib import Path
@@ -30,7 +31,7 @@ from nci_si_acceptance.suite import (
 from nci_si_acceptance.tools import Process, Tools, load_toolmap
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Callable, Iterator
 
 pytest_plugins = ["nci_si_acceptance.report"]
 
@@ -66,6 +67,14 @@ def pinned() -> dict[str, str]:
     manifest = yaml.safe_load((FIXTURES / MANIFEST).read_text(encoding="utf-8"))
     terminology, _, release = manifest["evs"]["release"].partition("_")
     return {"terminology": terminology, "release": release}
+
+
+@pytest.fixture(scope="session")
+def recorded() -> Callable[[str], Any]:
+    """A fixture file by its path under fixtures/, read as JSON: a test derives what it expects
+    from the recording, never from a copy of it."""
+
+    return lambda name: json.loads((FIXTURES / name).read_text(encoding="utf-8"))
 
 
 @pytest.fixture(scope="session")

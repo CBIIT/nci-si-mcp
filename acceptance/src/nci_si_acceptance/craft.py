@@ -36,6 +36,8 @@ if TYPE_CHECKING:
 type Documents = dict[str, dict[str, Any]]
 
 RELEASE, OTHER_RELEASE = "26.09d", "26.08e"
+# A second release tagged monthly beside the pinned one (release/duplicate-tag).
+DUPLICATE_RELEASE = "26.09e"
 # The release the release/unknown scenario serves nothing of.
 UNKNOWN = "99.99z"
 TERMINOLOGY = f"ncit_{RELEASE}"
@@ -190,6 +192,38 @@ def release_two_latest(recorded: Recorded) -> Documents:
     }
     return {
         f"scenarios/release/two-latest/{name}.json": crafted(
+            requirement, request, response={"status": 200, "body": body}
+        )
+        for name, (request, body) in answers.items()
+    }
+
+
+def release_duplicate_tag(recorded: Recorded) -> Documents:
+    """Two releases both latest with the monthly tag: the monthly query, and the listing, name
+    both, so the monthly channel's current release cannot be named (A3.6.3)."""
+
+    monthly_source = recorded("recorded/evs/release-monthly.json")
+    monthly = monthly_source["response"]["body"][0] | {"tags": {"monthly": "true"}}
+    duplicate = monthly | {
+        "version": DUPLICATE_RELEASE,
+        "terminologyVersion": f"ncit_{DUPLICATE_RELEASE}",
+        "name": f"NCI Thesaurus {DUPLICATE_RELEASE}",
+    }
+    listing = recorded("recorded/evs/terminologies.json")
+    rows = [
+        replaced
+        for row in listing["response"]["body"]
+        for replaced in (
+            [monthly, duplicate] if row == monthly_source["response"]["body"][0] else [row]
+        )
+    ]
+    requirement = "A3.6.3: a release with duplicate tags fails closed"
+    answers = {
+        "monthly": (monthly_source["request"], [monthly, duplicate]),
+        "terminologies": (listing["request"], rows),
+    }
+    return {
+        f"scenarios/release/duplicate-tag/{name}.json": crafted(
             requirement, request, response={"status": 200, "body": body}
         )
         for name, (request, body) in answers.items()
@@ -391,6 +425,7 @@ def license_restricted(_: Recorded) -> Documents:
 SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     release_mismatch,
     release_two_latest,
+    release_duplicate_tag,
     traversal_deep_fanout,
     traversal_exclusions,
     traversal_starvation,
