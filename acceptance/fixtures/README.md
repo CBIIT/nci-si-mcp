@@ -5,8 +5,8 @@ Each is a JSON file in the format `src/nci_si_acceptance/fixture_server.py` desc
 whether it was **recorded** from a live service (and when) or **crafted** for a case the live
 service does not produce on demand (and which requirement it stands in for).
 
-- `manifest.yaml`: the pinned release (NCIt `ncit_26.09d`), the concept rules, the licensing
-  lists, and every request `pdm run acceptance-record` records, with its operation and rationale.
+- `manifest.yaml`: the pinned release (NCIt `ncit_26.09d`), the concept rules, what each
+  scenario provokes, and every request `pdm run acceptance-record` records, with its operation and rationale.
 - `recorded/<surface>/`: captured from the live service by `acceptance-record`; concepts in
   `recorded/evs/concepts/`.
 - `crafted/<requirement>/`: the form a requirement prescribes where EVS does not answer it yet,
@@ -29,8 +29,7 @@ After `pdm run acceptance-record`, run `pdm run acceptance-craft` and `pdm run
 acceptance-register`: the self-tests check that crafted scenarios and the register are current.
 `acceptance-record` re-records the set from live and writes nothing unless every check
 holds: the live monthly release is still the pinned one; every request answers with the status
-its entry expects; no request names licensed content and no licensed or undecided terminology is
-left in a payload; every concept recording is one the fixture server accepts and the composed
+its entry expects; every concept recording is one the fixture server accepts and the composed
 concept answers equal real ones; every derived fixture comes from a recording of the pinned
 release; and no file under `recorded/`, and no derived fixture, is left over. The set grows with
 the tests: a test that needs another upstream answer adds its request to the manifest and
@@ -64,28 +63,8 @@ the loader refuses one, since it would answer before a scenario's recording.
 
 ## Content and terms
 
-The recorded EVS content is excerpted from NCI Thesaurus™ release 26.09d, retrieved from the EVS
-REST API (`api-evsrest.nci.nih.gov`) on 2 October 2026. The NCI Thesaurus is produced by the
-Enterprise Vocabulary Services group of the Center for Biomedical Informatics and Information
-Technology, National Cancer Institute, and released under the Creative Commons Attribution 4.0
-International licence ([terms of use](https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/ThesaurusTermsofUse.htm)).
-These fixtures are modified excerpts, not the NCI Thesaurus: licensed items are removed and each
-removal is listed in the fixture's `redacted`. These terms apply to the fixture content; the
-code of the suite is under the Apache License 2.0.
-
-**Licensed content is never recorded** (EVS SOW v2.1 item 2). The manifest's `licensing` section
-names the terminologies whose EVS metadata requires a licence beyond EVS (MedDRA, SNOMED CT,
-ICD-10, the NCI Metathesaurus), the mapsets that carry them, and the terminologies allowed. A
-request naming a licensed one is not recorded unless EVS refused it, and an item of a payload
-that comes from or maps to one is removed. ICD-O-3 (WHO) is withheld as well until its terms are
-settled. Codes NCIt carries as its own properties (`ICD-O-3_Code`, `UMLS_CUI`, `NCI_META_CUI`)
-are NCIt content and stay; only items that come from or map to a licensed terminology go. The
-check fails closed: a terminology a payload names that is on neither list stops the recording
-until someone decides it, and `selftests/test_fixture_set.py` fails on any licensed or
-undecided name left in the set. A crafted fixture may answer for a licensed terminology only with
-invented content it declares under `placeholder`, naming the one terminology it stands for, and
-only as `acceptance-craft` makes it (`license/restricted`).
-
-Redaction makes a recording differ from live on purpose. A live-capable test therefore asserts
-nothing about what redaction touches: not the count or the members of a concept's `maps`, nor
-of any list an item was removed from.
+The recorded content is as the EVS REST API (`api-evsrest.nci.nih.gov`) serves it publicly,
+without a licence key, retrieved on 2 October 2026 from NCI Thesaurus™ release 26.09d, which NCI
+releases under the Creative Commons Attribution 4.0 International licence
+([terms of use](https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/ThesaurusTermsofUse.htm)). The code of
+the suite is under the Apache License 2.0.

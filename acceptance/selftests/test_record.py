@@ -36,11 +36,6 @@ def manifest(**record_section):
             },
         },
         "surfaces": {"evs": "https://evs.example"},
-        "licensing": {
-            "licensed": ["mdr", "MedDRA"],
-            "allowed": ["NCI"],
-            "mapsets": ["NCIt_Maps_To_MedDRA"],
-        },
         "record": {
             "requests": [
                 {
@@ -83,7 +78,7 @@ def upstream(changes=None):
     return Upstream(answers | (changes or {}))
 
 
-def test_each_request_becomes_a_dated_recorded_fixture_without_its_licensed_items():
+def test_each_request_becomes_a_dated_recorded_fixture_as_served():
     documents = Recorder(manifest(), upstream(), "2026-10-02").record(plan(manifest()))
 
     assert documents["recorded/evs/version.json"] == {
@@ -100,16 +95,7 @@ def test_each_request_becomes_a_dated_recorded_fixture_without_its_licensed_item
     }
     concept = documents["recorded/evs/concepts/C1.json"]
     assert concept["request"]["params"] == {"include": ["full"]}
-    assert concept["response"]["body"]["maps"] == []
-    assert concept["redacted"] == ["/maps/0 (MedDRA)"]
-
-
-def test_a_terminology_nobody_decided_on_stops_the_recording():
-    changed = {**C1, "synonyms": [{"name": "Un", "source": "NewSource"}]}
-    live = upstream({("evs", "/api/v1/concept/ncit_26.09d/C1", "include=full"): (200, changed)})
-
-    with pytest.raises(RecordingError, match=r"C1\.json: names NewSource, neither licensed nor"):
-        Recorder(manifest(), live, "2026-10-02").record(plan(manifest()))
+    assert concept["response"]["body"] == C1
 
 
 def test_a_derived_fixture_is_the_prescribed_request_with_a_recordings_answer():
@@ -137,7 +123,6 @@ def test_a_derived_fixture_is_the_prescribed_request_with_a_recordings_answer():
             "ignored": {"limit": "evidence"},
         },
         "response": recorded["response"],
-        "redacted": recorded["redacted"],
     }
 
 
@@ -213,6 +198,18 @@ def test_a_concept_recording_the_fixture_server_would_refuse_stops_the_recording
         Recorder(section, live, "2026-10-02").record(plan(section))
 
 
+def test_an_unusable_concept_answer_is_withheld_and_named_even_where_a_sample_needs_it():
+    page = "<html>Down for maintenance</html>"
+    live = upstream({("evs", "/api/v1/concept/ncit_26.09d/C1", "include=full"): (200, page)})
+
+    with pytest.raises(RecordingError) as raised:
+        Recorder(manifest(), live, "2026-10-02").record(plan(manifest()))
+
+    assert "recorded/evs/concepts/C1.json: a concept recording's body is the concept C1" in (
+        raised.value.problems
+    )
+
+
 def test_an_unreachable_service_is_a_problem_naming_the_request():
     def unreachable(surface, path, params):
         raise OSError("Connection refused")
@@ -222,31 +219,6 @@ def test_an_unreachable_service_is_a_problem_naming_the_request():
 
     assert "the release query: Connection refused" in raised.value.problems
     assert "recorded/evs/version.json: Connection refused" in raised.value.problems
-
-
-def test_a_licensed_name_redaction_cannot_remove_stops_the_recording():
-    licensed = {"code": "C2", "name": "Two", "origin": {"source": "MedDRA"}}
-    live = upstream({("evs", "/api/v1/concept/ncit_26.09d/C2", "include=full"): (200, licensed)})
-
-    with pytest.raises(
-        RecordingError, match=r"C2\.json: names MedDRA where redaction cannot remove"
-    ):
-        Recorder(manifest(), live, "2026-10-02").record(plan(manifest()))
-
-
-def test_a_request_for_licensed_content_is_refused_unless_it_was_refused():
-    entry = {"fixture": "recorded/evs/mdr.json", "surface": "evs", "path": "/api/v1/concept/mdr/1"}
-    section = manifest(requests=[entry], concepts={}, samples=[])
-    path = ("evs", "/api/v1/concept/mdr/1", "")
-
-    with pytest.raises(RecordingError, match=r"recorded/evs/mdr\.json: names licensed content"):
-        Recorder(section, upstream({path: (200, {"code": "1"})}), "2026-10-02").record(
-            plan(section)
-        )
-    section = manifest(requests=[entry | {"status": 403}], concepts={}, samples=[])
-    refused = Recorder(section, upstream({path: (403, {"message": "key"})}), "2026-10-02")
-    response = refused.record(plan(section))["recorded/evs/mdr.json"]["response"]
-    assert response == {"status": 403, "body": {"message": "key"}}
 
 
 @pytest.mark.parametrize(
@@ -284,7 +256,7 @@ def test_a_sample_the_recordings_do_not_reproduce_stops_the_recording(sample, an
         Recorder(section, live, "2026-10-02").record(plan(section))
 
 
-def test_a_batch_sample_compares_without_order_and_a_live_answer_without_licensed_items():
+def test_a_batch_sample_compares_without_order():
     live = upstream(
         {
             ("evs", "/api/v1/concept/ncit_26.09d", "include=synonyms&list=C1,C2"): (
@@ -422,3 +394,9 @@ def test_the_live_fetch_returns_status_and_parsed_body_errors_included(tmp_path)
         )
         assert fetch("evs-fhir", "/page", {}) == (404, "<html>gone</html>")
         assert running.log()[0]["headers"]["Accept"] == "application/json"
+        assert [
+            name
+            for entry in running.log()
+            for name in entry["headers"]
+            if name.lower() == "x-evsrestapi-license-key"
+        ] == []

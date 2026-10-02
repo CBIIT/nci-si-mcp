@@ -532,6 +532,22 @@
      "targetTerminology": "GDC"
     },
     {
+     "type": "Related To",
+     "targetName": "Tumor cells, malignant",
+     "targetTermType": "PT",
+     "targetCode": "8001/3",
+     "targetTerminology": "ICDO3",
+     "targetTerminologyVersion": "3.1"
+    },
+    {
+     "type": "Related To",
+     "targetName": "Tumor cells, malignant",
+     "targetTermType": "PT",
+     "targetCode": "8001/3",
+     "targetTerminology": "ICDO3",
+     "targetTerminologyVersion": "3.2"
+    },
+    {
      "type": "Has Synonym",
      "targetName": "Tumor cells, malignant",
      "targetTermType": "PT",

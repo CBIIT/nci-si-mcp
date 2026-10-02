@@ -50,7 +50,7 @@ has a documented upstream limitation (`--limitations`, YAML of test id to requir
 required tools, `fixture_server.py` serves the fixtures (its docstring documents the format),
 `report.py` writes and renders the per-tool report, `inventory.py` lists the required tools and
 `suite.py` the rules of a run. `concepts.py` composes EVS concept answers from one recording per
-concept, `licensing.py` keeps licensed content out, `record.py` records the set from live,
+concept, `record.py` records the set from live,
 `craft.py` crafts the scenarios EVS does not produce on demand, and `register.py` writes the
 register of request forms (`request-forms/`).
 `fixtures/` holds the fixtures ([fixtures/README.md](fixtures/README.md)), `tests/` the suite,

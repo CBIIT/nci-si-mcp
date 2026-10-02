@@ -4,7 +4,12 @@
  "request": {
   "surface": "evs",
   "method": "GET",
-  "path": "/api/v1/mapset"
+  "path": "/api/v1/mapset",
+  "params": {
+   "include": [
+    "minimal"
+   ]
+  }
  },
  "response": {
   "status": 200,

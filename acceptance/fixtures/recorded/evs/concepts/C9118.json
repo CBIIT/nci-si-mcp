@@ -1615,6 +1615,22 @@
      "targetTerminology": "GDC"
     },
     {
+     "type": "Related To",
+     "targetName": "Sarcoma, NOS",
+     "targetTermType": "PT",
+     "targetCode": "8800/3",
+     "targetTerminology": "ICDO3",
+     "targetTerminologyVersion": "3.2"
+    },
+    {
+     "type": "Related To",
+     "targetName": "Sarcoma, NOS",
+     "targetTermType": "PT",
+     "targetCode": "8800/3",
+     "targetTerminology": "ICDO3",
+     "targetTerminologyVersion": "3.1"
+    },
+    {
      "type": "Has Synonym",
      "targetName": "Sarcoma, NOS",
      "targetTermType": "PT",
@@ -1630,9 +1646,5 @@
     }
    ]
   }
- },
- "redacted": [
-  "/maps/2 (ICDO3)",
-  "/maps/3 (ICDO3)"
- ]
+ }
 }

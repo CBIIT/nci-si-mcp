@@ -32,9 +32,11 @@ A fixture is a JSON file:
                   "params": {"include": ["summary"]}, "body": "...",
                   "headers": {"X-EVSRESTAPI-License-Key": "..."},
                   "ignored": {"count": "the evidence that the service ignores it"}},
-      "response": {"status": 200, "headers": {}, "body": {...}},
-      "redacted": ["/maps/7 (MedDRA)"]    # recorded: licensed items removed (licensing.py)
+      "response": {"status": 200, "headers": {}, "body": {...}}
     }
+
+A recorded fixture's request never carries the EVS licence key: what EVS serves without
+it is public, and licensed content, which EVS refuses without it (403), is never recorded.
 
 `responses` (a list) in place of `response` answers successive requests in order,
 the last one repeating; the sequence starts again at each reset. A response may wait
@@ -105,6 +107,7 @@ FRAMING_HEADERS = frozenset(
     {"content-length", "transfer-encoding", "content-encoding", "connection"}
 )
 FAULTS = frozenset({"close"})
+LICENCE_HEADER = "x-evsrestapi-license-key"
 SETTINGS = "settings.json"
 MANIFEST = "manifest.yaml"
 CONCEPTS = "concepts"
@@ -270,6 +273,8 @@ def _problem(document: dict[str, Any]) -> str | None:
 def _provenance_problem(document: dict[str, Any]) -> str | None:
     kind = document.get("kind")
     if kind == "recorded":
+        if LICENCE_HEADER in map(str.lower, document.get("request", {}).get("headers", {})):
+            return "a recording is made without the licence key: licensed content is not recorded"
         return None if document.get("recorded_on") else "a recorded fixture names recorded_on"
     if kind == "crafted":
         return None if document.get("requirement") else "a crafted fixture names its requirement"

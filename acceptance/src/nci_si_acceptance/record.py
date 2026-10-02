@@ -2,7 +2,8 @@
 
     pdm run acceptance-record [--fixtures DIR]
 
-Every request the manifest lists under `record.requests` is made live and becomes a
+Every request the manifest lists under `record.requests` is made live, without a licence
+key, and becomes a
 recorded fixture, dated today; each concept under `record.concepts` is recorded once,
 at the include it is listed under, in `recorded/evs/concepts/`. Each entry under
 `record.derived` becomes a crafted fixture for the request form a requirement prescribes
@@ -13,9 +14,6 @@ where EVS does not answer it yet, carrying the answer of a recording (Acceptance
   re-pinning is a re-recording under change control;
 - every request is answered, with the status its entry expects (`status`, 200 unless
   given), and every concept recording is one the fixture server accepts;
-- no request names licensed content, every terminology a payload names is licensed
-  or allowed, and the licensed items are removed and listed in the fixture's
-  `redacted`, leaving no licensed name behind (licensing.py);
 - every sample under `record.samples`, asked live, equals the answer the concept
   rules compose from the new recordings, a batch compared code by code because EVS
   keeps no order;
@@ -43,7 +41,6 @@ import yaml
 
 from nci_si_acceptance.concepts import ConceptRules, Recording, recording_key
 from nci_si_acceptance.fixture_server import CONCEPTS, MANIFEST
-from nci_si_acceptance.licensing import Licensing
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -122,9 +119,7 @@ def plan(manifest: dict[str, Any]) -> list[Planned]:
     return planned
 
 
-def _document(
-    planned: Planned, status: int, body: Any, redacted: list[str], today: str
-) -> dict[str, Any]:
+def _document(planned: Planned, status: int, body: Any, today: str) -> dict[str, Any]:
     request: dict[str, Any] = {"surface": planned.surface, "method": "GET", "path": planned.path}
     if planned.params:
         request["params"] = planned.params
@@ -132,8 +127,6 @@ def _document(
         request["ignored"] = planned.ignored
     document = {"kind": "recorded", "recorded_on": today, "request": request}
     document["response"] = {"status": status, "body": body}
-    if redacted:
-        document["redacted"] = redacted
     return document
 
 
@@ -142,7 +135,6 @@ class Recorder:
 
     def __init__(self, manifest: dict[str, Any], fetch: Fetch, today: str) -> None:
         self.manifest, self.fetch, self.today = manifest, fetch, today
-        self.licensing = Licensing.from_manifest(manifest["licensing"])
         self.rules = ConceptRules.from_manifest(manifest["evs"]["concepts"])
         self.problems: list[str] = []
 
@@ -189,32 +181,18 @@ class Recorder:
         if answer is None:
             return None
         status, body = answer
-        problems = [
-            self._status_problem(planned, status),
-            self.licensing.request_problem(planned.path, planned.params, status),
-            self._undecided_problem(body),
-        ]
-        body, redacted = self.licensing.redact(body)
-        document = _document(planned, status, body, redacted, self.today)
-        problems += [self._licensed_problem(body), self._recording_problem(planned, document)]
+        document = _document(planned, status, body, self.today)
+        refused = self._recording_problem(planned, document)
+        problems = [self._status_problem(planned, status), refused]
         self.problems += [f"{planned.file}: {problem}" for problem in problems if problem]
-        return None if problems[-1] else document
+        # A concept recording the fixture server would refuse is withheld, so that the
+        # samples are composed only from usable ones.
+        return None if refused else document
 
     @staticmethod
     def _status_problem(planned: Planned, status: int) -> str | None:
         if status != planned.status:
             return f"answered {status}, where {planned.status} is expected"
-        return None
-
-    def _undecided_problem(self, body: Any) -> str | None:
-        if undecided := self.licensing.undecided(body):
-            names = ", ".join(undecided)
-            return f"names {names}, neither licensed nor allowed in {MANIFEST}: decide each"
-        return None
-
-    def _licensed_problem(self, body: Any) -> str | None:
-        if remaining := self.licensing.licensed_names(body):
-            return f"names {', '.join(remaining)} where redaction cannot remove it"
         return None
 
     def _recording_problem(self, planned: Planned, document: dict[str, Any]) -> str | None:
@@ -252,7 +230,7 @@ class Recorder:
             if answer is None:
                 continue
             batch = "list" in params
-            live = (answer[0], _ordered(self.licensing.redact(answer[1])[0], batch=batch))
+            live = (answer[0], _ordered(answer[1], batch=batch))
             if composed is None:
                 self.problems.append(f"sample {sample}: the recordings cannot answer it")
             elif (composed.status, _ordered(composed.body, batch=batch)) != live:
@@ -305,10 +283,7 @@ def _derived(entry: dict[str, Any], source: dict[str, Any]) -> dict[str, Any]:
         "requirement": entry["requirement"],
         "derived_from": entry["from"],
     }
-    document |= {"request": request, "response": source["response"]}
-    if source.get("redacted"):
-        document["redacted"] = source["redacted"]
-    return document
+    return document | {"request": request, "response": source["response"]}
 
 
 def _recordings(

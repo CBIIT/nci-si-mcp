@@ -407,7 +407,7 @@ def test_a_recording_has_one_plain_response(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "extra", [{"headers": {"X-EVSRESTAPI-License-Key": "key"}}, {"ignored": {"*": "evidence"}}]
+    "extra", [{"headers": {"Accept": "application/json"}}, {"ignored": {"*": "evidence"}}]
 )
 def test_a_recording_naming_headers_or_ignored_parameters_is_refused(tmp_path, extra):
     write_manifest(tmp_path)

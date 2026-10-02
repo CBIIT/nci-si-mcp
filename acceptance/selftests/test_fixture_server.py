@@ -701,3 +701,13 @@ def test_between_header_sets_of_one_size_the_first_by_name_answers(tmp_path):
         )
 
     assert status[0] == HTTPStatus.CREATED
+
+
+def test_a_recording_made_with_the_licence_key_is_refused(tmp_path):
+    request = {"surface": "evs", "method": "GET", "path": "/api/v1/concept/mdr/1"}
+    fixture_file(
+        tmp_path, "recorded.json", request=request | {"headers": {"X-EVSRESTAPI-License-Key": "k"}}
+    )
+
+    with pytest.raises(ValueError, match="a recording is made without the licence key"):
+        load_fixtures(tmp_path)

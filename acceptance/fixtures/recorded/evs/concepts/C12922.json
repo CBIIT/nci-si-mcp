@@ -403,6 +403,22 @@
      "targetTerminology": "GDC"
     },
     {
+     "type": "Related To",
+     "targetName": "Tumor cells, uncertain whether benign or malignant",
+     "targetTermType": "PT",
+     "targetCode": "8001/1",
+     "targetTerminology": "ICDO3",
+     "targetTerminologyVersion": "3.2"
+    },
+    {
+     "type": "Related To",
+     "targetName": "Tumor cells, uncertain whether benign or malignant",
+     "targetTermType": "PT",
+     "targetCode": "8001/1",
+     "targetTerminology": "ICDO3",
+     "targetTerminologyVersion": "3.1"
+    },
+    {
      "type": "Has Synonym",
      "targetName": "Tumor cells, uncertain whether benign or malignant",
      "targetTermType": "PT",
@@ -411,9 +427,5 @@
     }
    ]
   }
- },
- "redacted": [
-  "/maps/2 (ICDO3)",
-  "/maps/3 (ICDO3)"
- ]
+ }
 }

@@ -1,4 +1,4 @@
-# The fixture set: its pin, the concept rules, the licence deny list, and what
+# The fixture set: its pin, the concept rules, the scenarios, and what
 # `pdm run acceptance-record` records (fixtures/README.md). Re-pinning the release is a
 # re-recording under change control (MCP Behavioral Acceptance Suite §2.2).
 
@@ -35,33 +35,6 @@ evs:
 surfaces:
   evs: https://api-evsrest.nci.nih.gov
   evs-fhir: https://api-evsrest.nci.nih.gov/fhir/r4
-
-# Licensed content is never recorded (licensing.py; EVS SOW v2.1 item 2). The check fails
-# closed: a terminology a payload names that is on neither list stops the recording.
-licensing:
-  # The terminologies whose EVS metadata (licenseText) requires a licence beyond EVS, by
-  # every name EVS gives them, and ICD-O-3, withheld while its terms are unsettled.
-  # Their FHIR system URIs are listed with them.
-  licensed: [mdr, MedDRA, snomedct_us, SNOMEDCT, icd10, ncim, ICDO3,
-             "https://www.meddra.org", "http://snomed.info/sct", "http://hl7.org/fhir/sid/icd-10",
-             "https://ncim.nci.nih.gov/ncimbrowser/"]
-  # NCIt itself, by its EVS name and FHIR system URI, and the sources NCIt's own synonyms
-  # and definitions name, published under NCIt's terms.
-  allowed: [ncit, "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
-            ACC/AHA, CCPS, CDC, CDISC, CDISC-GLOSS, CPTAC, CTCAE, CTDC, CTEP, CTRP, Cellosaurus,
-            DIPG/DMG, FDA, GDC, HGNC, HemOnc, ICDC, NCI, NCI-GLOSS, NICHD, OORO, PCDC, SeroNet,
-            caDSR, mCode]
-  # The mapsets with a licensed terminology on either side.
-  mapsets:
-    - NCIt_Maps_To_MedDRA
-    - ICD10_to_MedDRA_Mapping
-    - SNOMEDCT_US_2026_03_01_to_ICD10CM_2026_Mappings
-    - SNOMEDCT_US_2026_03_01_to_ICD10_2016_Mappings
-    - NCIt_Maps_To_ICD10
-    - NCIt_Maps_To_ICDO3
-    - ICDO_TO_NCI_MORPHOLOGY
-    - ICDO_TO_NCI_TOPOGRAPHY
-    - ICDO_TO_NCI_AXIS
 
 # What each scenario of Acceptance Suite §2.3 provokes, in the order the register lists
 # them (register.py). Whether a scenario is recorded or crafted is read from its fixtures.
@@ -142,7 +115,7 @@ record:
     # Hierarchy.
     - fixture: recorded/evs/paths-to-root.json
       operation: OP-E13
-      rationale: "EVS serves pathsToRoot; \xA710 spells it paths-to-root, which EVS answers 404."
+      rationale: The paths from the concept to the root of the hierarchy.
       surface: evs
       path: /api/v1/concept/ncit_26.09d/C4817/pathsToRoot?include=minimal
     # An active code's replacements (OP-E21, and the ?list= batch form); the retired
@@ -166,29 +139,29 @@ record:
       path: /api/v1/subset/ncit/C177537
     - fixture: recorded/evs/subset-gdc-members.json
       operation: OP-E19
-      rationale: "The members of a subset; EVS keys them by the subset's code, unlike \xA710's form."
+      rationale: The first page of a subset's members, keyed by the subset's code.
       surface: evs
-      path: /api/v1/subset/ncit_26.09d/C177537/members?fromRecord=0&pageSize=10&include=minimal
+      path: /api/v1/concept/ncit_26.09d/subsetMembers/C177537?fromRecord=0&pageSize=10&include=minimal
     # Mapsets: the listing (names and metadata only) and the GDC mapset.
     - fixture: recorded/evs/mapsets.json
-      operation: Acceptance Suite §5.1
-      rationale: "Mapsets as first-class objects; not in \xA710. Names and metadata only for licensed ones."
+      operation: OP-E23
+      rationale: Mapsets as first-class objects, each with its own version.
       surface: evs
-      path: /api/v1/mapset
+      path: /api/v1/mapset?include=minimal
     - fixture: recorded/evs/mapset-gdc.json
-      operation: Acceptance Suite §5.1
+      operation: OP-E24
       rationale: The GDC mapset, versioned by the NCIt release.
       surface: evs
       path: /api/v1/mapset/NCIt_Maps_To_GDC
     # Its maps (issue #6: the cross-domain tests need them), by a GDC value and by a
     # concept code; `term` matches as a prefix (C4817 also finds C48177).
     - fixture: recorded/evs/mapset-gdc-maps-value.json
-      operation: Acceptance Suite §5.1
+      operation: OP-E25
       rationale: GDC maps found by a GDC value (resolve_stored_value); term matches as a prefix.
       surface: evs
       path: /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=Ewing sarcoma&fromRecord=0&pageSize=10
     - fixture: recorded/evs/mapset-gdc-maps-code.json
-      operation: Acceptance Suite §5.1
+      operation: OP-E25
       rationale: GDC maps found by an NCIt code.
       surface: evs
       path: /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C4817&fromRecord=0&pageSize=10
@@ -234,7 +207,7 @@ record:
     - {<<: *unknown, fixture: scenarios/release/unknown/replacement.json, path: /api/v1/history/ncit_99.99z/C154421/replacements}
     - {<<: *unknown, fixture: scenarios/release/unknown/replacements.json, path: "/api/v1/history/ncit_99.99z/replacements?list=C154421"}
     - {<<: *unknown, fixture: scenarios/release/unknown/subset.json, path: /api/v1/subset/ncit_99.99z/C177537}
-    - {<<: *unknown, fixture: scenarios/release/unknown/subset-members.json, path: "/api/v1/subset/ncit_99.99z/C177537/members?fromRecord=0&pageSize=10&include=minimal"}
+    - {<<: *unknown, fixture: scenarios/release/unknown/subset-members.json, path: "/api/v1/concept/ncit_99.99z/subsetMembers/C177537?fromRecord=0&pageSize=10&include=minimal"}
     - {<<: *unknown, fixture: scenarios/release/unknown/descendants.json, path: "/api/v1/concept/ncit_99.99z/C4817/descendants?maxLevel=4"}
     - {<<: *unknown, fixture: scenarios/release/unknown/property-catalogue.json, path: /api/v1/metadata/ncit_99.99z/properties}
     # batch/silent-drop: a code EVS does not know, which a batch leaves out (E-5).
