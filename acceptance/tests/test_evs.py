@@ -636,18 +636,20 @@ def test_target_terminology_keeps_the_maps_with_that_target_and_no_other(tools, 
     assert by_other_case == []
 
 
-# Retired codes and EVS's history of each: C154421 with a replacement (its scenario), C13111
-# with none (recorded).
+# Retired codes, EVS's history of each, and whether it names a replacement: C154421 does (its
+# scenario), C13111 does not (recorded).
 RETIRED_CODES = [
     pytest.param(
         RETIRED,
         "scenarios/retired/with-replacement/replacement.json",
+        True,
         id="replaced",
         marks=pytest.mark.scenario("retired/with-replacement"),
     ),
     pytest.param(
         "recorded/evs/concepts/C13111.json",
         "recorded/evs/replacement-retired.json",
+        False,
         id="unreplaced",
     ),
 ]
@@ -661,9 +663,9 @@ def _replacement(entry):
 
 @pytest.mark.tool("resolve_retired_code")
 @pytest.mark.requirement("resolve_retired_code-1")
-@pytest.mark.parametrize(("concept", "history"), RETIRED_CODES)
+@pytest.mark.parametrize(("concept", "history", "named"), RETIRED_CODES)
 def test_a_retired_code_is_inactive_with_its_status_and_replacements(
-    tools, pinned, recorded, concept, history
+    tools, pinned, recorded, concept, history, named
 ):
     body = recorded(concept)["response"]["body"]
     # Each replacement by code, terminology and name, with the release of its provenance.
@@ -674,6 +676,7 @@ def test_a_retired_code_is_inactive_with_its_status_and_replacements(
         if "replacementCode" in entry
     ]
     assert body["active"] is False
+    assert bool(replacements) is named
 
     result = _traverse(tools, pinned, "resolve_retired_code", body["code"])
 
