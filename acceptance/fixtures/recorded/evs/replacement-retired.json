@@ -1,0 +1,20 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/history/ncit_26.09d/C13111/replacements"
+ },
+ "response": {
+  "status": 200,
+  "body": [
+   {
+    "code": "C13111",
+    "name": "Retired Anatomy Concepts",
+    "action": "retire",
+    "date": "2004-02-23"
+   }
+  ]
+ }
+}

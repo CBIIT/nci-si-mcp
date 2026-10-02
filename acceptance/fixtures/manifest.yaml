@@ -134,6 +134,11 @@ record:
       rationale: An active code's replacements, one code.
       surface: evs
       path: /api/v1/history/ncit_26.09d/C4817/replacements
+    - fixture: recorded/evs/replacement-retired.json
+      operation: OP-E21
+      rationale: 'A retired code the platform names no replacement for: action retire, no replacementCode.'
+      surface: evs
+      path: /api/v1/history/ncit_26.09d/C13111/replacements
     - fixture: recorded/evs/replacements-active.json
       operation: OP-E21
       rationale: The ?list= batch form, which fails the whole batch on one unknown code.
@@ -316,8 +321,9 @@ record:
        C99249, C172980, C178487, C178488, C179848, C186676, C186727, C200419]
 
     # The concepts on C4817's paths to the root that no other list records: a traversal reads
-    # the nodes it reaches for their status (the node record, get_concept_hierarchy-2).
-    minimal: [C2991, C3262, C3263, C3264, C3810, C7057, C7062, C9305, C27551, C27574]
+    # the nodes it reaches for their status (the node record, get_concept_hierarchy-2); and
+    # C13111, retired with no replacement (resolve_retired_code-1).
+    minimal: [C2991, C3262, C3263, C3264, C3810, C7057, C7062, C9305, C27551, C27574, C13111]
 
   # Real projections and batches the composed answers are checked against.
   samples:

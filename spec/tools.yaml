@@ -108,7 +108,8 @@ resolve_retired_code:
   items: [".", "replacements[]"]
   summary: >-
     Whether a code is retired (active false, as the platform publishes it), its status, and
-    what the platform names as replacing it.
+    what the platform names as replacing it: replacements is an empty list, present, where the
+    platform names none, retired or not.
 list_relationships:
   group: evs
   inputs: (terminology, release)

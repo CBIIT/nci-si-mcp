@@ -636,26 +636,46 @@ def test_target_terminology_keeps_the_maps_with_that_target_and_no_other(tools, 
     assert by_other_case == []
 
 
-# Retired in the retired/with-replacement scenario, with its replacements from EVS's history.
-REPLACEMENTS = "scenarios/retired/with-replacement/replacement.json"
+# Retired codes and EVS's history of each: C154421 with a replacement (its scenario), C13111
+# with none (recorded).
+RETIRED_CODES = [
+    pytest.param(
+        RETIRED,
+        "scenarios/retired/with-replacement/replacement.json",
+        id="replaced",
+        marks=pytest.mark.scenario("retired/with-replacement"),
+    ),
+    pytest.param(
+        "recorded/evs/concepts/C13111.json",
+        "recorded/evs/replacement-retired.json",
+        id="unreplaced",
+    ),
+]
 
 
-@pytest.mark.scenario("retired/with-replacement")
 @pytest.mark.tool("resolve_retired_code")
 @pytest.mark.requirement("resolve_retired_code-1")
-def test_a_retired_code_is_inactive_with_its_status_and_replacements(tools, pinned, recorded):
-    body = recorded(RETIRED)["response"]["body"]
-    history = recorded(REPLACEMENTS)["response"]["body"]
-    replacements = [(entry["replacementCode"], entry["replacementName"]) for entry in history]
-    assert replacements
+@pytest.mark.parametrize(("concept", "history"), RETIRED_CODES)
+def test_a_retired_code_is_inactive_with_its_status_and_replacements(
+    tools, pinned, recorded, concept, history
+):
+    body = recorded(concept)["response"]["body"]
+    replacements = [
+        (entry["replacementCode"], entry["replacementName"])
+        for entry in recorded(history)["response"]["body"]
+        if "replacementCode" in entry
+    ]
+    assert body["active"] is False
 
     result = _traverse(tools, pinned, "resolve_retired_code", body["code"])
 
     content = result.content
     assert (content.get("code"), content.get("terminology")) == (body["code"], body["terminology"])
     assert (content.get("active"), content.get("status")) == (False, body["conceptStatus"])
-    found = [(entry.get("code"), entry.get("name")) for entry in content.get("replacements", [])]
-    assert found == replacements
+    # An empty list where the platform names none: present, never absent or null.
+    found = content.get("replacements")
+    assert isinstance(found, list), found
+    assert [(entry.get("code"), entry.get("name")) for entry in found] == replacements
 
 
 @pytest.mark.tool("resolve_retired_code")

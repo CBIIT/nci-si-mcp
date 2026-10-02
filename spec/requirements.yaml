@@ -219,7 +219,7 @@ get_concept_mappings-2:
   statement: targetTerminology keeps the maps whose target the platform names exactly so, case included, and no other.
   basis: [get_concept_mappings, mapping]
 resolve_retired_code-1:
-  statement: A retired code returns active false, the platform's status unchanged, and the replacements the platform names, by code and name.
+  statement: A retired code returns active false, the platform's status unchanged, and the replacements the platform names, by code and name, an empty list where it names none.
   basis: [resolve_retired_code, replacement, A8.1, A8.2]
 resolve_retired_code-2:
   statement: An active code returns active true, its status, and no replacement.

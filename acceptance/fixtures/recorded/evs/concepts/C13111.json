@@ -1,0 +1,26 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C13111",
+  "params": {
+   "include": [
+    "minimal"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C13111",
+   "name": "Retired Anatomy Concepts",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "Retired_Concept",
+   "leaf": true,
+   "active": false
+  }
+ }
+}
