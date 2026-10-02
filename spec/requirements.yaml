@@ -134,7 +134,7 @@ get_concept-2:
   statement: descendants as an include value is an invalid request.
   basis: [get_concept, error]
 get_concept-3:
-  statement: The concept carries code, terminology, name, active and status always, active and status as the platform publishes them.
+  statement: The concept carries code, terminology, name and active always, and status where the platform publishes one; active and status as the platform publishes them.
   basis: [get_concept, concept, A8.1, A9.1]
 get_concepts-1:
   statement: A batch of codes is one upstream request.

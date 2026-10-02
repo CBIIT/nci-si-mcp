@@ -65,9 +65,10 @@ traversal:
 concept:
   title: The concept record
   about: >-
-    A concept as a terminology tool returns it: these fields always, and the sections the
-    caller's include selects. Status is the platform's own, unchanged: a status set of the
-    module's would lose what the platform said and differ between terminologies (A7.1, A9.1).
+    A concept as a terminology tool returns it: these fields, status where the platform
+    publishes one, and the sections the caller's include selects. Status is the platform's own,
+    unchanged: a status set of the module's would lose what the platform said and differ between
+    terminologies (A9.1).
   fields:
     code:
       content: The bare code the terminology publishes
@@ -83,26 +84,31 @@ concept:
       of: A8.1
     status:
       content: >-
-        The platform's own status value, unchanged (from EVS: DEFAULT, Header_Concept,
-        Retired_Concept, ...)
+        The platform's own status value, unchanged, where it publishes one (from EVS:
+        DEFAULT, Header_Concept, Retired_Concept, ...)
+      optional: true
       of: A8.1
     provenance:
       content: The provenance record
       of: A4.4
     synonyms:
-      content: The synonyms, when include selects them
+      content: The platform's synonym entries, unchanged, when include selects them
       optional: true
       of: get_concept
     definitions:
-      content: The definitions, when include selects them
+      content: The platform's definition entries, unchanged, when include selects them
       optional: true
       of: get_concept
     properties:
-      content: The properties, when include selects them
+      content: >-
+        The platform's property entries, unchanged, when include selects them; the
+        semantic-type property among them
       optional: true
       of: get_concept
     semanticType:
-      content: The semantic types, when include selects them
+      content: >-
+        The values of the terminology's semantic-type property, when include selects them; the
+        property is named by its code, not its label (NCIt: P106), as A5.7 names roles
       optional: true
       of: get_concept
 terminology:

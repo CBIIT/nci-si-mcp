@@ -22,7 +22,11 @@ BATCH = ["C4817", "C12578", "C116977"]
 # A code EVS does not know, which a batch leaves out (batch/silent-drop).
 UNKNOWN = "CBOGUS999999"
 SECTIONS = TOOLS["get_concept"]["values"]["include"]
+# NCIt's semantic-type property, by its code (the concept record's semanticType).
+SEMANTIC_TYPE = "P106"
 ALWAYS = [name for name, field in RECORDS["concept"]["fields"].items() if not field.get("optional")]
+# The concept record's fields that are not include sections: status and those always present.
+BASE = [name for name in RECORDS["concept"]["fields"] if name not in SECTIONS]
 
 
 def _release(tools, pinned, **arguments):
@@ -73,19 +77,33 @@ def _concept(tools, pinned, code, **arguments):
     return tools.call("get_concept", {**pinned, "code": code, **arguments})
 
 
+def _recorded_section(body, section):
+    """A section as the concept record defines it, from EVS's recording of the concept."""
+
+    if section == "semanticType":
+        return [entry["value"] for entry in body["properties"] if entry["code"] == SEMANTIC_TYPE]
+    return body[section]
+
+
 @pytest.mark.tool("get_concept")
 @pytest.mark.requirement("get_concept-1")
 @pytest.mark.parametrize("section", SECTIONS)
-def test_an_include_value_returns_its_section_and_no_other(tools, pinned, section):
+def test_an_include_value_returns_its_section_and_no_other(tools, pinned, recorded, section):
+    body = recorded(CURRENT)["response"]["body"]
+
     result = _concept(tools, pinned, CONCEPT, include=[section])
 
     assert not result.is_error, result.content
-    assert {name for name in SECTIONS if name in result.content} == {section}
+    # Any other key is another section, whether the record names it or not (parents, roles).
+    assert set(result.content) - set(BASE) == {section}
+    assert result.content[section] == _recorded_section(body, section)
 
 
 @pytest.mark.tool("get_concept")
 @pytest.mark.requirement("get_concept-2")
 def test_descendants_is_no_include_value(tools, pinned):
+    # A server whose input schema lists the include values refuses this in the SDK's argument
+    # validation, as text with no error record; that fails here, since M3.2 asks for the record.
     result = _concept(tools, pinned, CONCEPT, include=["descendants"])
 
     assert error_code(result) == "invalid_request", result.content
@@ -113,8 +131,8 @@ def test_a_concept_carries_its_identity_and_the_status_the_platform_publishes(
     assert [name for name in ALWAYS if name not in result.content] == []
     returned = [result.content[name] for name in ("code", "terminology", "name", "active")]
     assert returned == [body[name] for name in ("code", "terminology", "name", "active")]
-    # EVS publishes the status as conceptStatus; the record passes it on unchanged.
-    assert result.content["status"] == body["conceptStatus"]
+    # EVS publishes a status for every concept, as conceptStatus; the record passes it on.
+    assert result.content.get("status") == body["conceptStatus"]
 
 
 def _batch(tools, pinned, codes):
@@ -129,7 +147,10 @@ def test_a_batch_is_one_upstream_request(tools, upstream, pinned):
     result = _batch(tools, pinned, BATCH)
 
     assert not result.is_error, result.content
-    assert len(requests_naming(upstream.log(), BATCH)) == 1
+    requests = requests_naming(upstream.log(), BATCH)
+    assert len(requests) == 1, requests
+    # One request for one code, the others from elsewhere, is no batch.
+    assert [code for code in BATCH if not requests_naming(requests, [code])] == []
 
 
 @pytest.mark.scenario("batch/silent-drop")

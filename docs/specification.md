@@ -236,7 +236,7 @@ The provenance record, with these fields added (A4.2).
 
 ### The concept record
 
-A concept as a terminology tool returns it: these fields always, and the sections the caller's include selects. Status is the platform's own, unchanged: a status set of the module's would lose what the platform said and differ between terminologies (A7.1, A9.1).
+A concept as a terminology tool returns it: these fields, status where the platform publishes one, and the sections the caller's include selects. Status is the platform's own, unchanged: a status set of the module's would lose what the platform said and differ between terminologies (A9.1).
 
 | Field | Content | Rule |
 |---|---|---|
@@ -244,12 +244,12 @@ A concept as a terminology tool returns it: these fields always, and the section
 | `terminology` | The terminology the code belongs to, as the platform names it | A1.2 |
 | `name` | The preferred name | A4.1 |
 | `active` | Whether the platform publishes the concept as active, its boolean unchanged | A8.1 |
-| `status` | The platform's own status value, unchanged (from EVS: DEFAULT, Header_Concept, Retired_Concept, ...) | A8.1 |
+| `status` | The platform's own status value, unchanged, where it publishes one (from EVS: DEFAULT, Header_Concept, Retired_Concept, ...) (optional) | A8.1 |
 | `provenance` | The provenance record | A4.4 |
-| `synonyms` | The synonyms, when include selects them (optional) | get_concept |
-| `definitions` | The definitions, when include selects them (optional) | get_concept |
-| `properties` | The properties, when include selects them (optional) | get_concept |
-| `semanticType` | The semantic types, when include selects them (optional) | get_concept |
+| `synonyms` | The platform's synonym entries, unchanged, when include selects them (optional) | get_concept |
+| `definitions` | The platform's definition entries, unchanged, when include selects them (optional) | get_concept |
+| `properties` | The platform's property entries, unchanged, when include selects them; the semantic-type property among them (optional) | get_concept |
+| `semanticType` | The values of the terminology's semantic-type property, when include selects them; the property is named by its code, not its label (NCIt: P106), as A5.7 names roles (optional) | get_concept |
 
 ### The terminology record
 
@@ -294,7 +294,7 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 |---|---|---|
 | `resolve_release` | `(terminology, channel?) → { terminology, channel, version, date, alternatives[] }` | Which release of a terminology is current, by channel; called explicitly, and its answer is passed to every later call. Items: `.`. |
 | `get_concept` | `(terminology, release, code, include[]?) → concept` | One concept with the detail selected. `include`: synonyms, definitions, properties, semanticType. Items: `.`. |
-| `get_concepts` | `(terminology, release, codes[], include[]?) → { concepts[], missing[] }` | Many concepts in one platform call, with the detail selected. Items: `concepts[]`. |
+| `get_concepts` | `(terminology, release, codes[], include[]?) → { concepts[], missing[] }` | Many concepts in one platform call, with the detail selected. `include`: synonyms, definitions, properties, semanticType. Items: `concepts[]`. |
 | `search_concepts` | `(terminology, release, query, mode?, limit?, cursor?) → { results[{ concept, score?, matchedOn? }], nextCursor? }` | Ranked search of a terminology; semantic and hybrid from the interim NCIt index (M4.1). `mode`: lexical, typeahead, semantic, hybrid. Items: `results[].concept`. |
 | `get_concept_hierarchy` | `(terminology, release, code, direction, depth?, limit?, cursor?) → { nodes[], truncation, nextCursor? }` | A concept's parents, children or paths to the root, bounded. `direction`: parent, child, pathsToRoot. Items: `nodes[]`. |
 | `expand_value_set` | `(terminology, release, valueSet \| code, count?, offset?, activeOnly?) → { members[], total?, truncation }` | The members of a value set, paged and bounded by the tool itself; $lookup, $validate-code, $subsumes and $translate where a caller asks. Items: `members[]`. |
@@ -387,7 +387,7 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 | resolve_release-3 | The result carries ttlMs 0. | resolve_release, M2.2 | `tests/test_evs.py::test_a_resolved_release_is_never_cached` | tested |
 | get_concept-1 | Each include value returns its section and no other section. | get_concept, concept | `tests/test_evs.py::test_an_include_value_returns_its_section_and_no_other[synonyms]`, `tests/test_evs.py::test_an_include_value_returns_its_section_and_no_other[definitions]`, `tests/test_evs.py::test_an_include_value_returns_its_section_and_no_other[properties]`, `tests/test_evs.py::test_an_include_value_returns_its_section_and_no_other[semanticType]` | tested |
 | get_concept-2 | descendants as an include value is an invalid request. | get_concept, error | `tests/test_evs.py::test_descendants_is_no_include_value` | tested |
-| get_concept-3 | The concept carries code, terminology, name, active and status always, active and status as the platform publishes them. | get_concept, concept, A8.1, A9.1 | `tests/test_evs.py::test_a_concept_carries_its_identity_and_the_status_the_platform_publishes[current]`, `tests/test_evs.py::test_a_concept_carries_its_identity_and_the_status_the_platform_publishes[retired]` | tested |
+| get_concept-3 | The concept carries code, terminology, name and active always, and status where the platform publishes one; active and status as the platform publishes them. | get_concept, concept, A8.1, A9.1 | `tests/test_evs.py::test_a_concept_carries_its_identity_and_the_status_the_platform_publishes[current]`, `tests/test_evs.py::test_a_concept_carries_its_identity_and_the_status_the_platform_publishes[retired]` | tested |
 | get_concepts-1 | A batch of codes is one upstream request. | get_concepts, A5.8 | `tests/test_evs.py::test_a_batch_is_one_upstream_request` | tested |
 | get_concepts-2 | A code the upstream omits is named in missing. | get_concepts | `tests/test_evs.py::test_a_code_the_platform_leaves_out_of_a_batch_is_named_missing` | tested |
 | get_concepts-3 | The concepts come back in request order, never in the upstream's order. | get_concepts | `tests/test_evs.py::test_a_batch_comes_back_in_request_order[as-listed]`, `tests/test_evs.py::test_a_batch_comes_back_in_request_order[reversed]` | tested |

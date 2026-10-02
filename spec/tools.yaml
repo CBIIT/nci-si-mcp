@@ -27,6 +27,7 @@ get_concepts:
   inputs: (terminology, release, codes[], include[]?)
   returns: "{ concepts[], missing[] }"
   items: ["concepts[]"]
+  values: {include: [synonyms, definitions, properties, semanticType]}
   summary: Many concepts in one platform call, with the detail selected.
 search_concepts:
   group: evs
