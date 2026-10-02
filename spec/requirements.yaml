@@ -10,32 +10,25 @@
 # Protocol gates: once per server, before any tool test.
 P-1:
   statement: tools/list names every tool of the profile under test, and no other.
-  basis: [M1.2]
-  planned: "#52"
+  basis: [M1.2, M1.5]
 P-2:
-  statement: Every tool declares an outputSchema that is valid JSON Schema and covers both the success and the error shape.
-  basis: [M3.1]
-  planned: "#52"
+  statement: Every tool declares an outputSchema that is valid JSON Schema and admits the error record.
+  basis: [M3.1, error]
 P-3:
-  statement: No tool description contains an operator, wildcard or parameter value a tool test shows unsupported, nor placeholder or debug text.
-  basis: [A2.3, A2.4]
-  planned: "#52"
+  statement: No tool description, nor any description in a tool's schemas, contains placeholder, debug or development text.
+  basis: [A2.4, A10.3]
 P-4:
-  statement: Tool names are verb-led, lowercase and underscore-separated, and equivalent operations share a name pattern across the EVS and caDSR modules.
-  basis: [A2.1, A2.2]
-  planned: "#52"
+  statement: Tool names are verb-led, lowercase and underscore-separated.
+  basis: [A2.1]
 P-5:
-  statement: tools/list carries ttlMs and cacheScope public; release discovery results carry ttlMs 0 and release-pinned results a positive ttlMs.
+  statement: tools/list carries a positive ttlMs and cacheScope public.
   basis: [M2.1, M2.2]
-  planned: "#52"
 P-6:
-  statement: tools/list is identical whatever the terminology selected, the release pinned and the run mode.
+  statement: tools/list is the same after calls that pin a terminology and release, and while the platform is unavailable.
   basis: [M1.2]
-  planned: "#52"
 P-7:
-  statement: A correlation identifier supplied on a call appears in the result and in the upstream request log.
-  basis: [A6.2]
-  planned: "#52"
+  statement: A correlation identifier passed on a call is sent upstream on every platform request the call makes, and returned in the provenance of each item.
+  basis: [A6.2, M7.1]
 P-8:
   statement: prompts/list and resources/list list the furnished prompts and resources with their arguments, and a prompt names only tools present in the profile.
   basis: [M5.1]
@@ -47,7 +40,13 @@ P-9:
 P-10:
   statement: Every tool declares readOnlyHint true, destructiveHint false, idempotentHint true and openWorldHint true.
   basis: [M1.4]
-  planned: "#52"
+P-11:
+  statement: No tool description shows an operator, wildcard, filter syntax or parameter value that a tool test shows unsupported.
+  basis: [A2.3, A10.3]
+  planned: "#53"
+P-12:
+  statement: Each tool takes the parameters the specification names for it, under those names, and requires exactly those not marked optional, so that equivalent operations of the two modules share parameter names.
+  basis: [A2.2]
 
 # Cross-cutting tests: against every content-returning tool.
 X-1:
@@ -97,6 +96,10 @@ X-11:
 X-12:
   statement: The licence key reaches the upstream request and appears in no log, error message or result.
   basis: [A7.5]
+  planned: "#52"
+X-13:
+  statement: Every release-pinned result carries a positive ttlMs in its _meta, with cacheScope public for governed content and private for results computed from caller-supplied values.
+  basis: [M2.2, M2.3, M2.5]
   planned: "#52"
 
 # EVS tools.

@@ -13,9 +13,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
+import yaml
 
 from nci_si_acceptance.client import Target, open_session, server_environment
-from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
+from nci_si_acceptance.fixture_server import MANIFEST, FixtureServer, load_fixtures
 from nci_si_acceptance.report import COLLECTOR, write_report
 from nci_si_acceptance.suite import (
     UNMATCHED_UPSTREAM,
@@ -54,6 +55,15 @@ def pytest_sessionfinish(session: pytest.Session) -> None:
 @pytest.fixture(scope="session")
 def target(pytestconfig: pytest.Config) -> Target:
     return pytestconfig.stash[TARGET]
+
+
+@pytest.fixture(scope="session")
+def pinned() -> dict[str, str]:
+    """The terminology and release the fixture set is pinned to, as a caller names them."""
+
+    manifest = yaml.safe_load((FIXTURES / MANIFEST).read_text(encoding="utf-8"))
+    terminology, _, release = manifest["evs"]["release"].partition("_")
+    return {"terminology": terminology, "release": release}
 
 
 @pytest.fixture(scope="session")

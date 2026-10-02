@@ -1,12 +1,13 @@
 """The project's specification, as data: the conventions, the records and the required tools
-(`spec/`).
+(`spec/`), and the profiles that serve them.
 
-`requirements.py` reads the requirements beside them, and `document.py` renders all three
+`requirements.py` reads the requirements beside them, and `document.py` renders them all
 as the readable specification.
 """
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +25,54 @@ TOOLS: dict[str, dict[str, Any]] = _load("tools.yaml")
 RECORDS: dict[str, dict[str, Any]] = _load("records.yaml")
 # The group of each required tool: evs, cadsr, cross-domain or workflow.
 REQUIRED_TOOLS = {name: tool["group"] for name, tool in TOOLS.items()}
+
+
+# The profiles of M1.5: one per module, serving its own group, and unified, serving all.
+PROFILES = ("evs", "cadsr", "unified")
+
+
+def profile_tools(profile: str) -> set[str]:
+    """The required tools a server of `profile` lists."""
+
+    return {name for name, group in REQUIRED_TOOLS.items() if profile in (group, "unified")}
+
+
+def _split(text: str, separator: str) -> list[str]:
+    """`text` split at each `separator` outside brackets and braces, the parts stripped."""
+
+    parts, depth, start = [], 0, 0
+    for index, character in enumerate(text):
+        depth += (character in "[{") - (character in "]}")
+        if character == separator and depth == 0:
+            parts.append(text[start:index])
+            start = index + 1
+    return [part.strip() for part in [*parts, text[start:]] if part.strip()]
+
+
+def _names(alternative: str) -> list[str]:
+    """The parameter names of one alternative: a name, or `{ a, b }`, a set of them."""
+
+    if alternative.startswith("{"):
+        return [name for part in _split(alternative[1:-1], ",") for name in _names(part)]
+    return re.findall(r"\w+", alternative)[:1]
+
+
+def parameters(tool: str) -> tuple[set[str], set[str]]:
+    """The parameters `tool` takes, by `inputs` in tools.yaml, and those it requires.
+
+    `inputs` reads `(a, b?, c | d, e[]?, f[{ g, h? }])`: a trailing ? marks an optional
+    parameter, | alternatives, none of which is required, and brackets a list.
+    """
+
+    names: set[str] = set()
+    required: set[str] = set()
+    for part in _split(TOOLS[tool]["inputs"].strip()[1:-1], ","):
+        alternatives = _split(part, "|")
+        found = [name for alternative in alternatives for name in _names(alternative)]
+        names.update(found)
+        if len(alternatives) == 1 and not part.endswith("?"):
+            required.update(found)
+    return names, required
 
 
 def is_basis(name: str) -> bool:

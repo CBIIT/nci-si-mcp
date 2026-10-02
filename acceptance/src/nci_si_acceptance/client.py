@@ -8,6 +8,8 @@ upstream credentials are passed on.
 
     NCI_SI_ACCEPTANCE_MODE     fixture (default) or live
     NCI_SI_ACCEPTANCE_SERVER   the command that starts the server, default "nci-si-mcp serve"
+    NCI_SI_ACCEPTANCE_PROFILE  the profile that command serves (M1.5): evs, cadsr or unified
+                               (default)
 """
 
 from __future__ import annotations
@@ -16,6 +18,7 @@ import os
 import shlex
 from contextlib import contextmanager
 from dataclasses import dataclass
+from functools import partial
 from typing import TYPE_CHECKING, Any, Literal
 
 from anyio.from_thread import BlockingPortal, start_blocking_portal
@@ -23,6 +26,7 @@ from mcp.client import Client
 from mcp.client.stdio import StdioServerParameters
 
 from nci_si_acceptance.fixture_server import UPSTREAM_VARIABLES
+from nci_si_acceptance.spec import PROFILES
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -34,6 +38,7 @@ type Mode = Literal["fixture", "live"]
 
 MODE_VARIABLE = "NCI_SI_ACCEPTANCE_MODE"
 SERVER_VARIABLE = "NCI_SI_ACCEPTANCE_SERVER"
+PROFILE_VARIABLE = "NCI_SI_ACCEPTANCE_PROFILE"
 DEFAULT_SERVER = "nci-si-mcp serve"
 # How long the harness waits for any one answer of the server, startup included.
 READ_TIMEOUT_SECONDS = 60
@@ -44,10 +49,11 @@ CREDENTIAL_VARIABLES = ("NCI_SI_EVS_LICENSE_KEY", "NCI_SI_CADSR_CREDENTIAL")
 
 @dataclass(frozen=True, slots=True)
 class Target:
-    """The server under test and the run mode."""
+    """The server under test, the profile it serves and the run mode."""
 
     mode: Mode
     command: list[str]
+    profile: str = "unified"
 
     @classmethod
     def from_env(cls) -> Target:
@@ -57,7 +63,10 @@ class Target:
         command = shlex.split(os.environ.get(SERVER_VARIABLE, DEFAULT_SERVER))
         if not command:
             raise ValueError(f"{SERVER_VARIABLE} must name a command")
-        return cls(mode, command)
+        profile = os.environ.get(PROFILE_VARIABLE, "unified")
+        if profile not in PROFILES:
+            raise ValueError(f"{PROFILE_VARIABLE} must be one of {', '.join(PROFILES)}")
+        return cls(mode, command, profile)
 
 
 def _upstream_settings(mode: Mode, fixture_url: str | None) -> dict[str, str]:
@@ -90,11 +99,13 @@ class Session:
         self._portal = portal
         self._client = client
 
-    def list_tools(self) -> list[types.Tool]:
-        return self._portal.call(self._client.list_tools).tools
+    def list_tools(self) -> types.ListToolsResult:
+        return self._portal.call(self._client.list_tools)
 
-    def call_tool(self, name: str, arguments: dict[str, Any]) -> types.CallToolResult:
-        return self._portal.call(self._client.call_tool, name, arguments)
+    def call_tool(
+        self, name: str, arguments: dict[str, Any], meta: types.RequestParamsMeta | None = None
+    ) -> types.CallToolResult:
+        return self._portal.call(partial(self._client.call_tool, name, arguments, meta=meta))
 
 
 @contextmanager
@@ -105,7 +116,8 @@ def open_session(command: list[str], environment: dict[str, str]) -> Iterator[Se
     with (
         start_blocking_portal() as portal,
         portal.wrap_async_context_manager(
-            Client(server, read_timeout_seconds=READ_TIMEOUT_SECONDS)
+            # No response cache: each tools/list must reach the server (P-6).
+            Client(server, read_timeout_seconds=READ_TIMEOUT_SECONDS, cache=None)
         ) as client,
     ):
         yield Session(portal, client)

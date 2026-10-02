@@ -23,7 +23,7 @@ The Statements of Work frame and bound the scope; within it, the specification o
 | **Workflow** | 3 composite tools | `nci_si_mcp.workflows` |
 | **Acceptance suite** | Harness, fixture server, fixture set, baseline tool map, per-tool tests | `acceptance/` (separate package in this repository, separately versioned) |
 
-Twenty-nine tools in total, named and typed exactly as in the specification (`spec/tools.yaml`). Three profiles: `evs`, `cadsr`, `unified`. A profile determines which tools `tools/list` returns and nothing else; the surface within a profile is static (M1.2).
+Twenty-nine tools in total, named and typed exactly as in the specification (`spec/tools.yaml`). Three profiles: `evs`, `cadsr`, `unified`. A profile determines which tools `tools/list` returns and nothing else (M1.5); the surface within a profile is static (M1.2).
 
 ### 1.2 Baseline
 
@@ -51,7 +51,7 @@ These hold today and continue to hold:
 
 | Today | After |
 |---|---|
-| Every concept request addresses `ncit_{release}` of the one current monthly release, and each concept payload's `version` is checked; the terminology and the release cannot be chosen. An unknown release is `evs_invalid_response` on the batch and descendants endpoints but `concept_not_found` on a single-concept lookup (a 404 there cannot be told from an unknown code), and a payload mismatch is `evs_invalid_response` | Every content request addresses `{terminology}_{release}` from the call's `ReleaseContext` explicitly (verified to work and to fail closed with 404 on an unknown release); the payload check becomes a second guard, not the only one; an unknown release and a payload mismatch are both `release_unavailable` (A3.1) |
+| Every concept request addresses `ncit_{release}` of the one current monthly release, and each concept payload's `version` is checked; the terminology and the release cannot be chosen. An unknown release is `evs_invalid_response` on the batch and descendants endpoints but `concept_not_found` on a single-concept lookup (a 404 there cannot be told from an unknown code), and a payload mismatch is `evs_invalid_response` | Every content request addresses `{terminology}_{release}` from the call's `ReleaseContext` explicitly (verified to work and to fail closed with 404 on an unknown release); the payload check becomes a second guard, not the only one; an unknown release is `release_not_available` and a payload mismatch `release_mismatch` (A3.1, A3.4) |
 | Expected exceptions are mapped to codes by one table (`_ERROR_CODES`, applied by `service._enveloped`); with the envelopes that the service, the CLI and the resources build directly, `ErrorCode` has fourteen values | One error model, one taxonomy of six classes (A2.5), one serialisation — every tool returns a structured error through the same path (§3.1) |
 | `include_raw` and `live_only` are MCP tool parameters | Both are removed from the MCP surface. `include_raw` stays on the CLI for debugging; `live_only` becomes the `servedBy` field in provenance, reported rather than requested |
 | Edge types are selected independently of relationship names, but the name filter also applies to hierarchy edges, which carry the pseudo-names `is_a_parent`, `is_a_child`, `is_a_descendant`: a role-name filter drops them unless those names are listed | Edge kinds and relationship names are separate fields, and hierarchy edges carry no invented name; a filter on one never silently removes the other (A5.5) |
@@ -117,16 +117,20 @@ acceptance/                 separate package, see §9
 
 ### 3.1 Error model (`platform/errors.py`)
 
-Replace the fourteen-value `ErrorCode` literal in `errors.py`, and the `_ERROR_CODES` table in `service.py`, with the six classes A2.5 requires, each carrying a stable `code`, a human message, and structured `detail`:
+Replace the fourteen-value `ErrorCode` literal in `errors.py`, and the `_ERROR_CODES` table in `service.py`, with the codes of the specification's error record (`spec/records.yaml`): each failure carries its `code`, a message, the call's correlation identifier, and the `details` the caller needs for its next step. The prototype's codes map onto them as follows:
 
-| Class | Replaces | `detail` carries |
+| Code | Replaces | `details` carry |
 |---|---|---|
 | `invalid_request` | `invalid_request`, `invalid_configuration` | parameter, reason |
 | `not_found` | `concept_not_found`, `concepts_missing` | identifiers not found |
-| `release_unavailable` | `release_unresolved`, `version_mismatch`, `release_not_active`, `index_not_active` | requested, served, source |
+| `release_not_available` | `release_unresolved`, `release_not_active`, `index_not_active` | requested, source |
+| `release_mismatch` | `version_mismatch` | requested, served, source |
 | `upstream_unavailable` | `evs_unavailable`, `evs_invalid_response` | surface, status, attempts, retry-after |
+| `timeout` | — | surface, seconds waited |
 | `bound_exceeded` | — | bound, limit, reached |
-| `internal` | `startup_failed`, `no_active_index`, `index_incompatible`, `index_storage_error` | — |
+| `capability_unavailable` | — | the capability |
+| `cursor_expired` | — | the cursor's release, the current one |
+| `internal_error` | `startup_failed`, `no_active_index`, `index_incompatible`, `index_storage_error` | — |
 
 Two rules. **An empty result is never an error**: a tool that matched nothing returns its normal shape with an empty collection and a complete provenance envelope. **A platform failure carried inside a `2xx` body is an error**: the HTTP client (§3.4) recognises the webMethods envelope (`apiResponse.type == "E"`), FHIR `OperationOutcome` with severity `error`, and an HTML body where JSON was requested, and raises `upstream_unavailable` before any tool sees the payload.
 
@@ -142,7 +146,7 @@ Extend `models.py`'s per-concept fields into one `ProvenanceEnvelope` attached *
 
 `ReleaseContext` is resolved once per tool call and threaded through every upstream request. It is never resolved implicitly inside another tool — `resolve_release` and `resolve_registry_release` are the only discovery operations and the only unversioned upstream calls (A3.2).
 
-**EVS.** `resolve_evs_release(terminology, channel)` calls `/metadata/terminologies?terminology=…&latest=true&tag={channel}` and requires exactly one row. This replaces `select_monthly_ncit_release`, which already requires exactly one latest monthly row but filters the full listing itself; `latest` is channel-scoped, and the one-row query moves the selection upstream. A `ReleaseResolutionError` is raised only if the row count is not one. Content requests then address `/concept/{terminology}_{release}/…`; a 404 with `Terminology not found` maps to `release_unavailable`. The payload's `version` is compared as a second guard and a mismatch is `release_unavailable`, never silently accepted.
+**EVS.** `resolve_evs_release(terminology, channel)` calls `/metadata/terminologies?terminology=…&latest=true&tag={channel}` and requires exactly one row. This replaces `select_monthly_ncit_release`, which already requires exactly one latest monthly row but filters the full listing itself; `latest` is channel-scoped, and the one-row query moves the selection upstream. A `ReleaseResolutionError` is raised only if the row count is not one. Content requests then address `/concept/{terminology}_{release}/…`; a 404 with `Terminology not found` maps to `release_not_available`. The payload's `version` is compared as a second guard and a mismatch is `release_mismatch`, never silently accepted.
 
 **caDSR.** `resolve_registry_state()` returns `{registryIdentifier: null, exportDate, itemVersioning: "per data element"}`, with `exportDate` read from the FTP listing's `Last-Modified` for `releasedCDEsXML-OD.zip`. The module never fabricates a registry identifier (A3.8.1). When a registry identifier appears upstream (C-1), the field becomes required and the same fail-closed path applies; the code path is written now and gated on the field being non-null.
 
@@ -152,7 +156,7 @@ Extend `models.py`'s per-concept fields into one `ProvenanceEnvelope` attached *
 
 One client for all surfaces, replacing `EVSClient._get_json` and the per-module ad hoc calls:
 
-- Always sends `Accept: application/json` (several caDSR routes return HTML otherwise) and the correlation header.
+- Always sends `Accept: application/json` (several caDSR routes return HTML otherwise) and the correlation header (M7.1).
 - Retries only `5xx` and connection errors, with jittered backoff, **and counts every attempt against the call's `Budget`** (A5.3). Honours `Retry-After` on `429`.
 - Classifies the response before returning it (§3.1): status, content type, webMethods envelope, FHIR `OperationOutcome`.
 - Exposes a request-log hook. In production it feeds the audit record; under the acceptance suite it is what the fixture server mirrors.
@@ -172,7 +176,7 @@ One client for all surfaces, replacing `EVSClient._get_json` and the per-module 
 | unpinned read (only the discovery tools qualify) | 0 | public |
 | results computed over caller-supplied content (`match_*`, `harmonize_data_dictionary`, `validate`-style results) | 0 | **private** |
 
-A cursor encodes the release it was issued against; presenting it after that release is superseded returns `release_unavailable` (M2.4).
+A tool result carries both in its `_meta` (M2.5). A cursor encodes the release it was issued against; presenting it after that release is superseded returns `cursor_expired` (M2.4).
 
 ### 3.7 Schema generation (`platform/schema.py`)
 
@@ -207,7 +211,7 @@ Delta from `evs.py`:
 
 ### 4.2 Relationship catalogue (`evs/catalogue.py`)
 
-Per release: roles and associations with `code`, `name`, `kind`, and `polarity`. Polarity is `negative` for a code in the exclusion set, which is **configured by code** (`R135`–`R142` for current releases) and validated at load against the catalogue: a configured code absent from the release's catalogue is an `internal` error at startup, not a silent positive. This replaces label matching (design review, Ontoprism's `axes.py` pattern) and is the executable form of E-4 until the catalogue publishes polarity itself.
+Per release: roles and associations with `code`, `name`, `kind`, and `polarity`. Polarity is `negative` for a code in the exclusion set, which is **configured by code** (`R135`–`R142` for current releases) and validated at load against the catalogue: a configured code absent from the release's catalogue is an `internal_error` at startup, not a silent positive. This replaces label matching (design review, Ontoprism's `axes.py` pattern) and is the executable form of E-4 until the catalogue publishes polarity itself.
 
 ### 4.3 Traversal (`evs/traversal.py`)
 
@@ -227,7 +231,7 @@ Remaining, around `Budget`:
 The interim index (M4.1), built from `index.py` / `embeddings.py` / `retrieval.py` / `evaluation.py`:
 
 - **Per-release tables**, keyed `(release, code)`, plus a `manifests` table carrying release, embedding provider, model, dimension, build timestamp, evaluation-set version and score, and `active` flag. Today the index holds exactly one release (schema 4), and indexing another release replaces it in place.
-- **Atomic activation and rollback**: a build writes under a new manifest; activation flips `active` in one transaction; rollback flips it back. `search_concepts` reads only the active manifest's release and refuses with `release_unavailable` if it differs from the requested release.
+- **Atomic activation and rollback**: a build writes under a new manifest; activation flips `active` in one transaction; rollback flips it back. `search_concepts` reads only the active manifest's release and refuses with `release_mismatch` if it differs from the requested release.
 - **Full NCIt build** from the batch endpoint in pages of 1,000 (the enforced `pageSize` maximum), release-pinned; the current `index-sample` stays as a developer command.
 - **The two traps** — provider selection requires both provider and model to be set, and a mismatch is `invalid_configuration` at startup; `cosine_similarity` normalises, and a dimension mismatch is `index_incompatible`, never `0.0`. Changing provider or model invalidates the manifest. Today: provider and model are validated together at startup (a failure is `invalid_configuration`), and a provider, model or dimension mismatch is refused on every write and search. `cosine_similarity` is a dot product that relies on the providers returning unit vectors, which both do; it does not normalise itself.
 - **Evaluation set** (`evaluate.py`): versioned NCIt scenarios with expected concepts and scoring thresholds; run on every build; score recorded in the manifest. This is the retrieval evaluation set in executable form.
@@ -416,7 +420,7 @@ The recorder sends no licence key, so what it records is what EVS serves publicl
 Keep `unittest`-style tests under the gates in `CONTRIBUTING.md`. Extend `tests/fakes.py` with doubles for the caDSR and SSIS clients. Required new tests, each named for the rule it enforces:
 
 - `test_errors`: every `PlatformError` serialises to the error schema; empty results never produce `isError`; the three masked-error shapes are classified.
-- `test_release`: one-row resolution; 404 → `release_unavailable`; payload mismatch → `release_unavailable`; caDSR state never carries a fabricated identifier.
+- `test_release`: one-row resolution; 404 → `release_not_available`; payload mismatch → `release_mismatch`; caDSR state never carries a fabricated identifier.
 - `test_bounds`: retries decrement the request budget; per-kind rotation; truncation report fields.
 - `test_catalogue`: polarity by code; a configured code absent from the catalogue fails startup.
 - `test_batch`: `found`/`missing` reconciliation; any return order handled.

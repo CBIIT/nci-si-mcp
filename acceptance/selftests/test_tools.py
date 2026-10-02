@@ -27,15 +27,17 @@ class Session:
         self.names, self.result, self.calls = names, result, []
 
     def list_tools(self):
-        return [SimpleNamespace(name=name) for name in self.names]
+        return SimpleNamespace(tools=[SimpleNamespace(name=name) for name in self.names])
 
-    def call_tool(self, name, arguments):
-        self.calls.append((name, arguments))
+    def call_tool(self, name, arguments, meta=None):
+        self.calls.append((name, arguments, meta))
         return self.result
 
 
-def answer(*blocks, structured=None, is_error=False):
-    return SimpleNamespace(content=list(blocks), structured_content=structured, is_error=is_error)
+def answer(*blocks, structured=None, is_error=False, meta=None):
+    return SimpleNamespace(
+        content=list(blocks), structured_content=structured, is_error=is_error, meta=meta
+    )
 
 
 def text(value):
@@ -64,12 +66,21 @@ def test_a_required_tool_the_server_has_is_called_by_its_own_name():
 
     result = Tools(session, TOOLMAP).call("get_concept_neighborhood", {"code": "C3262"})
 
-    assert session.calls == [("get_concept_neighborhood", {"code": "C3262"})]
+    assert session.calls == [("get_concept_neighborhood", {"code": "C3262"}, None)]
     assert (result.tool, result.is_error, result.content) == (
         "get_concept_neighborhood",
         False,
         {"nodes": []},
     )
+
+
+def test_the_call_meta_reaches_the_server_and_the_result_meta_comes_back():
+    session = Session(["get_concept"], answer(structured={}, meta={"ttlMs": 0}))
+
+    result = Tools(session, {}).call("get_concept", {"code": "C3262"}, {"correlationId": "c-1"})
+
+    assert session.calls == [("get_concept", {"code": "C3262"}, {"correlationId": "c-1"})]
+    assert result.meta == {"ttlMs": 0}
 
 
 def test_an_absent_tool_is_called_through_its_stand_in():
@@ -78,7 +89,7 @@ def test_an_absent_tool_is_called_through_its_stand_in():
 
     result = tools.call("get_concept_neighborhood", {"code": "C3262", "depth": 1})
 
-    assert session.calls == [("ncit_traverse", {"start_codes": ["C3262"], "max_depth": 1})]
+    assert session.calls == [("ncit_traverse", {"start_codes": ["C3262"], "max_depth": 1}, None)]
     assert (result.tool, result.is_error, result.content) == ("ncit_traverse", True, {"nodes": []})
     assert tools.implemented_as("get_concept_neighborhood") == "ncit_traverse"
 

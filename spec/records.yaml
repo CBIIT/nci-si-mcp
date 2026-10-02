@@ -1,6 +1,6 @@
 # The records every tool returns in the same shape, field by field. A field's `values` are
-# the closed set it takes; `of` names the rule that requires it. Rendered with the
-# conventions (docs/specification.md §1).
+# the closed set it takes, `optional` marks one that may be left out, and `of` names the rule
+# that requires it. Rendered with the conventions (docs/specification.md §1).
 
 provenance:
   title: The provenance record
@@ -27,7 +27,7 @@ provenance:
       of: A4.1
     correlationId:
       content: The call's correlation identifier
-      of: A6.2
+      of: M7.1
     graphs:
       content: "For items served by the Shared SI Service: the identifier and date of each graph touched"
       of: A1.5
@@ -57,3 +57,30 @@ traversal:
     evidence:
       content: Supporting evidence, where the platform supplies it
       of: A4.2
+error:
+  title: The error record
+  about: >-
+    A failed call returns { error } as its structuredContent, with isError set (M3.2); it never
+    resembles an empty result (A2.5).
+  fields:
+    code:
+      content: >-
+        The class of the failure: those A2.5 names, a release mismatch (A3.4), a timeout, a
+        capability not yet available (M1.2) and a cursor whose release is superseded (M2.4)
+      values: [invalid_request, not_found, release_not_available, release_mismatch,
+               upstream_unavailable, timeout, bound_exceeded, capability_unavailable,
+               cursor_expired, internal_error]
+      of: A2.5
+    message:
+      content: What failed, in words
+      of: A2.5
+    details:
+      content: >-
+        What the caller needs for its next step, such as the release requested and the release
+        served, the bound, its limit and the amount reached, or the surface, status and attempts
+        of a failed upstream request
+      optional: true
+      of: A2.5
+    correlationId:
+      content: The call's correlation identifier
+      of: M7.1

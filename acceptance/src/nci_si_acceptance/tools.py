@@ -127,11 +127,13 @@ def translate(arguments: dict[str, Any], entry: dict[str, Any]) -> dict[str, Any
 
 @dataclass(frozen=True, slots=True)
 class Result:
-    """A tool's answer: the tool that gave it, whether it is an error, and its content."""
+    """A tool's answer: the tool that gave it, whether it is an error, its content and its
+    `_meta`."""
 
     tool: str
     is_error: bool
     content: Any
+    meta: dict[str, Any]
 
 
 def _content(result: types.CallToolResult) -> Any:
@@ -154,7 +156,19 @@ class Tools:
     def __init__(self, session: Session, toolmap: ToolMap) -> None:
         self._session = session
         self._toolmap = toolmap
-        self.available = {tool.name: tool for tool in session.list_tools()}
+        self.listing = session.list_tools()
+        self.available = {tool.name: tool for tool in self.listing.tools}
+
+    @property
+    def listing_bytes(self) -> int:
+        """The size of the tools/list result as JSON: what every client session reads."""
+
+        return len(self.listing.model_dump_json(by_alias=True, exclude_none=True).encode())
+
+    def list_again(self) -> types.ListToolsResult:
+        """A fresh tools/list of the same session."""
+
+        return self._session.list_tools()
 
     def implemented_as(self, name: str) -> str | None:
         """The tool that answers for `name`: itself, its stand-in, or none."""
@@ -164,8 +178,14 @@ class Tools:
         stand_in = self._toolmap.get(name, {}).get("tool")
         return stand_in if stand_in in self.available else None
 
-    def call(self, name: str, arguments: dict[str, Any] | None = None) -> Result:
-        """Call the required tool `name`; skip the test as NOT IMPLEMENTED when nothing answers."""
+    def call(
+        self,
+        name: str,
+        arguments: dict[str, Any] | None = None,
+        meta: types.RequestParamsMeta | None = None,
+    ) -> Result:
+        """Call the required tool `name`, with `meta` as the call's `_meta`; skip the test as
+        NOT IMPLEMENTED when nothing answers."""
 
         arguments = arguments or {}
         tool = self.implemented_as(name)
@@ -176,5 +196,5 @@ class Tools:
                 arguments = translate(arguments, self._toolmap[name])
             except Unsupported as unsupported:
                 pytest.skip(f"{NOT_IMPLEMENTED}: {name} with {unsupported} (stand-in {tool})")
-        result = self._session.call_tool(tool, arguments)
-        return Result(tool, bool(result.is_error), _content(result))
+        result = self._session.call_tool(tool, arguments, meta)
+        return Result(tool, bool(result.is_error), _content(result), result.meta or {})

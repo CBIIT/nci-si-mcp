@@ -8,6 +8,7 @@ from mcp.shared.exceptions import MCPError
 from nci_si_acceptance import client
 from nci_si_acceptance.client import (
     MODE_VARIABLE,
+    PROFILE_VARIABLE,
     SERVER_VARIABLE,
     Target,
     open_session,
@@ -22,15 +23,17 @@ BASELINE_SERVER = [sys.executable, "-m", "nci_si_mcp.cli", "serve"]
 def test_the_default_target_is_the_installed_server_against_fixtures(monkeypatch):
     monkeypatch.delenv(MODE_VARIABLE, raising=False)
     monkeypatch.delenv(SERVER_VARIABLE, raising=False)
+    monkeypatch.delenv(PROFILE_VARIABLE, raising=False)
 
-    assert Target.from_env() == Target("fixture", ["nci-si-mcp", "serve"])
+    assert Target.from_env() == Target("fixture", ["nci-si-mcp", "serve"], "unified")
 
 
 def test_the_target_is_read_from_the_environment(monkeypatch):
     monkeypatch.setenv(MODE_VARIABLE, "live")
     monkeypatch.setenv(SERVER_VARIABLE, "python -m 'my server' --flag")
+    monkeypatch.setenv(PROFILE_VARIABLE, "evs")
 
-    assert Target.from_env() == Target("live", ["python", "-m", "my server", "--flag"])
+    assert Target.from_env() == Target("live", ["python", "-m", "my server", "--flag"], "evs")
 
 
 @pytest.mark.parametrize(
@@ -38,6 +41,7 @@ def test_the_target_is_read_from_the_environment(monkeypatch):
     [
         (MODE_VARIABLE, "both", "must be fixture or live, not 'both'"),
         (SERVER_VARIABLE, "  ", "must name a command"),
+        (PROFILE_VARIABLE, "both", "must be one of evs, cadsr, unified"),
     ],
 )
 def test_a_wrong_target_is_refused_naming_its_variable(monkeypatch, variable, value, message):
@@ -94,7 +98,7 @@ def test_every_upstream_request_of_the_server_under_test_is_recorded(tmp_path):
     with FixtureServer(FixtureSet({}, {})) as upstream:
         environment = server_environment("fixture", tmp_path, upstream.url)
         with open_session(BASELINE_SERVER, environment) as session:
-            tools = session.list_tools()
+            tools = session.list_tools().tools
             # A tool without required arguments that reaches upstream; with no
             # fixtures every request is refused, and each attempt is recorded.
             reaching = [tool.name for tool in tools if not tool.input_schema.get("required")]

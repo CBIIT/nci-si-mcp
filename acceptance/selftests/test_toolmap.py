@@ -30,7 +30,7 @@ def prototype(tmp_path_factory):
 def schemas(prototype):
     """The input schema of each prototype tool, as its tools/list declares it."""
 
-    return {tool.name: tool.input_schema for tool in prototype.list_tools()}
+    return {tool.name: tool.input_schema for tool in prototype.list_tools().tools}
 
 
 def enums(schema):

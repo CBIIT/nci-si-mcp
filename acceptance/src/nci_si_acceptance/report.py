@@ -116,6 +116,7 @@ class Collector:
         self.tests: dict[str, dict[str, Any]] = {}
         # Which tool stands for each required one; None until a server has started.
         self.implemented_as: dict[str, str | None] | None = None
+        self.listing_bytes: int | None = None
 
     def record(self, report: pytest.TestReport, tool: str | None, gate: bool) -> None:
         outcome = _phase_outcome(report)
@@ -130,6 +131,7 @@ class Collector:
 
     def note_tools(self, tools: Tools) -> None:
         self.implemented_as = {name: tools.implemented_as(name) for name in REQUIRED_TOOLS}
+        self.listing_bytes = tools.listing_bytes
 
     def _row(self, name: str, group: str, gates_failed: bool) -> dict[str, Any]:
         counts = Counter(test["outcome"] for test in self.tests.values() if test["tool"] == name)
@@ -143,14 +145,24 @@ class Collector:
             "counts": dict(counts),
         }
 
-    def report(self, mode: str) -> dict[str, Any]:
-        gates = [
+    def _gates(self, outcomes: tuple[str, ...]) -> list[str]:
+        return [
             nodeid
             for nodeid, test in self.tests.items()
-            if test["gate"] and test["outcome"] in FAILED
+            if test["gate"] and test["outcome"] in outcomes
         ]
+
+    def report(self, mode: str) -> dict[str, Any]:
+        gates = self._gates(FAILED)
         rows = {name: self._row(name, group, bool(gates)) for name, group in REQUIRED_TOOLS.items()}
-        return {"mode": mode, "failed_gates": gates, "tools": rows, "tests": self.tests}
+        return {
+            "mode": mode,
+            "failed_gates": gates,
+            "unrun_gates": self._gates(UNRUN),
+            "tools_list_bytes": self.listing_bytes,
+            "tools": rows,
+            "tests": self.tests,
+        }
 
 
 def combine(
@@ -196,6 +208,10 @@ def _named(combined: dict[str, tuple[str, list[str]]], *kinds: str) -> str:
     return ", ".join(name for name, (outcome, _) in combined.items() if outcome in kinds) or "none"
 
 
+def _size(size: int | None) -> str:
+    return "not measured, no server started" if size is None else f"{size:,} bytes"
+
+
 def render(report: dict[str, Any], combined: dict[str, tuple[str, list[str]]], modes: str) -> str:
     """The report as a Markdown table, with the tools whose tests prove nothing yet."""
 
@@ -213,10 +229,12 @@ def render(report: dict[str, Any], combined: dict[str, tuple[str, list[str]]], m
     lines += [
         "",
         f"Gates failed: {', '.join(report['failed_gates']) or 'none'}.",
+        f"Gates not run: {', '.join(report['unrun_gates']) or 'none'}.",
         "Tests never run against an implementation: "
         f"{_named(combined, NOT_IMPLEMENTED, NOT_RUN, NO_TESTS)}.",
         f"Tests run and not passing: {_named(combined, FAIL, NO_FIXTURE, INCOMPLETE)}.",
         f"Requests without a fixture: {'; '.join(missing) or 'none'}.",
+        f"Size of the tools/list result: {_size(report['tools_list_bytes'])}.",
     ]
     return "\n".join(lines) + "\n"
 
