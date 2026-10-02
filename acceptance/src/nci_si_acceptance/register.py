@@ -149,8 +149,6 @@ def _listed_releases(root: Path) -> set[str]:
     (`go_2026-07-26`), so that a request pinned to another terminology counts as pinned."""
 
     listing = root / "recorded/evs/terminologies.json"
-    if not listing.exists():
-        return set()
     rows = json.loads(listing.read_text(encoding="utf-8"))["response"]["body"]
     return {f"{row['terminology']}_{row['version']}" for row in rows}
 

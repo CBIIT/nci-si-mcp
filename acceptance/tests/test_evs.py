@@ -269,6 +269,8 @@ RETIRED_ONLY = [
 LISTING = "recorded/evs/terminologies.json"
 # GO, whose listing names a retired status that is no concept status; searched by default.
 GO_SEARCH = "recorded/evs/search-go-obsolete.json"
+# Typeahead for retired concepts alone.
+RETIRED_TYPEAHEAD = "recorded/evs/search-retired-typeahead.json"
 
 
 def _listed(recorded, terminology, release=None):
@@ -341,8 +343,22 @@ def test_retired_only_returns_the_retired_concepts_alone(tools, pinned, recorded
 
 @pytest.mark.tool("search_concepts")
 @pytest.mark.requirement("search_concepts-6")
-def test_leaving_retired_concepts_out_is_no_retired_value(tools, pinned, recorded):
-    result = _search(tools, pinned, recorded(RETIRED_SEARCH), "lexical", retired="exclude")
+def test_typeahead_takes_retired_only_as_lexical_search_does(tools, pinned, recorded):
+    recording = recorded(RETIRED_TYPEAHEAD)
+    retired = _selectable(_listed(recorded, pinned["terminology"], pinned["release"]))
+    assert recording["request"]["params"]["conceptStatus"] == [retired]
+
+    result = _search(tools, pinned, recording, "typeahead", retired="only")
+
+    assert _states(result) == _recorded_states(recording)
+
+
+@pytest.mark.tool("search_concepts")
+@pytest.mark.requirement("search_concepts-6")
+# exclude, which the platform cannot serve, and values a lenient server might take for one.
+@pytest.mark.parametrize("value", ["exclude", "ONLY", ""])
+def test_a_retired_value_outside_the_two_is_invalid(tools, pinned, recorded, value):
+    result = _search(tools, pinned, recorded(RETIRED_SEARCH), "lexical", retired=value)
 
     assert error_code(result) == "invalid_request", result.content
 
@@ -356,7 +372,8 @@ def test_retired_only_where_the_status_is_none_the_search_selects_is_invalid(too
     assert row["metadata"].get("retiredStatusValue") and _selectable(row) is None
     pin = {"terminology": row["terminology"], "release": row["version"]}
 
-    searched = _search(tools, pin, recording, "lexical")
+    # include given, as a caller may give the default, is served wherever search is.
+    searched = _search(tools, pin, recording, "lexical", retired="include")
     only = _search(tools, pin, recording, "lexical", retired="only")
 
     # The terminology is searched by default; only the selection is refused.
