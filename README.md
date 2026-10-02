@@ -2,6 +2,10 @@
 
 EVS-first MVP for exposing NCI Thesaurus search, lookup, and graph traversal through a local `stdio` Model Context Protocol server.
 
+It is the prototype from which the shared NCI Semantic Infrastructure MCP platform (EVS, caDSR and
+the cross-domain tools) is being built; [docs/SPEC.md](docs/SPEC.md) specifies that work, phase by
+phase.
+
 ## What Is Implemented
 
 - MCP server entrypoint (`mcp` 2.x `MCPServer`) with local `stdio` transport.
@@ -218,4 +222,5 @@ The caDSR adapter is intentionally non-fabricating. It reports `reuse_pending` u
 
 `pdm run test` runs the tests, and `pdm run lint` the linter and the type checker.
 [CONTRIBUTING.md](CONTRIBUTING.md) describes the commands, the standards and the gates;
-[ARCHITECTURE.md](ARCHITECTURE.md) describes how the server is built.
+[ARCHITECTURE.md](ARCHITECTURE.md) describes how the server is built, and
+[docs/SPEC.md](docs/SPEC.md) where it is going.
