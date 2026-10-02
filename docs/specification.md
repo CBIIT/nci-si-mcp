@@ -251,6 +251,28 @@ A concept as a terminology tool returns it: these fields, status where the platf
 | `properties` | The platform's property entries, unchanged, when include selects them; the semantic-type property among them (optional) | get_concept |
 | `semanticType` | The values of the terminology's semantic-type property, when include selects them; the property is named by its code, not its label (NCIt: P106), as A5.7 names roles (optional) | get_concept |
 
+### The search result record
+
+One result of search_concepts, in the order the source ranked it: the module ranks and scores nothing itself (A9.2).
+
+| Field | Content | Rule |
+|---|---|---|
+| `concept` | The concept record, with no section | concept |
+| `score` | The score the source returned, unchanged; absent where it returns none (EVS) (optional) | A9.2 |
+| `matchedOn` | Where the match was found, as the source says it: from EVS its highlight, unchanged (the matched text, the query's terms marked); from the interim index the field matched. Absent where the source says nothing (EVS typeahead) (optional) | A9.2 |
+
+### The value set member record
+
+A member of a value set, as expand_value_set returns it. count and offset select a page of the members in the platform's order, and total counts every member activeOnly leaves, so a page is no truncation: truncation reports a bound of the tool's own (A5.2).
+
+| Field | Content | Rule |
+|---|---|---|
+| `code` | The bare code the terminology publishes | A1.2 |
+| `terminology` | The terminology the code belongs to, as the platform names it | A1.2 |
+| `name` | The platform's display text for the member, unchanged | A9.1 |
+| `inactive` | true where the expansion marks the member inactive (FHIR contains.inactive), and absent where it does not; activeOnly leaves such members out (A8.3) (optional) | A8.1 |
+| `provenance` | The provenance record | A4.4 |
+
 ### The terminology record
 
 A terminology the platform serves, as list_terminologies returns it.
@@ -376,7 +398,7 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 | X-14 | Every result is a JSON object, its lists of items named fields of it. | M3.3 | `tests/test_crosscutting.py::test_a_result_is_an_object[resolve_release]`, `tests/test_crosscutting.py::test_a_result_is_an_object[get_concept]`, `tests/test_crosscutting.py::test_a_result_is_an_object[get_concepts]`, `tests/test_crosscutting.py::test_a_result_is_an_object[search_concepts]`, `tests/test_crosscutting.py::test_a_result_is_an_object[get_concept_hierarchy]`, `tests/test_crosscutting.py::test_a_result_is_an_object[expand_value_set]`, `tests/test_crosscutting.py::test_a_result_is_an_object[get_concept_neighborhood]`, `tests/test_crosscutting.py::test_a_result_is_an_object[get_concept_subsets]`, `tests/test_crosscutting.py::test_a_result_is_an_object[get_concept_mappings]`, `tests/test_crosscutting.py::test_a_result_is_an_object[resolve_retired_code]`, `tests/test_crosscutting.py::test_a_result_is_an_object[list_relationships]`, `tests/test_crosscutting.py::test_a_result_is_an_object[list_terminologies]` | planned #55 |
 | X-15 | An upstream failure masked as a successful response (an error envelope in an HTTP 200, HTML where JSON was asked for) is an upstream error, never parsed as content. | A2.5, M3.2 | — | planned #52 |
 | X-16 | After a 429 with Retry-After, the module waits at least that long before it asks again, and makes no request to that endpoint in between. | A6.5, A5.3 | `tests/test_crosscutting.py::test_a_rate_limited_request_is_asked_once_more_after_the_wait` | planned #54 |
-| X-17 | A page smaller than the result carries nextCursor; following it returns the rest, repeats no item, and keeps the release the first page was pinned to. | M6.1, M2.4 | — | planned #53 |
+| X-17 | A page smaller than the result carries nextCursor; following it returns the next items, repeats none of the page before, and keeps the release the first page was pinned to. | M6.1, M2.4 | `tests/test_crosscutting.py::test_a_cursor_continues_with_the_next_items_of_the_same_release[search_concepts]` | tested |
 
 ### EVS tools
 
@@ -391,9 +413,14 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 | get_concepts-1 | A batch of codes is one upstream request. | get_concepts, A5.8 | `tests/test_evs.py::test_a_batch_is_one_upstream_request` | tested |
 | get_concepts-2 | A code the upstream omits is named in missing. | get_concepts | `tests/test_evs.py::test_a_code_the_platform_leaves_out_of_a_batch_is_named_missing` | tested |
 | get_concepts-3 | The concepts come back in request order, never in the upstream's order. | get_concepts | `tests/test_evs.py::test_a_batch_comes_back_in_request_order[as-listed]`, `tests/test_evs.py::test_a_batch_comes_back_in_request_order[reversed]` | tested |
-| search_concepts-1 | lexical and typeahead return ranked results with matchedOn; semantic and hybrid return a score and the field matched from the interim index, its release in provenance; a mode the profile does not offer is an invalid request, not an empty result; an index built for another release fails closed. | search_concepts, M4.1, A3.4 | — | planned #53 |
+| search_concepts-1 | lexical search returns the platform's matches in the platform's order, a page at a time, each with the platform's highlight as matchedOn and no score. | search_concepts, search_result, A9.2 | `tests/test_evs.py::test_lexical_search_returns_the_platform_s_matches_in_its_order_a_page_at_a_time` | tested |
+| search_concepts-2 | typeahead returns the platform's prefix matches in the platform's order, with neither matchedOn nor score, since the platform gives neither. | search_concepts, search_result, A9.2 | `tests/test_evs.py::test_typeahead_returns_the_platform_s_prefix_matches_in_its_order` | tested |
+| search_concepts-3 | semantic and hybrid return results from the interim index, each with a score and the field matched, and the index's release in provenance. | search_concepts, search_result, M4.1 | — | planned #53 |
+| search_concepts-4 | A mode the server cannot serve for the terminology asked is an invalid request, never an empty result. | search_concepts, A2.5 | — | planned #53 |
+| search_concepts-5 | An index built for another release than the one asked for fails closed. | search_concepts, M4.1, A3.4 | — | planned #53 |
 | get_concept_hierarchy-1 | The depth bound holds, pathsToRoot returns complete paths, and truncation is reported. | get_concept_hierarchy, A5.1 | — | planned #53 |
-| expand_value_set-1 | The tool applies count, offset and activeOnly itself, which the upstream ignores, and reports the total; activeOnly leaves out retired members. | expand_value_set, A5.1 | — | planned #53 |
+| expand_value_set-1 | count and offset, which the platform ignores, select the members the tool returns, in the platform's order, and total counts them all. | expand_value_set, member, A5.1 | `tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all[first]`, `tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all[middle]`, `tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all[last]` | tested |
+| expand_value_set-2 | activeOnly, which the platform ignores, leaves out the members the expansion marks inactive, and total counts those left; without it they are listed, marked inactive. | expand_value_set, member, A8.3 | `tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive[active-only]`, `tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive[all]` | tested |
 | get_concept_neighborhood-1 | Per-kind budgets hold and no kind is starved; exclusion edges are marked and left out of positive expansion unless includeNegative; polarity follows the role code; the outbound budget counts retries; truncation names cause and magnitude. | get_concept_neighborhood, A5.3, A5.4, A5.5, A5.6, A5.7 | — | planned #53 |
 | get_concept_subsets-1 | Membership is returned with subset codes, and the GDC Value Terminology subset resolves. | get_concept_subsets | — | planned #53 |
 | get_concept_mappings-1 | Mapsets are first-class objects; licensed targets carry attribution; a mapset whose version is not the NCIt release is a content state of its own. | get_concept_mappings, A7.3 | — | planned #53 |

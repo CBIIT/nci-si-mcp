@@ -113,9 +113,8 @@ X-16:
   basis: [A6.5, A5.3]
   planned: "#54"
 X-17:
-  statement: A page smaller than the result carries nextCursor; following it returns the rest, repeats no item, and keeps the release the first page was pinned to.
+  statement: A page smaller than the result carries nextCursor; following it returns the next items, repeats none of the page before, and keeps the release the first page was pinned to.
   basis: [M6.1, M2.4]
-  planned: "#53"
 
 # EVS tools.
 resolve_release-1:
@@ -146,7 +145,21 @@ get_concepts-3:
   statement: The concepts come back in request order, never in the upstream's order.
   basis: [get_concepts]
 search_concepts-1:
-  statement: lexical and typeahead return ranked results with matchedOn; semantic and hybrid return a score and the field matched from the interim index, its release in provenance; a mode the profile does not offer is an invalid request, not an empty result; an index built for another release fails closed.
+  statement: lexical search returns the platform's matches in the platform's order, a page at a time, each with the platform's highlight as matchedOn and no score.
+  basis: [search_concepts, search_result, A9.2]
+search_concepts-2:
+  statement: typeahead returns the platform's prefix matches in the platform's order, with neither matchedOn nor score, since the platform gives neither.
+  basis: [search_concepts, search_result, A9.2]
+search_concepts-3:
+  statement: semantic and hybrid return results from the interim index, each with a score and the field matched, and the index's release in provenance.
+  basis: [search_concepts, search_result, M4.1]
+  planned: "#53"
+search_concepts-4:
+  statement: A mode the server cannot serve for the terminology asked is an invalid request, never an empty result.
+  basis: [search_concepts, A2.5]
+  planned: "#53"
+search_concepts-5:
+  statement: An index built for another release than the one asked for fails closed.
   basis: [search_concepts, M4.1, A3.4]
   planned: "#53"
 get_concept_hierarchy-1:
@@ -154,9 +167,11 @@ get_concept_hierarchy-1:
   basis: [get_concept_hierarchy, A5.1]
   planned: "#53"
 expand_value_set-1:
-  statement: The tool applies count, offset and activeOnly itself, which the upstream ignores, and reports the total; activeOnly leaves out retired members.
-  basis: [expand_value_set, A5.1]
-  planned: "#53"
+  statement: count and offset, which the platform ignores, select the members the tool returns, in the platform's order, and total counts them all.
+  basis: [expand_value_set, member, A5.1]
+expand_value_set-2:
+  statement: activeOnly, which the platform ignores, leaves out the members the expansion marks inactive, and total counts those left; without it they are listed, marked inactive.
+  basis: [expand_value_set, member, A8.3]
 get_concept_neighborhood-1:
   statement: Per-kind budgets hold and no kind is starved; exclusion edges are marked and left out of positive expansion unless includeNegative; polarity follows the role code; the outbound budget counts retries; truncation names cause and magnitude.
   basis: [get_concept_neighborhood, A5.3, A5.4, A5.5, A5.6, A5.7]

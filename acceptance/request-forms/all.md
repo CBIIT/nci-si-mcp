@@ -147,6 +147,10 @@ Exclusion roles are named like positive ones, and two the other way. Crafted, 2 
 
 One concept has 300 roles and 2 associations. Crafted, 303 fixtures, for A5.5: a budget per relationship kind; no kind starved.
 
+### `valueset/inactive-members`
+
+Two members of value set C85492 are marked inactive (FHIR contains.inactive), in both forms of its expansion. Crafted, 2 fixtures, for A8.3: activeOnly leaves out the members an expansion marks inactive. EVS was never seen to mark one, so against live EVS activeOnly cannot be shown to do anything (an upstream question, #42).
+
 ### `upstream/unavailable`
 
 Every EVS request, whatever its path, gets a closed connection, then 503, then no answer within the timeout. Crafted, 2 fixtures, for A2.5, A5.3: bounded retries, counted, then a structured error.

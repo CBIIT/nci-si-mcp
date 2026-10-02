@@ -53,6 +53,9 @@ requirements, for the harness's own tests.
     upstream-altered  EVS's origin fields passed on with other values               (X-8)
     gives-up          no retry after a 429                                          (X-16)
     no-backoff        a retry after a 429 without the wait it asks for              (X-16)
+    no-next-cursor    a page smaller than the result without nextCursor            (X-17)
+    cursor-repeats    the cursor's page repeats the page before                     (X-17)
+    cursor-other-release the cursor's page names another release                    (X-17)
 
 `unpinned-mismatch` is no defect for a tool without a pinned form upstream: it answers an
 unknown release with release_mismatch, as such a tool can only verify an unpinned answer (X-2).
@@ -64,8 +67,9 @@ version than the release asked for release_mismatch, a timeout timeout, anything
 upstream_unavailable; a 429 is waited out once. Content has items where the tool's `items`
 say: the concept asked about and, at depth 1 for a traversal tool, one it reaches. What the
 suite's calls (tests/calls.yaml) say of EVS's answers shapes it: their `upstream` fields go
-into provenance, their `empty` arguments match nothing, and their `truncating` arguments
-reach a bound.
+into provenance, their `empty` arguments match nothing, their `truncating` arguments
+reach a bound, and a `paged` call's first page carries a cursor to a second, of another
+concept.
 """
 
 import json
@@ -305,8 +309,8 @@ def _reached(bound: str, limit: int) -> dict:
     return record | ({} if DEFECT == "exact-missing" else {"exact": True})
 
 
-def _items(name: str, provenance: dict) -> list[dict]:
-    code = "NCIT:C4817" if DEFECT == "prefixed-code" else "C4817"
+def _items(name: str, provenance: dict, code: str = "C4817") -> list[dict]:
+    code = f"NCIT:{code}" if DEFECT == "prefixed-code" else code
     items = [{"code": code, "terminology": "ncit", "provenance": provenance}]
     if TOOLS[name].get("traversal"):
         how = {"relationship": {"code": "R101"}, "direction": "outward", "polarity": "positive"}
@@ -342,14 +346,31 @@ def _content(name: str, arguments: dict, correlation: str) -> object:
     if DEFECT == "invalid-result":
         return {"error": "not an error record"}
     provenance = _provenance(name, arguments, correlation)
-    items = [] if _matches_nothing(name, arguments) else _items(name, provenance)
+    items = [] if _matches_nothing(name, arguments) else _page(name, arguments, provenance)
     if DEFECT == "list-result":
         return items
     content = _shaped(name, items)
     # With no item to carry it, the result carries the provenance itself (M3.2).
     if not items and DEFECT != "empty-without-provenance":
         content["provenance"] = provenance
-    return content | _truncation(name, arguments)
+    return content | _truncation(name, arguments) | _next_cursor(name, arguments, items)
+
+
+def _page(name: str, arguments: dict, provenance: dict) -> list[dict]:
+    """The items of a call: with a cursor, those of the page after the first."""
+
+    if "cursor" not in arguments or DEFECT == "cursor-repeats":
+        return _items(name, provenance)
+    if DEFECT == "cursor-other-release":
+        provenance = provenance | {"release": provenance["release"] | {"identifier": "26.08e"}}
+    return _items(name, provenance, "C2991")
+
+
+def _next_cursor(name: str, arguments: dict, items: list[dict]) -> dict:
+    """The cursor of a paged call's first page, which is smaller than its result."""
+
+    first = items and CALLS.get(name, {}).get("paged") and "cursor" not in arguments
+    return {"nextCursor": "page-2"} if first and DEFECT != "no-next-cursor" else {}
 
 
 def _shaped(name: str, items: list[dict]) -> dict:

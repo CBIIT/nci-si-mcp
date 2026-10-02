@@ -191,3 +191,128 @@ def test_every_terminology_the_platform_serves_is_listed_with_its_current_releas
     assert {row["terminology"] for row in listing} - set(listed) == set()
     # NCIt's current release is the monthly one the fixture set is pinned to.
     assert listed[pinned["terminology"]] == pinned["release"]
+
+
+# Lexical search is EVS's type=contains and typeahead its type=startsWith, each recorded a page
+# of 10 at a time with highlights asked for (fixtures/manifest.yaml); EVS returns highlights for
+# contains only. The lexical search is recorded for its first two pages.
+LEXICAL = ["recorded/evs/search-contains.json", "recorded/evs/search-contains-page-2.json"]
+TYPEAHEAD = "recorded/evs/search-starts-with.json"
+
+
+def _search(tools, pinned, recording, mode, **arguments):
+    """The search a recording answers, by its term and page size, in `mode`."""
+
+    params = recording["request"]["params"]
+    query, (size,) = params["term"][0], params["pageSize"]
+    search = {"query": query, "mode": mode, "limit": int(size)}
+    return tools.call("search_concepts", {**pinned, **search, **arguments})
+
+
+def _matches(result):
+    """Each result's code, its matchedOn and whether it carries a score."""
+
+    assert not result.is_error, result.content
+    return [
+        ((entry.get("concept") or {}).get("code"), entry.get("matchedOn"), "score" in entry)
+        for entry in result.content.get("results", [])
+    ]
+
+
+def _recorded_matches(recording):
+    """What EVS answered, as the search result record passes it on: no score from EVS."""
+
+    concepts = recording["response"]["body"].get("concepts", [])
+    return [(concept["code"], concept.get("highlight"), False) for concept in concepts]
+
+
+@pytest.mark.tool("search_concepts")
+@pytest.mark.requirement("search_concepts-1")
+def test_lexical_search_returns_the_platform_s_matches_in_its_order_a_page_at_a_time(
+    tools, pinned, recorded
+):
+    first, second = (recorded(file) for file in LEXICAL)
+
+    page = _search(tools, pinned, first, "lexical")
+    assert _matches(page) == _recorded_matches(first)
+    following = _search(tools, pinned, first, "lexical", cursor=page.content.get("nextCursor"))
+
+    assert _matches(following) == _recorded_matches(second)
+
+
+@pytest.mark.tool("search_concepts")
+@pytest.mark.requirement("search_concepts-2")
+def test_typeahead_returns_the_platform_s_prefix_matches_in_its_order(tools, pinned, recorded):
+    recording = recorded(TYPEAHEAD)
+
+    result = _search(tools, pinned, recording, "typeahead")
+
+    assert _matches(result) == _recorded_matches(recording)
+
+
+# Value set C85492 (CDISC SDTM Method Terminology), recorded whole: FHIR $expand ignores count,
+# offset and activeOnly (fixtures/manifest.yaml).
+VALUE_SET = "C85492"
+EXPANSION = "recorded/evs-fhir/expand-c85492.json"
+COUNT = 10
+
+
+def _expand(tools, pinned, **arguments):
+    return tools.call("expand_value_set", {**pinned, "valueSet": VALUE_SET, **arguments})
+
+
+def _members(result):
+    """Each member's code and name, and the total."""
+
+    assert not result.is_error, result.content
+    members = items_of("expand_value_set", result.content)
+    pairs = [(member.get("code"), member.get("name")) for member in members]
+    return pairs, result.content.get("total")
+
+
+def _recorded_members(contains):
+    return [(member["code"], member["display"]) for member in contains]
+
+
+@pytest.mark.tool("expand_value_set")
+@pytest.mark.requirement("expand_value_set-1")
+# An offset below zero counts from the end: the last page, which holds fewer than COUNT.
+@pytest.mark.parametrize("offset", [0, 100, -4], ids=["first", "middle", "last"])
+def test_count_and_offset_select_the_members_and_total_counts_them_all(
+    tools, pinned, recorded, offset
+):
+    expansion = recorded(EXPANSION)["response"]["body"]["expansion"]
+    contains = expansion["contains"]
+    offset %= len(contains)
+
+    result = _expand(tools, pinned, count=COUNT, offset=offset)
+
+    assert _members(result) == (
+        _recorded_members(contains[offset : offset + COUNT]),
+        expansion["total"],
+    )
+
+
+INACTIVE = "scenarios/valueset/inactive-members/expand.json"
+
+
+def _marked_inactive(members):
+    """The codes of the members marked inactive, as FHIR and the member record mark them."""
+
+    return {member.get("code") for member in members if member.get("inactive") is True}
+
+
+@pytest.mark.scenario("valueset/inactive-members")
+@pytest.mark.tool("expand_value_set")
+@pytest.mark.requirement("expand_value_set-2")
+@pytest.mark.parametrize("active_only", [True, False], ids=["active-only", "all"])
+def test_active_only_leaves_out_the_members_marked_inactive(tools, pinned, recorded, active_only):
+    contains = recorded(INACTIVE)["response"]["body"]["expansion"]["contains"]
+    inactive = _marked_inactive(contains)
+    kept = [member for member in contains if not active_only or member["code"] not in inactive]
+
+    result = _expand(tools, pinned, count=COUNT, offset=0, activeOnly=active_only)
+
+    assert _members(result) == (_recorded_members(kept[:COUNT]), len(kept))
+    returned = _marked_inactive(items_of("expand_value_set", result.content))
+    assert returned == (set() if active_only else inactive)

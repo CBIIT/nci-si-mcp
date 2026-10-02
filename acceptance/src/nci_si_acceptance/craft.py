@@ -48,6 +48,9 @@ MISLEADING_POSITIVE_ROLES = frozenset({"R108", "R116"})
 FANOUT, CHAIN = 1001, 5
 STARVED_ROLES, STARVED_ASSOCIATIONS = 300, 2
 LICENCE_KEY = "acceptance-licence-key"
+# The positions, in the recorded expansion, of the members valueset/inactive-members marks
+# inactive: early, so that a short page shows them.
+INACTIVE_MEMBERS = (1, 3)
 
 
 class Recorded:
@@ -369,6 +372,32 @@ def release_unknown_expand(recorded: Recorded) -> Documents:
     }
 
 
+def valueset_inactive_members(recorded: Recorded) -> Documents:
+    """The recorded expansion, pinned and unpinned, with two members marked inactive as FHIR
+    R4 marks them (contains.inactive). EVS was not seen to mark any: C85492 holds none."""
+
+    documents = {}
+    for name, file in (
+        ("expand", "recorded/evs-fhir/expand-c85492.json"),
+        ("expand-pinned", "crafted/OP-F05/expand-c85492.json"),
+    ):
+        source = recorded(file)
+        body = source["response"]["body"]
+        members = [
+            member | ({"inactive": True} if position in INACTIVE_MEMBERS else {})
+            for position, member in enumerate(body["expansion"]["contains"])
+        ]
+        expansion = body["expansion"] | {"contains": members}
+        documents[f"scenarios/valueset/inactive-members/{name}.json"] = crafted(
+            "A8.3: activeOnly leaves out the members an expansion marks inactive. EVS was never"
+            " seen to mark one, so against live EVS activeOnly cannot be shown to do anything"
+            " (an upstream question, #42)",
+            source["request"],
+            response=source["response"] | {"body": body | {"expansion": expansion}},
+        )
+    return documents
+
+
 def upstream_rate_limited(recorded: Recorded) -> Documents:
     """429 with Retry-After on the release query, then the recorded answer."""
 
@@ -430,6 +459,7 @@ SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     traversal_exclusions,
     traversal_starvation,
     release_unknown_expand,
+    valueset_inactive_members,
     upstream_unavailable,
     upstream_rate_limited,
     license_restricted,
