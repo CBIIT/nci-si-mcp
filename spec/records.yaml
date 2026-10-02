@@ -6,7 +6,8 @@ provenance:
   title: The provenance record
   about: >-
     Every returned item carries one, beside its identifier and status, which are fields of the
-    item (A4.1, A4.4). Field names are camelCase.
+    item (A4.1, A4.4). A result with no items carries one as its own provenance field (M3.2); a
+    result with items does not, the items carrying theirs. Field names are camelCase.
   fields:
     release:
       content: "The release in effect: { terminology | registry, identifier, date }"
@@ -32,7 +33,11 @@ provenance:
       content: "For items served by the Shared SI Service: the identifier and date of each graph touched"
       of: A1.5
     upstream:
-      content: The fields the platform supplied, passed through unchanged
+      content: >-
+        The fields the platform supplied about the item's origin, under its names and with its
+        values; at least: from EVS REST the item's terminology and version; from EVS FHIR the
+        value set's url and version; from the Shared SI Service the identity and date of each
+        graph
       of: A4.3
 traversal:
   title: The provenance record of an item reached by traversal
@@ -57,6 +62,40 @@ traversal:
     evidence:
       content: Supporting evidence, where the platform supplies it
       of: A4.2
+truncation:
+  title: The truncation record
+  about: >-
+    The truncation field of a result whose tool bounds it. When nothing was truncated it holds
+    occurred false and no other field; when a bound was reached, the others are present.
+  fields:
+    occurred:
+      content: Whether a bound was reached
+      of: A5.4
+    bound:
+      content: Which bound was reached
+      values: [results, depth, nodes, edges, requests, upstream_cap]
+      optional: true
+      of: A5.4
+    limit:
+      content: The value of that bound
+      optional: true
+      of: A5.1
+    reached:
+      content: The amount counted against the bound when it stopped
+      optional: true
+      of: A5.4
+    omitted:
+      content: How much was left out, always a number
+      optional: true
+      of: A5.4
+    exact:
+      content: False when omitted is a lower bound or an estimate
+      optional: true
+      of: A5.4
+    perKind:
+      content: For a traversal over several relationship kinds, a truncation record per kind
+      optional: true
+      of: A5.5
 error:
   title: The error record
   about: >-

@@ -43,6 +43,11 @@ requirements, for the harness's own tests.
     key-in-text       the licence key in a success's text block                     (X-12)
     key-in-meta       the licence key in every result's _meta                       (X-12)
     content-with-error content beside the error record                              (X-2)
+    empty-as-error    a query that matches nothing answered as not_found            (X-4)
+    empty-without-provenance an empty result without its provenance                 (X-4)
+    upstream-renamed  EVS's origin fields passed on under other names               (X-8)
+    truncation-flag-only a bound reached reported as occurred and nothing else      (X-10)
+    omitted-unknown   how much was left out given as "unknown"                      (X-10)
     gives-up          no retry after a 429                                          (X-16)
     no-backoff        a retry after a 429 without the wait it asks for              (X-16)
 
@@ -54,7 +59,10 @@ licence key, unless the same call was answered before: the server caches by call
 allows. An answer that is not content is an error record: 404 release_not_available, another
 version than the release asked for release_mismatch, a timeout timeout, anything else
 upstream_unavailable; a 429 is waited out once. Content has items where the tool's `items`
-say: the concept asked about and, at depth 1 for a traversal tool, one it reaches.
+say: the concept asked about and, at depth 1 for a traversal tool, one it reaches. What the
+suite's calls (tests/calls.yaml) say of EVS's answers shapes it: their `upstream` fields go
+into provenance, their `empty` arguments match nothing, and their `truncating` arguments
+reach a bound.
 """
 
 import json
@@ -69,6 +77,7 @@ from pathlib import Path
 
 import anyio
 import mcp_types as types
+import yaml
 from mcp.server.caching import CacheHint
 from mcp.server.lowlevel.server import Server
 from mcp.server.stdio import stdio_server
@@ -86,6 +95,10 @@ CLOSED, TIMED_OUT = 0, -1
 UNKNOWN_RELEASE = "release_mismatch" if DEFECT == "unpinned-mismatch" else "release_not_available"
 # A failure the defect turns into an empty success.
 SWALLOWED = {"unknown-as-empty": "release_not_available", "outage-as-empty": "upstream_unavailable"}
+# The suite's calls (tests/calls.yaml): what each tool's upstream answers would say.
+CALLS = yaml.safe_load((Path(__file__).parent.parent / "tests" / "calls.yaml").read_text())
+# The bound each truncating argument sets.
+BOUNDS = {"limit": "results", "count": "results", "maxNodes": "nodes"}
 # Whether each call so far reached EVS, and the calls already answered.
 reached = []
 answered = set()
@@ -230,7 +243,7 @@ async def list_tools(_context, _params) -> types.ListToolsResult:
     return types.ListToolsResult(tools=[_tool(name) for name in _names()])
 
 
-def _provenance(arguments: dict, correlation: str) -> dict:
+def _provenance(name: str, arguments: dict, correlation: str) -> dict:
     release = "26.08e" if DEFECT == "wrong-release" else arguments.get("release")
     terminology = "mdr" if DEFECT == "wrong-terminology" else arguments.get("terminology")
     provenance = {
@@ -239,10 +252,42 @@ def _provenance(arguments: dict, correlation: str) -> dict:
         "retrievedAt": "today" if DEFECT == "bad-timestamp" else datetime.now(UTC).isoformat(),
         "servedBy": "live",
         "correlationId": correlation,
+        "upstream": _upstream(name),
     }
     if DEFECT == "no-served-by":
         del provenance["servedBy"]
     return provenance
+
+
+def _upstream(name: str) -> dict:
+    """What EVS says of the origin of the call's items, as the suite's calls list it."""
+
+    supplied = CALLS.get(name, {}).get("upstream", {})
+    if DEFECT == "upstream-renamed":
+        return {f"evs{key.title()}": value for key, value in supplied.items()}
+    return dict(supplied)
+
+
+def _matches_nothing(name: str, arguments: dict) -> bool:
+    empty = CALLS.get(name, {}).get("empty")
+    return bool(empty) and all(arguments.get(key) == value for key, value in empty.items())
+
+
+def _truncation(name: str, arguments: dict) -> dict:
+    """The truncation field of a tool that bounds its result: a bound reached where the call
+    sets one of the suite's truncating arguments."""
+
+    if "truncation" not in TOOLS[name]["returns"]:
+        return {}
+    bounds = [
+        (key, arguments[key]) for key in CALLS[name].get("truncating", {}) if key in arguments
+    ]
+    if not bounds:
+        return {"truncation": {"occurred": False}}
+    (key, limit), *_ = bounds
+    record = {"occurred": True, "bound": BOUNDS[key], "limit": limit, "reached": limit}
+    record |= {"omitted": "unknown" if DEFECT == "omitted-unknown" else 1, "exact": True}
+    return {"truncation": {"occurred": True} if DEFECT == "truncation-flag-only" else record}
 
 
 def _items(name: str, provenance: dict) -> list[dict]:
@@ -281,9 +326,20 @@ def _placed(steps: list[str], items: list[dict]) -> object:
 def _content(name: str, arguments: dict, correlation: str) -> object:
     if DEFECT == "invalid-result":
         return {"error": "not an error record"}
-    items = _items(name, _provenance(arguments, correlation))
+    provenance = _provenance(name, arguments, correlation)
+    items = [] if _matches_nothing(name, arguments) else _items(name, provenance)
     if DEFECT == "list-result":
         return items
+    content = _shaped(name, items)
+    # With no item to carry it, the result carries the provenance itself (M3.2).
+    if not items and DEFECT != "empty-without-provenance":
+        content["provenance"] = provenance
+    return content | _truncation(name, arguments)
+
+
+def _shaped(name: str, items: list[dict]) -> dict:
+    """A result of `name` with `items` where its `items` paths say."""
+
     paths = TOOLS[name].get("items", ["."])
     placed = [_placed([step for step in path.split(".") if step], items) for path in paths]
     return placed[0] if len(placed) == 1 else _merged(placed)
@@ -307,6 +363,8 @@ def _answer(name: str, arguments: dict, correlation: str) -> tuple[object, bool]
     asked again, as A9.4 allows."""
 
     call = json.dumps([name, arguments], sort_keys=True)
+    if DEFECT == "empty-as-error" and _matches_nothing(name, arguments):
+        return _error("not_found", HTTPStatus.NOT_FOUND, {}, correlation), True
     if call not in answered and DEFECT != "asks-nothing":
         status, body = _asked(arguments, correlation)
         if code := _failure(status, body, arguments):

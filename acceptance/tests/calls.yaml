@@ -1,20 +1,44 @@
 # One call of each content-returning tool whose upstream answers are in the fixture set, made
 # by the cross-cutting tests (test_crosscutting.py). The fixture set's terminology and release
 # are added to the arguments of every tool that takes them; `scenario` names the scenario the
-# call needs, for a concept only a scenario holds. `unpinned` marks a call whose operation has no
-# release-pinned form upstream (the register's table of operations without one): the tool asks
-# the unpinned form and verifies the release the payload reports (A3.2), so for a release the
-# platform does not serve it can report only the mismatch. `unversioned` marks a call whose
-# upstream answers may name no release at all (relation lists, a replacement history), so that
-# content of another release cannot show in them (X-3).
+# call needs, for a concept only a scenario holds.
+#
+# `unpinned` marks a call whose operation has no release-pinned form upstream (the register's
+# table of operations without one): the tool asks the unpinned form and verifies the release
+# the payload reports (A3.2), so for a release the platform does not serve it can report only
+# the mismatch. `unversioned` marks a call whose upstream answers may name no release at all
+# (relation lists, a replacement history), so that content of another release cannot show in
+# them (X-3).
+#
+# `upstream` lists fields the call's upstream answer supplies about each item's origin, which
+# its provenance passes through unchanged (X-8). `empty` gives arguments, in place of the
+# call's, that legitimately match nothing (X-4), and `truncating` arguments, added to the
+# call's, under which the result exceeds a bound (X-10).
 
 resolve_release: {arguments: {}}
-get_concept: {arguments: {code: C4817}}
-get_concepts: {arguments: {codes: [C4817]}}
-search_concepts: {arguments: {query: ewing sarcoma, mode: lexical}}
-get_concept_hierarchy: {arguments: {code: C4817, direction: parent, depth: 1}, unversioned: true}
-expand_value_set: {arguments: {valueSet: C85492}, unpinned: true}
-get_concept_neighborhood: {arguments: {code: C4817, depth: 1}, unversioned: true}
+get_concept:
+  arguments: {code: C4817}
+  upstream: &concept {terminology: ncit, version: 26.09d}
+get_concepts:
+  arguments: {codes: [C4817]}
+  upstream: *concept
+search_concepts:
+  arguments: {query: ewing sarcoma, mode: lexical}
+  upstream: *concept
+  empty: {query: qqxyzzyqq, mode: lexical}
+get_concept_hierarchy:
+  arguments: {code: C4817, direction: parent, depth: 1}
+  unversioned: true
+  truncating: {limit: 1}             # C4817 has two parents
+expand_value_set:
+  arguments: {valueSet: C85492}
+  unpinned: true
+  upstream: {url: "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492", version: 26.09d}
+  truncating: {count: 1}             # the value set has 534 members
+get_concept_neighborhood:
+  arguments: {code: C4817, depth: 1}
+  unversioned: true
+  truncating: {maxNodes: 2}          # C4817 has 97 neighbours at depth 1
 get_concept_subsets: {arguments: {code: C4817}}
 get_concept_mappings: {arguments: {code: C4817}, unpinned: true}
 resolve_retired_code:

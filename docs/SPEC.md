@@ -140,7 +140,7 @@ Serialisation: every tool handler returns a dataclass or raises a `PlatformError
 
 Extend `models.py`'s per-concept fields into one `ProvenanceEnvelope` attached **per item** (A4.4), with the fields of the specification's provenance record (`spec/records.yaml`), and a `TraversalProvenance` adding those of its traversal record. For caDSR, `release` carries the export date and says that no registry identifier exists (A3.8.2). The `raw` payload is dropped from MCP results and kept only behind the CLI flag.
 
-`Truncation` carries `occurred`, `bound` (`results` | `depth` | `nodes` | `edges` | `requests` | `upstream_cap`), `limit`, `reached`, `omitted` (count or `unknown`), and `perKind` where traversal is involved (A5.4).
+`Truncation` carries the fields of the specification's truncation record (`spec/records.yaml`): `omitted` is always a number, with `exact` false where it is only a lower bound (A5.4), as behind caDSR's 1,000-row cap.
 
 ### 3.3 Release model (`platform/release.py`)
 

@@ -49,6 +49,12 @@ def _scenarios(name):
 
 
 PINNED_TOOLS = [name for name in CALLS if "release" in parameters(name)[0]]
+# The calls that also carry an upstream origin (X-8), match nothing (X-4), or exceed a bound
+# (X-10).
+UPSTREAM, EMPTY, TRUNCATING = (
+    [n for n in CALLS if key in CALLS[n]] for key in ("upstream", "empty", "truncating")
+)
+TRUNCATION = RECORDS["truncation"]["fields"]
 CALLED = _per_tool(CALLS)
 PINNED = _per_tool(PINNED_TOOLS)
 # The release the release/unknown scenario answers 404 for on every content path.
@@ -59,12 +65,13 @@ RELEASED = [name for name in PINNED_TOOLS if not CALLS[name].get("unversioned")]
 LICENSED = {"terminology": "mdr", "release": "29_0", "code": "10000000"}
 
 
-def _call(tools, pinned, name):
-    """The tool's call in calls.yaml, pinned to the fixture set's release where it takes one."""
+def _call(tools, pinned, name, arguments=None):
+    """The tool's call in calls.yaml, or with `arguments` in place of the call's, pinned to the
+    fixture set's release where it takes one."""
 
     taken = parameters(name)[0]
-    arguments = {key: value for key, value in pinned.items() if key in taken}
-    return tools.call(name, arguments | CALLS[name]["arguments"])
+    release = {key: value for key, value in pinned.items() if key in taken}
+    return tools.call(name, release | (arguments or CALLS[name]["arguments"]))
 
 
 def _items(tools, pinned, name):
@@ -319,3 +326,47 @@ def test_a_rate_limited_request_is_asked_once_more_after_the_wait(tools, upstrea
     asked = [entry["received_at"] for entry in log if entry["fixture"] == limited.name]
     assert len(asked) == len(limited.responses)
     assert asked[1] - asked[0] >= wait
+
+
+@pytest.mark.requirement("X-4")
+@pytest.mark.parametrize("name", _per_tool(EMPTY))
+def test_a_query_that_matches_nothing_is_an_empty_result_with_provenance(tools, pinned, name):
+    result = _call(tools, pinned, name, CALLS[name]["empty"])
+
+    assert not result.is_error, result.content
+    assert items_of(name, result.content) == []
+    # With no item to carry it, the result carries the provenance itself.
+    assert _wrong(_provenance(result.content), CARRIED) == []
+
+
+@pytest.mark.requirement("X-8")
+@pytest.mark.parametrize("name", _per_tool(UPSTREAM))
+def test_what_the_platform_says_of_an_item_s_origin_is_passed_through(tools, pinned, name):
+    supplied = CALLS[name]["upstream"]
+    passed = [_provenance(item).get("upstream") or {} for item in _items(tools, pinned, name)]
+
+    assert [{key: each.get(key) for key in supplied} for each in passed] == [supplied] * len(passed)
+
+
+def _whole(value):
+    """Whether `value` is a whole number, and not a boolean."""
+
+    return type(value) is int
+
+
+@pytest.mark.requirement("X-10")
+@pytest.mark.parametrize("name", _per_tool(TRUNCATING))
+def test_a_bound_reached_is_reported_with_how_much_was_left_out(tools, pinned, name):
+    truncating = CALLS[name]["truncating"]
+    result = _call(tools, pinned, name, CALLS[name]["arguments"] | truncating)
+
+    assert not result.is_error, result.content
+    record = result.content.get("truncation") or {} if isinstance(result.content, dict) else {}
+    (limit,) = truncating.values()
+    assert record.get("occurred") is True, record
+    assert record.get("bound") in TRUNCATION["bound"]["values"]
+    assert record.get("limit") == limit
+    assert _whole(record.get("reached")) and record["reached"] <= limit
+    # How much was left out is a number, exact or a stated lower bound; a flag is not enough.
+    assert _whole(record.get("omitted")) and record["omitted"] >= 1
+    assert isinstance(record.get("exact"), bool)
