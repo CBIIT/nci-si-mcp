@@ -2,8 +2,9 @@
 # MCP Behavioral Acceptance Suite §3 to §5. Each has a plain statement and its basis: the
 # conventions (A1 to A11, Platform API Specification Part 6) or the MCP API Specification
 # section (`MCP API §8.2`) that states it in full. A suite test cites the ids it enforces
-# (`@pytest.mark.requirement("X-2")`); a requirement that no test covers yet names the issue
-# whose tests will (`planned`). Ids are never renumbered once merged: a removed entry leaves
+# (`@pytest.mark.requirement("X-2")`). A requirement not yet covered in full names the issue
+# whose tests will cover it (`planned`): a citation may cover part of it, and `planned` stays
+# until the citing tests cover all of it. Ids are never renumbered once merged: a removed entry leaves
 # a gap. acceptance/selftests/test_requirements.py holds the rules.
 
 # Protocol gates (Acceptance Suite §3): once per server, before any tool test.
@@ -41,7 +42,7 @@ P-8:
   planned: "#60"
 P-9:
   statement: resources/read results carry ttlMs, cacheScope and a provenance record.
-  basis: [MCP API §8.2]
+  basis: [MCP API §8.2, MCP API §8.5]
   planned: "#60"
 
 # Cross-cutting tests (Acceptance Suite §4): against every content-returning tool.
@@ -63,7 +64,7 @@ X-4:
   planned: "#52"
 X-5:
   statement: An upstream failure, including one masked as a successful response, is an upstream error, never an empty success.
-  basis: [S-5, MCP API §8.3]
+  basis: [MCP API §8.3]
   planned: "#52"
 X-6:
   statement: structuredContent validates against the tool's declared outputSchema, for successes and errors alike.
@@ -110,8 +111,8 @@ get_concepts-1:
   basis: [MCP API §2, A5.8]
   planned: "#53"
 search_concepts-1:
-  statement: lexical and typeahead return ranked results with matchedOn; semantic and hybrid return a score and the field matched from the interim index, its release in provenance; a mode the profile does not offer is an invalid request, not an empty result.
-  basis: [MCP API §2, MCP API §5.5]
+  statement: lexical and typeahead return ranked results with matchedOn; semantic and hybrid return a score and the field matched from the interim index, its release in provenance; a mode the profile does not offer is an invalid request, not an empty result; an index built for another release fails closed.
+  basis: [MCP API §2, MCP API §5.5, A3.4]
   planned: "#53"
 get_concept_hierarchy-1:
   statement: The depth bound holds, pathsToRoot returns complete paths, and truncation is reported.
@@ -160,7 +161,7 @@ search_data_elements-1:
   basis: [MCP API §3, A5.4]
   planned: "#54"
 match_data_elements-1:
-  statement: Matches are scored and rule-attributed; modelVariant and similarityThreshold are honoured or refused as an invalid request, never ignored; beyond the tool's declared timeout the error is a structured timeout.
+  statement: Matches are scored and rule-attributed; modelVariant and similarityThreshold are honoured or refused as an invalid request, never ignored; a slow upstream (28.9 s measured) is answered within the tool's declared timeout, and beyond it the error is a structured timeout.
   basis: [MCP API §3]
   planned: "#54"
 match_value_meanings-1:
@@ -186,7 +187,7 @@ list_contexts-1:
 
 # Group C, cross-domain tools (Acceptance Suite §5.3).
 find_data_elements_for_concept-1:
-  statement: The batch form is used where available; descendant expansion is bounded and reported; both release identities are recorded; a masked upstream failure is an error.
+  statement: The batch form is used where available; descendant expansion is bounded and reported; where served from the Shared SI Service, both graphs' release identities are recorded; a masked upstream failure is an error.
   basis: [MCP API §4, A3.7]
   planned: "#55"
 get_concept_for_permissible_value-1:

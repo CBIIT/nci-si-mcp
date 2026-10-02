@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from nci_si_acceptance.requirements import citations, load_requirements, problems
+from nci_si_acceptance.requirements import citations, load_requirements, never_runs, problems
 
 pytest_plugins = ["pytester"]
 
@@ -21,9 +21,10 @@ def test_the_suite_and_the_requirements_agree(pytester, monkeypatch):
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_MODE", "fixture")
     items, _ = pytester.inline_genitems(str(SUITE_TESTS), "-p", "no:cacheprovider")
     cited = citations(items)
+    idle = [item.nodeid for item in items if never_runs(item)]
 
     assert cited
-    assert problems(cited, load_requirements()) == []
+    assert problems(cited, load_requirements(), idle) == []
 
 
 def test_a_test_citing_nothing_or_an_unknown_id_and_an_unanswered_requirement_are_named():
@@ -32,9 +33,12 @@ def test_a_test_citing_nothing_or_an_unknown_id_and_an_unanswered_requirement_ar
     assert problems(cited, REQUIREMENTS) == [
         "t.py::a cites no requirement",
         "t.py::b cites X-9, which spec/requirements.yaml does not hold",
-        "X-2 is neither cited by a test nor planned",
+        "X-2 is neither cited by a test that runs nor planned",
     ]
     assert problems({"t.py::c": ("X-2",)}, REQUIREMENTS) == []
+    assert problems({"t.py::c": ("X-2",)}, REQUIREMENTS, idle=["t.py::c"]) == [
+        "X-2 is neither cited by a test that runs nor planned"
+    ]
 
 
 def write(tmp_path, requirements):
@@ -55,6 +59,7 @@ def write(tmp_path, requirements):
         ({"basis": ["A1"]}, "states the behaviour"),
         ({"statement": "s", "basis": []}, "names its basis"),
         ({"statement": "s", "basis": [3]}, "names its basis"),
+        ({"statement": "s", "basis": "A1"}, "names its basis"),
         ({"statement": "s", "basis": ["A1"], "planned": "52"}, "is planned in an issue"),
         ({"statement": "s", "basis": ["A1"], "planned": "#52 later"}, "is planned in an issue"),
     ],
@@ -92,19 +97,33 @@ def test_skipped():
     pass
 
 
+@pytest.mark.skipif(True, reason="never")
+@pytest.mark.requirement("P-6")
+def test_skipped_if_true():
+    pass
+
+
+@pytest.mark.skipif(False, reason="runs")
+@pytest.mark.requirement("P-7")
+def test_skipped_if_false():
+    pass
+
+
 @pytest.mark.xfail
-@pytest.mark.requirement("P-5")
+@pytest.mark.requirement("P-99")
 def test_expected_to_fail():
     pass
 """
 
 
-def test_a_test_cites_every_id_of_every_marker_and_a_skipped_one_nothing(pytester):
+def test_every_test_cites_but_only_one_that_runs_covers(pytester):
     pytester.makepyfile(test_cites=SUITE)
     pytester.makeini("[pytest]\nmarkers =\n    requirement: cites")
 
     items, _ = pytester.inline_genitems("-p", "no:cacheprovider")
     cited = citations(items)
+    idle = sorted(item.nodeid.split("::")[1] for item in items if never_runs(item))
 
-    assert list(cited) == ["test_cites.py::test_cited"]
     assert sorted(cited["test_cites.py::test_cited"]) == ["P-1", "P-2", "P-3", "X-1"]
+    assert sorted(cited["test_cites.py::test_expected_to_fail"]) == ["P-99", "X-1"]
+    assert idle == ["test_expected_to_fail", "test_skipped", "test_skipped_if_true"]

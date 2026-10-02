@@ -29,7 +29,8 @@ Each test also cites the requirements it enforces, `@pytest.mark.requirement("X-
 ids in [`../spec/requirements.yaml`](../spec/requirements.yaml), the project's statement of the
 behaviour the suite tests and the server implements. Every requirement is cited by a test or
 planned in an issue; `selftests/test_requirements.py` fails otherwise, and on a test that cites
-nothing.
+nothing or an unknown id. A citation may cover part of a requirement: `planned` stays until the
+citing tests cover all of it. A test that never runs (skip, a true skipif, xfail) covers nothing.
 
 `@pytest.mark.scenario("release/unknown")` serves the scenario's fixtures before the ordinary
 ones, to a server process of its own started with the scenario's settings. A test marked
@@ -56,8 +57,9 @@ has a documented upstream limitation (`--limitations`, YAML of test id to requir
 
 `src/nci_si_acceptance/` holds the harness: `client.py` starts the server, `tools.py` calls the
 required tools, `fixture_server.py` serves the fixtures (its docstring documents the format),
-`report.py` writes and renders the per-tool report, `inventory.py` lists the required tools and
-`suite.py` the rules of a run. `concepts.py` composes EVS concept answers from one recording per
+`report.py` writes and renders the per-tool report, `inventory.py` lists the required tools,
+`requirements.py` checks the tests' citations of `spec/requirements.yaml`, and `suite.py` holds
+the rules of a run. `concepts.py` composes EVS concept answers from one recording per
 concept, `record.py` records the set from live,
 `craft.py` crafts the scenarios EVS does not produce on demand, and `register.py` writes the
 register of request forms (`request-forms/`).

@@ -46,7 +46,11 @@ RULES: tuple[tuple[Callable[[Any], bool], str], ...] = (
         "states the behaviour",
     ),
     (
-        lambda entry: bool(entry.get("basis")) and all(isinstance(b, str) for b in entry["basis"]),
+        lambda entry: (
+            isinstance(entry.get("basis"), list)
+            and bool(entry["basis"])
+            and all(isinstance(b, str) for b in entry["basis"])
+        ),
         "names its basis, a list of conventions or specification sections",
     ),
     (
@@ -61,20 +65,31 @@ def _problem(entry: Any) -> str | None:
 
 
 def citations(items: Iterable[pytest.Item]) -> dict[str, tuple[str, ...]]:
-    """The requirements each test cites, by test id; a test skipped for good, or expected
-    to fail, cites nothing it could show."""
+    """The requirements each test cites, by test id."""
 
     return {
         item.nodeid: tuple(key for mark in item.iter_markers(MARKER) for key in mark.args)
         for item in items
-        if not any(item.get_closest_marker(name) for name in ("skip", "xfail"))
     }
 
 
-def problems(cited: dict[str, tuple[str, ...]], requirements: dict[str, Any]) -> list[str]:
-    """Tests citing nothing or an unknown id, and requirements neither cited nor planned."""
+def never_runs(item: pytest.Item) -> bool:
+    """Whether a test is skipped for good or expected to fail: it covers nothing."""
 
-    return _citing_problems(cited, requirements) + _unanswered(cited, requirements)
+    skipped = item.get_closest_marker("skip") or item.get_closest_marker("xfail")
+    return bool(skipped) or any(
+        mark.args and mark.args[0] is True for mark in item.iter_markers("skipif")
+    )
+
+
+def problems(
+    cited: dict[str, tuple[str, ...]], requirements: dict[str, Any], idle: Iterable[str] = ()
+) -> list[str]:
+    """Tests citing nothing or an unknown id, and requirements neither planned nor cited by a
+    test that runs (`idle` names those that never run)."""
+
+    running = {test: keys for test, keys in cited.items() if test not in set(idle)}
+    return _citing_problems(cited, requirements) + _unanswered(running, requirements)
 
 
 def _citing_problems(cited: dict[str, tuple[str, ...]], requirements: dict[str, Any]) -> list[str]:
@@ -90,7 +105,7 @@ def _citing_problems(cited: dict[str, tuple[str, ...]], requirements: dict[str, 
 def _unanswered(cited: dict[str, tuple[str, ...]], requirements: dict[str, Any]) -> list[str]:
     citing = {key for keys in cited.values() for key in keys}
     return [
-        f"{key} is neither cited by a test nor planned"
+        f"{key} is neither cited by a test that runs nor planned"
         for key, entry in requirements.items()
         if key not in citing and "planned" not in entry
     ]
