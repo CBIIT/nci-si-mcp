@@ -20,6 +20,7 @@ from nci_si_acceptance.report import UNMATCHED, Collector, combine, main, render
         ({"passed": 2, "no_fixture": 1}, False, True, "NO FIXTURE"),
         ({"no_fixture": 1, "failed": 1}, False, True, "FAIL"),
         ({"passed": 2, "skipped": 1}, False, True, "INCOMPLETE"),
+        ({"passed": 2, "not_implemented": 1}, False, True, "INCOMPLETE"),
         ({"passed": 2, "not_live": 1}, False, True, "PASS"),
         ({"not_live": 2}, False, True, "NOT RUN"),
         ({"not_implemented": 2}, True, False, "NOT IMPLEMENTED"),

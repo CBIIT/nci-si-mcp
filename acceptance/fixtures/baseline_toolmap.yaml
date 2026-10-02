@@ -1,36 +1,36 @@
-# The baseline tool map (docs/SPEC.md §9.5): the prototype tools that stand in for required
+# The baseline tool map (docs/SPEC.md §9.4): the prototype tools that stand in for required
 # tools while the server lacks them, and how their arguments translate (tools.py). An entry
 # applies only while its required tool is absent; the mechanism goes in the change that
 # removes the last entry (owner decision, 2 October 2026).
 #
-# A required argument without an entry is not passed on: the prototype serves NCIt's current
-# release only, so `terminology` and `release` have no counterpart. An argument or value
-# mapped to null is a capability the prototype lacks: the call reports NOT IMPLEMENTED.
+# The prototype serves NCIt's current monthly release only: `terminology` is checked to be
+# ncit and `release` is accepted, neither passed on. An argument the entry does not list, and
+# an argument or value mapped to null, is a capability the prototype lacks: NOT IMPLEMENTED.
+#
+# search_concepts has no stand-in: the prototype cannot search EVS (lexical, typeahead), and
+# its index search needs an index the suite does not build before the operator's prepare
+# step exists.
 
 resolve_release:
   tool: ncit_release_info
   arguments:
+    terminology: &ncit {values: {ncit: ncit, "*": null}}
     channel: {values: {weekly: null}}   # the prototype resolves the monthly release only
 
 get_concept:
   tool: ncit_lookup
   arguments:
+    terminology: *ncit
+    release: &accepted {}
     code: code
     include: null                       # no projection: the prototype returns one shape
-
-search_concepts:
-  tool: ncit_search
-  arguments:
-    query: query
-    limit: limit
-    # The prototype searches its local index: lexical and typeahead search of EVS are missing.
-    mode: {name: mode, values: {lexical: null, typeahead: null, semantic: vector, hybrid: hybrid}}
-    cursor: null
 
 get_concept_hierarchy:
   tool: ncit_traverse
   fixed: {direction: both}              # the edge type alone then selects parent or child
   arguments:
+    terminology: *ncit
+    release: *accepted
     code: {name: start_codes, list: true}
     direction: {name: edge_types, list: true, values: {parent: parent, child: child, pathsToRoot: null}}
     depth: max_depth
@@ -41,6 +41,8 @@ get_concept_neighborhood:
   tool: ncit_traverse
   fixed: {direction: both}
   arguments:
+    terminology: *ncit
+    release: *accepted
     code: {name: start_codes, list: true}
     depth: max_depth
     kinds:
@@ -49,4 +51,6 @@ get_concept_neighborhood:
     maxNodes: max_nodes
     maxEdges: max_edges
     budgetPerKind: null                 # no per-kind budget
-    includeNegative: null               # no polarity: negative edges are neither marked nor withheld
+    # No polarity: negative edges are neither marked nor withheld, so only the default
+    # (false) can be served.
+    includeNegative: {values: {true: null}}

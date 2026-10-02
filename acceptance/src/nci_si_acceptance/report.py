@@ -184,7 +184,7 @@ def _row(name: str, row: dict[str, Any], outcome: str, excused: list[str]) -> st
     if outcome == FAIL and row["gates_only"]:
         outcome = "FAIL (gates only)"
     counts = Counter(row["counts"])
-    unrun = sum(counts[outcome] for outcome in UNRUN)
+    unrun = sum(counts[kind] for kind in UNRUN)
     tests = f"{counts['passed']} / {counts['failed']} / {counts['no_fixture']} / {unrun}"
     stand_in = row["implemented_as"] or "—"
     return (

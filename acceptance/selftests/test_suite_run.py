@@ -279,20 +279,31 @@ def test_the_report_names_the_stand_in_of_each_mapped_tool_with_the_real_map(sui
         real.read_text(encoding="utf-8"), encoding="utf-8"
     )
     test = """
-def test_the_server_starts(tools):
-    assert tools.available
+import pytest
+
+@pytest.mark.unmatched_upstream
+@pytest.mark.tool("resolve_release")
+def test_monthly(tools):
+    assert tools.call("resolve_release", {"terminology": "ncit"}).tool == "ncit_release_info"
+
+@pytest.mark.tool("resolve_release")
+def test_weekly(tools):
+    tools.call("resolve_release", {"terminology": "ncit", "channel": "weekly"})
 """
     result = run(suite, test, "--report=report.json")
 
-    result.assert_outcomes(passed=1)
+    result.assert_outcomes(passed=1, skipped=1)
     tools = json.loads((suite.path / "report.json").read_text(encoding="utf-8"))["tools"]
+    assert (tools["resolve_release"]["outcome"], tools["resolve_release"]["counts"]) == (
+        "INCOMPLETE",
+        {"passed": 1, "not_implemented": 1},
+    )
     implemented = {
         name: row["implemented_as"] for name, row in tools.items() if row["implemented_as"]
     }
     assert implemented == {
         "resolve_release": "ncit_release_info",
         "get_concept": "ncit_lookup",
-        "search_concepts": "ncit_search",
         "get_concept_hierarchy": "ncit_traverse",
         "get_concept_neighborhood": "ncit_traverse",
     }

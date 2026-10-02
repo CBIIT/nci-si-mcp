@@ -13,6 +13,8 @@ TOOLMAP = {
             "code": {"name": "start_codes", "list": True},
             "depth": "max_depth",
             "kinds": {"name": "edge_types", "values": {"inverseRole": "inverse_role"}},
+            "release": {},
+            "terminology": {"values": {"ncit": "ncit", "*": None}},
         },
     }
 }
@@ -40,7 +42,7 @@ def text(value):
     return SimpleNamespace(type="text", text=value)
 
 
-def test_arguments_are_renamed_wrapped_and_translated_and_the_rest_dropped():
+def test_arguments_are_renamed_wrapped_and_translated_and_the_checked_ones_dropped():
     arguments = {"code": "C3262", "depth": 2, "kinds": ["role", "inverseRole"], "release": "26.09d"}
 
     translated = translate(arguments, TOOLMAP["get_concept_neighborhood"])
@@ -142,6 +144,8 @@ def test_fixed_arguments_are_passed_and_a_checked_argument_is_not():
         ({"direction": "pathsToRoot"}, "direction=pathsToRoot"),
         ({"direction": ["parent", "pathsToRoot"]}, "direction=pathsToRoot"),
         ({"channel": "weekly"}, "channel=weekly"),
+        ({"correlationId": "abc"}, "correlationId"),
+        ({"terminology": "snomedct_us"}, "terminology=snomedct_us"),
     ],
 )
 def test_a_capability_the_stand_in_lacks_is_not_implemented(arguments, unsupported):
@@ -154,6 +158,7 @@ def test_a_capability_the_stand_in_lacks_is_not_implemented(arguments, unsupport
                 "values": {"parent": "parent", "pathsToRoot": None},
             },
             "channel": {"values": {"weekly": None}},
+            "terminology": {"values": {"ncit": "ncit", "*": None}},
         },
     }
     session = Session(["ncit_traverse"], answer(structured={}))
@@ -173,4 +178,19 @@ def test_a_tool_map_entry_maps_its_arguments_and_fixed_values_by_name(tmp_path):
     with pytest.raises(
         ValueError, match="resolve_release maps its arguments and fixed values by name"
     ):
+        load_toolmap(path)
+
+
+@pytest.mark.parametrize(
+    "rule",
+    ["{nmae: edge_types}", "{name: edge_types, values: [parent]}", "[edge_types]", "3"],
+)
+def test_a_rule_that_is_not_null_a_name_or_name_list_and_values_is_refused(tmp_path, rule):
+    path = tmp_path / "baseline_toolmap.yaml"
+    path.write_text(
+        f"get_concept_neighborhood:\n  tool: ncit_traverse\n  arguments:\n    kinds: {rule}\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="get_concept_neighborhood has a rule for kinds that is"):
         load_toolmap(path)

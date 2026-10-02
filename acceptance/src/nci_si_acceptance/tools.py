@@ -8,20 +8,21 @@ IMPLEMENTED, which the per-tool report counts as such.
 
     get_concept_hierarchy:                # the required tool
       tool: ncit_traverse                 # the tool that stands in for it
-      fixed: {direction: both}            # passed on every call
+      fixed: {direction: both}            # passed on every call, unless an argument maps to it
       arguments:                          # required argument: the stand-in's argument
         depth: max_depth
         code: {name: start_codes, list: true}       # the value wrapped in a list
         direction:                                  # values translated, also in a list
-          {name: edge_types, list: true, values: {parents: parent, pathsToRoot: null}}
+          {name: edge_types, list: true, values: {parent: parent, pathsToRoot: null}}
         cursor: null                                # the stand-in cannot do this
-        channel: {values: {weekly: null}}           # checked, not passed on
+        terminology: {values: {ncit: ncit, "*": null}}   # checked, not passed on
 
-An argument without an entry is not passed on: the stand-in has no such parameter and
-behaves as the required tool would without it (the prototype serves NCIt's current
-release only). An argument or a value mapped to null is a capability the stand-in
-lacks: a call that uses it is skipped as NOT IMPLEMENTED, so that the report does not
-count as a failure what the prototype never offered.
+A rule is null, the stand-in's argument name, or a mapping of `name`, `list` and
+`values`; without `name` the argument is checked and not passed on. A value the rule's
+`values` do not list passes unchanged, unless `"*"` names what every other value becomes.
+An argument or a value mapped to null, and an argument the entry does not list, is a
+capability the stand-in lacks: a call that uses it is skipped as NOT IMPLEMENTED, so that
+the report does not count as a failure what the prototype never offered.
 """
 
 from __future__ import annotations
@@ -62,18 +63,38 @@ def load_toolmap(path: Path) -> ToolMap:
     return toolmap
 
 
+RULE_FIELDS = frozenset({"name", "list", "values"})
+
+
 def _entry_problem(entry: Any) -> str | None:
     if not isinstance(entry, dict) or not isinstance(entry.get("tool"), str):
         return "names the tool that stands in for it"
     if not all(isinstance(entry.get(part, {}), dict) for part in ("arguments", "fixed")):
         return "maps its arguments and fixed values by name"
+    return _rules_problem(entry.get("arguments", {}))
+
+
+def _rules_problem(rules: dict[str, Any]) -> str | None:
+    if bad := sorted(name for name, rule in rules.items() if not _usable(rule)):
+        return f"has a rule for {', '.join(bad)} that is not null, a name, or name, list and values"
     return None
 
 
+def _usable(rule: Any) -> bool:
+    if rule is None or isinstance(rule, str):
+        return True
+    return (
+        isinstance(rule, dict)
+        and set(rule) <= RULE_FIELDS
+        and isinstance(rule.get("values", {}), dict)
+    )
+
+
 def _one(values: dict[Any, Any], name: str, value: Any) -> Any:
-    if value in values and values[value] is None:
+    translated = values.get(value, values.get("*", value))
+    if translated is None:
         raise Unsupported(f"{name}={value}")
-    return values.get(value, value)
+    return translated
 
 
 def _value(name: str, rule: dict[str, Any], value: Any) -> Any:
@@ -92,9 +113,7 @@ def translate(arguments: dict[str, Any], entry: dict[str, Any]) -> dict[str, Any
     rules = entry.get("arguments", {})
     translated = dict(entry.get("fixed", {}))
     for name, value in arguments.items():
-        if name not in rules:
-            continue
-        rule = rules[name]
+        rule = rules.get(name)
         if rule is None:
             raise Unsupported(name)
         if isinstance(rule, str):
