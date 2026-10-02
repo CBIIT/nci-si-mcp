@@ -73,14 +73,18 @@ def test_in_fixture_mode_every_upstream_names_the_fixture_server(monkeypatch, tm
 
 def test_in_live_mode_the_server_keeps_its_upstream_and_gets_the_credentials(monkeypatch, tmp_path):
     monkeypatch.setenv("NCI_SI_EVS_BASE_URL", "https://developer.example")
-    monkeypatch.setenv("NCI_SI_EVS_LICENSE_KEY", "key")
+    # The credentials of docs/SPEC.md §8.
+    credentials = {"NCI_SI_EVS_LICENSE_KEY": "evs key", "NCI_SI_CADSR_CREDENTIAL": "cadsr key"}
+    for name, value in credentials.items():
+        monkeypatch.setenv(name, value)
 
     live = server_environment("live", tmp_path, None)
     fixture = server_environment("fixture", tmp_path, "http://127.0.0.1:9")
 
     assert not set(UPSTREAM_VARIABLES) & set(live)
-    assert (live["NCI_SI_UPSTREAM_MODE"], live["NCI_SI_EVS_LICENSE_KEY"]) == ("live", "key")
-    assert "NCI_SI_EVS_LICENSE_KEY" not in fixture
+    assert live["NCI_SI_UPSTREAM_MODE"] == "live"
+    assert {name: live.get(name) for name in credentials} == credentials
+    assert not set(credentials) & set(fixture)
 
 
 def test_fixture_mode_needs_the_fixture_server(tmp_path):
