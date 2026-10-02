@@ -34,7 +34,7 @@ def bullet_names(text):
 def first_column(table):
     """The names in backticks in the first column of a Markdown table."""
 
-    rows = [row.split("|")[1] for row in table.splitlines() if row.startswith("| `")]
+    rows = [row.split("|")[1] for row in table.splitlines() if re.match(r"\|\s*`", row)]
     return {name for row in rows for name in re.findall(r"`([^`]+)`", row)}
 
 

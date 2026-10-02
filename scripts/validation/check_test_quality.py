@@ -8,8 +8,8 @@ A test function (`test_*`) is rejected when it
 - asserts only that something is callable.
 
 A test module is rejected when its docstring states a coverage aim ("improve
-coverage", "coverage to 95%"): a test exists for the behaviour it protects, not
-for a number.
+coverage", "coverage to 95%", "95% coverage"): a test exists for the behaviour
+it protects, not for a number.
 
 The tests are `unittest` style. An assertion is an `assert` statement, a
 `unittest` assertion method (`self.assertEqual`, `self.assertRaises`,
@@ -31,7 +31,8 @@ TestFunction = ast.FunctionDef | ast.AsyncFunctionDef
 Definition = TestFunction | ast.ClassDef
 
 COVERAGE_AIM = re.compile(
-    r"\b(improv|increas|rais|boost)\w*\s+(the\s+)?(\w+\s+)?coverage\b|coverage\s+to\s+\d+\s*%",
+    r"\b(improv|increas|rais|boost)\w*\s+(the\s+)?(\w+\s+)?coverage\b"
+    r"|coverage\s+to\s+\d+\s*%|\d+\s*%\s+coverage\b",
     re.IGNORECASE,
 )
 # `assert`, a unittest method such as assertEqual or fail, or a helper such as assert_valid.

@@ -96,7 +96,7 @@ select = [
     "RUF",          # ruff-specific
     "S",            # flake8-bandit (security)
     "ASYNC",        # flake8-async
-    "TCH",          # TYPE_CHECKING blocks and quoted casts; the import rules are ignored below
+    "TCH",          # flake8-type-checking, without the three import rules ignored below
     "PL",           # pylint
     "T20",          # print: over stdio, stdout belongs to the MCP protocol
 ]
@@ -111,8 +111,6 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-# A helper assertion is named like unittest's own: assertError.
-"tests/**/*.py" = ["N802"]
 # Optional extras (mcp, sentence-transformers) are imported where they are first needed.
 "src/nci_si_mcp/embeddings.py" = ["PLC0415"]
 "src/nci_si_mcp/server.py" = ["PLC0415"]

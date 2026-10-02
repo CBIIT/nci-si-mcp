@@ -219,6 +219,7 @@ class TestQualityGateTest(GateTestCase):
             "Raises the coverage of index.py.",
             "Boost code coverage.",
             "Bring the coverage to 95%.",
+            "Tests added to reach 95% coverage.",
         ):
             with self.subTest(docstring):
                 self.assertEqual(
