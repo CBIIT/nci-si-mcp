@@ -115,7 +115,7 @@ record:
     # Hierarchy.
     - fixture: recorded/evs/paths-to-root.json
       operation: OP-E13
-      rationale: "EVS serves pathsToRoot; \xA710 spells it paths-to-root, which EVS answers 404."
+      rationale: The paths from the concept to the root of the hierarchy.
       surface: evs
       path: /api/v1/concept/ncit_26.09d/C4817/pathsToRoot?include=minimal
     # An active code's replacements (OP-E21, and the ?list= batch form); the retired
@@ -139,29 +139,29 @@ record:
       path: /api/v1/subset/ncit/C177537
     - fixture: recorded/evs/subset-gdc-members.json
       operation: OP-E19
-      rationale: "The members of a subset; EVS keys them by the subset's code, unlike \xA710's form."
+      rationale: The first page of a subset's members, keyed by the subset's code.
       surface: evs
-      path: /api/v1/subset/ncit_26.09d/C177537/members?fromRecord=0&pageSize=10&include=minimal
+      path: /api/v1/concept/ncit_26.09d/subsetMembers/C177537?fromRecord=0&pageSize=10&include=minimal
     # Mapsets: the listing (names and metadata only) and the GDC mapset.
     - fixture: recorded/evs/mapsets.json
-      operation: Acceptance Suite §5.1
-      rationale: "Mapsets as first-class objects; not in \xA710. Names and metadata only for licensed ones."
+      operation: OP-E23
+      rationale: Mapsets as first-class objects, each with its own version.
       surface: evs
-      path: /api/v1/mapset
+      path: /api/v1/mapset?include=minimal
     - fixture: recorded/evs/mapset-gdc.json
-      operation: Acceptance Suite §5.1
+      operation: OP-E24
       rationale: The GDC mapset, versioned by the NCIt release.
       surface: evs
       path: /api/v1/mapset/NCIt_Maps_To_GDC
     # Its maps (issue #6: the cross-domain tests need them), by a GDC value and by a
     # concept code; `term` matches as a prefix (C4817 also finds C48177).
     - fixture: recorded/evs/mapset-gdc-maps-value.json
-      operation: Acceptance Suite §5.1
+      operation: OP-E25
       rationale: GDC maps found by a GDC value (resolve_stored_value); term matches as a prefix.
       surface: evs
       path: /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=Ewing sarcoma&fromRecord=0&pageSize=10
     - fixture: recorded/evs/mapset-gdc-maps-code.json
-      operation: Acceptance Suite §5.1
+      operation: OP-E25
       rationale: GDC maps found by an NCIt code.
       surface: evs
       path: /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C4817&fromRecord=0&pageSize=10
@@ -207,7 +207,7 @@ record:
     - {<<: *unknown, fixture: scenarios/release/unknown/replacement.json, path: /api/v1/history/ncit_99.99z/C154421/replacements}
     - {<<: *unknown, fixture: scenarios/release/unknown/replacements.json, path: "/api/v1/history/ncit_99.99z/replacements?list=C154421"}
     - {<<: *unknown, fixture: scenarios/release/unknown/subset.json, path: /api/v1/subset/ncit_99.99z/C177537}
-    - {<<: *unknown, fixture: scenarios/release/unknown/subset-members.json, path: "/api/v1/subset/ncit_99.99z/C177537/members?fromRecord=0&pageSize=10&include=minimal"}
+    - {<<: *unknown, fixture: scenarios/release/unknown/subset-members.json, path: "/api/v1/concept/ncit_99.99z/subsetMembers/C177537?fromRecord=0&pageSize=10&include=minimal"}
     - {<<: *unknown, fixture: scenarios/release/unknown/descendants.json, path: "/api/v1/concept/ncit_99.99z/C4817/descendants?maxLevel=4"}
     - {<<: *unknown, fixture: scenarios/release/unknown/property-catalogue.json, path: /api/v1/metadata/ncit_99.99z/properties}
     # batch/silent-drop: a code EVS does not know, which a batch leaves out (E-5).

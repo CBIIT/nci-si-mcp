@@ -4,7 +4,7 @@
  "request": {
   "surface": "evs",
   "method": "GET",
-  "path": "/api/v1/subset/ncit_26.09d/C177537/members",
+  "path": "/api/v1/concept/ncit_26.09d/subsetMembers/C177537",
   "params": {
    "fromRecord": [
     "0"

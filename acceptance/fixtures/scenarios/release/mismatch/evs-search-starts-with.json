@@ -27,7 +27,7 @@
   "status": 200,
   "body": {
    "total": 53,
-   "timeTaken": 56,
+   "timeTaken": 34,
    "parameters": {
     "term": "ewing",
     "type": "startsWith",

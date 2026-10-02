@@ -150,10 +150,12 @@ def test_the_unpinned_list_holds_each_content_form_without_a_release_and_what_it
 
     assert reported == {
         "GET evs /api/v1/subset/ncit/C177537": "26.09d",
-        "GET evs /api/v1/mapset": reported["GET evs /api/v1/mapset"],
+        "GET evs /api/v1/mapset?include=minimal": reported[
+            "GET evs /api/v1/mapset?include=minimal"
+        ],
         "GET evs /api/v1/mapset/NCIt_Maps_To_GDC": "26.09d",
         f"{maps}Ewing sarcoma&fromRecord=0&pageSize=10": "26.09d",
         f"{maps}C4817&fromRecord=0&pageSize=10": "26.09d",
         f"{expand}?fhir_vs=C85492": "26.09d",
     }
-    assert "26.09d" in reported["GET evs /api/v1/mapset"].split(", ")
+    assert "26.09d" in reported["GET evs /api/v1/mapset?include=minimal"].split(", ")

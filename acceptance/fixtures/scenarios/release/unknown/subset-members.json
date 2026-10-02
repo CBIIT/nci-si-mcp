@@ -4,7 +4,7 @@
  "request": {
   "surface": "evs",
   "method": "GET",
-  "path": "/api/v1/subset/ncit_99.99z/C177537/members",
+  "path": "/api/v1/concept/ncit_99.99z/subsetMembers/C177537",
   "params": {
    "fromRecord": [
     "0"
@@ -23,11 +23,11 @@
  "response": {
   "status": 404,
   "body": {
-   "timestamp": 1790934361190,
+   "timestamp": 1790935885199,
    "status": 404,
    "error": "Not Found",
    "message": "Terminology not found = ncit_99.99z",
-   "path": "/api/v1/subset/ncit_99.99z/C177537/members"
+   "path": "/api/v1/concept/ncit_99.99z/subsetMembers/C177537"
   }
  }
 }

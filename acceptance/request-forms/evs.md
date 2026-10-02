@@ -23,10 +23,10 @@ content state of its own, named in provenance and not presented as release-verif
 | Operation | Prescribed form (crafted) | Served form (recorded) | Release reported |
 |---|---|---|---|
 | OP-E06 | `GET evs /api/v1/subset/ncit_26.09d/C177537` | `GET evs /api/v1/subset/ncit/C177537` | 26.09d |
-| Acceptance Suite §5.1 | — | `GET evs /api/v1/mapset` | 2016_07_31, 2017-12-21, 2026_03_01, 26.09d, February2020, July2023, June2026, November2011, September2026 |
-| Acceptance Suite §5.1 | — | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC` | 26.09d |
-| Acceptance Suite §5.1 | — | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=Ewing sarcoma&fromRecord=0&pageSize=10` | 26.09d |
-| Acceptance Suite §5.1 | — | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C4817&fromRecord=0&pageSize=10` | 26.09d |
+| OP-E23 | — | `GET evs /api/v1/mapset?include=minimal` | 2016_07_31, 2017-12-21, 2026_03_01, 26.09d, February2020, July2023, June2026, November2011, September2026 |
+| OP-E24 | — | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC` | 26.09d |
+| OP-E25 | — | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=Ewing sarcoma&fromRecord=0&pageSize=10` | 26.09d |
+| OP-E25 | — | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C4817&fromRecord=0&pageSize=10` | 26.09d |
 | OP-F05 | `GET evs-fhir /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492&system-version=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl\|26.09d` | `GET evs-fhir /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492` | 26.09d |
 
 ## Requests
@@ -43,16 +43,16 @@ content state of its own, named in provenance and not presented as release-verif
 | OP-E08 | `GET evs /api/v1/concept/ncit_26.09d/search?term=ewing sarcoma&type=contains&include=minimal,highlights&fromRecord=10&pageSize=10` | 200 | recorded | The second page of the same search. | `recorded/evs/search-contains-page-2.json` |
 | OP-E08 | `GET evs /api/v1/concept/ncit_26.09d/search?term=ewing&type=startsWith&include=minimal,highlights&fromRecord=0&pageSize=10` | 200 | recorded | Typeahead: type=startsWith. | `recorded/evs/search-starts-with.json` |
 | OP-E08 | `GET evs /api/v1/concept/ncit_26.09d/search?term=qqxyzzyqq&type=contains&include=minimal,highlights&fromRecord=0&pageSize=10` | 200 | recorded | A search matching nothing: empty is not an error. | `recorded/evs/search-no-match.json` |
-| OP-E13 | `GET evs /api/v1/concept/ncit_26.09d/C4817/pathsToRoot?include=minimal` | 200 | recorded | EVS serves pathsToRoot; §10 spells it paths-to-root, which EVS answers 404. | `recorded/evs/paths-to-root.json` |
+| OP-E13 | `GET evs /api/v1/concept/ncit_26.09d/C4817/pathsToRoot?include=minimal` | 200 | recorded | The paths from the concept to the root of the hierarchy. | `recorded/evs/paths-to-root.json` |
 | OP-E21 | `GET evs /api/v1/history/ncit_26.09d/C4817/replacements` | 200 | recorded | An active code's replacements, one code. | `recorded/evs/replacement-active.json` |
 | OP-E21 | `GET evs /api/v1/history/ncit_26.09d/replacements?list=C4817` | 200 | recorded | The ?list= batch form, which fails the whole batch on one unknown code. | `recorded/evs/replacements-active.json` |
 | OP-E06 | `GET evs /api/v1/subset/ncit/C177537` | 200 | recorded | The subset by its unpinned path: the pinned path answers 404 today; the payload names its release. | `recorded/evs/subset-gdc-unpinned.json` |
 | OP-E06 | `GET evs /api/v1/subset/ncit_26.09d/C177537` | 200 | crafted for OP-E06: every content path accepts {terminology}_{release}. EVS answered this pinned path with 404 "Subset not found" on 2 October 2026 | The pinned subset path a requirement prescribes, carrying the unpinned answer. | `crafted/OP-E06/subset-gdc.json` |
-| OP-E19 | `GET evs /api/v1/subset/ncit_26.09d/C177537/members?fromRecord=0&pageSize=10&include=minimal` | 200 | recorded | The members of a subset; EVS keys them by the subset's code, unlike §10's form. | `recorded/evs/subset-gdc-members.json` |
-| Acceptance Suite §5.1 | `GET evs /api/v1/mapset` | 200 | recorded | Mapsets as first-class objects; not in §10. Names and metadata only for licensed ones. | `recorded/evs/mapsets.json` |
-| Acceptance Suite §5.1 | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC` | 200 | recorded | The GDC mapset, versioned by the NCIt release. | `recorded/evs/mapset-gdc.json` |
-| Acceptance Suite §5.1 | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=Ewing sarcoma&fromRecord=0&pageSize=10` | 200 | recorded | GDC maps found by a GDC value (resolve_stored_value); term matches as a prefix. | `recorded/evs/mapset-gdc-maps-value.json` |
-| Acceptance Suite §5.1 | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C4817&fromRecord=0&pageSize=10` | 200 | recorded | GDC maps found by an NCIt code. | `recorded/evs/mapset-gdc-maps-code.json` |
+| OP-E19 | `GET evs /api/v1/concept/ncit_26.09d/subsetMembers/C177537?fromRecord=0&pageSize=10&include=minimal` | 200 | recorded | The first page of a subset's members, keyed by the subset's code. | `recorded/evs/subset-gdc-members.json` |
+| OP-E23 | `GET evs /api/v1/mapset?include=minimal` | 200 | recorded | Mapsets as first-class objects, each with its own version. | `recorded/evs/mapsets.json` |
+| OP-E24 | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC` | 200 | recorded | The GDC mapset, versioned by the NCIt release. | `recorded/evs/mapset-gdc.json` |
+| OP-E25 | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=Ewing sarcoma&fromRecord=0&pageSize=10` | 200 | recorded | GDC maps found by a GDC value (resolve_stored_value); term matches as a prefix. | `recorded/evs/mapset-gdc-maps-value.json` |
+| OP-E25 | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C4817&fromRecord=0&pageSize=10` | 200 | recorded | GDC maps found by an NCIt code. | `recorded/evs/mapset-gdc-maps-code.json` |
 | OP-F05 | `GET evs-fhir /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492` | 200; ignores activeOnly, count, offset | recorded | The unpinned expansion: system-version answers 400 today; count, offset and activeOnly are ignored. | `recorded/evs-fhir/expand-c85492.json` |
 | OP-F05 | `GET evs-fhir /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492&system-version=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl\|26.09d` | 200; ignores activeOnly, count, offset | crafted for OP-F05: $expand pinned by system-version. EVS answered "Input parameter 'system-version' is not supported" (400) on 2 October 2026 | $expand pinned by system-version, as §10 prescribes, carrying the unpinned answer. | `crafted/OP-F05/expand-c85492.json` |
 
@@ -98,7 +98,7 @@ Each request: An unknown release answers 404 on every content path: the server f
 | OP-E06 | `GET evs /api/v1/history/ncit_99.99z/C154421/replacements` | 404; every parameter ignored | `scenarios/release/unknown/replacement.json` |
 | OP-E06 | `GET evs /api/v1/history/ncit_99.99z/replacements?list=C154421` | 404; every parameter ignored | `scenarios/release/unknown/replacements.json` |
 | OP-E06 | `GET evs /api/v1/subset/ncit_99.99z/C177537` | 404; every parameter ignored | `scenarios/release/unknown/subset.json` |
-| OP-E06 | `GET evs /api/v1/subset/ncit_99.99z/C177537/members?fromRecord=0&pageSize=10&include=minimal` | 404; every parameter ignored | `scenarios/release/unknown/subset-members.json` |
+| OP-E06 | `GET evs /api/v1/concept/ncit_99.99z/subsetMembers/C177537?fromRecord=0&pageSize=10&include=minimal` | 404; every parameter ignored | `scenarios/release/unknown/subset-members.json` |
 | OP-E06 | `GET evs /api/v1/concept/ncit_99.99z/C4817/descendants?maxLevel=4` | 404; every parameter ignored | `scenarios/release/unknown/descendants.json` |
 | OP-E06 | `GET evs /api/v1/metadata/ncit_99.99z/properties` | 404; every parameter ignored | `scenarios/release/unknown/property-catalogue.json` |
 
