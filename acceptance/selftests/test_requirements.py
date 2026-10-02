@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from nci_si_acceptance.document import DOCUMENT, render
+from nci_si_acceptance.document import DOCUMENT, GROUPS, render
 from nci_si_acceptance.requirements import citations, load_requirements, never_runs, problems
 from nci_si_acceptance.spec import REQUIRED_TOOLS, is_basis
 
@@ -176,7 +176,9 @@ def test_the_command_writes_the_rendered_specification(tmp_path):
     assert output.read_text(encoding="utf-8") == DOCUMENT.read_text(encoding="utf-8")
 
 
-def test_the_required_tools_are_the_twenty_nine_of_four_groups():
+def test_the_required_tools_are_the_twenty_nine_of_four_groups_each_rendered():
+    # A group the document does not name would leave its tools and requirements out of it.
+    assert set(GROUPS) == set(REQUIRED_TOOLS.values())
     assert Counter(REQUIRED_TOOLS.values()) == {
         "evs": 12,
         "cadsr": 10,

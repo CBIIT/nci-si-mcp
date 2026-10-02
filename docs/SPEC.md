@@ -364,7 +364,7 @@ acceptance/
   tests/
     test_protocol.py        the P requirements (protocol gates)
     test_crosscutting.py    the X requirements, parameterised over the required tools
-    test_group_a.py … test_group_w.py
+    test_evs.py, test_cadsr.py, test_cross_domain.py, test_workflow.py   each group's tool requirements
   selftests/                the harness's own tests, run in the unit CI job
 ```
 
