@@ -41,6 +41,7 @@ import yaml
 
 from nci_si_acceptance.inventory import REQUIRED_TOOLS
 from nci_si_acceptance.suite import FIXTURE_ONLY as FIXTURE_ONLY_SKIP
+from nci_si_acceptance.suite import UnmatchedUpstream
 from nci_si_acceptance.tools import NOT_IMPLEMENTED
 
 if TYPE_CHECKING:
@@ -51,7 +52,7 @@ if TYPE_CHECKING:
 PASS, FAIL, NO_FIXTURE = "PASS", "FAIL", "NO FIXTURE"
 INCOMPLETE, NOT_RUN, NO_TESTS = "INCOMPLETE", "NOT RUN", "NO TESTS"
 FIXTURE_ONLY = "PASS (fixture only)"
-# The property the missing-fixture guard attaches to a test: the requests concerned.
+# The property a test failing for want of fixtures carries: the requests concerned.
 UNMATCHED = "unmatched_upstream"
 # A later phase of a test (setup, call, teardown) overrides an earlier outcome only
 # when it ranks higher.
@@ -66,21 +67,24 @@ RANK = {
 FAILED = ("failed", "no_fixture")
 
 
-def tool_outcome(counts: Counter[str], gates_failed: bool, implemented: bool) -> str:
-    """The outcome of one tool in one run, from the final outcomes of its tests."""
+def tool_outcome(counts: Counter[str], gates_failed: bool, implemented: bool | None) -> str:
+    """The outcome of one tool in one run, from the final outcomes of its tests.
+
+    `implemented` is None when no server started, so the run cannot tell.
+    """
 
     if not counts:
         return NO_TESTS
-    if not implemented:
-        return NOT_IMPLEMENTED
     if counts["failed"] or (gates_failed and counts["passed"]):
         return FAIL
-    return _without_failures(counts)
-
-
-def _without_failures(counts: Counter[str]) -> str:
     if counts["no_fixture"]:
         return NO_FIXTURE
+    return _without_failures(counts, implemented)
+
+
+def _without_failures(counts: Counter[str], implemented: bool | None) -> str:
+    if implemented is False:
+        return NOT_IMPLEMENTED
     if not counts["passed"]:
         return NOT_RUN
     return INCOMPLETE if counts["skipped"] or counts["not_implemented"] else PASS
@@ -106,7 +110,8 @@ class Collector:
 
     def __init__(self) -> None:
         self.tests: dict[str, dict[str, Any]] = {}
-        self.implemented_as: dict[str, str | None] = {}
+        # Which tool stands for each required one; None until a server has started.
+        self.implemented_as: dict[str, str | None] | None = None
 
     def record(self, report: pytest.TestReport, tool: str | None, gate: bool) -> None:
         outcome = _phase_outcome(report)
@@ -124,13 +129,13 @@ class Collector:
 
     def _row(self, name: str, group: str, gates_failed: bool) -> dict[str, Any]:
         counts = Counter(test["outcome"] for test in self.tests.values() if test["tool"] == name)
+        stand_in = (self.implemented_as or {}).get(name)
+        implemented = None if self.implemented_as is None else stand_in is not None
         return {
             "group": group,
-            "outcome": tool_outcome(
-                counts, gates_failed, self.implemented_as.get(name) is not None
-            ),
+            "outcome": tool_outcome(counts, gates_failed, implemented),
             "gates_only": gates_failed and not (counts["failed"] or counts["no_fixture"]),
-            "implemented_as": self.implemented_as.get(name),
+            "implemented_as": stand_in,
             "counts": dict(counts),
         }
 
@@ -205,7 +210,7 @@ def render(report: dict[str, Any], combined: dict[str, tuple[str, list[str]]], m
         f"Gates failed: {', '.join(report['failed_gates']) or 'none'}.",
         "Tests never run against an implementation: "
         f"{_named(combined, NOT_IMPLEMENTED, NOT_RUN, NO_TESTS)}.",
-        f"Tests run and not passing: {_named(combined, FAIL)}.",
+        f"Tests run and not passing: {_named(combined, FAIL, NO_FIXTURE, INCOMPLETE)}.",
         f"Requests without a fixture: {'; '.join(missing) or 'none'}.",
     ]
     return "\n".join(lines) + "\n"
@@ -229,6 +234,8 @@ def pytest_configure(config: pytest.Config) -> None:
 @pytest.hookimpl(wrapper=True)
 def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[None]) -> Any:
     report = yield
+    if call.excinfo is not None and isinstance(call.excinfo.value, UnmatchedUpstream):
+        report.user_properties.append((UNMATCHED, call.excinfo.value.requests))
     marker = item.get_closest_marker("tool")
     tool = marker.args[0] if marker else None
     item.config.stash[COLLECTOR].record(report, tool, item.get_closest_marker("gate") is not None)

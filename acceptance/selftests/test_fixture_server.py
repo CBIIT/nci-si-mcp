@@ -72,9 +72,11 @@ def server(tmp_path):
 
 
 def test_a_request_is_answered_by_its_fixture_and_recorded(server):
+    before = time.monotonic()
     status, content_type, body = fetch(
         server.base_url("evs") + "/api/v1/version", headers={"Accept": "application/json"}
     )
+    after = time.monotonic()
 
     assert (status, content_type, json.loads(body)) == (
         200,
@@ -86,7 +88,7 @@ def test_a_request_is_answered_by_its_fixture_and_recorded(server):
     assert entry["path"] == "/api/v1/version"
     assert entry["headers"]["Accept"] == "application/json"
     assert entry["fixture"] == "recorded/evs/version.json"
-    assert entry["received_at"] <= time.monotonic()
+    assert before <= entry["received_at"] <= after
 
 
 def test_query_parameters_match_decoded_and_in_any_order(server):
@@ -351,6 +353,30 @@ def test_a_scenario_carries_the_settings_its_server_starts_with(tmp_path):
         running.activate("evs/slow")
 
 
+def test_a_scenario_may_not_override_what_the_harness_sets(tmp_path):
+    write_settings(
+        tmp_path, "scenarios/evs/away/settings.json", {"NCI_SI_EVS_BASE_URL": "https://x"}
+    )
+
+    with pytest.raises(
+        ValueError, match=r"away/settings\.json: the harness sets NCI_SI_EVS_BASE_URL"
+    ):
+        load_fixtures(tmp_path)
+
+
+def test_scenarios_setting_the_same_setting_cannot_be_active_together(tmp_path):
+    for scenario in ("evs/slow", "evs/slower"):
+        write_settings(
+            tmp_path, f"scenarios/{scenario}/settings.json", {"NCI_SI_TIMEOUT_SECONDS": "1"}
+        )
+
+    with (
+        FixtureServer(load_fixtures(tmp_path)) as running,
+        pytest.raises(ValueError, match="the scenarios evs/slow, evs/slower set the same setting"),
+    ):
+        running.activate("evs/slow", "evs/slower")
+
+
 @pytest.mark.parametrize(
     ("name", "settings", "problem"),
     [
@@ -521,6 +547,15 @@ def test_a_parameter_declared_ignored_is_left_out_of_the_match_and_kept_in_the_l
 
     assert statuses == [200, 200, 501]
     assert logged["count"] == ["50"]
+
+
+def test_a_fixture_matching_on_a_parameter_its_path_ignores_is_refused(tmp_path):
+    request = {"surface": "evs-fhir", "method": "GET", "path": "/ValueSet/$expand"}
+    fixture_file(tmp_path, "a.json", request=request | {"ignored": {"count": "STATUS.md"}})
+    fixture_file(tmp_path, "b.json", request=request | {"params": {"count": ["5"]}})
+
+    with pytest.raises(ValueError, match=r"b\.json matches on count, which its path ignores"):
+        FixtureServer(load_fixtures(tmp_path))
 
 
 @pytest.mark.parametrize(

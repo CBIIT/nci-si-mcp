@@ -42,7 +42,9 @@ and answer only while it is active, before any ordinary fixture: a scenario fixt
 that matches any body wins over an ordinary one for the exact body. Two fixtures for
 the same request in one scenario, outside the scenarios, or in two scenarios active
 together, are refused. A scenario may also hold `settings.json`, the `NCI_SI_*`
-settings its server process starts with (a short timeout, a licence key).
+settings its server process starts with (a short timeout, a licence key); the settings
+the harness makes itself (upstream URLs, mode, data directory) are refused, and so are
+two scenarios active together that set the same one.
 
 Every log entry records when the request arrived (`received_at`, monotonic seconds).
 """
@@ -58,7 +60,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import TYPE_CHECKING, Any, Self
 from urllib.parse import parse_qs, unquote, urlsplit
 
+from nci_si_acceptance.client import HARNESS_VARIABLES
+
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from pathlib import Path
 
 # The upstream surfaces, each served under its own path prefix.
@@ -247,6 +252,8 @@ def _read_settings(path: Path, root: Path, scenario: str | None) -> dict[str, st
         key.startswith("NCI_SI_") and isinstance(value, str) for key, value in settings.items()
     ):
         raise ValueError(f"{name}: settings are NCI_SI_* names with string values")
+    if reserved := sorted(set(settings) & HARNESS_VARIABLES):
+        raise ValueError(f"{name}: the harness sets {', '.join(reserved)}")
     return settings
 
 
@@ -278,10 +285,35 @@ def _layers(fixtures: FixtureSet, scenarios: tuple[str, ...]) -> list[Fixtures]:
     if unknown:
         raise ValueError(f"no such scenario: {', '.join(unknown)}")
     layers = [fixtures.scenarios.get(scenario, {}) for scenario in scenarios]
-    keys = [key for layer in layers for key in layer]
-    if len(keys) != len(set(keys)):
+    if _overlap(layers):
         raise ValueError(f"the scenarios {', '.join(scenarios)} answer the same request")
+    if _overlap(fixtures.settings.get(scenario, {}) for scenario in scenarios):
+        raise ValueError(f"the scenarios {', '.join(scenarios)} set the same setting")
     return [*layers, fixtures.ordinary]
+
+
+def _overlap(tables: Iterable[dict[Any, Any]]) -> bool:
+    keys = [key for table in tables for key in table]
+    return len(keys) != len(set(keys))
+
+
+def _ignored_by_path(layers: list[Fixtures]) -> dict[tuple[str, str, str], frozenset[str]]:
+    """The parameters left out of the match, per request path, over every active fixture.
+
+    A fixture that matches on a parameter another fixture of its path ignores could
+    never answer, so it is refused.
+    """
+
+    ignored: dict[tuple[str, str, str], frozenset[str]] = {}
+    for layer in layers:
+        for key, fixture in layer.items():
+            ignored[key[:3]] = ignored.get(key[:3], frozenset()) | fixture.ignored
+    for layer in layers:
+        for key, fixture in layer.items():
+            if clash := sorted({name for name, _ in key[3]} & ignored[key[:3]]):
+                names = ", ".join(clash)
+                raise ValueError(f"{fixture.name} matches on {names}, which its path ignores")
+    return ignored
 
 
 class FixtureServer:
@@ -315,10 +347,7 @@ class FixtureServer:
         """Answer from these scenarios' fixtures first; no argument ends them. The log stays."""
 
         layers = _layers(self.fixtures, scenarios)
-        ignored: dict[tuple[str, str, str], frozenset[str]] = {}
-        for layer in layers:
-            for key, fixture in layer.items():
-                ignored[key[:3]] = ignored.get(key[:3], frozenset()) | fixture.ignored
+        ignored = _ignored_by_path(layers)
         with self._lock:
             self._layers, self._ignored = layers, ignored
 

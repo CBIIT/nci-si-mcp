@@ -17,6 +17,18 @@ FIXTURE_ONLY = "fixture mode only"
 UNMATCHED_UPSTREAM = "unmatched_upstream"
 
 
+class UnmatchedUpstream(pytest.fail.Exception):
+    """A test fails because upstream requests found no fixture; `requests` names them.
+
+    The report counts such a failure as NO FIXTURE, for each test it reaches: a server
+    whose startup requests lacked fixtures fails every test that uses it.
+    """
+
+    def __init__(self, requests: list[str], when: str = "") -> None:
+        super().__init__(f"upstream requests without a fixture{when}:\n" + "\n".join(requests))
+        self.requests = requests
+
+
 def scenarios_of(item: pytest.Item) -> tuple[str, ...]:
     """The scenarios a test selects, over all its `scenario` markers."""
 

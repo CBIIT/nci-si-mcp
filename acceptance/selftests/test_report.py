@@ -23,6 +23,9 @@ from nci_si_acceptance.report import UNMATCHED, Collector, combine, main, render
         ({"passed": 2, "not_live": 1}, False, True, "PASS"),
         ({"not_live": 2}, False, True, "NOT RUN"),
         ({"not_implemented": 2}, True, False, "NOT IMPLEMENTED"),
+        ({"failed": 2}, False, False, "FAIL"),
+        ({"no_fixture": 2}, False, False, "NO FIXTURE"),
+        ({"not_live": 1}, False, None, "NOT RUN"),
         ({}, False, False, "NO TESTS"),
     ],
 )
@@ -104,6 +107,30 @@ def test_skips_are_not_implemented_or_not_run_and_a_failed_gate_fails_every_pass
     assert set(tools) == set(REQUIRED_TOOLS)
 
 
+def test_a_live_run_counts_a_fixture_only_test_without_making_its_tool_incomplete():
+    report = collected(
+        (phase("setup", "skipped", "t.py::a", "fixture mode only"), "get_form", False),
+        (phase("call", "passed", "t.py::b"), "get_form", False),
+        (phase("setup", "skipped", "t.py::c", "fixture mode only"), "get_concept", False),
+    )
+
+    assert report["tests"]["t.py::a"]["outcome"] == "not_live"
+    assert report["tools"]["get_form"]["outcome"] == "PASS"
+    assert report["tools"]["get_concept"]["outcome"] == "NOT RUN"
+
+
+def test_a_tool_failing_its_own_test_while_a_gate_fails_is_not_failing_by_the_gates_only():
+    report = collected(
+        (phase("call", "failed", "t.py::a"), "get_form", False),
+        (phase("call", "passed", "t.py::b"), "get_concept", False),
+        (phase("call", "failed", "t.py::gate"), None, True),
+    )
+
+    tools = report["tools"]
+    assert (tools["get_form"]["outcome"], tools["get_form"]["gates_only"]) == ("FAIL", False)
+    assert (tools["get_concept"]["outcome"], tools["get_concept"]["gates_only"]) == ("FAIL", True)
+
+
 def run(outcomes, tests=None):
     """A run's report with the given tool outcomes and test entries."""
 
@@ -159,7 +186,14 @@ def test_a_live_gate_failure_fails_every_tool_unless_it_is_a_documented_limitati
 
 
 def test_the_rendered_report_states_its_modes_counts_and_what_proves_nothing_yet():
-    fixture = run({"resolve_release": "FAIL", "get_concept": "NOT IMPLEMENTED"})
+    fixture = run(
+        {
+            "resolve_release": "FAIL",
+            "get_concept": "NOT IMPLEMENTED",
+            "get_concepts": "NO FIXTURE",
+            "get_form": "INCOMPLETE",
+        }
+    )
     fixture["tools"]["resolve_release"] |= {
         "implemented_as": "ncit_release_info",
         "gates_only": True,
@@ -176,7 +210,7 @@ def test_the_rendered_report_states_its_modes_counts_and_what_proves_nothing_yet
     assert (
         "| `resolve_release` | A | FAIL (gates only) | 4 / 0 / 0 | ncit_release_info |  |" in text
     )
-    assert "Tests run and not passing: resolve_release." in text
+    assert "Tests run and not passing: resolve_release, get_concepts, get_form." in text
     assert "Requests without a fixture: GET evs /x {}." in text
     never_run = next(line for line in text.splitlines() if line.startswith("Tests never run"))
     assert "get_concept" in never_run

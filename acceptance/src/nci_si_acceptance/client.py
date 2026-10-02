@@ -45,6 +45,8 @@ UPSTREAM_VARIABLES = {
     "NCI_SI_SSIS_FACADE_URL": "ssis",
     "NCI_SI_SSIS_SPARQL_URL": "ssis-sparql",
 }
+# What the harness sets itself, and a scenario's settings may not override.
+HARNESS_VARIABLES = frozenset({*UPSTREAM_VARIABLES, "NCI_SI_UPSTREAM_MODE", "NCI_SI_DATA_DIR"})
 # Credentials for licensed upstream content (docs/SPEC.md §8), used in live mode only.
 CREDENTIAL_VARIABLES = ("NCI_SI_EVS_LICENSE_KEY", "NCI_SI_CADSR_CREDENTIAL")
 

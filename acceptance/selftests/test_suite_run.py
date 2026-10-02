@@ -63,7 +63,7 @@ def test_requests_without_a_fixture_fail_the_test_and_are_listed(suite):
 
     result.assert_outcomes(passed=1, errors=1)
     result.stdout.fnmatch_lines(
-        ["E * Failed: upstream requests without a fixture:", "E * GET evs /api/v1/version {}"]
+        ["E * upstream requests without a fixture:", "E * GET evs /api/v1/version {}"]
     )
     report = json.loads((suite.path / "report.json").read_text(encoding="utf-8"))
     assert report["tools"]["resolve_release"]["outcome"] == "NO FIXTURE"
@@ -81,19 +81,62 @@ runpy.run_module("nci_si_mcp.cli", run_name="__main__")
 """
 
 
-def test_requests_without_a_fixture_while_the_server_starts_fail_the_run(suite, monkeypatch):
+def eager(suite, monkeypatch):
     (suite.path / "eager.py").write_text(EAGER_SERVER, encoding="utf-8")
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_SERVER", f"{sys.executable} {suite.path / 'eager.py'}")
 
-    result = run(suite, PROBE.format(marker="@pytest.mark.unmatched_upstream"))
 
-    result.assert_outcomes(errors=1)
+def test_requests_without_a_fixture_while_the_server_starts_fail_every_test_using_it(
+    suite, monkeypatch
+):
+    eager(suite, monkeypatch)
+    test = (
+        PROBE.format(marker="@pytest.mark.unmatched_upstream")
+        + """
+@pytest.mark.tool("resolve_release")
+def test_again(tools):
+    tools.call("resolve_release")
+"""
+    )
+    result = run(suite, test, "--report=report.json")
+
+    result.assert_outcomes(errors=2)
     result.stdout.fnmatch_lines(
         [
-            "E * Failed: upstream requests without a fixture while the server started:",
+            "E * upstream requests without a fixture while the server started:",
             "E * GET evs /api/v1/version {}",
         ]
     )
+    report = json.loads((suite.path / "report.json").read_text(encoding="utf-8"))
+    assert report["tools"]["resolve_release"]["outcome"] == "NO FIXTURE"
+    assert {test["outcome"] for test in report["tests"].values()} == {"no_fixture"}
+    assert all(
+        test["unmatched"] == ["GET evs /api/v1/version {}"] for test in report["tests"].values()
+    )
+
+
+def test_a_test_sees_none_of_the_requests_its_server_made_while_it_started(suite, monkeypatch):
+    eager(suite, monkeypatch)
+    fixture(suite.path / "fixtures", "recorded/version.json", {"status": 200, "body": {}})
+    test = """
+def test_clean(tools, upstream):
+    assert upstream.log() == []
+"""
+    result = run(suite, test)
+
+    result.assert_outcomes(passed=1)
+
+
+def test_a_live_run_reports_its_mode_and_a_tool_with_only_fixture_tests_as_not_run(
+    suite, monkeypatch
+):
+    monkeypatch.setenv("NCI_SI_ACCEPTANCE_MODE", "live")
+
+    result = run(suite, PROBE.format(marker=""), "--report=report.json")
+
+    result.assert_outcomes(skipped=1)
+    report = json.loads((suite.path / "report.json").read_text(encoding="utf-8"))
+    assert (report["mode"], report["tools"]["resolve_release"]["outcome"]) == ("live", "NOT RUN")
 
 
 def test_a_test_marked_unmatched_upstream_may_leave_them(suite):

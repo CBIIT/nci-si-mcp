@@ -81,6 +81,15 @@ def test_an_absent_tool_is_called_through_its_stand_in():
     assert tools.implemented_as("get_concept_neighborhood") == "ncit_traverse"
 
 
+def test_a_text_answer_that_is_not_json_is_kept_as_text():
+    message = "Error executing tool ncit_lookup: 1 validation error"
+    session = Session(["get_concept"], answer(text(message), is_error=True))
+
+    result = Tools(session, {}).call("get_concept", {"code": "C3262"})
+
+    assert (result.is_error, result.content) == (True, message)
+
+
 def test_a_result_without_content_has_none():
     session = Session(["list_terminologies"], answer(SimpleNamespace(type="image")))
 

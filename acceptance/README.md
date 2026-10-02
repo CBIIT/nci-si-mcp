@@ -8,8 +8,8 @@ From the repository root:
 
 ```bash
 pdm run acceptance --report=fixture.json             # fixture mode; writes acceptance/fixture.json
-NCI_SI_ACCEPTANCE_MODE=live pdm run acceptance --report=live.json   # live-capable tests, production
-NCI_SI_ACCEPTANCE_SERVER="..." pdm run acceptance    # another server command (default: nci-si-mcp serve)
+NCI_SI_ACCEPTANCE_MODE=live pdm run acceptance --report=live.json  # live-capable tests
+NCI_SI_ACCEPTANCE_SERVER="..." pdm run acceptance    # another server (default: nci-si-mcp serve)
 pdm run python -m nci_si_acceptance.report acceptance/fixture.json --live acceptance/live.json
 pdm run acceptance-selftest                          # the harness's own tests
 ```
@@ -23,8 +23,9 @@ that stands in for it; otherwise the test is skipped as NOT IMPLEMENTED. Each te
 section of the specification it asserts, and asserts only what that section says.
 
 `@pytest.mark.scenario("release/unknown")` serves the scenario's fixtures before the ordinary
-ones, to a server process of its own started with the scenario's settings. A test marked `live_capable` also runs in live
-mode; every other test runs against fixtures only.
+ones, to a server process of its own started with the scenario's settings. A test marked
+`live_capable` also runs in live mode, unless it selects a scenario; every other test runs
+against fixtures only.
 
 In fixture mode a test fails when one of its upstream requests found no fixture, and so does a
 server whose requests while it starts found none: the server may treat the refusal as an outage
@@ -45,7 +46,8 @@ has a documented upstream limitation (`--limitations`, YAML of test id to requir
 `src/nci_si_acceptance/` holds the harness: `client.py` starts the server, `tools.py` calls the
 required tools, `fixture_server.py` serves the fixtures (its docstring documents the format),
 `report.py` writes and renders the per-tool report, `inventory.py` lists the required tools and
-`suite.py` the rules of a run. `fixtures/` holds the fixtures ([fixtures/README.md](fixtures/README.md)),
-`tests/` the suite, `selftests/` the tests of the harness itself.
+`suite.py` the rules of a run. `fixtures/` holds the fixtures
+([fixtures/README.md](fixtures/README.md)), `tests/` the suite, `selftests/` the tests of the
+harness itself.
 
 The suite is versioned on its own (`pyproject.toml` here), independently of the server.

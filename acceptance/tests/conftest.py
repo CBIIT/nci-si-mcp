@@ -19,6 +19,7 @@ from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
 from nci_si_acceptance.report import COLLECTOR, write_report
 from nci_si_acceptance.suite import (
     UNMATCHED_UPSTREAM,
+    UnmatchedUpstream,
     scenarios_of,
     skip_fixture_only,
     unmatched_requests,
@@ -88,6 +89,8 @@ def _tools(
     settings: dict[str, str] | None = None,
 ) -> Iterator[Tools]:
     url = upstream.url if upstream else None
+    if upstream:
+        upstream.reset()  # what earlier tests left in the log is not this server's
     environment = server_environment(target.mode, tmp_path_factory.mktemp("data"), url)
     with open_session(target.command, environment | (settings or {})) as session:
         unmatched = _startup_requests(upstream)
@@ -96,9 +99,7 @@ def _tools(
             return
     # Failing outside the session: inside it, the failure would reach pytest wrapped
     # in the session's exception group.
-    pytest.fail(
-        "upstream requests without a fixture while the server started:\n" + "\n".join(unmatched)
-    )
+    raise UnmatchedUpstream(unmatched, " while the server started")
 
 
 def _startup_requests(upstream: FixtureServer | None) -> list[str]:
@@ -145,5 +146,4 @@ def upstream_log(request: pytest.FixtureRequest, upstream: FixtureServer | None)
     yield
     unmatched = unmatched_requests(upstream.log())
     if unmatched and request.node.get_closest_marker(UNMATCHED_UPSTREAM) is None:
-        request.node.user_properties.append((UNMATCHED_UPSTREAM, unmatched))
-        pytest.fail("upstream requests without a fixture:\n" + "\n".join(unmatched))
+        raise UnmatchedUpstream(unmatched)

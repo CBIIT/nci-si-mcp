@@ -5,6 +5,7 @@ import pytest
 
 from nci_si_acceptance.suite import (
     LIVE_CAPABLE,
+    UnmatchedUpstream,
     scenarios_of,
     skip_fixture_only,
     unmatched_requests,
@@ -44,6 +45,17 @@ def test_a_test_selects_the_scenarios_of_all_its_markers():
 
     assert scenarios_of(item) == ("a/one", "a/two", "b/three")
     assert scenarios_of(Item()) == ()
+
+
+def test_a_failure_for_want_of_fixtures_names_the_requests_and_when():
+    failure = UnmatchedUpstream(["GET evs /a {}", "GET evs /b {}"], " while the server started")
+
+    assert failure.requests == ["GET evs /a {}", "GET evs /b {}"]
+    assert str(failure).splitlines() == [
+        "upstream requests without a fixture while the server started:",
+        "GET evs /a {}",
+        "GET evs /b {}",
+    ]
 
 
 def test_requests_without_a_fixture_are_named_one_per_line():
