@@ -22,6 +22,8 @@ from anyio.from_thread import BlockingPortal, start_blocking_portal
 from mcp.client import Client
 from mcp.client.stdio import StdioServerParameters
 
+from nci_si_acceptance.fixture_server import UPSTREAM_VARIABLES
+
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
@@ -36,15 +38,6 @@ DEFAULT_SERVER = "nci-si-mcp serve"
 # How long the harness waits for any one answer of the server, startup included.
 READ_TIMEOUT_SECONDS = 60
 
-# The server's upstream settings (docs/SPEC.md §8) and the fixture surface each one names.
-UPSTREAM_VARIABLES = {
-    "NCI_SI_EVS_BASE_URL": "evs",
-    "NCI_SI_EVS_FHIR_BASE_URL": "evs-fhir",
-    "NCI_SI_CADSR_BASE_URL": "cadsr",
-    "NCI_SI_CADSR_FTP_URL": "cadsr-ftp",
-    "NCI_SI_SSIS_FACADE_URL": "ssis",
-    "NCI_SI_SSIS_SPARQL_URL": "ssis-sparql",
-}
 # Credentials for licensed upstream content (docs/SPEC.md §8), used in live mode only.
 CREDENTIAL_VARIABLES = ("NCI_SI_EVS_LICENSE_KEY", "NCI_SI_CADSR_CREDENTIAL")
 

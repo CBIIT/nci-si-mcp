@@ -38,13 +38,15 @@ lint = [
     "vulture>=2.16",
 ]
 
+[tool.pdm]
+distribution = true
+
 # The acceptance suite is a package of its own, installed editable beside the server.
+# An editable path is a PDM extension that standard dependency groups do not allow.
+[tool.pdm.dev-dependencies]
 acceptance = [
     "-e file:///${PROJECT_ROOT}/acceptance#egg=nci-si-acceptance",
 ]
-
-[tool.pdm]
-distribution = true
 
 # `pdm install` and `pdm sync` always include the server extra, which the server
 # tests need, and never the embeddings extra unless it is named. `pdm lock`
@@ -165,7 +167,7 @@ min_confidence = 60
 ignore_decorators = ["@mcp.tool", "@mcp.resource", "@pytest.fixture"]
 ignore_names = [
     "row_factory", "built_at", "index_path", "state", "reuse_targets",
-    "pytest_*", "do_*", "log_message",
+    "pytest_*", "do_*", "log_message", "close_connection",
 ]
 
 [tool.basedpyright]

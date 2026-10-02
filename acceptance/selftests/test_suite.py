@@ -1,30 +1,61 @@
-"""The rules of a run: what a live run skips, and which requests lacked a fixture."""
+"""The rules of a run: what a live run skips, which scenarios a test selects, and which
+requests lacked a fixture."""
 
-from nci_si_acceptance.suite import LIVE_CAPABLE, skip_fixture_only, unmatched_requests
+import pytest
+
+from nci_si_acceptance.suite import (
+    LIVE_CAPABLE,
+    UnmatchedUpstream,
+    scenarios_of,
+    skip_fixture_only,
+    unmatched_requests,
+)
 
 
 class Item:
     """The part of a collected test that the rules read and write."""
 
     def __init__(self, *markers):
-        self.markers = list(markers)
+        self.markers = [getattr(marker, "mark", marker) for marker in markers]
+
+    def iter_markers(self, name):
+        return (marker for marker in self.markers if marker.name == name)
 
     def get_closest_marker(self, name):
-        return next(
-            (marker for marker in self.markers if getattr(marker, "name", marker) == name), None
-        )
+        return next(self.iter_markers(name), None)
 
     def add_marker(self, marker):
-        self.markers.append(marker)
+        self.markers.append(marker.mark)
 
 
-def test_a_live_run_skips_every_test_not_marked_live_capable():
-    live, fixture_only = Item(LIVE_CAPABLE), Item()
+def test_a_live_run_skips_every_test_not_marked_live_capable_and_every_scenario():
+    live = Item(getattr(pytest.mark, LIVE_CAPABLE))
+    fixture_only = Item()
+    scenario = Item(getattr(pytest.mark, LIVE_CAPABLE), pytest.mark.scenario("release/unknown"))
 
-    skip_fixture_only([live, fixture_only])
+    skip_fixture_only([live, fixture_only, scenario])
 
     assert live.get_closest_marker("skip") is None
     assert fixture_only.get_closest_marker("skip").kwargs == {"reason": "fixture mode only"}
+    assert scenario.get_closest_marker("skip").kwargs == {"reason": "fixture mode only"}
+
+
+def test_a_test_selects_the_scenarios_of_all_its_markers():
+    item = Item(pytest.mark.scenario("a/one", "a/two"), pytest.mark.scenario("b/three"))
+
+    assert scenarios_of(item) == ("a/one", "a/two", "b/three")
+    assert scenarios_of(Item()) == ()
+
+
+def test_a_failure_for_want_of_fixtures_names_the_requests_and_when():
+    failure = UnmatchedUpstream(["GET evs /a {}", "GET evs /b {}"], " while the server started")
+
+    assert failure.requests == ["GET evs /a {}", "GET evs /b {}"]
+    assert str(failure).splitlines() == [
+        "upstream requests without a fixture while the server started:",
+        "GET evs /a {}",
+        "GET evs /b {}",
+    ]
 
 
 def test_requests_without_a_fixture_are_named_one_per_line():
