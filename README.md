@@ -1,6 +1,6 @@
 # NCI SI MCP
 
-[![CI](https://github.com/hniedner/nci_si_mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/hniedner/nci_si_mcp/actions/workflows/ci.yml)
+[![CI](https://github.com/hniedner/nci-si-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/hniedner/nci-si-mcp/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13%2B-blue.svg)](pyproject.toml)
 
@@ -47,7 +47,7 @@ The [specification](docs/specification.md) names 29 tools in four groups.
 
 The acceptance suite comes first (Phase 0): its mechanics and the EVS fixture set are in place,
 and the tests of each group follow. The
-[milestones](https://github.com/hniedner/nci_si_mcp/milestones) track the phases.
+[milestones](https://github.com/hniedner/nci-si-mcp/milestones) track the phases.
 
 ## Start here
 

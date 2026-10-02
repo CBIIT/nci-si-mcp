@@ -19,10 +19,10 @@ and the server tests need). The commands below are written as `python -m nci_si_
 run them inside the environment (`eval $(pdm venv activate)`) or prefix them with `pdm run`.
 
 To run a released version without a checkout, install it from its tag; the
-[releases page](https://github.com/hniedner/nci_si_mcp/releases) lists the versions:
+[releases page](https://github.com/hniedner/nci-si-mcp/releases) lists the versions:
 
 ```bash
-pip install "nci-si-mcp[server] @ git+https://github.com/hniedner/nci_si_mcp@vX.Y.Z"
+pip install "nci-si-mcp[server] @ git+https://github.com/hniedner/nci-si-mcp@vX.Y.Z"
 nci-si-mcp serve
 ```
 
@@ -49,7 +49,7 @@ configuration (Claude Desktop, for one), with absolute paths:
 {
   "mcpServers": {
     "nci-si": {
-      "command": "/path/to/nci_si_mcp/.venv/bin/nci-si-mcp",
+      "command": "/path/to/nci-si-mcp/.venv/bin/nci-si-mcp",
       "args": ["serve"],
       "env": {"NCI_SI_DATA_DIR": "/path/to/data"}
     }
