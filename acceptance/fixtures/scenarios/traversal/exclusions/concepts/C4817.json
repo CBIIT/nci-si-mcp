@@ -787,6 +787,18 @@
      "type": "Disease_May_Have_Cytogenetic_Abnormality",
      "relatedCode": "C36368",
      "relatedName": "t(7;22)(p22;q12)"
+    },
+    {
+     "code": "R135",
+     "type": "Disease_Without_Primary_Anatomic_Site",
+     "relatedCode": "C2869",
+     "relatedName": "Anemia"
+    },
+    {
+     "code": "R136",
+     "type": "Disease_Without_Metastatic_Anatomic_Site",
+     "relatedCode": "C2869",
+     "relatedName": "Anemia"
     }
    ],
    "inverseRoles": [

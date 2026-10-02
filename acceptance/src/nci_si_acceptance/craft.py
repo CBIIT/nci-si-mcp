@@ -29,6 +29,7 @@ from nci_si_acceptance.record import (
     reported_releases,
     write,
 )
+from nci_si_acceptance.spec import RECORDS
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -41,7 +42,7 @@ DUPLICATE_RELEASE = "26.09e"
 # The release the release/unknown scenario serves nothing of.
 UNKNOWN = "99.99z"
 TERMINOLOGY = f"ncit_{RELEASE}"
-EXCLUSION_ROLES = frozenset(f"R{number}" for number in range(135, 143))
+EXCLUSION_ROLES = frozenset(RECORDS["traversal"]["fields"]["polarity"]["exclusions"]["ncit"])
 # Positive roles of C4817 given a name that reads as an exclusion in traversal/exclusions.
 MISLEADING_POSITIVE_ROLES = frozenset({"R108", "R116"})
 # More nodes at depth 1 than the 1,000-node maximum, and a chain deeper than depth 4.
@@ -266,15 +267,21 @@ def traversal_deep_fanout(_: Recorded) -> Documents:
 
 def traversal_exclusions(recorded: Recorded) -> Documents:
     """The exclusion roles named as positive ones, and two positive roles named as
-    exclusions, in C4817 and the catalogue alike: only polarity by code is right."""
+    exclusions, in C4817 and the catalogue alike: only polarity by code is right. C4817 gains a
+    role of each exclusion code it lacks, to its first role's target, so that every code of the
+    set is shown."""
 
     requirement = "A5.6, A5.7, E-4: polarity by relationship code, not by name"
     roles = recorded("recorded/evs/roles.json")
-    source = recorded(f"recorded/evs/{CONCEPTS}/C4817.json")
-    body = source["response"]["body"] | {
+    named = {role["code"]: role["name"] for role in roles["response"]["body"]}
+    source = recorded(f"recorded/evs/{CONCEPTS}/C4817.json")["response"]["body"]
+    first = source["roles"][0]
+    lacking = sorted(EXCLUSION_ROLES - {role["code"] for role in source["roles"]})
+    added = [first | {"code": code, "type": named[code]} for code in lacking]
+    body = source | {
         "roles": [
             role | {"type": _misleading(role["code"], role["type"])}
-            for role in source["response"]["body"]["roles"]
+            for role in [*source["roles"], *added]
         ]
     }
     catalogue = [
@@ -297,27 +304,41 @@ def _misleading(code: str, name: str) -> str:
 
 
 def traversal_starvation(_: Recorded) -> Documents:
-    """Many roles and few associations: a budget spent in order starves the associations."""
+    """Two hubs over the same targets: one with many roles and few associations, the other the
+    other way round, so that a budget spent in a fixed order of kinds starves the small kind of
+    one of them."""
 
     requirement = "A5.5: a budget per relationship kind; no kind starved"
-    hub = link("C99200000", "Synthetic Starvation Hub")
-    targets = [
+    many = [
         link(f"C{99200001 + index}", f"Synthetic Role Target {index + 1}")
         for index in range(STARVED_ROLES)
     ]
-    associated = [
+    few = [
         link(f"C{99200001 + STARVED_ROLES + index}", f"Synthetic Associated Concept {index + 1}")
         for index in range(STARVED_ASSOCIATIONS)
     ]
-    body = concept(
-        **hub,
-        roles=[related("Disease_Has_Finding", "R108", **target) for target in targets],
-        associations=[related("Concept_In_Subset", "A8", **target) for target in associated],
+    documents = recording(
+        "traversal/starvation",
+        requirement,
+        _hub("C99200000", "Synthetic Starvation Hub", many, few),
     )
-    documents = recording("traversal/starvation", requirement, body)
-    for target in [*targets, *associated]:
+    documents |= recording(
+        "traversal/starvation",
+        requirement,
+        _hub("C99200400", "Synthetic Association Hub", few, many),
+    )
+    for target in [*many, *few]:
         documents |= recording("traversal/starvation", requirement, concept(**target))
     return documents
+
+
+def _hub(code: str, name: str, role_targets: list, associated: list) -> dict[str, Any]:
+    return concept(
+        code,
+        name,
+        roles=[related("Disease_Has_Finding", "R108", **target) for target in role_targets],
+        associations=[related("Concept_In_Subset", "A8", **target) for target in associated],
+    )
 
 
 def upstream_unavailable(_: Recorded) -> Documents:

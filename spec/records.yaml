@@ -54,7 +54,7 @@ traversal:
       of: A4.2
     polarity:
       content: >-
-        negative exactly when the relationship's code is in its terminology's exclusion set
+        Negative exactly when the relationship's code is in its terminology's exclusion set
         below, positive otherwise, whatever the relationship is named (A5.7); the set is
         checked against the release's relationship catalogue by list_relationships
       values: [positive, negative]
@@ -119,9 +119,10 @@ node:
   title: The node record
   about: >-
     A concept reached by traversal, as get_concept_hierarchy and get_concept_neighborhood
-    return it, each concept once. A relation list names a neighbour by code and name only, so
-    active and status are there where the answer the node came from carries them; the tool
-    reads no concept a second time to fill them in.
+    return it, each concept once, with its status as the concept record carries it (A8.1). A
+    relation list names a neighbour by code and name only, so the tool reads the nodes of the
+    last depth, which it follows no further, for their status: one batch, bounded by the node
+    bound.
   fields:
     code:
       content: The bare code the terminology publishes
@@ -133,11 +134,10 @@ node:
       content: The preferred name
       of: A4.1
     active:
-      content: As in the concept record, where the answer the node came from carries it
-      optional: true
+      content: Whether the platform publishes the concept as active, its boolean unchanged
       of: A8.1
     status:
-      content: As in the concept record, where the answer the node came from carries it
+      content: The platform's own status value, unchanged, where it publishes one
       optional: true
       of: A8.1
     provenance:

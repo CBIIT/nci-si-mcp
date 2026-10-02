@@ -121,7 +121,6 @@ CALLS = {
         "code": "C3262",
         "direction": "parent",
         "depth": 1,
-        "limit": 10,
     },
     "get_concept_neighborhood": {
         "terminology": "ncit",

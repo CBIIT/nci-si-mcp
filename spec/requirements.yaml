@@ -115,6 +115,10 @@ X-16:
 X-17:
   statement: A page smaller than the result carries nextCursor; following it returns the next items, repeats none of the page before, and keeps the release the first page was pinned to; presented with another release, the cursor is an invalid request.
   basis: [M6.1, M2.4]
+X-18:
+  statement: A value below 1 for an argument with bounds is an invalid request, never raised to 1.
+  basis: [A5.1, A2.5]
+  planned: "#53"
 
 # EVS tools.
 resolve_release-1:
@@ -196,6 +200,10 @@ get_concept_neighborhood-4:
 get_concept_neighborhood-5:
   statement: The outbound request budget counts retries.
   basis: [get_concept_neighborhood, A5.3]
+  planned: "#53"
+get_concept_neighborhood-6:
+  statement: budgetPerKind, when given, bounds the nodes each kind adds, and a kind that reaches it is named in truncation.perKind.
+  basis: [get_concept_neighborhood, truncation, A5.5]
   planned: "#53"
 get_concept_subsets-1:
   statement: Membership is returned with subset codes, and the GDC Value Terminology subset resolves.

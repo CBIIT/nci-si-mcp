@@ -1,0 +1,1842 @@
+{
+ "kind": "crafted",
+ "requirement": "A5.5: a budget per relationship kind; no kind starved",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C99200400",
+  "params": {
+   "include": [
+    "full"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C99200400",
+   "name": "Synthetic Association Hub",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "roles": [
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200301",
+     "relatedName": "Synthetic Associated Concept 1"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C99200302",
+     "relatedName": "Synthetic Associated Concept 2"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200001",
+     "relatedName": "Synthetic Role Target 1"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200002",
+     "relatedName": "Synthetic Role Target 2"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200003",
+     "relatedName": "Synthetic Role Target 3"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200004",
+     "relatedName": "Synthetic Role Target 4"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200005",
+     "relatedName": "Synthetic Role Target 5"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200006",
+     "relatedName": "Synthetic Role Target 6"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200007",
+     "relatedName": "Synthetic Role Target 7"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200008",
+     "relatedName": "Synthetic Role Target 8"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200009",
+     "relatedName": "Synthetic Role Target 9"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200010",
+     "relatedName": "Synthetic Role Target 10"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200011",
+     "relatedName": "Synthetic Role Target 11"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200012",
+     "relatedName": "Synthetic Role Target 12"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200013",
+     "relatedName": "Synthetic Role Target 13"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200014",
+     "relatedName": "Synthetic Role Target 14"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200015",
+     "relatedName": "Synthetic Role Target 15"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200016",
+     "relatedName": "Synthetic Role Target 16"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200017",
+     "relatedName": "Synthetic Role Target 17"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200018",
+     "relatedName": "Synthetic Role Target 18"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200019",
+     "relatedName": "Synthetic Role Target 19"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200020",
+     "relatedName": "Synthetic Role Target 20"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200021",
+     "relatedName": "Synthetic Role Target 21"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200022",
+     "relatedName": "Synthetic Role Target 22"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200023",
+     "relatedName": "Synthetic Role Target 23"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200024",
+     "relatedName": "Synthetic Role Target 24"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200025",
+     "relatedName": "Synthetic Role Target 25"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200026",
+     "relatedName": "Synthetic Role Target 26"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200027",
+     "relatedName": "Synthetic Role Target 27"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200028",
+     "relatedName": "Synthetic Role Target 28"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200029",
+     "relatedName": "Synthetic Role Target 29"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200030",
+     "relatedName": "Synthetic Role Target 30"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200031",
+     "relatedName": "Synthetic Role Target 31"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200032",
+     "relatedName": "Synthetic Role Target 32"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200033",
+     "relatedName": "Synthetic Role Target 33"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200034",
+     "relatedName": "Synthetic Role Target 34"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200035",
+     "relatedName": "Synthetic Role Target 35"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200036",
+     "relatedName": "Synthetic Role Target 36"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200037",
+     "relatedName": "Synthetic Role Target 37"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200038",
+     "relatedName": "Synthetic Role Target 38"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200039",
+     "relatedName": "Synthetic Role Target 39"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200040",
+     "relatedName": "Synthetic Role Target 40"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200041",
+     "relatedName": "Synthetic Role Target 41"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200042",
+     "relatedName": "Synthetic Role Target 42"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200043",
+     "relatedName": "Synthetic Role Target 43"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200044",
+     "relatedName": "Synthetic Role Target 44"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200045",
+     "relatedName": "Synthetic Role Target 45"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200046",
+     "relatedName": "Synthetic Role Target 46"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200047",
+     "relatedName": "Synthetic Role Target 47"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200048",
+     "relatedName": "Synthetic Role Target 48"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200049",
+     "relatedName": "Synthetic Role Target 49"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200050",
+     "relatedName": "Synthetic Role Target 50"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200051",
+     "relatedName": "Synthetic Role Target 51"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200052",
+     "relatedName": "Synthetic Role Target 52"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200053",
+     "relatedName": "Synthetic Role Target 53"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200054",
+     "relatedName": "Synthetic Role Target 54"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200055",
+     "relatedName": "Synthetic Role Target 55"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200056",
+     "relatedName": "Synthetic Role Target 56"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200057",
+     "relatedName": "Synthetic Role Target 57"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200058",
+     "relatedName": "Synthetic Role Target 58"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200059",
+     "relatedName": "Synthetic Role Target 59"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200060",
+     "relatedName": "Synthetic Role Target 60"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200061",
+     "relatedName": "Synthetic Role Target 61"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200062",
+     "relatedName": "Synthetic Role Target 62"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200063",
+     "relatedName": "Synthetic Role Target 63"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200064",
+     "relatedName": "Synthetic Role Target 64"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200065",
+     "relatedName": "Synthetic Role Target 65"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200066",
+     "relatedName": "Synthetic Role Target 66"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200067",
+     "relatedName": "Synthetic Role Target 67"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200068",
+     "relatedName": "Synthetic Role Target 68"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200069",
+     "relatedName": "Synthetic Role Target 69"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200070",
+     "relatedName": "Synthetic Role Target 70"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200071",
+     "relatedName": "Synthetic Role Target 71"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200072",
+     "relatedName": "Synthetic Role Target 72"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200073",
+     "relatedName": "Synthetic Role Target 73"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200074",
+     "relatedName": "Synthetic Role Target 74"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200075",
+     "relatedName": "Synthetic Role Target 75"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200076",
+     "relatedName": "Synthetic Role Target 76"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200077",
+     "relatedName": "Synthetic Role Target 77"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200078",
+     "relatedName": "Synthetic Role Target 78"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200079",
+     "relatedName": "Synthetic Role Target 79"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200080",
+     "relatedName": "Synthetic Role Target 80"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200081",
+     "relatedName": "Synthetic Role Target 81"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200082",
+     "relatedName": "Synthetic Role Target 82"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200083",
+     "relatedName": "Synthetic Role Target 83"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200084",
+     "relatedName": "Synthetic Role Target 84"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200085",
+     "relatedName": "Synthetic Role Target 85"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200086",
+     "relatedName": "Synthetic Role Target 86"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200087",
+     "relatedName": "Synthetic Role Target 87"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200088",
+     "relatedName": "Synthetic Role Target 88"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200089",
+     "relatedName": "Synthetic Role Target 89"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200090",
+     "relatedName": "Synthetic Role Target 90"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200091",
+     "relatedName": "Synthetic Role Target 91"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200092",
+     "relatedName": "Synthetic Role Target 92"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200093",
+     "relatedName": "Synthetic Role Target 93"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200094",
+     "relatedName": "Synthetic Role Target 94"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200095",
+     "relatedName": "Synthetic Role Target 95"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200096",
+     "relatedName": "Synthetic Role Target 96"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200097",
+     "relatedName": "Synthetic Role Target 97"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200098",
+     "relatedName": "Synthetic Role Target 98"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200099",
+     "relatedName": "Synthetic Role Target 99"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200100",
+     "relatedName": "Synthetic Role Target 100"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200101",
+     "relatedName": "Synthetic Role Target 101"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200102",
+     "relatedName": "Synthetic Role Target 102"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200103",
+     "relatedName": "Synthetic Role Target 103"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200104",
+     "relatedName": "Synthetic Role Target 104"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200105",
+     "relatedName": "Synthetic Role Target 105"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200106",
+     "relatedName": "Synthetic Role Target 106"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200107",
+     "relatedName": "Synthetic Role Target 107"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200108",
+     "relatedName": "Synthetic Role Target 108"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200109",
+     "relatedName": "Synthetic Role Target 109"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200110",
+     "relatedName": "Synthetic Role Target 110"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200111",
+     "relatedName": "Synthetic Role Target 111"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200112",
+     "relatedName": "Synthetic Role Target 112"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200113",
+     "relatedName": "Synthetic Role Target 113"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200114",
+     "relatedName": "Synthetic Role Target 114"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200115",
+     "relatedName": "Synthetic Role Target 115"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200116",
+     "relatedName": "Synthetic Role Target 116"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200117",
+     "relatedName": "Synthetic Role Target 117"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200118",
+     "relatedName": "Synthetic Role Target 118"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200119",
+     "relatedName": "Synthetic Role Target 119"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200120",
+     "relatedName": "Synthetic Role Target 120"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200121",
+     "relatedName": "Synthetic Role Target 121"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200122",
+     "relatedName": "Synthetic Role Target 122"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200123",
+     "relatedName": "Synthetic Role Target 123"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200124",
+     "relatedName": "Synthetic Role Target 124"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200125",
+     "relatedName": "Synthetic Role Target 125"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200126",
+     "relatedName": "Synthetic Role Target 126"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200127",
+     "relatedName": "Synthetic Role Target 127"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200128",
+     "relatedName": "Synthetic Role Target 128"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200129",
+     "relatedName": "Synthetic Role Target 129"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200130",
+     "relatedName": "Synthetic Role Target 130"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200131",
+     "relatedName": "Synthetic Role Target 131"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200132",
+     "relatedName": "Synthetic Role Target 132"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200133",
+     "relatedName": "Synthetic Role Target 133"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200134",
+     "relatedName": "Synthetic Role Target 134"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200135",
+     "relatedName": "Synthetic Role Target 135"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200136",
+     "relatedName": "Synthetic Role Target 136"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200137",
+     "relatedName": "Synthetic Role Target 137"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200138",
+     "relatedName": "Synthetic Role Target 138"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200139",
+     "relatedName": "Synthetic Role Target 139"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200140",
+     "relatedName": "Synthetic Role Target 140"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200141",
+     "relatedName": "Synthetic Role Target 141"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200142",
+     "relatedName": "Synthetic Role Target 142"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200143",
+     "relatedName": "Synthetic Role Target 143"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200144",
+     "relatedName": "Synthetic Role Target 144"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200145",
+     "relatedName": "Synthetic Role Target 145"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200146",
+     "relatedName": "Synthetic Role Target 146"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200147",
+     "relatedName": "Synthetic Role Target 147"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200148",
+     "relatedName": "Synthetic Role Target 148"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200149",
+     "relatedName": "Synthetic Role Target 149"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200150",
+     "relatedName": "Synthetic Role Target 150"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200151",
+     "relatedName": "Synthetic Role Target 151"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200152",
+     "relatedName": "Synthetic Role Target 152"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200153",
+     "relatedName": "Synthetic Role Target 153"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200154",
+     "relatedName": "Synthetic Role Target 154"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200155",
+     "relatedName": "Synthetic Role Target 155"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200156",
+     "relatedName": "Synthetic Role Target 156"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200157",
+     "relatedName": "Synthetic Role Target 157"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200158",
+     "relatedName": "Synthetic Role Target 158"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200159",
+     "relatedName": "Synthetic Role Target 159"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200160",
+     "relatedName": "Synthetic Role Target 160"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200161",
+     "relatedName": "Synthetic Role Target 161"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200162",
+     "relatedName": "Synthetic Role Target 162"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200163",
+     "relatedName": "Synthetic Role Target 163"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200164",
+     "relatedName": "Synthetic Role Target 164"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200165",
+     "relatedName": "Synthetic Role Target 165"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200166",
+     "relatedName": "Synthetic Role Target 166"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200167",
+     "relatedName": "Synthetic Role Target 167"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200168",
+     "relatedName": "Synthetic Role Target 168"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200169",
+     "relatedName": "Synthetic Role Target 169"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200170",
+     "relatedName": "Synthetic Role Target 170"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200171",
+     "relatedName": "Synthetic Role Target 171"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200172",
+     "relatedName": "Synthetic Role Target 172"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200173",
+     "relatedName": "Synthetic Role Target 173"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200174",
+     "relatedName": "Synthetic Role Target 174"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200175",
+     "relatedName": "Synthetic Role Target 175"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200176",
+     "relatedName": "Synthetic Role Target 176"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200177",
+     "relatedName": "Synthetic Role Target 177"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200178",
+     "relatedName": "Synthetic Role Target 178"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200179",
+     "relatedName": "Synthetic Role Target 179"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200180",
+     "relatedName": "Synthetic Role Target 180"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200181",
+     "relatedName": "Synthetic Role Target 181"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200182",
+     "relatedName": "Synthetic Role Target 182"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200183",
+     "relatedName": "Synthetic Role Target 183"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200184",
+     "relatedName": "Synthetic Role Target 184"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200185",
+     "relatedName": "Synthetic Role Target 185"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200186",
+     "relatedName": "Synthetic Role Target 186"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200187",
+     "relatedName": "Synthetic Role Target 187"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200188",
+     "relatedName": "Synthetic Role Target 188"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200189",
+     "relatedName": "Synthetic Role Target 189"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200190",
+     "relatedName": "Synthetic Role Target 190"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200191",
+     "relatedName": "Synthetic Role Target 191"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200192",
+     "relatedName": "Synthetic Role Target 192"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200193",
+     "relatedName": "Synthetic Role Target 193"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200194",
+     "relatedName": "Synthetic Role Target 194"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200195",
+     "relatedName": "Synthetic Role Target 195"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200196",
+     "relatedName": "Synthetic Role Target 196"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200197",
+     "relatedName": "Synthetic Role Target 197"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200198",
+     "relatedName": "Synthetic Role Target 198"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200199",
+     "relatedName": "Synthetic Role Target 199"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200200",
+     "relatedName": "Synthetic Role Target 200"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200201",
+     "relatedName": "Synthetic Role Target 201"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200202",
+     "relatedName": "Synthetic Role Target 202"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200203",
+     "relatedName": "Synthetic Role Target 203"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200204",
+     "relatedName": "Synthetic Role Target 204"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200205",
+     "relatedName": "Synthetic Role Target 205"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200206",
+     "relatedName": "Synthetic Role Target 206"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200207",
+     "relatedName": "Synthetic Role Target 207"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200208",
+     "relatedName": "Synthetic Role Target 208"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200209",
+     "relatedName": "Synthetic Role Target 209"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200210",
+     "relatedName": "Synthetic Role Target 210"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200211",
+     "relatedName": "Synthetic Role Target 211"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200212",
+     "relatedName": "Synthetic Role Target 212"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200213",
+     "relatedName": "Synthetic Role Target 213"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200214",
+     "relatedName": "Synthetic Role Target 214"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200215",
+     "relatedName": "Synthetic Role Target 215"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200216",
+     "relatedName": "Synthetic Role Target 216"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200217",
+     "relatedName": "Synthetic Role Target 217"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200218",
+     "relatedName": "Synthetic Role Target 218"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200219",
+     "relatedName": "Synthetic Role Target 219"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200220",
+     "relatedName": "Synthetic Role Target 220"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200221",
+     "relatedName": "Synthetic Role Target 221"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200222",
+     "relatedName": "Synthetic Role Target 222"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200223",
+     "relatedName": "Synthetic Role Target 223"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200224",
+     "relatedName": "Synthetic Role Target 224"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200225",
+     "relatedName": "Synthetic Role Target 225"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200226",
+     "relatedName": "Synthetic Role Target 226"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200227",
+     "relatedName": "Synthetic Role Target 227"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200228",
+     "relatedName": "Synthetic Role Target 228"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200229",
+     "relatedName": "Synthetic Role Target 229"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200230",
+     "relatedName": "Synthetic Role Target 230"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200231",
+     "relatedName": "Synthetic Role Target 231"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200232",
+     "relatedName": "Synthetic Role Target 232"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200233",
+     "relatedName": "Synthetic Role Target 233"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200234",
+     "relatedName": "Synthetic Role Target 234"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200235",
+     "relatedName": "Synthetic Role Target 235"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200236",
+     "relatedName": "Synthetic Role Target 236"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200237",
+     "relatedName": "Synthetic Role Target 237"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200238",
+     "relatedName": "Synthetic Role Target 238"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200239",
+     "relatedName": "Synthetic Role Target 239"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200240",
+     "relatedName": "Synthetic Role Target 240"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200241",
+     "relatedName": "Synthetic Role Target 241"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200242",
+     "relatedName": "Synthetic Role Target 242"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200243",
+     "relatedName": "Synthetic Role Target 243"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200244",
+     "relatedName": "Synthetic Role Target 244"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200245",
+     "relatedName": "Synthetic Role Target 245"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200246",
+     "relatedName": "Synthetic Role Target 246"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200247",
+     "relatedName": "Synthetic Role Target 247"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200248",
+     "relatedName": "Synthetic Role Target 248"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200249",
+     "relatedName": "Synthetic Role Target 249"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200250",
+     "relatedName": "Synthetic Role Target 250"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200251",
+     "relatedName": "Synthetic Role Target 251"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200252",
+     "relatedName": "Synthetic Role Target 252"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200253",
+     "relatedName": "Synthetic Role Target 253"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200254",
+     "relatedName": "Synthetic Role Target 254"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200255",
+     "relatedName": "Synthetic Role Target 255"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200256",
+     "relatedName": "Synthetic Role Target 256"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200257",
+     "relatedName": "Synthetic Role Target 257"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200258",
+     "relatedName": "Synthetic Role Target 258"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200259",
+     "relatedName": "Synthetic Role Target 259"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200260",
+     "relatedName": "Synthetic Role Target 260"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200261",
+     "relatedName": "Synthetic Role Target 261"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200262",
+     "relatedName": "Synthetic Role Target 262"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200263",
+     "relatedName": "Synthetic Role Target 263"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200264",
+     "relatedName": "Synthetic Role Target 264"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200265",
+     "relatedName": "Synthetic Role Target 265"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200266",
+     "relatedName": "Synthetic Role Target 266"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200267",
+     "relatedName": "Synthetic Role Target 267"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200268",
+     "relatedName": "Synthetic Role Target 268"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200269",
+     "relatedName": "Synthetic Role Target 269"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200270",
+     "relatedName": "Synthetic Role Target 270"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200271",
+     "relatedName": "Synthetic Role Target 271"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200272",
+     "relatedName": "Synthetic Role Target 272"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200273",
+     "relatedName": "Synthetic Role Target 273"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200274",
+     "relatedName": "Synthetic Role Target 274"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200275",
+     "relatedName": "Synthetic Role Target 275"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200276",
+     "relatedName": "Synthetic Role Target 276"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200277",
+     "relatedName": "Synthetic Role Target 277"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200278",
+     "relatedName": "Synthetic Role Target 278"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200279",
+     "relatedName": "Synthetic Role Target 279"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200280",
+     "relatedName": "Synthetic Role Target 280"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200281",
+     "relatedName": "Synthetic Role Target 281"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200282",
+     "relatedName": "Synthetic Role Target 282"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200283",
+     "relatedName": "Synthetic Role Target 283"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200284",
+     "relatedName": "Synthetic Role Target 284"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200285",
+     "relatedName": "Synthetic Role Target 285"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200286",
+     "relatedName": "Synthetic Role Target 286"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200287",
+     "relatedName": "Synthetic Role Target 287"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200288",
+     "relatedName": "Synthetic Role Target 288"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200289",
+     "relatedName": "Synthetic Role Target 289"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200290",
+     "relatedName": "Synthetic Role Target 290"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200291",
+     "relatedName": "Synthetic Role Target 291"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200292",
+     "relatedName": "Synthetic Role Target 292"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200293",
+     "relatedName": "Synthetic Role Target 293"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200294",
+     "relatedName": "Synthetic Role Target 294"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200295",
+     "relatedName": "Synthetic Role Target 295"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200296",
+     "relatedName": "Synthetic Role Target 296"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200297",
+     "relatedName": "Synthetic Role Target 297"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200298",
+     "relatedName": "Synthetic Role Target 298"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200299",
+     "relatedName": "Synthetic Role Target 299"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99200300",
+     "relatedName": "Synthetic Role Target 300"
+    }
+   ]
+  }
+ }
+}

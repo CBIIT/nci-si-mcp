@@ -12,7 +12,9 @@
 # `bounds` gives the default and the maximum of each argument that bounds a result (A5.1,
 # A5.2). A value above the maximum is applied as the maximum; where content was dropped, the
 # truncation record's limit is the value applied. So the input schema states no maximum that
-# would refuse such a value: the argument's description states its default and maximum.
+# would refuse such a value: the argument's description states its default and maximum. A value
+# below 1 is an invalid request, never raised to 1. An argument without a default has none
+# by design: the tool's summary says what it does when the argument is not given.
 
 resolve_release:
   group: evs
@@ -75,10 +77,14 @@ get_concept_neighborhood:
     depth: {default: 2, maximum: 4}
     maxNodes: {default: 200, maximum: 1000}
     maxEdges: {default: 1000, maximum: 5000}
+    budgetPerKind: {maximum: 1000}
   summary: >-
     Bounded traversal across roles and associations with a budget per kind; nodes holds the
-    concept asked about at depth 0 and those reached. Negative assertions are returned marked
-    and left out of positive expansion unless includeNegative.
+    concept asked about at depth 0 and those reached, and maxNodes counts them all. Given,
+    budgetPerKind bounds the nodes each kind adds; not given, the tool shares maxNodes among
+    the kinds asked so that none present is starved, in a way of its own. Negative assertions
+    are returned marked, with the nodes they reach, which are not followed further unless
+    includeNegative.
 get_concept_subsets:
   group: evs
   inputs: (terminology, release, code)

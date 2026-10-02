@@ -74,6 +74,11 @@ def _record(record: dict[str, Any]) -> list[str]:
     return [*header, "| Field | Content | Rule |", "|---|---|---|", *rows, ""]
 
 
+def _bound(bound: dict[str, Any]) -> str:
+    default = f"default {bound['default']}, " if "default" in bound else ""
+    return f"{default}at most {bound['maximum']}"
+
+
 def _tool_row(name: str, tool: dict[str, Any]) -> str:
     values = "".join(
         f" `{argument}`: {', '.join(choices)}."
@@ -84,8 +89,7 @@ def _tool_row(name: str, tool: dict[str, Any]) -> str:
         f" Items: {', '.join(f'`{path}`' for path in tool['items'])}." if "items" in tool else ""
     )
     bounds = "".join(
-        f" `{argument}`: default {bound['default']}, at most {bound['maximum']}."
-        for argument, bound in tool.get("bounds", {}).items()
+        f" `{argument}`: {_bound(bound)}." for argument, bound in tool.get("bounds", {}).items()
     )
     return f"| `{name}` | `{signature}` | {_cell(tool['summary'])}{values}{bounds}{items} |"
 
