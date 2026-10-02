@@ -379,10 +379,11 @@ def _next_cursor(name: str, arguments: dict, items: list[dict]) -> dict:
     """The cursor of a paged call's first page, which is smaller than its result: it names
     the release the page was pinned to."""
 
-    found = items or DEFECT == "empty-with-cursor"
-    first = found and _paging(name, arguments) and "cursor" not in arguments
-    cursor = f"page-2@{arguments.get('release')}"
-    return {"nextCursor": cursor} if first and DEFECT != "no-next-cursor" else {}
+    cursor = {"nextCursor": f"page-2@{arguments.get('release')}"}
+    if DEFECT == "empty-with-cursor" and not items:
+        return cursor
+    first = items and _paging(name, arguments) and "cursor" not in arguments
+    return cursor if first and DEFECT != "no-next-cursor" else {}
 
 
 def _paging(name: str, arguments: dict) -> bool:

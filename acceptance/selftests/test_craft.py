@@ -212,6 +212,19 @@ def test_every_scenario_activates_over_the_ordinary_set(upstream, name):
     assert upstream.fixtures.scenarios.get(name) or upstream.fixtures.recordings.get(name)
 
 
+def test_exclusion_missing_is_the_recorded_catalogue_less_one_exclusion_code():
+    catalogue = body("scenarios/relationships/exclusion-missing/roles.json")
+    recorded = json.loads((FIXTURES / "recorded/evs/roles.json").read_text(encoding="utf-8"))[
+        "response"
+    ]["body"]
+
+    missing = [role for role in recorded if role not in catalogue]
+
+    assert len(missing) == 1
+    assert missing[0]["code"] in EXCLUSION_ROLES
+    assert len(catalogue) == len(recorded) - 1
+
+
 def test_starvation_has_many_roles_few_associations_and_every_target_recorded():
     documents = scenario("traversal/starvation")
     hub = body("scenarios/traversal/starvation/concepts/C99200000.json")

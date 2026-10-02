@@ -62,7 +62,7 @@ traversal:
       content: >-
         Negative exactly when the relationship's code is in its terminology's exclusion set
         below, positive otherwise, whatever the relationship is named (A5.7); the set is
-        checked against the release's relationship catalogue by list_relationships
+        checked against the release's relationship catalogue (the relationship record)
       values: [positive, negative]
       exclusions: {ncit: [R135, R136, R137, R138, R139, R140, R141, R142]}
       of: A5.6
@@ -199,7 +199,8 @@ mapping:
     A map the platform carries on a concept, from it to another terminology, as
     get_concept_mappings returns it: the platform's map unchanged, in the platform's order.
     Its provenance names the release of the concept it was read from; the target's own version
-    is the map's.
+    is the map's. A licensed target's attribution is an open question: the platform names the
+    target by a label that matches no terminology of its listing (#42).
   fields:
     targetCode:
       content: The target's code, as the platform gives it
@@ -246,15 +247,18 @@ relationship:
   title: The relationship record
   about: >-
     A role or association of a release's relationship catalogue, as list_relationships returns
-    it. The tool, and every tool that marks polarity, fails closed with internal_error for a
-    release whose catalogue lacks a code of the terminology's exclusion set, naming the codes
-    in details. The check catches a set code the release no longer has, not a new exclusion
+    it. The tool, and get_concept_neighborhood, fail closed with internal_error for a release
+    whose catalogue lacks a code of the terminology's exclusion set, naming the codes in
+    details. The check catches a set code the release no longer has, not a new exclusion
     relationship the set does not know: that needs the catalogue to mark polarity, which is
     the platform's to add.
   fields:
     code:
       content: The relationship's code
       of: A5.7
+    terminology:
+      content: The terminology whose catalogue it is, as the platform names it
+      of: A1.2
     name:
       content: Its name in the catalogue, unchanged
       of: A9.1

@@ -90,7 +90,7 @@ get_concept_subsets:
   inputs: (terminology, release, code)
   returns: "{ subsets[] }"
   items: ["subsets[]"]
-  summary: The subsets and value sets a concept belongs to.
+  summary: The subsets a concept belongs to.
 get_concept_mappings:
   group: evs
   inputs: (terminology, release, code, targetTerminology?)
@@ -100,7 +100,7 @@ get_concept_mappings:
     The maps the platform carries on a concept, from it to other terminologies, unchanged and
     each with its target's version where the platform gives one; maps into the terminology
     from others are not this tool's. targetTerminology keeps the maps whose target the
-    platform names so.
+    platform names exactly so, case included.
 resolve_retired_code:
   group: evs
   inputs: (terminology, release, code)

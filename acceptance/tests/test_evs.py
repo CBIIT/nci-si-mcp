@@ -5,6 +5,7 @@ read there is named beside it, with the fixture file that holds it.
 """
 
 import json
+import re
 
 import pytest
 
@@ -575,17 +576,20 @@ def test_a_node_limit_above_the_maximum_is_applied_as_the_maximum(tools, pinned,
 @pytest.mark.tool("get_concept_subsets")
 @pytest.mark.requirement("get_concept_subsets-1")
 def test_the_subsets_are_the_concept_s_subset_associations_in_order(tools, pinned, recorded):
-    associations = recorded(CURRENT)["response"]["body"]["associations"]
+    body = recorded(CURRENT)["response"]["body"]
     expected = [
-        (association["relatedCode"], association["relatedName"])
-        for association in associations
+        (association["relatedCode"], body["terminology"], association["relatedName"])
+        for association in body["associations"]
         if association["type"] == "Concept_In_Subset"
     ]
 
     result = _traverse(tools, pinned, "get_concept_subsets", CONCEPT)
 
     subsets = items_of("get_concept_subsets", result.content)
-    assert [(subset.get("code"), subset.get("name")) for subset in subsets] == expected
+    found = [
+        (subset.get("code"), subset.get("terminology"), subset.get("name")) for subset in subsets
+    ]
+    assert found == expected
 
 
 def _maps(result):
@@ -617,11 +621,19 @@ def test_target_terminology_keeps_the_maps_with_that_target_and_no_other(tools, 
     kept = [m for m in maps if m["targetTerminology"] == target]
     assert 0 < len(kept) < len(maps)
 
+    other_case = target.swapcase()
+    assert other_case not in {m["targetTerminology"] for m in maps}
+
     mappings = _maps(
         _traverse(tools, pinned, "get_concept_mappings", CONCEPT, targetTerminology=target)
     )
+    by_other_case = _maps(
+        _traverse(tools, pinned, "get_concept_mappings", CONCEPT, targetTerminology=other_case)
+    )
 
     assert mappings == kept
+    # The platform's name exactly, case included.
+    assert by_other_case == []
 
 
 # Retired in the retired/with-replacement scenario, with its replacements from EVS's history.
@@ -640,6 +652,7 @@ def test_a_retired_code_is_inactive_with_its_status_and_replacements(tools, pinn
     result = _traverse(tools, pinned, "resolve_retired_code", body["code"])
 
     content = result.content
+    assert (content.get("code"), content.get("terminology")) == (body["code"], body["terminology"])
     assert (content.get("active"), content.get("status")) == (False, body["conceptStatus"])
     found = [(entry.get("code"), entry.get("name")) for entry in content.get("replacements", [])]
     assert found == replacements
@@ -653,6 +666,7 @@ def test_an_active_code_is_active_with_its_status_and_no_replacement(tools, pinn
     result = _traverse(tools, pinned, "resolve_retired_code", CONCEPT)
 
     content = result.content
+    assert (content.get("code"), content.get("terminology")) == (body["code"], body["terminology"])
     assert (content.get("active"), content.get("status")) == (True, body["conceptStatus"])
     assert content.get("replacements") == []
 
@@ -672,15 +686,19 @@ def _relationships(tools, pinned):
 def test_every_relationship_of_the_catalogue_is_listed_by_code_name_and_kind(
     tools, pinned, recorded
 ):
-    expected = {
-        (entry["code"], entry["name"], kind)
-        for kind, file in CATALOGUE.items()
-        for entry in recorded(file)["response"]["body"]
-    }
+    expected = sorted(
+        (
+            (entry["code"], entry["name"], kind)
+            for kind, file in CATALOGUE.items()
+            for entry in recorded(file)["response"]["body"]
+        ),
+        key=str,
+    )
 
     listed = _relationships(tools, pinned)
 
-    assert {(item.get("code"), item.get("name"), item.get("kind")) for item in listed} == expected
+    found = [(item.get("code"), item.get("name"), item.get("kind")) for item in listed]
+    assert sorted(found, key=str) == expected
 
 
 @pytest.mark.scenario("traversal/exclusions")
@@ -689,14 +707,18 @@ def test_every_relationship_of_the_catalogue_is_listed_by_code_name_and_kind(
 def test_a_relationship_s_polarity_follows_its_code_not_its_name(tools, pinned, recorded):
     roles = recorded("scenarios/traversal/exclusions/roles.json")["response"]["body"]
     associations = recorded(CATALOGUE["association"])["response"]["body"]
-    expected = {
-        entry["code"]: "negative" if _negative(entry["code"]) else "positive"
-        for entry in [*roles, *associations]
-    }
+    expected = sorted(
+        (
+            (entry["code"], "negative" if _negative(entry["code"]) else "positive")
+            for entry in [*roles, *associations]
+        ),
+        key=str,
+    )
 
     listed = _relationships(tools, pinned)
 
-    assert {item.get("code"): item.get("polarity") for item in listed} == expected
+    found = [(item.get("code"), item.get("polarity")) for item in listed]
+    assert sorted(found, key=str) == expected
 
 
 # relationships/exclusion-missing: the role catalogue lacks a code of the exclusion set.
@@ -732,5 +754,8 @@ def test_a_catalogue_without_a_code_of_the_exclusion_set_fails_closed(
     result = tools.call(tool, {**pinned, **arguments})
 
     assert error_code(result) == "internal_error", result.content
-    details = json.dumps(result.content["error"].get("details"))
-    assert [code for code in absent if code not in details] == []
+    details = result.content["error"].get("details")
+    assert isinstance(details, dict), details
+    named = set(re.findall(r"\w+", json.dumps(details)))
+    # The absent codes, and none of the set the catalogue holds.
+    assert (absent - named, named & (set(EXCLUSIONS["ncit"]) - absent)) == (set(), set())

@@ -211,12 +211,12 @@ get_concept_neighborhood-6:
   planned: "#53"
 get_concept_subsets-1:
   statement: The subsets are the platform's Concept_In_Subset associations of the concept, each by code and name, in the platform's order.
-  basis: [get_concept_subsets, subset, A5.8]
+  basis: [get_concept_subsets, subset, A9.1]
 get_concept_mappings-1:
   statement: The mappings are the maps the platform carries on the concept, unchanged, in the platform's order.
   basis: [get_concept_mappings, mapping, A9.1]
 get_concept_mappings-2:
-  statement: targetTerminology keeps the maps whose target the platform names so, and no other.
+  statement: targetTerminology keeps the maps whose target the platform names exactly so, case included, and no other.
   basis: [get_concept_mappings, mapping]
 resolve_retired_code-1:
   statement: A retired code returns active false, the platform's status unchanged, and the replacements the platform names, by code and name.

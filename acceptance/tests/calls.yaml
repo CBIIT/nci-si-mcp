@@ -47,10 +47,9 @@ get_concept_neighborhood:
   unversioned: true
   truncating: {arguments: {maxNodes: 2}, bound: nodes}   # C4817 has 97 neighbours at depth 1
 get_concept_subsets: {arguments: {code: C4817}}
-get_concept_mappings: {arguments: {code: C4817}}
-resolve_retired_code:
-  arguments: {code: C154421}
-  scenario: retired/with-replacement
-  unversioned: true
+get_concept_mappings:
+  arguments: {code: C4817}
+  empty: {code: C4817, targetTerminology: SNOMEDCT_US}   # C4817 maps to no SNOMED CT term
+resolve_retired_code: {arguments: {code: C4817}}   # active: its concept names the release
 list_relationships: {arguments: {}}
 list_terminologies: {arguments: {}}
