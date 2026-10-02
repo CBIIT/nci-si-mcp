@@ -91,7 +91,6 @@ class SettingsTest(unittest.TestCase):
                     settings_from(**{variable: value})
                 self.assertIn(variable, str(raised.exception))
 
-
     def test_bounds_are_inclusive(self):
         settings = settings_from(
             NCI_SI_EVS_MAX_ATTEMPTS="10",
@@ -120,7 +119,9 @@ class SettingsTest(unittest.TestCase):
             "https://example.org.",
         ):
             with self.subTest(url):
-                self.assertEqual(settings_from(NCI_SI_EVS_BASE_URL=url).evs_base_url, url.rstrip("/"))
+                self.assertEqual(
+                    settings_from(NCI_SI_EVS_BASE_URL=url).evs_base_url, url.rstrip("/")
+                )
 
     def test_data_dir_expands_the_home_directory(self):
         settings = settings_from(NCI_SI_DATA_DIR="~/nci-index", HOME="/home/someone")
@@ -130,11 +131,15 @@ class SettingsTest(unittest.TestCase):
 
 class LoggingTest(unittest.TestCase):
     def test_diagnostics_go_to_stderr_at_the_configured_level(self):
-        with patch("nci_si_mcp.config.logging.basicConfig") as basic_config:
-            configure_logging("warning")
+        root = logging.getLogger()
+        self.addCleanup(setattr, root, "handlers", root.handlers[:])
+        self.addCleanup(root.setLevel, root.level)
+        root.handlers.clear()
 
-        self.assertIs(basic_config.call_args.kwargs["stream"], sys.stderr)
-        self.assertEqual(basic_config.call_args.kwargs["level"], logging.WARNING)
+        configure_logging("warning")
+
+        self.assertEqual(root.level, logging.WARNING)
+        self.assertEqual([handler.stream for handler in root.handlers], [sys.stderr])
 
 
 if __name__ == "__main__":

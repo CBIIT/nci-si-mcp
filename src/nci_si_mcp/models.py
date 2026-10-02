@@ -26,7 +26,6 @@ class ReleaseInfo:
     latest: bool
     monthly: bool
     weekly: bool
-    raw: dict[str, Any] = field(default_factory=dict)
 
     @property
     def pinned_terminology(self) -> str:
@@ -34,11 +33,8 @@ class ReleaseInfo:
 
         return self.terminology_version or f"{self.terminology}_{self.version}"
 
-    def to_dict(self, include_raw: bool = False) -> dict[str, Any]:
-        data = asdict(self)
-        if not include_raw:
-            data.pop("raw", None)
-        return data
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
 
 
 # NcitConcept and IndexManifest are stored as JSON in the index. A new field
@@ -83,9 +79,7 @@ class IndexManifest:
         known = {item.name for item in fields(cls)}
         return cls(**{key: value for key, value in payload.items() if key in known})
 
-    def embedding_matches(
-        self, provider: str, model: str, dimensions: int | None = None
-    ) -> bool:
+    def embedding_matches(self, provider: str, model: str, dimensions: int | None = None) -> bool:
         """Whether vectors from this provider share the index's embedding space.
 
         Dimensions are compared only when both sides know them; an index built

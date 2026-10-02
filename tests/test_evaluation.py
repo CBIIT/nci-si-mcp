@@ -2,7 +2,6 @@ import tempfile
 import unittest
 
 from fakes import concept
-
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.evaluation import GoldQuery, evaluate_retrieval
 from nci_si_mcp.index import LocalIndex
@@ -51,7 +50,9 @@ class EvaluationTest(unittest.TestCase):
             provider = HashingEmbeddingProvider()
             index.upsert_concepts(CONCEPTS, "2026-06-29", provider)
 
-            results = evaluate_retrieval(index, provider, gold_queries=[GoldQuery("melanoma", ["C8"])])
+            results = evaluate_retrieval(
+                index, provider, gold_queries=[GoldQuery("melanoma", ["C8"])]
+            )
 
         self.assertEqual([result.mode for result in results], ["bm25", "vector", "hybrid"])
         for result in results:

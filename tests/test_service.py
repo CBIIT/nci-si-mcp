@@ -4,7 +4,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 from fakes import FakeEVS, concept, release
-
 from nci_si_mcp import service as service_module
 from nci_si_mcp.config import Settings
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
@@ -26,8 +25,16 @@ NEOPLASM = concept(
     synonyms=[{"name": "Tumor"}],
     parents=[{"code": "C2991", "name": "Disease or Disorder"}],
     children=[{"code": "C4741", "name": "Neoplasm by Morphology"}],
-    roles=[{"type": "Disease_Has_Abnormal_Cell", "relatedCode": "C12922", "relatedName": "Neoplastic Cell"}],
-    associations=[{"type": "Concept_In_Subset", "relatedCode": "C165258", "relatedName": "A Subset"}],
+    roles=[
+        {
+            "type": "Disease_Has_Abnormal_Cell",
+            "relatedCode": "C12922",
+            "relatedName": "Neoplastic Cell",
+        }
+    ],
+    associations=[
+        {"type": "Concept_In_Subset", "relatedCode": "C165258", "relatedName": "A Subset"}
+    ],
 )
 KINASE = concept("C40704", "Receptor Tyrosine Kinase Inhibition")
 
@@ -53,7 +60,7 @@ class ServiceTestCase(unittest.TestCase):
         self.assertNotIn("isError", result)
         return result
 
-    def assertError(self, result, code):
+    def assert_error(self, result, code):
         self.assertTrue(result.get("isError"), result)
         self.assertEqual(result["error"], code, result)
         self.assertTrue(result["message"])
@@ -75,13 +82,13 @@ class LookupTest(ServiceTestCase):
         self.assertIn("raw", self.service.lookup("C3262", include_raw=True))
 
     def test_unknown_concept_is_not_found_even_when_evs_is_otherwise_healthy(self):
-        self.assertError(self.service.lookup("C999"), "concept_not_found")
+        self.assert_error(self.service.lookup("C999"), "concept_not_found")
 
     def test_concept_gone_from_live_evs_is_not_served_from_the_cache(self):
         self.index()
         del self.evs.concepts["C3262"]
 
-        self.assertError(self.service.lookup("C3262"), "concept_not_found")
+        self.assert_error(self.service.lookup("C3262"), "concept_not_found")
 
     def test_cache_fallback_when_evs_is_unreachable_says_so(self):
         self.index()
@@ -102,15 +109,15 @@ class LookupTest(ServiceTestCase):
 
     def test_no_fallback_without_a_cached_copy_or_with_live_only(self):
         self.evs.errors = {"get_concept": EVSUnavailableError("connection refused")}
-        self.assertError(self.service.lookup("C3262"), "evs_unavailable")
+        self.assert_error(self.service.lookup("C3262"), "evs_unavailable")
 
         self.index("C40704")
-        self.assertError(self.service.lookup("C3262"), "evs_unavailable")
+        self.assert_error(self.service.lookup("C3262"), "evs_unavailable")
 
         self.index("C3262")
-        self.assertError(self.service.lookup("C3262", live_only=True), "evs_unavailable")
+        self.assert_error(self.service.lookup("C3262", live_only=True), "evs_unavailable")
         self.evs.errors = {"resolve_monthly_ncit_release": EVSUnavailableError("down")}
-        self.assertError(self.service.lookup("C3262", live_only=True), "evs_unavailable")
+        self.assert_error(self.service.lookup("C3262", live_only=True), "evs_unavailable")
 
     def test_unresolved_release_fails_closed_instead_of_serving_the_cache(self):
         self.index()
@@ -118,7 +125,7 @@ class LookupTest(ServiceTestCase):
             "resolve_monthly_ncit_release": ReleaseResolutionError("found 2 monthly releases")
         }
 
-        self.assertError(self.service.lookup("C3262"), "release_unresolved")
+        self.assert_error(self.service.lookup("C3262"), "release_unresolved")
 
     def test_release_rollover_is_a_version_mismatch_until_live_only(self):
         self.index()
@@ -127,7 +134,7 @@ class LookupTest(ServiceTestCase):
 
         result = self.service.lookup("C3262")
 
-        self.assertError(result, "version_mismatch")
+        self.assert_error(result, "version_mismatch")
         self.assertEqual(
             result["details"],
             {"live_release_version": "26.07d", "active_index_release_version": "26.06e"},
@@ -139,7 +146,7 @@ class LookupTest(ServiceTestCase):
         self.index()
         (self.path / "nci_si.sqlite3").write_bytes(b"not a database" * 100)
 
-        self.assertError(self.service.lookup("C3262"), "index_storage_error")
+        self.assert_error(self.service.lookup("C3262"), "index_storage_error")
         self.assertEqual(self.service.lookup("C3262", live_only=True)["source"], "live_evs")
 
     def test_concept_served_from_another_release_than_requested_is_rejected(self):
@@ -147,13 +154,13 @@ class LookupTest(ServiceTestCase):
 
         result = self.service.lookup("C3262", live_only=True)
 
-        self.assertError(result, "evs_invalid_response")
+        self.assert_error(result, "evs_invalid_response")
         self.assertIn("26.07a", result["message"])
 
     def test_invalid_code_is_rejected_before_any_request(self):
         for code in ("not-a-code", "C12/children", "", None):
             with self.subTest(code=code):
-                self.assertError(self.service.lookup(code), "invalid_request")
+                self.assert_error(self.service.lookup(code), "invalid_request")
         self.assertEqual(self.evs.calls, [])
 
     def test_an_oversized_response_is_an_invalid_response_not_an_outage(self):
@@ -162,7 +169,7 @@ class LookupTest(ServiceTestCase):
 
         result = self.service.lookup("C3262")
 
-        self.assertError(result, "evs_invalid_response")
+        self.assert_error(result, "evs_invalid_response")
         self.assertNotIn("fallback", result)
 
 
@@ -176,7 +183,7 @@ class IndexCodesTest(ServiceTestCase):
         self.evs = RepeatingEVS([NEOPLASM])
         self.service = self.make_service()
 
-        self.assertError(self.service.index_codes(["C3262"]), "evs_invalid_response")
+        self.assert_error(self.service.index_codes(["C3262"]), "evs_invalid_response")
         self.assertIsNone(self.service.index.get_active_manifest())
 
     def test_indexing_fetches_pinned_batches_and_activates_the_release(self):
@@ -201,7 +208,7 @@ class IndexCodesTest(ServiceTestCase):
 
         result = self.service.index_codes(["C3262", "C999"])
 
-        self.assertError(result, "concepts_missing")
+        self.assert_error(result, "concepts_missing")
         self.assertEqual(result["details"], {"missing_codes": ["C999"]})
         self.assertEqual(self.service.index.get_active_manifest().to_dict(), before)
 
@@ -211,7 +218,7 @@ class IndexCodesTest(ServiceTestCase):
 
         for codes in (["C40704"], ["C3262", "C40704"]):
             with self.subTest(codes=codes):
-                self.assertError(self.service.index_codes(codes), "evs_invalid_response")
+                self.assert_error(self.service.index_codes(codes), "evs_invalid_response")
                 self.assertEqual(self.service.index.get_active_manifest().to_dict(), before)
 
     def test_concept_that_was_not_requested_is_an_evs_fault(self):
@@ -223,7 +230,7 @@ class IndexCodesTest(ServiceTestCase):
         self.evs = ExtraEVS([NEOPLASM])
         self.service = self.make_service()
 
-        self.assertError(self.service.index_codes(["C3262"]), "evs_invalid_response")
+        self.assert_error(self.service.index_codes(["C3262"]), "evs_invalid_response")
         self.assertIsNone(self.service.index.get_active_manifest())
 
     def test_indexed_concepts_carry_their_synonyms_and_definitions(self):
@@ -237,12 +244,12 @@ class IndexCodesTest(ServiceTestCase):
     def test_invalid_or_empty_codes_are_rejected(self):
         for codes in ([], ["C3262", "oops"]):
             with self.subTest(codes=codes):
-                self.assertError(self.service.index_codes(codes), "invalid_request")
+                self.assert_error(self.service.index_codes(codes), "invalid_request")
 
     def test_evs_outage_is_reported(self):
         self.evs.errors = {"get_concepts_by_codes": EVSUnavailableError("timed out")}
 
-        self.assertError(self.service.index_codes(["C3262"]), "evs_unavailable")
+        self.assert_error(self.service.index_codes(["C3262"]), "evs_unavailable")
 
 
 class SearchTest(ServiceTestCase):
@@ -276,7 +283,7 @@ class SearchTest(ServiceTestCase):
         self.assertEqual((result["hits"], result["release_version"]), ([], "26.06e"))
 
     def test_search_needs_an_index(self):
-        self.assertError(self.service.search("tumor"), "no_active_index")
+        self.assert_error(self.service.search("tumor"), "no_active_index")
 
     def test_each_invalid_argument_is_rejected(self):
         self.index()
@@ -288,14 +295,14 @@ class SearchTest(ServiceTestCase):
             {"query": "tumor", "mode": "fuzzy"},
         ):
             with self.subTest(arguments=arguments):
-                self.assertError(self.service.search(**arguments), "invalid_request")
+                self.assert_error(self.service.search(**arguments), "invalid_request")
 
     def test_index_compatibility_is_reported_consistently(self):
         self.assertFalse(self.service.release_info()["embedding"]["active_index_compatible"])
         self.index()
         other = self.make_service(provider=HashingEmbeddingProvider(dimensions=64))
 
-        self.assertError(other.search("tumor"), "index_incompatible")
+        self.assert_error(other.search("tumor"), "index_incompatible")
         self.assertFalse(other.release_info()["embedding"]["active_index_compatible"])
         self.assertTrue(self.service.release_info()["embedding"]["active_index_compatible"])
 
@@ -341,20 +348,22 @@ class TraverseTest(ServiceTestCase):
     def test_invalid_selection_is_rejected_before_any_request(self):
         self.evs.errors = {"resolve_monthly_ncit_release": EVSUnavailableError("down")}
 
-        self.assertError(self.service.traverse(["C3262"], edge_types=["parent"]), "invalid_request")
+        self.assert_error(
+            self.service.traverse(["C3262"], edge_types=["parent"]), "invalid_request"
+        )
         self.assertEqual(self.evs.calls, [])
         too_many = self.service.traverse(["C3262", "C40704"], max_nodes=1)
-        self.assertError(too_many, "invalid_request")
+        self.assert_error(too_many, "invalid_request")
         self.assertEqual(self.evs.calls, [])
 
     def test_failures_use_the_matching_error_code(self):
-        self.assertError(self.service.traverse(["C999"]), "concept_not_found")
+        self.assert_error(self.service.traverse(["C999"]), "concept_not_found")
         self.evs.errors = {"get_concepts_by_codes": EVSUnavailableError("timed out")}
-        self.assertError(self.service.traverse(["C3262"]), "evs_unavailable")
+        self.assert_error(self.service.traverse(["C3262"]), "evs_unavailable")
         self.evs.errors = {"resolve_monthly_ncit_release": ReleaseResolutionError("ambiguous")}
-        self.assertError(self.service.traverse(["C3262"]), "release_unresolved")
+        self.assert_error(self.service.traverse(["C3262"]), "release_unresolved")
         self.evs.errors = {"get_concepts_by_codes": EVSResponseError("not a list")}
-        self.assertError(self.service.traverse(["C3262"]), "evs_invalid_response")
+        self.assert_error(self.service.traverse(["C3262"]), "evs_invalid_response")
 
     def test_each_invalid_argument_is_rejected(self):
         for arguments in (
@@ -376,7 +385,7 @@ class TraverseTest(ServiceTestCase):
             },
         ):
             with self.subTest(arguments=arguments):
-                self.assertError(self.service.traverse(**arguments), "invalid_request")
+                self.assert_error(self.service.traverse(**arguments), "invalid_request")
 
 
 class StatusTest(ServiceTestCase):
@@ -401,13 +410,13 @@ class StatusTest(ServiceTestCase):
         result = self.service.release_info()
 
         self.assertNotIn("isError", result)
-        self.assertError(result["evs_api"], "evs_unavailable")
-        self.assertError(result["selected_monthly_release"], "release_unresolved")
+        self.assert_error(result["evs_api"], "evs_unavailable")
+        self.assert_error(result["selected_monthly_release"], "release_unresolved")
         self.assertIn("found 2", result["selected_monthly_release"]["message"])
         self.assertEqual(result["active_index"]["release_version"], "26.06e")
 
     def test_evaluate_scores_every_mode_and_names_gold_concepts_that_are_not_indexed(self):
-        self.assertError(self.service.evaluate(), "no_active_index")
+        self.assert_error(self.service.evaluate(), "no_active_index")
         self.index()
 
         result = self.service.evaluate()
@@ -470,7 +479,7 @@ class FailureHandlingTest(ServiceTestCase):
             with self.subTest(operation):
                 with self.assertLogs("nci_si_mcp.service", level="WARNING"):
                     result = call()
-                self.assertError(result, "index_storage_error")
+                self.assert_error(result, "index_storage_error")
                 self.assertIn(str(database), result["message"])
 
     def test_misuse_of_the_index_is_not_disguised_as_a_result(self):

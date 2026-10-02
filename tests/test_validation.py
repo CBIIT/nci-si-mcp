@@ -1,4 +1,7 @@
+import sys
+import types
 import unittest
+from unittest.mock import patch
 
 from nci_si_mcp.embeddings import HashingEmbeddingProvider, create_embedding_provider
 from nci_si_mcp.errors import InputValidationError
@@ -16,7 +19,18 @@ class ValidationTest(unittest.TestCase):
         self.assertEqual(validate_ncit_codes(["c40704", " C3262 ", "C40704"]), ["C40704", "C3262"])
 
     def test_code_must_be_c_followed_by_digits_only(self):
-        for code in ("", "C", "3262", "C12/children", "C12?x=1", "C1\n2", "C12 3", "C١٢", None):
+        arabic_digits = "C١٢"  # noqa: RUF001 - digits that are not ASCII must be rejected
+        for code in (
+            "",
+            "C",
+            "3262",
+            "C12/children",
+            "C12?x=1",
+            "C1\n2",
+            "C12 3",
+            arabic_digits,
+            None,
+        ):
             with self.subTest(code=code), self.assertRaises(InputValidationError):
                 validate_ncit_code(code)
         with self.assertRaises(InputValidationError):
@@ -116,13 +130,50 @@ class EmbeddingConfigurationTest(unittest.TestCase):
             ("sentence-transformers", " "),
             ("unknown", "hashing"),
         ):
-            with self.subTest(provider=provider, model=model), self.assertRaises(ValueError) as raised:
+            with (
+                self.subTest(provider=provider, model=model),
+                self.assertRaises(ValueError) as raised,
+            ):
                 create_embedding_provider(provider, model)
             self.assertIn("NCI_SI_EMBEDDING_", str(raised.exception))
 
     def test_hashing_needs_at_least_one_dimension(self):
         with self.assertRaises(ValueError):
             HashingEmbeddingProvider(0)
+
+    def test_blank_text_embeds_to_the_zero_vector(self):
+        self.assertEqual(HashingEmbeddingProvider(4).embed(["  ", ""]), [[0.0] * 4] * 2)
+
+    def test_sentence_transformers_provider_wraps_the_named_model(self):
+        class FakeModel:
+            def __init__(self, name):
+                self.name = name
+
+            def encode(self, texts, normalize_embeddings):
+                # Like the library, it takes a list and returns rows that are not lists.
+                if not isinstance(texts, list):
+                    raise TypeError(type(texts))
+                return [(len(text), int(normalize_embeddings), len(self.name)) for text in texts]
+
+        library = types.SimpleNamespace(SentenceTransformer=FakeModel)
+        with patch.dict(sys.modules, {"sentence_transformers": library}):
+            provider = create_embedding_provider("Sentence-Transformers", "a-model")
+
+        self.assertEqual((provider.name, provider.model), ("sentence-transformers", "a-model"))
+        # The named model is loaded and asked for unit vectors.
+        vectors = provider.embed(iter(["ab", "c"]))
+        self.assertEqual(vectors, [[2.0, 1.0, 7.0], [1.0, 1.0, 7.0]])
+        self.assertEqual({type(value) for row in vectors for value in row}, {float})
+
+    def test_missing_embeddings_extra_is_explained(self):
+        with (
+            patch.dict(sys.modules, {"sentence_transformers": None}),
+            self.assertRaises(RuntimeError) as raised,
+        ):
+            create_embedding_provider("sentence-transformers", "all-MiniLM-L6-v2")
+
+        self.assertIn("'embeddings' extra", str(raised.exception))
+        self.assertIn(f"Import failed: {raised.exception.__cause__}", str(raised.exception))
 
 
 if __name__ == "__main__":

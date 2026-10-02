@@ -1,4 +1,5 @@
 import io
+import json
 import unittest
 from email.message import Message
 from http.client import IncompleteRead
@@ -25,7 +26,7 @@ class FakeResponse:
     def __enter__(self):
         return self
 
-    def __exit__(self, exc_type, exc, traceback):
+    def __exit__(self, *_):
         return False
 
     def read(self, limit):
@@ -81,9 +82,10 @@ class EVSClientTest(unittest.TestCase):
             URLError("still down"),
         ]
 
-        with self.assertLogs("nci_si_mcp.evs", level="WARNING"), self.assertRaises(
-            EVSUnavailableError
-        ) as raised:
+        with (
+            self.assertLogs("nci_si_mcp.evs", level="WARNING"),
+            self.assertRaises(EVSUnavailableError) as raised,
+        ):
             self.client(max_attempts=4, retry_backoff_seconds=0.25).get_api_version()
 
         self.assertEqual(urlopen.call_count, 4)
@@ -91,17 +93,22 @@ class EVSClientTest(unittest.TestCase):
         self.assertIn("still down", str(raised.exception))
 
     def test_requests_use_the_configured_timeout(self, urlopen, sleep):
-        urlopen.return_value = FakeResponse(b"{}")
+        # The transport answers with the timeout it was given.
+        def transport(request, data=None, timeout=None):
+            return FakeResponse(json.dumps({"timeout": timeout}).encode())
 
-        EVSClient("https://example.invalid", timeout_seconds=2.5).get_api_version()
+        urlopen.side_effect = transport
 
-        self.assertEqual(urlopen.call_args.kwargs["timeout"], 2.5)
+        version = EVSClient("https://example.invalid", timeout_seconds=2.5).get_api_version()
+
+        self.assertEqual(version, {"timeout": 2.5})
 
     def test_retry_wait_is_capped(self, urlopen, sleep):
         urlopen.side_effect = [URLError("down")] * 10
 
-        with self.assertLogs("nci_si_mcp.evs", level="WARNING"), self.assertRaises(
-            EVSUnavailableError
+        with (
+            self.assertLogs("nci_si_mcp.evs", level="WARNING"),
+            self.assertRaises(EVSUnavailableError),
         ):
             self.client(max_attempts=10, retry_backoff_seconds=3600).get_api_version()
 
@@ -126,6 +133,47 @@ class EVSClientTest(unittest.TestCase):
         urlopen.side_effect = http_error(404, b'{"message": "C1 not found"}')
         with self.assertRaises(EVSNotFoundError):
             client.get_concept("C1")
+
+    def test_an_error_without_a_usable_body_is_described_by_its_status(self, urlopen, sleep):
+        class BrokenBody(io.BytesIO):
+            def __init__(self, error):
+                super().__init__()
+                self.error = error
+
+            def read(self, *_):
+                raise self.error
+
+        bodies = {
+            "no body": None,
+            "not JSON": io.BytesIO(b"<html>"),
+            "a JSON list": io.BytesIO(b"[]"),
+            "a JSON string": io.BytesIO(b'"text"'),
+            "no message": io.BytesIO(b"{}"),
+            "longer than the part that is read": io.BytesIO(
+                json.dumps({"message": "x" * 5000}).encode()
+            ),
+            "unreadable": BrokenBody(OSError("connection reset")),
+            "cut short": BrokenBody(IncompleteRead(b"")),
+        }
+        for case, body in bodies.items():
+            with self.subTest(case):
+                urlopen.side_effect = HTTPError(
+                    "https://example.invalid", 403, "Forbidden", Message(), body
+                )
+
+                with self.assertRaises(EVSResponseError) as raised:
+                    self.client().get_api_version()
+
+                self.assertTrue(str(raised.exception).endswith("HTTP 403 Forbidden"))
+
+    def test_a_backoff_of_zero_retries_without_waiting(self, urlopen, sleep):
+        urlopen.side_effect = [URLError("temporary"), FakeResponse(b'{"version": "test"}')]
+
+        with self.assertLogs("nci_si_mcp.evs", level="WARNING"):
+            result = self.client(max_attempts=2, retry_backoff_seconds=0).get_api_version()
+
+        self.assertEqual(result, {"version": "test"})
+        sleep.assert_not_called()
 
     def test_not_found_is_distinct_and_carries_the_reason_evs_gives(self, urlopen, sleep):
         urlopen.side_effect = http_error(404, b'{"status": 404, "message": "C999 not found"}')

@@ -76,7 +76,12 @@ class EVSTest(unittest.TestCase):
             )
 
     def test_release_pins_requests_by_its_terminology_version(self):
-        row = {"terminology": "ncit", "version": "26.06e", "latest": True, "tags": {"monthly": "true"}}
+        row = {
+            "terminology": "ncit",
+            "version": "26.06e",
+            "latest": True,
+            "tags": {"monthly": "true"},
+        }
 
         named = select_monthly_ncit_release([dict(row, terminologyVersion="ncit_2606e_monthly")])
         unnamed = select_monthly_ncit_release([row])
@@ -104,7 +109,9 @@ class EVSTest(unittest.TestCase):
 
     def test_malformed_payload_fields_are_response_errors(self):
         with self.assertRaises(EVSResponseError):
-            select_monthly_ncit_release([{"terminology": "ncit", "latest": True, "tags": ["monthly"]}])
+            select_monthly_ncit_release(
+                [{"terminology": "ncit", "latest": True, "tags": ["monthly"]}]
+            )
         for field in ("properties", "definitions", "synonyms"):
             with self.subTest(field), self.assertRaises(EVSResponseError):
                 normalize_concept({"code": "C1", field: ["text"]}, None, "live_evs")
@@ -152,6 +159,13 @@ class EVSTest(unittest.TestCase):
         self.assertEqual(concept.evidence["contributing_sources"], ["GDC"])
         self.assertNotIn("raw", concept.to_dict())
         self.assertIn("raw", concept.to_dict(include_raw=True))
+
+    def test_a_concept_of_another_terminology_is_not_labelled_nci_thesaurus(self):
+        concept = normalize_concept(
+            {"code": "CL1", "terminology": "ncim"}, release_date=None, source="live_evs"
+        )
+
+        self.assertEqual((concept.terminology, concept.source_vocabulary), ("ncim", "ncim"))
 
 
 if __name__ == "__main__":

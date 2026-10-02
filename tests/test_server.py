@@ -1,38 +1,55 @@
 import asyncio
 import json
 import logging
+import re
 import sys
 import tempfile
 import unittest
 from importlib import metadata
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
+
+from mcp.client import Client
+from mcp.shared.exceptions import MCPError
 
 from fakes import FakeEVS, concept
-
 from nci_si_mcp.config import Settings
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.evs import EVSUnavailableError
 from nci_si_mcp.index import LocalIndex
-from nci_si_mcp.server import create_mcp
+from nci_si_mcp.server import INSTRUCTIONS, create_mcp
 from nci_si_mcp.service import NCISIService
+from test_docs import README, bullet_names, section
 
 NEOPLASM = concept(
     "C3262",
     "Neoplasm",
+    parents=[{"code": "C2991", "name": "Disease or Disorder"}],
     children=[{"code": "C4741", "name": "Neoplasm by Morphology"}],
+    roles=[{"type": "Disease_Has_Abnormal_Cell", "relatedCode": "C12922", "relatedName": "Cell"}],
+    inverseRoles=[
+        {"type": "Gene_Associated_With_Disease", "relatedCode": "C16612", "relatedName": "Gene"}
+    ],
+    associations=[
+        {"type": "Concept_In_Subset", "relatedCode": "C165258", "relatedName": "A Subset"}
+    ],
 )
+
+
+MORPHOLOGY = concept("C4741", "Neoplasm by Morphology")
 
 
 @patch("nci_si_mcp.server.configure_logging")
 class ServerStartupTest(unittest.TestCase):
     def test_missing_or_incompatible_mcp_package_is_explained(self, _):
-        with patch.dict(sys.modules, {"mcp.server.mcpserver": None}):
-            with self.assertRaises(RuntimeError) as raised:
-                create_mcp(Settings())
+        with (
+            patch.dict(sys.modules, {"mcp.server.mcpserver": None}),
+            self.assertRaises(RuntimeError) as raised,
+        ):
+            create_mcp(Settings())
 
         self.assertIn("'server' extra", str(raised.exception))
-        self.assertIn("Import failed", str(raised.exception))
+        self.assertIn(f"Import failed: {raised.exception.__cause__}", str(raised.exception))
 
 
 @patch("nci_si_mcp.server.configure_logging")
@@ -48,7 +65,7 @@ class ServerTest(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.settings = Settings(data_dir=Path(directory.name))
-        self.evs = FakeEVS([NEOPLASM])
+        self.evs = FakeEVS([NEOPLASM, MORPHOLOGY])
         self.service = NCISIService(
             self.settings,
             evs=self.evs,
@@ -58,8 +75,6 @@ class ServerTest(unittest.TestCase):
 
     def session(self, interaction):
         """Run `interaction(client)` against the server over an in-process MCP session."""
-
-        from mcp.client import Client
 
         async def run():
             async with Client(create_mcp(self.settings, service=self.service)) as client:
@@ -72,8 +87,6 @@ class ServerTest(unittest.TestCase):
         return result.is_error, json.loads(result.content[0].text)
 
     def read(self, uri):
-        from mcp.shared.exceptions import MCPError
-
         async def interaction(client):
             # Caught inside the session: leaving it would wrap the error in a group.
             try:
@@ -87,21 +100,19 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(result.contents[0].mime_type, "application/json")
         return json.loads(result.contents[0].text)
 
-    def test_server_reports_the_installed_package_version(self, _):
+    def test_server_reports_its_version_and_its_instructions(self, _):
         async def server_info(client):
-            return client.server_info
+            return client.server_info, client.instructions
 
-        info = self.session(server_info)
+        info, instructions = self.session(server_info)
 
         self.assertEqual((info.name, info.version), ("nci-si-mcp", metadata.version("nci-si-mcp")))
+        self.assertEqual(instructions, INSTRUCTIONS)
 
     def test_five_tools_are_registered_with_descriptions_and_closed_value_sets(self, _):
         tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
 
-        self.assertEqual(
-            set(tools),
-            {"ncit_search", "ncit_lookup", "ncit_traverse", "ncit_release_info", "cadsr_status"},
-        )
+        self.assertEqual(len(tools), 5)
         # The closed value sets are advertised in the schemas, wherever the
         # schema generator puts them.
         traverse_schema = json.dumps(tools["ncit_traverse"].input_schema)
@@ -113,16 +124,50 @@ class ServerTest(unittest.TestCase):
         for term in ("truncated", "unexpanded_codes", "descendant", "relationship_names"):
             self.assertIn(term, tools["ncit_traverse"].description)
 
+    def test_readme_lists_the_tools_and_every_argument_of_traverse(self, _):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+
+        # The names in backticks that start the bullets of the section.
+        leads = re.findall(
+            r"^- ((?:`\w+`(?:, )?)+)", section(README, "MCP Tools"), flags=re.MULTILINE
+        )
+        names = {name for lead in leads for name in re.findall(r"`(\w+)`", lead)}
+
+        self.assertEqual(names, set(tools) | set(tools["ncit_traverse"].input_schema["properties"]))
+
+    def test_optional_arguments_have_the_documented_defaults(self, _):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+
+        def defaults(tool):
+            properties = tools[tool].input_schema["properties"]
+            return {name: spec["default"] for name, spec in properties.items() if "default" in spec}
+
+        self.assertEqual(
+            defaults("ncit_search"), {"limit": 10, "mode": "hybrid", "include_raw": False}
+        )
+        self.assertEqual(defaults("ncit_lookup"), {"live_only": False, "include_raw": False})
+        self.assertEqual(
+            defaults("ncit_traverse"),
+            {
+                "direction": "out",
+                "max_depth": 2,
+                "max_nodes": 200,
+                "max_edges": 1000,
+                "include_hierarchy": True,
+                "include_roles": True,
+                "include_associations": True,
+                "relationship_names": None,
+                "edge_types": None,
+            },
+        )
+
     def test_three_resource_templates_are_registered_as_json(self, _):
         templates = self.session(lambda client: client.list_resource_templates()).resource_templates
 
+        self.assertEqual(len(templates), 3)
         self.assertEqual(
             {template.uri_template for template in templates},
-            {
-                "nci-si://concept/ncit/{code}",
-                "nci-si://release/ncit/{version}",
-                "nci-si://index/ncit/{version}/manifest",
-            },
+            set(bullet_names(section(README, "MCP Resources"))),
         )
         for template in templates:
             self.assertEqual(template.mime_type, "application/json")
@@ -151,37 +196,40 @@ class ServerTest(unittest.TestCase):
         self.assertFalse(is_error)
         self.assertEqual(status["state"], "reuse_pending")
 
-    def test_every_tool_argument_reaches_the_service(self, _):
-        self.service = MagicMock(spec=NCISIService)
-        for method in ("search", "lookup", "traverse"):
-            getattr(self.service, method).return_value = {"ok": True}
-
-        search = {"query": "tumor", "limit": 7, "mode": "vector", "include_raw": True}
-        self.assertEqual(self.call("ncit_search", **search), (False, {"ok": True}))
-        self.service.search.assert_called_once_with(**search)
-
-        lookup = {"code": "C1", "live_only": True, "include_raw": True}
-        self.call("ncit_lookup", **lookup)
-        self.service.lookup.assert_called_once_with(**lookup)
+    def test_every_tool_argument_shapes_the_result(self, _):
+        self.service.index_codes(["C3262", "C4741"])
+        arguments = {"query": "neoplasm", "mode": "vector", "include_raw": True}
+        is_error, search = self.call("ncit_search", **arguments)
+        self.assertEqual((is_error, search["mode"], len(search["hits"])), (False, "vector", 2))
+        self.assertIn("raw", search["hits"][0]["concept"])
+        _, search = self.call("ncit_search", limit=1, **arguments)
+        self.assertEqual(len(search["hits"]), 1)
 
         traverse = {
-            "start_codes": ["C1", "C2"],
+            "start_codes": ["C3262"],
             "direction": "both",
-            "max_depth": 3,
+            "max_depth": 1,
             "max_nodes": 40,
             "max_edges": 50,
             "include_hierarchy": False,
-            "include_roles": False,
             "include_associations": False,
-            "relationship_names": ["Has_Finding"],
-            "edge_types": ["role", "inverse_role"],
         }
-        self.call("ncit_traverse", **traverse)
-        self.service.traverse.assert_called_once_with(**traverse)
+        _, walk = self.call("ncit_traverse", **traverse)
+        self.assertEqual((walk["max_depth"], walk["max_nodes"], walk["max_edges"]), (1, 40, 50))
+        self.assertEqual({edge["edge_type"] for edge in walk["edges"]}, {"role", "inverse_role"})
+        _, walk = self.call("ncit_traverse", **dict(traverse, include_roles=False))
+        self.assertEqual(walk["error"], "invalid_request")
+        selection = {"edge_types": ["child", "role"], "relationship_names": ["is_a_child"]}
+        _, walk = self.call("ncit_traverse", start_codes=["C3262"], max_depth=1, **selection)
+        self.assertEqual([edge["target_code"] for edge in walk["edges"]], ["C4741"])
 
-        self.service.lookup.reset_mock()
-        self.read("nci-si://concept/ncit/C1")
-        self.service.lookup.assert_called_once_with(code="C1")
+        # With EVS down, a lookup falls back to the index unless live_only forbids it.
+        self.evs.errors = {"get_concept": EVSUnavailableError("down")}
+        _, cached = self.call("ncit_lookup", code="C3262", include_raw=True)
+        self.assertEqual(cached["source"], "active_cache")
+        self.assertIn("raw", cached)
+        is_error, failed = self.call("ncit_lookup", code="C3262", live_only=True)
+        self.assertEqual((is_error, failed["error"]), (True, "evs_unavailable"))
 
     def test_error_envelopes_are_flagged_as_protocol_errors(self, _):
         failures = (
@@ -227,9 +275,14 @@ class ServerTest(unittest.TestCase):
             manifest = self.read(f"nci-si://index/ncit/{version}/manifest")
             self.assertEqual(manifest["concept_count"], 1)
 
-    def test_resource_failures_are_protocol_errors_carrying_the_envelope(self, _):
-        from mcp.shared.exceptions import MCPError
+    def test_concept_resource_is_a_lookup_with_the_default_options(self, _):
+        self.service.index_codes(["C3262"])
 
+        self.assertNotIn("raw", self.read("nci-si://concept/ncit/C3262"))
+        self.evs.errors = {"get_concept": EVSUnavailableError("down")}
+        self.assertEqual(self.read("nci-si://concept/ncit/C3262")["source"], "active_cache")
+
+    def test_resource_failures_are_protocol_errors_carrying_the_envelope(self, _):
         self.service.index_codes(["C3262"])
         failures = {
             "nci-si://concept/ncit/C999": "concept_not_found",

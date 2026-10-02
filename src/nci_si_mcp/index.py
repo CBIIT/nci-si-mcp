@@ -29,6 +29,9 @@ from .validation import validate_search
 
 logger = logging.getLogger(__name__)
 
+# SQL built with f-strings below interpolates only table names and predicates
+# written in this module, or lists of "?" placeholders; every value is bound.
+
 SCHEMA_VERSION = 4
 MAX_FTS_CANDIDATES = 1000
 # A release of up to this many concepts is scored exactly: every stored vector
@@ -42,6 +45,9 @@ MAX_VECTOR_CANDIDATES = 2000
 LSH_BANDS = 4
 LSH_BITS_PER_BAND = 8
 _SQL_CHUNK = 500
+# The schema versions that introduced the FTS table and the LSH table.
+_FTS_SCHEMA = 2
+_LSH_SCHEMA = 3
 
 
 def _projection_sign(bit: int, dimension: int) -> float:
@@ -157,17 +163,19 @@ def _drop_inactive_releases(conn: sqlite3.Connection) -> list[str]:
     inactive = "release_version NOT IN (SELECT release_version FROM manifests WHERE active = 1)"
     dropped = [
         row[0]
-        for row in conn.execute(f"SELECT DISTINCT release_version FROM concepts WHERE {inactive}")
+        for row in conn.execute(
+            f"SELECT DISTINCT release_version FROM concepts WHERE {inactive}"  # noqa: S608
+        )
     ]
     for table in ("concepts", "concepts_fts", "vector_lsh", "manifests"):
-        conn.execute(f"DELETE FROM {table} WHERE {inactive}")
+        conn.execute(f"DELETE FROM {table} WHERE {inactive}")  # noqa: S608
     return dropped
 
 
 def _backfill_search_tables(conn: sqlite3.Connection, version: int) -> None:
     """Rebuild the tables that a database of schema `version` does not have filled."""
 
-    if version < 2:
+    if version < _FTS_SCHEMA:
         conn.execute("DELETE FROM concepts_fts")
         conn.execute(
             """
@@ -175,7 +183,7 @@ def _backfill_search_tables(conn: sqlite3.Connection, version: int) -> None:
             SELECT release_version, code, search_text FROM concepts
             """
         )
-    if version < 3:
+    if version < _LSH_SCHEMA:
         conn.execute("DELETE FROM vector_lsh")
         vector_rows = conn.execute("SELECT release_version, code, vector FROM concepts").fetchall()
         conn.executemany(
@@ -236,7 +244,7 @@ def _remove_search_rows(conn: sqlite3.Connection, release_version: str, codes: l
         (release_version, row["code"])
         for chunk in batched(codes, _SQL_CHUNK, strict=False)
         for row in conn.execute(
-            "SELECT code FROM concepts WHERE release_version = ? AND code IN "
+            "SELECT code FROM concepts WHERE release_version = ? AND code IN "  # noqa: S608
             f"({','.join('?' for _ in chunk)})",
             [release_version, *chunk],
         )
@@ -311,7 +319,9 @@ def _query_vector(
 ) -> list[float]:
     query_vectors = embedding_provider.embed([query])
     if len(query_vectors) != 1:
-        raise IndexCompatibilityError("Embedding provider returned an unexpected query vector count")
+        raise IndexCompatibilityError(
+            "Embedding provider returned an unexpected query vector count"
+        )
     query_vector = query_vectors[0]
     if not manifest.embedding_matches(
         embedding_provider.name, embedding_provider.model, len(query_vector)
@@ -332,7 +342,7 @@ def _candidate_vector_rows(
     buckets = vector_lsh_buckets(query_vector)
     predicates = " OR ".join("(band = ? AND bucket = ?)" for _ in buckets)
     lsh_rows = conn.execute(
-        f"SELECT code FROM vector_lsh WHERE release_version = ? AND ({predicates}) "
+        f"SELECT code FROM vector_lsh WHERE release_version = ? AND ({predicates}) "  # noqa: S608
         "GROUP BY code ORDER BY COUNT(*) DESC, code LIMIT ?",
         [
             release,
@@ -346,7 +356,7 @@ def _candidate_vector_rows(
         placeholders = ",".join("?" for _ in chunk)
         rows.extend(
             conn.execute(
-                f"SELECT code, vector FROM concepts WHERE release_version = ? "
+                f"SELECT code, vector FROM concepts WHERE release_version = ? "  # noqa: S608
                 f"AND code IN ({placeholders})",
                 [release, *chunk],
             ).fetchall()
@@ -473,7 +483,7 @@ class LocalIndex:
         conn: sqlite3.Connection, active: IndexManifest | None, release_version: str
     ) -> None:
         for table in ("concepts", "concepts_fts", "vector_lsh"):
-            conn.execute(f"DELETE FROM {table}")
+            conn.execute(f"DELETE FROM {table}")  # noqa: S608
         if active:
             logger.info(
                 "index_release_replaced previous=%s new=%s", active.release_version, release_version
@@ -568,7 +578,7 @@ class LocalIndex:
             payload_by_code = {
                 row["code"]: json.loads(row["payload"])
                 for row in conn.execute(
-                    f"SELECT code, payload FROM concepts WHERE release_version = ? "
+                    f"SELECT code, payload FROM concepts WHERE release_version = ? "  # noqa: S608
                     f"AND code IN ({placeholders})",
                     [release, *(code for code, _, _ in ranked)],
                 )

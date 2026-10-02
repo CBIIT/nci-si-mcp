@@ -19,7 +19,7 @@ class EmbeddingProvider(ABC):
 
     @abstractmethod
     def embed(self, texts: Iterable[str]) -> list[list[float]]:
-        raise NotImplementedError
+        """Return one vector per text, all of one length."""
 
 
 class HashingEmbeddingProvider(EmbeddingProvider):
@@ -48,9 +48,12 @@ class HashingEmbeddingProvider(EmbeddingProvider):
 
 class SentenceTransformersProvider(EmbeddingProvider):
     def __init__(self, model_name: str) -> None:
+        # An optional extra with heavy dependencies, imported only when configured.
         try:
-            from sentence_transformers import SentenceTransformer
-        except ImportError as exc:  # pragma: no cover - optional dependency
+            from sentence_transformers import (  # pyright: ignore[reportMissingImports]
+                SentenceTransformer,
+            )
+        except ImportError as exc:
             raise RuntimeError(
                 "The sentence-transformers provider needs the 'embeddings' extra "
                 f"(pdm install -G embeddings). Import failed: {exc}"
@@ -72,7 +75,8 @@ def normalize_embedding_settings(provider: str, model: str) -> tuple[str, str]:
     if normalized_provider == "hashing":
         if normalized_model not in {"hashing", "hashing-128"}:
             raise ValueError(
-                "NCI_SI_EMBEDDING_MODEL must be 'hashing' when NCI_SI_EMBEDDING_PROVIDER is 'hashing'"
+                "NCI_SI_EMBEDDING_MODEL must be 'hashing' when "
+                "NCI_SI_EMBEDDING_PROVIDER is 'hashing'"
             )
     elif normalized_provider == "sentence-transformers":
         if not normalized_model or normalized_model == "hashing":

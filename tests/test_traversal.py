@@ -2,7 +2,6 @@ import unittest
 from unittest.mock import patch
 
 from fakes import FakeEVS, concept, release
-
 from nci_si_mcp.errors import InputValidationError
 from nci_si_mcp.evs import EVSNotFoundError, EVSResponseError, EVSResponseTooLargeError
 from nci_si_mcp.traversal import (
@@ -114,7 +113,9 @@ class EdgeTypeSelectionTest(unittest.TestCase):
         self.assertEqual(select_edge_types("out", True, True, True, ["descendant"]), ["descendant"])
 
     def test_include_flags_remove_edge_types(self):
-        self.assertEqual(select_edge_types("both", False, True, False, None), ["role", "inverse_role"])
+        self.assertEqual(
+            select_edge_types("both", False, True, False, None), ["role", "inverse_role"]
+        )
 
     def test_contradictory_selectors_are_rejected(self):
         for arguments in (
@@ -206,13 +207,13 @@ class TraversalTest(unittest.TestCase):
 
         result = walk(client, max_depth=0)
 
-        self.assertEqual([(node.code, node.preferred_name) for node in result.nodes], [("C1", "Concept C1")])
+        self.assertEqual(
+            [(node.code, node.preferred_name) for node in result.nodes], [("C1", "Concept C1")]
+        )
         self.assertEqual(client.includes, ["minimal"])
 
     def test_duplicate_relation_rows_are_emitted_once(self):
-        client = FakeEVS(
-            [concept("C1", roles=[related("Disease_Has_Finding", "C2")] * 2)]
-        )
+        client = FakeEVS([concept("C1", roles=[related("Disease_Has_Finding", "C2")] * 2)])
 
         result = walk(client, max_depth=1)
 
@@ -346,7 +347,9 @@ class TraversalTest(unittest.TestCase):
             },
         )
 
-        result = walk(client, start_codes=["C1", "C2"], max_depth=3, max_nodes=5, edge_types=["descendant"])
+        result = walk(
+            client, start_codes=["C1", "C2"], max_depth=3, max_nodes=5, edge_types=["descendant"]
+        )
 
         self.assertEqual(codes(result), ["C1", "C2", "C11", "C21", "C12"])
         self.assertTrue(result.truncated)
@@ -412,10 +415,15 @@ class TraversalTest(unittest.TestCase):
                 concept("C5", children=[child("C9")]),
                 concept("C9", children=[child("C99")]),
             ],
-            descendants={"C1": [descendant("C5", 1), descendant("C9", 2)], "C2": [descendant("C9", 1)]},
+            descendants={
+                "C1": [descendant("C5", 1), descendant("C9", 2)],
+                "C2": [descendant("C9", 1)],
+            },
         )
 
-        result = walk(client, start_codes=["C1", "C2"], max_depth=2, edge_types=["child", "descendant"])
+        result = walk(
+            client, start_codes=["C1", "C2"], max_depth=2, edge_types=["child", "descendant"]
+        )
 
         self.assertIn(("C9", "C99"), pairs(result))
 
@@ -427,10 +435,15 @@ class TraversalTest(unittest.TestCase):
                 concept("C5", children=[child("C9")]),
                 concept("C9", children=[child("C99")]),
             ],
-            descendants={"C1": [descendant("C5", 1), descendant("C9", 2)], "C2": [descendant("C9", 1)]},
+            descendants={
+                "C1": [descendant("C5", 1), descendant("C9", 2)],
+                "C2": [descendant("C9", 1)],
+            },
         )
 
-        result = walk(client, start_codes=["C2", "C1"], max_depth=2, edge_types=["child", "descendant"])
+        result = walk(
+            client, start_codes=["C2", "C1"], max_depth=2, edge_types=["child", "descendant"]
+        )
 
         self.assertIn(("C9", "C99"), pairs(result))
 
@@ -461,7 +474,9 @@ class TraversalTest(unittest.TestCase):
         result = walk(client, max_depth=3)
 
         self.assertEqual([call[2] for call in client.calls], [["C1"], ["C2", "C3"], ["C4"]])
-        self.assertEqual(pairs(result), [("C1", "C2"), ("C1", "C3"), ("C2", "C4"), ("C3", "C4"), ("C4", "C5")])
+        self.assertEqual(
+            pairs(result), [("C1", "C2"), ("C1", "C3"), ("C2", "C4"), ("C3", "C4"), ("C4", "C5")]
+        )
 
     def test_unknown_start_code_is_not_found(self):
         with self.assertRaises(EVSNotFoundError) as raised:
@@ -586,7 +601,9 @@ class TraversalTest(unittest.TestCase):
         with self.assertLogs("nci_si_mcp.traversal", level="WARNING"):
             result = walk(client, max_depth=1)
 
-        self.assertEqual([(node.code, node.preferred_name) for node in result.nodes], [("C1", "Hub")])
+        self.assertEqual(
+            [(node.code, node.preferred_name) for node in result.nodes], [("C1", "Hub")]
+        )
         self.assertEqual(result.edges, [])
         self.assertTrue(result.truncated)
         self.assertEqual(result.unexpanded_codes, ["C1"])
@@ -661,7 +678,9 @@ class TraversalTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            sorted((edge.edge_type, edge.relationship_name, edge.target_code) for edge in result.edges),
+            sorted(
+                (edge.edge_type, edge.relationship_name, edge.target_code) for edge in result.edges
+            ),
             [
                 ("child", "is_a_child", "C11"),
                 ("descendant", "is_a_descendant", "C11"),
@@ -778,7 +797,9 @@ class TraversalTest(unittest.TestCase):
         )
         self.assertEqual(
             {node.code: node.preferred_name for node in result.nodes},
-            dict({"C1": "Root"}, **{f"C{number}": f"Concept C{number}" for number in range(10, 17)}),
+            dict(
+                {"C1": "Root"}, **{f"C{number}": f"Concept C{number}" for number in range(10, 17)}
+            ),
         )
 
     def test_a_descendant_reached_by_no_other_edge_is_named(self):

@@ -98,7 +98,7 @@ Additional runtime controls:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `NCI_SI_EVS_BASE_URL` | NCI EVS production API | EVS endpoint (`http` or `https`) |
+| `NCI_SI_EVS_BASE_URL` | `https://api-evsrest.nci.nih.gov` | EVS endpoint (`http` or `https`) |
 | `NCI_SI_TIMEOUT_SECONDS` | `30` | Per-request timeout |
 | `NCI_SI_EVS_MAX_ATTEMPTS` | `3` | Request attempts, 1 to 10 |
 | `NCI_SI_EVS_RETRY_BACKOFF_SECONDS` | `0.25` | Initial exponential backoff; a single wait is capped at 60 seconds |
@@ -206,18 +206,8 @@ The caDSR adapter is intentionally non-fabricating. It reports `reuse_pending` u
 - fine-tuned embedding models
 - confidence scoring and ranking rules
 
-## Tests
+## Development
 
-```bash
-pdm run test                                  # the whole suite with the coverage floor
-pdm run pytest tests/test_index.py            # one file
-pdm run pytest tests/test_service.py -k LookupTest   # by name
-pdm run lint                                  # Ruff and mypy
-```
-
-The tests are written with `unittest` and also run without the test tools:
-`python -m unittest discover -s tests`.
-
-Line and branch coverage must stay at or above 90%. GitHub Actions runs Ruff and mypy on
-Python 3.13 and the tests on Python 3.13 and 3.14. No test contacts EVS: network behavior is
-tested with deterministic fakes.
+`pdm run test` runs the tests, and `pdm run lint` the linter and the type checker.
+[CONTRIBUTING.md](CONTRIBUTING.md) describes the commands, the standards and the gates;
+[ARCHITECTURE.md](ARCHITECTURE.md) describes how the server is built.

@@ -6,7 +6,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 from fakes import concept
-
 from nci_si_mcp.embeddings import EmbeddingProvider, HashingEmbeddingProvider
 from nci_si_mcp.errors import (
     IndexBuildError,
@@ -45,7 +44,18 @@ RAW_CONCEPTS = [
         "properties": [{"type": "Semantic_Type", "value": "Neoplastic Process"}],
     },
 ]
-WORDS = ["alpha", "bravo", "carbon", "delta", "ember", "fjord", "garnet", "harbor", "indigo", "jasper"]
+WORDS = [
+    "alpha",
+    "bravo",
+    "carbon",
+    "delta",
+    "ember",
+    "fjord",
+    "garnet",
+    "harbor",
+    "indigo",
+    "jasper",
+]
 
 
 def synthetic_concepts(count):
@@ -82,7 +92,8 @@ class IndexTestCase(unittest.TestCase):
     def counts(self, index):
         with index._connect() as conn:
             return tuple(
-                conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                # The table names are the literals below.
+                conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]  # noqa: S608
                 for table in ("concepts", "concepts_fts", "vector_lsh", "manifests")
             )
 
@@ -323,7 +334,9 @@ class StorageTest(IndexTestCase):
             if not replaced:
                 replaced.append(True)
                 LocalIndex(self.path).upsert_concepts(
-                    [concept("C9999", "Tumor Marker", version="26.07d")], "2026-07-27", self.provider
+                    [concept("C9999", "Tumor Marker", version="26.07d")],
+                    "2026-07-27",
+                    self.provider,
                 )
             return manifest
 
@@ -350,7 +363,9 @@ class StorageTest(IndexTestCase):
 
         self.assertEqual(reopened.get_active_manifest(), manifest)
         self.assertEqual(self.counts(reopened), (2, 2, 2 * LSH_BANDS, 1))
-        self.assertEqual(reopened.search("tumor", self.provider, mode="bm25")[0].concept.code, "C3262")
+        self.assertEqual(
+            reopened.search("tumor", self.provider, mode="bm25")[0].concept.code, "C3262"
+        )
 
     def test_opening_a_current_database_does_not_need_the_write_lock(self):
         self.build()
@@ -390,7 +405,8 @@ class MigrationTest(IndexTestCase):
         vectors = {}
         with sqlite3.connect(str(db_path)) as conn:
             conn.execute(
-                "CREATE TABLE manifests (release_version TEXT PRIMARY KEY, payload TEXT, active INTEGER)"
+                "CREATE TABLE manifests "
+                "(release_version TEXT PRIMARY KEY, payload TEXT, active INTEGER)"
             )
             conn.execute(
                 """
@@ -418,7 +434,8 @@ class MigrationTest(IndexTestCase):
                     "active": True,
                 }
                 conn.execute(
-                    "INSERT INTO manifests VALUES (?, ?, 1)", (release_version, json.dumps(manifest))
+                    "INSERT INTO manifests VALUES (?, ?, 1)",
+                    (release_version, json.dumps(manifest)),
                 )
                 conn.execute(
                     "INSERT INTO concepts VALUES (?, ?, ?, ?, ?)",
@@ -445,7 +462,9 @@ class MigrationTest(IndexTestCase):
         self.assertEqual([tuple(row) for row in buckets], vector_lsh_buckets(vectors["26.06e"]))
         self.assertIsNone(index.get_active_manifest().embedding_dimensions)
         for mode in ("bm25", "vector"):
-            self.assertEqual(index.search("kinase", self.provider, mode=mode)[0].concept.code, "C40704")
+            self.assertEqual(
+                index.search("kinase", self.provider, mode=mode)[0].concept.code, "C40704"
+            )
 
     def test_several_active_manifests_are_reduced_to_one(self):
         self.legacy_database([("26.05d", RAW_CONCEPTS[0]), ("26.06e", RAW_CONCEPTS[1])])
@@ -463,7 +482,8 @@ class MigrationTest(IndexTestCase):
         index = self.build()
         with index._connect() as conn:
             conn.execute(
-                "INSERT INTO concepts SELECT '26.05d', code, payload, search_text, vector FROM concepts"
+                "INSERT INTO concepts "
+                "SELECT '26.05d', code, payload, search_text, vector FROM concepts"
             )
             conn.execute(
                 "INSERT INTO concepts_fts SELECT '26.05d', code, search_text FROM concepts_fts"
@@ -542,9 +562,15 @@ class SearchTest(IndexTestCase):
         self.assertEqual(len(hits), 30)
         for hit in hits:
             components = hit.score_components
-            self.assertAlmostEqual(hit.score, 0.55 * components["bm25"] + 0.45 * components["vector"])
-        self.assertTrue(any(h.score_components["bm25"] != h.score_components["vector"] for h in hits))
-        self.assertEqual([hit.score for hit in hits], sorted((hit.score for hit in hits), reverse=True))
+            self.assertAlmostEqual(
+                hit.score, 0.55 * components["bm25"] + 0.45 * components["vector"]
+            )
+        self.assertTrue(
+            any(h.score_components["bm25"] != h.score_components["vector"] for h in hits)
+        )
+        self.assertEqual(
+            [hit.score for hit in hits], sorted((hit.score for hit in hits), reverse=True)
+        )
 
     def test_search_text_holds_code_name_synonyms_definitions_types_and_sources(self):
         raw = dict(
@@ -672,8 +698,9 @@ class SearchTest(IndexTestCase):
         concepts = synthetic_concepts(60)
         index = self.build(concepts)
 
-        with patch("nci_si_mcp.index.EXACT_VECTOR_SCAN_LIMIT", 20), patch(
-            "nci_si_mcp.index.MAX_VECTOR_CANDIDATES", 20
+        with (
+            patch("nci_si_mcp.index.EXACT_VECTOR_SCAN_LIMIT", 20),
+            patch("nci_si_mcp.index.MAX_VECTOR_CANDIDATES", 20),
         ):
             # The stored search text of a concept lands in all of its own buckets.
             own_text = concept_search_text(
@@ -696,9 +723,11 @@ class SearchTest(IndexTestCase):
             normalize_concept(concepts[7], release_date=None, source="active_cache")
         )
 
-        with patch("nci_si_mcp.index.EXACT_VECTOR_SCAN_LIMIT", 20), patch(
-            "nci_si_mcp.index.MAX_VECTOR_CANDIDATES", 5
-        ), patch("nci_si_mcp.index.MAX_FTS_CANDIDATES", 3):
+        with (
+            patch("nci_si_mcp.index.EXACT_VECTOR_SCAN_LIMIT", 20),
+            patch("nci_si_mcp.index.MAX_VECTOR_CANDIDATES", 5),
+            patch("nci_si_mcp.index.MAX_FTS_CANDIDATES", 3),
+        ):
             vector_hits = index.search(own_text, self.provider, limit=100, mode="vector")
             # Three BM25 candidates leave room for two LSH candidates.
             hybrid_hits = index.search(
@@ -716,7 +745,9 @@ class SearchTest(IndexTestCase):
 
     def test_search_only_returns_the_active_release(self):
         index = self.build()
-        index.upsert_concepts([dict(RAW_CONCEPTS[1], version="26.07d")], "2026-07-27", self.provider)
+        index.upsert_concepts(
+            [dict(RAW_CONCEPTS[1], version="26.07d")], "2026-07-27", self.provider
+        )
 
         for mode in ("bm25", "vector", "hybrid"):
             with self.subTest(mode):

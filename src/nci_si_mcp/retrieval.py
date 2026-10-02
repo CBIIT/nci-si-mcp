@@ -15,13 +15,11 @@ def tokenize(text: str) -> list[str]:
 
 
 def cosine_similarity(left: Sequence[float], right: Sequence[float]) -> float:
-    """Dot product of two vectors; equals cosine similarity for unit vectors.
+    """Dot product of two vectors of one length; the cosine similarity of unit vectors.
 
     Both shipped embedding providers return unit vectors.
     """
 
-    if not left or not right or len(left) != len(right):
-        return 0.0
     return float(sum(a * b for a, b in zip(left, right, strict=True)))
 
 
@@ -32,5 +30,5 @@ def min_max_normalize(scores: dict[str, float]) -> dict[str, float]:
     low = min(values)
     high = max(values)
     if high == low:
-        return {key: 1.0 for key in scores}
+        return dict.fromkeys(scores, 1.0)
     return {key: (value - low) / (high - low) for key, value in scores.items()}

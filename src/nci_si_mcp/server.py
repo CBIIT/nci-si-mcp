@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from typing import Any
 
 from . import __version__
@@ -23,6 +24,7 @@ INSTRUCTIONS = (
 
 
 def create_mcp(settings: Settings | None = None, *, service: NCISIService | None = None):
+    # The mcp package is an optional extra, so it is imported only when a server is built.
     try:
         from mcp.server.mcpserver import MCPServer
         from mcp.server.mcpserver.exceptions import ResourceError
@@ -50,6 +52,16 @@ def create_mcp(settings: Settings | None = None, *, service: NCISIService | None
         if result.get("isError"):
             raise ResourceError(json.dumps(result))
         return result
+
+    _register_tools(mcp, service, tool_result)
+    _register_resources(mcp, service, resource_result)
+    return mcp
+
+
+def _register_tools(
+    mcp: Any, service: NCISIService, tool_result: Callable[[dict[str, Any]], Any]
+) -> None:
+    """Register the tools. Their docstrings are the contract sent to MCP clients."""
 
     @mcp.tool()
     def ncit_search(
@@ -100,9 +112,7 @@ def create_mcp(settings: Settings | None = None, *, service: NCISIService | None
         results from two releases are never mixed. `live_only=true` skips both
         that check and the fallback. `include_raw` adds the full EVS payload.
         """
-        return tool_result(
-            service.lookup(code=code, live_only=live_only, include_raw=include_raw)
-        )
+        return tool_result(service.lookup(code=code, live_only=live_only, include_raw=include_raw))
 
     @mcp.tool()
     def ncit_traverse(
@@ -184,6 +194,10 @@ def create_mcp(settings: Settings | None = None, *, service: NCISIService | None
         """
         return service.cadsr_status()
 
+
+def _register_resources(
+    mcp: Any, service: NCISIService, resource_result: Callable[[dict[str, Any]], dict[str, Any]]
+) -> None:
     @mcp.resource("nci-si://concept/ncit/{code}", mime_type="application/json")
     def ncit_concept_resource(code: str):
         """One NCIt concept, as returned by the `ncit_lookup` tool with default options."""
@@ -232,5 +246,3 @@ def create_mcp(settings: Settings | None = None, *, service: NCISIService | None
                 requested_version=version,
             )
         )
-
-    return mcp

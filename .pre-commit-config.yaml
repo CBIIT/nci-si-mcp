@@ -1,0 +1,113 @@
+---
+# The hooks that run on the files of each commit, and in CI on all files.
+# CONTRIBUTING.md describes the gates.
+#
+# Install once:  pdm run pre-commit install
+exclude: ^tmp/
+
+repos:
+  # ---------------------------------------------------------------------------
+  # 1. Fixers
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # Ruff and the other project tools run from the PDM environment, so pdm.lock is
+  # the one place that says which version runs, here and in CI.
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: ruff format
+        entry: pdm run ruff format --force-exclude
+        language: system
+        types_or: [python, pyi]
+
+  # ---------------------------------------------------------------------------
+  # 2. Syntax, structure and security
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-json
+      - id: check-yaml
+      - id: check-toml
+      - id: check-ast
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: debug-statements
+      - id: check-builtin-literals
+      - id: check-docstring-first
+      - id: check-symlinks
+      - id: destroyed-symlinks
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+        exclude: ^pdm\.lock$
+      - id: name-tests-test
+        args: [--pytest-test-first]
+        exclude: ^tests/fakes\.py$
+
+  # Secrets
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  # GitHub Actions: unpinned actions, token permissions, injection. Offline, so
+  # it needs no token; a justified finding is suppressed in the workflow file
+  # with `# zizmor: ignore[...]` and a reason.
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.30.1
+    hooks:
+      - id: zizmor
+        args: [--offline]
+
+  # ---------------------------------------------------------------------------
+  # 3. Python lint and types
+  # ---------------------------------------------------------------------------
+  - repo: local
+    hooks:
+      # Ruff repairs what it can and still fails, so the fix is looked at and staged.
+      - id: ruff-check
+        name: ruff check
+        entry: pdm run ruff check --fix --exit-non-zero-on-fix --force-exclude
+        language: system
+        types_or: [python, pyi]
+
+      # All of src and scripts, not the staged files: a change to a model can
+      # break a file that was not touched.
+      - id: basedpyright
+        name: basedpyright (src and scripts)
+        entry: pdm run basedpyright
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      # -----------------------------------------------------------------------
+      # 4. Project gates
+      # -----------------------------------------------------------------------
+      - id: complexity
+        name: cyclomatic complexity below 8
+        entry: pdm run python scripts/validation/check_complexity.py
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: test-quality
+        name: tests that can catch a regression
+        entry: pdm run python scripts/validation/check_test_quality.py
+        language: system
+        files: ^tests/test_.*\.py$
+
+      - id: dead-code
+        name: dead code
+        entry: pdm run vulture
+        language: system
+        types: [python]
+        pass_filenames: false
