@@ -127,13 +127,34 @@ def translate(arguments: dict[str, Any], entry: dict[str, Any]) -> dict[str, Any
 
 @dataclass(frozen=True, slots=True)
 class Result:
-    """A tool's answer: the tool that gave it, whether it is an error, its content and its
-    `_meta`."""
+    """A tool's answer: the tool that gave it, whether it is an error, its content, its
+    `_meta`, and every text block."""
 
     tool: str
     is_error: bool
     content: Any
     meta: dict[str, Any]
+    texts: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class Process:
+    """What the harness keeps of a server process: its standard error, its data directory,
+    and the upstream requests it made while it started."""
+
+    log: Path
+    data: Path
+    startup: tuple[dict[str, Any], ...]
+
+    def written(self) -> str:
+        """Everything the process wrote: its standard error and every file of its data."""
+
+        files = [self.log, *sorted(path for path in self.data.rglob("*") if path.is_file())]
+        return "".join(path.read_bytes().decode("utf-8", "replace") for path in files)
+
+
+def _texts(result: types.CallToolResult) -> tuple[str, ...]:
+    return tuple(block.text for block in result.content if block.type == "text")
 
 
 def _content(result: types.CallToolResult) -> Any:
@@ -153,9 +174,10 @@ def _content(result: types.CallToolResult) -> Any:
 class Tools:
     """The required tools of one server session."""
 
-    def __init__(self, session: Session, toolmap: ToolMap) -> None:
+    def __init__(self, session: Session, toolmap: ToolMap, process: Process | None = None) -> None:
         self._session = session
         self._toolmap = toolmap
+        self.process = process
         self.listing = session.list_tools()
         self.available = {tool.name: tool for tool in self.listing.tools}
 
@@ -197,4 +219,6 @@ class Tools:
             except Unsupported as unsupported:
                 pytest.skip(f"{NOT_IMPLEMENTED}: {name} with {unsupported} (stand-in {tool})")
         result = self._session.call_tool(tool, arguments, meta)
-        return Result(tool, bool(result.is_error), _content(result), result.meta or {})
+        return Result(
+            tool, bool(result.is_error), _content(result), result.meta or {}, _texts(result)
+        )

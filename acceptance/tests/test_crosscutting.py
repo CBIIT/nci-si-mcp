@@ -11,6 +11,7 @@ import pytest
 import yaml
 from jsonschema import Draft202012Validator
 
+from nci_si_acceptance.client import CREDENTIAL_VARIABLES
 from nci_si_acceptance.spec import RECORDS, TOOLS, items_of, parameters
 
 CALLS = yaml.safe_load((Path(__file__).parent / "calls.yaml").read_text(encoding="utf-8"))
@@ -23,14 +24,21 @@ REACHED = ("relationship", "direction", "polarity")
 BARE = {"ncit": re.compile(r"[A-Z][0-9]+")}
 
 
-def _per_tool(names):
-    """One case per tool, counted for that tool in the report and run with its scenario."""
+def _per_tool(names, scenario=None):
+    """One case per tool, counted for that tool in the report, run with `scenario` or else
+    with the scenario its call needs."""
 
     return [
         pytest.param(
             name,
             id=name,
-            marks=[pytest.mark.tool(name), *[pytest.mark.scenario(s) for s in _scenarios(name)]],
+            marks=[
+                pytest.mark.tool(name),
+                *[
+                    pytest.mark.scenario(each)
+                    for each in ([scenario] if scenario else _scenarios(name))
+                ],
+            ],
         )
         for name in names
     ]
@@ -40,8 +48,15 @@ def _scenarios(name):
     return [CALLS[name]["scenario"]] if "scenario" in CALLS[name] else []
 
 
+PINNED_TOOLS = [name for name in CALLS if "release" in parameters(name)[0]]
 CALLED = _per_tool(CALLS)
-PINNED = _per_tool(name for name in CALLS if "release" in parameters(name)[0])
+PINNED = _per_tool(PINNED_TOOLS)
+# The release the release/unknown scenario answers 404 for on every content path.
+UNKNOWN_RELEASE = "99.99z"
+# The calls whose answers name the release they come from, where a mismatch can show (X-3).
+RELEASED = [name for name in PINNED_TOOLS if not CALLS[name].get("unversioned")]
+# A concept of a licensed terminology, served (license/restricted) only with the licence key.
+LICENSED = {"terminology": "mdr", "release": "29_0", "code": "10000000"}
 
 
 def _call(tools, pinned, name):
@@ -122,10 +137,7 @@ def test_a_result_validates_against_the_declared_output_schema(tools, pinned, na
     result = _call(tools, pinned, name)
 
     assert not result.is_error, result.content
-    schema = tools.available[result.tool].output_schema
-    assert schema is not None
-    errors = [error.message for error in Draft202012Validator(schema).iter_errors(result.content)]
-    assert errors == []
+    assert _schema_errors(tools, result) == []
 
 
 @pytest.mark.requirement("X-14")
@@ -190,3 +202,120 @@ def test_a_release_pinned_result_may_be_cached(tools, pinned, name):
     assert result.meta.get("ttlMs", 0) > 0
     # Governed content; the results computed from caller-supplied values are caDSR's (M2.3).
     assert result.meta.get("cacheScope") == "public"
+
+
+def _schema_errors(tools, result):
+    """How the result departs from the outputSchema its tool declares; no schema is one way."""
+
+    schema = tools.available[result.tool].output_schema
+    if schema is None:
+        return ["the tool declares no outputSchema"]
+    return [error.message for error in Draft202012Validator(schema).iter_errors(result.content)]
+
+
+def _error_code(result):
+    """The code of an error result: one error record and nothing else, or None."""
+
+    record = result.content.get("error") if isinstance(result.content, dict) else None
+    if not result.is_error or set(result.content or {}) != {"error"} or not record:
+        return None
+    return record.get("code")
+
+
+@pytest.mark.requirement("X-2")
+@pytest.mark.parametrize("name", _per_tool(PINNED_TOOLS, "release/unknown"))
+def test_a_release_the_platform_does_not_serve_fails_closed(tools, pinned, name):
+    result = _call(tools, pinned | {"release": UNKNOWN_RELEASE}, name)
+
+    # A tool that can only verify the release of an unpinned answer reports the mismatch.
+    unpinned = {"release_mismatch"} if CALLS[name].get("unpinned") else set()
+    assert _error_code(result) in {"release_not_available", *unpinned}, result.content
+
+
+@pytest.mark.requirement("X-3")
+@pytest.mark.parametrize("name", _per_tool(RELEASED, "release/mismatch"))
+def test_content_of_another_release_fails_closed(tools, pinned, name):
+    result = _call(tools, pinned, name)
+
+    assert _error_code(result) == "release_mismatch", result.content
+
+
+@pytest.mark.requirement("X-5")
+@pytest.mark.parametrize("name", _per_tool(CALLS, "upstream/unavailable"))
+def test_an_unavailable_platform_is_an_upstream_error(tools, pinned, name):
+    result = _call(tools, pinned, name)
+
+    assert _error_code(result) in {"upstream_unavailable", "timeout"}, result.content
+
+
+@pytest.mark.requirement("X-6")
+@pytest.mark.parametrize("name", _per_tool(CALLS, "upstream/unavailable"))
+def test_an_error_validates_against_the_declared_output_schema(tools, pinned, name):
+    result = _call(tools, pinned, name)
+
+    assert result.is_error, result.content
+    assert _schema_errors(tools, result) == []
+
+
+def _licence_keys(upstream):
+    settings = upstream.fixtures.settings_of(("license/restricted",))
+    return {settings[name] for name in CREDENTIAL_VARIABLES if name in settings}
+
+
+def _outputs(result):
+    """All a result says: its content, its _meta and every text block."""
+
+    return result.content, result.meta, result.texts
+
+
+def _carrying(keys, *outputs):
+    """The keys that appear in any of `outputs`."""
+
+    text = json.dumps(outputs, default=str)
+    return sorted(key for key in keys if key in text)
+
+
+@pytest.mark.scenario("license/restricted")
+@pytest.mark.tool("get_concept")
+@pytest.mark.requirement("X-12")
+def test_the_licence_key_reaches_the_platform_and_nothing_the_server_returns_or_logs(
+    tools, upstream
+):
+    granted = tools.call("get_concept", LICENSED)
+
+    # Only a request that carries the key is answered.
+    assert not granted.is_error, granted.content
+    keys = _licence_keys(upstream)
+    assert keys
+    assert _carrying(keys, *_outputs(granted), tools.process.written()) == []
+
+
+@pytest.mark.scenario("license/restricted")
+@pytest.mark.unmatched_upstream
+@pytest.mark.tool("get_concept")
+@pytest.mark.requirement("X-12")
+def test_an_error_carries_no_licence_key(tools, upstream):
+    # No fixture answers this code, and the fixture server's refusal repeats the request's
+    # headers: a server that passes the refusal on would pass the key on with it.
+    refused = tools.call("get_concept", LICENSED | {"code": "99999999"})
+
+    assert refused.is_error
+    keys = _licence_keys(upstream)
+    assert _carrying(keys, *_outputs(refused), tools.process.written()) == []
+
+
+@pytest.mark.scenario("upstream/rate-limited")
+@pytest.mark.tool("resolve_release")
+@pytest.mark.requirement("X-16")
+def test_a_rate_limited_request_is_asked_once_more_after_the_wait(tools, upstream, pinned):
+    (limited,) = upstream.fixtures.scenarios["upstream/rate-limited"].values()
+    wait = float(limited.responses[0].headers["Retry-After"])
+
+    result = tools.call("resolve_release", {"terminology": pinned["terminology"]})
+
+    assert not result.is_error, result.content
+    # A server may resolve the release while it starts.
+    log = [*tools.process.startup, *upstream.log()]
+    asked = [entry["received_at"] for entry in log if entry["fixture"] == limited.name]
+    assert len(asked) == len(limited.responses)
+    assert asked[1] - asked[0] >= wait

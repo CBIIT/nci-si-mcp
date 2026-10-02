@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from nci_si_acceptance.fixture_server import CONCEPTS
+from nci_si_acceptance.fixture_server import CONCEPTS, EVERY_PATH
 from nci_si_acceptance.record import (
     DISCOVERY,
     FIXTURES,
@@ -36,6 +36,8 @@ if TYPE_CHECKING:
 type Documents = dict[str, dict[str, Any]]
 
 RELEASE, OTHER_RELEASE = "26.09d", "26.08e"
+# The release the release/unknown scenario serves nothing of.
+UNKNOWN = "99.99z"
 TERMINOLOGY = f"ncit_{RELEASE}"
 EXCLUSION_ROLES = frozenset(f"R{number}" for number in range(135, 143))
 # Positive roles of C4817 given a name that reads as an exclusion in traversal/exclusions.
@@ -281,21 +283,10 @@ def traversal_starvation(_: Recorded) -> Documents:
     return documents
 
 
-# Requests every tool's first upstream call is likely to be: the release query and the
-# concept endpoints, which answer the same whatever their parameters under a fault.
-FAULTED = {
-    "release": (
-        "/api/v1/metadata/terminologies",
-        {"terminology": ["ncit"], "latest": ["true"], "tag": ["monthly"]},
-    ),
-    "concept": (f"/api/v1/concept/{TERMINOLOGY}/C4817", {}),
-    "concepts": (f"/api/v1/concept/{TERMINOLOGY}", {}),
-}
-
-
 def upstream_unavailable(_: Recorded) -> Documents:
-    """A refused connection (as near as a fixture can: closed), then 503, then no answer
-    at all: the connection held past the server's timeout and closed, the last repeating."""
+    """Every request to either EVS surface, whatever its path: a refused connection (as near
+    as a fixture can: closed), then 503, then no answer at all, the connection held past the
+    server's timeout and closed, the last repeating."""
 
     requirement = "A2.5, A5.3: bounded retries, counted, then a structured error"
     responses = [
@@ -306,17 +297,42 @@ def upstream_unavailable(_: Recorded) -> Documents:
     documents: Documents = {
         "scenarios/upstream/unavailable/settings.json": {"NCI_SI_TIMEOUT_SECONDS": "1"}
     }
-    for name, (path, params) in FAULTED.items():
-        request = {"surface": "evs", "method": "GET", "path": path}
-        request |= (
-            {"params": params}
-            if params
-            else {"ignored": {"*": "crafted: an unavailable service answers no request at all"}}
-        )
-        documents[f"scenarios/upstream/unavailable/{name}.json"] = crafted(
+    for surface in ("evs", "evs-fhir"):
+        request = {
+            "surface": surface,
+            "method": "GET",
+            "path": EVERY_PATH,
+            "ignored": {"*": "crafted: an unavailable service answers no request at all"},
+        }
+        documents[f"scenarios/upstream/unavailable/{surface}.json"] = crafted(
             requirement, request, responses=responses
         )
     return documents
+
+
+def release_unknown_expand(recorded: Recorded) -> Documents:
+    """$expand pinned by system-version to the release release/unknown names: as every other
+    pinned form of that release, it answers 404. An ordinary fixture, since no other request
+    names that release; crafted, since EVS refuses system-version altogether today (400)."""
+
+    pinned = recorded("crafted/OP-F05/expand-c85492.json")["request"]
+    (version,) = pinned["params"]["system-version"]
+    request = pinned | {
+        "params": pinned["params"] | {"system-version": [version.replace(RELEASE, UNKNOWN)]}
+    }
+    outcome = {
+        "resourceType": "OperationOutcome",
+        "issue": [
+            {"severity": "error", "code": "not-found", "diagnostics": "Terminology not found"}
+        ],
+    }
+    return {
+        "crafted/OP-F05/expand-c85492-unknown-release.json": crafted(
+            "OP-F05: a pinned $expand of an unknown release fails as every pinned path does",
+            request,
+            response={"status": 404, "body": outcome},
+        )
+    }
 
 
 def upstream_rate_limited(recorded: Recorded) -> Documents:
@@ -363,7 +379,11 @@ def license_restricted(_: Recorded) -> Documents:
     }
     document = crafted(requirement, request, response={"status": 200, "body": LICENSED_CONCEPT})
     return {
-        "scenarios/license/restricted/settings.json": {"NCI_SI_EVS_LICENSE_KEY": LICENCE_KEY},
+        # At debug level, so that a key logged as a detail shows (A7.5).
+        "scenarios/license/restricted/settings.json": {
+            "NCI_SI_EVS_LICENSE_KEY": LICENCE_KEY,
+            "NCI_SI_LOG_LEVEL": "DEBUG",
+        },
         "scenarios/license/restricted/granted.json": document,
     }
 
@@ -374,6 +394,7 @@ SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     traversal_deep_fanout,
     traversal_exclusions,
     traversal_starvation,
+    release_unknown_expand,
     upstream_unavailable,
     upstream_rate_limited,
     license_restricted,

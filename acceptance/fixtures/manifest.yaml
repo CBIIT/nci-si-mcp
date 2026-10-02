@@ -53,7 +53,7 @@ scenarios:
     C99000001 (the node maximum is reached at depth 1 from the root)
   traversal/exclusions: Exclusion roles are named like positive ones, and two the other way
   traversal/starvation: One concept has 300 roles and 2 associations
-  upstream/unavailable: A closed connection, then 503, then no answer within the timeout
+  upstream/unavailable: Every EVS request, whatever its path, gets a closed connection, then 503, then no answer within the timeout
   upstream/rate-limited: 429 with `Retry-After` on the release query, then the answer
   license/restricted: 403 without the licence key; invented content with it
 

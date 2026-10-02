@@ -47,6 +47,10 @@ far as a fixture can; a refused connection cannot be produced per request. A str
 headers are sent too and override the content type; headers that frame the message
 (`Content-Length`, ...) are the server's and are refused.
 
+A scenario fixture whose path is `*` answers every request of its surface and method that
+no other fixture of its scenario answers, whatever its parameters, headers and body: the
+service as a whole unavailable. It matches on nothing else, and an ordinary one is refused.
+
 Fixtures under `scenarios/<group>/<name>/` belong to the scenario `<group>/<name>`
 and answer only while it is active, before any ordinary fixture: each active scenario
 is a layer consulted before the ordinary fixtures, so a scenario fixture wins over an
@@ -78,6 +82,7 @@ import time
 from dataclasses import dataclass, field
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from itertools import permutations
 from typing import TYPE_CHECKING, Any, Self
 from urllib.parse import parse_qs, unquote, urlsplit
 
@@ -102,6 +107,8 @@ UPSTREAM_VARIABLES = {
 # What the harness sets itself, and a scenario's settings may not override.
 HARNESS_VARIABLES = frozenset({*UPSTREAM_VARIABLES, "NCI_SI_UPSTREAM_MODE", "NCI_SI_DATA_DIR"})
 SCENARIOS = "scenarios"
+# The path of a scenario fixture that answers every request of its surface.
+EVERY_PATH = "*"
 LOG_PATH = "/_log"
 FRAMING_HEADERS = frozenset(
     {"content-length", "transfer-encoding", "content-encoding", "connection"}
@@ -399,6 +406,11 @@ def _add_recording(
 def _add_fixture(fixtures: FixtureSet, scenario: str | None, path: Path, root: Path) -> None:
     table = fixtures.ordinary if scenario is None else fixtures.scenarios.setdefault(scenario, {})
     key, fixture = _read_fixture(path, root)
+    if _misplaced_everywhere(key, scenario):
+        raise ValueError(
+            f"{fixture.name}: a fixture for every path belongs to a scenario and matches on"
+            " nothing else"
+        )
     if scenario is None and _composed_path(fixtures.rules, key):
         # Exact fixtures are tried before the rules, so this one would answer in place of
         # an active scenario's recording of the concept.
@@ -406,6 +418,18 @@ def _add_fixture(fixtures: FixtureSet, scenario: str | None, path: Path, root: P
     if key in table:
         raise ValueError(f"{fixture.name} and {table[key].name} answer the same request")
     table[key] = fixture
+
+
+def _misplaced_everywhere(key: Key, scenario: str | None) -> bool:
+    """Whether a fixture for every path is ordinary, or matches on more than its surface."""
+
+    return key[2] == EVERY_PATH and (scenario is None or key != _everywhere(key[0], key[1]))
+
+
+def _everywhere(surface: str, method: str) -> Key:
+    """The key of a fixture that answers every path of a surface and method."""
+
+    return request_key(surface, method, EVERY_PATH, {})
 
 
 def _composed_path(rules: ConceptRules | None, key: Key) -> bool:
@@ -425,11 +449,47 @@ def _layers(
     _check_known(fixtures, scenarios)
     layers = [fixtures.scenarios.get(scenario, {}) for scenario in scenarios]
     recordings = [fixtures.recordings.get(scenario, {}) for scenario in scenarios]
-    if _overlap(layers) or _overlap(recordings):
-        raise ValueError(f"the scenarios {', '.join(scenarios)} answer the same request")
-    if _overlap(fixtures.settings.get(scenario, {}) for scenario in scenarios):
-        raise ValueError(f"the scenarios {', '.join(scenarios)} set the same setting")
+    if clash := _clash(fixtures, scenarios, layers, recordings):
+        raise ValueError(f"the scenarios {', '.join(scenarios)} {clash}")
     return [*layers, fixtures.ordinary], [*recordings, fixtures.recordings.get(None, {})]
+
+
+def _clash(
+    fixtures: FixtureSet,
+    scenarios: tuple[str, ...],
+    layers: list[Fixtures],
+    recordings: list[Concepts],
+) -> str | None:
+    """Why scenarios cannot be active together, if they cannot."""
+
+    if _overlap(layers) or _overlap(recordings):
+        return "answer the same request"
+    if _overlap(fixtures.settings.get(scenario, {}) for scenario in scenarios):
+        return "set the same setting"
+    if _hidden(layers, recordings):
+        return (
+            "cannot be active together: one answers every path of a surface the other has"
+            " fixtures for"
+        )
+    return None
+
+
+def _hidden(layers: list[Fixtures], recordings: list[Concepts]) -> bool:
+    """Whether a scenario's fixture for every path would answer for another active scenario,
+    its concept recordings included (they answer EVS concept requests)."""
+
+    surfaces = [
+        _surfaces(layer, recorded) for layer, recorded in zip(layers, recordings, strict=True)
+    ]
+    everywhere = [{key[:2] for key in layer if key[2] == EVERY_PATH} for layer in layers]
+    pairs = permutations(range(len(layers)), 2)
+    return any(everywhere[one] & surfaces[other] for one, other in pairs)
+
+
+def _surfaces(layer: Fixtures, recorded: Concepts) -> set[tuple[str, str]]:
+    """The surfaces and methods a scenario answers on; its recordings answer EVS GET."""
+
+    return {key[:2] for key in layer} | ({("evs", "GET")} if recorded else set())
 
 
 def _check_known(fixtures: FixtureSet, scenarios: tuple[str, ...]) -> None:
@@ -540,6 +600,8 @@ class FixtureServer:
                 key = request_key(*path, params, body, named)
                 if fixture := layer.get(key) or layer.get((*key[:5], None)):
                     return fixture
+            if fixture := layer.get(_everywhere(*path[:2])):
+                return fixture
         return None
 
     def _carried(self, path: tuple[str, str, str], headers: dict[str, str]) -> list[dict[str, str]]:

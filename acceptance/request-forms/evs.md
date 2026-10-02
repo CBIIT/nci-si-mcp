@@ -145,7 +145,7 @@ One concept has 300 roles and 2 associations. Crafted, 303 fixtures, for A5.5: a
 
 ### `upstream/unavailable`
 
-A closed connection, then 503, then no answer within the timeout. Crafted, 3 fixtures, for A2.5, A5.3: bounded retries, counted, then a structured error.
+Every EVS request, whatever its path, gets a closed connection, then 503, then no answer within the timeout. Crafted, 2 fixtures, for A2.5, A5.3: bounded retries, counted, then a structured error.
 
 ### `upstream/rate-limited`
 

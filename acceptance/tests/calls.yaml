@@ -1,19 +1,25 @@
 # One call of each content-returning tool whose upstream answers are in the fixture set, made
 # by the cross-cutting tests (test_crosscutting.py). The fixture set's terminology and release
 # are added to the arguments of every tool that takes them; `scenario` names the scenario the
-# call needs, for a concept only a scenario holds.
+# call needs, for a concept only a scenario holds. `unpinned` marks a call whose operation has no
+# release-pinned form upstream (the register's table of operations without one): the tool asks
+# the unpinned form and verifies the release the payload reports (A3.2), so for a release the
+# platform does not serve it can report only the mismatch. `unversioned` marks a call whose
+# upstream answers may name no release at all (relation lists, a replacement history), so that
+# content of another release cannot show in them (X-3).
 
 resolve_release: {arguments: {}}
 get_concept: {arguments: {code: C4817}}
 get_concepts: {arguments: {codes: [C4817]}}
 search_concepts: {arguments: {query: ewing sarcoma, mode: lexical}}
-get_concept_hierarchy: {arguments: {code: C4817, direction: parent, depth: 1}}
-expand_value_set: {arguments: {valueSet: C85492}}
-get_concept_neighborhood: {arguments: {code: C4817, depth: 1}}
+get_concept_hierarchy: {arguments: {code: C4817, direction: parent, depth: 1}, unversioned: true}
+expand_value_set: {arguments: {valueSet: C85492}, unpinned: true}
+get_concept_neighborhood: {arguments: {code: C4817, depth: 1}, unversioned: true}
 get_concept_subsets: {arguments: {code: C4817}}
-get_concept_mappings: {arguments: {code: C4817}}
+get_concept_mappings: {arguments: {code: C4817}, unpinned: true}
 resolve_retired_code:
   arguments: {code: C154421}
   scenario: retired/with-replacement
+  unversioned: true
 list_relationships: {arguments: {}}
 list_terminologies: {arguments: {}}
