@@ -260,14 +260,19 @@ def test_typeahead_returns_the_platform_s_prefix_matches_in_its_order(tools, pin
 
 
 # A lexical search whose first page holds retired concepts with the others, recorded as the
-# platform answers it by default and for retired concepts alone (conceptStatus).
+# platform answers it by default and, two pages, for retired concepts alone (conceptStatus).
 RETIRED_SEARCH = "recorded/evs/search-retired-default.json"
-RETIRED_ONLY = "recorded/evs/search-retired-only.json"
+RETIRED_ONLY = [
+    "recorded/evs/search-retired-only.json",
+    "recorded/evs/search-retired-only-page-2.json",
+]
 LISTING = "recorded/evs/terminologies.json"
+# GO, whose listing names a retired status that is no concept status; searched by default.
+GO_SEARCH = "recorded/evs/search-go-obsolete.json"
 
 
 def _listed(recorded, terminology, release=None):
-    """A terminology's row in the recorded listing: the release given, or its current one."""
+    """A terminology's row in the recorded listing: the release given, or the first listed."""
 
     rows = recorded(LISTING)["response"]["body"]
     return next(
@@ -275,6 +280,14 @@ def _listed(recorded, terminology, release=None):
         for row in rows
         if row["terminology"] == terminology and (release is None or row["version"] == release)
     )
+
+
+def _selectable(row):
+    """The retired status a search can select for a listing row, or None."""
+
+    metadata = row.get("metadata", {})
+    retired = metadata.get("retiredStatusValue")
+    return retired if retired in metadata.get("conceptStatuses", []) else None
 
 
 def _states(result):
@@ -294,12 +307,13 @@ def _recorded_states(recording):
 
 @pytest.mark.tool("search_concepts")
 @pytest.mark.requirement("search_concepts-6")
-def test_retired_concepts_are_returned_with_the_others_by_default(tools, pinned, recorded):
+@pytest.mark.parametrize("given", [{}, {"retired": "include"}], ids=["default", "include"])
+def test_retired_concepts_are_returned_with_the_others_by_default(tools, pinned, recorded, given):
     recording = recorded(RETIRED_SEARCH)
     # The page holds a retired concept and an active one, or the case would show nothing.
     assert {active for _, active, _ in _recorded_states(recording)} == {True, False}
 
-    result = _search(tools, pinned, recording, "lexical")
+    result = _search(tools, pinned, recording, "lexical", **given)
 
     assert _states(result) == _recorded_states(recording)
 
@@ -307,19 +321,22 @@ def test_retired_concepts_are_returned_with_the_others_by_default(tools, pinned,
 @pytest.mark.tool("search_concepts")
 @pytest.mark.requirement("search_concepts-6")
 def test_retired_only_returns_the_retired_concepts_alone(tools, pinned, recorded):
-    recording = recorded(RETIRED_ONLY)
-    retired = _listed(recorded, pinned["terminology"], pinned["release"])["metadata"][
-        "retiredStatusValue"
-    ]
-    # The platform is asked by the status the listing names: the recording's request says so.
-    assert recording["request"]["params"]["conceptStatus"] == [retired]
+    first, second = (recorded(file) for file in RETIRED_ONLY)
+    retired = _selectable(_listed(recorded, pinned["terminology"], pinned["release"]))
+    # The listing names a retired status among its concept statuses, and the platform is asked
+    # by it: the recording's request says so.
+    assert retired is not None
+    assert first["request"]["params"]["conceptStatus"] == [retired]
 
-    result = _search(tools, pinned, recording, "lexical", retired="only")
+    page = _search(tools, pinned, first, "lexical", retired="only")
+    following = _search(
+        tools, pinned, first, "lexical", retired="only", cursor=page.content.get("nextCursor")
+    )
 
-    states = _states(result)
-    assert states == _recorded_states(recording)
-    assert {(active, status) for _, active, status in states} == {(False, retired)}
-    assert result.content.get("totalKnown") == recording["response"]["body"]["total"]
+    states = [_states(page), _states(following)]
+    assert states == [_recorded_states(first), _recorded_states(second)]
+    assert {(active, status) for each in states for _, active, status in each} == {(False, retired)}
+    assert page.content.get("totalKnown") == first["response"]["body"]["total"]
 
 
 @pytest.mark.tool("search_concepts")
@@ -332,14 +349,31 @@ def test_leaving_retired_concepts_out_is_no_retired_value(tools, pinned, recorde
 
 @pytest.mark.tool("search_concepts")
 @pytest.mark.requirement("search_concepts-7")
-def test_retired_only_for_a_terminology_without_a_retired_status_is_invalid(recorded, tools):
-    # MedDRA: its listing names no retired status.
-    row = _listed(recorded, "mdr")
+def test_retired_only_where_the_status_is_none_the_search_selects_is_invalid(tools, recorded):
+    recording = recorded(GO_SEARCH)
+    row = _listed(recorded, "go")
+    # GO names a retired status, but not one of its concept statuses.
+    assert row["metadata"].get("retiredStatusValue") and _selectable(row) is None
+    pin = {"terminology": row["terminology"], "release": row["version"]}
+
+    searched = _search(tools, pin, recording, "lexical")
+    only = _search(tools, pin, recording, "lexical", retired="only")
+
+    # The terminology is searched by default; only the selection is refused.
+    assert _states(searched) == _recorded_states(recording)
+    assert error_code(only) == "invalid_request", only.content
+
+
+@pytest.mark.tool("search_concepts")
+@pytest.mark.requirement("search_concepts-7")
+def test_retired_only_where_the_listing_names_no_retired_status_is_invalid(tools, recorded):
+    row = _listed(recorded, "hgnc")
     assert "retiredStatusValue" not in row["metadata"]
-    search = {"query": "ewing", "mode": "lexical", "limit": 10, "retired": "only"}
+    pin = {"terminology": row["terminology"], "release": row["version"]}
 
     result = tools.call(
-        "search_concepts", {"terminology": row["terminology"], "release": row["version"], **search}
+        "search_concepts",
+        {**pin, "query": "kinase", "mode": "lexical", "limit": 10, "retired": "only"},
     )
 
     assert error_code(result) == "invalid_request", result.content

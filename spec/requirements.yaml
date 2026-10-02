@@ -171,11 +171,13 @@ search_concepts-5:
   basis: [search_concepts, M4.1, A3.4]
   planned: "#53"
 search_concepts-6:
-  statement: Retired concepts are returned unless the caller asks for them alone (retired only), as the platform returns them; with only, every result is retired, by the status the terminology's listing names. A8.3 is met in part, since a caller cannot ask for retired concepts to be left out, a platform dependency (A9.3) whose question is in #42.
-  basis: [search_concepts, A8.3, A9.1, A9.3]
+  statement: "Retired concepts are returned unless the caller asks for them alone (retired only), as the platform returns them; with only, every result is retired, by the retired status the terminology's listing names among its concept statuses; any other retired value, exclude included, is an invalid request. A8.3 is met in part, since a caller cannot ask for retired concepts to be left out, a platform dependency (A9.3) whose question is in #42."
+  basis: [search_concepts, A8.3, A9.1, A9.3, A2.5]
+  planned: "#53"
 search_concepts-7:
-  statement: retired only, for a terminology whose listing names no retired status, is an invalid request, as a mode the terminology cannot be searched in is (search_concepts-4).
+  statement: retired only is an invalid request for a terminology whose listing names no retired status, or names one that is not among its concept statuses, as a mode the terminology cannot be searched in is (search_concepts-4); on 2 October 2026 that is every listed terminology but NCIt.
   basis: [search_concepts, A2.5, A9.5]
+  planned: "#53"
 get_concept_hierarchy-1:
   statement: A depth above the maximum is applied as the maximum; no node is deeper, and a hierarchy that continues below it is reported as truncation by depth, with the depth applied as the limit.
   basis: [get_concept_hierarchy, node, A5.2, A5.4]

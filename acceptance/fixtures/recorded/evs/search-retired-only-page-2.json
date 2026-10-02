@@ -1,0 +1,119 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/search",
+  "params": {
+   "term": [
+    "Transgender Identity"
+   ],
+   "type": [
+    "contains"
+   ],
+   "include": [
+    "minimal,highlights"
+   ],
+   "fromRecord": [
+    "10"
+   ],
+   "pageSize": [
+    "10"
+   ],
+   "conceptStatus": [
+    "Retired_Concept"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "total": 17,
+   "timeTaken": 104,
+   "parameters": {
+    "term": "Transgender Identity",
+    "type": "contains",
+    "include": "minimal,highlights",
+    "fromRecord": 10,
+    "pageSize": 10,
+    "conceptStatus": [
+     "Retired_Concept"
+    ],
+    "terminology": [
+     "ncit_26.09d"
+    ]
+   },
+   "concepts": [
+    {
+     "code": "C205467",
+     "name": "Male Gender Identity",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "highlight": "Male Gender <em>Identity</em>",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "C205471",
+     "name": "Transgender",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "highlight": "<em>Transgender</em>",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "C206415",
+     "name": "Gender Identity Question",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "highlight": "Gender <em>Identity</em> Question",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "C41244",
+     "name": "NSC Generic Product Identifier",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "C42859",
+     "name": "Public Identifier",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "C92202",
+     "name": "Sexual and Gender Identity Disorders",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "highlight": "Sexual and Gender <em>Identity</em> Disorders",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    },
+    {
+     "code": "C94362",
+     "name": "Gender Identity Disorder",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "highlight": "Gender <em>Identity</em> Disorder",
+     "conceptStatus": "Retired_Concept",
+     "leaf": true,
+     "active": false
+    }
+   ]
+  }
+ }
+}
