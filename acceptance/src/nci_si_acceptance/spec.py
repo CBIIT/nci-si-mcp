@@ -37,6 +37,35 @@ def profile_tools(profile: str) -> set[str]:
     return {name for name, group in REQUIRED_TOOLS.items() if profile in (group, "unified")}
 
 
+def items_of(tool: str, result: Any) -> list[Any]:
+    """The items of a result of `tool`, where its `items` in tools.yaml say they are; a part
+    of the path the result lacks contributes none."""
+
+    return [item for path in TOOLS[tool].get("items", []) for item in _walk(result, path)]
+
+
+def _walk(value: Any, path: str) -> list[Any]:
+    found = [value]
+    for step in filter(None, path.split(".")):
+        found = _step(found, step)
+    return [each for each in found if each is not None]
+
+
+def _step(found: list[Any], step: str) -> list[Any]:
+    """One step of a path: a field of each value, and with [] the elements of each list."""
+
+    found = [_field(each, step.removesuffix("[]")) for each in found]
+    if not step.endswith("[]"):
+        return found
+    return [item for each in found if isinstance(each, list) for item in each]
+
+
+def _field(value: Any, key: str) -> Any:
+    if not key:
+        return value
+    return value.get(key) if isinstance(value, dict) else None
+
+
 def _split(text: str, separator: str) -> list[str]:
     """`text` split at each `separator` outside brackets and braces, the parts stripped."""
 

@@ -1,0 +1,18 @@
+# One call of each content-returning tool whose upstream answers are in the fixture set, made
+# by the cross-cutting tests (test_crosscutting.py). The fixture set's terminology and release
+# are added to the arguments of every tool that takes them; `scenario` names the scenario the
+# call needs, for a concept only a scenario holds.
+
+get_concept: {arguments: {code: C4817}}
+get_concepts: {arguments: {codes: [C4817]}}
+search_concepts: {arguments: {query: ewing sarcoma, mode: lexical}}
+get_concept_hierarchy: {arguments: {code: C4817, direction: parent, depth: 1}}
+expand_value_set: {arguments: {valueSet: C85492}}
+get_concept_neighborhood: {arguments: {code: C4817, depth: 1}}
+get_concept_subsets: {arguments: {code: C4817}}
+get_concept_mappings: {arguments: {code: C4817}}
+resolve_retired_code:
+  arguments: {code: C154421}
+  scenario: retired/with-replacement
+list_relationships: {arguments: {}}
+list_terminologies: {arguments: {}}

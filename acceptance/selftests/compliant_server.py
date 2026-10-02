@@ -1,6 +1,7 @@
-"""A server of the evs profile that meets every protocol gate, for the harness's own tests.
+"""A server of the evs profile that meets the protocol gates and the cross-cutting
+requirements, for the harness's own tests.
 
-`GATE_SERVER_DEFECT` names one defect, so that a test can show the gate concerned failing:
+`COMPLIANT_SERVER_DEFECT` names one defect, so that a test can show the test concerned failing:
 
     missing-tool      lists one tool of the profile too few                       (P-1)
     no-error-shape    an outputSchema that refuses the error record                 (P-2)
@@ -18,13 +19,22 @@
     closed-world      openWorldHint false                                           (P-10)
     parameter-renamed get_concept takes conceptCode in place of code                (P-12)
     release-optional  get_concept does not require release                          (P-12)
+    wrong-release     items name another release than the one requested             (X-1)
+    invalid-result    a result its outputSchema refuses                             (X-6)
+    no-served-by      provenance without servedBy                                   (X-7)
+    no-polarity       an item reached by traversal without polarity                 (X-7)
+    prefixed-code     codes written NCIT:C4817                                      (X-9)
+    repeated-request  each call asks EVS twice for the same thing                   (X-11)
+    uncached-result   results with ttlMs 0                                          (X-13)
 
-Each call asks EVS for `/api/v1/version`.
+Each call asks EVS for `/api/v1/version`, and answers with two items where the tool's `items`
+say: the concept asked about and, at depth 1 for a traversal tool, one it reaches.
 """
 
 import json
 import os
 import urllib.request
+from datetime import UTC, datetime
 
 import anyio
 import mcp_types as types
@@ -32,9 +42,9 @@ from mcp.server.caching import CacheHint
 from mcp.server.lowlevel.server import Server
 from mcp.server.stdio import stdio_server
 
-from nci_si_acceptance.spec import RECORDS, parameters, profile_tools
+from nci_si_acceptance.spec import RECORDS, TOOLS, parameters, profile_tools
 
-DEFECT = os.environ.get("GATE_SERVER_DEFECT", "")
+DEFECT = os.environ.get("COMPLIANT_SERVER_DEFECT", "")
 VERSION = os.environ["NCI_SI_EVS_BASE_URL"] + "/api/v1/version"
 # Whether each call so far reached EVS.
 reached = []
@@ -61,19 +71,19 @@ def _input_schema(name: str) -> dict:
     }
 
 
-# A result is either an error record or a success, which carries provenance.
+# A result is either an error record or a success.
 CODES = RECORDS["error"]["fields"]["code"]["values"]
 ERROR = {
     "type": "object",
     "required": ["code", "message"],
     "properties": {"code": {"enum": CODES[:1] if DEFECT == "one-code" else CODES}},
 }
+# A success may be a list (protocol revision 2026-07-28).
 OUTPUT_SCHEMAS = {
     "": {
-        "type": "object",
         "oneOf": [
-            {"required": ["error"], "properties": {"error": ERROR}},
-            {"required": ["provenance"], "not": {"required": ["error"]}},
+            {"type": "object", "required": ["error"], "properties": {"error": ERROR}},
+            {"not": {"type": "object", "required": ["error"]}},
         ],
     },
     "no-error-shape": {"type": "object", "required": ["provenance"]},
@@ -119,19 +129,79 @@ async def list_tools(_context, _params) -> types.ListToolsResult:
     return types.ListToolsResult(tools=[_tool(name) for name in _names()])
 
 
+def _provenance(arguments: dict, correlation: str) -> dict:
+    release = "26.08e" if DEFECT == "wrong-release" else arguments.get("release")
+    provenance = {
+        "release": {"terminology": arguments.get("terminology"), "identifier": release},
+        "source": "evs_rest",
+        "retrievedAt": datetime.now(UTC).isoformat(),
+        "servedBy": "live",
+        "correlationId": correlation,
+    }
+    if DEFECT == "no-served-by":
+        del provenance["servedBy"]
+    return provenance
+
+
+def _items(name: str, provenance: dict) -> list[dict]:
+    code = "NCIT:C4817" if DEFECT == "prefixed-code" else "C4817"
+    items = [{"code": code, "terminology": "ncit", "provenance": provenance}]
+    if TOOLS[name].get("traversal"):
+        how = {"relationship": {"code": "R101"}, "direction": "outward", "polarity": "positive"}
+        if DEFECT == "no-polarity":
+            del how["polarity"]
+        items[0]["provenance"] = provenance | {"depth": 0}
+        items.append(
+            {"code": "C3262", "terminology": "ncit", "provenance": provenance | {"depth": 1} | how}
+        )
+    return items
+
+
+def _placed(steps: list[str], items: list[dict]) -> object:
+    """`items` placed under `steps`: none is the first item itself, and a step ending in []
+    spreads them over a list."""
+
+    if not steps:
+        return items[0]
+    step, rest = steps[0], steps[1:]
+    if step.endswith("[]"):
+        value = [_placed(rest, [item]) for item in items]
+    else:
+        value = _placed(rest, items)
+    key = step.removesuffix("[]")
+    return {key: value} if key else value
+
+
+def _content(name: str, arguments: dict, correlation: str) -> object:
+    if DEFECT == "invalid-result":
+        return {"error": "not an error record"}
+    items = _items(name, _provenance(arguments, correlation))
+    paths = TOOLS[name].get("items", ["."])
+    placed = [_placed([step for step in path.split(".") if step], items) for path in paths]
+    return placed[0] if len(placed) == 1 else _merged(placed)
+
+
+def _merged(parts: list) -> dict:
+    """Results of several item paths, such as nodes and edges, as one."""
+
+    return {key: value for part in parts for key, value in part.items()}
+
+
 async def call_tool(_context, params: types.CallToolRequestParams) -> types.CallToolResult:
     correlation = (params.meta or {}).get("correlationId", "")
     headers = {} if DEFECT == "no-correlation" else {"X-Correlation-ID": correlation}
-    reached.append(_reaches_evs(headers))
-    content = {"provenance": {"correlationId": correlation}}
+    reached.extend(_reaches_evs(headers) for _ in range(2 if DEFECT == "repeated-request" else 1))
+    content = _content(params.name, params.arguments or {}, correlation)
+    meta = {"ttlMs": 0 if DEFECT == "uncached-result" else 86_400_000, "cacheScope": "public"}
     return types.CallToolResult(
         content=[types.TextContent(type="text", text=json.dumps(content))],
         structured_content=content,
+        _meta=meta,
     )
 
 
 SERVER = Server(
-    "gate-server",
+    "compliant-server",
     cache_hints={
         "tools/list": CacheHint(ttl_ms=0 if DEFECT == "no-ttl" else 86_400_000, scope="public")
     },

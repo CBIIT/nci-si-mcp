@@ -2,6 +2,12 @@
 # optional argument, | alternatives), the values an enumerated argument takes, and what it
 # does. Groups: evs, cadsr, cross-domain and workflow. The conventions of
 # conventions.yaml apply to every tool; requirements.yaml says what the suite tests of each.
+#
+# `items` says where a result's items are, each carrying its provenance (A4.4): "." is the
+# result itself, "[]" each element of a list, and `nodes[]` each element of the result's
+# `nodes`. A tool with items is content-returning, and the cross-cutting requirements apply to
+# it. `traversal: true` marks a tool whose items are reached by traversal (A4.2), and
+# `cacheScope: private` one whose results are computed from caller-supplied values (M2.3).
 
 resolve_release:
   group: evs
@@ -12,60 +18,73 @@ get_concept:
   group: evs
   inputs: (terminology, release, code, include[]?)
   returns: concept
+  items: ["."]
   values: {include: [synonyms, definitions, properties, semanticType, status]}
   summary: One concept with the detail selected.
 get_concepts:
   group: evs
   inputs: (terminology, release, codes[], include[]?)
   returns: concept[]
+  items: ["[]"]
   summary: Many concepts in one platform call, with the detail selected.
 search_concepts:
   group: evs
   inputs: (terminology, release, query, mode?, limit?, cursor?)
   returns: "{ results[{ concept, score?, matchedOn? }], nextCursor? }"
+  items: ["results[].concept"]
   values: {mode: [lexical, typeahead, semantic, hybrid]}
   summary: Ranked search of a terminology; semantic and hybrid from the interim NCIt index (M4.1).
 get_concept_hierarchy:
   group: evs
   inputs: (terminology, release, code, direction, depth?, limit?, cursor?)
   returns: "{ nodes[], truncation }"
+  items: ["nodes[]"]
+  traversal: true
   values: {direction: [parent, child, pathsToRoot]}
   summary: A concept's parents, children or paths to the root, bounded.
 expand_value_set:
   group: evs
   inputs: (terminology, release, valueSet | code, count?, offset?, activeOnly?)
   returns: "{ members[], total?, truncation }"
+  items: ["members[]"]
   summary: The members of a value set, paged and bounded by the tool itself; $lookup, $validate-code, $subsumes and $translate where a caller asks.
 get_concept_neighborhood:
   group: evs
   inputs: (terminology, release, code, depth?, kinds[]?, maxNodes?, maxEdges?, budgetPerKind?, includeNegative?)
   returns: "{ nodes[], edges[], truncation }"
+  items: ["nodes[]", "edges[]"]
+  traversal: true
   values: {kinds: [parent, child, role, association, inverseRole, inverseAssociation]}
   summary: Bounded traversal across roles and associations with a budget per kind; negative assertions returned marked, left out of positive expansion unless includeNegative.
 get_concept_subsets:
   group: evs
   inputs: (terminology, release, code)
   returns: subset[]
+  items: ["[]"]
   summary: The subsets and value sets a concept belongs to.
 get_concept_mappings:
   group: evs
   inputs: (terminology, release, code, targetTerminology?)
   returns: mapping[]
+  items: ["[]"]
   summary: A concept's mappings to other terminologies, each mapset with its own name and version.
 resolve_retired_code:
   group: evs
   inputs: (terminology, release, code)
   returns: "{ status, replacements[] }"
+  items: ["replacements[]"]
   summary: Whether a code is retired, and what replaces it.
 list_relationships:
   group: evs
   inputs: (terminology, release)
   returns: "relationship[{ code, name, kind, polarity, axisFamily }]"
+  items: ["[]"]
   summary: The relationship catalogue of a release, polarity marked by code.
 list_terminologies:
   group: evs
   inputs: ()
   returns: terminology[]
+  items: ["[]"]
   summary: The terminologies available, with their current releases.
 
 resolve_registry_release:
@@ -89,11 +108,13 @@ match_data_elements:
   group: cadsr
   inputs: "(entities[{ name, userTip?, permissibleValues[]? }], matchLimit?, modelVariant?, similarityThreshold?, filters?, cursor?)"
   returns: "{ matches[{ dataElement, score, rule, matchedText }], nextCursor? }"
+  cacheScope: private
   summary: Data elements matched to described entities, keyword and AI-enhanced, scored.
 match_value_meanings:
   group: cadsr
   inputs: (values[], strictness?, terminologyScope?, cursor?)
   returns: "{ matches[{ valueMeaning, score, crosswalk[] }], nextCursor? }"
+  cacheScope: private
   summary: Value meanings matched to values, with crosswalk codes.
 get_form:
   group: cadsr
@@ -156,4 +177,5 @@ harmonize_data_dictionary:
   group: workflow
   inputs: "(columns[{ name, description?, sampleValues[]? }], registryRelease, filters?)"
   returns: "{ columns[{ matches[{ dataElement, score, rule }], permissibleValueAlignment }], unmatched[], provenance }"
+  cacheScope: private
   summary: A data dictionary's columns matched to data elements, with permissible-value alignment.
