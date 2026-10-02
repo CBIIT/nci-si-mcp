@@ -219,6 +219,7 @@ Every returned item carries one, beside its identifier and status, which are fie
 | `sourceUri` | The upstream URL that produced the item | A4.1 |
 | `correlationId` | The call's correlation identifier | M7.1 |
 | `graphs` | For items served by the Shared SI Service: the identifier and date of each graph touched | A1.5 |
+| `attribution` | The licence text of the item's terminology, where the platform's listing of that terminology carries one (EVS: metadata.licenseText) (optional) | A7.3 |
 | `upstream` | The fields the platform supplied about the item's origin, under its names and with its values; at least: from EVS REST the item's terminology and version; from EVS FHIR the value set's url and version; from the Shared SI Service the identity and date of each graph | A4.3 |
 
 ### The provenance record of an item reached by traversal
@@ -230,7 +231,7 @@ The provenance record, with these fields added (A4.2).
 | `depth` | Steps from the concept the caller asked about; an edge has the depth of the item it reaches | A4.2 |
 | `relationship` | The relationship that brought the item in: { code, name, kind }; the code decides polarity | A5.7 |
 | `direction` | Whether the assertion points outward from the origin or inward to it | A4.2 |
-| `polarity` | Negative exactly when the relationship's code is in its terminology's exclusion set below, positive otherwise, whatever the relationship is named (A5.7); the set is checked against the release's relationship catalogue by list_relationships: one of `positive`, `negative`; exclusion set of ncit: R135, R136, R137, R138, R139, R140, R141, R142 | A5.6 |
+| `polarity` | Negative exactly when the relationship's code is in its terminology's exclusion set below, positive otherwise, whatever the relationship is named (A5.7); the set is checked against the release's relationship catalogue (the relationship record): one of `positive`, `negative`; exclusion set of ncit: R135, R136, R137, R138, R139, R140, R141, R142 | A5.6 |
 | `qualifiers` | Any qualifying detail the platform attaches | A4.2 |
 | `evidence` | Supporting evidence, where the platform supplies it | A4.2 |
 
@@ -253,7 +254,7 @@ A concept as a terminology tool returns it: these fields, status where the platf
 
 ### The node record
 
-A concept reached by traversal, as get_concept_hierarchy and get_concept_neighborhood return it, each concept once, with its status as the concept record carries it (A8.1). A relation list names a neighbour by code and name only, so the tool reads the nodes of the last depth, which it follows no further, for their status: one batch, bounded by the node bound.
+A concept reached by traversal, as get_concept_hierarchy and get_concept_neighborhood return it, each concept once, with its status as the concept record carries it (A8.1). A relation list names a neighbour by code and name only, so the tool reads the nodes of the last depth, which it follows no further, for their status: in batches at the minimal include, bounded by the node bound.
 
 | Field | Content | Rule |
 |---|---|---|
@@ -275,6 +276,55 @@ One assertion between two concepts, as get_concept_neighborhood returns it, in t
 | `targetCode` | The bare code of the assertion's object | A1.2 |
 | `targetTerminology` | The terminology of the object | A1.2 |
 | `provenance` | The traversal record: the depth of the node it reaches, its relationship { code, name, kind }, direction and polarity | A4.2 |
+
+### The subset record
+
+A subset a concept belongs to, as get_concept_subsets returns it: the platform's Concept_In_Subset associations of the concept, read with it, in the platform's order.
+
+| Field | Content | Rule |
+|---|---|---|
+| `code` | The bare code of the subset concept | A1.2 |
+| `terminology` | The terminology the subset belongs to, as the platform names it | A1.2 |
+| `name` | The subset's name, as the association names it | A9.1 |
+| `provenance` | The provenance record | A4.4 |
+
+### The mapping record
+
+A map the platform carries on a concept, from it to another terminology, as get_concept_mappings returns it: the platform's map unchanged, in the platform's order. Its provenance names the release of the concept it was read from; the target's own version is the map's. A licensed target's attribution is an open question: the platform names the target by a label that matches no terminology of its listing (#42).
+
+| Field | Content | Rule |
+|---|---|---|
+| `targetCode` | The target's code, as the platform gives it | A9.1 |
+| `targetTerminology` | The target terminology, as the platform names it on the map | A9.1 |
+| `targetName` | The target's name | A9.1 |
+| `targetTermType` | The target's term type, where the platform gives one; absent, never null, where it does not (optional) | A9.1 |
+| `targetTerminologyVersion` | The target terminology's version, where the platform gives one; absent, never null, where it does not (optional) | A9.1 |
+| `type` | The map's relation (EVS's type, such as Related To or Has Synonym), unchanged | A9.1 |
+| `provenance` | The provenance record | A4.4 |
+
+### The replacement record
+
+A concept the platform names as replacing a retired one, as resolve_retired_code returns it.
+
+| Field | Content | Rule |
+|---|---|---|
+| `code` | The bare code of the replacement | A1.2 |
+| `terminology` | The terminology it belongs to, as the platform names it | A1.2 |
+| `name` | The replacement's name, as the platform gives it | A9.1 |
+| `provenance` | The provenance record | A4.4 |
+
+### The relationship record
+
+A role or association of a release's relationship catalogue, as list_relationships returns it. The tool, and get_concept_neighborhood, fail closed with internal_error for a release whose catalogue lacks a code of the terminology's exclusion set, naming the codes in details. The check catches a set code the release no longer has, not a new exclusion relationship the set does not know: that needs the catalogue to mark polarity, which is the platform's to add.
+
+| Field | Content | Rule |
+|---|---|---|
+| `code` | The relationship's code | A5.7 |
+| `terminology` | The terminology whose catalogue it is, as the platform names it | A1.2 |
+| `name` | Its name in the catalogue, unchanged | A9.1 |
+| `kind` | Whether it is a role or an association: one of `role`, `association` | A4.2 |
+| `polarity` | As in the traversal record, by code: one of `positive`, `negative` | A5.7 |
+| `provenance` | The provenance record | A4.4 |
 
 ### The search result record
 
@@ -346,10 +396,10 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 | `get_concept_hierarchy` | `(terminology, release, code, direction, depth?, limit?, cursor?) → { nodes[], paths[]?, truncation, nextCursor? }` | A concept's parents, children or paths to the root, bounded. nodes holds the concepts reached, not the one asked about, and limit is a page that the cursor continues. pathsToRoot returns each path the platform gives in paths, the codes from the concept to the root in the platform's order, with each concept on them once in nodes; depth, limit and cursor do not apply to it. `direction`: parent, child, pathsToRoot. `depth`: default 1, at most 4. `limit`: default 200, at most 1000. Items: `nodes[]`. |
 | `expand_value_set` | `(terminology, release, valueSet \| code, count?, offset?, activeOnly?) → { members[], total, truncation }` | The members of a value set, paged and bounded by the tool itself; $lookup, $validate-code, $subsumes and $translate where a caller asks. It pages by count and offset, as FHIR $expand does, in place of a cursor (the exception to M6.1); activeOnly is false unless given. Items: `members[]`. |
 | `get_concept_neighborhood` | `(terminology, release, code, depth?, kinds[]?, maxNodes?, maxEdges?, budgetPerKind?, includeNegative?) → { nodes[], edges[], truncation }` | Bounded traversal across roles and associations with a budget per kind; nodes holds the concept asked about at depth 0 and those reached, and maxNodes counts them all. Given, budgetPerKind bounds the nodes each kind adds; not given, the tool shares maxNodes among the kinds asked so that none present is starved, in a way of its own. Negative assertions are returned marked, with the nodes they reach, which are not followed further unless includeNegative. `kinds`: parent, child, role, association, inverseRole, inverseAssociation. `depth`: default 2, at most 4. `maxNodes`: default 200, at most 1000. `maxEdges`: default 1000, at most 5000. `budgetPerKind`: at most 1000. Items: `nodes[]`, `edges[]`. |
-| `get_concept_subsets` | `(terminology, release, code) → { subsets[] }` | The subsets and value sets a concept belongs to. Items: `subsets[]`. |
-| `get_concept_mappings` | `(terminology, release, code, targetTerminology?) → { mappings[] }` | A concept's mappings to other terminologies, each mapset with its own name and version. Items: `mappings[]`. |
-| `resolve_retired_code` | `(terminology, release, code) → { code, terminology, status, replacements[] }` | Whether a code is retired, and what replaces it. Items: `.`, `replacements[]`. |
-| `list_relationships` | `(terminology, release) → { relationships[{ code, name, kind, polarity, axisFamily }] }` | The relationship catalogue of a release, polarity marked by code. Items: `relationships[]`. |
+| `get_concept_subsets` | `(terminology, release, code) → { subsets[] }` | The subsets a concept belongs to. Items: `subsets[]`. |
+| `get_concept_mappings` | `(terminology, release, code, targetTerminology?) → { mappings[] }` | The maps the platform carries on a concept, from it to other terminologies, unchanged and each with its target's version where the platform gives one; maps into the terminology from others are not this tool's. targetTerminology keeps the maps whose target the platform names exactly so, case included. Items: `mappings[]`. |
+| `resolve_retired_code` | `(terminology, release, code) → { code, terminology, active, status?, replacements[] }` | Whether a code is retired (active false, as the platform publishes it), its status, and what the platform names as replacing it: replacements is an empty list, present, where the platform names none, retired or not. Items: `.`, `replacements[]`. |
+| `list_relationships` | `(terminology, release) → { relationships[] }` | The relationship catalogue of a release, polarity marked by code. Items: `relationships[]`. |
 | `list_terminologies` | `() → { terminologies[] }` | The terminologies available, with their current releases. Items: `terminologies[]`. |
 
 ### caDSR tools
@@ -409,8 +459,8 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 |---|---|---|---|---|
 | X-1 | The release in every returned item's provenance equals the release requested. | A3.1, A3.3 | `tests/test_crosscutting.py::test_every_item_carries_the_release_requested[get_concept]`, `tests/test_crosscutting.py::test_every_item_carries_the_release_requested[get_concepts]`, `tests/test_crosscutting.py::test_every_item_carries_the_release_requested[search_concepts]`, `tests/test_crosscutting.py::test_every_item_carries_the_release_requested[get_concept_hierarchy]`, `tests/test_crosscutting.py::test_every_item_carries_the_release_requested[expand_value_set]`, `tests/test_crosscutting.py::test_every_item_carries_the_release_requested[get_concept_neighborhood]`, `tests/test_crosscutting.py::test_every_item_carries_the_release_requested[get_concept_subsets]`, `tests/test_crosscutting.py::test_every_item_carries_the_release_requested[get_concept_mappings]`, `tests/test_crosscutting.py::test_every_item_carries_the_release_requested[resolve_retired_code]`, `tests/test_crosscutting.py::test_every_item_carries_the_release_requested[list_relationships]` | planned #55 |
 | X-2 | A request for a release the platform does not serve fails closed, with the requested-release-not-available error, or, where the platform offers no release-pinned form of the operation (A3.2), the mismatch error; and no content. | A3.4, A3.5 | `tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[get_concept]`, `tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[get_concepts]`, `tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[search_concepts]`, `tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[get_concept_hierarchy]`, `tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[expand_value_set]`, `tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[get_concept_neighborhood]`, `tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[get_concept_subsets]`, `tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[get_concept_mappings]`, `tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[resolve_retired_code]`, `tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[list_relationships]` | planned #55 |
-| X-3 | Content the upstream serves from another release than the one requested fails closed, with the mismatch error. | A3.4 | `tests/test_crosscutting.py::test_content_of_another_release_fails_closed[get_concept]`, `tests/test_crosscutting.py::test_content_of_another_release_fails_closed[get_concepts]`, `tests/test_crosscutting.py::test_content_of_another_release_fails_closed[search_concepts]`, `tests/test_crosscutting.py::test_content_of_another_release_fails_closed[expand_value_set]`, `tests/test_crosscutting.py::test_content_of_another_release_fails_closed[get_concept_subsets]`, `tests/test_crosscutting.py::test_content_of_another_release_fails_closed[get_concept_mappings]`, `tests/test_crosscutting.py::test_content_of_another_release_fails_closed[list_relationships]` | planned #55 |
-| X-4 | A query that legitimately matches nothing returns an empty result with provenance and no nextCursor, not an error. | A2.5, A2.6, M3.2, provenance | `tests/test_crosscutting.py::test_a_query_that_matches_nothing_is_an_empty_result_with_provenance[search_concepts]` | planned #55 |
+| X-3 | Content the upstream serves from another release than the one requested fails closed, with the mismatch error. | A3.4 | `tests/test_crosscutting.py::test_content_of_another_release_fails_closed[get_concept]`, `tests/test_crosscutting.py::test_content_of_another_release_fails_closed[get_concepts]`, `tests/test_crosscutting.py::test_content_of_another_release_fails_closed[search_concepts]`, `tests/test_crosscutting.py::test_content_of_another_release_fails_closed[expand_value_set]`, `tests/test_crosscutting.py::test_content_of_another_release_fails_closed[get_concept_subsets]`, `tests/test_crosscutting.py::test_content_of_another_release_fails_closed[get_concept_mappings]`, `tests/test_crosscutting.py::test_content_of_another_release_fails_closed[resolve_retired_code]`, `tests/test_crosscutting.py::test_content_of_another_release_fails_closed[list_relationships]` | planned #55 |
+| X-4 | A query that legitimately matches nothing returns an empty result with provenance and no nextCursor, not an error. | A2.5, A2.6, M3.2, provenance | `tests/test_crosscutting.py::test_a_query_that_matches_nothing_is_an_empty_result_with_provenance[search_concepts]`, `tests/test_crosscutting.py::test_a_query_that_matches_nothing_is_an_empty_result_with_provenance[get_concept_mappings]` | planned #55 |
 | X-5 | An upstream failure (a refused or closed connection, a server error, no answer in time) is an upstream error or a timeout, never an empty success. | A2.5, M3.2 | `tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[resolve_release]`, `tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_concept]`, `tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_concepts]`, `tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[search_concepts]`, `tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_concept_hierarchy]`, `tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[expand_value_set]`, `tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_concept_neighborhood]`, `tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_concept_subsets]`, `tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_concept_mappings]`, `tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[resolve_retired_code]`, `tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[list_relationships]`, `tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[list_terminologies]` | planned #55 |
 | X-6 | structuredContent validates against the tool's declared outputSchema, for successes and errors alike. | M3.1 | `tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[resolve_release]`, `tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_concept]`, `tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_concepts]`, `tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[search_concepts]`, `tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_concept_hierarchy]`, `tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[expand_value_set]`, `tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_concept_neighborhood]`, `tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_concept_subsets]`, `tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_concept_mappings]`, `tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[resolve_retired_code]`, `tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[list_relationships]`, `tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[list_terminologies]`, `tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[resolve_release]`, `tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_concept]`, `tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_concepts]`, `tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[search_concepts]`, `tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_concept_hierarchy]`, `tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[expand_value_set]`, `tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_concept_neighborhood]`, `tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_concept_subsets]`, `tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_concept_mappings]`, `tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[resolve_retired_code]`, `tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[list_relationships]`, `tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[list_terminologies]` | planned #55 |
 | X-7 | Every item carries release, source surface, retrieval time and servedBy, and, where reached by traversal, depth, relationship, direction and polarity. | A4.1, A4.2, A4.4, provenance, traversal | `tests/test_crosscutting.py::test_every_item_carries_its_provenance[resolve_release]`, `tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_concept]`, `tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_concepts]`, `tests/test_crosscutting.py::test_every_item_carries_its_provenance[search_concepts]`, `tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_concept_hierarchy]`, `tests/test_crosscutting.py::test_every_item_carries_its_provenance[expand_value_set]`, `tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_concept_neighborhood]`, `tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_concept_subsets]`, `tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_concept_mappings]`, `tests/test_crosscutting.py::test_every_item_carries_its_provenance[resolve_retired_code]`, `tests/test_crosscutting.py::test_every_item_carries_its_provenance[list_relationships]`, `tests/test_crosscutting.py::test_every_item_carries_its_provenance[list_terminologies]`, `tests/test_crosscutting.py::test_an_item_reached_by_traversal_says_how[get_concept_hierarchy]`, `tests/test_crosscutting.py::test_an_item_reached_by_traversal_says_how[get_concept_neighborhood]` | planned #55 |
@@ -425,6 +475,7 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 | X-16 | After a 429 with Retry-After, the module waits at least that long before it asks again, and makes no request to that endpoint in between. | A6.5, A5.3 | `tests/test_crosscutting.py::test_a_rate_limited_request_is_asked_once_more_after_the_wait` | planned #54 |
 | X-17 | A page smaller than the result carries nextCursor; following it returns the next items, repeats none of the page before, and keeps the release the first page was pinned to; presented with another release, the cursor is an invalid request. | M6.1, M2.4 | `tests/test_crosscutting.py::test_a_cursor_continues_with_the_next_items_of_the_same_release[search_concepts]`, `tests/test_crosscutting.py::test_a_cursor_continues_with_the_next_items_of_the_same_release[get_concept_hierarchy]` | tested |
 | X-18 | A value below 1 for an argument with bounds is an invalid request, never raised to 1. | A5.1, A2.5 | — | planned #53 |
+| X-19 | An item of a terminology whose listing row carries licence text carries that text as its attribution. | A7.3, provenance | — | planned #53 |
 
 ### EVS tools
 
@@ -456,10 +507,14 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 | get_concept_neighborhood-4 | A node limit above the maximum is applied as the maximum, and the truncation record's limit shows the value applied. | get_concept_neighborhood, truncation, A5.2 | `tests/test_evs.py::test_a_node_limit_above_the_maximum_is_applied_as_the_maximum` | tested |
 | get_concept_neighborhood-5 | The outbound request budget counts retries. | get_concept_neighborhood, A5.3 | — | planned #53 |
 | get_concept_neighborhood-6 | budgetPerKind, when given, bounds the nodes each kind adds, and a kind that reaches it is named in truncation.perKind. | get_concept_neighborhood, truncation, A5.5 | — | planned #53 |
-| get_concept_subsets-1 | Membership is returned with subset codes, and the GDC Value Terminology subset resolves. | get_concept_subsets | — | planned #53 |
-| get_concept_mappings-1 | Mapsets are first-class objects; licensed targets carry attribution; a mapset whose version is not the NCIt release is a content state of its own. | get_concept_mappings, A7.3 | — | planned #53 |
-| resolve_retired_code-1 | A retired code returns status retired with its replacement and an active code status active; a batch fails as a whole on one bad code only where the upstream does, and says which. | resolve_retired_code, A8 | — | planned #53 |
-| list_relationships-1 | The pinned release's roles are listed, the exclusion roles with negative polarity, derived from the code and not the name. | list_relationships, A5.6, A5.7 | — | planned #53 |
+| get_concept_subsets-1 | The subsets are the platform's Concept_In_Subset associations of the concept, each by code and name, in the platform's order. | get_concept_subsets, subset, A9.1 | `tests/test_evs.py::test_the_subsets_are_the_concept_s_subset_associations_in_order` | tested |
+| get_concept_mappings-1 | The mappings are the maps the platform carries on the concept, unchanged, in the platform's order. | get_concept_mappings, mapping, A9.1 | `tests/test_evs.py::test_the_mappings_are_the_concept_s_maps_unchanged_in_order` | tested |
+| get_concept_mappings-2 | targetTerminology keeps the maps whose target the platform names exactly so, case included, and no other. | get_concept_mappings, mapping | `tests/test_evs.py::test_target_terminology_keeps_the_maps_with_that_target_and_no_other` | tested |
+| resolve_retired_code-1 | A retired code returns active false, the platform's status unchanged, and the replacements the platform names, by code and name, an empty list where it names none. | resolve_retired_code, replacement, A8.1, A8.2 | `tests/test_evs.py::test_a_retired_code_is_inactive_with_its_status_and_replacements[replaced]`, `tests/test_evs.py::test_a_retired_code_is_inactive_with_its_status_and_replacements[unreplaced]` | tested |
+| resolve_retired_code-2 | An active code returns active true, its status, and no replacement. | resolve_retired_code, A8.1 | `tests/test_evs.py::test_an_active_code_is_active_with_its_status_and_no_replacement` | tested |
+| list_relationships-1 | Every role and association of the release's catalogue is listed, by code, name and kind. | list_relationships, relationship, A9.1 | `tests/test_evs.py::test_every_relationship_of_the_catalogue_is_listed_by_code_name_and_kind` | tested |
+| list_relationships-2 | A relationship is negative exactly when its code is in the terminology's exclusion set, whatever it is named. | list_relationships, relationship, traversal, A5.7 | `tests/test_evs.py::test_a_relationship_s_polarity_follows_its_code_not_its_name` | tested |
+| list_relationships-3 | For a release whose catalogue lacks a code of the exclusion set, list_relationships and get_concept_neighborhood fail closed with internal_error naming the absent codes. | list_relationships, get_concept_neighborhood, relationship, A5.7 | `tests/test_evs.py::test_a_catalogue_without_a_code_of_the_exclusion_set_fails_closed[list_relationships]`, `tests/test_evs.py::test_a_catalogue_without_a_code_of_the_exclusion_set_fails_closed[get_concept_neighborhood]` | tested |
 | list_terminologies-1 | The available terminologies are listed with their current releases, none the platform offers left out. | list_terminologies, A7.2, terminology | `tests/test_evs.py::test_every_terminology_the_platform_serves_is_listed_with_its_current_release` | tested |
 
 ### caDSR tools

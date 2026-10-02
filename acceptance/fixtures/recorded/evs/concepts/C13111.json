@@ -1,0 +1,203 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C13111",
+  "params": {
+   "include": [
+    "full"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C13111",
+   "name": "Retired Anatomy Concepts",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "Retired_Concept",
+   "leaf": true,
+   "active": false,
+   "synonyms": [
+    {
+     "name": "Deleted Anatomy Concepts",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Retired Anatomy Concepts",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Retired Anatomy Concepts",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P310",
+     "type": "Concept_Status",
+     "value": "Retired_Concept"
+    },
+    {
+     "code": "owl:deprecated",
+     "type": "deprecated",
+     "value": "true"
+    },
+    {
+     "code": "P98",
+     "type": "DesignNote",
+     "value": "not used in Protege"
+    },
+    {
+     "code": "P98",
+     "type": "DesignNote",
+     "value": "preretire_annotation|not used in Protege"
+    },
+    {
+     "code": "P200",
+     "type": "OLD_PARENT",
+     "value": "Other_Anatomic_Concept"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Conceptual Entity"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C83480",
+     "name": "Retired Concept 2004"
+    }
+   ],
+   "history": [
+    {
+     "code": "C13111",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C13575",
+     "action": "retire",
+     "date": "2003-08-22",
+     "replacementCode": "C13111",
+     "replacementName": "Retired Anatomy Concepts"
+    },
+    {
+     "code": "C13615",
+     "action": "retire",
+     "date": "2003-08-22",
+     "replacementCode": "C13111",
+     "replacementName": "Retired Anatomy Concepts"
+    },
+    {
+     "code": "C13111",
+     "action": "modify",
+     "date": "2003-09-29"
+    },
+    {
+     "code": "C13111",
+     "action": "modify",
+     "date": "2003-10-31"
+    },
+    {
+     "code": "C25770",
+     "action": "retire",
+     "date": "2003-10-31",
+     "replacementCode": "C13111",
+     "replacementName": "Retired Anatomy Concepts"
+    },
+    {
+     "code": "C13111",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C13111",
+     "action": "retire",
+     "date": "2004-02-23"
+    },
+    {
+     "code": "C13376",
+     "action": "retire",
+     "date": "2004-02-23",
+     "replacementCode": "C13111",
+     "replacementName": "Retired Anatomy Concepts"
+    },
+    {
+     "code": "C13928",
+     "action": "retire",
+     "date": "2004-02-23",
+     "replacementCode": "C13111",
+     "replacementName": "Retired Anatomy Concepts"
+    },
+    {
+     "code": "C12490",
+     "action": "retire",
+     "date": "2004-02-23",
+     "replacementCode": "C13111",
+     "replacementName": "Retired Anatomy Concepts"
+    },
+    {
+     "code": "C12804",
+     "action": "retire",
+     "date": "2004-02-23",
+     "replacementCode": "C13111",
+     "replacementName": "Retired Anatomy Concepts"
+    },
+    {
+     "code": "C32273",
+     "action": "retire",
+     "date": "2004-03-30",
+     "replacementCode": "C13111",
+     "replacementName": "Retired Anatomy Concepts"
+    },
+    {
+     "code": "C32376",
+     "action": "retire",
+     "date": "2004-03-30",
+     "replacementCode": "C13111",
+     "replacementName": "Retired Anatomy Concepts"
+    },
+    {
+     "code": "C32448",
+     "action": "retire",
+     "date": "2004-03-30",
+     "replacementCode": "C13111",
+     "replacementName": "Retired Anatomy Concepts"
+    },
+    {
+     "code": "C33551",
+     "action": "retire",
+     "date": "2004-03-30",
+     "replacementCode": "C13111",
+     "replacementName": "Retired Anatomy Concepts"
+    },
+    {
+     "code": "C33619",
+     "action": "retire",
+     "date": "2004-03-30",
+     "replacementCode": "C13111",
+     "replacementName": "Retired Anatomy Concepts"
+    },
+    {
+     "code": "C33808",
+     "action": "retire",
+     "date": "2004-03-30",
+     "replacementCode": "C13111",
+     "replacementName": "Retired Anatomy Concepts"
+    }
+   ]
+  }
+ }
+}

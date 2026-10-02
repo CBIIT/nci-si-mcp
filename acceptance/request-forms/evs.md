@@ -45,6 +45,7 @@ content state of its own, named in provenance and not presented as release-verif
 | OP-E08 | `GET evs /api/v1/concept/ncit_26.09d/search?term=qqxyzzyqq&type=contains&include=minimal,highlights&fromRecord=0&pageSize=10` | 200 | recorded | A search matching nothing: empty is not an error. | `recorded/evs/search-no-match.json` |
 | OP-E13 | `GET evs /api/v1/concept/ncit_26.09d/C4817/pathsToRoot?include=minimal` | 200 | recorded | The paths from the concept to the root of the hierarchy. | `recorded/evs/paths-to-root.json` |
 | OP-E21 | `GET evs /api/v1/history/ncit_26.09d/C4817/replacements` | 200 | recorded | An active code's replacements, one code. | `recorded/evs/replacement-active.json` |
+| OP-E21 | `GET evs /api/v1/history/ncit_26.09d/C13111/replacements` | 200 | recorded | A retired code the platform names no replacement for: action retire, no replacementCode. | `recorded/evs/replacement-retired.json` |
 | OP-E21 | `GET evs /api/v1/history/ncit_26.09d/replacements?list=C4817` | 200 | recorded | The ?list= batch form, which fails the whole batch on one unknown code. | `recorded/evs/replacements-active.json` |
 | OP-E06 | `GET evs /api/v1/subset/ncit/C177537` | 200 | recorded | The subset by its unpinned path: the pinned path answers 404 today; the payload names its release. | `recorded/evs/subset-gdc-unpinned.json` |
 | OP-E06 | `GET evs /api/v1/subset/ncit_26.09d/C177537` | 200 | crafted for OP-E06: every content path accepts {terminology}_{release}. EVS answered this pinned path with 404 "Subset not found" on 2 October 2026 | The pinned subset path a requirement prescribes, carrying the unpinned answer. | `crafted/OP-E06/subset-gdc.json` |
@@ -98,6 +99,7 @@ Each request: An unknown release answers 404 on every content path: the server f
 | OP-E06 | `GET evs /api/v1/metadata/ncit_99.99z/associations` | 404; every parameter ignored | `scenarios/release/unknown/association-catalogue.json` |
 | OP-E06 | `GET evs /api/v1/history/ncit_99.99z/C154421/replacements` | 404; every parameter ignored | `scenarios/release/unknown/replacement.json` |
 | OP-E06 | `GET evs /api/v1/history/ncit_99.99z/replacements?list=C154421` | 404; every parameter ignored | `scenarios/release/unknown/replacements.json` |
+| OP-E06 | `GET evs /api/v1/history/ncit_99.99z/C4817/replacements` | 404; every parameter ignored | `scenarios/release/unknown/replacement-active.json` |
 | OP-E06 | `GET evs /api/v1/subset/ncit_99.99z/C177537` | 404; every parameter ignored | `scenarios/release/unknown/subset.json` |
 | OP-E06 | `GET evs /api/v1/concept/ncit_99.99z/subsetMembers/C177537?fromRecord=0&pageSize=10&include=minimal` | 404; every parameter ignored | `scenarios/release/unknown/subset-members.json` |
 | OP-E06 | `GET evs /api/v1/concept/ncit_99.99z/C4817/descendants?maxLevel=4` | 404; every parameter ignored | `scenarios/release/unknown/descendants.json` |
@@ -105,7 +107,7 @@ Each request: An unknown release answers 404 on every content path: the server f
 
 ### `release/mismatch`
 
-Every payload that reports the pinned release names 26.08e instead, the unpinned forms included; release discovery is left as recorded. Crafted, 157 fixtures, for A3.4: the content served names another release than the one requested.
+Every payload that reports the pinned release names 26.08e instead, the unpinned forms included; release discovery is left as recorded. Crafted, 158 fixtures, for A3.4: the content served names another release than the one requested.
 
 ### `release/two-latest`
 
@@ -150,6 +152,10 @@ One concept has 300 roles and 2 associations, and another 300 associations and 2
 ### `valueset/inactive-members`
 
 Two members of value set C85492 are marked inactive (FHIR contains.inactive), in both forms of its expansion. Crafted, 2 fixtures, for A8.3: activeOnly leaves out the members an expansion marks inactive. EVS was never seen to mark one, so against live EVS activeOnly cannot be shown to do anything (an upstream question, #42).
+
+### `relationships/exclusion-missing`
+
+The role catalogue lacks R135, a code of the exclusion set. Crafted, 1 fixture, for A5.7: a release whose catalogue lacks R135, of the exclusion set, fails closed.
 
 ### `upstream/unavailable`
 

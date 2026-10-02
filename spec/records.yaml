@@ -32,6 +32,12 @@ provenance:
     graphs:
       content: "For items served by the Shared SI Service: the identifier and date of each graph touched"
       of: A1.5
+    attribution:
+      content: >-
+        The licence text of the item's terminology, where the platform's listing of that
+        terminology carries one (EVS: metadata.licenseText)
+      optional: true
+      of: A7.3
     upstream:
       content: >-
         The fields the platform supplied about the item's origin, under its names and with its
@@ -56,7 +62,7 @@ traversal:
       content: >-
         Negative exactly when the relationship's code is in its terminology's exclusion set
         below, positive otherwise, whatever the relationship is named (A5.7); the set is
-        checked against the release's relationship catalogue by list_relationships
+        checked against the release's relationship catalogue (the relationship record)
       values: [positive, negative]
       exclusions: {ncit: [R135, R136, R137, R138, R139, R140, R141, R142]}
       of: A5.6
@@ -121,8 +127,8 @@ node:
     A concept reached by traversal, as get_concept_hierarchy and get_concept_neighborhood
     return it, each concept once, with its status as the concept record carries it (A8.1). A
     relation list names a neighbour by code and name only, so the tool reads the nodes of the
-    last depth, which it follows no further, for their status: one batch, bounded by the node
-    bound.
+    last depth, which it follows no further, for their status: in batches at the minimal
+    include, bounded by the node bound.
   fields:
     code:
       content: The bare code the terminology publishes
@@ -169,6 +175,104 @@ edge:
         The traversal record: the depth of the node it reaches, its relationship
         { code, name, kind }, direction and polarity
       of: A4.2
+subset:
+  title: The subset record
+  about: >-
+    A subset a concept belongs to, as get_concept_subsets returns it: the platform's
+    Concept_In_Subset associations of the concept, read with it, in the platform's order.
+  fields:
+    code:
+      content: The bare code of the subset concept
+      of: A1.2
+    terminology:
+      content: The terminology the subset belongs to, as the platform names it
+      of: A1.2
+    name:
+      content: The subset's name, as the association names it
+      of: A9.1
+    provenance:
+      content: The provenance record
+      of: A4.4
+mapping:
+  title: The mapping record
+  about: >-
+    A map the platform carries on a concept, from it to another terminology, as
+    get_concept_mappings returns it: the platform's map unchanged, in the platform's order.
+    Its provenance names the release of the concept it was read from; the target's own version
+    is the map's. A licensed target's attribution is an open question: the platform names the
+    target by a label that matches no terminology of its listing (#42).
+  fields:
+    targetCode:
+      content: The target's code, as the platform gives it
+      of: A9.1
+    targetTerminology:
+      content: The target terminology, as the platform names it on the map
+      of: A9.1
+    targetName:
+      content: The target's name
+      of: A9.1
+    targetTermType:
+      content: The target's term type, where the platform gives one; absent, never null, where it does not
+      optional: true
+      of: A9.1
+    targetTerminologyVersion:
+      content: >-
+        The target terminology's version, where the platform gives one; absent, never null,
+        where it does not
+      optional: true
+      of: A9.1
+    type:
+      content: The map's relation (EVS's type, such as Related To or Has Synonym), unchanged
+      of: A9.1
+    provenance:
+      content: The provenance record
+      of: A4.4
+replacement:
+  title: The replacement record
+  about: A concept the platform names as replacing a retired one, as resolve_retired_code returns it.
+  fields:
+    code:
+      content: The bare code of the replacement
+      of: A1.2
+    terminology:
+      content: The terminology it belongs to, as the platform names it
+      of: A1.2
+    name:
+      content: The replacement's name, as the platform gives it
+      of: A9.1
+    provenance:
+      content: The provenance record
+      of: A4.4
+relationship:
+  title: The relationship record
+  about: >-
+    A role or association of a release's relationship catalogue, as list_relationships returns
+    it. The tool, and get_concept_neighborhood, fail closed with internal_error for a release
+    whose catalogue lacks a code of the terminology's exclusion set, naming the codes in
+    details. The check catches a set code the release no longer has, not a new exclusion
+    relationship the set does not know: that needs the catalogue to mark polarity, which is
+    the platform's to add.
+  fields:
+    code:
+      content: The relationship's code
+      of: A5.7
+    terminology:
+      content: The terminology whose catalogue it is, as the platform names it
+      of: A1.2
+    name:
+      content: Its name in the catalogue, unchanged
+      of: A9.1
+    kind:
+      content: Whether it is a role or an association
+      values: [role, association]
+      of: A4.2
+    polarity:
+      content: As in the traversal record, by code
+      values: [positive, negative]
+      of: A5.7
+    provenance:
+      content: The provenance record
+      of: A4.4
 search_result:
   title: The search result record
   about: >-
