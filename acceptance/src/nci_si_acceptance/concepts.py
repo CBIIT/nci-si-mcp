@@ -2,9 +2,11 @@
 
 EVS's concept endpoints return any projection (`include`) of a concept, alone
 (`/api/v1/concept/{terminology}/{code}`) or in a batch (`/api/v1/concept/{terminology}
-?list=`). Rather than one recording per request form, the fixture set records each
-concept once, and two rules compose the answer EVS gives; `record.py` checks the
-composition against real projections and batches:
+?list=`), and one relation list of a concept on its own
+(`/api/v1/concept/{terminology}/{code}/roles`, MCP API Specification §10 OP-E10, E11,
+E14 to E17, E20). Rather than one recording per request form, the fixture set records
+each concept once, and three rules compose the answer EVS gives; `record.py` checks the
+composition against real projections, batches and relation lists:
 
 - project by include: an answer holds the base keys and the keys each include value
   adds (the manifest's table); a request without include gets the default. EVS
@@ -15,13 +17,17 @@ composition against real projections and batches:
   answer in the request's order rotated by one, which differs from it whenever two
   codes are found, so that pairing answers with requests by position fails here
   rather than only sometimes against EVS.
+- one relation: the list under that key of the concept, or an empty list where it has
+  none, for the relations the manifest names (verified 2 October 2026: each equals
+  its include projection; `history` answers in another shape and is not one).
 
 A recording covers the keys its own include names. The rules answer only what the
 recordings cover, so a missing recording is never taken for an empty answer: a key a
 recording does not cover, an include value outside the table, a code without a
 recording, or any other parameter leaves the request unanswered. A recording of a 404
 says EVS does not know the code: a request for that code alone gets the 404, and a
-batch leaves the code out.
+batch leaves the code out; a relation of it goes unanswered, since EVS's 404 then names
+another path.
 """
 
 from __future__ import annotations
@@ -34,7 +40,9 @@ from typing import TYPE_CHECKING, Any, Self
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-CONCEPT_PATH = re.compile(r"/api/v1/concept/(?P<terminology>[^/]+)(?:/(?P<code>[^/]+))?")
+CONCEPT_PATH = re.compile(
+    r"/api/v1/concept/(?P<terminology>[^/]+)(?:/(?P<code>[^/]+)(?:/(?P<relation>[^/]+))?)?"
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,11 +67,13 @@ class Answer:
 
 @dataclass(frozen=True, slots=True)
 class ConceptRules:
-    """The include table: the keys every answer holds, and those each include value adds."""
+    """The include table: the keys every answer holds, and those each include value adds;
+    and the relations answered on their own."""
 
     base: frozenset[str]
     include: dict[str, frozenset[str]]
     default: str
+    relations: frozenset[str]
 
     @classmethod
     def from_manifest(cls, section: Any) -> Self:
@@ -74,9 +84,12 @@ class ConceptRules:
                 frozenset(section["base"]),
                 {value: frozenset(keys) for value, keys in section["include"].items()},
                 section["default"],
+                frozenset(section["relations"]),
             )
         except (KeyError, TypeError, AttributeError) as error:
-            raise ValueError("manifest.yaml: evs.concepts has base, include and default") from error
+            raise ValueError(
+                "manifest.yaml: evs.concepts has base, include, default and relations"
+            ) from error
         if rules.default not in rules.include:
             raise ValueError("manifest.yaml: evs.concepts.default is one of its include values")
         return rules
@@ -93,9 +106,8 @@ class ConceptRules:
         """What makes a fixture unusable as a concept recording, if anything."""
 
         match = CONCEPT_PATH.fullmatch(request["path"])
-        if (request["surface"], request["method"]) != ("evs", "GET") or not (
-            match and match["code"]
-        ):
+        plain = (request["surface"], request["method"]) == ("evs", "GET")
+        if match is None or not plain or not _one_concept(match):
             return "a concept recording is a GET of /api/v1/concept/{terminology}/{code} from evs"
         return self._include_problem(request.get("params", {})) or _answer_problem(
             match["code"], status, body
@@ -112,22 +124,39 @@ class ConceptRules:
         """EVS's answer to a concept request, composed from the recordings; None if they cannot."""
 
         match = CONCEPT_PATH.fullmatch(path)
-        if match is None or not _composable(params, single=match["code"] is not None):
+        if match is None:
+            return None
+        terminology, code, relation = match["terminology"], match["code"], match["relation"]
+        if relation:
+            return self._relation(find(terminology, code), relation, params)
+        if not _composable(params, single=code is not None):
             return None
         keys = self.keys(params.get("include", [self.default])[0])
         if keys is None:
             return None
-        terminology, code = match["terminology"], match["code"]
         if code:
             return _single(find(terminology, code), keys)
         return _batch([find(terminology, each) for each in _codes(params["list"][0])], keys)
+
+    def _relation(
+        self, recording: Recording | None, relation: str, params: dict[str, list[str]]
+    ) -> Answer | None:
+        if recording is None or recording.status != HTTPStatus.OK:
+            return None
+        if params or relation not in self.relations or relation not in recording.covers:
+            return None
+        return Answer([recording.name], HTTPStatus.OK, recording.body.get(relation, []))
+
+
+def _one_concept(match: re.Match[str]) -> bool:
+    return match["code"] is not None and match["relation"] is None
 
 
 def recording_key(path: str) -> tuple[str, str]:
     """The terminology and code a concept recording's request path names."""
 
     match = CONCEPT_PATH.fullmatch(path)
-    if match is None or match["code"] is None:
+    if match is None or not _one_concept(match):
         raise ValueError(f"{path} is not the path of one concept")
     return match["terminology"], match["code"]
 

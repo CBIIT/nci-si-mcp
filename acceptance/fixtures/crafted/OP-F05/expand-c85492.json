@@ -1,6 +1,7 @@
 {
- "kind": "recorded",
- "recorded_on": "2026-10-02",
+ "kind": "crafted",
+ "requirement": "OP-F05: $expand pinned by system-version. EVS answered \"Input parameter 'system-version' is not supported\" (400) on 2 October 2026",
+ "derived_from": "recorded/evs-fhir/expand-c85492.json",
  "request": {
   "surface": "evs-fhir",
   "method": "GET",
@@ -8,6 +9,9 @@
   "params": {
    "url": [
     "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492"
+   ],
+   "system-version": [
+    "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl|26.09d"
    ]
   },
   "ignored": {

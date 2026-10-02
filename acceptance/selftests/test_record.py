@@ -32,10 +32,15 @@ def manifest(**record_section):
                 "base": ["code", "name"],
                 "default": "minimal",
                 "include": {"minimal": [], "synonyms": ["synonyms"], "full": ["synonyms", "maps"]},
+                "relations": ["maps"],
             },
         },
         "surfaces": {"evs": "https://evs.example"},
-        "deny": {"terminologies": ["mdr", "MedDRA"], "mapsets": ["NCIt_Maps_To_MedDRA"]},
+        "licensing": {
+            "licensed": ["mdr", "MedDRA"],
+            "allowed": ["NCI"],
+            "mapsets": ["NCIt_Maps_To_MedDRA"],
+        },
         "record": {
             "requests": [
                 {
@@ -97,6 +102,51 @@ def test_each_request_becomes_a_dated_recorded_fixture_without_its_licensed_item
     assert concept["request"]["params"] == {"include": ["full"]}
     assert concept["response"]["body"]["maps"] == []
     assert concept["redacted"] == ["/maps/0 (MedDRA)"]
+
+
+def test_a_terminology_nobody_decided_on_stops_the_recording():
+    changed = {**C1, "synonyms": [{"name": "Un", "source": "NewSource"}]}
+    live = upstream({("evs", "/api/v1/concept/ncit_26.09d/C1", "include=full"): (200, changed)})
+
+    with pytest.raises(RecordingError, match=r"C1\.json: names NewSource, neither licensed nor"):
+        Recorder(manifest(), live, "2026-10-02").record(plan(manifest()))
+
+
+def test_a_derived_fixture_is_the_prescribed_request_with_a_recordings_answer():
+    entry = {
+        "fixture": "crafted/OP-E06/concept.json",
+        "from": "recorded/evs/concepts/C1.json",
+        "path": "/api/v1/concept/ncit_26.09d_x/C1?include=full",
+        "requirement": "OP-E06",
+        "ignored": {"limit": "evidence"},
+    }
+    section = manifest(derived=[entry])
+
+    documents = Recorder(section, upstream(), "2026-10-02").record(plan(section))
+
+    recorded = documents["recorded/evs/concepts/C1.json"]
+    assert documents["crafted/OP-E06/concept.json"] == {
+        "kind": "crafted",
+        "requirement": "OP-E06",
+        "derived_from": "recorded/evs/concepts/C1.json",
+        "request": {
+            "surface": "evs",
+            "method": "GET",
+            "path": "/api/v1/concept/ncit_26.09d_x/C1",
+            "params": {"include": ["full"]},
+            "ignored": {"limit": "evidence"},
+        },
+        "response": recorded["response"],
+        "redacted": recorded["redacted"],
+    }
+
+
+def test_a_derived_fixture_needs_its_recording():
+    entry = {"fixture": "crafted/x.json", "from": "recorded/evs/none.json", "path": "/x"}
+    section = manifest(derived=[entry | {"requirement": "R"}])
+
+    with pytest.raises(RecordingError, match=r"crafted/x\.json: recorded/evs/none\.json is not"):
+        Recorder(section, upstream(), "2026-10-02").record(plan(section))
 
 
 def test_nothing_is_recorded_against_another_release_than_the_pinned_one():

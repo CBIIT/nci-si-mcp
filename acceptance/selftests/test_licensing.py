@@ -1,11 +1,16 @@
-"""Licensed content is neither requested for recording nor left in a payload."""
+"""Licensed content is neither requested for recording nor left in a payload, and a
+terminology nobody decided on stops the recording."""
 
 import pytest
 
-from nci_si_acceptance.licensing import DenyList
+from nci_si_acceptance.licensing import Licensing, named_terminologies
 
-DENY = DenyList.from_manifest(
-    {"terminologies": ["mdr", "MedDRA", "snomedct_us"], "mapsets": ["NCIt_Maps_To_MedDRA"]}
+DENY = Licensing.from_manifest(
+    {
+        "licensed": ["mdr", "MedDRA", "snomedct_us"],
+        "allowed": ["NCI", "GDC"],
+        "mapsets": ["NCIt_Maps_To_MedDRA"],
+    }
 )
 
 
@@ -65,6 +70,23 @@ def test_a_payload_without_lists_is_kept_as_it_is():
     assert DENY.redact("<html>no JSON</html>") == ("<html>no JSON</html>", [])
 
 
-def test_the_deny_list_names_terminologies_and_mapsets():
-    with pytest.raises(ValueError, match="deny has terminologies and mapsets"):
-        DenyList.from_manifest({"terminologies": ["mdr"]})
+def test_the_licensing_section_names_licensed_allowed_and_mapsets():
+    with pytest.raises(ValueError, match="licensing has licensed, allowed and mapsets"):
+        Licensing.from_manifest({"licensed": ["mdr"], "mapsets": []})
+
+
+def test_every_terminology_a_payload_names_is_found_at_any_depth():
+    payload = {
+        "source": "NCI",
+        "synonyms": [{"source": "CTRP"}, {"source": None}],
+        "nested": [[{"target": "GDC", "targetTerminology": "ICDO3"}]],
+    }
+
+    assert named_terminologies(payload) == {"NCI", "CTRP", "GDC", "ICDO3"}
+
+
+def test_a_terminology_neither_licensed_nor_allowed_is_undecided_in_any_case():
+    payload = {"maps": [{"targetTerminology": "gdc"}, {"targetTerminology": "MEDDRA"}]}
+    payload["synonyms"] = [{"source": "Snomed CT"}, {"source": "HemOnc"}]
+
+    assert DENY.undecided(payload) == ["HemOnc", "Snomed CT"]

@@ -27,18 +27,26 @@ evs:
       history: [history]
       full: [synonyms, definitions, properties, parents, children, roles, inverseRoles,
              associations, inverseAssociations, maps, history]
+    # The relation lists answered on their own, /api/v1/concept/{terminology}/{code}/{relation}
+    # (MCP API Specification §10 OP-E10, E11, E14 to E17, E20).
+    relations: [parents, children, roles, inverseRoles, associations, inverseAssociations, maps]
 
 # The base URL of each recorded surface; a fixture's path is relative to it.
 surfaces:
   evs: https://api-evsrest.nci.nih.gov
   evs-fhir: https://api-evsrest.nci.nih.gov/fhir/r4
 
-# Licensed content is never recorded (licensing.py; EVS SOW v2.1 item 2).
-deny:
-  # The terminologies whose EVS metadata (licenseText) requires a licence beyond EVS,
-  # by every name EVS gives them, and ICD-O-3, withheld while its terms are unsettled.
-  terminologies: [mdr, MedDRA, snomedct_us, SNOMEDCT, icd10, ncim, ICDO3]
-  # The mapsets with a denied terminology on either side.
+# Licensed content is never recorded (licensing.py; EVS SOW v2.1 item 2). The check fails
+# closed: a terminology a payload names that is on neither list stops the recording.
+licensing:
+  # The terminologies whose EVS metadata (licenseText) requires a licence beyond EVS, by
+  # every name EVS gives them, and ICD-O-3, withheld while its terms are unsettled.
+  licensed: [mdr, MedDRA, snomedct_us, SNOMEDCT, icd10, ncim, ICDO3]
+  # The sources NCIt's own synonyms and definitions name, published under NCIt's terms.
+  allowed: [ACC/AHA, CCPS, CDC, CDISC, CDISC-GLOSS, CPTAC, CTCAE, CTDC, CTEP, CTRP, Cellosaurus,
+            DIPG/DMG, FDA, GDC, HGNC, HemOnc, ICDC, NCI, NCI-GLOSS, NICHD, OORO, PCDC, SeroNet,
+            caDSR, mCode]
+  # The mapsets with a licensed terminology on either side.
   mapsets:
     - NCIt_Maps_To_MedDRA
     - ICD10_to_MedDRA_Mapping
@@ -89,7 +97,13 @@ record:
     - fixture: recorded/evs/paths-to-root.json
       surface: evs
       path: /api/v1/concept/ncit_26.09d/C4817/pathsToRoot?include=minimal
-    # Retired codes: one retired, one active, and the batch of both.
+    # Retired codes: one retired and one active (OP-E21), and the batch of both.
+    - fixture: recorded/evs/replacement-retired.json
+      surface: evs
+      path: /api/v1/history/ncit_26.09d/C154421/replacements
+    - fixture: recorded/evs/replacement-active.json
+      surface: evs
+      path: /api/v1/history/ncit_26.09d/C4817/replacements
     - fixture: recorded/evs/replacements-retired.json
       surface: evs
       path: /api/v1/history/ncit_26.09d/replacements?list=C154421
@@ -99,11 +113,11 @@ record:
     - fixture: recorded/evs/replacements-both.json
       surface: evs
       path: /api/v1/history/ncit_26.09d/replacements?list=C154421,C4817
-    # Subsets: the GDC Value Terminology (the pinned form answers 404 on 2 October 2026,
-    # recorded as EVS gives it) and the first page of its members.
-    - fixture: recorded/evs/subset-gdc.json
+    # Subsets: the GDC Value Terminology, unpinned (the pinned form is crafted under
+    # `derived`) and the first page of its members.
+    - fixture: recorded/evs/subset-gdc-unpinned.json
       surface: evs
-      path: /api/v1/subset/ncit_26.09d/C177537
+      path: /api/v1/subset/ncit/C177537
     - fixture: recorded/evs/subset-gdc-members.json
       surface: evs
       path: /api/v1/subset/ncit_26.09d/C177537/members?fromRecord=0&pageSize=10&include=minimal
@@ -122,6 +136,27 @@ record:
         count: &expand-ignores >-
           Verified 2 October 2026: count, offset and activeOnly leave the expansion
           unchanged (534 members, total 534); only expansion.parameter echoes them
+        offset: *expand-ignores
+        activeOnly: *expand-ignores
+
+  # Crafted fixtures for the form a requirement prescribes where EVS does not yet answer
+  # it, each carrying the answer of a recording (Acceptance Suite §2.1): the live run shows
+  # the gap.
+  derived:
+    - fixture: crafted/OP-E06/subset-gdc.json
+      from: recorded/evs/subset-gdc-unpinned.json
+      path: /api/v1/subset/ncit_26.09d/C177537
+      requirement: >-
+        OP-E06: every content path accepts {terminology}_{release}. EVS answered this
+        pinned path with 404 "Subset not found" on 2 October 2026
+    - fixture: crafted/OP-F05/expand-c85492.json
+      from: recorded/evs-fhir/expand-c85492.json
+      path: /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492&system-version=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl|26.09d
+      requirement: >-
+        OP-F05: $expand pinned by system-version. EVS answered "Input parameter
+        'system-version' is not supported" (400) on 2 October 2026
+      ignored:
+        count: *expand-ignores
         offset: *expand-ignores
         activeOnly: *expand-ignores
 
@@ -165,3 +200,12 @@ record:
     - /api/v1/concept/ncit_26.09d?list=C41259,C4817,C17049,C4817&include=minimal
     - /api/v1/concept/ncit_26.09d?list=C4835,C7135,C7806,C7807,C7808,C132849&include=summary,children
     - /api/v1/concept/ncit_26.09d?list=C9118,C27291&include=parents,roles,associations
+    - /api/v1/concept/ncit_26.09d/C4817/parents
+    - /api/v1/concept/ncit_26.09d/C4817/children
+    - /api/v1/concept/ncit_26.09d/C4817/roles
+    - /api/v1/concept/ncit_26.09d/C4817/inverseRoles
+    - /api/v1/concept/ncit_26.09d/C4817/associations
+    - /api/v1/concept/ncit_26.09d/C4817/inverseAssociations
+    - /api/v1/concept/ncit_26.09d/C4817/maps
+    - /api/v1/concept/ncit_26.09d/C154421/children
+    - /api/v1/concept/ncit_26.09d/C7806/roles

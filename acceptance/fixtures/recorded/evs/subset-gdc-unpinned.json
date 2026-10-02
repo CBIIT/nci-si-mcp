@@ -1,0 +1,22 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/subset/ncit/C177537"
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C177537",
+   "name": "GDC Value Terminology",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "subsetLink": "https://evs.nci.nih.gov/ftp1/GDC",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true
+  }
+ }
+}

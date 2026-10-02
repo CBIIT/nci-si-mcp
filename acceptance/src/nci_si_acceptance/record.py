@@ -4,16 +4,20 @@
 
 Every request the manifest lists under `record.requests` is made live and becomes a
 recorded fixture, dated today; each concept under `record.concepts` is recorded once,
-at the include it is listed under, in `recorded/evs/concepts/`. Nothing is written
-unless all of this holds:
+at the include it is listed under, in `recorded/evs/concepts/`. Each entry under
+`record.derived` becomes a crafted fixture for the request form a requirement prescribes
+where EVS does not answer it yet, carrying the answer of a recording (Acceptance Suite
+§2.1). Nothing is written unless all of this holds:
 
 - the live monthly NCIt release is the one the manifest pins (`evs.release`):
   re-pinning is a re-recording under change control;
-- no request names licensed content, and the licensed items of every payload are
-  removed and listed in the fixture's `redacted` (licensing.py);
+- no request names licensed content, every terminology a payload names is licensed
+  or allowed, and the licensed items are removed and listed in the fixture's
+  `redacted` (licensing.py);
 - every sample under `record.samples`, asked live, equals the answer the concept
   rules compose from the new recordings, a batch compared code by code because EVS
   keeps no order;
+- every derived fixture comes from a recording the manifest makes;
 - every file under the recorded surfaces is one the manifest produces.
 """
 
@@ -35,7 +39,7 @@ import yaml
 
 from nci_si_acceptance.concepts import ConceptRules, Recording, recording_key
 from nci_si_acceptance.fixture_server import CONCEPTS, MANIFEST
-from nci_si_acceptance.licensing import DenyList
+from nci_si_acceptance.licensing import Licensing
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -116,7 +120,7 @@ class Recorder:
 
     def __init__(self, manifest: dict[str, Any], fetch: Fetch, today: str) -> None:
         self.manifest, self.fetch, self.today = manifest, fetch, today
-        self.deny = DenyList.from_manifest(manifest["deny"])
+        self.licensing = Licensing.from_manifest(manifest["licensing"])
         self.rules = ConceptRules.from_manifest(manifest["evs"]["concepts"])
         self.problems: list[str] = []
 
@@ -126,15 +130,31 @@ class Recorder:
         self._check_pin()
         documents = {each.file: self._one(each) for each in planned}
         self._check_samples(documents)
+        derived = self._derive(documents)
         if self.problems:
             raise RecordingError(self.problems)
-        return documents
+        return documents | derived
+
+    def _derive(self, documents: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+        derived = {}
+        for entry in self.manifest["record"].get("derived", []):
+            source = documents.get(entry["from"])
+            if source is None:
+                self.problems.append(f"{entry['fixture']}: {entry['from']} is not recorded")
+                continue
+            derived[entry["fixture"]] = _derived(entry, source)
+        return derived
 
     def _one(self, planned: Planned) -> dict[str, Any]:
         status, body = self.fetch(planned.surface, planned.path, planned.params)
-        if problem := self.deny.request_problem(planned.path, planned.params, status):
+        if problem := self.licensing.request_problem(planned.path, planned.params, status):
             self.problems.append(f"{planned.file}: {problem}")
-        body, redacted = self.deny.redact(body)
+        if undecided := self.licensing.undecided(body):
+            self.problems.append(
+                f"{planned.file}: names {', '.join(undecided)}, neither licensed nor allowed "
+                f"in {MANIFEST}: decide each"
+            )
+        body, redacted = self.licensing.redact(body)
         return _document(planned, status, body, redacted, self.today)
 
     def _check_pin(self) -> None:
@@ -154,19 +174,41 @@ class Recorder:
             path, params = _split(sample)
             composed = self.rules.answer(path, params, lambda *key: recordings.get(key))
             status, body = self.fetch("evs", path, params)
-            live = (status, _by_code(self.deny.redact(body)[0]))
+            batch = "list" in params
+            live = (status, _by_code(self.licensing.redact(body)[0], batch=batch))
             if composed is None:
                 self.problems.append(f"sample {sample}: the recordings cannot answer it")
-            elif (composed.status, _by_code(composed.body)) != live:
+            elif (composed.status, _by_code(composed.body, batch=batch)) != live:
                 self.problems.append(f"sample {sample}: the composed answer differs from EVS's")
 
 
-def _by_code(body: Any) -> Any:
+def _by_code(body: Any, *, batch: bool) -> Any:
     """A batch answer keyed by code, so that it compares without its order."""
 
-    if isinstance(body, list):
+    if batch and isinstance(body, list):
         return {concept["code"]: concept for concept in body}
     return body
+
+
+def _derived(entry: dict[str, Any], source: dict[str, Any]) -> dict[str, Any]:
+    """A crafted fixture: the request a requirement prescribes, a recording's answer."""
+
+    path, params = _split(entry["path"])
+    request: dict[str, Any] = {"surface": source["request"]["surface"], "method": "GET"}
+    request["path"] = path
+    if params:
+        request["params"] = params
+    if entry.get("ignored"):
+        request["ignored"] = entry["ignored"]
+    document = {
+        "kind": "crafted",
+        "requirement": entry["requirement"],
+        "derived_from": entry["from"],
+    }
+    document |= {"request": request, "response": source["response"]}
+    if source.get("redacted"):
+        document["redacted"] = source["redacted"]
+    return document
 
 
 def _recordings(

@@ -25,19 +25,36 @@ Re-pinning the release is a re-recording under change control.
 
 ## Request forms
 
-The fixture server answers a request exactly as recorded, with two kinds of exception:
+The request forms are those of the platform operations in *MCP API Specification* §10, in the
+release-pinned form (`ncit_26.09d`) and with the parameters given there: the one-row release query
+(`terminology=ncit&latest=true&tag={channel}`, OP-E01), the catalogues (OP-E02, E03), concepts
+and batches (OP-E05, E07), relation lists (OP-E10, E11, E14 to E17, E20), search (OP-E08),
+replacements (OP-E21, and the `?list=` batch form), `$expand` (OP-F05). Where §10 differs from
+what EVS serves:
 
-- **Concepts.** `GET /api/v1/concept/{terminology}/{code}` and the batch
-  `GET /api/v1/concept/{terminology}?list=` are answered in every projection (`include`) and
-  every batch the recordings cover, by the rules of `src/nci_si_acceptance/concepts.py`. A batch
-  comes back in no particular order: EVS keeps none either.
+- OP-E13 is spelled `paths-to-root`; EVS serves `pathsToRoot`, which is recorded.
+- OP-E19 names `/{code}/subsetMembers`; EVS serves `/subsetMembers/{subset code}`. The subsets a
+  concept belongs to are its `Concept_In_Subset` associations, answered by the concept rules.
+- Mapsets are not in §10; they are recorded because *Acceptance Suite* §5.1 requires them as
+  first-class objects.
+- §10 does not fix search's parameters: `term`, `type`, `include=minimal,highlights`,
+  `fromRecord` and `pageSize` are all given.
+
+Where EVS does not yet answer the form a requirement prescribes, the ordinary fixture is crafted
+to the requirement and names it, carrying a recording's answer, and the live run shows the gap
+(*Acceptance Suite* §2.1): the pinned subset (OP-E06, 404 today) and `$expand` pinned by
+`system-version` (OP-F05, 400 today), in `crafted/`. Today's working unpinned forms are recorded
+beside them.
+
+Two kinds of request are answered whatever their form:
+
+- **Concepts.** One recording per concept answers every projection (`include`), every batch
+  (`?list=`) and every relation list the recordings cover, by the rules of
+  `src/nci_si_acceptance/concepts.py`. A batch comes back in no particular order: EVS keeps none.
 - **Ignored parameters.** A parameter the live service is shown to ignore is declared with the
   evidence and left out of the match (FHIR `$expand` ignores `count`, `offset` and `activeOnly`).
 
-Everywhere else the form in the manifest is the canonical one: the release-pinned path
-(`ncit_26.09d`), the one-row release query (`terminology=ncit&latest=true&tag={channel}`), search
-with `term`, `type`, `include=minimal,highlights`, `fromRecord` and `pageSize` all given. A
-request in another form finds no fixture, and the test that sent it reports NO FIXTURE.
+A request in any other form finds no fixture, and the test that sent it reports NO FIXTURE.
 
 ## Content and terms
 
@@ -50,9 +67,15 @@ These fixtures are modified excerpts, not the NCI Thesaurus: licensed items are 
 removal is listed in the fixture's `redacted`. These terms apply to the fixture content; the
 code of the suite is under the Apache License 2.0.
 
-**Licensed content is never recorded** (EVS SOW v2.1 item 2). The manifest's deny list names the
-terminologies whose EVS metadata requires a licence beyond EVS (MedDRA, SNOMED CT, ICD-10, the
-NCI Metathesaurus) and the mapsets that carry them. A request naming one is not recorded unless
-EVS refused it, and an item of a payload that comes from or maps to one is removed. ICD-O-3
-(WHO) is withheld as well until its terms are settled. `selftests/test_fixture_set.py` fails on
-any licensed item left in the set.
+**Licensed content is never recorded** (EVS SOW v2.1 item 2). The manifest's `licensing` section
+names the terminologies whose EVS metadata requires a licence beyond EVS (MedDRA, SNOMED CT,
+ICD-10, the NCI Metathesaurus), the mapsets that carry them, and the terminologies allowed. A
+request naming a licensed one is not recorded unless EVS refused it, and an item of a payload
+that comes from or maps to one is removed. ICD-O-3 (WHO) is withheld as well until its terms are
+settled. The check fails closed: a terminology a payload names that is on neither list stops the
+recording until someone decides it, and `selftests/test_fixture_set.py` fails on any licensed or
+undecided name left in the set.
+
+Redaction makes a recording differ from live on purpose. A live-capable test therefore asserts
+nothing about what redaction touches: not the count or the members of a concept's `maps`, nor
+of any list an item was removed from.

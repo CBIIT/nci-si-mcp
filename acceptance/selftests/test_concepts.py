@@ -22,6 +22,7 @@ RULES = {
         "roles": ["roles"],
         "full": ["synonyms", "parents", "roles"],
     },
+    "relations": ["parents", "roles"],
 }
 C1 = {"code": "C1", "name": "One", "synonyms": [{"name": "Uno"}], "parents": [{"code": "C9"}]}
 
@@ -109,6 +110,7 @@ def test_a_batch_holds_each_code_once_never_in_the_order_requested(rules):
         ("/api/v1/concept/ncit_26.09d", {"list": ["C1,,C1"]}),
         ("/api/v1/concept/ncit_26.09d/C1/children", {}),
         ("/api/v1/concept/ncit_99.99z/C1", {"include": ["minimal"]}),
+        ("/api/v1/version", {}),
     ],
 )
 def test_what_the_recordings_do_not_cover_goes_unanswered(rules, path, params):
@@ -140,6 +142,32 @@ def test_a_recorded_404_answers_alone_and_drops_out_of_a_batch(rules):
     assert batch.names == ["C1.json", "C404.json"]
 
 
+def test_a_relation_is_answered_with_its_list_or_an_empty_one(rules):
+    find = finder(full(C1))
+
+    def answer(relation, params=None):
+        found = rules.answer(f"/api/v1/concept/ncit_26.09d/C1/{relation}", params or {}, find)
+        return found and found.body
+
+    assert answer("parents") == [{"code": "C9"}]
+    assert answer("roles") == []
+    assert answer("synonyms") is None
+    assert answer("parents", {"limit": ["1"]}) is None
+
+
+def test_a_relation_the_recording_does_not_cover_or_of_an_unknown_code_goes_unanswered(rules):
+    partial = Recording("C1.json", 200, C1, frozenset({"code", "name"}))
+    unknown = Recording("C404.json", 404, {"message": "C404 not found"}, frozenset())
+    table = {("ncit_26.09d", "C1"): partial, ("ncit_26.09d", "C404"): unknown}
+
+    def find(terminology, code):
+        return table.get((terminology, code))
+
+    assert rules.answer("/api/v1/concept/ncit_26.09d/C1/parents", {}, find) is None
+    assert rules.answer("/api/v1/concept/ncit_26.09d/C404/parents", {}, find) is None
+    assert rules.answer("/api/v1/concept/ncit_26.09d/C7/parents", {}, find) is None
+
+
 @pytest.mark.parametrize(
     "section",
     [
@@ -148,7 +176,7 @@ def test_a_recorded_404_answers_alone_and_drops_out_of_a_batch(rules):
     ],
 )
 def test_the_rules_need_base_include_and_default(section):
-    with pytest.raises(ValueError, match=r"evs\.concepts has base, include and default"):
+    with pytest.raises(ValueError, match=r"evs\.concepts has base, include, default and"):
         ConceptRules.from_manifest(section)
 
 
@@ -159,8 +187,9 @@ def test_the_default_is_one_of_the_include_values():
 
 def test_a_recording_key_is_the_terminology_and_code_of_its_path():
     assert recording_key("/api/v1/concept/ncit_26.09d/C4817") == ("ncit_26.09d", "C4817")
-    with pytest.raises(ValueError, match="is not the path of one concept"):
-        recording_key("/api/v1/concept/ncit_26.09d")
+    for path in ("/api/v1/concept/ncit_26.09d", "/api/v1/concept/ncit_26.09d/C4817/roles"):
+        with pytest.raises(ValueError, match="is not the path of one concept"):
+            recording_key(path)
 
 
 def fetch_json(url):
@@ -262,6 +291,10 @@ def test_an_unusable_recording_is_refused_naming_its_problem(tmp_path, change, p
         ({"surface": "evs-fhir"}, "a concept recording is a GET of /api/v1/concept/"),
         (
             {"path": "/api/v1/concept/ncit_26.09d"},
+            "a concept recording is a GET of /api/v1/concept/",
+        ),
+        (
+            {"path": "/api/v1/concept/ncit_26.09d/C1/roles"},
             "a concept recording is a GET of /api/v1/concept/",
         ),
         ({"params": {}}, "a concept recording names exactly the include it was recorded with"),

@@ -409,12 +409,12 @@ Because the suite and the tools are written by the same hands, two rules keep th
 
 ### 9.6 Request forms
 
-The fixture set is part of the contract only where a governing document prescribes the upstream request: the release-pinned path, the batch endpoint over fan-out, the one-row release query, the `Accept` header, the licence key. Elsewhere the fixture server answers every form a conforming server could send:
+The fixtures use the request forms of the platform operations in *MCP API Specification* §10, release-pinned; `acceptance/fixtures/README.md` lists where §10 and EVS differ. Where EVS does not yet answer the form a requirement prescribes, the ordinary fixture is crafted to the requirement and names it, and the live run shows the gap (*Acceptance Suite* §2.1). Two kinds of request are answered whatever their form:
 
-- **EVS concepts.** One recording per concept answers every projection and batch through two declared rules (`concepts.py`): project by `include` (the include-to-key table in the manifest; EVS's `include` is a clean key projection, verified 2 October 2026) and select by `list` (each code once, unknown codes left out, in no particular order, since EVS keeps none). `record.py` checks composed answers against real projections and batches.
+- **EVS concepts.** One recording per concept answers every projection, batch and relation list through declared rules (`concepts.py`): project by `include` (the include-to-key table in the manifest; EVS's `include` is a clean key projection, verified 2 October 2026), select by `list` (each code once, unknown codes left out, in no particular order, since EVS keeps none), and one relation list on its own. `record.py` checks composed answers against real ones.
 - **Ignored parameters.** A parameter the service is shown to ignore is declared with its evidence and left out of the match.
 
-Search, descendants, metadata, history, subsets and mapsets stay exact-match; their canonical forms are the manifest's requests, summarised in `acceptance/fixtures/README.md`. Licensed content (EVS SOW v2.1 item 2) is never recorded: `licensing.py` refuses requests for it and removes licensed items from payloads, and a self-test fails on any left in the set.
+Licensed content (EVS SOW v2.1 item 2) is never recorded: `licensing.py` refuses requests for it and removes licensed items from payloads, a terminology on neither the licensed nor the allowed list stops a recording, and a self-test fails on either left in the set.
 
 ---
 

@@ -1,0 +1,22 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/history/ncit_26.09d/C154421/replacements"
+ },
+ "response": {
+  "status": 200,
+  "body": [
+   {
+    "code": "C154421",
+    "name": "Transgender Identity",
+    "action": "retire",
+    "date": "2025-02-24",
+    "replacementCode": "C158277",
+    "replacementName": "Gender Identity"
+   }
+  ]
+ }
+}
