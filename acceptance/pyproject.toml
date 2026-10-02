@@ -1,0 +1,36 @@
+[build-system]
+requires = ["pdm-backend>=2.4"]
+build-backend = "pdm.backend"
+
+# The suite is versioned on its own, independently of the server and of the fixture
+# set (MCP Behavioral Acceptance Suite §8); the version changes by hand, under change
+# control.
+[project]
+name = "nci-si-acceptance"
+version = "0.1.0"
+description = "Behavioural acceptance suite and upstream fixture server for the NCI SI MCP tools"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "mcp>=2.0,<3",
+    "pytest>=8.0",
+]
+
+[tool.pdm]
+distribution = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "live_capable: also runs in live mode",
+    "unmatched_upstream: expects upstream requests without a fixture, and checks them itself",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["nci_si_acceptance"]
+
+[tool.coverage.report]
+fail_under = 90
+precision = 2
+show_missing = true

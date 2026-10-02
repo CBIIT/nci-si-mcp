@@ -276,3 +276,4 @@ not MCP tools. The README lists the error codes.
 - `tests/test_docs.py`: the settings, error codes and modules the documentation names against the code.
 - `tests/test_quality_gates.py`: the complexity and test-quality gates in `scripts/validation`.
 - `tests/test_release_config.py`: the pull request title check against the release configuration.
+- `acceptance/`: the behavioural acceptance suite, which tests the MCP tool surface through a fixture upstream ([acceptance/README.md](acceptance/README.md)).

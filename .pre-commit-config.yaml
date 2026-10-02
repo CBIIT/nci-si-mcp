@@ -80,10 +80,10 @@ repos:
         language: system
         types_or: [python, pyi]
 
-      # All of src and scripts, not the staged files: a change to a model can
+      # Every checked directory, not the staged files: a change to a model can
       # break a file that was not touched.
       - id: basedpyright
-        name: basedpyright (src and scripts)
+        name: basedpyright
         entry: pdm run basedpyright
         language: system
         pass_filenames: false
@@ -103,7 +103,7 @@ repos:
         name: tests that can catch a regression
         entry: pdm run python scripts/validation/check_test_quality.py
         language: system
-        files: ^tests/test_.*\.py$
+        files: ^(tests|acceptance/(tests|selftests))/test_.*\.py$
 
       - id: dead-code
         name: dead code

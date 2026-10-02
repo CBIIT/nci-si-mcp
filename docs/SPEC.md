@@ -355,8 +355,8 @@ Specified in full in *MCP Behavioral Acceptance Suite*; this section states how 
 
 ```
 acceptance/
-  pyproject.toml            separate package: nci-si-acceptance; pytest, mcp, jsonschema
-  harness/
+  pyproject.toml            separate package: nci-si-acceptance, versioned on its own; pytest, mcp, jsonschema
+  src/nci_si_acceptance/    the harness
     client.py               connect over stdio or streamable HTTP; tools/list, tools/call
     fixture_server.py       serves fixtures by (surface, method, path, params) with a request log endpoint
     toolmap.py              baseline tool map application
@@ -371,8 +371,11 @@ acceptance/
     test_protocol.py        §3 gates
     test_crosscutting.py    §4, parameterised over the inventory
     test_group_a.py … test_group_w.py
+  selftests/                the harness's own tests, run in the unit CI job
   record.py                 re-records `recorded/` from live against the manifest's pins
 ```
+
+The root project installs the package editable (dependency group `acceptance`); `pdm run acceptance` runs the suite and `pdm run acceptance-selftest` the harness's own tests.
 
 ### 9.2 Run modes
 

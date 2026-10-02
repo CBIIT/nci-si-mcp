@@ -11,12 +11,12 @@ A test module is rejected when its docstring states a coverage aim ("improve
 coverage", "coverage to 95%", "95% coverage"): a test exists for the behaviour
 it protects, not for a number.
 
-The tests are `unittest` style. An assertion is an `assert` statement, a
-`unittest` assertion method (`self.assertEqual`, `self.assertRaises`,
-`self.fail`, ...), or a call to a helper whose name starts with `assert_` and is
-not a mock assertion. An assertion inside a function or a class that the test
-defines and then never uses does not count: it never runs. A definition counts as
-used when the test reads its name or it carries a decorator.
+An assertion is an `assert` statement, a `unittest` assertion method
+(`self.assertEqual`, `self.assertRaises`, `self.fail`, ...), `pytest.raises`, or a
+call to a helper whose name starts with `assert_` and is not a mock assertion. An
+assertion inside a function or a class that the test defines and then never uses
+does not count: it never runs. A definition counts as used when the test reads its
+name or it carries a decorator.
 
     python scripts/validation/check_test_quality.py tests/test_a.py [...]
 """
@@ -35,8 +35,9 @@ COVERAGE_AIM = re.compile(
     r"|coverage\s+to\s+\d+\s*%|\d+\s*%\s+coverage\b",
     re.IGNORECASE,
 )
-# `assert`, a unittest method such as assertEqual or fail, or a helper such as assert_valid.
-ASSERTION = re.compile(r"assert|assert[A-Z]\w*|fail|_?assert_\w+")
+# `assert`, a unittest method such as assertEqual or fail, pytest.raises, or a helper such
+# as assert_valid.
+ASSERTION = re.compile(r"assert|assert[A-Z]\w*|fail|raises|_?assert_\w+")
 MOCK_ASSERTION = re.compile(
     r"assert_(not_)?(called|awaited)\w*|assert_any_(call|await)|assert_has_(calls|awaits)"
 )
