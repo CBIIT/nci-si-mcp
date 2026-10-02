@@ -1,0 +1,149 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C37231",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C37231",
+   "name": "EWSR1-ETV4 Fusion Protein Expression",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "EWS-E1AF Fusion Protein Expression",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWS/ETV4 Fusion Protein Expression",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWSR1-ETV4 Fusion Protein Expression",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWSR1/ETV4 Fusion Protein Expression",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWSR1-ETV4 Fusion Protein Expression",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A molecular abnormality characterized by the expression of a fusion protein that results from chromosomal recombination involving the human genes EWSR1 and ETV4. This abnormal protein is associated with Ewing tumor/peripheral primitive neuroectodermal tumor.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "EWS-E1AF_Fusion_Protein_Expression"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Cell or Molecular Dysfunction"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1512146"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C36346",
+     "name": "Fusion Protein Expression"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C24378",
+     "relatedName": "ETV4 Gene"
+    },
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C18322",
+     "relatedName": "EWSR1 Gene"
+    },
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C99262",
+     "relatedName": "EWSR1/ETV4 Fusion Gene"
+    }
+   ],
+   "history": [
+    {
+     "code": "C37231",
+     "action": "create",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C37231",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C37231",
+     "action": "modify",
+     "date": "2011-03-07"
+    },
+    {
+     "code": "C37231",
+     "action": "modify",
+     "date": "2011-07-18"
+    },
+    {
+     "code": "C37231",
+     "action": "modify",
+     "date": "2012-11-26"
+    },
+    {
+     "code": "C37231",
+     "action": "modify",
+     "date": "2014-02-03"
+    },
+    {
+     "code": "C37231",
+     "action": "modify",
+     "date": "2016-10-24"
+    }
+   ]
+  }
+ }
+}

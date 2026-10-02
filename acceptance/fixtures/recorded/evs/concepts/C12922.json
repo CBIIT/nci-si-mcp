@@ -1,0 +1,419 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C12922",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C12922",
+   "name": "Neoplastic Cell",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Tumor cells, NOS",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "GDC"
+    },
+    {
+     "name": "Tumor cells, uncertain whether benign or malignant",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "GDC"
+    },
+    {
+     "name": "Neoplastic Cell",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Tumor Cell",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Neoplastic Cell",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "Cells of, or derived from, a tumor.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "GDC"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Neoplastic_Cell"
+    },
+    {
+     "code": "P375",
+     "type": "Maps_To",
+     "value": "8001/1"
+    },
+    {
+     "code": "P375",
+     "type": "Maps_To",
+     "value": "Tumor cells, NOS"
+    },
+    {
+     "code": "P375",
+     "type": "Maps_To",
+     "value": "Tumor cells, uncertain whether benign or malignant"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Cell"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C0597032"
+    }
+   ],
+   "children": [
+    {
+     "code": "C12940",
+     "name": "Autologous Tumor Cell",
+     "leaf": true
+    },
+    {
+     "code": "C201094",
+     "name": "Cell of Origin",
+     "leaf": true
+    },
+    {
+     "code": "C12917",
+     "name": "Malignant Cell",
+     "leaf": false
+    },
+    {
+     "code": "C37121",
+     "name": "Neoplastic Blastemal Cell",
+     "leaf": false
+    },
+    {
+     "code": "C37105",
+     "name": "Neoplastic Cell with Eosinophilic Cytoplasm",
+     "leaf": false
+    },
+    {
+     "code": "C36757",
+     "name": "Neoplastic Clear Cell",
+     "leaf": false
+    },
+    {
+     "code": "C36887",
+     "name": "Neoplastic Connective and Soft Tissue Cell",
+     "leaf": false
+    },
+    {
+     "code": "C36753",
+     "name": "Neoplastic Epithelial Cell",
+     "leaf": false
+    },
+    {
+     "code": "C37104",
+     "name": "Neoplastic Epithelioid Cell",
+     "leaf": false
+    },
+    {
+     "code": "C36903",
+     "name": "Neoplastic Germ Cell",
+     "leaf": false
+    },
+    {
+     "code": "C62111",
+     "name": "Neoplastic Ghost Cell",
+     "leaf": true
+    },
+    {
+     "code": "C37060",
+     "name": "Neoplastic Hematopoietic and Lymphoid Cell",
+     "leaf": false
+    },
+    {
+     "code": "C36758",
+     "name": "Neoplastic Hobnail Cell",
+     "leaf": false
+    },
+    {
+     "code": "C37162",
+     "name": "Neoplastic Large Cell",
+     "leaf": false
+    },
+    {
+     "code": "C36862",
+     "name": "Neoplastic Melanocyte",
+     "leaf": false
+    },
+    {
+     "code": "C41605",
+     "name": "Neoplastic Mesothelial Cell",
+     "leaf": false
+    },
+    {
+     "code": "C37148",
+     "name": "Neoplastic Neural Crest Cell",
+     "leaf": true
+    },
+    {
+     "code": "C41408",
+     "name": "Neoplastic Neuroepithelial Cell and Neoplastic Perineural Cell",
+     "leaf": false
+    },
+    {
+     "code": "C37099",
+     "name": "Neoplastic Round Cell",
+     "leaf": false
+    },
+    {
+     "code": "C36898",
+     "name": "Neoplastic Sex Cord-Stromal Cell",
+     "leaf": false
+    },
+    {
+     "code": "C37103",
+     "name": "Neoplastic Small Cell",
+     "leaf": true
+    },
+    {
+     "code": "C36823",
+     "name": "Neoplastic Spindle Cell",
+     "leaf": false
+    },
+    {
+     "code": "C178561",
+     "name": "Neoplastic Vacuolated Cell",
+     "leaf": false
+    },
+    {
+     "code": "C37111",
+     "name": "Pleomorphic Cell",
+     "leaf": false
+    },
+    {
+     "code": "C12976",
+     "name": "Premalignant Cell",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C12913",
+     "name": "Abnormal Cell"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C157711",
+     "relatedName": "GDC Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177537",
+     "relatedName": "GDC Value Terminology"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C176985",
+     "relatedName": "Histology ICD-O Morphology Code"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C177621",
+     "relatedName": "ICD-O-3 Morphology Term Diagnosis Question"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C168658",
+     "relatedName": "Mapped ICDO3.1 Morphology PT Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C168657",
+     "relatedName": "Mapped ICDO3.1 Morphology Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C168655",
+     "relatedName": "Mapped ICDO3.1 Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C168662",
+     "relatedName": "Mapped ICDO3.2 Morphology PT Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C168661",
+     "relatedName": "Mapped ICDO3.2 Morphology Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C168656",
+     "relatedName": "Mapped ICDO3.2 Terminology"
+    }
+   ],
+   "history": [
+    {
+     "code": "C12922",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C12922",
+     "action": "modify",
+     "date": "2003-09-29"
+    },
+    {
+     "code": "C12922",
+     "action": "modify",
+     "date": "2003-10-31"
+    },
+    {
+     "code": "C12922",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C12922",
+     "action": "modify",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C12663",
+     "action": "retire",
+     "date": "2004-03-30",
+     "replacementCode": "C12922",
+     "replacementName": "Neoplastic Cell"
+    },
+    {
+     "code": "C12962",
+     "action": "retire",
+     "date": "2004-03-30",
+     "replacementCode": "C12922",
+     "replacementName": "Neoplastic Cell"
+    },
+    {
+     "code": "C12922",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C12922",
+     "action": "modify",
+     "date": "2010-08-02"
+    },
+    {
+     "code": "C12922",
+     "action": "modify",
+     "date": "2018-09-24"
+    },
+    {
+     "code": "C12922",
+     "action": "modify",
+     "date": "2019-05-28"
+    },
+    {
+     "code": "C12922",
+     "action": "modify",
+     "date": "2019-09-30"
+    },
+    {
+     "code": "C12922",
+     "action": "modify",
+     "date": "2019-11-25"
+    },
+    {
+     "code": "C12922",
+     "action": "modify",
+     "date": "2020-02-24"
+    },
+    {
+     "code": "C12922",
+     "action": "modify",
+     "date": "2020-04-27"
+    },
+    {
+     "code": "C12922",
+     "action": "modify",
+     "date": "2021-02-22"
+    },
+    {
+     "code": "C12922",
+     "action": "modify",
+     "date": "2021-03-29"
+    }
+   ],
+   "maps": [
+    {
+     "type": "Related To",
+     "targetName": "8001/1",
+     "targetTermType": "PT",
+     "targetCode": "morphology",
+     "targetTerminology": "GDC"
+    },
+    {
+     "type": "Has Synonym",
+     "targetName": "Tumor cells, NOS",
+     "targetTermType": "PT",
+     "targetCode": "primary_diagnosis",
+     "targetTerminology": "GDC"
+    },
+    {
+     "type": "Has Synonym",
+     "targetName": "Tumor cells, uncertain whether benign or malignant",
+     "targetTermType": "PT",
+     "targetCode": "primary_diagnosis",
+     "targetTerminology": "GDC"
+    }
+   ]
+  }
+ },
+ "redacted": [
+  "/maps/2 (ICDO3)",
+  "/maps/3 (ICDO3)"
+ ]
+}

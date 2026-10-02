@@ -1,0 +1,135 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/search",
+  "params": {
+   "term": [
+    "ewing"
+   ],
+   "type": [
+    "startsWith"
+   ],
+   "include": [
+    "minimal,highlights"
+   ],
+   "fromRecord": [
+    "0"
+   ],
+   "pageSize": [
+    "10"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "total": 53,
+   "timeTaken": 33,
+   "parameters": {
+    "term": "ewing",
+    "type": "startsWith",
+    "include": "minimal,highlights",
+    "fromRecord": 0,
+    "pageSize": 10,
+    "terminology": [
+     "ncit_26.09d"
+    ]
+   },
+   "concepts": [
+    {
+     "code": "C206645",
+     "name": "Ewing Sarcoma, Resection CAP Synoptic Pathology Report",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "conceptStatus": "DEFAULT",
+     "leaf": true,
+     "active": true
+    },
+    {
+     "code": "C206646",
+     "name": "Ewing Sarcoma, Biopsy CAP Synoptic Pathology Report",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "conceptStatus": "DEFAULT",
+     "leaf": true,
+     "active": true
+    },
+    {
+     "code": "C27291",
+     "name": "Ewing Sarcoma/Peripheral Primitive Neuroectodermal Tumor",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C35871",
+     "name": "Ewing Sarcoma/Peripheral Primitive Neuroectodermal Tumor of Bone",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C4817",
+     "name": "Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C86390",
+     "name": "Ewingella",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C86391",
+     "name": "Ewingella americana",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "conceptStatus": "DEFAULT",
+     "leaf": true,
+     "active": true
+    },
+    {
+     "code": "C103038",
+     "name": "NCI CTEP SDC Ewing Sarcoma Sub-Category Terminology",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "conceptStatus": "DEFAULT",
+     "leaf": true,
+     "active": true
+    },
+    {
+     "code": "C128648",
+     "name": "EWSR1 Gene Translocation",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C165667",
+     "name": "EWSR1 Gene Rearrangement",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    }
+   ]
+  }
+ }
+}

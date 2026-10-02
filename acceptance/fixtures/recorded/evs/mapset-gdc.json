@@ -1,0 +1,18 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/mapset/NCIt_Maps_To_GDC"
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "NCIt_Maps_To_GDC",
+   "name": "NCIt_Maps_To_GDC",
+   "version": "26.09d",
+   "active": true
+  }
+ }
+}

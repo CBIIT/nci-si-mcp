@@ -1,0 +1,152 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C37251",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C37251",
+   "name": "t(1;22)(p36.1;q12)",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "t(1;22)(p36.1;q12)",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "t(1;22)(p36.1;q12)",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A chromosomal translocation involving breakpoints within the p36.1 band on the short arm of chromosome 1 and the q12 band on the long arm of chromosome 22. This translocation may be associated with EWSR1-PATZ1 fusion gene expression and round cell sarcoma.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI",
+     "qualifiers": [
+      {
+       "code": "P381",
+       "type": "attribution",
+       "value": "EntrezGene 23598"
+      }
+     ]
+    }
+   ],
+   "properties": [
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "t_1_22_p36_1_q12"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Cell or Molecular Dysfunction"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1515742"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C36386",
+     "name": "Chromosome 1 Abnormality"
+    },
+    {
+     "code": "C128648",
+     "name": "EWSR1 Gene Translocation"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C18322",
+     "relatedName": "EWSR1 Gene"
+    },
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C99238",
+     "relatedName": "EWSR1/PATZ1 Fusion Gene"
+    },
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C186676",
+     "relatedName": "FET Family Gene"
+    },
+    {
+     "code": "R173",
+     "type": "Cytogenetic_Abnormality_Involves_Chromosome",
+     "relatedCode": "C13204",
+     "relatedName": "Human Chromosome 1"
+    },
+    {
+     "code": "R173",
+     "type": "Cytogenetic_Abnormality_Involves_Chromosome",
+     "relatedCode": "C13218",
+     "relatedName": "Human Chromosome 22"
+    },
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C97876",
+     "relatedName": "PATZ1 Gene"
+    }
+   ],
+   "history": [
+    {
+     "code": "C37251",
+     "action": "create",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C37251",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C37251",
+     "action": "modify",
+     "date": "2011-07-11"
+    },
+    {
+     "code": "C37251",
+     "action": "modify",
+     "date": "2014-02-03"
+    },
+    {
+     "code": "C37251",
+     "action": "modify",
+     "date": "2019-02-25"
+    },
+    {
+     "code": "C37251",
+     "action": "modify",
+     "date": "2025-03-31"
+    }
+   ]
+  }
+ }
+}

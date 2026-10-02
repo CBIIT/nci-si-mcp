@@ -1,0 +1,1605 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C2869",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C2869",
+   "name": "Anemia",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Anemia",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "caDSR"
+    },
+    {
+     "name": "Decreased blood erythrocyte volume",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "caDSR"
+    },
+    {
+     "name": "Anemia",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "Cellosaurus"
+    },
+    {
+     "name": "Anemia",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CPTAC"
+    },
+    {
+     "name": "Anemia",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTCAE",
+     "code": "E10010"
+    },
+    {
+     "name": "Anemia",
+     "termType": "DN",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTRP"
+    },
+    {
+     "name": "Anemia",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "FDA",
+     "code": "1706",
+     "subSource": "CDRH"
+    },
+    {
+     "name": "Anemia",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "GDC"
+    },
+    {
+     "name": "Anemia",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "HemOnc",
+     "code": "161376"
+    },
+    {
+     "name": "Anemia, unspecified",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "mCode",
+     "code": "D64.9",
+     "subSource": "ICD-10 CM"
+    },
+    {
+     "name": "anemia",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI-GLOSS",
+     "code": "CDR0000045360"
+    },
+    {
+     "name": "Anemia",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Anemia",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NICHD"
+    },
+    {
+     "name": "Anemia",
+     "type": "Display_Name",
+     "typeCode": "P107"
+    },
+    {
+     "name": "Anemia",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A condition in which the number of red blood cells is below normal.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "NCI-GLOSS"
+    },
+    {
+     "definition": "A disorder characterized by an reduction in the amount of hemoglobin in 100 ml of blood. Signs and symptoms of anemia may include pallor of the skin and mucous membranes, shortness of breath, palpitations of the heart, soft systolic murmurs, lethargy, and fatigability.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "CTCAE"
+    },
+    {
+     "definition": "A reduction in the number of red blood cells, the amount of hemoglobin, and/or the volume of packed red blood cells.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "FDA",
+     "qualifiers": [
+      {
+       "code": "P381",
+       "type": "attribution",
+       "value": "CDRH"
+      }
+     ]
+    },
+    {
+     "definition": "A reduction in the number of red blood cells, the amount of hemoglobin, and/or the volume of packed red blood cells. Clinically, anemia represents a reduction in the oxygen-transporting capacity of a designated volume of blood, resulting from an imbalance between blood loss (through hemorrhage or hemolysis) and blood production. Signs and symptoms of anemia may include pallor of the skin and mucous membranes, shortness of breath, palpitations of the heart, soft systolic murmurs, lethargy, and fatigability.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    },
+    {
+     "definition": "Abnormally low level of hemoglobin in the blood.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "NICHD"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "Cellosaurus"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CPTAC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTCAE"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTRP"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "FDA"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "GDC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "HemOnc"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "mCode"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "MedDRA"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "NICHD"
+    },
+    {
+     "code": "P317",
+     "type": "FDA_Table",
+     "value": "Patient Code (Appendix B)"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Anemia"
+    },
+    {
+     "code": "P375",
+     "type": "Maps_To",
+     "value": "Anemia"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Disease or Syndrome"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C4229468"
+    },
+    {
+     "code": "oboInOwl:hasDbXref",
+     "type": "xRef",
+     "value": "IMDRF:E0301"
+    }
+   ],
+   "children": [
+    {
+     "code": "C35659",
+     "name": "Anemia due to Chronic Disorder",
+     "leaf": true
+    },
+    {
+     "code": "C131655",
+     "name": "Anemia due to Decreased Production",
+     "leaf": true
+    },
+    {
+     "code": "C34384",
+     "name": "Anemia due to Disorder of Glutathione Metabolism",
+     "leaf": true
+    },
+    {
+     "code": "C35469",
+     "name": "Anemia due to Disorder of Nucleotide Metabolism",
+     "leaf": false
+    },
+    {
+     "code": "C35472",
+     "name": "Anemia due to Enzyme Disorder",
+     "leaf": false
+    },
+    {
+     "code": "C131656",
+     "name": "Anemia due to Increased Destruction",
+     "leaf": true
+    },
+    {
+     "code": "C97167",
+     "name": "Anemia of Prematurity",
+     "leaf": true
+    },
+    {
+     "code": "C2870",
+     "name": "Aplastic Anemia",
+     "leaf": false
+    },
+    {
+     "code": "C35228",
+     "name": "Congenital Anemia",
+     "leaf": false
+    },
+    {
+     "code": "C34380",
+     "name": "Hypochromic Anemia",
+     "leaf": false
+    },
+    {
+     "code": "C34381",
+     "name": "Macrocytic Anemia",
+     "leaf": false
+    },
+    {
+     "code": "C35141",
+     "name": "Microcytic Anemia",
+     "leaf": true
+    },
+    {
+     "code": "C82909",
+     "name": "Mild Anemia",
+     "leaf": true
+    },
+    {
+     "code": "C35142",
+     "name": "Normocytic Anemia",
+     "leaf": false
+    },
+    {
+     "code": "C197950",
+     "name": "Protein Deficiency Anemia",
+     "leaf": true
+    },
+    {
+     "code": "C27947",
+     "name": "Radiation Anemia",
+     "leaf": true
+    },
+    {
+     "code": "C197967",
+     "name": "Scorbutic Anemia",
+     "leaf": true
+    },
+    {
+     "code": "C36078",
+     "name": "Sideroblastic Anemia",
+     "leaf": false
+    },
+    {
+     "code": "C5332",
+     "name": "Treatment-Induced Anemia",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C26324",
+     "name": "Non-Neoplastic Hematopoietic and Lymphoid Cell Disorder"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C54450",
+     "relatedName": "CDRH Health Effects - Clinical Signs and Symptoms or Conditions Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C165258",
+     "relatedName": "Cellosaurus Disease Terminology"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C16457",
+     "relatedName": "Comorbidity"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C158034",
+     "relatedName": "CPTAC Causes of Death Codelist"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C158520",
+     "relatedName": "CPTAC Codelists Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C156952",
+     "relatedName": "CPTAC Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C208333",
+     "relatedName": "CTCAE Adverse Events Version 4.0 Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142799",
+     "relatedName": "CTRP Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C118168",
+     "relatedName": "CTRP Disease Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C116977",
+     "relatedName": "CTRP Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C157711",
+     "relatedName": "GDC Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177537",
+     "relatedName": "GDC Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C227412",
+     "relatedName": "HemOnc Conditions"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C193183",
+     "relatedName": "mCode Elixhauser Deficiency Anemia Value Set"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C193006",
+     "relatedName": "mCode Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99147",
+     "relatedName": "Neonatal Research Network Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C90259",
+     "relatedName": "NICHD Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C189762",
+     "relatedName": "Pediatric Adverse Events Terminology Mapped to MedDRA"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C118464",
+     "relatedName": "Pediatric Adverse Events Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C132009",
+     "relatedName": "Pediatric Hematology-Oncology Terminology"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C17103",
+     "relatedName": "Risk Factor"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R100",
+     "type": "Disease_Has_Associated_Anatomic_Site",
+     "relatedCode": "C41165",
+     "relatedName": "Hematopoietic and Lymphatic System"
+    },
+    {
+     "code": "R101",
+     "type": "Disease_Has_Primary_Anatomic_Site",
+     "relatedCode": "C41165",
+     "relatedName": "Hematopoietic and Lymphatic System"
+    },
+    {
+     "code": "R104",
+     "type": "Disease_Has_Normal_Cell_Origin",
+     "relatedCode": "C32725",
+     "relatedName": "Hematopoietic and Lymphoid Cell"
+    },
+    {
+     "code": "R103",
+     "type": "Disease_Has_Normal_Tissue_Origin",
+     "relatedCode": "C41168",
+     "relatedName": "Hematopoietic and Lymphoid Tissue"
+    }
+   ],
+   "history": [
+    {
+     "code": "C2869",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2004-04-30"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2005-12-01"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2006-01-03"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2006-02-24"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2006-03-31"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2009-08-03"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2009-11-09"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2010-07-26"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2010-08-02"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2010-08-09"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2010-08-16"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2010-08-23"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2010-08-30"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2010-09-07"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2010-09-13"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2010-09-20"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2010-09-27"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2011-01-17"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2011-02-22"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2011-05-02"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2011-05-09"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2011-05-16"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2011-05-23"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2011-05-31"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2011-06-06"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2011-06-13"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2011-06-20"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2011-06-27"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2012-03-12"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2012-10-01"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2012-10-09"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2012-10-15"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2012-10-22"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2012-10-31"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2012-11-05"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2012-11-13"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2012-11-19"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2012-11-26"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2012-12-03"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2012-12-10"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2012-12-17"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2012-12-28"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-01-07"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-01-14"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-01-23"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-02-04"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-02-11"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-02-19"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-02-25"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-03-04"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-03-11"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-03-18"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-03-25"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-04-01"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-04-08"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-04-15"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-04-22"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-04-29"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-05-06"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-05-13"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-05-20"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-05-28"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-06-03"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-06-10"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-06-17"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-06-24"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-07-01"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-07-08"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-09-03"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2013-12-02"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2014-02-10"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2014-08-25"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2014-09-22"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2014-10-27"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2014-11-03"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2014-11-10"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2014-11-17"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2014-11-24"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2014-12-01"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2014-12-08"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2014-12-15"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2014-12-22"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2014-12-29"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-01-05"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-01-12"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-01-20"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-01-26"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-02-02"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-02-09"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-02-17"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-02-23"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-03-02"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-03-09"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-03-16"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-03-23"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-03-30"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-04-06"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-04-13"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-04-20"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-04-27"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-05-04"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-05-11"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-05-18"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-05-26"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-06-01"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-06-08"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-06-15"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-06-22"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-06-29"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-07-06"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-07-13"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-08-12"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-08-24"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-08-31"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-09-08"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-09-14"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-09-21"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-09-28"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-10-05"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-10-13"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-10-19"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-10-26"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-11-02"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-11-09"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-11-16"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-11-23"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-11-30"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-12-07"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-12-14"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-12-21"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2015-12-28"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-01-04"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-01-11"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-01-19"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-01-29"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-04-18"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-05-09"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-05-16"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-05-23"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-05-31"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-06-06"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-06-13"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-06-17"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-06-27"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-07-05"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-07-11"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-07-18"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-07-25"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-08-01"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-08-08"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-08-15"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-08-22"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-08-29"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-09-06"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-09-12"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-09-20"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-09-26"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-10-03"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-10-11"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-10-17"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-10-24"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-10-31"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-11-07"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-11-14"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-11-21"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-11-28"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-12-05"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-12-12"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-12-19"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2016-12-27"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2017-01-03"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2017-01-09"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2017-01-17"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2017-01-23"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2017-02-13"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2017-05-04"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2017-08-28"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2017-09-26"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2017-12-26"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2018-07-30"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2018-10-29"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2018-10-29"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2019-03-25"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2019-05-28"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2019-09-30"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2019-10-28"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2020-01-27"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2020-03-30"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2020-05-26"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2020-08-31"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2020-09-29"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2021-02-22"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2021-03-29"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2021-04-26"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2021-09-27"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2022-08-29"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2022-09-26"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2023-02-27"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2023-03-27"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2023-04-24"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2024-07-29"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2024-08-26"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2024-08-26"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2025-03-31"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2025-05-27"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2026-05-26"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2026-06-29"
+    },
+    {
+     "code": "C2869",
+     "action": "modify",
+     "date": "2026-09-28"
+    }
+   ],
+   "maps": [
+    {
+     "type": "Has Synonym",
+     "targetName": "Anemia",
+     "targetTermType": "PT",
+     "targetCode": "comorbidities",
+     "targetTerminology": "GDC"
+    },
+    {
+     "type": "Has Synonym",
+     "targetName": "Anemia",
+     "targetTermType": "PT",
+     "targetCode": "risk_factors",
+     "targetTerminology": "GDC"
+    }
+   ]
+  }
+ },
+ "redacted": [
+  "/maps/0 (MedDRA)"
+ ]
+}

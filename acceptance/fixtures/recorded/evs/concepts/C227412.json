@@ -1,0 +1,83 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C227412",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C227412",
+   "name": "HemOnc Conditions",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "HemOnc Conditions",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "HemOnc Conditions",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "Conditions of interest to the HemOnc community.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "HemOnc"
+    },
+    {
+     "code": "P372",
+     "type": "Publish_Value_Set",
+     "value": "Yes"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Intellectual Product"
+    },
+    {
+     "code": "P376",
+     "type": "Term_Browser_Value_Set_Description",
+     "value": "<p>The<b> HemOnc knowledge base (KB)</b> is a derivative of the <a href=\"https://HemOnc.org/wiki/Main_Page\"> HemOnc.org </a> website. HemOnc.org is the largest freely available wiki of anticancer regimens and medications and aims to capture all current and historic standard-of-care treatments for all cancers, adult and pediatric. The portions of the HemOnc KB available here are licensed by version under the CreativeCommons Attribution-NonCommercial 4.0 International license (CC BY-NC 4.0).<br /><br /><b><u>Under this license, users are free to:</b></u><br />Share - copy and redistribute the material in any medium or format<br />Adapt - remix, transform, and build upon the material.<br /><br /><b><u>Under the following terms:</u></b><br />Attribution - You must give appropriate credit, provide a link to the license, and indicate if changes were made. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.<br />NonCommercial - You may not use the material for commercial purposes.<br />No additional restrictions - You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.<br /></p>"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C201599",
+     "name": "HemOnc Terminology"
+    }
+   ],
+   "history": [
+    {
+     "code": "C227412",
+     "action": "create",
+     "date": "2026-06-29"
+    }
+   ]
+  }
+ }
+}

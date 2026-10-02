@@ -1,0 +1,254 @@
+"""Record the fixture set from the live services, as the manifest says (Acceptance Suite §2.1).
+
+    pdm run acceptance-record [--fixtures DIR]
+
+Every request the manifest lists under `record.requests` is made live and becomes a
+recorded fixture, dated today; each concept under `record.concepts` is recorded once,
+at the include it is listed under, in `recorded/evs/concepts/`. Nothing is written
+unless all of this holds:
+
+- the live monthly NCIt release is the one the manifest pins (`evs.release`):
+  re-pinning is a re-recording under change control;
+- no request names licensed content, and the licensed items of every payload are
+  removed and listed in the fixture's `redacted` (licensing.py);
+- every sample under `record.samples`, asked live, equals the answer the concept
+  rules compose from the new recordings, a batch compared code by code because EVS
+  keeps no order;
+- every file under the recorded surfaces is one the manifest produces.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from http import HTTPStatus
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
+from urllib.error import HTTPError
+from urllib.parse import parse_qs, quote, urlencode, urlsplit
+from urllib.request import Request, urlopen
+
+import yaml
+
+from nci_si_acceptance.concepts import ConceptRules, Recording, recording_key
+from nci_si_acceptance.fixture_server import CONCEPTS, MANIFEST
+from nci_si_acceptance.licensing import DenyList
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
+
+type Params = dict[str, list[str]]
+type Fetch = Callable[[str, str, Params], tuple[int, Any]]
+
+FIXTURES = Path(__file__).parents[2] / "fixtures"
+RECORDED = "recorded"
+TIMEOUT_SECONDS = 120
+
+
+class RecordingError(Exception):
+    """The recording does not hold; each problem is one line."""
+
+    def __init__(self, problems: list[str]) -> None:
+        super().__init__("\n".join(problems))
+        self.problems = problems
+
+
+@dataclass(frozen=True, slots=True)
+class Planned:
+    """One request to record, and the fixture file it becomes."""
+
+    file: str
+    surface: str
+    path: str
+    params: Params
+    # Parameters the service is shown to ignore, with the evidence (fixture_server.py).
+    ignored: dict[str, str] = field(default_factory=dict)
+
+
+def _split(target: str) -> tuple[str, Params]:
+    url = urlsplit(target)
+    return url.path, parse_qs(url.query, keep_blank_values=True)
+
+
+def plan(manifest: dict[str, Any]) -> list[Planned]:
+    """The requests the manifest asks to be recorded."""
+
+    record, release = manifest["record"], manifest["evs"]["release"]
+    planned = [
+        Planned(
+            entry["fixture"], entry["surface"], *_split(entry["path"]), entry.get("ignored", {})
+        )
+        for entry in record.get("requests", [])
+    ]
+    for include, codes in record.get("concepts", {}).items():
+        planned += [
+            Planned(
+                f"{RECORDED}/evs/{CONCEPTS}/{code}.json",
+                "evs",
+                f"/api/v1/concept/{release}/{code}",
+                {"include": [include]},
+            )
+            for code in codes
+        ]
+    return planned
+
+
+def _document(
+    planned: Planned, status: int, body: Any, redacted: list[str], today: str
+) -> dict[str, Any]:
+    request: dict[str, Any] = {"surface": planned.surface, "method": "GET", "path": planned.path}
+    if planned.params:
+        request["params"] = planned.params
+    if planned.ignored:
+        request["ignored"] = planned.ignored
+    document = {"kind": "recorded", "recorded_on": today, "request": request}
+    document["response"] = {"status": status, "body": body}
+    if redacted:
+        document["redacted"] = redacted
+    return document
+
+
+class Recorder:
+    """Records the planned requests through `fetch` and checks the result."""
+
+    def __init__(self, manifest: dict[str, Any], fetch: Fetch, today: str) -> None:
+        self.manifest, self.fetch, self.today = manifest, fetch, today
+        self.deny = DenyList.from_manifest(manifest["deny"])
+        self.rules = ConceptRules.from_manifest(manifest["evs"]["concepts"])
+        self.problems: list[str] = []
+
+    def record(self, planned: Iterable[Planned]) -> dict[str, dict[str, Any]]:
+        """The fixture documents by file; RecordingError if anything does not hold."""
+
+        self._check_pin()
+        documents = {each.file: self._one(each) for each in planned}
+        self._check_samples(documents)
+        if self.problems:
+            raise RecordingError(self.problems)
+        return documents
+
+    def _one(self, planned: Planned) -> dict[str, Any]:
+        status, body = self.fetch(planned.surface, planned.path, planned.params)
+        if problem := self.deny.request_problem(planned.path, planned.params, status):
+            self.problems.append(f"{planned.file}: {problem}")
+        body, redacted = self.deny.redact(body)
+        return _document(planned, status, body, redacted, self.today)
+
+    def _check_pin(self) -> None:
+        pinned = self.manifest["evs"]["release"]
+        query = {"terminology": ["ncit"], "latest": ["true"], "tag": ["monthly"]}
+        status, rows = self.fetch("evs", "/api/v1/metadata/terminologies", query)
+        live = [row.get("terminologyVersion") for row in rows] if status == HTTPStatus.OK else []
+        if live != [pinned]:
+            self.problems.append(
+                f"the live monthly NCIt release is {live or status}, the fixture set is pinned to "
+                f"{pinned}: re-pinning is a re-recording under change control"
+            )
+
+    def _check_samples(self, documents: dict[str, dict[str, Any]]) -> None:
+        recordings = _recordings(documents, self.rules)
+        for sample in self.manifest["record"].get("samples", []):
+            path, params = _split(sample)
+            composed = self.rules.answer(path, params, lambda *key: recordings.get(key))
+            status, body = self.fetch("evs", path, params)
+            live = (status, _by_code(self.deny.redact(body)[0]))
+            if composed is None:
+                self.problems.append(f"sample {sample}: the recordings cannot answer it")
+            elif (composed.status, _by_code(composed.body)) != live:
+                self.problems.append(f"sample {sample}: the composed answer differs from EVS's")
+
+
+def _by_code(body: Any) -> Any:
+    """A batch answer keyed by code, so that it compares without its order."""
+
+    if isinstance(body, list):
+        return {concept["code"]: concept for concept in body}
+    return body
+
+
+def _recordings(
+    documents: dict[str, dict[str, Any]], rules: ConceptRules
+) -> dict[tuple[str, str], Recording]:
+    """The concept recordings among the documents, as the fixture server would read them."""
+
+    recordings = {}
+    for file, document in documents.items():
+        if Path(file).parent.name != CONCEPTS:
+            continue
+        request, response = document["request"], document["response"]
+        covers = rules.keys(request["params"]["include"][0]) or frozenset()
+        recordings[recording_key(request["path"])] = Recording(
+            file, response["status"], response["body"], covers
+        )
+    return recordings
+
+
+def stale(root: Path, planned: Iterable[Planned]) -> list[str]:
+    """Files under the recorded surfaces that the manifest does not produce."""
+
+    planned = list(planned)
+    files = {each.file for each in planned}
+    return [
+        f"{name}: not produced by {MANIFEST}; remove it or add it there"
+        for surface in sorted({each.surface for each in planned})
+        for path in sorted((root / RECORDED / surface).rglob("*.json"))
+        if (name := path.relative_to(root).as_posix()) not in files
+    ]
+
+
+def write(root: Path, documents: dict[str, dict[str, Any]]) -> None:
+    for file, document in documents.items():
+        path = root / file
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(document, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def live_fetch(bases: dict[str, str]) -> Fetch:
+    """A fetch from the live services at the manifest's base URLs."""
+
+    def fetch(surface: str, path: str, params: Params) -> tuple[int, Any]:
+        query = f"?{urlencode(params, doseq=True)}" if params else ""
+        url = bases[surface] + quote(path, safe="/$") + query
+        request = Request(url, headers={"Accept": "application/json"})  # noqa: S310 - https from the manifest
+        try:
+            with urlopen(request, timeout=TIMEOUT_SECONDS) as response:  # noqa: S310
+                return response.status, _parse(response.read())
+        except HTTPError as error:
+            return error.code, _parse(error.read())
+
+    return fetch
+
+
+def _parse(raw: bytes) -> Any:
+    text = raw.decode("utf-8")
+    try:
+        return json.loads(text)
+    except ValueError:
+        return text
+
+
+def main(arguments: Iterable[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Record the fixture set from the live services.")
+    parser.add_argument("--fixtures", type=Path, default=FIXTURES, help="the fixture directory")
+    options = parser.parse_args(arguments)
+    manifest = yaml.safe_load((options.fixtures / MANIFEST).read_text(encoding="utf-8"))
+    planned = plan(manifest)
+    today = datetime.now(UTC).date().isoformat()
+    recorder = Recorder(manifest, live_fetch(manifest["surfaces"]), today)
+    try:
+        documents = recorder.record(planned)
+        if problems := stale(options.fixtures, planned):
+            raise RecordingError(problems)
+    except RecordingError as error:
+        sys.stderr.write(f"Nothing was written:\n{error}\n")
+        return 1
+    write(options.fixtures, documents)
+    sys.stdout.write(f"Recorded {len(documents)} fixtures on {today}.\n")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

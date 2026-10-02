@@ -1,0 +1,307 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C4817/pathsToRoot",
+  "params": {
+   "include": [
+    "minimal"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": [
+   [
+    {
+     "code": "C4817",
+     "name": "Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 0,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C9118",
+     "name": "Sarcoma",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 1,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C3810",
+     "name": "Connective and Soft Tissue Neoplasm",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 2,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C27574",
+     "name": "Connective and Soft Tissue Disorder",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 3,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C27551",
+     "name": "Disorder by Site",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 4,
+     "conceptStatus": "Header_Concept",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C2991",
+     "name": "Disease or Disorder",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 5,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C7057",
+     "name": "Disease, Disorder or Finding",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 6,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    }
+   ],
+   [
+    {
+     "code": "C4817",
+     "name": "Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 0,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C9118",
+     "name": "Sarcoma",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 1,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C3810",
+     "name": "Connective and Soft Tissue Neoplasm",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 2,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C3263",
+     "name": "Neoplasm by Site",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 3,
+     "conceptStatus": "Header_Concept",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C3262",
+     "name": "Neoplasm",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 4,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C2991",
+     "name": "Disease or Disorder",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 5,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C7057",
+     "name": "Disease, Disorder or Finding",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 6,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    }
+   ],
+   [
+    {
+     "code": "C4817",
+     "name": "Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 0,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C27291",
+     "name": "Ewing Sarcoma/Peripheral Primitive Neuroectodermal Tumor",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 1,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C3264",
+     "name": "Embryonal Neoplasm",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 2,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C7062",
+     "name": "Neoplasm by Special Category",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 3,
+     "conceptStatus": "Header_Concept",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C3262",
+     "name": "Neoplasm",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 4,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C2991",
+     "name": "Disease or Disorder",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 5,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C7057",
+     "name": "Disease, Disorder or Finding",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 6,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    }
+   ],
+   [
+    {
+     "code": "C4817",
+     "name": "Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 0,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C9118",
+     "name": "Sarcoma",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 1,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C9305",
+     "name": "Malignant Neoplasm",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 2,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C7062",
+     "name": "Neoplasm by Special Category",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 3,
+     "conceptStatus": "Header_Concept",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C3262",
+     "name": "Neoplasm",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 4,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C2991",
+     "name": "Disease or Disorder",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 5,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C7057",
+     "name": "Disease, Disorder or Finding",
+     "terminology": "ncit",
+     "version": "26.09d",
+     "level": 6,
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    }
+   ]
+  ]
+ }
+}

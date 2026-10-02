@@ -1,0 +1,93 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C35942",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C35942",
+   "name": "Homer Wright Rosette Formation",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Homer Wright Rosette Formation",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Homer Wright Rosette Formation",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A morphologic finding indicating the development of a halo of tumor cells around a central core of neuropil.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Homer-Right_Rosette_Formation"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Finding"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1334042"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C35940",
+     "name": "Rosette Formation"
+    }
+   ],
+   "history": [
+    {
+     "code": "C35942",
+     "action": "create",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C35942",
+     "action": "modify",
+     "date": "2004-05-28"
+    },
+    {
+     "code": "C35942",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C35942",
+     "action": "modify",
+     "date": "2025-09-29"
+    }
+   ]
+  }
+ }
+}

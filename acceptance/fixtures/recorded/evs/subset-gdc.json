@@ -1,0 +1,19 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/subset/ncit_26.09d/C177537"
+ },
+ "response": {
+  "status": 404,
+  "body": {
+   "timestamp": 1790927352265,
+   "status": 404,
+   "error": "Not Found",
+   "message": "Subset not found for code = C177537",
+   "path": "/api/v1/subset/ncit_26.09d/C177537"
+  }
+ }
+}

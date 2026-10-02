@@ -1,0 +1,115 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C189762",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C189762",
+   "name": "Pediatric Adverse Events Terminology Mapped to MedDRA",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Pediatric Adverse Events Terminology Mapped to MedDRA",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Pediatric Adverse Events Terminology Mapped to MedDRA",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NICHD"
+    },
+    {
+     "name": "Pediatric Adverse Events Terminology Mapped to MedDRA",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A subset of the Pediatrics Adverse Events Terminology that has been mapped to MedDRA terms.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "NICHD"
+    },
+    {
+     "code": "P208",
+     "type": "NCI_META_CUI",
+     "value": "CL1798654"
+    },
+    {
+     "code": "P372",
+     "type": "Publish_Value_Set",
+     "value": "Yes"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Intellectual Product"
+    },
+    {
+     "code": "P376",
+     "type": "Term_Browser_Value_Set_Description",
+     "value": "<p>The National Institute of Child Health and Human Development (<a href=\"https://www.nichd.nih.gov\">NICHD</a>) was established by President John F. Kennedy, with the support of congress, in 1962 to study the \"complex process of human development from conception to old age.\"  By harmonizing terms, the NICHD can more easily combine results from its pediatric research efforts with those of other studies and networks, to broaden scientific understanding and extend the impact of the Institute's research investment. NICHD Pediatric Terminology is developed and revised on an ongoing basis and the most current version is published in NCI Thesaurus (NCIt) every month. </p><p>The NICHD Terminology is available as a value set or for download from the <a href=\"https://evs.nci.nih.gov/ftp1/Pediatric_Terminologies/NICHD/\">Pediatric Terminology</a> site.</p>"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C118464",
+     "name": "Pediatric Adverse Events Terminology"
+    }
+   ],
+   "history": [
+    {
+     "code": "C189762",
+     "action": "create",
+     "date": "2022-09-26"
+    },
+    {
+     "code": "C189762",
+     "action": "modify",
+     "date": "2022-09-26"
+    },
+    {
+     "code": "C189762",
+     "action": "modify",
+     "date": "2022-10-31"
+    },
+    {
+     "code": "C189762",
+     "action": "modify",
+     "date": "2022-11-28"
+    },
+    {
+     "code": "C189762",
+     "action": "modify",
+     "date": "2023-04-24"
+    }
+   ]
+  }
+ }
+}

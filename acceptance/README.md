@@ -12,6 +12,7 @@ NCI_SI_ACCEPTANCE_MODE=live pdm run acceptance --report=live.json  # live-capabl
 NCI_SI_ACCEPTANCE_SERVER="..." pdm run acceptance    # another server (default: nci-si-mcp serve)
 pdm run python -m nci_si_acceptance.report acceptance/fixture.json --live acceptance/live.json
 pdm run acceptance-selftest                          # the harness's own tests
+pdm run acceptance-record                            # re-record fixtures/recorded/ from live
 ```
 
 ## Writing a test
@@ -46,7 +47,8 @@ has a documented upstream limitation (`--limitations`, YAML of test id to requir
 `src/nci_si_acceptance/` holds the harness: `client.py` starts the server, `tools.py` calls the
 required tools, `fixture_server.py` serves the fixtures (its docstring documents the format),
 `report.py` writes and renders the per-tool report, `inventory.py` lists the required tools and
-`suite.py` the rules of a run. `fixtures/` holds the fixtures
+`suite.py` the rules of a run. `concepts.py` composes EVS concept answers from one recording per
+concept, `licensing.py` keeps licensed content out, and `record.py` records the set from live. `fixtures/` holds the fixtures
 ([fixtures/README.md](fixtures/README.md)), `tests/` the suite, `selftests/` the tests of the
 harness itself.
 

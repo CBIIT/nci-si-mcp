@@ -1,0 +1,489 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C7808",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C7808",
+   "name": "Recurrent Ewing Sarcoma",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Ewing's Sarcoma, Recurrent",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Recurrent Ewing Sarcoma",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Recurrent Ewing's Sarcoma",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Relapsed Ewing's Sarcoma",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Recurrent Ewing Sarcoma",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "Ewing sarcoma which has recurred after treatment and/or remission. While initial complete responses are not uncommon, there is a fair chance of relapse as late as one to two decades after initial therapy.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Recurrent_Ewing_s_Sarcoma"
+    },
+    {
+     "type": "Logical_Definition",
+     "value": "true"
+    },
+    {
+     "code": "P363",
+     "type": "Neoplastic_Status",
+     "value": "Malignant"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Neoplastic Process"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C0278590"
+    }
+   ],
+   "children": [
+    {
+     "code": "C6622",
+     "name": "Recurrent Bone Ewing Sarcoma",
+     "leaf": true
+    },
+    {
+     "code": "C222394",
+     "name": "Recurrent Childhood Ewing Sarcoma",
+     "leaf": true
+    },
+    {
+     "code": "C8803",
+     "name": "Recurrent Extraskeletal Ewing Sarcoma",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C4817",
+     "name": "Ewing Sarcoma",
+     "defining": true
+    },
+    {
+     "code": "C27898",
+     "name": "Recurrent Ewing Sarcoma/Peripheral Primitive Neuroectodermal Tumor",
+     "defining": true
+    },
+    {
+     "code": "C148302",
+     "name": "Recurrent Sarcoma",
+     "defining": true
+    }
+   ],
+   "roles": [
+    {
+     "code": "R116",
+     "type": "Disease_May_Have_Associated_Disease",
+     "relatedCode": "C2869",
+     "relatedName": "Anemia"
+    },
+    {
+     "code": "R142",
+     "type": "Disease_Excludes_Finding",
+     "relatedCode": "C36122",
+     "relatedName": "Benign Cellular Infiltrate"
+    },
+    {
+     "code": "R141",
+     "type": "Disease_Excludes_Cytogenetic_Abnormality",
+     "relatedCode": "C165668",
+     "relatedName": "CIC Gene Rearrangement"
+    },
+    {
+     "code": "R100",
+     "type": "Disease_Has_Associated_Anatomic_Site",
+     "relatedCode": "C12964",
+     "relatedName": "Connective and Soft Tissue"
+    },
+    {
+     "code": "R101",
+     "type": "Disease_Has_Primary_Anatomic_Site",
+     "relatedCode": "C12964",
+     "relatedName": "Connective and Soft Tissue"
+    },
+    {
+     "code": "R104",
+     "type": "Disease_Has_Normal_Cell_Origin",
+     "relatedCode": "C13054",
+     "relatedName": "Embryonic Cell"
+    },
+    {
+     "code": "R103",
+     "type": "Disease_Has_Normal_Tissue_Origin",
+     "relatedCode": "C12950",
+     "relatedName": "Embryonic Tissue"
+    },
+    {
+     "code": "R138",
+     "type": "Disease_Excludes_Normal_Cell_Origin",
+     "relatedCode": "C12578",
+     "relatedName": "Epithelial Cell"
+    },
+    {
+     "code": "R137",
+     "type": "Disease_Excludes_Normal_Tissue_Origin",
+     "relatedCode": "C45714",
+     "relatedName": "Epithelial Tissue"
+    },
+    {
+     "code": "R107",
+     "type": "Disease_Has_Cytogenetic_Abnormality",
+     "relatedCode": "C165667",
+     "relatedName": "EWSR1 Gene Rearrangement"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C18322",
+     "relatedName": "EWSR1 Gene"
+    },
+    {
+     "code": "R89",
+     "type": "Disease_May_Have_Molecular_Abnormality",
+     "relatedCode": "C37229",
+     "relatedName": "EWSR1-ERG Fusion Protein Expression"
+    },
+    {
+     "code": "R89",
+     "type": "Disease_May_Have_Molecular_Abnormality",
+     "relatedCode": "C37230",
+     "relatedName": "EWSR1-ETV1 Fusion Protein Expression"
+    },
+    {
+     "code": "R89",
+     "type": "Disease_May_Have_Molecular_Abnormality",
+     "relatedCode": "C37231",
+     "relatedName": "EWSR1-ETV4 Fusion Protein Expression"
+    },
+    {
+     "code": "R89",
+     "type": "Disease_May_Have_Molecular_Abnormality",
+     "relatedCode": "C37250",
+     "relatedName": "EWSR1-FEV Fusion Protein Expression"
+    },
+    {
+     "code": "R89",
+     "type": "Disease_May_Have_Molecular_Abnormality",
+     "relatedCode": "C37224",
+     "relatedName": "EWSR1-FLI1 Fusion Protein Expression"
+    },
+    {
+     "code": "R140",
+     "type": "Disease_Excludes_Molecular_Abnormality",
+     "relatedCode": "C178457",
+     "relatedName": "EWSR1-NFATC2 Fusion Protein Expression"
+    },
+    {
+     "code": "R140",
+     "type": "Disease_Excludes_Molecular_Abnormality",
+     "relatedCode": "C37252",
+     "relatedName": "EWSR1-PATZ1 Fusion Protein Expression"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C99211",
+     "relatedName": "EWSR1/ERG Fusion Gene"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C99259",
+     "relatedName": "EWSR1/ETV1 Fusion Gene"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C99262",
+     "relatedName": "EWSR1/ETV4 Fusion Gene"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C99226",
+     "relatedName": "EWSR1/FEV Fusion Gene"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C99202",
+     "relatedName": "EWSR1/FLI1 Fusion Gene"
+    },
+    {
+     "code": "R115",
+     "type": "Disease_May_Have_Finding",
+     "relatedCode": "C3038",
+     "relatedName": "Fever"
+    },
+    {
+     "code": "R89",
+     "type": "Disease_May_Have_Molecular_Abnormality",
+     "relatedCode": "C45455",
+     "relatedName": "FUS-ERG Fusion Protein Expression"
+    },
+    {
+     "code": "R140",
+     "type": "Disease_Excludes_Molecular_Abnormality",
+     "relatedCode": "C178458",
+     "relatedName": "FUS-NFATC2 Fusion Protein Expression"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C99281",
+     "relatedName": "FUS/ERG Fusion Gene"
+    },
+    {
+     "code": "R137",
+     "type": "Disease_Excludes_Normal_Tissue_Origin",
+     "relatedCode": "C54105",
+     "relatedName": "Germinal Layer"
+    },
+    {
+     "code": "R115",
+     "type": "Disease_May_Have_Finding",
+     "relatedCode": "C35380",
+     "relatedName": "Hemorrhagic Change"
+    },
+    {
+     "code": "R115",
+     "type": "Disease_May_Have_Finding",
+     "relatedCode": "C35942",
+     "relatedName": "Homer Wright Rosette Formation"
+    },
+    {
+     "code": "R142",
+     "type": "Disease_Excludes_Finding",
+     "relatedCode": "C36105",
+     "relatedName": "Indolent Clinical Course"
+    },
+    {
+     "code": "R142",
+     "type": "Disease_Excludes_Finding",
+     "relatedCode": "C53665",
+     "relatedName": "Intermediate Filaments Present"
+    },
+    {
+     "code": "R142",
+     "type": "Disease_Excludes_Finding",
+     "relatedCode": "C53667",
+     "relatedName": "Intracytoplasmic Eosinophilic Inclusion"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C12917",
+     "relatedName": "Malignant Cell"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C36115",
+     "relatedName": "Malignant Cellular Infiltrate"
+    },
+    {
+     "code": "R139",
+     "type": "Disease_Excludes_Abnormal_Cell",
+     "relatedCode": "C36779",
+     "relatedName": "Malignant Epithelial Cell"
+    },
+    {
+     "code": "R113",
+     "type": "Disease_May_Have_Abnormal_Cell",
+     "relatedCode": "C53487",
+     "relatedName": "Malignant Small Round Cell"
+    },
+    {
+     "code": "R115",
+     "type": "Disease_May_Have_Finding",
+     "relatedCode": "C36184",
+     "relatedName": "Necrosis"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C12922",
+     "relatedName": "Neoplastic Cell"
+    },
+    {
+     "code": "R103",
+     "type": "Disease_Has_Normal_Tissue_Origin",
+     "relatedCode": "C34222",
+     "relatedName": "Neural Crest"
+    },
+    {
+     "code": "R142",
+     "type": "Disease_Excludes_Finding",
+     "relatedCode": "C53978",
+     "relatedName": "Neuroectodermal Differentiation"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C40558",
+     "relatedName": "Primary Lesion"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C53980",
+     "relatedName": "Primitive Round to Oval Cell"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C38155",
+     "relatedName": "Recurrent Disease"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C27214",
+     "relatedName": "t(11;22)(q24;q12)"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C36616",
+     "relatedName": "t(16;21)(p11;q22)"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C36369",
+     "relatedName": "t(17;22)(q21;q12)"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C37251",
+     "relatedName": "t(1;22)(p36.1;q12)"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C36367",
+     "relatedName": "t(21;22)(q22;q12)"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C37249",
+     "relatedName": "t(2;22)(q33;q12)"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C36368",
+     "relatedName": "t(7;22)(p22;q12)"
+    }
+   ],
+   "history": [
+    {
+     "code": "C7808",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C7808",
+     "action": "modify",
+     "date": "2003-10-31"
+    },
+    {
+     "code": "C7808",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C7808",
+     "action": "modify",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C7808",
+     "action": "modify",
+     "date": "2006-03-31"
+    },
+    {
+     "code": "C7808",
+     "action": "modify",
+     "date": "2006-12-01"
+    },
+    {
+     "code": "C7808",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C7808",
+     "action": "modify",
+     "date": "2010-01-11"
+    },
+    {
+     "code": "C7808",
+     "action": "modify",
+     "date": "2014-02-03"
+    },
+    {
+     "code": "C7808",
+     "action": "modify",
+     "date": "2018-04-30"
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,147 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C156952",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C156952",
+   "name": "CPTAC Terminology",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Clinical Proteomic Tumor Analysis Consortium Terminology",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "CPTAC Terminology",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "CPTAC Terminology",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "Terminology used in support of the data collection efforts of the Clinical Proteomic Tumor Analysis Consortium (CPTAC).",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CPTAC"
+    },
+    {
+     "code": "P208",
+     "type": "NCI_META_CUI",
+     "value": "CL935936"
+    },
+    {
+     "code": "P372",
+     "type": "Publish_Value_Set",
+     "value": "Yes"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Intellectual Product"
+    },
+    {
+     "code": "P376",
+     "type": "Term_Browser_Value_Set_Description",
+     "value": "<p><a href=\"https://proteomics.cancer.gov/programs/cptac\"> Clinical Proteomic Tumor Analysis Consortium</a> (CPTAC) is working with EVS to develop and support controlled terminology in several areas related to understanding the molecular basis of cancer through the application of large-scale proteome and genome analysis, or proteogenomics. </p><p> CPTAC Terminology can be downloaded from this location: <a href=\"https://evs.nci.nih.gov/ftp1/CPTAC\">CPTAC</a>.</p>"
+    }
+   ],
+   "children": [
+    {
+     "code": "C156953",
+     "name": "CPTAC Baseline Medical Forms Terminology",
+     "leaf": false
+    },
+    {
+     "code": "C158520",
+     "name": "CPTAC Codelists Terminology",
+     "leaf": false
+    },
+    {
+     "code": "C159328",
+     "name": "CPTAC Follow-Up Forms Terminology",
+     "leaf": false
+    }
+   ],
+   "parents": [
+    {
+     "code": "C54443",
+     "name": "Terminology Subset"
+    }
+   ],
+   "history": [
+    {
+     "code": "C156952",
+     "action": "create",
+     "date": "2018-12-31"
+    },
+    {
+     "code": "C156952",
+     "action": "modify",
+     "date": "2019-03-25"
+    },
+    {
+     "code": "C156952",
+     "action": "modify",
+     "date": "2019-04-29"
+    },
+    {
+     "code": "C156952",
+     "action": "modify",
+     "date": "2019-05-28"
+    },
+    {
+     "code": "C156952",
+     "action": "modify",
+     "date": "2019-09-30"
+    },
+    {
+     "code": "C156952",
+     "action": "modify",
+     "date": "2019-10-28"
+    },
+    {
+     "code": "C156952",
+     "action": "modify",
+     "date": "2021-03-29"
+    },
+    {
+     "code": "C156952",
+     "action": "modify",
+     "date": "2022-05-31"
+    }
+   ]
+  }
+ }
+}

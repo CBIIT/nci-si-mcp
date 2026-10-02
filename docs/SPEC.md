@@ -209,7 +209,7 @@ Delta from `evs.py`:
 | Method | Change |
 |---|---|
 | `get_concept`, `get_concepts_by_codes`, `get_related`, `search` | Address `/concept/{terminology}_{release}/…`; take `ReleaseContext` |
-| `get_concepts_by_codes` | The endpoint omits unresolvable codes silently and returns lexicographic order (verified). Traversal and indexing already reconcile requested against returned codes by code and request only the relation lists they need through `include=`. Remaining: return `{found: {code: concept}, missing: [codes]}` to the tools, never relying on position (SOW v2 §5) |
+| `get_concepts_by_codes` | The endpoint omits unresolvable codes silently and keeps no order: mostly lexicographic, but the same request answered in two orders on 2 October 2026. Traversal and indexing already reconcile requested against returned codes by code and request only the relation lists they need through `include=`. Remaining: return `{found: {code: concept}, missing: [codes]}` to the tools, never relying on position (SOW v2 §5) |
 | `get_replacements(codes)` | New. `/history/{t}_{r}/replacements?list=` — note it errors the whole batch on one bad code, the opposite of the batch concept endpoint; split and retry per code on error |
 | `get_roles_catalogue(release)`, `get_associations_catalogue(release)` | New; feed `evs/catalogue.py` |
 | `get_subsets`, `get_subset_members`, `get_mapsets`, `get_mapset_maps` | New; the 9 subset/mapset paths and 18 mapsets verified present |
@@ -358,11 +358,14 @@ acceptance/
   pyproject.toml            separate package: nci-si-acceptance, versioned on its own; pytest, mcp, jsonschema
   src/nci_si_acceptance/    the harness
     client.py               connect over stdio or streamable HTTP; tools/list, tools/call
-    fixture_server.py       serves fixtures by (surface, method, path, params) with a request log endpoint
-    toolmap.py              baseline tool map application
-    report.py               per-tool outcome: PASS | PASS (fixture only) | FAIL | NOT IMPLEMENTED; marks rows served through the tool map
+    fixture_server.py       serves fixtures by (surface, method, path, params, body) with a request log endpoint
+    concepts.py             composes EVS concept answers from one recording per concept (§9.6)
+    licensing.py            the deny list: licensed content is neither recorded nor left in a payload
+    record.py               re-records `recorded/` from live against the manifest's pins (`pdm run acceptance-record`)
+    tools.py                baseline tool map application
+    report.py               per-tool outcome: PASS | PASS (fixture only) | FAIL | NO FIXTURE | INCOMPLETE | NOT IMPLEMENTED | NOT RUN | NO TESTS; marks rows served through the tool map
   fixtures/
-    manifest.yaml           pinned NCIt release, caDSR export date, SI graph dates, recorded-on dates
+    manifest.yaml           pinned NCIt release (caDSR export date and SI graph dates to come), concept rules, deny list, the requests recorded
     recorded/<surface>/…    captured responses with the request that produced them
     crafted/<requirement>/… hand-written responses naming the requirement they stand in for
     scenarios/…             the sixteen scenario fixtures
@@ -372,7 +375,6 @@ acceptance/
     test_crosscutting.py    §4, parameterised over the inventory
     test_group_a.py … test_group_w.py
   selftests/                the harness's own tests, run in the unit CI job
-  record.py                 re-records `recorded/` from live against the manifest's pins
 ```
 
 The root project installs the package editable (dependency group `acceptance`); `pdm run acceptance` runs the suite and `pdm run acceptance-selftest` the harness's own tests.
@@ -405,6 +407,15 @@ A job beside the existing `quality` and `test` jobs runs the acceptance suite in
 
 Because the suite and the tools are written by the same hands, two rules keep the suite honest. A suite test asserts what the *MCP Behavioral Acceptance Suite* (§3–§5) and the *MCP API Specification* say, cites the section, and never asserts what the current implementation happens to return. A pull request that changes a suite test or fixture while making a tool pass lists each change with the passage that justifies it: correcting a wrong test before the interface baseline is frozen is expected, weakening one is not.
 
+### 9.6 Request forms
+
+The fixture set is part of the contract only where a governing document prescribes the upstream request: the release-pinned path, the batch endpoint over fan-out, the one-row release query, the `Accept` header, the licence key. Elsewhere the fixture server answers every form a conforming server could send:
+
+- **EVS concepts.** One recording per concept answers every projection and batch through two declared rules (`concepts.py`): project by `include` (the include-to-key table in the manifest; EVS's `include` is a clean key projection, verified 2 October 2026) and select by `list` (each code once, unknown codes left out, in no particular order, since EVS keeps none). `record.py` checks composed answers against real projections and batches.
+- **Ignored parameters.** A parameter the service is shown to ignore is declared with its evidence and left out of the match.
+
+Search, descendants, metadata, history, subsets and mapsets stay exact-match; their canonical forms are the manifest's requests, summarised in `acceptance/fixtures/README.md`. Licensed content (EVS SOW v2.1 item 2) is never recorded: `licensing.py` refuses requests for it and removes licensed items from payloads, and a self-test fails on any left in the set.
+
 ---
 
 ## 10. Tests in the main package
@@ -415,7 +426,7 @@ Keep `unittest`-style tests under the gates in `CONTRIBUTING.md`. Extend `tests/
 - `test_release`: one-row resolution; 404 → `release_unavailable`; payload mismatch → `release_unavailable`; caDSR state never carries a fabricated identifier.
 - `test_bounds`: retries decrement the request budget; per-kind rotation; truncation report fields.
 - `test_catalogue`: polarity by code; a configured code absent from the catalogue fails startup.
-- `test_batch`: `found`/`missing` reconciliation; lexicographic return order handled.
+- `test_batch`: `found`/`missing` reconciliation; any return order handled.
 - `test_index`: atomic activation and rollback; provider/model mismatch rejected; dimension mismatch rejected.
 - `test_schema`: `outputSchema` present and valid for every tool in every profile; surface static across settings; no placeholder text.
 - `test_cadsr_client`, `test_ssis_client`: required-parameter validation; envelope errors; `Accept` header.

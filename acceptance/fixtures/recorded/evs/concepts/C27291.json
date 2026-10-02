@@ -1,0 +1,971 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C27291",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C27291",
+   "name": "Ewing Sarcoma/Peripheral Primitive Neuroectodermal Tumor",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Ewing Sarcoma/Peripheral Primitive Neuroectodermal Tumor",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "Cellosaurus"
+    },
+    {
+     "name": "Ewing sarcoma/Peripheral PNET",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTEP",
+     "code": "10015563",
+     "subSource": "SDC"
+    },
+    {
+     "name": "Ewing sarcoma/Peripheral primitive neuroectodermal tumor",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTEP",
+     "code": "10015563",
+     "subSource": "SDC"
+    },
+    {
+     "name": "Ewing Sarcoma/Peripheral Primitive Neuroectodermal Tumor",
+     "termType": "DN",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTRP"
+    },
+    {
+     "name": "EFTs",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI-GLOSS",
+     "code": "CDR0000570758"
+    },
+    {
+     "name": "Ewing sarcoma family of tumors",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI-GLOSS",
+     "code": "CDR0000322134"
+    },
+    {
+     "name": "Ewing Family of Tumors",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Ewing Sarcoma/Peripheral Primitive Neuroectodermal Tumor",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Ewing's Family of Tumors",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Ewing's Family of Tumours",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Ewing's Sarcoma/Peripheral Primitive Neuroectodermal Tumor",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Tumors of Ewing's Family",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Tumors of the Ewing's Family",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Ewing Sarcoma/Peripheral Primitive Neuroectodermal Tumor",
+     "type": "Display_Name",
+     "typeCode": "P107"
+    },
+    {
+     "name": "Ewing Sarcoma/Peripheral Primitive Neuroectodermal Tumor",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A group of cancers that includes Ewing tumor of bone (ETB or Ewing sarcoma of bone), extraosseous Ewing (EOE) tumors, primitive neuroectodermal tumors (PNET or peripheral neuroepithelioma), and Askin tumors (PNET of the chest wall). These tumors all come from the same type of stem cell.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "NCI-GLOSS"
+    },
+    {
+     "definition": "A spectrum of malignant tumors, affecting mostly males under age 20, characterized morphologically by the presence of small round cells.  Ewing sarcoma and peripheral primitive neuroectodermal tumor represent the ends of a spectrum, with Ewing sarcoma lacking evidence of neural differentiation and the markers that characterize the peripheral primitive neuroectodermal tumor.  Ewing sarcoma and peripheral primitive neuroectodermal tumor may share cytogenetic abnormalities, proto-oncogene expression, cell culture and immunohistochemical abnormalities.  These tumors may occur in the soft tissues or the bones.  Pain and the presence of a mass are the most common clinical symptoms.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "Cellosaurus"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTEP"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTRP"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Ewing_s_Sarcoma_Peripheral_Primitive_Neuroectodermal_Tumor"
+    },
+    {
+     "type": "Logical_Definition",
+     "value": "true"
+    },
+    {
+     "code": "P363",
+     "type": "Neoplastic_Status",
+     "value": "Malignant"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Neoplastic Process"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C0684337"
+    }
+   ],
+   "children": [
+    {
+     "code": "C129537",
+     "name": "Central Nervous System Ewing Sarcoma/Peripheral Primitive Neuroectodermal Tumor",
+     "leaf": false
+    },
+    {
+     "code": "C35871",
+     "name": "Ewing Sarcoma/Peripheral Primitive Neuroectodermal Tumor of Bone",
+     "leaf": false
+    },
+    {
+     "code": "C4817",
+     "name": "Ewing Sarcoma",
+     "leaf": false
+    },
+    {
+     "code": "C27293",
+     "name": "Extraskeletal Ewing Sarcoma/Peripheral Primitive Neuroectodermal Tumor",
+     "leaf": false
+    },
+    {
+     "code": "C27901",
+     "name": "Localized Ewing Sarcoma/Peripheral Primitive Neuroectodermal Tumor",
+     "leaf": false
+    },
+    {
+     "code": "C27292",
+     "name": "Metastatic Ewing Sarcoma/Peripheral Primitive Neuroectodermal Tumor",
+     "leaf": false
+    },
+    {
+     "code": "C9341",
+     "name": "Peripheral Primitive Neuroectodermal Tumor",
+     "leaf": false
+    },
+    {
+     "code": "C27898",
+     "name": "Recurrent Ewing Sarcoma/Peripheral Primitive Neuroectodermal Tumor",
+     "leaf": false
+    },
+    {
+     "code": "C153286",
+     "name": "Refractory Ewing Sarcoma/Peripheral Primitive Neuroectodermal Tumor",
+     "leaf": false
+    }
+   ],
+   "parents": [
+    {
+     "code": "C3264",
+     "name": "Embryonal Neoplasm",
+     "defining": true
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C165258",
+     "relatedName": "Cellosaurus Disease Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C118168",
+     "relatedName": "CTRP Disease Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C116977",
+     "relatedName": "CTRP Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C103038",
+     "relatedName": "NCI CTEP SDC Ewing Sarcoma Sub-Category Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C102905",
+     "relatedName": "NCI CTEP Simplified Disease Classification Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C126659",
+     "relatedName": "NCIt Neoplasm Core Terminology"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R116",
+     "type": "Disease_May_Have_Associated_Disease",
+     "relatedCode": "C2869",
+     "relatedName": "Anemia",
+     "group": "Disease, Disorder or Finding"
+    },
+    {
+     "code": "R141",
+     "type": "Disease_Excludes_Cytogenetic_Abnormality",
+     "relatedCode": "C165668",
+     "relatedName": "CIC Gene Rearrangement",
+     "group": "Molecular Abnormality"
+    },
+    {
+     "code": "R104",
+     "type": "Disease_Has_Normal_Cell_Origin",
+     "relatedCode": "C13054",
+     "relatedName": "Embryonic Cell"
+    },
+    {
+     "code": "R103",
+     "type": "Disease_Has_Normal_Tissue_Origin",
+     "relatedCode": "C12950",
+     "relatedName": "Embryonic Tissue"
+    },
+    {
+     "code": "R107",
+     "type": "Disease_Has_Cytogenetic_Abnormality",
+     "relatedCode": "C165667",
+     "relatedName": "EWSR1 Gene Rearrangement",
+     "group": "Molecular Abnormality"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C18322",
+     "relatedName": "EWSR1 Gene",
+     "group": "Gene"
+    },
+    {
+     "code": "R89",
+     "type": "Disease_May_Have_Molecular_Abnormality",
+     "relatedCode": "C37229",
+     "relatedName": "EWSR1-ERG Fusion Protein Expression",
+     "group": "Molecular Abnormality"
+    },
+    {
+     "code": "R89",
+     "type": "Disease_May_Have_Molecular_Abnormality",
+     "relatedCode": "C37230",
+     "relatedName": "EWSR1-ETV1 Fusion Protein Expression",
+     "group": "Molecular Abnormality"
+    },
+    {
+     "code": "R89",
+     "type": "Disease_May_Have_Molecular_Abnormality",
+     "relatedCode": "C37231",
+     "relatedName": "EWSR1-ETV4 Fusion Protein Expression",
+     "group": "Molecular Abnormality"
+    },
+    {
+     "code": "R89",
+     "type": "Disease_May_Have_Molecular_Abnormality",
+     "relatedCode": "C37250",
+     "relatedName": "EWSR1-FEV Fusion Protein Expression",
+     "group": "Molecular Abnormality"
+    },
+    {
+     "code": "R89",
+     "type": "Disease_May_Have_Molecular_Abnormality",
+     "relatedCode": "C37224",
+     "relatedName": "EWSR1-FLI1 Fusion Protein Expression",
+     "group": "Molecular Abnormality"
+    },
+    {
+     "code": "R140",
+     "type": "Disease_Excludes_Molecular_Abnormality",
+     "relatedCode": "C178457",
+     "relatedName": "EWSR1-NFATC2 Fusion Protein Expression",
+     "group": "Molecular Abnormality"
+    },
+    {
+     "code": "R140",
+     "type": "Disease_Excludes_Molecular_Abnormality",
+     "relatedCode": "C37252",
+     "relatedName": "EWSR1-PATZ1 Fusion Protein Expression",
+     "group": "Molecular Abnormality"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C99211",
+     "relatedName": "EWSR1/ERG Fusion Gene",
+     "group": "Gene"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C99259",
+     "relatedName": "EWSR1/ETV1 Fusion Gene",
+     "group": "Gene"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C99262",
+     "relatedName": "EWSR1/ETV4 Fusion Gene",
+     "group": "Gene"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C99226",
+     "relatedName": "EWSR1/FEV Fusion Gene",
+     "group": "Gene"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C99202",
+     "relatedName": "EWSR1/FLI1 Fusion Gene",
+     "group": "Gene"
+    },
+    {
+     "code": "R115",
+     "type": "Disease_May_Have_Finding",
+     "relatedCode": "C3038",
+     "relatedName": "Fever",
+     "group": "Disease, Disorder or Finding"
+    },
+    {
+     "code": "R89",
+     "type": "Disease_May_Have_Molecular_Abnormality",
+     "relatedCode": "C45455",
+     "relatedName": "FUS-ERG Fusion Protein Expression",
+     "group": "Molecular Abnormality"
+    },
+    {
+     "code": "R140",
+     "type": "Disease_Excludes_Molecular_Abnormality",
+     "relatedCode": "C178458",
+     "relatedName": "FUS-NFATC2 Fusion Protein Expression",
+     "group": "Molecular Abnormality"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C99281",
+     "relatedName": "FUS/ERG Fusion Gene",
+     "group": "Gene"
+    },
+    {
+     "code": "R137",
+     "type": "Disease_Excludes_Normal_Tissue_Origin",
+     "relatedCode": "C54105",
+     "relatedName": "Germinal Layer"
+    },
+    {
+     "code": "R115",
+     "type": "Disease_May_Have_Finding",
+     "relatedCode": "C35380",
+     "relatedName": "Hemorrhagic Change",
+     "group": "Disease, Disorder or Finding"
+    },
+    {
+     "code": "R115",
+     "type": "Disease_May_Have_Finding",
+     "relatedCode": "C35942",
+     "relatedName": "Homer Wright Rosette Formation",
+     "group": "Disease, Disorder or Finding"
+    },
+    {
+     "code": "R113",
+     "type": "Disease_May_Have_Abnormal_Cell",
+     "relatedCode": "C53487",
+     "relatedName": "Malignant Small Round Cell",
+     "group": "Abnormal Cell"
+    },
+    {
+     "code": "R115",
+     "type": "Disease_May_Have_Finding",
+     "relatedCode": "C36184",
+     "relatedName": "Necrosis",
+     "group": "Disease, Disorder or Finding"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C12922",
+     "relatedName": "Neoplastic Cell"
+    },
+    {
+     "code": "R103",
+     "type": "Disease_Has_Normal_Tissue_Origin",
+     "relatedCode": "C34222",
+     "relatedName": "Neural Crest",
+     "group": "Anatomic Structure, System, or Substance"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C53980",
+     "relatedName": "Primitive Round to Oval Cell",
+     "group": "Abnormal Cell"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C27214",
+     "relatedName": "t(11;22)(q24;q12)",
+     "group": "Molecular Abnormality"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C36616",
+     "relatedName": "t(16;21)(p11;q22)",
+     "group": "Molecular Abnormality"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C36369",
+     "relatedName": "t(17;22)(q21;q12)",
+     "group": "Molecular Abnormality"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C37251",
+     "relatedName": "t(1;22)(p36.1;q12)",
+     "group": "Molecular Abnormality"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C36367",
+     "relatedName": "t(21;22)(q22;q12)",
+     "group": "Molecular Abnormality"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C37249",
+     "relatedName": "t(2;22)(q33;q12)",
+     "group": "Molecular Abnormality"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C36368",
+     "relatedName": "t(7;22)(p22;q12)",
+     "group": "Molecular Abnormality"
+    }
+   ],
+   "history": [
+    {
+     "code": "C27291",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2003-10-31"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2004-04-30"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2004-09-10"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2004-11-17"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2005-04-29"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2006-03-31"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2006-12-01"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2007-04-30"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2007-06-28"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2009-04-20"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2010-01-11"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2010-11-08"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2010-11-15"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2010-11-22"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2010-11-29"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2010-12-06"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2010-12-13"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2010-12-27"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2011-01-03"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2011-01-10"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2011-01-17"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2011-01-24"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2011-01-31"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2011-03-07"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2011-11-07"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2011-12-19"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2012-03-05"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2012-03-26"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2012-09-24"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2012-10-01"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2012-10-09"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2012-10-15"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2012-10-22"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2012-10-31"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2012-11-05"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2012-11-13"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2012-11-19"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2012-11-26"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2012-12-03"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2012-12-10"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2012-12-17"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2012-12-28"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-01-07"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-01-14"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-01-23"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-02-04"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-02-11"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-02-19"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-02-25"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-03-04"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-03-11"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-03-18"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-03-25"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-04-01"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-04-08"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-04-15"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-04-22"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-04-29"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-05-06"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-05-13"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-05-20"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-05-28"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-06-03"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-06-10"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-06-17"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-06-24"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-07-01"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2013-07-08"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2014-02-03"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2014-08-25"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2014-09-22"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2015-03-09"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2016-04-25"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2016-08-29"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2018-07-30"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2019-10-28"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2019-11-25"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2021-04-26"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2023-02-27"
+    },
+    {
+     "code": "C27291",
+     "action": "modify",
+     "date": "2025-03-31"
+    }
+   ]
+  }
+ }
+}

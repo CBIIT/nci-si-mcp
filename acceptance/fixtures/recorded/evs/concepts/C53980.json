@@ -1,0 +1,82 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C53980",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C53980",
+   "name": "Primitive Round to Oval Cell",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Primitive Round to Oval Cell",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Primitive Round to Oval Cell",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Primitive_Round_to_Oval_Cell"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Cell"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1711288"
+    }
+   ],
+   "children": [
+    {
+     "code": "C48916",
+     "name": "Primitive Mesenchymal Round to Oval Cell",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C12917",
+     "name": "Malignant Cell"
+    }
+   ],
+   "history": [
+    {
+     "code": "C53980",
+     "action": "create",
+     "date": "2006-03-31"
+    },
+    {
+     "code": "C53980",
+     "action": "modify",
+     "date": "2009-11-23"
+    }
+   ]
+  }
+ }
+}
