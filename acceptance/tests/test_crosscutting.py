@@ -71,7 +71,9 @@ def _call(tools, pinned, name, arguments=None):
 
     taken = parameters(name)[0]
     release = {key: value for key, value in pinned.items() if key in taken}
-    return tools.call(name, release | (arguments or CALLS[name]["arguments"]))
+    return tools.call(
+        name, release | (CALLS[name]["arguments"] if arguments is None else arguments)
+    )
 
 
 def _items(tools, pinned, name):
@@ -96,7 +98,15 @@ def _release(item):
 
 
 def _identity(item):
-    return (item.get("terminology"), item.get("code")) if isinstance(item, dict) else item
+    """An item by what it is: a concept by terminology and code, an edge by its ends and its
+    relationship's code."""
+
+    if not isinstance(item, dict):
+        return item
+    if "sourceCode" in item:
+        relationship = (item.get("provenance") or {}).get("relationship") or {}
+        return item.get("sourceCode"), item.get("targetCode"), relationship.get("code")
+    return item.get("terminology"), item.get("code")
 
 
 def _wrong(provenance, names):
@@ -506,17 +516,28 @@ def test_a_cursor_without_an_argument_the_first_call_gave_is_an_invalid_request(
     assert error_code(result) == "invalid_request", result.content
 
 
-def _as_stated(name):
-    """A tool's base call without the arguments that give their stated default, and with
-    every stated default given; the arguments that differ from their default are in both."""
+def _as_stated(name, arguments):
+    """A call without the arguments that give their stated default, and with every stated
+    default given; the arguments that differ from their default are in both."""
 
     stated = defaults(name)
     kept = {
-        key: value
-        for key, value in CALLS[name]["arguments"].items()
-        if key not in stated or stated[key] != value
+        key: value for key, value in arguments.items() if key not in stated or stated[key] != value
     }
     return kept, stated | kept
+
+
+def _defaulted():
+    """Each tool's base call, and its further calls that a wrong default would change."""
+
+    cases = []
+    for name in (name for name in CALLS if defaults(name)):
+        calls = [{"arguments": CALLS[name]["arguments"]}, *CALLS[name].get("defaulted", [])]
+        for index, call in enumerate(calls):
+            scenarios = [call["scenario"]] if "scenario" in call else _scenarios(name)
+            marks = [pytest.mark.tool(name), *[pytest.mark.scenario(each) for each in scenarios]]
+            cases.append(pytest.param(name, call["arguments"], id=f"{name}-{index}", marks=marks))
+    return cases
 
 
 def _outcome(name, result):
@@ -528,9 +549,9 @@ def _outcome(name, result):
 
 
 @pytest.mark.requirement("X-20")
-@pytest.mark.parametrize("name", _per_tool(name for name in CALLS if defaults(name)))
-def test_a_left_out_argument_is_its_stated_default(tools, pinned, name):
-    left_out, given = _as_stated(name)
+@pytest.mark.parametrize(("name", "arguments"), _defaulted())
+def test_a_left_out_argument_is_its_stated_default(tools, pinned, name, arguments):
+    left_out, given = _as_stated(name, arguments)
     # The calls differ by at least one stated default, or the case shows nothing.
     assert given != left_out
 
