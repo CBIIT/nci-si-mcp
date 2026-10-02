@@ -60,6 +60,7 @@ requirements, for the harness's own tests.
     cursor-ignores-release a cursor presented with another release is served        (X-17)
     cursor-offset-only a cursor presented with other arguments is served            (X-17)
     cursor-refuses-default a cursor presented with a default given is refused       (X-17)
+    cursor-inherits   a cursor fills arguments left out from the first call          (X-17)
     empty-with-cursor a query that matches nothing answered with nextCursor          (X-4)
 
 `unpinned-mismatch` is no defect for a tool without a pinned form upstream: it answers an
@@ -75,7 +76,7 @@ suite's calls (tests/calls.yaml) say of EVS's answers shapes it: their `upstream
 into provenance, their `empty` arguments match nothing, their `truncating` arguments
 reach a bound, and under their `paged` arguments a first page carries a cursor to a second,
 of other concepts; the cursor carries the arguments it was issued for, as applied (an
-optional argument left out as the default the call's `paged` entry gives), and presented with
+optional argument left out as the default the specification states), and presented with
 others it is refused.
 """
 
@@ -96,7 +97,7 @@ from mcp.server.caching import CacheHint
 from mcp.server.lowlevel.server import Server
 from mcp.server.stdio import stdio_server
 
-from nci_si_acceptance.spec import RECORDS, TOOLS, parameters, profile_tools
+from nci_si_acceptance.spec import RECORDS, TOOLS, defaults, parameters, profile_tools
 
 DEFECT = os.environ.get("COMPLIANT_SERVER_DEFECT", "")
 EVS = os.environ["NCI_SI_EVS_BASE_URL"]
@@ -401,9 +402,8 @@ def _paging(name: str, arguments: dict) -> bool:
 def _applied(name: str, arguments: dict) -> dict:
     """A call's arguments as applied: an optional argument left out is its default."""
 
-    paged = CALLS.get(name, {}).get("paged", {})
-    defaults = {} if DEFECT == "cursor-refuses-default" else paged.get("default", {})
-    return defaults | {key: value for key, value in arguments.items() if key != "cursor"}
+    stated = {} if DEFECT == "cursor-refuses-default" else defaults(name)
+    return stated | {key: value for key, value in arguments.items() if key != "cursor"}
 
 
 def _cursor_refused(name: str, arguments: dict) -> bool:
@@ -413,6 +413,8 @@ def _cursor_refused(name: str, arguments: dict) -> bool:
     if cursor is None or DEFECT == "cursor-offset-only":
         return False
     issued, now = json.loads(cursor.partition("@")[2]), _applied(name, arguments)
+    if DEFECT == "cursor-inherits":
+        now = issued | {key: value for key, value in arguments.items() if key != "cursor"}
     if DEFECT == "cursor-ignores-release":
         issued, now = issued | {"release": None}, now | {"release": None}
     return issued != now

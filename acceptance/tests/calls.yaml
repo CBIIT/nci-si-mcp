@@ -18,8 +18,8 @@
 # cursor or an offset continues pages instead, and is not one (M6.1, X-17). `paged` gives
 # arguments, added to the call's, under which the result is larger than the page asked for,
 # so that it carries a cursor to the next page (X-17); `changed` lists arguments, each of
-# which, given with the cursor in place of the first call's, alters the result, and
-# `default` an optional argument the first call leaves out, given as its default.
+# which, given with the cursor in place of the first call's, alters the result. The defaults
+# a cursor's arguments are compared with are the specification's (spec/tools.yaml).
 #
 # A limit a call gives is the page size of the recordings; a server's own default could ask
 # for another, which no fixture answers.
@@ -37,15 +37,13 @@ search_concepts:
   empty: {query: qqxyzzyqq, mode: lexical, limit: 10}
   paged:
     arguments: {}
-    changed: [{retired: only}, {limit: 5}]
-    default: {retired: include}
+    changed: [{retired: only}, {limit: 5}, {query: ewing}, {mode: typeahead}]
 get_concept_hierarchy:
   arguments: {code: C4817, direction: parent}
   unversioned: true
   paged:   # C4817 has 10 children
     arguments: {direction: child, limit: 5}
-    changed: [{depth: 2}]
-    default: {depth: 1}
+    changed: [{depth: 2}, {limit: 6}, {direction: parent}, {code: C9118}]
 expand_value_set:
   arguments: {valueSet: C85492}
   unpinned: true

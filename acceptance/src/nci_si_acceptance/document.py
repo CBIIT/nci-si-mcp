@@ -91,6 +91,9 @@ def _tool_row(name: str, tool: dict[str, Any]) -> str:
     bounds = "".join(
         f" `{argument}`: {_bound(bound)}." for argument, bound in tool.get("bounds", {}).items()
     )
+    bounds += "".join(
+        f" `{argument}`: default {value}." for argument, value in tool.get("defaults", {}).items()
+    )
     return f"| `{name}` | `{signature}` | {_cell(tool['summary'])}{values}{bounds}{items} |"
 
 

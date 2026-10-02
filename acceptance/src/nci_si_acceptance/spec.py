@@ -37,6 +37,16 @@ def profile_tools(profile: str) -> set[str]:
     return {name for name, group in REQUIRED_TOOLS.items() if profile in (group, "unified")}
 
 
+def defaults(tool: str) -> dict[str, Any]:
+    """The default of each optional argument of `tool` the specification states: those under
+    `defaults`, and each bound's."""
+
+    entry = TOOLS[tool]
+    bounds = entry.get("bounds", {}).items()
+    bounded = {name: bound["default"] for name, bound in bounds if "default" in bound}
+    return bounded | entry.get("defaults", {})
+
+
 def items_of(tool: str, result: Any) -> list[Any]:
     """The items of a result of `tool`, where its `items` in tools.yaml say they are; a part
     of the path the result lacks contributes none."""

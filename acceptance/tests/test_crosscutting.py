@@ -13,7 +13,7 @@ from jsonschema import Draft202012Validator
 
 from nci_si_acceptance.client import CREDENTIAL_VARIABLES
 from nci_si_acceptance.results import error_code
-from nci_si_acceptance.spec import RECORDS, TOOLS, items_of, parameters
+from nci_si_acceptance.spec import RECORDS, TOOLS, defaults, items_of, parameters
 
 CALLS = yaml.safe_load((Path(__file__).parent / "calls.yaml").read_text(encoding="utf-8"))
 FIELDS = RECORDS["provenance"]["fields"] | RECORDS["traversal"]["fields"]
@@ -437,20 +437,73 @@ def test_a_cursor_with_another_argument_is_an_invalid_request(tools, pinned, nam
     assert error_code(result) == "invalid_request", result.content
 
 
+def _left_out(name, arguments):
+    """The optional arguments a call leaves out that have a stated default, as defaults."""
+
+    return {key: value for key, value in defaults(name).items() if key not in arguments}
+
+
+def _pages(name, *results):
+    """Each result's items by identity, every result asserted a success."""
+
+    assert [result.content for result in results if result.is_error] == []
+    return [[_identity(item) for item in items_of(name, result.content)] for result in results]
+
+
 @pytest.mark.requirement("X-17")
-@pytest.mark.parametrize(
-    "name", _per_tool(name for name in PAGED if "default" in CALLS[name]["paged"])
-)
+@pytest.mark.parametrize("name", _per_tool(PAGED))
 def test_a_cursor_with_a_left_out_argument_given_as_its_default_continues(tools, pinned, name):
     arguments, first = _first_page(tools, pinned, name)
+    given = _left_out(name, arguments)
+    # The first call leaves out an argument with a stated default, or the case shows nothing.
+    assert given
     continued = arguments | {"cursor": first.content["nextCursor"]}
 
     plain = _call(tools, pinned, name, continued)
-    given = _call(tools, pinned, name, continued | CALLS[name]["paged"]["default"])
+    with_defaults = _call(tools, pinned, name, continued | given)
 
-    assert not given.is_error, given.content
-    pages = [[_identity(item) for item in items_of(name, page.content)] for page in (plain, given)]
+    pages = _pages(name, plain, with_defaults)
     assert pages[1] == pages[0]
+
+
+@pytest.mark.requirement("X-17")
+@pytest.mark.parametrize("name", _per_tool(PAGED))
+def test_a_cursor_with_a_given_default_left_out_continues(tools, pinned, name):
+    arguments, _ = _first_page(tools, pinned, name)
+    given = _left_out(name, arguments)
+    assert given
+    explicit = _call(tools, pinned, name, arguments | given)
+    assert not explicit.is_error, explicit.content
+    cursor = {"cursor": explicit.content.get("nextCursor")}
+
+    repeated = _call(tools, pinned, name, arguments | given | cursor)
+    left_out = _call(tools, pinned, name, arguments | cursor)
+
+    pages = _pages(name, repeated, left_out)
+    assert pages[1] == pages[0]
+
+
+# The paged calls' arguments that differ from their stated default: left out at the cursor,
+# each applies as its default, so the cursor is presented with another argument.
+NON_DEFAULT = [
+    pytest.param(name, key, id=f"{name}-{key}", marks=pytest.mark.tool(name))
+    for name in PAGED
+    for key, value in (CALLS[name]["arguments"] | CALLS[name]["paged"]["arguments"]).items()
+    if key in defaults(name) and defaults(name)[key] != value
+]
+
+
+@pytest.mark.requirement("X-17")
+@pytest.mark.parametrize(("name", "key"), NON_DEFAULT)
+def test_a_cursor_without_an_argument_the_first_call_gave_is_an_invalid_request(
+    tools, pinned, name, key
+):
+    arguments, first = _first_page(tools, pinned, name)
+    presented = {k: v for k, v in arguments.items() if k != key}
+
+    result = _call(tools, pinned, name, presented | {"cursor": first.content["nextCursor"]})
+
+    assert error_code(result) == "invalid_request", result.content
 
 
 def _other_release(recorded, pinned):

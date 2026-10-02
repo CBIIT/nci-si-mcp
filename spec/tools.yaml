@@ -9,6 +9,10 @@
 # cross-cutting requirements apply to it. `traversal: true` marks a tool whose items are
 # reached by traversal (A4.2).
 #
+# `defaults` gives the default of an optional argument that bounds nothing; an argument with
+# bounds has its default there. A call that leaves an optional argument out is the call that
+# gives it as its default (M6.1).
+#
 # `bounds` gives the default and the maximum of each argument that bounds a result (A5.1,
 # A5.2). A value above the maximum is applied as the maximum; where content was dropped, the
 # truncation record's limit is the value applied. So the input schema states no maximum that
@@ -42,6 +46,7 @@ search_concepts:
   returns: "{ results[{ concept, score?, matchedOn? }], nextCursor?, totalKnown? }"
   items: ["results[].concept"]
   values: {mode: [lexical, typeahead, semantic, hybrid], retired: [include, only]}
+  defaults: {retired: include}
   summary: >-
     Ranked search of a terminology; semantic and hybrid from the interim NCIt index (M4.1).
     Retired concepts are returned with the others (retired include, the default, as the
