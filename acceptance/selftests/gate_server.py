@@ -4,6 +4,7 @@
 
     missing-tool      lists one tool of the profile too few                       (P-1)
     no-error-shape    an outputSchema that refuses the error record                 (P-2)
+    declares-no-shape an outputSchema that admits any object                        (P-2)
     placeholder       a description holding TODO                                    (P-3)
     misnamed          a tool whose name is not verb-led and lowercase               (P-4)
     no-ttl            tools/list with ttlMs 0                                       (P-5)
@@ -26,7 +27,7 @@ from mcp.server.caching import CacheHint
 from mcp.server.lowlevel.server import Server
 from mcp.server.stdio import stdio_server
 
-from nci_si_acceptance.spec import parameters, profile_tools
+from nci_si_acceptance.spec import RECORDS, parameters, profile_tools
 
 DEFECT = os.environ.get("GATE_SERVER_DEFECT", "")
 VERSION = os.environ["NCI_SI_EVS_BASE_URL"] + "/api/v1/version"
@@ -55,13 +56,31 @@ def _input_schema(name: str) -> dict:
     }
 
 
+# A result is either an error record or a success, which carries provenance.
+ERROR = {
+    "type": "object",
+    "required": ["code", "message"],
+    "properties": {"code": {"enum": RECORDS["error"]["fields"]["code"]["values"]}},
+}
+OUTPUT_SCHEMAS = {
+    "": {
+        "type": "object",
+        "oneOf": [
+            {"required": ["error"], "properties": {"error": ERROR}},
+            {"required": ["provenance"], "not": {"required": ["error"]}},
+        ],
+    },
+    "no-error-shape": {"type": "object", "required": ["provenance"]},
+    "declares-no-shape": {"type": "object"},
+}
+
+
 def _tool(name: str) -> types.Tool:
-    refused = {"type": "object", "properties": {"error": False}}
     return types.Tool(
         name=name,
         description="TODO" if DEFECT == "placeholder" else f"The {name} tool of EVS.",
         input_schema=_input_schema(name),
-        output_schema=refused if DEFECT == "no-error-shape" else {"type": "object"},
+        output_schema=OUTPUT_SCHEMAS.get(DEFECT, OUTPUT_SCHEMAS[""]),
         annotations=types.ToolAnnotations(
             read_only_hint=True,
             destructive_hint=DEFECT == "destructive",

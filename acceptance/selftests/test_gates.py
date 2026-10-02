@@ -20,7 +20,11 @@ DEFECTS = [
     ("missing-tool", "test_tools_list_names_the_tools_of_the_profile_and_no_other"),
     (
         "no-error-shape",
-        "test_every_tool_declares_an_output_schema_that_admits_the_error_record",
+        "test_every_output_schema_admits_the_error_record_and_refuses_a_malformed_one",
+    ),
+    (
+        "declares-no-shape",
+        "test_every_output_schema_admits_the_error_record_and_refuses_a_malformed_one",
     ),
     ("placeholder", "test_no_description_holds_placeholder_or_debug_text"),
     ("misnamed", "test_tool_names_are_verb_led_lowercase_and_underscore_separated"),

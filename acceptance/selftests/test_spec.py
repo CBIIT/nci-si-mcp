@@ -21,10 +21,11 @@ from nci_si_acceptance.spec import REQUIRED_TOOLS, parameters, profile_tools
             {"terminology", "release"},
         ),
         ("get_form", {"publicId", "keyword", "version", "includeModules"}, set()),
+        # Three ways to name a data element, of which a caller gives one.
         (
             "get_data_element",
             {"publicId", "version", "longName", "questionText", "include"},
-            {"publicId"},
+            set(),
         ),
         # An alternative of several parameters, in braces.
         (

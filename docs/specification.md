@@ -266,7 +266,7 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 | Tool | Inputs → result | What it does |
 |---|---|---|
 | `resolve_registry_release` | `() → { identifier, generatedAt, sourceDistribution }` | The registry's content state; no identifier is invented where caDSR publishes none. |
-| `get_data_element` | `(publicId, version? \| longName? \| questionText?, include[]?) → dataElement` | One data element with the detail selected. `include`: permissibleValues, valueDomain, conceptAssociations, alternateNames, provenance. |
+| `get_data_element` | `(publicId \| longName \| questionText, version?, include[]?) → dataElement` | One data element with the detail selected. `include`: permissibleValues, valueDomain, conceptAssociations, alternateNames, provenance. |
 | `search_data_elements` | `(query, mode?, filters?, limit?, cursor?) → { results[{ dataElement, score?, matchedOn? }], nextCursor?, totalKnown? }` | Search of data elements, filtered by context, status and value-domain type. `mode`: lexical, semantic, hybrid. `filters`: context, workflowStatus, registrationStatus, valueDomainType. |
 | `match_data_elements` | `(entities[{ name, userTip?, permissibleValues[]? }], matchLimit?, modelVariant?, similarityThreshold?, filters?, cursor?) → { matches[{ dataElement, score, rule, matchedText }], nextCursor? }` | Data elements matched to described entities, keyword and AI-enhanced, scored. |
 | `match_value_meanings` | `(values[], strictness?, terminologyScope?, cursor?) → { matches[{ valueMeaning, score, crosswalk[] }], nextCursor? }` | Value meanings matched to values, with crosswalk codes. |
@@ -300,7 +300,7 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 | Id | Requirement | Basis | Tests | Status |
 |---|---|---|---|---|
 | P-1 | tools/list names every tool of the profile under test, and no other. | M1.2, M1.5 | `tests/test_protocol.py::test_tools_list_names_the_tools_of_the_profile_and_no_other` | tested |
-| P-2 | Every tool declares an outputSchema that is valid JSON Schema and admits the error record. | M3.1, error | `tests/test_protocol.py::test_every_tool_declares_an_output_schema_that_admits_the_error_record` | tested |
+| P-2 | Every tool declares an outputSchema that is valid JSON Schema and covers the error record, admitting one and refusing one with a code outside its closed set or with no code. | M3.1, error | `tests/test_protocol.py::test_every_output_schema_admits_the_error_record_and_refuses_a_malformed_one` | tested |
 | P-3 | No tool description, nor any description in a tool's schemas, contains placeholder, debug or development text. | A2.4, A10.3 | `tests/test_protocol.py::test_no_description_holds_placeholder_or_debug_text` | tested |
 | P-4 | Tool names are verb-led, lowercase and underscore-separated. | A2.1 | `tests/test_protocol.py::test_tool_names_are_verb_led_lowercase_and_underscore_separated` | tested |
 | P-5 | tools/list carries a positive ttlMs and cacheScope public. | M2.1, M2.2 | `tests/test_protocol.py::test_tools_list_may_be_cached_and_shared` | tested |

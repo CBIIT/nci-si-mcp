@@ -25,15 +25,19 @@ READ_ONLY = {
 }
 
 
-def _error_record() -> dict[str, str]:
-    """An error record with its required fields, each holding a value of its kind."""
+def _error_records() -> tuple[dict, list[dict]]:
+    """A result holding an error record with its required fields, and two that are not one:
+    a code outside the closed set, and no code."""
 
     fields = RECORDS["error"]["fields"]
-    return {
+    record = {
         name: field["values"][0] if "values" in field else "text"
         for name, field in fields.items()
         if not field.get("optional")
     }
+    uncoded = {name: value for name, value in record.items() if name != "code"}
+    malformed = [{"error": record | {"code": "no_such_code"}}, {"error": uncoded}]
+    return {"error": record}, malformed
 
 
 def _descriptions(schema: object) -> list[str]:
@@ -61,17 +65,18 @@ def test_tools_list_names_the_tools_of_the_profile_and_no_other(server, target):
 @pytest.mark.gate
 @pytest.mark.live_capable
 @pytest.mark.requirement("P-2")
-def test_every_tool_declares_an_output_schema_that_admits_the_error_record(server):
+def test_every_output_schema_admits_the_error_record_and_refuses_a_malformed_one(server):
     schemas = {name: tool.output_schema for name, tool in server.available.items()}
-    error = {"error": _error_record()}
+    error, malformed = _error_records()
 
     assert [name for name, schema in schemas.items() if schema is None] == []
     for schema in schemas.values():
         Draft202012Validator.check_schema(schema)
-    refusing = [
-        name for name, schema in schemas.items() if not Draft202012Validator(schema).is_valid(error)
-    ]
-    assert refusing == []
+    validators = {name: Draft202012Validator(schema) for name, schema in schemas.items()}
+    assert [name for name, check in validators.items() if not check.is_valid(error)] == []
+    # A schema that admits anything declares no shape at all (M3.1).
+    admitting = [name for name, check in validators.items() if any(map(check.is_valid, malformed))]
+    assert admitting == []
 
 
 @pytest.mark.gate

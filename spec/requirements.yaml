@@ -12,7 +12,7 @@ P-1:
   statement: tools/list names every tool of the profile under test, and no other.
   basis: [M1.2, M1.5]
 P-2:
-  statement: Every tool declares an outputSchema that is valid JSON Schema and admits the error record.
+  statement: Every tool declares an outputSchema that is valid JSON Schema and covers the error record, admitting one and refusing one with a code outside its closed set or with no code.
   basis: [M3.1, error]
 P-3:
   statement: No tool description, nor any description in a tool's schemas, contains placeholder, debug or development text.
