@@ -113,7 +113,7 @@ X-16:
   basis: [A6.5, A5.3]
   planned: "#54"
 X-17:
-  statement: A page smaller than the result carries nextCursor; following it returns the next items, repeats none of the page before, and keeps the release the first page was pinned to; presented with another release, the cursor is an invalid request.
+  statement: A page smaller than the result carries nextCursor; following it returns the next items, repeats none of the page before, and keeps the release the first page was pinned to. Presented with any argument that differs from the first call's as applied, release and limit among them, the cursor is an invalid request; an optional argument the first call left out may be given as its default.
   basis: [M6.1, M2.4]
 X-18:
   statement: A value below 1 for an argument with bounds is an invalid request, never raised to 1.

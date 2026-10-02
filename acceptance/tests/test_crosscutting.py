@@ -391,13 +391,9 @@ def test_a_bound_reached_is_reported_with_how_much_was_left_out(tools, pinned, n
 @pytest.mark.requirement("X-17")
 @pytest.mark.parametrize("name", _per_tool(PAGED))
 def test_a_cursor_continues_with_the_next_items_of_the_same_release(tools, pinned, recorded, name):
-    arguments = CALLS[name]["arguments"] | CALLS[name]["paged"]["arguments"]
-    first = _call(tools, pinned, name, arguments)
-    assert not first.is_error, first.content
-    cursor = first.content.get("nextCursor")
-    assert isinstance(cursor, str) and cursor, f"no nextCursor: {first.content!r:.300}"
+    arguments, first = _first_page(tools, pinned, name)
 
-    continued = arguments | {"cursor": cursor}
+    continued = arguments | {"cursor": first.content["nextCursor"]}
     second = _call(tools, pinned, name, continued)
 
     assert not second.is_error, second.content
@@ -409,6 +405,52 @@ def test_a_cursor_continues_with_the_next_items_of_the_same_release(tools, pinne
     assert releases == {(pinned["terminology"], pinned["release"])}
     other = _call(tools, pinned | {"release": _other_release(recorded, pinned)}, name, continued)
     assert error_code(other) == "invalid_request", other.content
+
+
+def _first_page(tools, pinned, name):
+    """A paged call's arguments and its first page, which carries a cursor."""
+
+    arguments = CALLS[name]["arguments"] | CALLS[name]["paged"]["arguments"]
+    first = _call(tools, pinned, name, arguments)
+    assert not first.is_error, first.content
+    cursor = first.content.get("nextCursor")
+    assert isinstance(cursor, str) and cursor, f"no nextCursor: {first.content!r:.300}"
+    return arguments, first
+
+
+CHANGED = [
+    pytest.param(name, change, id=f"{name}-{next(iter(change))}", marks=pytest.mark.tool(name))
+    for name in PAGED
+    for change in CALLS[name]["paged"].get("changed", [])
+]
+
+
+@pytest.mark.requirement("X-17")
+@pytest.mark.parametrize(("name", "change"), CHANGED)
+def test_a_cursor_with_another_argument_is_an_invalid_request(tools, pinned, name, change):
+    arguments, first = _first_page(tools, pinned, name)
+
+    result = _call(
+        tools, pinned, name, arguments | change | {"cursor": first.content["nextCursor"]}
+    )
+
+    assert error_code(result) == "invalid_request", result.content
+
+
+@pytest.mark.requirement("X-17")
+@pytest.mark.parametrize(
+    "name", _per_tool(name for name in PAGED if "default" in CALLS[name]["paged"])
+)
+def test_a_cursor_with_a_left_out_argument_given_as_its_default_continues(tools, pinned, name):
+    arguments, first = _first_page(tools, pinned, name)
+    continued = arguments | {"cursor": first.content["nextCursor"]}
+
+    plain = _call(tools, pinned, name, continued)
+    given = _call(tools, pinned, name, continued | CALLS[name]["paged"]["default"])
+
+    assert not given.is_error, given.content
+    pages = [[_identity(item) for item in items_of(name, page.content)] for page in (plain, given)]
+    assert pages[1] == pages[0]
 
 
 def _other_release(recorded, pinned):
