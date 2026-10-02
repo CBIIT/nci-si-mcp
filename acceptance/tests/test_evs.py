@@ -653,6 +653,12 @@ RETIRED_CODES = [
 ]
 
 
+def _replacement(entry):
+    release = (entry.get("provenance") or {}).get("release") or {}
+    pin = (release.get("terminology"), release.get("identifier"))
+    return entry.get("code"), entry.get("terminology"), entry.get("name"), pin
+
+
 @pytest.mark.tool("resolve_retired_code")
 @pytest.mark.requirement("resolve_retired_code-1")
 @pytest.mark.parametrize(("concept", "history"), RETIRED_CODES)
@@ -660,8 +666,10 @@ def test_a_retired_code_is_inactive_with_its_status_and_replacements(
     tools, pinned, recorded, concept, history
 ):
     body = recorded(concept)["response"]["body"]
+    # Each replacement by code, terminology and name, with the release of its provenance.
+    pin = (pinned["terminology"], pinned["release"])
     replacements = [
-        (entry["replacementCode"], entry["replacementName"])
+        (entry["replacementCode"], body["terminology"], entry["replacementName"], pin)
         for entry in recorded(history)["response"]["body"]
         if "replacementCode" in entry
     ]
@@ -675,7 +683,7 @@ def test_a_retired_code_is_inactive_with_its_status_and_replacements(
     # An empty list where the platform names none: present, never absent or null.
     found = content.get("replacements")
     assert isinstance(found, list), found
-    assert [(entry.get("code"), entry.get("name")) for entry in found] == replacements
+    assert [_replacement(entry) for entry in found] == replacements
 
 
 @pytest.mark.tool("resolve_retired_code")
