@@ -1,4 +1,4 @@
-"""Each crafted scenario provokes the behaviour it is named for (Acceptance Suite §2.3)."""
+"""Each crafted scenario provokes the behaviour it is named for."""
 
 import json
 import shutil

@@ -1,7 +1,7 @@
 # NCI SI MCP acceptance suite
 
-The behavioural acceptance suite for the NCI SI MCP tools, specified by the programme's *MCP
-Behavioral Acceptance Suite*, and the upstream fixture server it runs against. It tests the MCP
+The behavioural acceptance suite for the NCI SI MCP tools, which tests the requirements of the
+[specification](../docs/specification.md), and the upstream fixture server it runs against. It tests the MCP
 tool surface of a server it starts as a command; it knows nothing of the server's code.
 
 From the repository root:
@@ -15,6 +15,7 @@ pdm run acceptance-selftest                          # the harness's own tests
 pdm run acceptance-record                            # re-record fixtures/recorded/ from live
 pdm run acceptance-craft                             # rebuild the crafted scenarios
 pdm run acceptance-register                          # regenerate request-forms/ from the manifest
+pdm run spec-render                                  # regenerate docs/specification.md from spec/
 ```
 
 ## Writing a test
@@ -45,7 +46,7 @@ and still answer plausibly. A test that provokes such requests on purpose is mar
 ## The report
 
 `--report` writes one JSON report per run; `nci_si_acceptance.report` renders it as the per-tool
-table of §6. A tool is PASS, FAIL (a failed gate fails every tool), NO FIXTURE (a request lacked
+table of the specification's §4. A tool is PASS, FAIL (a failed gate fails every tool), NO FIXTURE (a request lacked
 a fixture: a question for the fixture set), INCOMPLETE (the tests that ran passed but some could
 not run: a hardening candidate), NOT IMPLEMENTED, NOT RUN or NO TESTS; the module docstring
 defines each, and each row counts the tests passed, failed, without a fixture and not run.
@@ -57,9 +58,10 @@ has a documented upstream limitation (`--limitations`, YAML of test id to requir
 
 `src/nci_si_acceptance/` holds the harness: `client.py` starts the server, `tools.py` calls the
 required tools, `fixture_server.py` serves the fixtures (its docstring documents the format),
-`report.py` writes and renders the per-tool report, `inventory.py` lists the required tools,
-`requirements.py` checks the tests' citations of `spec/requirements.yaml`, and `suite.py` holds
-the rules of a run. `concepts.py` composes EVS concept answers from one recording per
+`report.py` writes and renders the per-tool report, `spec.py` reads the specification in
+`../spec/` (the required tools among it), `requirements.py` checks the tests' citations of its
+requirements, `document.py` renders it as `../docs/specification.md`, and `suite.py` holds the
+rules of a run. `concepts.py` composes EVS concept answers from one recording per
 concept, `record.py` records the set from live,
 `craft.py` crafts the scenarios EVS does not produce on demand, and `register.py` writes the
 register of request forms (`request-forms/`).

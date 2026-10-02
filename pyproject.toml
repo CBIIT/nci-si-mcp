@@ -102,6 +102,7 @@ acceptance-selftest = { cmd = "pytest selftests --cov --cov-report=term-missing"
 acceptance-record = "python -m nci_si_acceptance.record"
 acceptance-craft = "python -m nci_si_acceptance.craft"
 acceptance-register = "python -m nci_si_acceptance.register"
+spec-render = "python -m nci_si_acceptance.document"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

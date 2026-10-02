@@ -7,8 +7,8 @@ import sys
 import pytest
 
 from nci_si_acceptance.client import open_session, server_environment
-from nci_si_acceptance.inventory import REQUIRED_TOOLS
 from nci_si_acceptance.record import FIXTURES
+from nci_si_acceptance.spec import REQUIRED_TOOLS
 from nci_si_acceptance.tools import Tools, load_toolmap
 
 TOOLMAP = load_toolmap(FIXTURES / "baseline_toolmap.yaml")

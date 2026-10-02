@@ -1,6 +1,6 @@
 # The fixture set: its pin, the concept rules, the scenarios, and what
 # `pdm run acceptance-record` records (fixtures/README.md). Re-pinning the release is a
-# re-recording under change control (MCP Behavioral Acceptance Suite §2.2).
+# re-recording under change control (docs/specification.md §4).
 
 evs:
   release: ncit_26.09d
@@ -28,7 +28,7 @@ evs:
       full: [synonyms, definitions, properties, parents, children, roles, inverseRoles,
              associations, inverseAssociations, maps, history]
     # The relation lists answered on their own, /api/v1/concept/{terminology}/{code}/{relation}
-    # (MCP API Specification §10 OP-E10, E11, E14 to E17, E20).
+    # (operations OP-E10, E11, E14 to E17, E20).
     relations: [parents, children, roles, inverseRoles, associations, inverseAssociations, maps]
 
 # The base URL of each recorded surface; a fixture's path is relative to it.
@@ -36,7 +36,7 @@ surfaces:
   evs: https://api-evsrest.nci.nih.gov
   evs-fhir: https://api-evsrest.nci.nih.gov/fhir/r4
 
-# What each scenario of Acceptance Suite §2.3 provokes, in the order the register lists
+# What each scenario provokes, in the order the register lists
 # them (register.py). Whether a scenario is recorded or crafted is read from its fixtures.
 scenarios:
   release/unknown: Every content path of `ncit_99.99z` answers 404
@@ -259,7 +259,7 @@ record:
           key (403), whatever the path or parameters
 
   # Crafted fixtures for the form a requirement prescribes where EVS does not yet answer
-  # it, each carrying the answer of a recording (Acceptance Suite §2.1): the live run shows
+  # it, each carrying the answer of a recording: the live run shows
   # the gap.
   derived:
     - fixture: crafted/OP-E06/subset-gdc.json

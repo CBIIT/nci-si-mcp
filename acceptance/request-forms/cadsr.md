@@ -3,7 +3,8 @@
 Generated from `acceptance/fixtures/manifest.yaml` by `pdm run acceptance-register`; do not edit by hand.
 
 The upstream requests the acceptance suite's fixtures answer, each with the platform operation it
-serves (*MCP API Specification* §10, or the requirement where the operation is missing) and why
+serves (its `OP-` id in the programme's operation inventory, or the requirement where the
+operation is missing) and why
 it has this form. They are initial versions, from the published API documentation and live checks
 where the operation exists and a draft where it does not, furnished for the EVS and caDSR teams to
 refine as needed, each change with the approval of the branch chief or a delegate.
@@ -27,7 +28,7 @@ None yet.
 
 ## Scenarios
 
-Each scenario provokes one case (*Acceptance Suite* §2.3); its fixtures answer before the ordinary
+Each scenario provokes one case; its fixtures answer before the ordinary
 ones while a test selects it. A recorded fixture is what the service answers today. A crafted one
 stands in for a case the service does not produce on demand, under the requirement it names, and
 answers the ordinary forms above.

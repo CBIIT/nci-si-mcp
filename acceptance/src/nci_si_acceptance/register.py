@@ -38,7 +38,8 @@ SCENARIO_HEADER = "| Operation | Request | Expected | Rationale | Fixture |"
 SHARED_HEADER = "| Operation | Request | Expected | Fixture |"
 INTRODUCTION = """\
 The upstream requests the acceptance suite's fixtures answer, each with the platform operation it
-serves (*MCP API Specification* §10, or the requirement where the operation is missing) and why
+serves (its `OP-` id in the programme's operation inventory, or the requirement where the
+operation is missing) and why
 it has this form. They are initial versions, from the published API documentation and live checks
 where the operation exists and a draft where it does not, furnished for the EVS and caDSR teams to
 refine as needed, each change with the approval of the branch chief or a delegate.
@@ -49,8 +50,9 @@ recording per concept (below), and requests whose parameters the service is show
 RULES = """\
 ## Concept requests answered by rule
 
-One recording per concept answers each of these in every projection (`include`), batch and
-relation list the recordings cover (`acceptance/src/nci_si_acceptance/concepts.py`).
+One recording per concept answers each projection (`include`) and relation list of that concept
+it covers, and a batch is composed from the recordings of the concepts it names
+(`acceptance/src/nci_si_acceptance/concepts.py`).
 
 | Operations | Form |
 |---|---|
@@ -61,7 +63,7 @@ relation list the recordings cover (`acceptance/src/nci_si_acceptance/concepts.p
 SCENARIOS_INTRODUCTION = """\
 ## Scenarios
 
-Each scenario provokes one case (*Acceptance Suite* §2.3); its fixtures answer before the ordinary
+Each scenario provokes one case; its fixtures answer before the ordinary
 ones while a test selects it. A recorded fixture is what the service answers today. A crafted one
 stands in for a case the service does not produce on demand, under the requirement it names, and
 answers the ordinary forms above.

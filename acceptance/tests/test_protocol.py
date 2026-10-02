@@ -1,4 +1,4 @@
-"""Protocol-level gates (MCP Behavioral Acceptance Suite §3), run once per server."""
+"""Protocol-level gates (the P requirements of spec/requirements.yaml), run once per server."""
 
 import pytest
 

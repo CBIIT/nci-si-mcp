@@ -1,4 +1,4 @@
-"""Craft the scenario fixtures the live services do not produce on demand (Acceptance Suite §2.3).
+"""Craft the scenario fixtures the live services do not produce on demand.
 
     pdm run acceptance-craft [--fixtures DIR]
 
