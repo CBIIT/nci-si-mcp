@@ -11,7 +11,8 @@
 #
 # `bounds` gives the default and the maximum of each argument that bounds a result (A5.1,
 # A5.2). A value above the maximum is applied as the maximum; where content was dropped, the
-# truncation record's limit is the value applied.
+# truncation record's limit is the value applied. So the input schema states no maximum that
+# would refuse such a value: the argument's description states its default and maximum.
 
 resolve_release:
   group: evs

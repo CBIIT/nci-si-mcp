@@ -180,7 +180,7 @@ A tool result carries both in its `_meta` (M2.5). A cursor encodes the release i
 
 ### 3.7 Schema generation (`platform/schema.py`)
 
-`outputSchema` is generated from the result dataclasses for every tool, success and error shapes alike, and checked by a unit test that renders `tools/list` for each profile and validates every schema. A second test asserts the rendered surface is byte-identical across terminology, release and upstream mode (static surface, M1.2). A third asserts no description contains placeholder text or an operator a tool test shows unsupported (A2.3, A2.4).
+`outputSchema` is generated from the result dataclasses for every tool, success and error shapes alike, and checked by a unit test that renders `tools/list` for each profile and validates every schema. A second test asserts the rendered surface is byte-identical across terminology, release and upstream mode (static surface, M1.2). A third asserts no description contains placeholder text or an operator a tool test shows unsupported (A2.3, A2.4). An input schema states no `maximum` for a bounded argument: a value above it is applied as the maximum (the tools' `bounds` in `spec/tools.yaml`), and the argument's description states its default and maximum.
 
 ### 3.8 Transport (`platform/transport.py`)
 
