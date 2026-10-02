@@ -61,6 +61,7 @@ scenarios:
   valueset/inactive-members: >-
     Two members of value set C85492 are marked inactive (FHIR contains.inactive), in both
     forms of its expansion
+  relationships/exclusion-missing: The role catalogue lacks R135, a code of the exclusion set
   upstream/unavailable: Every EVS request, whatever its path, gets a closed connection, then 503, then no answer within the timeout
   upstream/rate-limited: 429 with `Retry-After` on the release query, then the answer
   license/restricted: 403 without the licence key; invented content with it

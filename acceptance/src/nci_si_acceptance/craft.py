@@ -295,6 +295,22 @@ def traversal_exclusions(recorded: Recorded) -> Documents:
     }
 
 
+def relationships_exclusion_missing(recorded: Recorded) -> Documents:
+    """The role catalogue without the first code of the exclusion set: the set and the
+    release disagree, so polarity cannot be trusted for it."""
+
+    roles = recorded("recorded/evs/roles.json")
+    absent = min(EXCLUSION_ROLES)
+    catalogue = [role for role in roles["response"]["body"] if role["code"] != absent]
+    return {
+        "scenarios/relationships/exclusion-missing/roles.json": crafted(
+            f"A5.7: a release whose catalogue lacks {absent}, of the exclusion set, fails closed",
+            roles["request"],
+            response={"status": 200, "body": catalogue},
+        )
+    }
+
+
 def _misleading(code: str, name: str) -> str:
     if code in EXCLUSION_ROLES:
         return name.replace("_Excludes_", "_Without_")
@@ -479,6 +495,7 @@ SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     traversal_deep_fanout,
     traversal_exclusions,
     traversal_starvation,
+    relationships_exclusion_missing,
     release_unknown_expand,
     valueset_inactive_members,
     upstream_unavailable,

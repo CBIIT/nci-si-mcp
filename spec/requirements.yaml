@@ -119,6 +119,10 @@ X-18:
   statement: A value below 1 for an argument with bounds is an invalid request, never raised to 1.
   basis: [A5.1, A2.5]
   planned: "#53"
+X-19:
+  statement: An item of a terminology whose listing row carries licence text carries that text as its attribution.
+  basis: [A7.3, provenance]
+  planned: "#53"
 
 # EVS tools.
 resolve_release-1:
@@ -206,21 +210,29 @@ get_concept_neighborhood-6:
   basis: [get_concept_neighborhood, truncation, A5.5]
   planned: "#53"
 get_concept_subsets-1:
-  statement: Membership is returned with subset codes, and the GDC Value Terminology subset resolves.
-  basis: [get_concept_subsets]
-  planned: "#53"
+  statement: The subsets are the platform's Concept_In_Subset associations of the concept, each by code and name, in the platform's order.
+  basis: [get_concept_subsets, subset, A5.8]
 get_concept_mappings-1:
-  statement: Mapsets are first-class objects; licensed targets carry attribution; a mapset whose version is not the NCIt release is a content state of its own.
-  basis: [get_concept_mappings, A7.3]
-  planned: "#53"
+  statement: The mappings are the maps the platform carries on the concept, unchanged, in the platform's order.
+  basis: [get_concept_mappings, mapping, A9.1]
+get_concept_mappings-2:
+  statement: targetTerminology keeps the maps whose target the platform names so, and no other.
+  basis: [get_concept_mappings, mapping]
 resolve_retired_code-1:
-  statement: A retired code returns status retired with its replacement and an active code status active; a batch fails as a whole on one bad code only where the upstream does, and says which.
-  basis: [resolve_retired_code, A8]
-  planned: "#53"
+  statement: A retired code returns active false, the platform's status unchanged, and the replacements the platform names, by code and name.
+  basis: [resolve_retired_code, replacement, A8.1, A8.2]
+resolve_retired_code-2:
+  statement: An active code returns active true, its status, and no replacement.
+  basis: [resolve_retired_code, A8.1]
 list_relationships-1:
-  statement: The pinned release's roles are listed, the exclusion roles with negative polarity, derived from the code and not the name.
-  basis: [list_relationships, A5.6, A5.7]
-  planned: "#53"
+  statement: Every role and association of the release's catalogue is listed, by code, name and kind.
+  basis: [list_relationships, relationship, A9.1]
+list_relationships-2:
+  statement: A relationship is negative exactly when its code is in the terminology's exclusion set, whatever it is named.
+  basis: [list_relationships, relationship, traversal, A5.7]
+list_relationships-3:
+  statement: For a release whose catalogue lacks a code of the exclusion set, list_relationships and get_concept_neighborhood fail closed with internal_error naming the absent codes; a new exclusion relationship the set does not know is not caught.
+  basis: [list_relationships, get_concept_neighborhood, relationship, A5.7]
 list_terminologies-1:
   statement: The available terminologies are listed with their current releases, none the platform offers left out.
   basis: [list_terminologies, A7.2, terminology]

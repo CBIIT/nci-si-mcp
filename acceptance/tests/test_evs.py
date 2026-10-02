@@ -570,3 +570,174 @@ def test_a_node_limit_above_the_maximum_is_applied_as_the_maximum(tools, pinned,
     assert (truncation.get("bound"), truncation.get("limit")) == ("nodes", maximum)
     assert truncation.get("omitted", 0) >= 1
     assert _unmarked(nodes) == []
+
+
+@pytest.mark.tool("get_concept_subsets")
+@pytest.mark.requirement("get_concept_subsets-1")
+def test_the_subsets_are_the_concept_s_subset_associations_in_order(tools, pinned, recorded):
+    associations = recorded(CURRENT)["response"]["body"]["associations"]
+    expected = [
+        (association["relatedCode"], association["relatedName"])
+        for association in associations
+        if association["type"] == "Concept_In_Subset"
+    ]
+
+    result = _traverse(tools, pinned, "get_concept_subsets", CONCEPT)
+
+    subsets = items_of("get_concept_subsets", result.content)
+    assert [(subset.get("code"), subset.get("name")) for subset in subsets] == expected
+
+
+def _maps(result):
+    """Each mapping as the platform's map: the fields the map has, from the mapping."""
+
+    return items_of("get_concept_mappings", result.content)
+
+
+def _as_recorded(mappings, maps):
+    return [
+        {field: mapping.get(field) for field in recorded}
+        for mapping, recorded in zip(mappings, maps, strict=False)
+    ]
+
+
+@pytest.mark.tool("get_concept_mappings")
+@pytest.mark.requirement("get_concept_mappings-1")
+def test_the_mappings_are_the_concept_s_maps_unchanged_in_order(tools, pinned, recorded):
+    maps = recorded(CURRENT)["response"]["body"]["maps"]
+
+    mappings = _maps(_traverse(tools, pinned, "get_concept_mappings", CONCEPT))
+
+    assert len(mappings) == len(maps)
+    assert _as_recorded(mappings, maps) == maps
+
+
+@pytest.mark.tool("get_concept_mappings")
+@pytest.mark.requirement("get_concept_mappings-2")
+def test_target_terminology_keeps_the_maps_with_that_target_and_no_other(tools, pinned, recorded):
+    maps = recorded(CURRENT)["response"]["body"]["maps"]
+    # The target the fewest maps name, so that the filter leaves some out.
+    target = min(
+        {m["targetTerminology"] for m in maps}, key=[m["targetTerminology"] for m in maps].count
+    )
+    kept = [m for m in maps if m["targetTerminology"] == target]
+    assert 0 < len(kept) < len(maps)
+
+    mappings = _maps(
+        _traverse(tools, pinned, "get_concept_mappings", CONCEPT, targetTerminology=target)
+    )
+
+    assert len(mappings) == len(kept)
+    assert _as_recorded(mappings, kept) == kept
+
+
+# Retired in the retired/with-replacement scenario, with its replacements from EVS's history.
+REPLACEMENTS = "scenarios/retired/with-replacement/replacement.json"
+
+
+@pytest.mark.scenario("retired/with-replacement")
+@pytest.mark.tool("resolve_retired_code")
+@pytest.mark.requirement("resolve_retired_code-1")
+def test_a_retired_code_is_inactive_with_its_status_and_replacements(tools, pinned, recorded):
+    body = recorded(RETIRED)["response"]["body"]
+    history = recorded(REPLACEMENTS)["response"]["body"]
+    replacements = [(entry["replacementCode"], entry["replacementName"]) for entry in history]
+    assert replacements
+
+    result = _traverse(tools, pinned, "resolve_retired_code", body["code"])
+
+    content = result.content
+    assert (content.get("active"), content.get("status")) == (False, body["conceptStatus"])
+    found = [(entry.get("code"), entry.get("name")) for entry in content.get("replacements", [])]
+    assert found == replacements
+
+
+@pytest.mark.tool("resolve_retired_code")
+@pytest.mark.requirement("resolve_retired_code-2")
+def test_an_active_code_is_active_with_its_status_and_no_replacement(tools, pinned, recorded):
+    body = recorded(CURRENT)["response"]["body"]
+
+    result = _traverse(tools, pinned, "resolve_retired_code", CONCEPT)
+
+    content = result.content
+    assert (content.get("active"), content.get("status")) == (True, body["conceptStatus"])
+    assert content.get("replacements") == []
+
+
+# The release's relationship catalogue, roles and associations.
+CATALOGUE = {"role": "recorded/evs/roles.json", "association": "recorded/evs/associations.json"}
+
+
+def _relationships(tools, pinned):
+    result = tools.call("list_relationships", pinned)
+    assert not result.is_error, result.content
+    return items_of("list_relationships", result.content)
+
+
+@pytest.mark.tool("list_relationships")
+@pytest.mark.requirement("list_relationships-1")
+def test_every_relationship_of_the_catalogue_is_listed_by_code_name_and_kind(
+    tools, pinned, recorded
+):
+    expected = {
+        (entry["code"], entry["name"], kind)
+        for kind, file in CATALOGUE.items()
+        for entry in recorded(file)["response"]["body"]
+    }
+
+    listed = _relationships(tools, pinned)
+
+    assert {(item.get("code"), item.get("name"), item.get("kind")) for item in listed} == expected
+
+
+@pytest.mark.scenario("traversal/exclusions")
+@pytest.mark.tool("list_relationships")
+@pytest.mark.requirement("list_relationships-2")
+def test_a_relationship_s_polarity_follows_its_code_not_its_name(tools, pinned, recorded):
+    roles = recorded("scenarios/traversal/exclusions/roles.json")["response"]["body"]
+    associations = recorded(CATALOGUE["association"])["response"]["body"]
+    expected = {
+        entry["code"]: "negative" if _negative(entry["code"]) else "positive"
+        for entry in [*roles, *associations]
+    }
+
+    listed = _relationships(tools, pinned)
+
+    assert {item.get("code"): item.get("polarity") for item in listed} == expected
+
+
+# relationships/exclusion-missing: the role catalogue lacks a code of the exclusion set.
+INCOMPLETE = "scenarios/relationships/exclusion-missing/roles.json"
+
+
+@pytest.mark.scenario("relationships/exclusion-missing")
+@pytest.mark.requirement("list_relationships-3")
+@pytest.mark.parametrize(
+    ("tool", "arguments"),
+    [
+        pytest.param(
+            "list_relationships",
+            {},
+            id="list_relationships",
+            marks=pytest.mark.tool("list_relationships"),
+        ),
+        pytest.param(
+            NEIGHBORHOOD,
+            {"code": CONCEPT, "depth": 1, "kinds": ["role"]},
+            id=NEIGHBORHOOD,
+            marks=pytest.mark.tool(NEIGHBORHOOD),
+        ),
+    ],
+)
+def test_a_catalogue_without_a_code_of_the_exclusion_set_fails_closed(
+    tools, pinned, recorded, tool, arguments
+):
+    catalogue = {entry["code"] for entry in recorded(INCOMPLETE)["response"]["body"]}
+    absent = set(EXCLUSIONS["ncit"]) - catalogue
+    assert absent
+
+    result = tools.call(tool, {**pinned, **arguments})
+
+    assert error_code(result) == "internal_error", result.content
+    details = json.dumps(result.content["error"].get("details"))
+    assert [code for code in absent if code not in details] == []

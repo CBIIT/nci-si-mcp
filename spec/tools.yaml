@@ -96,17 +96,23 @@ get_concept_mappings:
   inputs: (terminology, release, code, targetTerminology?)
   returns: "{ mappings[] }"
   items: ["mappings[]"]
-  summary: A concept's mappings to other terminologies, each mapset with its own name and version.
+  summary: >-
+    The maps the platform carries on a concept, from it to other terminologies, unchanged and
+    each with its target's version where the platform gives one; maps into the terminology
+    from others are not this tool's. targetTerminology keeps the maps whose target the
+    platform names so.
 resolve_retired_code:
   group: evs
   inputs: (terminology, release, code)
-  returns: "{ code, terminology, status, replacements[] }"
+  returns: "{ code, terminology, active, status?, replacements[] }"
   items: [".", "replacements[]"]
-  summary: Whether a code is retired, and what replaces it.
+  summary: >-
+    Whether a code is retired (active false, as the platform publishes it), its status, and
+    what the platform names as replacing it.
 list_relationships:
   group: evs
   inputs: (terminology, release)
-  returns: "{ relationships[{ code, name, kind, polarity, axisFamily }] }"
+  returns: "{ relationships[] }"
   items: ["relationships[]"]
   summary: The relationship catalogue of a release, polarity marked by code.
 list_terminologies:

@@ -151,6 +151,10 @@ One concept has 300 roles and 2 associations, and another 300 associations and 2
 
 Two members of value set C85492 are marked inactive (FHIR contains.inactive), in both forms of its expansion. Crafted, 2 fixtures, for A8.3: activeOnly leaves out the members an expansion marks inactive. EVS was never seen to mark one, so against live EVS activeOnly cannot be shown to do anything (an upstream question, #42).
 
+### `relationships/exclusion-missing`
+
+The role catalogue lacks R135, a code of the exclusion set. Crafted, 1 fixture, for A5.7: a release whose catalogue lacks R135, of the exclusion set, fails closed.
+
 ### `upstream/unavailable`
 
 Every EVS request, whatever its path, gets a closed connection, then 503, then no answer within the timeout. Crafted, 2 fixtures, for A2.5, A5.3: bounded retries, counted, then a structured error.
