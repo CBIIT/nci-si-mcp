@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from nci_si_acceptance.fixture_server import CONCEPTS
-from nci_si_acceptance.record import FIXTURES, write
+from nci_si_acceptance.record import FIXTURES, RECORDED, RELEASE_FIELDS, reported_releases, write
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -47,6 +47,15 @@ class Recorded:
 
     def __call__(self, file: str) -> dict[str, Any]:
         return json.loads((self.root / file).read_text(encoding="utf-8"))
+
+    def files(self) -> list[str]:
+        """Every recorded and derived fixture, by file."""
+
+        return sorted(
+            path.relative_to(self.root).as_posix()
+            for directory in (RECORDED, "crafted")
+            for path in (self.root / directory).rglob("*.json")
+        )
 
 
 def crafted(requirement: str, request: dict[str, Any], **answer: Any) -> dict[str, Any]:
@@ -87,36 +96,48 @@ def recording(scenario: str, requirement: str, body: dict[str, Any]) -> Document
 
 
 def _with_release(payload: Any, release: str) -> Any:
-    """The payload with every `version` naming the pinned release naming `release`."""
+    """The payload with every field that names the pinned release naming `release`."""
 
     if isinstance(payload, list):
         return [_with_release(item, release) for item in payload]
     if not isinstance(payload, dict):
         return payload
     return {
-        key: release if key == "version" and value == RELEASE else _with_release(value, release)
+        key: release
+        if key in RELEASE_FIELDS and value == RELEASE
+        else _with_release(value, release)
         for key, value in payload.items()
     }
 
 
-# The fixtures whose answers carry the release, served from another one in release/mismatch:
-# the concept, through the rules, and the forms with no pinned equivalent upstream.
-MISMATCHED = (
-    f"recorded/evs/{CONCEPTS}/C4817.json",
-    "recorded/evs/search-contains.json",
-    "recorded/evs/paths-to-root.json",
-    "recorded/evs/subset-gdc-members.json",
-    "recorded/evs/subset-gdc-unpinned.json",
-    "crafted/OP-E06/subset-gdc.json",
-    "recorded/evs-fhir/expand-c85492.json",
-    "crafted/OP-F05/expand-c85492.json",
-    "recorded/evs/mapset-gdc.json",
+# Release discovery names the release rather than serving content from it: rewriting it
+# would change the release a server resolves, not provoke a mismatch.
+DISCOVERY = frozenset(
+    {
+        "recorded/evs/terminologies.json",
+        "recorded/evs/release-monthly.json",
+        "recorded/evs/release-weekly.json",
+    }
 )
 
 
+def mismatched(recorded: Recorded) -> list[str]:
+    """The fixtures release/mismatch serves from another release: every recorded or
+    derived one whose payload reports the pinned release, except release discovery."""
+
+    return [
+        file
+        for file in recorded.files()
+        if file not in DISCOVERY
+        and RELEASE in reported_releases(recorded(file)["response"]["body"])
+    ]
+
+
 def release_mismatch(recorded: Recorded) -> Documents:
+    """Every payload that reports the pinned release reports another one instead."""
+
     documents = {}
-    for file in MISMATCHED:
+    for file in mismatched(recorded):
         source = recorded(file)
         path = Path(file)
         name = (
@@ -133,32 +154,47 @@ def release_mismatch(recorded: Recorded) -> Documents:
     return documents
 
 
-def release_two_latest(recorded: Recorded) -> Documents:
-    """`latest=true` without a channel answers a monthly and a weekly row, both latest."""
+WEEKLY_RELEASE = "26.10a"
 
-    monthly = recorded("recorded/evs/release-monthly.json")["response"]["body"][0]
+
+def release_two_latest(recorded: Recorded) -> Documents:
+    """A monthly and a weekly release both `latest`, the weekly row first in every list:
+    a server taking the first `latest` row resolves the wrong monthly release. Every
+    form of the release query gives each channel the same release."""
+
+    monthly_source = recorded("recorded/evs/release-monthly.json")
+    weekly_source = recorded("recorded/evs/release-weekly.json")
+    monthly = monthly_source["response"]["body"][0] | {"tags": {"monthly": "true"}}
     weekly = monthly | {
-        "version": "26.10a",
-        "terminologyVersion": "ncit_26.10a",
+        "version": WEEKLY_RELEASE,
+        "terminologyVersion": f"ncit_{WEEKLY_RELEASE}",
         "date": "2026-10-05",
-        "name": "NCI Thesaurus 26.10a",
+        "name": f"NCI Thesaurus {WEEKLY_RELEASE}",
         "tags": {"weekly": "true"},
     }
-    rows = [monthly | {"tags": {"monthly": "true"}}, weekly]
     listing = recorded("recorded/evs/terminologies.json")
+    rows = [
+        replaced
+        for row in listing["response"]["body"]
+        for replaced in (
+            [weekly, monthly] if row == monthly_source["response"]["body"][0] else [row]
+        )
+    ]
     requirement = "A3.6.1-A3.6.3: two releases carry latest at once, one per channel"
-    query = {"surface": "evs", "method": "GET", "path": "/api/v1/metadata/terminologies"}
+    no_channel = monthly_source["request"] | {
+        "params": {"terminology": ["ncit"], "latest": ["true"]}
+    }
+    answers = {
+        "latest": (no_channel, [weekly, monthly]),
+        "monthly": (monthly_source["request"], [monthly]),
+        "weekly": (weekly_source["request"], [weekly]),
+        "terminologies": (listing["request"], rows),
+    }
     return {
-        "scenarios/release/two-latest/latest.json": crafted(
-            requirement,
-            query | {"params": {"terminology": ["ncit"], "latest": ["true"]}},
-            response={"status": 200, "body": rows},
-        ),
-        "scenarios/release/two-latest/terminologies.json": crafted(
-            requirement,
-            query,
-            response={"status": 200, "body": [*listing["response"]["body"], weekly]},
-        ),
+        f"scenarios/release/two-latest/{name}.json": crafted(
+            requirement, request, response={"status": 200, "body": body}
+        )
+        for name, (request, body) in answers.items()
     }
 
 
@@ -263,13 +299,13 @@ FAULTED = {
 
 def upstream_unavailable(_: Recorded) -> Documents:
     """A refused connection (as near as a fixture can: closed), then 503, then no answer
-    within the server's timeout, the last repeating."""
+    at all: the connection held past the server's timeout and closed, the last repeating."""
 
     requirement = "A2.5, A5.3: bounded retries, counted, then a structured error"
     responses = [
         {"fault": "close"},
         {"status": 503, "body": {"message": "Service Unavailable"}},
-        {"status": 504, "delay_seconds": 3, "body": {"message": "Gateway Timeout"}},
+        {"fault": "close", "delay_seconds": 3},
     ]
     documents: Documents = {
         "scenarios/upstream/unavailable/settings.json": {"NCI_SI_TIMEOUT_SECONDS": "1"}
@@ -279,7 +315,7 @@ def upstream_unavailable(_: Recorded) -> Documents:
         request |= (
             {"params": params}
             if params
-            else {"ignored": {"*": "a fault answers whatever is asked"}}
+            else {"ignored": {"*": "crafted: an unavailable service answers no request at all"}}
         )
         documents[f"scenarios/upstream/unavailable/{name}.json"] = crafted(
             requirement, request, responses=responses
@@ -330,7 +366,10 @@ def license_restricted(_: Recorded) -> Documents:
         "ignored": {"*": "placeholder content answers every projection alike"},
     }
     document = crafted(requirement, request, response={"status": 200, "body": LICENSED_CONCEPT})
-    document["placeholder"] = "no MedDRA content: the code and name are invented"
+    document["placeholder"] = {
+        "terminology": "mdr",
+        "reason": "no MedDRA content: the code and name are invented",
+    }
     return {
         "scenarios/license/restricted/settings.json": {"NCI_SI_EVS_LICENSE_KEY": LICENCE_KEY},
         "scenarios/license/restricted/granted.json": document,

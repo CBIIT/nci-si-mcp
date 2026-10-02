@@ -98,14 +98,16 @@ Each request: An unknown release answers 404 on every content path: the server f
 | OP-E06 | `GET evs /api/v1/history/ncit_99.99z/replacements?list=C154421` | 404; every parameter ignored | `scenarios/release/unknown/replacements.json` |
 | OP-E06 | `GET evs /api/v1/subset/ncit_99.99z/C177537` | 404; every parameter ignored | `scenarios/release/unknown/subset.json` |
 | OP-E06 | `GET evs /api/v1/subset/ncit_99.99z/C177537/members?fromRecord=0&pageSize=10&include=minimal` | 404; every parameter ignored | `scenarios/release/unknown/subset-members.json` |
+| OP-E06 | `GET evs /api/v1/concept/ncit_99.99z/C4817/descendants?maxLevel=4` | 404; every parameter ignored | `scenarios/release/unknown/descendants.json` |
+| OP-E06 | `GET evs /api/v1/metadata/ncit_99.99z/properties` | 404; every parameter ignored | `scenarios/release/unknown/property-catalogue.json` |
 
 ### `release/mismatch`
 
-Content, including the unpinned forms, names release 26.08e. Crafted, 9 fixtures, for A3.4: the content served names another release than the one requested.
+Every payload that reports the pinned release names 26.08e instead, the unpinned forms included; release discovery is left as recorded. Crafted, 106 fixtures, for A3.4: the content served names another release than the one requested.
 
 ### `release/two-latest`
 
-A monthly and a weekly row are both `latest`. Crafted, 2 fixtures, for A3.6.1-A3.6.3: two releases carry latest at once, one per channel.
+A weekly and a monthly row are both `latest`, the weekly first in every list; each form of the release query gives a channel the same release. Crafted, 4 fixtures, for A3.6.1-A3.6.3: two releases carry latest at once, one per channel.
 
 ### `batch/silent-drop`
 
@@ -129,7 +131,7 @@ C154421 is retired with a replacement, and one bad code fails a batch. Recorded.
 
 ### `traversal/deep-fanout`
 
-One root has 1,001 children, and a chain runs deeper than depth 4. Crafted, 1,007 fixtures, for A5.1-A5.4: descendants beyond the depth and node bounds.
+One root has 1,001 children, and a chain runs deeper than depth 4 from its first child, C99000001 (the node maximum is reached at depth 1 from the root). Crafted, 1,007 fixtures, for A5.1-A5.4: descendants beyond the depth and node bounds.
 
 ### `traversal/exclusions`
 

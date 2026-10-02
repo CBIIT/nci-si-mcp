@@ -6,7 +6,7 @@
   "method": "GET",
   "path": "/api/v1/concept/ncit_26.09d/C4817",
   "ignored": {
-   "*": "a fault answers whatever is asked"
+   "*": "crafted: an unavailable service answers no request at all"
   }
  },
  "responses": [
@@ -20,11 +20,8 @@
    }
   },
   {
-   "status": 504,
-   "delay_seconds": 3,
-   "body": {
-    "message": "Gateway Timeout"
-   }
+   "fault": "close",
+   "delay_seconds": 3
   }
  ]
 }

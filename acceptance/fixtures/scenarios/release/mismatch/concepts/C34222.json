@@ -1,0 +1,221 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C34222",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C34222",
+   "name": "Neural Crest",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Neural Crest",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Neural Crest",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A cell region originating at the margins of the dorsal part of the neural tube during the early stages of embryonic development that migrates to multiple locations within the embryo, and are multipotent, giving rise to a vast number of differentiated cell and tissue types.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Neural_Crest"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Embryonic Structure"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C0027789"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C34237",
+     "name": "Other Embryologic Structure"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R82",
+     "type": "Anatomic_Structure_Is_Physical_Part_Of",
+     "relatedCode": "C34228",
+     "relatedName": "Neuroectoderm"
+    }
+   ],
+   "history": [
+    {
+     "code": "C34222",
+     "action": "create",
+     "date": "2004-02-23"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2015-08-17"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2015-08-24"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2015-08-31"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2015-09-08"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2015-09-14"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2015-09-21"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2015-09-28"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2015-10-05"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2015-10-13"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2015-10-19"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2015-10-26"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2015-11-02"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2015-11-09"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2015-11-16"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2015-11-23"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2015-11-30"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2015-12-07"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2015-12-14"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2015-12-21"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2015-12-28"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2016-01-04"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2016-01-11"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2016-01-19"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2016-01-29"
+    },
+    {
+     "code": "C34222",
+     "action": "modify",
+     "date": "2017-10-30"
+    }
+   ]
+  }
+ }
+}

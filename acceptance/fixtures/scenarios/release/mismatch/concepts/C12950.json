@@ -1,0 +1,257 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C12950",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C12950",
+   "name": "Embryonic Tissue",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Embryonic Tissue",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "GDC"
+    },
+    {
+     "name": "Embryonic Tissue",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Embryonic Tissue",
+     "type": "Display_Name",
+     "typeCode": "P107"
+    },
+    {
+     "name": "Embryonic Tissue",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "Tissue that is formed during the embryonic stage of life of an organism.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "GDC"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Embryonic_Tissue"
+    },
+    {
+     "code": "P375",
+     "type": "Maps_To",
+     "value": "Embryonic Tissue"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Embryonic Structure"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C0920502"
+    }
+   ],
+   "children": [
+    {
+     "code": "C32504",
+     "name": "Embryonic Connective Tissue",
+     "leaf": false
+    },
+    {
+     "code": "C176324",
+     "name": "Genital Tubercle",
+     "leaf": true
+    },
+    {
+     "code": "C54105",
+     "name": "Germinal Layer",
+     "leaf": false
+    },
+    {
+     "code": "C133317",
+     "name": "Inner Membrane Amniotic Membrane Tissue",
+     "leaf": true
+    },
+    {
+     "code": "C133318",
+     "name": "Umbilical Cord Tissue",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C13229",
+     "name": "Embryonic Structure"
+    },
+    {
+     "code": "C12801",
+     "name": "Tissue"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C157711",
+     "relatedName": "GDC Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177537",
+     "relatedName": "GDC Value Terminology"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C83315",
+     "relatedName": "Laboratory Specimen Type"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R82",
+     "type": "Anatomic_Structure_Is_Physical_Part_Of",
+     "relatedCode": "C28147",
+     "relatedName": "Embryo"
+    }
+   ],
+   "history": [
+    {
+     "code": "C12950",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C12950",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C12950",
+     "action": "split",
+     "date": "2004-02-23",
+     "replacementCode": "C34100",
+     "replacementName": "Embryonic"
+    },
+    {
+     "code": "C12950",
+     "action": "split",
+     "date": "2004-02-23",
+     "replacementCode": "C12950",
+     "replacementName": "Embryonic Tissue"
+    },
+    {
+     "code": "C12950",
+     "action": "modify",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C12950",
+     "action": "modify",
+     "date": "2006-06-30"
+    },
+    {
+     "code": "C12950",
+     "action": "modify",
+     "date": "2008-11-26"
+    },
+    {
+     "code": "C12950",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C12950",
+     "action": "modify",
+     "date": "2010-03-08"
+    },
+    {
+     "code": "C12950",
+     "action": "modify",
+     "date": "2011-11-14"
+    },
+    {
+     "code": "C12950",
+     "action": "modify",
+     "date": "2014-08-25"
+    },
+    {
+     "code": "C12950",
+     "action": "modify",
+     "date": "2015-10-19"
+    },
+    {
+     "code": "C12950",
+     "action": "modify",
+     "date": "2019-05-28"
+    },
+    {
+     "code": "C12950",
+     "action": "modify",
+     "date": "2019-09-30"
+    },
+    {
+     "code": "C12950",
+     "action": "modify",
+     "date": "2019-10-28"
+    },
+    {
+     "code": "C12950",
+     "action": "modify",
+     "date": "2020-01-27"
+    },
+    {
+     "code": "C12950",
+     "action": "modify",
+     "date": "2021-02-22"
+    },
+    {
+     "code": "C12950",
+     "action": "modify",
+     "date": "2021-03-29"
+    }
+   ],
+   "maps": [
+    {
+     "type": "Has Synonym",
+     "targetName": "Embryonic Tissue",
+     "targetTermType": "PT",
+     "targetCode": "biospecimen_type",
+     "targetTerminology": "GDC"
+    }
+   ]
+  }
+ }
+}

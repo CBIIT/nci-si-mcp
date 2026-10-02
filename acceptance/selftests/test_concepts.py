@@ -404,3 +404,18 @@ def test_a_recording_has_one_plain_response(tmp_path):
         ValueError, match="a concept recording has one response, of status and body"
     ):
         load_fixtures(tmp_path)
+
+
+@pytest.mark.parametrize(
+    "extra", [{"headers": {"X-EVSRESTAPI-License-Key": "key"}}, {"ignored": {"*": "evidence"}}]
+)
+def test_a_recording_naming_headers_or_ignored_parameters_is_refused(tmp_path, extra):
+    write_manifest(tmp_path)
+    recording(tmp_path, "C1")
+    path = tmp_path / "recorded/evs/concepts/C1.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    document["request"] |= extra
+    path.write_text(json.dumps(document), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="matched by its concept alone"):
+        load_fixtures(tmp_path)

@@ -1,0 +1,122 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C45714",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C45714",
+   "name": "Epithelial Tissue",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Epithelial Tissue",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Epithelial Tissue",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Epithelial_Tissue"
+    },
+    {
+     "code": "P208",
+     "type": "NCI_META_CUI",
+     "value": "CL448688"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Tissue"
+    }
+   ],
+   "children": [
+    {
+     "code": "C12710",
+     "name": "Epithelium",
+     "leaf": false
+    },
+    {
+     "code": "C45715",
+     "name": "Glandular Epithelial Tissue",
+     "leaf": false
+    },
+    {
+     "code": "C12608",
+     "name": "Islet of Langerhans",
+     "leaf": true
+    },
+    {
+     "code": "C61581",
+     "name": "Mesonephric Remnants",
+     "leaf": true
+    },
+    {
+     "code": "C48365",
+     "name": "Neuroendocrine Tissue",
+     "leaf": false
+    },
+    {
+     "code": "C49268",
+     "name": "Pancreatic Acinus",
+     "leaf": true
+    },
+    {
+     "code": "C45713",
+     "name": "Thymic Epithelial Tissue",
+     "leaf": true
+    },
+    {
+     "code": "C47809",
+     "name": "Thyroid Gland Epithelial Tissue",
+     "leaf": false
+    }
+   ],
+   "parents": [
+    {
+     "code": "C12801",
+     "name": "Tissue"
+    }
+   ],
+   "history": [
+    {
+     "code": "C45714",
+     "action": "create",
+     "date": "2005-04-29"
+    },
+    {
+     "code": "C45714",
+     "action": "modify",
+     "date": "2005-09-09"
+    },
+    {
+     "code": "C45714",
+     "action": "modify",
+     "date": "2009-11-23"
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,689 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C9292",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C9292",
+   "name": "Solid Neoplasm",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Solid Neoplasm",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CPTAC"
+    },
+    {
+     "name": "Solid tumor, NOS",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTEP",
+     "code": "10029000",
+     "subSource": "SDC"
+    },
+    {
+     "name": "Solid Tumor",
+     "termType": "DN",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTRP"
+    },
+    {
+     "name": "Solid Tumour",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "FDA",
+     "code": "4552",
+     "subSource": "CDRH"
+    },
+    {
+     "name": "solid tumor",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI-GLOSS",
+     "code": "CDR0000045301"
+    },
+    {
+     "name": "Solid Neoplasm",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Solid Tumor",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Solid Tumor",
+     "type": "Display_Name",
+     "typeCode": "P107"
+    },
+    {
+     "name": "Solid Neoplasm",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A benign or malignant neoplasm arising from tissues that do not include fluid areas.  Representative examples include epithelial neoplasms (e.g. lung carcinoma, prostate carcinoma, breast carcinoma, colon carcinoma), and neoplasms arising from the soft tissues and bones (e.g. leiomyosarcoma, liposarcoma, chondrosarcoma, osteosarcoma).  Neoplasms originating from the blood or bone marrow (leukemias and myeloproliferative disorders) are not considered solid tumors.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    },
+    {
+     "definition": "Abnormal mass of tissue that usually does not contain cysts or liquid areas. Solid tumors may be benign (not cancerous), or malignant (cancerous). Different types of solid tumors are named for the type of cells that form them. If tumors are associated with those under the term cancer, these terms should be used.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "FDA",
+     "qualifiers": [
+      {
+       "code": "P381",
+       "type": "attribution",
+       "value": "CDRH"
+      }
+     ]
+    },
+    {
+     "definition": "An abnormal mass of tissue that usually does not contain cysts or liquid areas. Solid tumors may be benign (not cancer), or malignant (cancer). Different types of solid tumors are named for the type of cells that form them. Examples of solid tumors are sarcomas, carcinomas, and lymphomas. Leukemias (cancers of the blood) generally do not form solid tumors.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "NCI-GLOSS"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CPTAC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTEP"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTRP"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "FDA"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Solid_Neoplasm"
+    },
+    {
+     "type": "Logical_Definition",
+     "value": "true"
+    },
+    {
+     "code": "P363",
+     "type": "Neoplastic_Status",
+     "value": "Undetermined"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Neoplastic Process"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C0280100"
+    },
+    {
+     "code": "oboInOwl:hasDbXref",
+     "type": "xRef",
+     "value": "IMDRF:E1804"
+    }
+   ],
+   "children": [
+    {
+     "code": "C8101",
+     "name": "Adult Solid Neoplasm",
+     "leaf": true
+    },
+    {
+     "code": "C9107",
+     "name": "Childhood Solid Neoplasm",
+     "leaf": false
+    },
+    {
+     "code": "C151940",
+     "name": "Extracranial Solid Neoplasm",
+     "leaf": false
+    },
+    {
+     "code": "C132146",
+     "name": "Malignant Solid Neoplasm",
+     "leaf": false
+    },
+    {
+     "code": "C127156",
+     "name": "Unresectable Solid Neoplasm",
+     "leaf": false
+    }
+   ],
+   "parents": [
+    {
+     "code": "C7062",
+     "name": "Neoplasm by Special Category",
+     "defining": true
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C54450",
+     "relatedName": "CDRH Health Effects - Clinical Signs and Symptoms or Conditions Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C138188",
+     "relatedName": "Clinical Trials Search-Application Programming Interface Disease Category Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C158520",
+     "relatedName": "CPTAC Codelists Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C156966",
+     "relatedName": "CPTAC Neoplasms Codelist"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C156952",
+     "relatedName": "CPTAC Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C118168",
+     "relatedName": "CTRP Disease Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C175324",
+     "relatedName": "CTRP Portfolio Management Main Type Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C116977",
+     "relatedName": "CTRP Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C138190",
+     "relatedName": "CTS-API Disease Main Type Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C103095",
+     "relatedName": "NCI CTEP SDC Solid Tumor, Miscellaneous Sub-Category Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C102905",
+     "relatedName": "NCI CTEP Simplified Disease Classification Terminology"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R112",
+     "type": "Disease_May_Have_Normal_Cell_Origin",
+     "relatedCode": "C12555",
+     "relatedName": "Connective and Soft Tissue Cell",
+     "group": "Anatomic Structure, System, or Substance"
+    },
+    {
+     "code": "R112",
+     "type": "Disease_May_Have_Normal_Cell_Origin",
+     "relatedCode": "C12578",
+     "relatedName": "Epithelial Cell",
+     "group": "Anatomic Structure, System, or Substance"
+    },
+    {
+     "code": "R138",
+     "type": "Disease_Excludes_Normal_Cell_Origin",
+     "relatedCode": "C32725",
+     "relatedName": "Hematopoietic and Lymphoid Cell",
+     "group": "Anatomic Structure, System, or Substance"
+    },
+    {
+     "code": "R137",
+     "type": "Disease_Excludes_Normal_Tissue_Origin",
+     "relatedCode": "C41168",
+     "relatedName": "Hematopoietic and Lymphoid Tissue",
+     "group": "Anatomic Structure, System, or Substance"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C12922",
+     "relatedName": "Neoplastic Cell"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C36182",
+     "relatedName": "Solid Growth Pattern",
+     "group": "Disease, Disorder or Finding"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C190106",
+     "relatedName": "Solid Lesion",
+     "group": "Disease, Disorder or Finding"
+    }
+   ],
+   "history": [
+    {
+     "code": "C9292",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2003-10-31"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2006-09-01"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2007-06-28"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2007-10-29"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2010-01-11"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2011-02-22"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2012-09-24"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2012-10-01"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2012-10-09"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2012-10-15"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2012-10-22"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2012-10-31"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2012-11-05"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2012-11-13"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2012-11-19"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2012-11-26"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2012-12-03"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2012-12-10"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2012-12-17"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2012-12-28"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-01-07"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-01-14"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-01-23"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-02-04"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-02-11"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-02-19"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-02-25"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-03-04"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-03-11"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-03-18"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-03-25"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-04-01"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-04-08"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-04-15"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-04-22"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-04-29"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-05-06"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-05-13"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-05-20"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-05-28"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-06-03"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-06-10"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-06-17"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-06-24"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-07-01"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2013-07-08"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2014-04-14"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2014-08-04"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2014-08-18"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2014-09-22"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2016-08-29"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2017-02-21"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2017-07-31"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2018-07-30"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2018-10-29"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2018-10-29"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2019-02-25"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2019-03-25"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2019-05-28"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2020-05-26"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2020-10-26"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2022-10-31"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2024-08-26"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2024-08-26"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2024-11-25"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2025-05-27"
+    },
+    {
+     "code": "C9292",
+     "action": "modify",
+     "date": "2026-04-27"
+    }
+   ]
+  }
+ }
+}

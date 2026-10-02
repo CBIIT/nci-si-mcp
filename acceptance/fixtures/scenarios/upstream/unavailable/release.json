@@ -28,11 +28,8 @@
    }
   },
   {
-   "status": 504,
-   "delay_seconds": 3,
-   "body": {
-    "message": "Gateway Timeout"
-   }
+   "fault": "close",
+   "delay_seconds": 3
   }
  ]
 }

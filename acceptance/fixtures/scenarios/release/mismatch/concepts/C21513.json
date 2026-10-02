@@ -1,0 +1,253 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C21513",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C21513",
+   "name": "G Antigen Family D Member 3",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Cancer/testis antigen 12.2",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "CT12.2",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "G Antigen Family D Member 3",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "G Antigen Family D, Protein 3",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "GAGED3",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "GAGED3 Protein",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Protein XAGE-2",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "XAGE-2 Protein",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "G Antigen Family D Member 3",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "G antigen family D member 3 (111 aa, ~12 kDa) is encoded by the human XAGE2 gene. This protein may play a role in testicular development or function.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "GAGED3_Protein"
+    },
+    {
+     "code": "P100",
+     "type": "OMIM_Number",
+     "value": "300416"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Amino Acid, Peptide, or Protein"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Biologically Active Substance"
+    },
+    {
+     "code": "P93",
+     "type": "Swiss_Prot",
+     "value": "Q96GT9"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1333657"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C16725",
+     "name": "Immunoprotein"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R48",
+     "type": "Gene_Product_Malfunction_Associated_With_Disease",
+     "relatedCode": "C4872",
+     "relatedName": "Breast Carcinoma"
+    },
+    {
+     "code": "R53",
+     "type": "Gene_Product_Plays_Role_In_Biological_Process",
+     "relatedCode": "C21147",
+     "relatedName": "Developmental Process"
+    },
+    {
+     "code": "R48",
+     "type": "Gene_Product_Malfunction_Associated_With_Disease",
+     "relatedCode": "C4817",
+     "relatedName": "Ewing Sarcoma"
+    },
+    {
+     "code": "R53",
+     "type": "Gene_Product_Plays_Role_In_Biological_Process",
+     "relatedCode": "C17937",
+     "relatedName": "Immune System Process"
+    },
+    {
+     "code": "R54",
+     "type": "Gene_Product_Encoded_By_Gene",
+     "relatedCode": "C25790",
+     "relatedName": "Immunoprotein Gene"
+    },
+    {
+     "code": "R49",
+     "type": "Gene_Product_Expressed_In_Tissue",
+     "relatedCode": "C13272",
+     "relatedName": "Placenta"
+    },
+    {
+     "code": "R48",
+     "type": "Gene_Product_Malfunction_Associated_With_Disease",
+     "relatedCode": "C3359",
+     "relatedName": "Rhabdomyosarcoma"
+    },
+    {
+     "code": "R49",
+     "type": "Gene_Product_Expressed_In_Tissue",
+     "relatedCode": "C12412",
+     "relatedName": "Testis"
+    },
+    {
+     "code": "R54",
+     "type": "Gene_Product_Encoded_By_Gene",
+     "relatedCode": "C20788",
+     "relatedName": "XAGE2 Gene"
+    }
+   ],
+   "history": [
+    {
+     "code": "C21513",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C21513",
+     "action": "modify",
+     "date": "2003-08-22"
+    },
+    {
+     "code": "C21513",
+     "action": "modify",
+     "date": "2003-09-29"
+    },
+    {
+     "code": "C21513",
+     "action": "modify",
+     "date": "2003-10-31"
+    },
+    {
+     "code": "C21513",
+     "action": "modify",
+     "date": "2003-12-05"
+    },
+    {
+     "code": "C21513",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C21513",
+     "action": "modify",
+     "date": "2006-04-28"
+    },
+    {
+     "code": "C21513",
+     "action": "modify",
+     "date": "2009-04-06"
+    },
+    {
+     "code": "C21513",
+     "action": "modify",
+     "date": "2009-06-15"
+    },
+    {
+     "code": "C21513",
+     "action": "modify",
+     "date": "2009-08-03"
+    },
+    {
+     "code": "C21513",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C21513",
+     "action": "modify",
+     "date": "2014-02-03"
+    }
+   ]
+  }
+ }
+}

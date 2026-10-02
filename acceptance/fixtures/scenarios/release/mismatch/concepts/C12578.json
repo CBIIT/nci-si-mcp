@@ -1,0 +1,418 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C12578",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C12578",
+   "name": "Epithelial Cell",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "EPITHELIAL CELL",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CDISC"
+    },
+    {
+     "name": "Epithelial Cell",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Epithelial Cells",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Epithelial Cell",
+     "type": "Display_Name",
+     "typeCode": "P107"
+    },
+    {
+     "name": "Epithelial Cell",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "Any of the cells of the epithelium, which covers the body and lines its cavities and glands.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "CDISC"
+    },
+    {
+     "definition": "Any of the cells of the epithelium, which covers the body and lines its cavities and glands.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CDISC"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Epithelial_Cell"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Cell"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C0014597"
+    }
+   ],
+   "children": [
+    {
+     "code": "C32053",
+     "name": "Alveolar Cell",
+     "leaf": false
+    },
+    {
+     "code": "C12579",
+     "name": "Ameloblast",
+     "leaf": false
+    },
+    {
+     "code": "C32190",
+     "name": "Basaloid Cell",
+     "leaf": true
+    },
+    {
+     "code": "C43373",
+     "name": "Eccrine Cell",
+     "leaf": true
+    },
+    {
+     "code": "C32506",
+     "name": "Endocrine Cell",
+     "leaf": false
+    },
+    {
+     "code": "C13145",
+     "name": "Epithelial Receptor Cell",
+     "leaf": false
+    },
+    {
+     "code": "C13124",
+     "name": "Epithelial Reticular Cell",
+     "leaf": true
+    },
+    {
+     "code": "C33923",
+     "name": "Glandular Cell",
+     "leaf": false
+    },
+    {
+     "code": "C13146",
+     "name": "Intercalated Cell",
+     "leaf": true
+    },
+    {
+     "code": "C13148",
+     "name": "Light Cell",
+     "leaf": true
+    },
+    {
+     "code": "C33063",
+     "name": "Mechanoreceptor Cell",
+     "leaf": false
+    },
+    {
+     "code": "C33152",
+     "name": "Myoepithelial Cell",
+     "leaf": false
+    },
+    {
+     "code": "C13150",
+     "name": "Olfactory Epithelial Cell",
+     "leaf": false
+    },
+    {
+     "code": "C33334",
+     "name": "Podocyte",
+     "leaf": true
+    },
+    {
+     "code": "C61147",
+     "name": "Renal Tubular Epithelial Cell",
+     "leaf": true
+    },
+    {
+     "code": "C33916",
+     "name": "Reserve Cell",
+     "leaf": true
+    },
+    {
+     "code": "C12475",
+     "name": "Skin Basal Cell",
+     "leaf": false
+    },
+    {
+     "code": "C13006",
+     "name": "Specialized Epithelial Cell",
+     "leaf": false
+    },
+    {
+     "code": "C12849",
+     "name": "Squamous Cell",
+     "leaf": false
+    },
+    {
+     "code": "C62170",
+     "name": "Terminal Duct Cell",
+     "leaf": true
+    },
+    {
+     "code": "C33771",
+     "name": "Thymic Epithelial Cell",
+     "leaf": false
+    },
+    {
+     "code": "C12866",
+     "name": "Transitional Cell",
+     "leaf": false
+    },
+    {
+     "code": "C33917",
+     "name": "Trophoblastic Cell",
+     "leaf": false
+    }
+   ],
+   "parents": [
+    {
+     "code": "C12508",
+     "name": "Cell"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C78734",
+     "relatedName": "CDISC SDTM Specimen Type Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C66830",
+     "relatedName": "CDISC SDTM Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C61410",
+     "relatedName": "Clinical Data Interchange Standards Consortium Terminology"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R82",
+     "type": "Anatomic_Structure_Is_Physical_Part_Of",
+     "relatedCode": "C45714",
+     "relatedName": "Epithelial Tissue"
+    }
+   ],
+   "history": [
+    {
+     "code": "C12578",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2003-10-31"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2004-02-23"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2005-03-16"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2005-04-29"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2005-09-09"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2008-11-26"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2009-04-06"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2010-07-19"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2010-07-26"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2010-08-02"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2010-08-09"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2010-08-16"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2010-08-23"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2010-08-30"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2010-09-07"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2010-09-13"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2010-09-20"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2010-09-27"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2014-02-03"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2015-09-21"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2016-04-04"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2017-03-13"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2017-03-20"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2017-03-27"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2017-04-03"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2017-04-10"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2017-04-17"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2017-04-24"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2017-05-01"
+    },
+    {
+     "code": "C12578",
+     "action": "modify",
+     "date": "2017-05-04"
+    }
+   ]
+  }
+ }
+}

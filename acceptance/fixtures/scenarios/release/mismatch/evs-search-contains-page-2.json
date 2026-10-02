@@ -1,0 +1,145 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/search",
+  "params": {
+   "term": [
+    "ewing sarcoma"
+   ],
+   "type": [
+    "contains"
+   ],
+   "include": [
+    "minimal,highlights"
+   ],
+   "fromRecord": [
+    "10"
+   ],
+   "pageSize": [
+    "10"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "total": 1027,
+   "timeTaken": 45,
+   "parameters": {
+    "term": "ewing sarcoma",
+    "type": "contains",
+    "include": "minimal,highlights",
+    "fromRecord": 10,
+    "pageSize": 10,
+    "terminology": [
+     "ncit_26.09d"
+    ]
+   },
+   "concepts": [
+    {
+     "code": "C181977",
+     "name": "Vulvar Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "Vulvar <em>Ewing</em> <em>Sarcoma</em>",
+     "conceptStatus": "DEFAULT",
+     "leaf": true,
+     "active": true
+    },
+    {
+     "code": "C213633",
+     "name": "Lung Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "Lung <em>Ewing</em> <em>Sarcoma</em>",
+     "conceptStatus": "DEFAULT",
+     "leaf": true,
+     "active": true
+    },
+    {
+     "code": "C223537",
+     "name": "Pancreatic Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "Pancreatic <em>Ewing</em> <em>Sarcoma</em>",
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C7806",
+     "name": "Localized Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "Localized <em>Ewing</em> <em>Sarcoma</em>",
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C7807",
+     "name": "Metastatic Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "Metastatic <em>Ewing</em> <em>Sarcoma</em>",
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C7808",
+     "name": "Recurrent Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "Recurrent <em>Ewing</em> <em>Sarcoma</em>",
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C7135",
+     "name": "Extraskeletal Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "Extraskeletal <em>Ewing</em> <em>Sarcoma</em>",
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    },
+    {
+     "code": "C164080",
+     "name": "Locally Advanced Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "Locally Advanced <em>Ewing</em> <em>Sarcoma</em>",
+     "conceptStatus": "DEFAULT",
+     "leaf": true,
+     "active": true
+    },
+    {
+     "code": "C189261",
+     "name": "Childhood Kidney Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "Childhood Kidney <em>Ewing</em> <em>Sarcoma</em>",
+     "conceptStatus": "DEFAULT",
+     "leaf": true,
+     "active": true
+    },
+    {
+     "code": "C213627",
+     "name": "Adamantinoma-Like Ewing Sarcoma",
+     "terminology": "ncit",
+     "version": "26.08e",
+     "highlight": "Adamantinoma-Like <em>Ewing</em> <em>Sarcoma</em>",
+     "conceptStatus": "DEFAULT",
+     "leaf": false,
+     "active": true
+    }
+   ]
+  }
+ }
+}

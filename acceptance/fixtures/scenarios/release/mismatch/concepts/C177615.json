@@ -1,0 +1,283 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C177615",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C177615",
+   "name": "TCGA BCR Tumor Code Name",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "tumor code",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "GDC",
+     "code": "VAR"
+    },
+    {
+     "name": "tumor_code",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "GDC",
+     "code": "VAR"
+    },
+    {
+     "name": "TCGA BCR Tumor Code Name",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "TCGA BCR Tumor Code Name",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A name and abbreviation assigned by the The Cancer Genome Atlas (TCGA) Biospecimen Core Resource (BCR) to the diagnosis associated with a tumor sample.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "GDC"
+    },
+    {
+     "code": "P208",
+     "type": "NCI_META_CUI",
+     "value": "CL1643388"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Conceptual Entity"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C42614",
+     "name": "Name"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C7464",
+     "relatedName": "Acute Leukemia of Ambiguous Lineage"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3167",
+     "relatedName": "Acute Lymphoblastic Leukemia"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3171",
+     "relatedName": "Acute Myeloid Leukemia"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C9291",
+     "relatedName": "Anal Carcinoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3720",
+     "relatedName": "Anaplastic Large Cell Lymphoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C2912",
+     "relatedName": "Burkitt Lymphoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C9039",
+     "relatedName": "Cervical Carcinoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4264",
+     "relatedName": "Clear Cell Sarcoma of the Kidney"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C8851",
+     "relatedName": "Diffuse Large B-Cell Lymphoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3017",
+     "relatedName": "Ependymoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4817",
+     "relatedName": "Ewing Sarcoma"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177536",
+     "relatedName": "GDC Property Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C157711",
+     "relatedName": "GDC Terminology"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3058",
+     "relatedName": "Glioblastoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C132067",
+     "relatedName": "Low Grade Glioma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4878",
+     "relatedName": "Lung Carcinoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3222",
+     "relatedName": "Medulloblastoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3270",
+     "relatedName": "Neuroblastoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C166238",
+     "relatedName": "Non-Tumor Tissue Area"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C9145",
+     "relatedName": "Osteosarcoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C184765",
+     "relatedName": "Personal History of Acute Myeloid Leukemia with Induction Failure"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C184751",
+     "relatedName": "Personal History of Central Nervous System Rhabdoid Tumor"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C184750",
+     "relatedName": "Personal History of Other Central Nervous System Tumor"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C8715",
+     "relatedName": "Rhabdoid Tumor of the Kidney"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3359",
+     "relatedName": "Rhabdomyosarcoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C9306",
+     "relatedName": "Soft Tissue Sarcoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3267",
+     "relatedName": "Wilms Tumor"
+    }
+   ],
+   "history": [
+    {
+     "code": "C177615",
+     "action": "create",
+     "date": "2021-02-22"
+    },
+    {
+     "code": "C177615",
+     "action": "modify",
+     "date": "2021-03-29"
+    },
+    {
+     "code": "C177615",
+     "action": "modify",
+     "date": "2021-08-30"
+    },
+    {
+     "code": "C177615",
+     "action": "modify",
+     "date": "2021-09-27"
+    },
+    {
+     "code": "C177615",
+     "action": "modify",
+     "date": "2021-11-29"
+    },
+    {
+     "code": "C177615",
+     "action": "modify",
+     "date": "2021-12-27"
+    }
+   ]
+  }
+ }
+}

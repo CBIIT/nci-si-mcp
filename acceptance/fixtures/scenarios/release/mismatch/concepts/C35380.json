@@ -1,0 +1,153 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C35380",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C35380",
+   "name": "Hemorrhagic Change",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Hemorrhagic Change",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Hemorrhagic Change",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A morphologic finding indicating a change in a tissue due to vascular injury or leakage.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Hemorrhagic_Change"
+    },
+    {
+     "code": "P208",
+     "type": "NCI_META_CUI",
+     "value": "CL448798"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Finding"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C35867",
+     "name": "Morphologic Finding"
+    }
+   ],
+   "history": [
+    {
+     "code": "C35380",
+     "action": "create",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C35380",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C35380",
+     "action": "modify",
+     "date": "2010-06-28"
+    },
+    {
+     "code": "C35380",
+     "action": "modify",
+     "date": "2010-07-06"
+    },
+    {
+     "code": "C35380",
+     "action": "modify",
+     "date": "2010-07-12"
+    },
+    {
+     "code": "C35380",
+     "action": "modify",
+     "date": "2010-07-19"
+    },
+    {
+     "code": "C35380",
+     "action": "modify",
+     "date": "2010-07-26"
+    },
+    {
+     "code": "C35380",
+     "action": "modify",
+     "date": "2010-08-02"
+    },
+    {
+     "code": "C35380",
+     "action": "modify",
+     "date": "2010-08-09"
+    },
+    {
+     "code": "C35380",
+     "action": "modify",
+     "date": "2010-08-16"
+    },
+    {
+     "code": "C35380",
+     "action": "modify",
+     "date": "2010-08-23"
+    },
+    {
+     "code": "C35380",
+     "action": "modify",
+     "date": "2010-08-30"
+    },
+    {
+     "code": "C35380",
+     "action": "modify",
+     "date": "2010-09-07"
+    },
+    {
+     "code": "C35380",
+     "action": "modify",
+     "date": "2010-09-13"
+    },
+    {
+     "code": "C35380",
+     "action": "modify",
+     "date": "2010-09-20"
+    },
+    {
+     "code": "C35380",
+     "action": "modify",
+     "date": "2010-09-27"
+    }
+   ]
+  }
+ }
+}

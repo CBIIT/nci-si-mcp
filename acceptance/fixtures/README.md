@@ -56,6 +56,10 @@ Two kinds of request are answered whatever their form:
   evidence and left out of the match (FHIR `$expand` ignores `count`, `offset` and `activeOnly`).
 
 A request in any other form finds no fixture, and the test that sent it reports NO FIXTURE.
+Two more things decide which fixture answers (`fixture_server.py` has the rules): a fixture may
+name request headers it requires (a licence key), and while a test selects a scenario, the
+scenario's fixtures answer before any ordinary one, `"*"` under `ignored` making one answer
+whatever parameters are asked.
 
 ## Content and terms
 
@@ -78,7 +82,8 @@ are NCIt content and stay; only items that come from or map to a licensed termin
 check fails closed: a terminology a payload names that is on neither list stops the recording
 until someone decides it, and `selftests/test_fixture_set.py` fails on any licensed or
 undecided name left in the set. A crafted fixture may answer for a licensed terminology only with
-invented content it declares under `placeholder` (`license/restricted`).
+invented content it declares under `placeholder`, naming the one terminology it stands for, and
+only as `acceptance-craft` makes it (`license/restricted`).
 
 Redaction makes a recording differ from live on purpose. A live-capable test therefore asserts
 nothing about what redaction touches: not the count or the members of a concept's `maps`, nor

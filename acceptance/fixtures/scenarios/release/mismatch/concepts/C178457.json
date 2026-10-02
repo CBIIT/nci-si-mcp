@@ -1,0 +1,103 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C178457",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C178457",
+   "name": "EWSR1-NFATC2 Fusion Protein Expression",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "EWSR1-NFATC2 Fusion Protein Expression",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWSR1-NFATC2 Fusion Protein Expression",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "Expression of a fusion protein that results from a fusion of the human genes EWSR1 and NFATC2.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P208",
+     "type": "NCI_META_CUI",
+     "value": "CL1648128"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Cell or Molecular Dysfunction"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C36346",
+     "name": "Fusion Protein Expression"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C18322",
+     "relatedName": "EWSR1 Gene"
+    },
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C178487",
+     "relatedName": "EWSR1/NFATC2 Fusion Gene"
+    },
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C93138",
+     "relatedName": "NFATC2 Gene"
+    }
+   ],
+   "history": [
+    {
+     "code": "C178457",
+     "action": "create",
+     "date": "2021-04-26"
+    },
+    {
+     "code": "C178457",
+     "action": "modify",
+     "date": "2021-04-26"
+    },
+    {
+     "code": "C178457",
+     "action": "modify",
+     "date": "2021-08-30"
+    }
+   ]
+  }
+ }
+}

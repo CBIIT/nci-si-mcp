@@ -1,0 +1,936 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C41259",
+  "params": {
+   "include": [
+    "full"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C41259",
+   "name": "American Indian or Alaska Native",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "American Indian or Alaska Native",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "caDSR"
+    },
+    {
+     "name": "Indigenous American",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "caDSR"
+    },
+    {
+     "name": "American Indian or Alaska Native",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CDC",
+     "code": "1002-5"
+    },
+    {
+     "name": "AMERICAN INDIAN OR ALASKA NATIVE",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CDISC"
+    },
+    {
+     "name": "AMERICAN INDIAN OR ALASKA NATIVE",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTDC"
+    },
+    {
+     "name": "AMERICAN_INDIAN_OR_ALASKA_NATIVE",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTDC"
+    },
+    {
+     "name": "American Indian or Alaska Native",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "DIPG/DMG"
+    },
+    {
+     "name": "AMERICAN INDIAN OR ALASKA NATIVE",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "FDA",
+     "subSource": "SPL"
+    },
+    {
+     "name": "american indian or alaska native",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "GDC"
+    },
+    {
+     "name": "American Indian or Alaska Native",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "First Nations",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Indigenous American",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Native American",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Native Americans",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "American Indian or Alaska Native",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    },
+    {
+     "name": "American Indian or Alaska Native",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "OORO",
+     "subSource": "PC"
+    },
+    {
+     "name": "American Indian or Alaska Native",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "HL"
+    },
+    {
+     "name": "American Indian or Alaska Native",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "ALL"
+    },
+    {
+     "name": "American Indian or Alaska Native",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "AML"
+    },
+    {
+     "name": "American Indian or Alaska Native",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "EWS"
+    },
+    {
+     "name": "American Indian or Alaska Native",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "GCT"
+    },
+    {
+     "name": "American Indian or Alaska Native",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "OS"
+    },
+    {
+     "name": "American Indian or Alaska Native",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "SeroNet"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A person having origins in any of the original peoples of North and South America (including Central America), and who maintains tribal affiliation or community attachment. (FDA)",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "CDISC"
+    },
+    {
+     "definition": "Individuals with origins in any of the original peoples of North, Central, and South America, including, for example, Navajo Nation, Blackfeet Tribe of the Blackfeet Indian Reservation of Montana, Native Village of Marrow Inupiat Traditional Government, Nome Eskimo Community, Aztec, and Maya.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI",
+     "qualifiers": [
+      {
+       "code": "P381",
+       "type": "attribution",
+       "value": "OMB"
+      }
+     ]
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CDISC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTDC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "DIPG/DMG"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "FDA"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "GDC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "OORO"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "PCDC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "SeroNet"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "American_Indian_or_Alaska_Native"
+    },
+    {
+     "code": "P375",
+     "type": "Maps_To",
+     "value": "american indian or alaska native"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Population Group"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C0282204"
+    }
+   ],
+   "children": [
+    {
+     "code": "C43877",
+     "name": "American Indian",
+     "leaf": false
+    },
+    {
+     "code": "C211631",
+     "name": "Indigenous North American",
+     "leaf": false
+    }
+   ],
+   "parents": [
+    {
+     "code": "C17049",
+     "name": "Race"
+    },
+    {
+     "code": "C19789",
+     "name": "Underrepresented Minority"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C178115",
+     "relatedName": "ALL Authorized Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C178122",
+     "relatedName": "ALL Demographics Table"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C174019",
+     "relatedName": "AML Authorized Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C173230",
+     "relatedName": "AML Demographics Table"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C128689",
+     "relatedName": "CDISC SDTM Collected Race Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C66830",
+     "relatedName": "CDISC SDTM Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C61410",
+     "relatedName": "Clinical Data Interchange Standards Consortium Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C183061",
+     "relatedName": "CRF1 Registration Table"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C173073",
+     "relatedName": "CTDC Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C174237",
+     "relatedName": "EWS Authorized Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C174243",
+     "relatedName": "EWS Demographics Table"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C54452",
+     "relatedName": "FDA Structured Product Labeling Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177383",
+     "relatedName": "GCT Authorized Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177390",
+     "relatedName": "GCT Demographics Table"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C157711",
+     "relatedName": "GDC Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177537",
+     "relatedName": "GDC Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C186341",
+     "relatedName": "HL Authorized Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C186313",
+     "relatedName": "HL Demographics Table"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C192234",
+     "relatedName": "Operational Ontology for Radiation Oncology Prostate Cancer Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C179478",
+     "relatedName": "OS Authorized Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C179533",
+     "relatedName": "OS Demographics Table"
+    },
+    {
+     "code": "A35",
+     "type": "Is_PCDC_ALL_Authorized_Value_For_Variable",
+     "relatedCode": "C17049",
+     "relatedName": "Race"
+    },
+    {
+     "code": "A24",
+     "type": "Is_PCDC_AML_Authorized_Value_For_Variable",
+     "relatedCode": "C17049",
+     "relatedName": "Race"
+    },
+    {
+     "code": "A28",
+     "type": "Is_PCDC_EWS_Authorized_Value_For_Variable",
+     "relatedCode": "C17049",
+     "relatedName": "Race"
+    },
+    {
+     "code": "A33",
+     "type": "Is_PCDC_GCT_Authorized_Value_For_Variable",
+     "relatedCode": "C17049",
+     "relatedName": "Race"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C17049",
+     "relatedName": "Race"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C179027",
+     "relatedName": "SeroNet Authorized Values"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C178718",
+     "relatedName": "SeroNet Research Participant Metadata"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C189083",
+     "relatedName": "SeroNet Study Descriptors"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C107675",
+     "relatedName": "SPL Race Terminology"
+    }
+   ],
+   "inverseAssociations": [
+    {
+     "code": "A27",
+     "type": "Has_CTDC_Value",
+     "relatedCode": "C17049",
+     "relatedName": "Race"
+    },
+    {
+     "code": "A40",
+     "type": "Has_DIPG_DMG_Authorized_Value",
+     "relatedCode": "C17049",
+     "relatedName": "Race"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C17049",
+     "relatedName": "Race"
+    },
+    {
+     "code": "A42",
+     "type": "Has_OORO_PC_Value",
+     "relatedCode": "C17049",
+     "relatedName": "Race"
+    },
+    {
+     "code": "A36",
+     "type": "Has_PCDC_ALL_Authorized_Value",
+     "relatedCode": "C17049",
+     "relatedName": "Race"
+    },
+    {
+     "code": "A26",
+     "type": "Has_PCDC_AML_Authorized_Value",
+     "relatedCode": "C17049",
+     "relatedName": "Race"
+    },
+    {
+     "code": "A29",
+     "type": "Has_PCDC_EWS_Authorized_Value",
+     "relatedCode": "C17049",
+     "relatedName": "Race"
+    },
+    {
+     "code": "A34",
+     "type": "Has_PCDC_GCT_Authorized_Value",
+     "relatedCode": "C17049",
+     "relatedName": "Race"
+    },
+    {
+     "code": "A39",
+     "type": "Has_PCDC_HL_Authorized_Value",
+     "relatedCode": "C17049",
+     "relatedName": "Race"
+    },
+    {
+     "code": "A38",
+     "type": "Has_PCDC_OS_Authorized_Value",
+     "relatedCode": "C17049",
+     "relatedName": "Race"
+    },
+    {
+     "code": "A37",
+     "type": "Has_SeroNet_Authorized_Value",
+     "relatedCode": "C17049",
+     "relatedName": "Race"
+    }
+   ],
+   "history": [
+    {
+     "code": "C41259",
+     "action": "create",
+     "date": "2004-11-01"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2005-01-28"
+    },
+    {
+     "code": "C41259",
+     "action": "merge",
+     "date": "2005-03-16",
+     "replacementCode": "C41259",
+     "replacementName": "American Indian or Alaska Native"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2005-07-29"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2005-09-09"
+    },
+    {
+     "code": "C16283",
+     "action": "merge",
+     "date": "2005-03-16",
+     "replacementCode": "C41259",
+     "replacementName": "American Indian or Alaska Native"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2006-03-31"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2007-03-30"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2007-05-25"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2008-06-27"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2008-07-28"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2009-10-05"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2010-03-08"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2011-01-24"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2011-06-27"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2013-02-25"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2013-03-04"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2013-03-11"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2013-03-18"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2013-03-25"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2013-04-01"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2013-04-08"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2013-04-15"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2013-04-22"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2013-04-29"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2013-05-06"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2013-05-13"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2013-05-20"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2013-05-28"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2013-06-03"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2013-06-10"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2013-06-17"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2013-06-24"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2013-07-01"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2013-07-08"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2013-08-19"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2016-09-06"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2016-09-20"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2016-12-19"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2017-12-26"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2018-10-29"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2018-10-29"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2018-11-26"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2019-03-25"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2019-05-28"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2019-09-30"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2019-10-28"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2020-01-27"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2020-02-24"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2020-04-27"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2020-06-29"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2020-07-27"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2020-08-31"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2020-09-29"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2020-10-26"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2020-11-30"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2020-12-28"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2021-02-22"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2021-03-29"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2021-04-26"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2021-06-28"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2021-10-25"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2022-02-28"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2022-03-28"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2022-04-25"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2022-08-29"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2022-10-31"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2022-11-28"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2023-02-27"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2024-04-29"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2024-10-28"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2026-03-30"
+    },
+    {
+     "code": "C41259",
+     "action": "modify",
+     "date": "2026-09-28"
+    }
+   ],
+   "maps": [
+    {
+     "type": "Has Synonym",
+     "targetName": "american indian or alaska native",
+     "targetTermType": "PT",
+     "targetCode": "race",
+     "targetTerminology": "GDC"
+    }
+   ]
+  }
+ }
+}

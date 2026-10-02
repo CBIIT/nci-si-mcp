@@ -1,0 +1,453 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C36184",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C36184",
+   "name": "Necrosis",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Necrotic Change",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "caDSR"
+    },
+    {
+     "name": "Tissue Necrosis",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "caDSR"
+    },
+    {
+     "name": "Necrosis type",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "DIPG/DMG"
+    },
+    {
+     "name": "Necrosis",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "GDC"
+    },
+    {
+     "name": "Necrosis (Y/N)",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "ICDC",
+     "subSource": "Canine Glioma"
+    },
+    {
+     "name": "Necrosis",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Necrotic Change",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Necrosis",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A finding indicating the presence of cellular necrosis in a tissue specimen.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "DIPG/DMG"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "GDC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "ICDC"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Necrotic_Change"
+    },
+    {
+     "code": "P375",
+     "type": "Maps_To",
+     "value": "Necrosis"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Finding"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1334928"
+    }
+   ],
+   "children": [
+    {
+     "code": "C118385",
+     "name": "Avascular Necrosis",
+     "leaf": true
+    },
+    {
+     "code": "C118159",
+     "name": "Basal Decidual Necrosis",
+     "leaf": true
+    },
+    {
+     "code": "C36128",
+     "name": "Comedo Necrosis",
+     "leaf": true
+    },
+    {
+     "code": "C94638",
+     "name": "Dirty Necrosis",
+     "leaf": true
+    },
+    {
+     "code": "C41612",
+     "name": "Extensive Necrosis",
+     "leaf": true
+    },
+    {
+     "code": "C35956",
+     "name": "Fibrinoid Necrosis",
+     "leaf": true
+    },
+    {
+     "code": "C50567",
+     "name": "Flap Tissue Necrosis",
+     "leaf": true
+    },
+    {
+     "code": "C50573",
+     "name": "Gangrene",
+     "leaf": true
+    },
+    {
+     "code": "C41433",
+     "name": "Geographic Necrosis",
+     "leaf": true
+    },
+    {
+     "code": "C54418",
+     "name": "Intraluminal Necrosis",
+     "leaf": true
+    },
+    {
+     "code": "C103225",
+     "name": "Ischemic Necrosis",
+     "leaf": false
+    },
+    {
+     "code": "C68752",
+     "name": "Palisading Necrosis",
+     "leaf": true
+    },
+    {
+     "code": "C27136",
+     "name": "Placental Necrosis",
+     "leaf": true
+    },
+    {
+     "code": "C41829",
+     "name": "Pseudopalisading Necrosis",
+     "leaf": true
+    },
+    {
+     "code": "C60880",
+     "name": "Single Cell Necrosis",
+     "leaf": true
+    },
+    {
+     "code": "C35957",
+     "name": "Tumor Cell Necrosis",
+     "leaf": false
+    },
+    {
+     "code": "C96350",
+     "name": "Zonal Necrosis",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C35867",
+     "name": "Morphologic Finding"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C166372",
+     "relatedName": "Canine Glioma Project Property Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C183105",
+     "relatedName": "CRF7 Pathology Review Table"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C157711",
+     "relatedName": "GDC Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177537",
+     "relatedName": "GDC Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C165451",
+     "relatedName": "ICDC Terminology"
+    },
+    {
+     "code": "A40",
+     "type": "Has_DIPG_DMG_Authorized_Value",
+     "relatedCode": "C103225",
+     "relatedName": "Ischemic Necrosis"
+    },
+    {
+     "code": "A40",
+     "type": "Has_DIPG_DMG_Authorized_Value",
+     "relatedCode": "C48660",
+     "relatedName": "Not Applicable"
+    },
+    {
+     "code": "A40",
+     "type": "Has_DIPG_DMG_Authorized_Value",
+     "relatedCode": "C68752",
+     "relatedName": "Palisading Necrosis"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C104015",
+     "relatedName": "WEISS Criteria"
+    }
+   ],
+   "history": [
+    {
+     "code": "C36184",
+     "action": "create",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2008-06-27"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2012-12-28"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2013-02-25"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2013-03-04"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2013-03-11"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2013-03-18"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2013-03-25"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2013-04-01"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2013-04-08"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2013-04-15"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2013-04-22"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2013-04-29"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2013-05-06"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2013-05-13"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2013-05-20"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2013-05-28"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2013-06-03"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2013-06-10"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2013-06-17"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2013-06-24"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2013-07-01"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2013-07-08"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2016-06-17"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2020-01-27"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2020-09-29"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2020-10-26"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2021-10-25"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2021-11-29"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2023-05-30"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2023-07-31"
+    },
+    {
+     "code": "C36184",
+     "action": "modify",
+     "date": "2025-12-29"
+    }
+   ],
+   "maps": [
+    {
+     "type": "Has Synonym",
+     "targetName": "Necrosis",
+     "targetTermType": "PT",
+     "targetCode": "weiss_assessment_findings",
+     "targetTerminology": "GDC"
+    }
+   ]
+  }
+ }
+}

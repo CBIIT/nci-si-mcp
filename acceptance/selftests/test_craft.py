@@ -2,18 +2,56 @@
 
 import json
 import shutil
+from http import HTTPStatus
 from urllib.error import HTTPError
+from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 import pytest
+import yaml
 
-from nci_si_acceptance.craft import EXCLUSION_ROLES, LICENCE_KEY, MISMATCHED, craft, main
+from nci_si_acceptance.craft import (
+    DISCOVERY,
+    EXCLUSION_ROLES,
+    LICENCE_KEY,
+    Recorded,
+    craft,
+    main,
+    mismatched,
+)
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
-from nci_si_acceptance.record import FIXTURES
+from nci_si_acceptance.record import FIXTURES, reported_releases
 
 CRAFTED = craft(FIXTURES)
+MANIFEST = yaml.safe_load((FIXTURES / "manifest.yaml").read_text(encoding="utf-8"))
 # The hard maximums of a traversal (docs/SPEC.md §4.3).
 MAX_NODES, MAX_DEPTH = 1000, 4
+PINNED, MISMATCHED_RELEASE = "26.09d", "26.08e"
+CONCEPT = "/api/v1/concept/ncit_26.09d"
+
+
+@pytest.fixture(scope="module")
+def upstream():
+    """The real fixture set, served."""
+
+    with FixtureServer(load_fixtures(FIXTURES)) as running:
+        yield running
+
+
+def get(running, surface, path, headers=None):
+    """Status and parsed body of one request to the fixture server."""
+
+    url = running.base_url(surface) + quote(path, safe="/?=&,:$")
+    try:
+        with urlopen(Request(url, headers=headers or {}), timeout=10) as response:  # noqa: S310
+            return response.status, json.loads(response.read() or "null")
+    except HTTPError as error:
+        return error.code, None
+
+
+def serve(running, *scenarios):
+    running.activate(*scenarios)
+    return lambda path, surface="evs": get(running, surface, path)
 
 
 def scenario(name):
@@ -47,6 +85,19 @@ def test_deep_fanout_exceeds_the_node_and_depth_maximums():
     assert node["children"]  # the walk could go deeper still
 
 
+def test_deep_fanout_is_served_through_the_relation_endpoints(upstream):
+    answer = serve(upstream, "traversal/deep-fanout")
+
+    status, children = answer(f"{CONCEPT}/C99000000/children")
+    depth, code = 1, "C99000001"
+    while (below := answer(f"{CONCEPT}/{code}/children")[1]) and depth <= MAX_DEPTH:
+        depth, code = depth + 1, below[0]["code"]
+
+    assert (status, len(children)) == (200, MAX_NODES + 1)
+    assert depth > MAX_DEPTH
+    assert answer(f"{CONCEPT}/C99000001?include=parents")[1]["parents"][0]["code"] == "C99000000"
+
+
 def test_exclusions_are_named_as_positive_roles_and_two_positive_roles_as_exclusions():
     roles = body("scenarios/traversal/exclusions/concepts/C4817.json")["roles"]
     catalogue = {
@@ -61,31 +112,101 @@ def test_exclusions_are_named_as_positive_roles_and_two_positive_roles_as_exclus
     assert all(catalogue[role["code"]] == role["type"] for role in roles)
 
 
-def test_mismatch_serves_every_payload_from_another_release():
-    def versions(payload):
-        if isinstance(payload, list):
-            return set().union(*map(versions, payload))
-        if isinstance(payload, dict):
-            own = {payload["version"]} if "version" in payload else set()
-            return own.union(*map(versions, payload.values()))
-        return set()
+def test_the_served_exclusion_trap_reads_the_same_through_every_form(upstream):
+    answer = serve(upstream, "traversal/exclusions")
 
-    served = set().union(
-        *(versions(doc["response"]["body"]) for doc in scenario("release/mismatch").values())
-    )
+    roles = answer(f"{CONCEPT}/C4817/roles")[1]
+    full = answer(f"{CONCEPT}/C4817?include=roles")[1]["roles"]
+    catalogue = {
+        role["code"]: role["name"] for role in answer("/api/v1/metadata/ncit_26.09d/roles")[1]
+    }
 
-    assert "26.09d" not in served
-    assert "26.08e" in served
-    assert len(scenario("release/mismatch")) == len(MISMATCHED)
+    assert roles == full
+    assert {role["code"] for role in roles if "Excludes" in role["type"]} == {"R108", "R116"}
+    assert all(catalogue[role["code"]] == role["type"] for role in roles)
 
 
-def test_two_latest_answers_two_latest_rows_one_per_channel():
-    rows = body("scenarios/release/two-latest/latest.json")
-    listing = body("scenarios/release/two-latest/terminologies.json")
+def ordinary_requests():
+    """Every ordinary request of the manifest, recorded or derived, with its surface."""
 
-    assert [row["latest"] for row in rows] == [True, True]
-    assert [set(row["tags"]) for row in rows] == [{"monthly"}, {"weekly"}]
-    assert len([row for row in listing if row["terminology"] == "ncit" and row["latest"]]) > 1
+    record = MANIFEST["record"]
+    surfaces = {entry["fixture"]: entry["surface"] for entry in record["requests"]}
+    derived = [entry | {"surface": surfaces[entry["from"]]} for entry in record["derived"]]
+    return [
+        entry
+        for entry in [*record["requests"], *derived]
+        if not entry["fixture"].startswith("scenarios/")
+    ]
+
+
+def test_mismatch_serves_another_release_wherever_the_pinned_one_is_reported(upstream):
+    pinned = serve(upstream)
+    reporting = {
+        entry["fixture"]: entry
+        for entry in ordinary_requests()
+        if PINNED in reported_releases(pinned(entry["path"], entry["surface"])[1])
+    }
+    concepts = [path.stem for path in (FIXTURES / "recorded/evs/concepts").glob("*.json")]
+    answer = serve(upstream, "release/mismatch")
+
+    served = {
+        fixture: reported_releases(answer(entry["path"], entry["surface"])[1])
+        for fixture, entry in reporting.items()
+    }
+    versions = {answer(f"{CONCEPT}/{code}?include=minimal")[1]["version"] for code in concepts}
+
+    assert set(reporting) - DISCOVERY == set(mismatched(Recorded(FIXTURES))) - {
+        f"recorded/evs/concepts/{code}.json" for code in concepts
+    }
+    assert {fixture: PINNED in releases for fixture, releases in served.items()} == {
+        fixture: fixture in DISCOVERY for fixture in served
+    }
+    assert all(MISMATCHED_RELEASE in served[fixture] for fixture in set(served) - DISCOVERY)
+    assert versions == {MISMATCHED_RELEASE}
+
+
+def channels(rows):
+    """The release of each channel among the latest NCIt rows, in their order."""
+
+    latest = [row for row in rows if row["terminology"] == "ncit" and row["latest"]]
+    return [(channel, row["version"]) for row in latest for channel in sorted(row["tags"])]
+
+
+def test_two_latest_gives_each_channel_one_release_whatever_the_form_and_weekly_first(upstream):
+    answer = serve(upstream, "release/two-latest")
+    query = "/api/v1/metadata/terminologies?terminology=ncit&latest=true"
+
+    forms = {
+        "listing": channels(answer("/api/v1/metadata/terminologies")[1]),
+        "latest": channels(answer(query)[1]),
+        "monthly": channels(answer(f"{query}&tag=monthly")[1]),
+        "weekly": channels(answer(f"{query}&tag=weekly")[1]),
+    }
+
+    both = [("weekly", "26.10a"), ("monthly", PINNED)]
+    assert forms == {
+        "listing": both,
+        "latest": both,
+        "monthly": [("monthly", PINNED)],
+        "weekly": [("weekly", "26.10a")],
+    }
+
+
+def test_starvation_is_served_through_the_relation_endpoints(upstream):
+    answer = serve(upstream, "traversal/starvation")
+
+    roles = answer(f"{CONCEPT}/C99200000/roles")[1]
+    associations = answer(f"{CONCEPT}/C99200000/associations")[1]
+
+    assert (len(roles), len(associations)) == (300, 2)
+    assert answer(f"{CONCEPT}/{roles[-1]['relatedCode']}?include=summary")[0] == HTTPStatus.OK
+
+
+@pytest.mark.parametrize("name", list(MANIFEST["scenarios"]))
+def test_every_scenario_activates_over_the_ordinary_set(upstream, name):
+    upstream.activate(name)
+
+    assert upstream.fixtures.scenarios.get(name) or upstream.fixtures.recordings.get(name)
 
 
 def test_starvation_has_many_roles_few_associations_and_every_target_recorded():
@@ -104,9 +225,10 @@ def test_unavailable_closes_then_fails_then_outlasts_the_servers_timeout():
     for file, doc in scenario("upstream/unavailable").items():
         if file.endswith("settings.json"):
             continue
-        close, failure, slow = doc["responses"]
+        close, failure, silence = doc["responses"]
         assert (close, failure["status"]) == ({"fault": "close"}, 503)
-        assert slow["delay_seconds"] > int(settings["NCI_SI_TIMEOUT_SECONDS"])
+        assert silence["fault"] == "close"
+        assert silence["delay_seconds"] > int(settings["NCI_SI_TIMEOUT_SECONDS"])
 
 
 def test_rate_limited_asks_to_wait_then_answers_as_recorded():

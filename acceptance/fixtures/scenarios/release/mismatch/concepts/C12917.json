@@ -1,0 +1,544 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C12917",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C12917",
+   "name": "Malignant Cell",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Malignant Cell",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "caDSR"
+    },
+    {
+     "name": "Tumor cells, malignant",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "GDC"
+    },
+    {
+     "name": "Cancer Cell",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Malignant Cell",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Malignant Cell",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    },
+    {
+     "name": "MALIGNANT_CELLS",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "GCT"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "Cells of, or derived from, a malignant tumor.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "GDC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "PCDC"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Malignant_Cell"
+    },
+    {
+     "code": "P375",
+     "type": "Maps_To",
+     "value": "8001/3"
+    },
+    {
+     "code": "P375",
+     "type": "Maps_To",
+     "value": "Tumor cells, malignant"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Cell"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C0334227"
+    }
+   ],
+   "children": [
+    {
+     "code": "C68706",
+     "name": "Cancer Stem Cell",
+     "leaf": true
+    },
+    {
+     "code": "C37061",
+     "name": "Clonal Hematopoietic Stem Cell",
+     "leaf": false
+    },
+    {
+     "code": "C97750",
+     "name": "Disseminated Tumor Cell",
+     "leaf": false
+    },
+    {
+     "code": "C37063",
+     "name": "Immature Malignant Mast Cell",
+     "leaf": true
+    },
+    {
+     "code": "C25553",
+     "name": "Leukemic Cell",
+     "leaf": false
+    },
+    {
+     "code": "C61293",
+     "name": "Malignant Blastemal Cell",
+     "leaf": true
+    },
+    {
+     "code": "C53644",
+     "name": "Malignant Cell with Eosinophilic Cytoplasm",
+     "leaf": false
+    },
+    {
+     "code": "C48787",
+     "name": "Malignant Connective and Soft Tissue Cell",
+     "leaf": false
+    },
+    {
+     "code": "C36779",
+     "name": "Malignant Epithelial Cell",
+     "leaf": false
+    },
+    {
+     "code": "C41435",
+     "name": "Malignant Epithelioid Cell",
+     "leaf": false
+    },
+    {
+     "code": "C54110",
+     "name": "Malignant Germ Cell",
+     "leaf": false
+    },
+    {
+     "code": "C36890",
+     "name": "Malignant Langerhans Cell",
+     "leaf": true
+    },
+    {
+     "code": "C36831",
+     "name": "Malignant Mesothelial Cell",
+     "leaf": false
+    },
+    {
+     "code": "C53987",
+     "name": "Malignant Neuroectodermal Cell",
+     "leaf": false
+    },
+    {
+     "code": "C36884",
+     "name": "Malignant Polygonal Cell with Abundant Granular Cytoplasm",
+     "leaf": true
+    },
+    {
+     "code": "C61416",
+     "name": "Malignant Sex Cord-Stromal Cell",
+     "leaf": true
+    },
+    {
+     "code": "C36860",
+     "name": "Malignant Small Cell",
+     "leaf": false
+    },
+    {
+     "code": "C53989",
+     "name": "Malignant Stellate Cell",
+     "leaf": true
+    },
+    {
+     "code": "C36873",
+     "name": "Melanoma Cell",
+     "leaf": false
+    },
+    {
+     "code": "C36988",
+     "name": "Neoplastic Lymphocyte",
+     "leaf": false
+    },
+    {
+     "code": "C53980",
+     "name": "Primitive Round to Oval Cell",
+     "leaf": false
+    }
+   ],
+   "parents": [
+    {
+     "code": "C12922",
+     "name": "Neoplastic Cell"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A34",
+     "type": "Has_PCDC_GCT_Authorized_Value",
+     "relatedCode": "C48190",
+     "relatedName": "Absent"
+    },
+    {
+     "code": "A23",
+     "type": "Has_PCDC_Data_Type",
+     "relatedCode": "C25162",
+     "relatedName": "Code"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177400",
+     "relatedName": "GCT Cytology Table"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177384",
+     "relatedName": "GCT Variable Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C157711",
+     "relatedName": "GDC Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177537",
+     "relatedName": "GDC Value Terminology"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C176985",
+     "relatedName": "Histology ICD-O Morphology Code"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C177621",
+     "relatedName": "ICD-O-3 Morphology Term Diagnosis Question"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C168658",
+     "relatedName": "Mapped ICDO3.1 Morphology PT Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C168657",
+     "relatedName": "Mapped ICDO3.1 Morphology Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C168655",
+     "relatedName": "Mapped ICDO3.1 Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C168662",
+     "relatedName": "Mapped ICDO3.2 Morphology PT Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C168661",
+     "relatedName": "Mapped ICDO3.2 Morphology Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C168656",
+     "relatedName": "Mapped ICDO3.2 Terminology"
+    },
+    {
+     "code": "A34",
+     "type": "Has_PCDC_GCT_Authorized_Value",
+     "relatedCode": "C43234",
+     "relatedName": "Not Reported"
+    },
+    {
+     "code": "A34",
+     "type": "Has_PCDC_GCT_Authorized_Value",
+     "relatedCode": "C25626",
+     "relatedName": "Present"
+    },
+    {
+     "code": "A34",
+     "type": "Has_PCDC_GCT_Authorized_Value",
+     "relatedCode": "C17998",
+     "relatedName": "Unknown"
+    }
+   ],
+   "history": [
+    {
+     "code": "C12917",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2003-09-29"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2013-02-25"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2013-03-04"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2013-03-11"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2013-03-18"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2013-03-25"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2013-04-01"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2013-04-08"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2013-04-15"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2013-04-22"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2013-04-29"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2013-05-06"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2013-05-13"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2013-05-20"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2013-05-28"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2013-06-03"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2013-06-10"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2013-06-17"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2013-06-24"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2013-07-01"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2013-07-08"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2018-09-24"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2018-10-29"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2018-10-29"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2019-05-28"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2019-09-30"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2019-11-25"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2020-02-24"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2020-04-27"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2020-09-29"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2021-02-22"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2021-03-29"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2021-06-28"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2022-10-31"
+    },
+    {
+     "code": "C12917",
+     "action": "modify",
+     "date": "2023-02-27"
+    }
+   ],
+   "maps": [
+    {
+     "type": "Related To",
+     "targetName": "8001/3",
+     "targetTermType": "PT",
+     "targetCode": "morphology",
+     "targetTerminology": "GDC"
+    },
+    {
+     "type": "Has Synonym",
+     "targetName": "Tumor cells, malignant",
+     "targetTermType": "PT",
+     "targetCode": "primary_diagnosis",
+     "targetTerminology": "GDC"
+    }
+   ]
+  }
+ }
+}

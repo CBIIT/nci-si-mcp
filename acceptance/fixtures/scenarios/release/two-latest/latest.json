@@ -19,15 +19,15 @@
   "body": [
    {
     "terminology": "ncit",
-    "version": "26.09d",
-    "date": "2026-09-28",
-    "name": "NCI Thesaurus 26.09d",
+    "version": "26.10a",
+    "date": "2026-10-05",
+    "name": "NCI Thesaurus 26.10a",
     "description": "NCI Thesaurus, a controlled vocabulary in support of NCI administrative and scientific activities. Produced by the Enterprise Vocabulary System (EVS), a project by the NCI Center for Biomedical Informatics and Information Technology. National Cancer Institute, National Institutes of Health, Bethesda, MD 20892, U.S.A.",
     "graph": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus_26.09d.owl",
-    "terminologyVersion": "ncit_26.09d",
+    "terminologyVersion": "ncit_26.10a",
     "latest": true,
     "tags": {
-     "monthly": "true"
+     "weekly": "true"
     },
     "indexName": "concept_ncit_2609d",
     "objectIndexName": "evs_object_ncit_2609d",
@@ -61,15 +61,15 @@
    },
    {
     "terminology": "ncit",
-    "version": "26.10a",
-    "date": "2026-10-05",
-    "name": "NCI Thesaurus 26.10a",
+    "version": "26.09d",
+    "date": "2026-09-28",
+    "name": "NCI Thesaurus 26.09d",
     "description": "NCI Thesaurus, a controlled vocabulary in support of NCI administrative and scientific activities. Produced by the Enterprise Vocabulary System (EVS), a project by the NCI Center for Biomedical Informatics and Information Technology. National Cancer Institute, National Institutes of Health, Bethesda, MD 20892, U.S.A.",
     "graph": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus_26.09d.owl",
-    "terminologyVersion": "ncit_26.10a",
+    "terminologyVersion": "ncit_26.09d",
     "latest": true,
     "tags": {
-     "weekly": "true"
+     "monthly": "true"
     },
     "indexName": "concept_ncit_2609d",
     "objectIndexName": "evs_object_ncit_2609d",

@@ -22,7 +22,7 @@ from typing import Any
 import yaml
 
 from nci_si_acceptance.fixture_server import MANIFEST, SCENARIOS, SETTINGS
-from nci_si_acceptance.record import FIXTURES
+from nci_si_acceptance.record import FIXTURES, reported_releases
 
 REGISTER = FIXTURES.parent / "request-forms"
 VIEWS = {
@@ -36,8 +36,6 @@ FALLBACK_HEADER = (
 REQUESTS_HEADER = "| Operation | Request | Expected | Made | Rationale | Fixture |"
 SCENARIO_HEADER = "| Operation | Request | Expected | Rationale | Fixture |"
 SHARED_HEADER = "| Operation | Request | Expected | Fixture |"
-# Payload fields that name the release or version of the content they carry.
-RELEASE_FIELDS = ("version", "sourceTerminologyVersion")
 INTRODUCTION = """\
 The upstream requests the acceptance suite's fixtures answer, each with the platform operation it
 serves (*MCP API Specification* §10, or the requirement where the operation is missing) and why
@@ -147,7 +145,7 @@ def _fallback_rows(manifest: dict[str, Any], root: Path, surfaces: set[str] | No
 def _fallback_row(entry: dict[str, Any], pinned: dict[str, Any] | None, root: Path) -> str:
     pinned_form = _split_form(pinned | {"surface": entry["surface"]}) if pinned else "—"
     document = json.loads((root / entry["fixture"]).read_text(encoding="utf-8"))
-    releases = ", ".join(_releases(document["response"]["body"])) or "none"
+    releases = ", ".join(sorted(reported_releases(document["response"]["body"]))) or "none"
     return f"| {entry['operation']} | {pinned_form} | {_split_form(entry)} | {releases} |"
 
 
@@ -157,23 +155,6 @@ def _unpinned(entry: dict[str, Any], release: str) -> bool:
     recorded = entry["fixture"].startswith("recorded/")
     discovery = entry["operation"] in ("OP-E01", "baseline")
     return recorded and not discovery and release not in entry["path"]
-
-
-def _releases(payload: Any) -> list[str]:
-    """The versions a payload reports for its content, at its top and one level down."""
-
-    objects = _objects(payload)
-    objects += [item for value in _lists(objects) for item in _objects(value)]
-    return sorted({str(item[key]) for item in objects for key in RELEASE_FIELDS if key in item})
-
-
-def _objects(payload: Any) -> list[dict[str, Any]]:
-    items = payload if isinstance(payload, list) else [payload]
-    return [item for item in items if isinstance(item, dict)]
-
-
-def _lists(objects: list[dict[str, Any]]) -> list[list[Any]]:
-    return [value for item in objects for value in item.values() if isinstance(value, list)]
 
 
 def _table(header: str, rows: list[str]) -> list[str]:
@@ -280,7 +261,7 @@ def main(arguments: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Write the register of upstream request forms.")
     parser.add_argument("--fixtures", type=Path, default=FIXTURES, help="the fixture directory")
     options = parser.parse_args(arguments)
-    target = options.fixtures.parent / "request-forms"
+    target = options.fixtures.parent / REGISTER.name
     target.mkdir(exist_ok=True)
     for name, text in render(options.fixtures).items():
         (target / name).write_text(text, encoding="utf-8")

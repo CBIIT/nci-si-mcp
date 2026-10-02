@@ -76,11 +76,25 @@ def test_no_fixture_holds_licensed_content(name):
     assert [name for body in bodies for name in LICENSING.undecided(body)] == []
 
 
-def test_only_a_crafted_fixture_holds_placeholder_licensed_content():
-    placeholders = [doc for doc in DOCUMENTS.values() if "placeholder" in doc]
+PLACEHOLDERS = sorted(name for name in DOCUMENTS if "placeholder" in DOCUMENTS[name])
 
-    assert placeholders
-    assert {doc["kind"] for doc in placeholders} == {"crafted"}
+
+def test_there_is_placeholder_licensed_content_to_check():
+    assert PLACEHOLDERS == ["scenarios/license/restricted/granted.json"]
+
+
+@pytest.mark.parametrize("name", PLACEHOLDERS)
+def test_placeholder_content_is_crafted_by_code_and_names_only_its_own_terminology(name):
+    document = DOCUMENTS[name]
+    bodies = [
+        response.get("body") for response in document.get("responses") or [document["response"]]
+    ]
+
+    assert document == CRAFTED.get(name)
+    assert {found for body in bodies for found in LICENSING.licensed_names(body)} <= {
+        document["placeholder"]["terminology"]
+    }
+    assert [found for body in bodies for found in LICENSING.undecided(body)] == []
 
 
 def test_every_recorded_fixture_is_dated_and_pinned():

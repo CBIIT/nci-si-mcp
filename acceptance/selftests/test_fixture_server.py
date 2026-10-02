@@ -663,3 +663,41 @@ def test_headers_map_names_to_values(tmp_path):
 
     with pytest.raises(ValueError, match="headers maps each header name to its value"):
         load_fixtures(tmp_path)
+
+
+def test_an_active_scenario_wins_over_an_ordinary_fixture_naming_more_headers(tmp_path):
+    accept = {"Accept": "application/json"}
+    fixture_file(
+        tmp_path,
+        "recorded/evs/version.json",
+        request={"surface": "evs", "method": "GET", "path": "/api/v1/version", "headers": accept},
+    )
+    fixture_file(
+        tmp_path,
+        "scenarios/upstream/down/version.json",
+        kind="crafted",
+        requirement="A2.5",
+        response={"status": 503},
+    )
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        running.activate("upstream/down")
+        status = fetch(running.base_url("evs") + "/api/v1/version", headers=accept)[0]
+
+    assert status == HTTPStatus.SERVICE_UNAVAILABLE
+
+
+def test_between_header_sets_of_one_size_the_first_by_name_answers(tmp_path):
+    request = {"surface": "evs", "method": "GET", "path": "/api/v1/version"}
+    for name, status in (("X-B", 202), ("X-A", 201)):
+        fixture_file(
+            tmp_path,
+            f"{name}.json",
+            request=request | {"headers": {name: "1"}},
+            response={"status": status},
+        )
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        status = fetch(
+            running.base_url("evs") + "/api/v1/version", headers={"X-A": "1", "X-B": "1"}
+        )
+
+    assert status[0] == HTTPStatus.CREATED

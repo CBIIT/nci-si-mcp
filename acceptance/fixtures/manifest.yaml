@@ -67,11 +67,17 @@ licensing:
 # them (register.py). Whether a scenario is recorded or crafted is read from its fixtures.
 scenarios:
   release/unknown: Every content path of `ncit_99.99z` answers 404
-  release/mismatch: Content, including the unpinned forms, names release 26.08e
-  release/two-latest: A monthly and a weekly row are both `latest`
+  release/mismatch: >-
+    Every payload that reports the pinned release names 26.08e instead, the unpinned forms
+    included; release discovery is left as recorded
+  release/two-latest: >-
+    A weekly and a monthly row are both `latest`, the weekly first in every list; each
+    form of the release query gives a channel the same release
   batch/silent-drop: A code EVS does not know is left out of a batch
   retired/with-replacement: C154421 is retired with a replacement, and one bad code fails a batch
-  traversal/deep-fanout: One root has 1,001 children, and a chain runs deeper than depth 4
+  traversal/deep-fanout: >-
+    One root has 1,001 children, and a chain runs deeper than depth 4 from its first child,
+    C99000001 (the node maximum is reached at depth 1 from the root)
   traversal/exclusions: Exclusion roles are named like positive ones, and two the other way
   traversal/starvation: One concept has 300 roles and 2 associations
   upstream/unavailable: A closed connection, then 503, then no answer within the timeout
@@ -229,6 +235,8 @@ record:
     - {<<: *unknown, fixture: scenarios/release/unknown/replacements.json, path: "/api/v1/history/ncit_99.99z/replacements?list=C154421"}
     - {<<: *unknown, fixture: scenarios/release/unknown/subset.json, path: /api/v1/subset/ncit_99.99z/C177537}
     - {<<: *unknown, fixture: scenarios/release/unknown/subset-members.json, path: "/api/v1/subset/ncit_99.99z/C177537/members?fromRecord=0&pageSize=10&include=minimal"}
+    - {<<: *unknown, fixture: scenarios/release/unknown/descendants.json, path: "/api/v1/concept/ncit_99.99z/C4817/descendants?maxLevel=4"}
+    - {<<: *unknown, fixture: scenarios/release/unknown/property-catalogue.json, path: /api/v1/metadata/ncit_99.99z/properties}
     # batch/silent-drop: a code EVS does not know, which a batch leaves out (E-5).
     - fixture: scenarios/batch/silent-drop/concepts/CBOGUS999999.json
       operation: OP-E07

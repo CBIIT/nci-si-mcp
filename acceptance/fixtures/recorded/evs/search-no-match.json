@@ -27,7 +27,7 @@
   "status": 200,
   "body": {
    "total": 0,
-   "timeTaken": 30,
+   "timeTaken": 28,
    "parameters": {
     "term": "qqxyzzyqq",
     "type": "contains",

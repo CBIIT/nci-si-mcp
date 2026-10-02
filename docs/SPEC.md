@@ -358,7 +358,7 @@ acceptance/
   pyproject.toml            separate package: nci-si-acceptance, versioned on its own; pytest, mcp, jsonschema
   src/nci_si_acceptance/    the harness
     client.py               connect over stdio or streamable HTTP; tools/list, tools/call
-    fixture_server.py       serves fixtures by (surface, method, path, params, body) with a request log endpoint
+    fixture_server.py       serves fixtures by (surface, method, path, params, headers, body), active scenarios first, with a request log endpoint
     concepts.py             composes EVS concept answers from one recording per concept (§9.6)
     licensing.py            the deny list: licensed content is neither recorded nor left in a payload
     record.py               re-records `recorded/` from live against the manifest's pins (`pdm run acceptance-record`)
@@ -371,8 +371,8 @@ acceptance/
     recorded/<surface>/…    captured responses with the request that produced them
     crafted/<requirement>/… hand-written responses naming the requirement they stand in for
     scenarios/…             the sixteen scenario fixtures (the eleven EVS ones so far)
-  request-forms/            the register of request forms: views for the EVS team, the caDSR team, and both
     baseline_toolmap.yaml   required tool → prototype tool + parameter renaming, for the server before Phase 2 (§9.4)
+  request-forms/            the register of request forms: views for the EVS team, the caDSR team, and both
   tests/
     test_protocol.py        §3 gates
     test_crosscutting.py    §4, parameterised over the inventory
