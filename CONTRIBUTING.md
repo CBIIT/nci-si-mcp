@@ -76,9 +76,9 @@ fails otherwise.
 | `!` after the type, as in `feat!: …` | Minor |
 | `docs`, `style`, `refactor`, `test`, `chore`, `build`, `ci`, `revert`, `security`, `deprecate` | None |
 
-A scope is optional: `fix(index): …`. Only the title counts: the squash commit has no body, so
-a `BREAKING CHANGE:` footer is never seen. Choose the type with care, because it decides the
-version.
+A scope is optional, in lower case: `fix(index): …`. Choose the type with care, because it
+decides the version. Only the title counts: the squash commit has no body, so mark a breaking
+change with `!`, and do not edit the commit message in the merge dialog.
 
 When CI passes on `main`, the release workflow tags that commit `vX.Y.Z` and creates a GitHub
 release. Nothing else is needed: no file holds the version, and the workflow never commits to

@@ -58,21 +58,19 @@ fallback_version = "0.0.0"
 # since the last tag, which are pull request titles (CONTRIBUTING.md). Below 1.0 a
 # breaking change releases a minor version; 1.0.0 is tagged by hand.
 [tool.semantic_release]
-tag_format = "v{version}"
+tag_format = "v{version}"  # the form the version source above reads
 allow_zero_version = true
 major_on_zero = false
 
-[tool.semantic_release.branches.main]
-match = "main"
-prerelease = false
-
-# `minor_tags` and `patch_tags` release a version; `other_allowed_tags` are valid
-# types that release nothing. The title check in .github/workflows/pr-title.yml
-# accepts exactly these types.
+# `allowed_tags` are the types a commit subject may have; only `minor_tags` and
+# `patch_tags` release a version. `allowed_tags` is stated in full because the
+# parser reads no other list of types. The title check in
+# .github/workflows/pr-title.yml accepts exactly these types.
 [tool.semantic_release.commit_parser_options]
 minor_tags = ["feat"]
 patch_tags = ["fix", "perf"]
-other_allowed_tags = [
+allowed_tags = [
+    "feat", "fix", "perf",
     "docs", "style", "refactor", "test",
     "chore", "build", "ci", "revert", "security", "deprecate",
 ]
@@ -80,14 +78,6 @@ other_allowed_tags = [
 # line by line, and its body is empty (a repository setting), so only the title counts.
 ignore_merge_commits = true
 parse_squash_commits = true
-
-[tool.semantic_release.remote]
-type = "github"
-token = { env = "GH_TOKEN" }
-
-# Nothing is built or attached: the version of an installed package comes from the tag.
-[tool.semantic_release.publish]
-upload_to_vcs_release = false
 
 [tool.pdm.scripts]
 # `test` is the whole suite with the coverage minimum; `pytest` runs a selection without it.

@@ -48,7 +48,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 0  # semantic-release reads the whole history and the tags
-          persist-credentials: true  # the release step pushes the tag with them
+          persist-credentials: false  # the release step pushes the tag with its own token
 
       - name: Decide whether this commit is released
         id: guard
@@ -97,7 +97,9 @@ jobs:
             if [ "$SKIPPED" = "true" ]; then
               echo "Skipped: main has moved past the validated commit. The CI run of the newer commit releases it."
             elif [ "$OUTCOME" != "success" ]; then
-              echo "Failed before a release was decided. Read the log, then start the workflow by hand."
+              echo "The release step did not succeed; read the log. If the tag was not pushed, start"
+              echo "the workflow by hand. If it was, the GitHub release is missing: create it with"
+              echo "\`gh release create <tag> --verify-tag --generate-notes\`."
             elif [ "$RELEASED" = "true" ]; then
               echo "Released **$TAG**: $LINK"
             else
