@@ -99,7 +99,9 @@ fmt = "ruff format ."
 # The acceptance suite against the server (fixture mode unless NCI_SI_ACCEPTANCE_MODE says
 # otherwise), and the harness's own tests with its coverage minimum.
 acceptance = { cmd = "pytest", working_dir = "acceptance" }
-acceptance-selftest = { cmd = "pytest selftests -n 8 --cov --cov-report=term-missing", working_dir = "acceptance" }
+# Four workers: the self-tests wait on server processes, and four overlap those waits on the
+# two-CPU CI runners; more measured no faster.
+acceptance-selftest = { cmd = "pytest selftests -n 4 --cov --cov-report=term-missing", working_dir = "acceptance" }
 acceptance-record = "python -m nci_si_acceptance.record"
 acceptance-craft = "python -m nci_si_acceptance.craft"
 acceptance-register = "python -m nci_si_acceptance.register"
