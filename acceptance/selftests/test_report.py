@@ -20,6 +20,7 @@ from nci_si_acceptance.report import UNMATCHED, Collector, combine, main, render
         ({"passed": 2, "no_fixture": 1}, False, True, "NO FIXTURE"),
         ({"no_fixture": 1, "failed": 1}, False, True, "FAIL"),
         ({"passed": 2, "skipped": 1}, False, True, "INCOMPLETE"),
+        ({"passed": 2, "not_implemented": 1}, False, True, "INCOMPLETE"),
         ({"passed": 2, "not_live": 1}, False, True, "PASS"),
         ({"not_live": 2}, False, True, "NOT RUN"),
         ({"not_implemented": 2}, True, False, "NOT IMPLEMENTED"),
@@ -199,6 +200,7 @@ def test_the_rendered_report_states_its_modes_counts_and_what_proves_nothing_yet
         "gates_only": True,
         "counts": {"passed": 4},
     }
+    fixture["tools"]["get_form"]["counts"] = {"passed": 3, "not_implemented": 4, "skipped": 1}
     fixture["tests"] = {
         "t.py::x": live_test("get_concepts", "no_fixture") | {"unmatched": ["GET evs /x {}"]}
     }
@@ -208,8 +210,10 @@ def test_the_rendered_report_states_its_modes_counts_and_what_proves_nothing_yet
 
     assert text.startswith("Run modes: fixture only.")
     assert (
-        "| `resolve_release` | A | FAIL (gates only) | 4 / 0 / 0 | ncit_release_info |  |" in text
+        "| `resolve_release` | A | FAIL (gates only) | 4 / 0 / 0 / 0 | ncit_release_info |  |"
+        in text
     )
+    assert "| `get_form` | B | INCOMPLETE | 3 / 0 / 0 / 5 | — |  |" in text
     assert "Tests run and not passing: resolve_release, get_concepts, get_form." in text
     assert "Requests without a fixture: GET evs /x {}." in text
     never_run = next(line for line in text.splitlines() if line.startswith("Tests never run"))
@@ -236,7 +240,7 @@ def test_the_command_combines_the_runs_with_per_test_limitations(tmp_path, capsy
 
     output = capsys.readouterr().out
     assert output.startswith("Run modes: fixture and live.")
-    assert "| `get_form` | B | PASS (fixture only) | 0 / 0 / 0 | — | C-4 |" in output
+    assert "| `get_form` | B | PASS (fixture only) | 0 / 0 / 0 / 0 | — | C-4 |" in output
 
 
 def test_the_command_refuses_a_report_of_the_wrong_run_mode(tmp_path):
@@ -262,7 +266,7 @@ def test_an_empty_limitations_file_excuses_nothing(tmp_path, capsys):
         ]
     )
 
-    assert "| `get_form` | B | FAIL | 0 / 0 / 0 | — |  |" in capsys.readouterr().out
+    assert "| `get_form` | B | FAIL | 0 / 0 / 0 / 0 | — |  |" in capsys.readouterr().out
 
 
 def test_the_command_says_a_fixture_run_alone_is_not_the_final_outcome(tmp_path, capsys):
@@ -272,4 +276,4 @@ def test_the_command_says_a_fixture_run_alone_is_not_the_final_outcome(tmp_path,
 
     output = capsys.readouterr().out
     assert "the live run is not included" in output
-    assert "| `get_form` | B | PASS | 0 / 0 / 0 | — |  |" in output
+    assert "| `get_form` | B | PASS | 0 / 0 / 0 / 0 | — |  |" in output

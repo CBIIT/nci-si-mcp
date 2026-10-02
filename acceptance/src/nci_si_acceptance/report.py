@@ -8,7 +8,9 @@ test marked `gate` gates every tool (§3). One run gives each required tool one 
     FAIL             a test of the tool failed, or a gate did (shown as "gates only")
     NO FIXTURE       the tool's tests failed only because a request found no fixture:
                      a question for the fixture set, not a defect of the server
-    INCOMPLETE       the tool's tests that ran passed, but some were skipped
+    INCOMPLETE       the tool's tests that ran passed, but some could not run: skipped, or
+                     needing a capability the tool (or its stand-in) lacks; a hardening
+                     candidate, not a pass
     NOT IMPLEMENTED  the server has the tool neither by name nor through the tool map
     NOT RUN          no test of the tool ran (in live mode: none is live-capable)
     NO TESTS         the suite has no test for the tool: a defect of the suite
@@ -65,6 +67,8 @@ RANK = {
     "no_fixture": 3,
 }
 FAILED = ("failed", "no_fixture")
+# The final outcomes of a test that did not run to a verdict.
+UNRUN = ("skipped", "not_implemented", "not_live")
 
 
 def tool_outcome(counts: Counter[str], gates_failed: bool, implemented: bool | None) -> str:
@@ -179,8 +183,9 @@ def _over_both(
 def _row(name: str, row: dict[str, Any], outcome: str, excused: list[str]) -> str:
     if outcome == FAIL and row["gates_only"]:
         outcome = "FAIL (gates only)"
-    counts = row["counts"]
-    tests = f"{counts.get('passed', 0)} / {counts.get('failed', 0)} / {counts.get('no_fixture', 0)}"
+    counts = Counter(row["counts"])
+    unrun = sum(counts[kind] for kind in UNRUN)
+    tests = f"{counts['passed']} / {counts['failed']} / {counts['no_fixture']} / {unrun}"
     stand_in = row["implemented_as"] or "—"
     return (
         f"| `{name}` | {row['group']} | {outcome} | {tests} | {stand_in} | {', '.join(excused)} |"
@@ -197,8 +202,8 @@ def render(report: dict[str, Any], combined: dict[str, tuple[str, list[str]]], m
     lines = [
         f"Run modes: {modes}.",
         "",
-        "| Tool | Group | Outcome | Tests passed / failed / no fixture | Implemented as "
-        "| Upstream limitation |",
+        "| Tool | Group | Outcome | Tests passed / failed / no fixture / not run "
+        "| Implemented as | Upstream limitation |",
         "|---|---|---|---|---|---|",
     ]
     lines += [_row(name, row, *combined[name]) for name, row in report["tools"].items()]

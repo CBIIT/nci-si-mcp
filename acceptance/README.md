@@ -39,8 +39,10 @@ and still answer plausibly. A test that provokes such requests on purpose is mar
 
 `--report` writes one JSON report per run; `nci_si_acceptance.report` renders it as the per-tool
 table of §6. A tool is PASS, FAIL (a failed gate fails every tool), NO FIXTURE (a request lacked
-a fixture: a question for the fixture set), INCOMPLETE (some tests skipped), NOT IMPLEMENTED,
-NOT RUN or NO TESTS; the module docstring defines each. Combined with a live report, a tool that
+a fixture: a question for the fixture set), INCOMPLETE (the tests that ran passed but some could
+not run: a hardening candidate), NOT IMPLEMENTED, NOT RUN or NO TESTS; the module docstring
+defines each, and each row counts the tests passed, failed, without a fixture and not run.
+Combined with a live report, a tool that
 passes against fixtures but fails live is PASS (fixture only) only when every failing live test
 has a documented upstream limitation (`--limitations`, YAML of test id to requirement).
 

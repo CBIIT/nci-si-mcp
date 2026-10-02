@@ -391,17 +391,19 @@ The fixture server exposes `GET /_log` returning every request it received since
 
 ### 9.4 Baseline tool map
 
-The map lets the suite call today's tools under the required names, so the tests of the mapped Group A tools run against an implementation from Phase 0 on instead of reporting NOT IMPLEMENTED; the report marks those rows *implemented under another name*. Unlike *Acceptance Suite* §6, which applies the map to the baseline run only, the harness applies an entry in every run while the required tool is absent from `tools/list`. Written against today's server:
+The map lets the suite call today's tools under the required names, so the tests of the mapped Group A tools run against an implementation from Phase 0 on instead of reporting NOT IMPLEMENTED; the report marks those rows *implemented under another name*. Unlike *Acceptance Suite* §6, which applies the map to the baseline run only, the harness applies an entry in every run while the required tool is absent from `tools/list`. Written against today's server, which serves NCIt's current monthly release only: every entry checks `terminology` is `ncit` and accepts `release` without passing either on, and any argument an entry does not list is unsupported:
 
 | Required | Prototype | Parameters |
 |---|---|---|
-| `search_concepts` | `ncit_search` | `query`, `limit`; `mode` lexical → unsupported, semantic → `hybrid` |
-| `get_concept` | `ncit_lookup` | `code` |
-| `get_concept_hierarchy`, `get_concept_neighborhood` | `ncit_traverse` | `code` → `start_codes` (a list of one); `depth` → `max_depth`; `kinds` → `edge_types` (`inverseRole` → `inverse_role`, `inverseAssociation` → `inverse_association`) |
-| `resolve_release` | `ncit_release_info` | — |
+| `resolve_release` | `ncit_release_info` | `channel` weekly unsupported |
+| `get_concept` | `ncit_lookup` | `code`; `include` unsupported |
+| `get_concept_hierarchy` | `ncit_traverse` | `code` → `start_codes` (a list of one); `direction` → `edge_types` (`parent`, `child`; `pathsToRoot` unsupported) with `direction: both` fixed; `depth` → `max_depth`; `limit` → `max_nodes`; `cursor` unsupported |
+| `get_concept_neighborhood` | `ncit_traverse` | `code` → `start_codes`; `depth` → `max_depth`; `kinds` → `edge_types` (`inverseRole` → `inverse_role`, `inverseAssociation` → `inverse_association`) with `direction: both` fixed; `maxNodes`, `maxEdges` → `max_nodes`, `max_edges`; `budgetPerKind` and `includeNegative: true` unsupported |
 | all others | — | NOT IMPLEMENTED |
 
-At the furnished commit (after Phase 3) the map is therefore empty, while *Acceptance Suite* §6 makes it part of the package. Whether to ship it empty or amend §6 is for the owner to decide.
+`search_concepts` has no stand-in: the prototype cannot search EVS, and its index search needs an index the suite builds only once the operator's prepare step exists. A test that depends on another release than the current one fails against the prototype. An unsupported argument or value is a capability the prototype lacks; a call using it reports NOT IMPLEMENTED rather than a failure. Self-tests check every stand-in, argument and value against the prototype's `tools/list` and make one call through each entry that the prototype must accept.
+
+At the furnished commit (after Phase 3) the map is empty. The owner decided (2 October 2026) that the mechanism goes in the change that removes its last entry.
 
 ### 9.5 CI
 
