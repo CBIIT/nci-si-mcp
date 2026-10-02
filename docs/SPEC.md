@@ -438,7 +438,7 @@ Each phase ends with the unit suite green, the acceptance suite's expected repor
 | **1 · Platform** | §3 in full; `service.py` retired; EVS tools re-homed on the registry with no behaviour change | §3 protocol gates pass; existing EVS behaviour unchanged under the new error and provenance model |
 | **2 · EVS module** | §4: release-pinned addressing, batch reconciliation, catalogue polarity, traversal rewrite, FHIR, mapsets, retired codes; index with activation and rollback | all Group A tools PASS in fixture mode; live-capable tests PASS live |
 | **3 · caDSR module** | §5 | all Group B tools PASS in fixture mode; PASS (fixture only) rows name their upstream requirement |
-| **Furnished package** | §1.2: the `baseline-2026-10` tag and the Prototype Baseline Package (SOW v2.1 item 1), with the baseline run report against that commit and the tools whose tests have never passed against any implementation named | the owner decides when; not before Phase 3 is done (*Project Plan* §7: "repository Phases 0–3 to the point where both modules yield a meaningful baseline report") |
+| **Furnished package** | §1.2: the `baseline-2026-10` tag and the Prototype Baseline Package (EVS SOW v2.1 item 1, caDSR SOW v1.1 item 1), with the baseline run report against that commit and the tools whose tests have never passed against any implementation named | the owner decides when; not before Phase 3 is done (*Project Plan* §7: "repository Phases 0–3 to the point where both modules yield a meaningful baseline report") |
 | **4 · Cross-domain** | §6 | Group C PASS; both release identities on every result |
 | **5 · Workflows, remote transport, audit** | §7, §3.8, §3.9 | Group W PASS; unified profile accepted under §6 of the acceptance specification |
 
