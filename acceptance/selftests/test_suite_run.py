@@ -58,12 +58,14 @@ def test_probe(tools):
 
 
 def test_requests_without_a_fixture_fail_the_test_and_are_listed(suite):
-    result = run(suite, PROBE.format(marker=""))
+    result = run(suite, PROBE.format(marker=""), "--report=report.json")
 
     result.assert_outcomes(passed=1, errors=1)
     result.stdout.fnmatch_lines(
         ["E * Failed: upstream requests without a fixture:", "E * GET evs /api/v1/version {}"]
     )
+    report = json.loads((suite.path / "report.json").read_text(encoding="utf-8"))
+    assert report["tools"]["resolve_release"]["outcome"] == "NO FIXTURE"
 
 
 def test_a_test_marked_unmatched_upstream_may_leave_them(suite):
@@ -127,7 +129,7 @@ def test_absent(tools):
     )
     assert tools["get_concept"]["outcome"] == "NOT IMPLEMENTED"
     assert tools["list_contexts"]["outcome"] == "NO TESTS"
-    assert report["tests"] == {
+    assert {nodeid: test["outcome"] for nodeid, test in report["tests"].items()} == {
         "tests/test_probe.py::test_mapped": "passed",
         "tests/test_probe.py::test_absent": "not_implemented",
     }

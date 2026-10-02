@@ -10,8 +10,11 @@ answered or not, whatever its method:
 A request is answered by the fixture whose surface, method, path, query parameters
 and body match it. Paths and values are compared decoded, the order of different
 parameters does not matter, and repeated values of one parameter keep their order.
-A fixture without a `body` matches any request body. A request that no fixture
-answers gets HTTP 501.
+Bodies are compared as parsed JSON where they are JSON, and otherwise as text with
+runs of whitespace collapsed (SPARQL). A fixture without a `body` matches any
+request body. A parameter the live service is shown to ignore may be declared under
+`ignored`, with the evidence; it is then left out of the match. A request that no
+fixture answers gets HTTP 501.
 
 A fixture is a JSON file:
 
@@ -20,7 +23,8 @@ A fixture is a JSON file:
       "recorded_on": "2026-10-02",        # recorded: when it was captured
       "requirement": "C-1",               # crafted: the requirement it stands in for
       "request": {"surface": "evs", "method": "GET", "path": "/api/v1/version",
-                  "params": {"include": ["summary"]}, "body": "..."},
+                  "params": {"include": ["summary"]}, "body": "...",
+                  "ignored": {"count": "the evidence that the service ignores it"}},
       "response": {"status": 200, "headers": {}, "body": {...}}
     }
 
@@ -33,9 +37,9 @@ the content type; headers that frame the message (`Content-Length`, ...) are the
 server's and are refused.
 
 Fixtures under `scenarios/<group>/<name>/` belong to the scenario `<group>/<name>`
-and answer only while it is active, in place of an ordinary fixture for the same
-request. Two fixtures for the same request in one scenario, or outside the
-scenarios, are refused.
+and answer only while it is active, before any ordinary fixture: a scenario fixture
+that matches any body wins over an ordinary one for the exact body. Two fixtures for
+the same request in one scenario, or outside the scenarios, are refused.
 """
 
 from __future__ import annotations
@@ -67,13 +71,24 @@ type Key = tuple[str, str, str, tuple[tuple[str, tuple[str, ...]], ...], str | N
 type Fixtures = dict[Key, Fixture]
 
 
-def request_key(
-    surface: str, method: str, path: str, params: Params, body: str | None = None
-) -> Key:
+def body_key(body: Any) -> str | None:
+    """A body as it is compared: canonical JSON, or text with whitespace collapsed."""
+
+    if body is None:
+        return None
+    if isinstance(body, str):
+        try:
+            body = json.loads(body)
+        except ValueError:
+            return " ".join(body.split())
+    return json.dumps(body, sort_keys=True, separators=(",", ":"))
+
+
+def request_key(surface: str, method: str, path: str, params: Params, body: Any = None) -> Key:
     """What a request is matched on; `body` None stands for any body."""
 
     query = tuple(sorted((name, tuple(values)) for name, values in params.items()))
-    return (surface, method.upper(), path, query, body)
+    return (surface, method.upper(), path, query, body_key(body))
 
 
 def _merge(defaults: dict[str, str], headers: dict[str, str]) -> dict[str, str]:
@@ -107,6 +122,7 @@ class Response:
 class Fixture:
     name: str
     responses: tuple[Response, ...]
+    ignored: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,6 +131,15 @@ class FixtureSet:
 
     ordinary: Fixtures
     scenarios: dict[str, Fixtures]
+
+
+def _ignored_problem(request: dict[str, Any]) -> str | None:
+    ignored = request.get("ignored", {})
+    if not all(isinstance(evidence, str) and evidence for evidence in ignored.values()):
+        return "an ignored parameter names the evidence that the service ignores it"
+    if set(ignored) & set(request.get("params", {})):
+        return "an ignored parameter is not also matched"
+    return None
 
 
 def _response_problem(response: dict[str, Any]) -> str | None:
@@ -132,7 +157,7 @@ def _problem(document: dict[str, Any]) -> str | None:
     if ("response" in document) == ("responses" in document):
         return "a fixture has either a response or responses"
     responses = document.get("responses") or [document["response"]]
-    problems = (_response_problem(response) for response in responses)
+    problems = [_ignored_problem(document["request"]), *map(_response_problem, responses)]
     return next((problem for problem in problems if problem), None) or _provenance_problem(document)
 
 
@@ -158,8 +183,10 @@ def _read_fixture(path: Path, root: Path) -> tuple[Key, Fixture]:
         request.get("params", {}),
         request.get("body"),
     )
-    responses = document.get("responses") or [document["response"]]
-    return key, Fixture(name, tuple(Response(**response) for response in responses))
+    responses = tuple(
+        Response(**response) for response in document.get("responses") or [document["response"]]
+    )
+    return key, Fixture(name, responses, frozenset(request.get("ignored", {})))
 
 
 def _scenario_of(path: Path, root: Path) -> str | None:
@@ -196,13 +223,15 @@ class FixtureServer:
 
     def __init__(self, fixtures: FixtureSet) -> None:
         self.fixtures = fixtures
-        self._active: Fixtures = fixtures.ordinary
+        self._layers: list[Fixtures] = []
+        self._ignored: dict[tuple[str, str, str], frozenset[str]] = {}
         self._served: dict[str, int] = {}
         self._log: list[dict[str, Any]] = []
         self._lock = threading.Lock()
         self._http = ThreadingHTTPServer(("127.0.0.1", 0), _handler(self))
         self.url = f"http://127.0.0.1:{self._http.server_port}"
         self._thread = threading.Thread(target=self._http.serve_forever, daemon=True)
+        self.activate()
 
     def __enter__(self) -> Self:
         self._thread.start()
@@ -222,11 +251,13 @@ class FixtureServer:
         unknown = sorted(set(scenarios) - set(self.fixtures.scenarios))
         if unknown:
             raise ValueError(f"no such scenario: {', '.join(unknown)}")
-        active = dict(self.fixtures.ordinary)
-        for scenario in scenarios:
-            active |= self.fixtures.scenarios[scenario]
+        layers = [self.fixtures.scenarios[scenario] for scenario in reversed(scenarios)]
+        layers.append(self.fixtures.ordinary)
+        ignored: dict[tuple[str, str, str], frozenset[str]] = {}
+        for key, fixture in ((key, fixture) for layer in layers for key, fixture in layer.items()):
+            ignored[key[:3]] = ignored.get(key[:3], frozenset()) | fixture.ignored
         with self._lock:
-            self._active = active
+            self._layers, self._ignored = layers, ignored
 
     def log(self) -> list[dict[str, Any]]:
         with self._lock:
@@ -237,10 +268,19 @@ class FixtureServer:
             self._log.clear()
             self._served.clear()
 
-    def _next(self, key: Key) -> tuple[Fixture | None, Response | None]:
-        """The fixture for a request and its response in turn; a body-less fixture as fallback."""
+    def _find(self, key: Key) -> Fixture | None:
+        """The fixture for a request: a selected scenario first, each layer by exact body first."""
 
-        fixture = self._active.get(key) or self._active.get((*key[:4], None))
+        for layer in self._layers:
+            fixture = layer.get(key) or layer.get((*key[:4], None))
+            if fixture is not None:
+                return fixture
+        return None
+
+    def _next(self, key: Key) -> tuple[Fixture | None, Response | None]:
+        """The fixture for a request and its response in turn."""
+
+        fixture = self._find(key)
         if fixture is None:
             return None, None
         turn = self._served.get(fixture.name, 0)
@@ -255,7 +295,9 @@ class FixtureServer:
         path, params = f"/{rest}", parse_qs(url.query, keep_blank_values=True)
         entry = {"surface": surface, "method": method, "path": path, "params": params}
         with self._lock:
-            fixture, response = self._next(request_key(surface, method, path, params, body))
+            ignored = self._ignored.get((surface, method.upper(), path), frozenset())
+            matched = {name: values for name, values in params.items() if name not in ignored}
+            fixture, response = self._next(request_key(surface, method, path, matched, body))
             entry |= {"headers": headers, "body": body, "fixture": fixture and fixture.name}
             self._log.append(entry)
         if response is None:

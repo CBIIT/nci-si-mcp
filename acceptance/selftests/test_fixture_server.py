@@ -383,3 +383,82 @@ def fetch_post(url, body):
             return response.status
     except HTTPError as error:
         return error.code
+
+
+def test_a_selected_scenario_wins_even_where_an_ordinary_fixture_names_the_exact_body(tmp_path):
+    match = {"surface": "cadsr", "method": "POST", "path": "/rad/cdeMatch"}
+    fixture_file(tmp_path, "recorded/match.json", request=match | {"body": {"q": "x"}})
+    fixture_file(
+        tmp_path,
+        "scenarios/upstream/unavailable/match.json",
+        kind="crafted",
+        requirement="A5.3",
+        request=match,
+        response={"status": 503},
+    )
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        running.activate("upstream/unavailable")
+        status = fetch_post(running.base_url("cadsr") + "/rad/cdeMatch", b'{"q": "x"}')
+
+    assert status == HTTPStatus.SERVICE_UNAVAILABLE
+
+
+@pytest.mark.parametrize(
+    ("fixture_body", "request_body"),
+    [
+        ({"description": "age", "top": 5}, b'{ "top":5,\n  "description": "age" }'),
+        ("SELECT ?s WHERE {\n  ?s ?p ?o\n}", b"SELECT ?s   WHERE { ?s ?p ?o }"),
+    ],
+)
+def test_bodies_match_as_json_or_with_whitespace_collapsed(tmp_path, fixture_body, request_body):
+    match = {"surface": "ssis-sparql", "method": "POST", "path": "/sparql", "body": fixture_body}
+    fixture_file(tmp_path, "query.json", request=match)
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        status = fetch_post(running.base_url("ssis-sparql") + "/sparql", request_body)
+
+    assert status == HTTPStatus.OK
+
+
+def test_a_parameter_declared_ignored_is_left_out_of_the_match_and_kept_in_the_log(tmp_path):
+    evidence = "STATUS.md, 11 September 2026: $expand accepts count and ignores it"
+    fixture_file(
+        tmp_path,
+        "expand.json",
+        request={
+            "surface": "evs-fhir",
+            "method": "GET",
+            "path": "/ValueSet/$expand",
+            "params": {"url": ["http://example/vs"]},
+            "ignored": {"count": evidence},
+        },
+    )
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        url = running.base_url("evs-fhir") + "/ValueSet/$expand?url=http://example/vs"
+        statuses = [fetch(url)[0], fetch(url + "&count=50")[0], fetch(url + "&offset=1")[0]]
+        logged = running.log()[1]["params"]
+
+    assert statuses == [200, 200, 501]
+    assert logged["count"] == ["50"]
+
+
+@pytest.mark.parametrize(
+    ("ignored", "params", "problem"),
+    [
+        ({"count": ""}, {}, "an ignored parameter names the evidence that the service ignores it"),
+        ({"count": "seen"}, {"count": ["5"]}, "an ignored parameter is not also matched"),
+    ],
+)
+def test_an_ignored_parameter_is_declared_with_evidence_and_only_once(
+    tmp_path, ignored, params, problem
+):
+    request = {
+        "surface": "evs",
+        "method": "GET",
+        "path": "/x",
+        "params": params,
+        "ignored": ignored,
+    }
+    fixture_file(tmp_path, "f.json", request=request)
+
+    with pytest.raises(ValueError, match=f"f.json: {problem}"):
+        load_fixtures(tmp_path)

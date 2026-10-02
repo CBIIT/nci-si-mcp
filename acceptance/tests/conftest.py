@@ -118,4 +118,5 @@ def upstream_log(request: pytest.FixtureRequest, upstream: FixtureServer | None)
     yield
     unmatched = unmatched_requests(upstream.log())
     if unmatched and request.node.get_closest_marker(UNMATCHED_UPSTREAM) is None:
+        request.node.user_properties.append((UNMATCHED_UPSTREAM, unmatched))
         pytest.fail("upstream requests without a fixture:\n" + "\n".join(unmatched))
