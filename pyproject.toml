@@ -165,7 +165,7 @@ min_confidence = 60
 ignore_decorators = ["@mcp.tool", "@mcp.resource", "@pytest.fixture"]
 ignore_names = [
     "row_factory", "built_at", "index_path", "state", "reuse_targets",
-    "pytest_*", "do_*", "log_message",
+    "pytest_*", "do_*", "log_message", "close_connection",
 ]
 
 [tool.basedpyright]

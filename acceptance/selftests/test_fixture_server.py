@@ -1,7 +1,9 @@
 """The fixture server answers from fixtures, refuses what it cannot answer, and records it all."""
 
 import json
+import time
 from http import HTTPStatus
+from http.client import RemoteDisconnected
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -10,15 +12,22 @@ import pytest
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures, request_key
 
 VERSION = request_key("evs", "GET", "/api/v1/version", {})
+DELAY = 0.3
 
 
 def fixture_file(directory, name, **document):
+    """Write a fixture: a recorded answer to GET /evs/api/v1/version unless told otherwise.
+
+    A field given as None is left out.
+    """
+
     document = {
         "kind": "recorded",
         "recorded_on": "2026-10-02",
         "request": {"surface": "evs", "method": "GET", "path": "/api/v1/version"},
         "response": {"status": 200, "body": {"version": "2.5.0"}},
     } | document
+    document = {field: value for field, value in document.items() if value is not None}
     path = directory / name
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(document), encoding="utf-8")
@@ -232,9 +241,11 @@ def test_a_fixture_directory_must_exist(tmp_path):
         ({"recorded_on": None}, "a recorded fixture names recorded_on"),
         ({"kind": "crafted"}, "a crafted fixture names its requirement"),
         ({"kind": "invented"}, "kind is recorded or crafted"),
+        ({"responses": [{"status": 200}]}, "a fixture has either a response or responses"),
+        ({"response": {"fault": "hang"}}, "a fault is one of reset"),
     ],
 )
-def test_a_fixture_states_where_it_comes_from(tmp_path, document, problem):
+def test_an_unusable_fixture_is_refused_naming_its_problem(tmp_path, document, problem):
     fixture_file(tmp_path, "f.json", **document)
 
     with pytest.raises(ValueError, match=f"f.json: {problem}"):
@@ -246,5 +257,129 @@ def test_a_loaded_fixture_is_keyed_by_its_request(tmp_path):
 
     fixtures = load_fixtures(tmp_path)
 
-    assert list(fixtures) == [VERSION]
-    assert fixtures[VERSION].name == "recorded/evs/version.json"
+    assert list(fixtures.ordinary) == [VERSION]
+    assert fixtures.ordinary[VERSION].name == "recorded/evs/version.json"
+    assert fixtures.scenarios == {}
+
+
+def test_a_scenario_answers_in_place_of_the_ordinary_fixture_only_while_active(tmp_path):
+    fixture_file(tmp_path, "recorded/evs/version.json")
+    fixture_file(
+        tmp_path,
+        "scenarios/release/unknown/version.json",
+        kind="crafted",
+        requirement="A3.4",
+        response={"status": 404, "body": {"message": "Terminology not found"}},
+    )
+    url = None
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        url = running.base_url("evs") + "/api/v1/version"
+        ordinary = fetch(url)[0]
+        running.activate("release/unknown")
+        during = fetch(url)[0]
+        logged = running.log()[-1]["fixture"]
+        running.activate()
+        after = fetch(url)[0]
+
+    assert (ordinary, during, after) == (200, 404, 200)
+    assert logged == "scenarios/release/unknown/version.json"
+
+
+def test_an_unknown_scenario_is_refused(server):
+    with pytest.raises(ValueError, match="no such scenario: nothing/here"):
+        server.activate("nothing/here")
+
+
+def test_a_scenario_fixture_lies_two_levels_below_scenarios(tmp_path):
+    fixture_file(tmp_path, "scenarios/release/version.json")
+
+    with pytest.raises(ValueError, match="a scenario fixture lies in scenarios/<group>/<name>/"):
+        load_fixtures(tmp_path)
+
+
+def test_the_same_request_may_have_a_fixture_in_each_scenario(tmp_path):
+    for scenario in ("release/unknown", "release/mismatch"):
+        fixture_file(
+            tmp_path, f"scenarios/{scenario}/version.json", kind="crafted", requirement="A3.4"
+        )
+
+    fixtures = load_fixtures(tmp_path)
+
+    assert sorted(fixtures.scenarios) == ["release/mismatch", "release/unknown"]
+
+
+def test_responses_answer_in_turn_the_last_repeating_and_a_reset_rewinds(tmp_path):
+    fixture_file(
+        tmp_path,
+        "limited.json",
+        kind="crafted",
+        requirement="E-7",
+        response=None,
+        responses=[
+            {"status": 429, "headers": {"Retry-After": "1"}},
+            {"status": 200, "body": {"version": "2.5.0"}},
+        ],
+    )
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        url = running.base_url("evs") + "/api/v1/version"
+        first = [fetch(url)[0] for _ in range(3)]
+        running.reset()
+        again = fetch(url)[0]
+
+    assert (first, again) == ([429, 200, 200], 429)
+
+
+def test_a_reset_fault_closes_the_connection_without_an_answer(tmp_path):
+    fixture_file(
+        tmp_path, "down.json", kind="crafted", requirement="A5.3", response={"fault": "reset"}
+    )
+    with (
+        FixtureServer(load_fixtures(tmp_path)) as running,
+        pytest.raises(RemoteDisconnected),
+    ):
+        urlopen(running.base_url("evs") + "/api/v1/version", timeout=10)  # noqa: S310
+
+
+def test_a_delayed_response_waits_before_it_is_sent(tmp_path):
+    fixture_file(
+        tmp_path,
+        "slow.json",
+        kind="crafted",
+        requirement="A5.3",
+        response={"status": 200, "delay_seconds": DELAY},
+    )
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        started = time.monotonic()
+        fetch(running.base_url("evs") + "/api/v1/version")
+        waited = time.monotonic() - started
+
+    assert waited >= DELAY
+
+
+def test_a_fixture_with_a_body_answers_only_that_body_and_one_without_answers_the_rest(tmp_path):
+    match = {"surface": "cadsr", "method": "POST", "path": "/rad/cdeMatch"}
+    fixture_file(
+        tmp_path,
+        "timeout.json",
+        kind="crafted",
+        requirement="C-6",
+        request=match | {"body": '{"description": "slow"}'},
+        response={"status": 504},
+    )
+    fixture_file(tmp_path, "match.json", request=match, response={"status": 200, "body": []})
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        url = running.base_url("cadsr") + "/rad/cdeMatch"
+        statuses = [
+            fetch_post(url, b'{"description": "slow"}'),
+            fetch_post(url, b'{"description": "other"}'),
+        ]
+
+    assert statuses == [504, 200]
+
+
+def fetch_post(url, body):
+    try:
+        with urlopen(Request(url, data=body, method="POST"), timeout=10) as response:  # noqa: S310
+            return response.status
+    except HTTPError as error:
+        return error.code

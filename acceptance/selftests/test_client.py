@@ -14,7 +14,7 @@ from nci_si_acceptance.client import (
     open_session,
     server_environment,
 )
-from nci_si_acceptance.fixture_server import SURFACES, FixtureServer
+from nci_si_acceptance.fixture_server import SURFACES, FixtureServer, FixtureSet
 
 # The furnished server, started from the environment the tests run in.
 BASELINE_SERVER = [sys.executable, "-m", "nci_si_mcp.cli", "serve"]
@@ -93,7 +93,7 @@ def test_fixture_mode_needs_the_fixture_server(tmp_path):
 
 
 def test_every_upstream_request_of_the_server_under_test_is_recorded(tmp_path):
-    with FixtureServer({}) as upstream:
+    with FixtureServer(FixtureSet({}, {})) as upstream:
         environment = server_environment("fixture", tmp_path, upstream.url)
         with open_session(BASELINE_SERVER, environment) as session:
             tools = session.list_tools()

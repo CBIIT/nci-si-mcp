@@ -7,19 +7,35 @@ tool surface of a server it starts as a command; it knows nothing of the server'
 From the repository root:
 
 ```bash
-pdm run acceptance                                   # the suite, fixture mode
+pdm run acceptance --report=fixture.json             # the suite, fixture mode, with its report
 NCI_SI_ACCEPTANCE_MODE=live pdm run acceptance       # the live-capable tests against production
 NCI_SI_ACCEPTANCE_SERVER="..." pdm run acceptance    # another server command (default: nci-si-mcp serve)
+pdm run python -m nci_si_acceptance.report acceptance/fixture.json [--live live.json]
 pdm run acceptance-selftest                          # the harness's own tests
 ```
 
-`src/nci_si_acceptance/` holds the harness (`client.py`), the fixture server (`fixture_server.py`,
-which documents the fixture format) and the rules of a run (`suite.py`); `fixtures/` the fixtures
-([fixtures/README.md](fixtures/README.md)); `tests/` the suite; `selftests/` the tests of the
-harness itself.
+## Writing a test
+
+A test calls a required tool by its name, `tools.call("get_concept", {...})`, and names the tool
+it is for with `@pytest.mark.tool("get_concept")`; a protocol gate is marked `gate`. When the
+server lacks the tool, the baseline tool map (`fixtures/baseline_toolmap.yaml`) may name a tool
+that stands in for it; otherwise the test is skipped as NOT IMPLEMENTED. Each test cites the
+section of the specification it asserts, and asserts only what that section says.
+
+`@pytest.mark.scenario("release/unknown")` serves the scenario's fixtures in place of the
+ordinary ones, to a server process of its own. A test marked `live_capable` also runs in live
+mode; every other test runs against fixtures only.
 
 In fixture mode a test fails when one of its upstream requests found no fixture: the server may
 treat the refusal as an outage and still answer plausibly. A test that provokes such requests on
 purpose is marked `unmatched_upstream`.
+
+## Layout
+
+`src/nci_si_acceptance/` holds the harness: `client.py` starts the server, `tools.py` calls the
+required tools, `fixture_server.py` serves the fixtures (its docstring documents the format),
+`report.py` writes and renders the per-tool report, `inventory.py` lists the required tools and
+`suite.py` the rules of a run. `fixtures/` holds the fixtures ([fixtures/README.md](fixtures/README.md)),
+`tests/` the suite, `selftests/` the tests of the harness itself.
 
 The suite is versioned on its own (`pyproject.toml` here), independently of the server.
