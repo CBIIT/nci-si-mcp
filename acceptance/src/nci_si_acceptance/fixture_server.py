@@ -60,14 +60,22 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import TYPE_CHECKING, Any, Self
 from urllib.parse import parse_qs, unquote, urlsplit
 
-from nci_si_acceptance.client import HARNESS_VARIABLES
-
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
 
-# The upstream surfaces, each served under its own path prefix.
-SURFACES = ("evs", "evs-fhir", "cadsr", "cadsr-ftp", "ssis", "ssis-sparql")
+# The server's upstream settings (docs/SPEC.md §8) and the fixture surface each one names:
+# the path prefix the fixture server serves it under.
+UPSTREAM_VARIABLES = {
+    "NCI_SI_EVS_BASE_URL": "evs",
+    "NCI_SI_EVS_FHIR_BASE_URL": "evs-fhir",
+    "NCI_SI_CADSR_BASE_URL": "cadsr",
+    "NCI_SI_CADSR_FTP_URL": "cadsr-ftp",
+    "NCI_SI_SSIS_FACADE_URL": "ssis",
+    "NCI_SI_SSIS_SPARQL_URL": "ssis-sparql",
+}
+# What the harness sets itself, and a scenario's settings may not override.
+HARNESS_VARIABLES = frozenset({*UPSTREAM_VARIABLES, "NCI_SI_UPSTREAM_MODE", "NCI_SI_DATA_DIR"})
 SCENARIOS = "scenarios"
 LOG_PATH = "/_log"
 FRAMING_HEADERS = frozenset(

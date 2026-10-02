@@ -9,12 +9,11 @@ from nci_si_acceptance import client
 from nci_si_acceptance.client import (
     MODE_VARIABLE,
     SERVER_VARIABLE,
-    UPSTREAM_VARIABLES,
     Target,
     open_session,
     server_environment,
 )
-from nci_si_acceptance.fixture_server import SURFACES, FixtureServer, FixtureSet
+from nci_si_acceptance.fixture_server import UPSTREAM_VARIABLES, FixtureServer, FixtureSet
 
 # The furnished server, started from the environment the tests run in.
 BASELINE_SERVER = [sys.executable, "-m", "nci_si_mcp.cli", "serve"]
@@ -63,7 +62,6 @@ def test_in_fixture_mode_every_upstream_names_the_fixture_server(monkeypatch, tm
         "NCI_SI_SSIS_FACADE_URL": "http://127.0.0.1:9/ssis",
         "NCI_SI_SSIS_SPARQL_URL": "http://127.0.0.1:9/ssis-sparql",
     }
-    assert set(UPSTREAM_VARIABLES.values()) == set(SURFACES)
     assert (environment["NCI_SI_UPSTREAM_MODE"], environment["NCI_SI_DATA_DIR"]) == (
         "fixture",
         str(tmp_path),
@@ -106,7 +104,7 @@ def test_every_upstream_request_of_the_server_under_test_is_recorded(tmp_path):
     assert results
     log = upstream.log()
     assert log
-    assert {entry["surface"] for entry in log} <= set(SURFACES)
+    assert {entry["surface"] for entry in log} <= set(UPSTREAM_VARIABLES.values())
     assert all(entry["fixture"] is None for entry in log)
 
 

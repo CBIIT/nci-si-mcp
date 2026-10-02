@@ -117,14 +117,35 @@ def test_again(tools):
 
 def test_a_test_sees_none_of_the_requests_its_server_made_while_it_started(suite, monkeypatch):
     eager(suite, monkeypatch)
-    fixture(suite.path / "fixtures", "recorded/version.json", {"status": 200, "body": {}})
+    fixture(suite.path / "fixtures", "scenarios/probe/up/version.json", {"status": 200, "body": {}})
     test = """
+import pytest
+
+@pytest.mark.scenario("probe/up")
 def test_clean(tools, upstream):
     assert upstream.log() == []
 """
     result = run(suite, test)
 
     result.assert_outcomes(passed=1)
+
+
+def test_a_server_starting_after_another_test_is_not_charged_with_its_requests(suite):
+    test = """
+import urllib.error, urllib.request
+import pytest
+
+@pytest.mark.unmatched_upstream
+def test_first(upstream):
+    with pytest.raises(urllib.error.HTTPError):
+        urllib.request.urlopen(upstream.url + "/evs/api/v1/elsewhere")
+
+def test_second(server):
+    assert server
+"""
+    result = run(suite, test)
+
+    result.assert_outcomes(passed=2)
 
 
 def test_a_live_run_reports_its_mode_and_a_tool_with_only_fixture_tests_as_not_run(

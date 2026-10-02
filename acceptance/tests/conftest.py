@@ -115,21 +115,24 @@ def _startup_requests(upstream: FixtureServer | None) -> list[str]:
 @pytest.fixture
 def tools(
     request: pytest.FixtureRequest,
-    server: Tools,
     target: Target,
     upstream: FixtureServer | None,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> Iterator[Tools]:
-    """The required tools of the server under test, for one test."""
+    """The required tools of the server under test, for one test.
+
+    A scenario test does not start the shared server: it runs against its own.
+    """
 
     scenarios = scenarios_of(request.node)
     if not scenarios or upstream is None:
-        yield server
+        yield request.getfixturevalue("server")
         return
     upstream.activate(*scenarios)
     settings = upstream.fixtures.settings_of(scenarios)
     try:
         with _tools(target, upstream, tmp_path_factory, settings) as own:
+            request.config.stash[COLLECTOR].note_tools(own)
             yield own
     finally:
         upstream.activate()
