@@ -66,14 +66,16 @@ truncation:
   title: The truncation record
   about: >-
     The truncation field of a result whose tool bounds it. When nothing was truncated it holds
-    occurred false and no other field; when a bound was reached, the others are present.
+    occurred false and no other field. When a bound was reached it holds occurred, bound, limit,
+    reached, omitted and exact, and perKind as well where a traversal spans several
+    relationship kinds. A page that a cursor continues is not a truncation (M6.1).
   fields:
     occurred:
       content: Whether a bound was reached
       of: A5.4
     bound:
       content: Which bound was reached
-      values: [results, depth, nodes, edges, requests, upstream_cap]
+      values: [results, depth, nodes, edges, kind_budget, requests, upstream_cap]
       optional: true
       of: A5.4
     limit:
@@ -93,7 +95,9 @@ truncation:
       optional: true
       of: A5.4
     perKind:
-      content: For a traversal over several relationship kinds, a truncation record per kind
+      content: >-
+        For a traversal over several relationship kinds: a map from each kind to its own
+        truncation record; occurred is true when any kind's budget was reached
       optional: true
       of: A5.5
 error:

@@ -140,7 +140,7 @@ Serialisation: every tool handler returns a dataclass or raises a `PlatformError
 
 Extend `models.py`'s per-concept fields into one `ProvenanceEnvelope` attached **per item** (A4.4), with the fields of the specification's provenance record (`spec/records.yaml`), and a `TraversalProvenance` adding those of its traversal record. For caDSR, `release` carries the export date and says that no registry identifier exists (A3.8.2). The `raw` payload is dropped from MCP results and kept only behind the CLI flag.
 
-`Truncation` carries the fields of the specification's truncation record (`spec/records.yaml`): `omitted` is always a number, with `exact` false where it is only a lower bound (A5.4), as behind caDSR's 1,000-row cap.
+`Truncation` carries the fields of the specification's truncation record (`spec/records.yaml`): `omitted` is always a number, with `exact` false where it is only a lower bound or an estimate (A5.4).
 
 ### 3.3 Release model (`platform/release.py`)
 
@@ -267,7 +267,7 @@ Built on `platform/http.py`. Endpoints, all verified live:
 | data element by public id | `GET /rad/NCIAPI/1.0/api/DataElement/{id}` | `version` is the **item's** version, exposed as such |
 | data elements by concept | `GET /rad/NCIAPI/1.0/api/DataElements/Concept?conceptCode=&headerOnly=true` | single concept only; 9.7–20 s measured — tool declares a 30 s timeout |
 | CRDC crosswalk | `GET …/DataElements/getCRDCList` | unparameterised; cached per export date |
-| data element search | `GET …/DataElement/search?…` | **1,000 cap, no paging**: a result of exactly 1,000 rows is reported as `Truncation(bound="upstream_cap", omitted="unknown")`; `totalKnown` filled from `getJSON`'s `recordCounter` where the query can be expressed there |
+| data element search | `GET …/DataElement/search?…` | **1,000 cap, no paging**: a result of exactly 1,000 rows is reported as truncated with `bound` `upstream_cap`; `totalKnown` filled from `getJSON`'s `recordCounter` where the query can be expressed there gives `omitted` exactly; where it cannot, `omitted` is 0 with `exact` false, which says only that more may exist, and the missing count is an entry in the upstream requirements package (A5.4 cannot be met without it) |
 | contexts, item types, workflow statuses | `GET /rad/NCILovAPI/1.0/api/getContextNames` etc. | enumerations; definitions are absent upstream and the result says so |
 | classification schemes | from the data-element payload's `ClassificationSchemes[]` with nested items | first-class objects |
 | forms | `GET /rad/NCIFormAPI.v2_0:NciFormApiRad/Form/{publicId}` and `/Form/query` | keyword search requires `publicId` or `protocolId` upstream; a keyword-only request is `invalid_request` with that stated |

@@ -48,6 +48,9 @@ requirements, for the harness's own tests.
     upstream-renamed  EVS's origin fields passed on under other names               (X-8)
     truncation-flag-only a bound reached reported as occurred and nothing else      (X-10)
     omitted-unknown   how much was left out given as "unknown"                      (X-10)
+    exact-missing     a bound reached reported without exact                        (X-10)
+    reached-over      more counted against a bound than its limit                  (X-10)
+    upstream-altered  EVS's origin fields passed on with other values               (X-8)
     gives-up          no retry after a 429                                          (X-16)
     no-backoff        a retry after a 429 without the wait it asks for              (X-16)
 
@@ -97,8 +100,6 @@ UNKNOWN_RELEASE = "release_mismatch" if DEFECT == "unpinned-mismatch" else "rele
 SWALLOWED = {"unknown-as-empty": "release_not_available", "outage-as-empty": "upstream_unavailable"}
 # The suite's calls (tests/calls.yaml): what each tool's upstream answers would say.
 CALLS = yaml.safe_load((Path(__file__).parent.parent / "tests" / "calls.yaml").read_text())
-# The bound each truncating argument sets.
-BOUNDS = {"limit": "results", "count": "results", "maxNodes": "nodes"}
 # Whether each call so far reached EVS, and the calls already answered.
 reached = []
 answered = set()
@@ -252,20 +253,27 @@ def _provenance(name: str, arguments: dict, correlation: str) -> dict:
         "retrievedAt": "today" if DEFECT == "bad-timestamp" else datetime.now(UTC).isoformat(),
         "servedBy": "live",
         "correlationId": correlation,
-        "upstream": _upstream(name),
+        "upstream": _upstream(name, arguments),
     }
     if DEFECT == "no-served-by":
         del provenance["servedBy"]
     return provenance
 
 
-def _upstream(name: str) -> dict:
-    """What EVS says of the origin of the call's items, as the suite's calls list it."""
+def _upstream(name: str, arguments: dict) -> dict:
+    """What EVS says of the origin of the call's items, as the suite's calls list it, the
+    pin (`$terminology`, `$release`) taken from the call."""
 
-    supplied = CALLS.get(name, {}).get("upstream", {})
+    listed = CALLS.get(name, {}).get("upstream", {})
+    supplied = {
+        key: arguments.get(value[1:]) if str(value).startswith("$") else value
+        for key, value in listed.items()
+    }
     if DEFECT == "upstream-renamed":
         return {f"evs{key.title()}": value for key, value in supplied.items()}
-    return dict(supplied)
+    if DEFECT == "upstream-altered":
+        return {key: f"{value}+" for key, value in supplied.items()}
+    return supplied
 
 
 def _matches_nothing(name: str, arguments: dict) -> bool:
@@ -279,15 +287,22 @@ def _truncation(name: str, arguments: dict) -> dict:
 
     if "truncation" not in TOOLS[name]["returns"]:
         return {}
-    bounds = [
-        (key, arguments[key]) for key in CALLS[name].get("truncating", {}) if key in arguments
-    ]
-    if not bounds:
+    truncating = CALLS.get(name, {}).get("truncating", {"arguments": {}})
+    limits = [arguments[key] for key in truncating["arguments"] if key in arguments]
+    if not limits:
         return {"truncation": {"occurred": False}}
-    (key, limit), *_ = bounds
-    record = {"occurred": True, "bound": BOUNDS[key], "limit": limit, "reached": limit}
-    record |= {"omitted": "unknown" if DEFECT == "omitted-unknown" else 1, "exact": True}
-    return {"truncation": {"occurred": True} if DEFECT == "truncation-flag-only" else record}
+    return {"truncation": _reached(truncating["bound"], limits[0])}
+
+
+def _reached(bound: str, limit: int) -> dict:
+    """The truncation record of a bound reached, with one item left out."""
+
+    if DEFECT == "truncation-flag-only":
+        return {"occurred": True}
+    reached = limit + 1 if DEFECT == "reached-over" else limit
+    record = {"occurred": True, "bound": bound, "limit": limit, "reached": reached}
+    record |= {"omitted": "unknown" if DEFECT == "omitted-unknown" else 1}
+    return record | ({} if DEFECT == "exact-missing" else {"exact": True})
 
 
 def _items(name: str, provenance: dict) -> list[dict]:

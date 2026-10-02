@@ -48,8 +48,11 @@ DEFECTS = [
     ("empty-as-error", EMPTY),
     ("empty-without-provenance", EMPTY),
     ("upstream-renamed", "test_what_the_platform_says_of_an_item_s_origin_is_passed_through"),
+    ("upstream-altered", "test_what_the_platform_says_of_an_item_s_origin_is_passed_through"),
     ("truncation-flag-only", TRUNCATED),
     ("omitted-unknown", TRUNCATED),
+    ("exact-missing", TRUNCATED),
+    ("reached-over", TRUNCATED),
 ]
 
 

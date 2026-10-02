@@ -112,6 +112,10 @@ X-16:
   statement: After a 429 with Retry-After, the module waits at least that long before it asks again, and makes no request to that endpoint in between.
   basis: [A6.5, A5.3]
   planned: "#54"
+X-17:
+  statement: A page smaller than the result carries nextCursor; following it returns the rest, repeats no item, and keeps the release the first page was pinned to.
+  basis: [M6.1, M2.4]
+  planned: "#53"
 
 # EVS tools.
 resolve_release-1:

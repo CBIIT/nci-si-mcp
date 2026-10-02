@@ -54,7 +54,6 @@ PINNED_TOOLS = [name for name in CALLS if "release" in parameters(name)[0]]
 UPSTREAM, EMPTY, TRUNCATING = (
     [n for n in CALLS if key in CALLS[n]] for key in ("upstream", "empty", "truncating")
 )
-TRUNCATION = RECORDS["truncation"]["fields"]
 CALLED = _per_tool(CALLS)
 PINNED = _per_tool(PINNED_TOOLS)
 # The release the release/unknown scenario answers 404 for on every content path.
@@ -336,16 +335,31 @@ def test_a_query_that_matches_nothing_is_an_empty_result_with_provenance(tools, 
     assert not result.is_error, result.content
     assert items_of(name, result.content) == []
     # With no item to carry it, the result carries the provenance itself.
-    assert _wrong(_provenance(result.content), CARRIED) == []
+    provenance = _provenance(result.content)
+    assert _wrong(provenance, CARRIED) == []
+    release = provenance["release"]
+    assert (release.get("terminology"), release.get("identifier")) == (
+        pinned["terminology"],
+        pinned["release"],
+    )
 
 
 @pytest.mark.requirement("X-8")
 @pytest.mark.parametrize("name", _per_tool(UPSTREAM))
 def test_what_the_platform_says_of_an_item_s_origin_is_passed_through(tools, pinned, name):
-    supplied = CALLS[name]["upstream"]
+    supplied = _pinned(CALLS[name]["upstream"], pinned)
     passed = [_provenance(item).get("upstream") or {} for item in _items(tools, pinned, name)]
 
     assert [{key: each.get(key) for key in supplied} for each in passed] == [supplied] * len(passed)
+
+
+def _pinned(fields, pinned):
+    """`fields` with `$terminology` and `$release` replaced by the fixture set's pin."""
+
+    return {
+        key: pinned[value[1:]] if str(value).startswith("$") else value
+        for key, value in fields.items()
+    }
 
 
 def _whole(value):
@@ -358,13 +372,13 @@ def _whole(value):
 @pytest.mark.parametrize("name", _per_tool(TRUNCATING))
 def test_a_bound_reached_is_reported_with_how_much_was_left_out(tools, pinned, name):
     truncating = CALLS[name]["truncating"]
-    result = _call(tools, pinned, name, CALLS[name]["arguments"] | truncating)
+    result = _call(tools, pinned, name, CALLS[name]["arguments"] | truncating["arguments"])
 
     assert not result.is_error, result.content
     record = result.content.get("truncation") or {} if isinstance(result.content, dict) else {}
-    (limit,) = truncating.values()
+    (limit,) = truncating["arguments"].values()
     assert record.get("occurred") is True, record
-    assert record.get("bound") in TRUNCATION["bound"]["values"]
+    assert record.get("bound") == truncating["bound"]
     assert record.get("limit") == limit
     assert _whole(record.get("reached")) and record["reached"] <= limit
     # How much was left out is a number, exact or a stated lower bound; a flag is not enough.
