@@ -292,7 +292,7 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 
 | Tool | Inputs → result | What it does |
 |---|---|---|
-| `resolve_release` | `(terminology, channel?) → { terminology, channel, version, date, alternatives[] }` | Which release of a terminology is current, by channel; called explicitly, and its answer is passed to every later call. Items: `.`. |
+| `resolve_release` | `(terminology, channel?) → { terminology, channel, version, date, alternatives[] }` | Which release of a terminology is current, by channel (without one, the channel configured, A3.6.2); called explicitly, and its answer is passed to every later call. Items: `.`. |
 | `get_concept` | `(terminology, release, code, include[]?) → concept` | One concept with the detail selected. `include`: synonyms, definitions, properties, semanticType. Items: `.`. |
 | `get_concepts` | `(terminology, release, codes[], include[]?) → { concepts[], missing[] }` | Many concepts in one platform call, with the detail selected. `include`: synonyms, definitions, properties, semanticType. Items: `concepts[]`. |
 | `search_concepts` | `(terminology, release, query, mode?, limit?, cursor?) → { results[{ concept, score?, matchedOn? }], nextCursor? }` | Ranked search of a terminology; semantic and hybrid from the interim NCIt index (M4.1). `mode`: lexical, typeahead, semantic, hybrid. Items: `results[].concept`. |
