@@ -33,10 +33,11 @@ Done:
 - The migration to `mcp>=2.0,<3` is committed.
 - Since `v0.1.0`: Python 3.13 and PDM (#43), every function below cyclomatic complexity 8 (#44), the lint and quality gates with the engineering standards in `CONTRIBUTING.md` (#45), and automatic releases from Conventional Commit pull request titles (#46). `v0.2.0` is the first automatic release.
 
-Remaining (Phase 0):
+- The package is licensed under the Apache License 2.0 (#50).
 
-- Add a `LICENSE` file and the `license` field in `pyproject.toml`. The package has neither, and it is the first thing a contractor's counsel checks.
-- Tag the furnished commit `baseline-2026-10`. This is the commit SOW v2.1 §1 furnishes and the commit the baseline tool map (§9.4) is written against. It is a manual tag beside the automatic `vX.Y.Z` release tags, and it must contain the licence.
+Remaining:
+
+- Tag the furnished commit `baseline-2026-10`, when the owner decides to furnish it (§11). This is the commit both SOWs furnish (EVS SOW v2.1 item 1, caDSR SOW v1.1 item 1) and the commit the baseline run reports against. It is a manual tag beside the automatic `vX.Y.Z` release tags.
 
 ### 1.3 Ground rules carried forward from the current code
 
@@ -387,7 +388,7 @@ The fixture server exposes `GET /_log` returning every request it received since
 
 ### 9.4 Baseline tool map
 
-For `baseline-2026-10`, written against the furnished commit:
+The map lets the suite call today's tools under the required names, so the Group A tests run against an implementation from Phase 0 on instead of reporting every tool NOT IMPLEMENTED. The harness applies an entry only while the required tool is absent from `tools/list`. Written against today's server:
 
 | Required | Prototype | Parameters |
 |---|---|---|
@@ -397,9 +398,13 @@ For `baseline-2026-10`, written against the furnished commit:
 | `resolve_release` | `ncit_release_info` | — |
 | all others | — | NOT IMPLEMENTED |
 
+Once Phase 2 exposes the required names the map is empty. The *Acceptance Suite* (§6) describes it as part of the furnished package; how that holds then is an open question for the owner.
+
 ### 9.5 CI
 
-A job beside the existing `quality` and `test` jobs runs the acceptance suite in `fixture` mode against the server built from the checkout, and becomes a required check on `main`. `live` mode is a manual workflow with the network location recorded.
+A job beside the existing `quality` and `test` jobs runs the acceptance suite in `fixture` mode against the server built from the checkout, and becomes a required check on `main`. It is a ratchet: the per-tool report must equal a committed expected report, so the job stays green while tools are NOT IMPLEMENTED, and a pull request that makes a tool pass (or fail) updates the expected report in the same change. `live` mode is a manual workflow with the network location recorded.
+
+Because the suite and the tools are written by the same hands, two rules keep the suite honest. A suite test asserts what the *MCP Behavioral Acceptance Suite* (§3–§5) and the *MCP API Specification* say, cites the section, and never asserts what the current implementation happens to return. A pull request that changes a suite test or fixture while making a tool pass lists each change with the passage that justifies it: correcting a wrong test before the interface baseline is frozen is expected, weakening one is not.
 
 ---
 
@@ -423,18 +428,21 @@ Keep `unittest`-style tests under the gates in `CONTRIBUTING.md`. Extend `tests/
 
 ## 11. Phases and definition of done
 
-Each phase ends with the unit suite green, the acceptance suite green in `fixture` mode for every tool implemented so far, and a tag: a `vX.Y.Z` release, which a merged `feat`, `fix` or `perf` pull request cuts automatically, or for Phase 0 the manual `baseline-2026-10`.
+Both SOWs furnish the acceptance suite, with "the behavioral tests for each required MCP tool and the upstream fixture set they run against" (EVS SOW v2.1 item 1), and the caDSR SOW furnishes "the shared platform, the EVS module, and the caDSR client, tools and tests completed at award" (caDSR SOW v1.1, Objective). The suite is therefore completed first, for all twenty-nine tools, so that it is complete at whatever point the package is furnished; a tool the prototype lacks is a valid NOT IMPLEMENTED row, a required tool without tests is a defect in the package. The phases then make the tools pass their tests, in milestone order.
+
+Each phase ends with the unit suite green, the acceptance suite's expected report updated for every tool that now passes, and a `vX.Y.Z` release where a merged `feat`, `fix` or `perf` pull request cuts one.
 
 | Phase | Delivers | Done when |
 |---|---|---|
-| **0 · Baseline** | §1.2: licence, `baseline-2026-10` tag; acceptance harness skeleton; EVS fixture set; baseline tool map; baseline run report; acceptance CI job (§9.5) | the furnished package exists and the baseline report is produced |
+| **0 · Acceptance suite** | Licence; §9: harness, fixture mechanics (scenarios, response sequences, request bodies), recorded and crafted fixtures for every surface and all sixteen scenarios, protocol gates, cross-cutting tests, per-tool tests for Groups A, B, C and W, the baseline tool map as a working aid, the per-tool report, the fixture-mode CI job | every required tool has its tests; the report runs against today's server, through the tool map where one applies |
 | **1 · Platform** | §3 in full; `service.py` retired; EVS tools re-homed on the registry with no behaviour change | §3 protocol gates pass; existing EVS behaviour unchanged under the new error and provenance model |
 | **2 · EVS module** | §4: release-pinned addressing, batch reconciliation, catalogue polarity, traversal rewrite, FHIR, mapsets, retired codes; index with activation and rollback | all Group A tools PASS in fixture mode; live-capable tests PASS live |
 | **3 · caDSR module** | §5 | all Group B tools PASS in fixture mode; PASS (fixture only) rows name their upstream requirement |
+| **Furnished package** | §1.2: the `baseline-2026-10` tag and the Prototype Baseline Package (SOW v2.1 item 1), with the baseline run report against that commit and the tools whose tests have never passed against any implementation named | the owner decides when; not before Phase 3 is done (*Project Plan* §7: "repository Phases 0–3 to the point where both modules yield a meaningful baseline report") |
 | **4 · Cross-domain** | §6 | Group C PASS; both release identities on every result |
 | **5 · Workflows, remote transport, audit** | §7, §3.8, §3.9 | Group W PASS; unified profile accepted under §6 of the acceptance specification |
 
-Phase 0 must complete before contract award; the rest is the contractor's work under SOW v2.1 and v1.1, and this specification is what the Prototype Baseline Assessment measures the prototype against.
+Work proceeds in milestone order until award. What remains at the furnished commit is the contractors' work under SOW v2.1 and v1.1, and this specification is what the Prototype Baseline Assessment measures the prototype against.
 
 ---
 
