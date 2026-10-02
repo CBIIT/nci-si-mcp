@@ -123,6 +123,16 @@ def _startup_requests(upstream: FixtureServer | None) -> list[str]:
 
 
 @pytest.fixture
+def fresh_server(
+    target: Target, upstream: FixtureServer | None, tmp_path_factory: pytest.TempPathFactory
+) -> Iterator[Tools]:
+    """A server of its own for one test, so that nothing an earlier test asked is cached."""
+
+    with _tools(target, upstream, tmp_path_factory) as tools:
+        yield tools
+
+
+@pytest.fixture
 def tools(
     request: pytest.FixtureRequest,
     target: Target,

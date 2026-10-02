@@ -127,13 +127,11 @@ def translate(arguments: dict[str, Any], entry: dict[str, Any]) -> dict[str, Any
 
 @dataclass(frozen=True, slots=True)
 class Result:
-    """A tool's answer: the tool that gave it, whether it is an error, its content and its
-    `_meta`."""
+    """A tool's answer: the tool that gave it, whether it is an error, and its content."""
 
     tool: str
     is_error: bool
     content: Any
-    meta: dict[str, Any]
 
 
 def _content(result: types.CallToolResult) -> Any:
@@ -197,4 +195,4 @@ class Tools:
             except Unsupported as unsupported:
                 pytest.skip(f"{NOT_IMPLEMENTED}: {name} with {unsupported} (stand-in {tool})")
         result = self._session.call_tool(tool, arguments, meta)
-        return Result(tool, bool(result.is_error), _content(result), result.meta or {})
+        return Result(tool, bool(result.is_error), _content(result))

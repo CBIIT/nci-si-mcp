@@ -134,9 +134,9 @@ M2:
     M2.2: A release-pinned result has a long ttlMs, an unpinned one a short ttlMs, and resolve_release, resolve_registry_release and get_release_alignment ttlMs 0; tools/list is long and public.
     M2.3: cacheScope is public for governed content and private for results computed from caller-supplied values.
     M2.4: A cursor pins the release it was issued against; presented after that release is superseded, it is a structured error.
-    M2.5: A tool result carries ttlMs and cacheScope in its _meta, as the protocol's cacheable results carry them.
+    M2.5: A tool result carries ttlMs and cacheScope in its _meta.
   why:
-    M2.5: The protocol defines ttlMs and cacheScope for the list methods, resources/read and server/discover only, so a tool result needs a stated place for them.
+    M2.5: The protocol carries ttlMs and cacheScope as fields of the results of the list methods, resources/read and server/discover only (revision 2026-07-28), so a tool result needs a stated place for them.
 M3:
   title: Typed results
   rules:

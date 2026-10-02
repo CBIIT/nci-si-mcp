@@ -5,16 +5,21 @@
     missing-tool      lists one tool of the profile too few                       (P-1)
     no-error-shape    an outputSchema that refuses the error record                 (P-2)
     declares-no-shape an outputSchema that admits any object                        (P-2)
+    one-code          an outputSchema whose error code admits one value only        (P-2)
     placeholder       a description holding TODO                                    (P-3)
     misnamed          a tool whose name is not verb-led and lowercase               (P-4)
     no-ttl            tools/list with ttlMs 0                                       (P-5)
     listing-changes   tools/list loses a tool after the first call                  (P-6)
-    hides-tools       tools/list loses a tool while the platform is unavailable     (P-6)
+    redescribed       a tool's description changes after the first call             (P-6)
+    hides-tools       tools/list loses a tool once a call finds the platform down   (P-6)
     no-correlation    the correlation identifier is not sent upstream               (P-7)
     destructive       destructiveHint true                                          (P-10)
+    not-idempotent    idempotentHint false                                          (P-10)
+    closed-world      openWorldHint false                                           (P-10)
     parameter-renamed get_concept takes conceptCode in place of code                (P-12)
+    release-optional  get_concept does not require release                          (P-12)
 
-It asks EVS for `/api/v1/version` at startup, and again on each call of get_concept.
+Each call asks EVS for `/api/v1/version`.
 """
 
 import json
@@ -31,7 +36,8 @@ from nci_si_acceptance.spec import RECORDS, parameters, profile_tools
 
 DEFECT = os.environ.get("GATE_SERVER_DEFECT", "")
 VERSION = os.environ["NCI_SI_EVS_BASE_URL"] + "/api/v1/version"
-calls = []
+# Whether each call so far reached EVS.
+reached = []
 
 
 def _reaches_evs(headers: dict[str, str]) -> bool:
@@ -42,13 +48,12 @@ def _reaches_evs(headers: dict[str, str]) -> bool:
         return False
 
 
-PLATFORM_UP = _reaches_evs({})
-
-
 def _input_schema(name: str) -> dict:
     names, required = parameters(name)
     if DEFECT == "parameter-renamed" and name == "get_concept":
         names, required = names - {"code"} | {"conceptCode"}, required - {"code"} | {"conceptCode"}
+    if DEFECT == "release-optional" and name == "get_concept":
+        required -= {"release"}
     return {
         "type": "object",
         "properties": {key: {} for key in names},
@@ -57,10 +62,11 @@ def _input_schema(name: str) -> dict:
 
 
 # A result is either an error record or a success, which carries provenance.
+CODES = RECORDS["error"]["fields"]["code"]["values"]
 ERROR = {
     "type": "object",
     "required": ["code", "message"],
-    "properties": {"code": {"enum": RECORDS["error"]["fields"]["code"]["values"]}},
+    "properties": {"code": {"enum": CODES[:1] if DEFECT == "one-code" else CODES}},
 }
 OUTPUT_SCHEMAS = {
     "": {
@@ -75,17 +81,24 @@ OUTPUT_SCHEMAS = {
 }
 
 
+def _description(name: str) -> str:
+    if DEFECT == "placeholder":
+        return "TODO"
+    when = " Called before." if DEFECT == "redescribed" and reached else ""
+    return f"The {name} tool of EVS.{when}"
+
+
 def _tool(name: str) -> types.Tool:
     return types.Tool(
         name=name,
-        description="TODO" if DEFECT == "placeholder" else f"The {name} tool of EVS.",
+        description=_description(name),
         input_schema=_input_schema(name),
         output_schema=OUTPUT_SCHEMAS.get(DEFECT, OUTPUT_SCHEMAS[""]),
         annotations=types.ToolAnnotations(
             read_only_hint=True,
             destructive_hint=DEFECT == "destructive",
-            idempotent_hint=True,
-            open_world_hint=True,
+            idempotent_hint=DEFECT != "not-idempotent",
+            open_world_hint=DEFECT != "closed-world",
         ),
     )
 
@@ -96,8 +109,8 @@ def _names() -> list[str]:
         names.append("ConceptLookup")
     dropped = {
         "missing-tool": True,
-        "listing-changes": bool(calls),
-        "hides-tools": not PLATFORM_UP,
+        "listing-changes": bool(reached),
+        "hides-tools": False in reached,
     }
     return names[1:] if dropped.get(DEFECT) else names
 
@@ -107,9 +120,9 @@ async def list_tools(_context, _params) -> types.ListToolsResult:
 
 
 async def call_tool(_context, params: types.CallToolRequestParams) -> types.CallToolResult:
-    calls.append(params.name)
     correlation = (params.meta or {}).get("correlationId", "")
-    _reaches_evs({} if DEFECT == "no-correlation" else {"X-Correlation-ID": correlation})
+    headers = {} if DEFECT == "no-correlation" else {"X-Correlation-ID": correlation}
+    reached.append(_reaches_evs(headers))
     content = {"provenance": {"correlationId": correlation}}
     return types.CallToolResult(
         content=[types.TextContent(type="text", text=json.dumps(content))],

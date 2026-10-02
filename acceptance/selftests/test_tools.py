@@ -34,10 +34,8 @@ class Session:
         return self.result
 
 
-def answer(*blocks, structured=None, is_error=False, meta=None):
-    return SimpleNamespace(
-        content=list(blocks), structured_content=structured, is_error=is_error, meta=meta
-    )
+def answer(*blocks, structured=None, is_error=False):
+    return SimpleNamespace(content=list(blocks), structured_content=structured, is_error=is_error)
 
 
 def text(value):
@@ -74,13 +72,12 @@ def test_a_required_tool_the_server_has_is_called_by_its_own_name():
     )
 
 
-def test_the_call_meta_reaches_the_server_and_the_result_meta_comes_back():
-    session = Session(["get_concept"], answer(structured={}, meta={"ttlMs": 0}))
+def test_the_call_meta_reaches_the_server():
+    session = Session(["get_concept"], answer(structured={}))
 
-    result = Tools(session, {}).call("get_concept", {"code": "C3262"}, {"correlationId": "c-1"})
+    Tools(session, {}).call("get_concept", {"code": "C3262"}, {"correlationId": "c-1"})
 
     assert session.calls == [("get_concept", {"code": "C3262"}, {"correlationId": "c-1"})]
-    assert result.meta == {"ttlMs": 0}
 
 
 def test_an_absent_tool_is_called_through_its_stand_in():

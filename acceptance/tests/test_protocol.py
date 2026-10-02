@@ -25,19 +25,24 @@ READ_ONLY = {
 }
 
 
-def _error_records() -> tuple[dict, list[dict]]:
-    """A result holding an error record with its required fields, and two that are not one:
-    a code outside the closed set, and no code."""
+FIELDS = RECORDS["error"]["fields"]
+CODES = FIELDS["code"]["values"]
+# The error record with its required fields, each holding text.
+RECORD = {name: "text" for name, field in FIELDS.items() if not field.get("optional")}
+# Results holding an error record, one for each code and one with details; and two that hold
+# none: a code outside the closed set, and no code.
+ERRORS = [{"error": RECORD | {"code": code}} for code in CODES]
+ERRORS.append({"error": RECORD | {"code": CODES[0], "details": {}}})
+MALFORMED = [
+    {"error": RECORD | {"code": "no_such_code"}},
+    {"error": {name: value for name, value in RECORD.items() if name != "code"}},
+]
 
-    fields = RECORDS["error"]["fields"]
-    record = {
-        name: field["values"][0] if "values" in field else "text"
-        for name, field in fields.items()
-        if not field.get("optional")
-    }
-    uncoded = {name: value for name, value in record.items() if name != "code"}
-    malformed = [{"error": record | {"code": "no_such_code"}}, {"error": uncoded}]
-    return {"error": record}, malformed
+
+def _admitting(validators: dict, results: list[dict], admits=all) -> list[str]:
+    """The tools whose schema admits `results`, all of them or, with `any`, one of them."""
+
+    return [name for name, check in validators.items() if admits(map(check.is_valid, results))]
 
 
 def _descriptions(schema: object) -> list[str]:
@@ -67,16 +72,14 @@ def test_tools_list_names_the_tools_of_the_profile_and_no_other(server, target):
 @pytest.mark.requirement("P-2")
 def test_every_output_schema_admits_the_error_record_and_refuses_a_malformed_one(server):
     schemas = {name: tool.output_schema for name, tool in server.available.items()}
-    error, malformed = _error_records()
 
     assert [name for name, schema in schemas.items() if schema is None] == []
     for schema in schemas.values():
         Draft202012Validator.check_schema(schema)
     validators = {name: Draft202012Validator(schema) for name, schema in schemas.items()}
-    assert [name for name, check in validators.items() if not check.is_valid(error)] == []
+    assert _admitting(validators, ERRORS) == list(validators)
     # A schema that admits anything declares no shape at all (M3.1).
-    admitting = [name for name, check in validators.items() if any(map(check.is_valid, malformed))]
-    assert admitting == []
+    assert _admitting(validators, MALFORMED, any) == []
 
 
 @pytest.mark.gate
@@ -122,22 +125,29 @@ def test_tools_list_may_be_cached_and_shared(server):
 def test_tools_list_is_the_same_after_a_call_that_pins_a_terminology_and_release(server, pinned):
     before = _listing(server.listing)
 
-    server.call("get_concept", {**pinned, "code": "C4817"})
+    pinning = server.call("get_concept", {**pinned, "code": "C4817"})
 
+    assert not pinning.is_error
     assert _listing(server.list_again()) == before
 
 
 @pytest.mark.gate
 @pytest.mark.scenario("upstream/unavailable")
 @pytest.mark.requirement("P-6")
-def test_tools_list_is_the_same_while_the_platform_is_unavailable(server, tools):
-    assert _listing(tools.listing) == _listing(server.listing)
+def test_tools_list_is_the_same_while_the_platform_is_unavailable(server, tools, pinned):
+    # A server may notice the outage only when a call fails, so one is made first.
+    tools.call("get_concept", {**pinned, "code": "C4817"})
+
+    assert _listing(tools.list_again()) == _listing(server.listing)
 
 
 @pytest.mark.gate
 @pytest.mark.requirement("P-7")
-def test_a_correlation_identifier_goes_upstream_and_comes_back(server, upstream, pinned):
-    result = server.call("get_concept", {**pinned, "code": "C4817"}, {"correlationId": CORRELATION})
+def test_a_correlation_identifier_goes_upstream_and_comes_back(fresh_server, upstream, pinned):
+    # A server of its own: one that answered the same call before may serve it from its cache.
+    result = fresh_server.call(
+        "get_concept", {**pinned, "code": "C4817"}, {"correlationId": CORRELATION}
+    )
 
     sent = [
         {name.lower(): value for name, value in entry["headers"].items()}.get(CORRELATION_HEADER)
@@ -168,10 +178,13 @@ def test_each_tool_takes_the_parameters_the_specification_names(server):
         schema = tool.input_schema
         return set(schema.get("properties", {})), set(schema.get("required", []))
 
+    specified = {name: tool for name, tool in server.available.items() if name in TOOLS}
+    if not specified:
+        pytest.skip("the server lists no tool of the specification")
     differing = {
         name: declared(tool)
-        for name, tool in server.available.items()
-        if name in TOOLS and declared(tool) != parameters(name)
+        for name, tool in specified.items()
+        if declared(tool) != parameters(name)
     }
 
     assert differing == {}

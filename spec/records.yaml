@@ -76,9 +76,9 @@ error:
       of: A2.5
     details:
       content: >-
-        What the caller needs for its next step, such as the release requested and the release
-        served, the bound, its limit and the amount reached, or the surface, status and attempts
-        of a failed upstream request
+        An object holding what the caller needs for its next step, such as the release requested
+        and the release served, the bound, its limit and the amount reached, or the surface,
+        status and attempts of a failed upstream request
       optional: true
       of: A2.5
     correlationId:

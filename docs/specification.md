@@ -168,9 +168,9 @@ Binding on every tool.
 | M2.2 | A release-pinned result has a long ttlMs, an unpinned one a short ttlMs, and resolve_release, resolve_registry_release and get_release_alignment ttlMs 0; tools/list is long and public. |
 | M2.3 | cacheScope is public for governed content and private for results computed from caller-supplied values. |
 | M2.4 | A cursor pins the release it was issued against; presented after that release is superseded, it is a structured error. |
-| M2.5 | A tool result carries ttlMs and cacheScope in its _meta, as the protocol's cacheable results carry them. |
+| M2.5 | A tool result carries ttlMs and cacheScope in its _meta. |
 
-*Why M2.5.* The protocol defines ttlMs and cacheScope for the list methods, resources/read and server/discover only, so a tool result needs a stated place for them.
+*Why M2.5.* The protocol carries ttlMs and cacheScope as fields of the results of the list methods, resources/read and server/discover only (revision 2026-07-28), so a tool result needs a stated place for them.
 
 ### M3 · Typed results
 
@@ -239,7 +239,7 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 |---|---|---|
 | `code` | The class of the failure: those A2.5 names, a release mismatch (A3.4), a timeout, a capability not yet available (M1.2) and a cursor whose release is superseded (M2.4): one of `invalid_request`, `not_found`, `release_not_available`, `release_mismatch`, `upstream_unavailable`, `timeout`, `bound_exceeded`, `capability_unavailable`, `cursor_expired`, `internal_error` | A2.5 |
 | `message` | What failed, in words | A2.5 |
-| `details` | What the caller needs for its next step, such as the release requested and the release served, the bound, its limit and the amount reached, or the surface, status and attempts of a failed upstream request (optional) | A2.5 |
+| `details` | An object holding what the caller needs for its next step, such as the release requested and the release served, the bound, its limit and the amount reached, or the surface, status and attempts of a failed upstream request (optional) | A2.5 |
 | `correlationId` | The call's correlation identifier | M7.1 |
 
 ## 2. Tools
