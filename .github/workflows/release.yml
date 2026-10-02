@@ -1,0 +1,108 @@
+name: Release
+
+# Tags and releases the commit on main that CI has just validated. The version
+# comes from the Conventional Commit subjects since the last tag (the rules are in
+# [tool.semantic_release] in pyproject.toml). The workflow adds a tag and a GitHub
+# release; it never pushes a commit to main.
+#
+# Why `workflow_run` and not `push` or `pull_request: [closed]`:
+#   - `push` would release code whose CI has not finished, or has failed.
+#   - `pull_request: closed` fires on the head of the pull request, which is not
+#     the commit that landed on main.
+
+on:
+  # The manual way out. The automatic path skips a commit when main has moved past
+  # it, and relies on the newer commit's CI run to release both. If that later run
+  # does not fire, the release is lost while main stays green, and only a manual
+  # run (or another commit) recovers it.
+  workflow_dispatch:
+
+  # zizmor: ignore[dangerous-triggers] the job runs no code from a pull request: it
+  # checks out main and releases only the commit that the CI run validated.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  release:
+    name: semantic release
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write  # push the tag and create the GitHub release
+    steps:
+      - name: Check out main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0  # semantic-release reads the whole history and the tags
+          persist-credentials: false  # the release step pushes the tag with its own token
+
+      - name: Decide whether this commit is released
+        id: guard
+        env:
+          VALIDATED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          head="$(git rev-parse HEAD)"
+          if [ -z "${VALIDATED_SHA:-}" ]; then
+            # A manual run has no CI run to compare with: whoever starts it has
+            # checked that main is green.
+            echo "Manual run: releasing the tip of main ($head)."
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          elif [ "$head" != "$VALIDATED_SHA" ]; then
+            echo "main has moved past $VALIDATED_SHA; the CI run of the newer commit releases it."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Semantic release
+        id: release
+        if: steps.guard.outputs.skip == 'false'
+        uses: python-semantic-release/python-semantic-release@9a026e9303981c866c3425723009becb2437c757  # v10.6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          commit: false
+          tag: true
+          push: true
+          changelog: false
+          vcs_release: true
+          build: false
+
+      - name: Summary
+        if: ${{ !cancelled() }}
+        env:
+          SKIPPED: ${{ steps.guard.outputs.skip }}
+          OUTCOME: ${{ steps.release.outcome }}
+          RELEASED: ${{ steps.release.outputs.released }}
+          TAG: ${{ steps.release.outputs.tag }}
+          LINK: ${{ steps.release.outputs.link }}
+        run: |
+          {
+            echo "## Release"
+            echo
+            if [ "$SKIPPED" = "true" ]; then
+              echo "Skipped: main has moved past the validated commit. The CI run of the newer commit releases it."
+            elif [ "$OUTCOME" != "success" ]; then
+              echo "The release step did not succeed; read the log. If the tag was not pushed, start"
+              echo "the workflow by hand. If it was, the GitHub release is missing: create it with"
+              echo "\`gh release create <tag> --verify-tag --generate-notes\`."
+            elif [ "$RELEASED" = "true" ]; then
+              echo "Released **$TAG**: $LINK"
+            else
+              echo "No release: no \`feat\`, \`fix\`, \`perf\` or breaking (\`!\`) commit since the last tag."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
