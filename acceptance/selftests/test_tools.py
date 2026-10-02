@@ -120,3 +120,57 @@ def test_a_tool_map_entry_names_its_stand_in(tmp_path):
 
     with pytest.raises(ValueError, match="resolve_release names the tool that stands in for it"):
         load_toolmap(path)
+
+
+def test_fixed_arguments_are_passed_and_a_checked_argument_is_not():
+    entry = {
+        "tool": "ncit_traverse",
+        "fixed": {"direction": "both"},
+        "arguments": {"code": "code", "channel": {"values": {"weekly": None}}},
+    }
+
+    assert translate({"code": "C1", "channel": "monthly"}, entry) == {
+        "direction": "both",
+        "code": "C1",
+    }
+
+
+@pytest.mark.parametrize(
+    ("arguments", "unsupported"),
+    [
+        ({"cursor": "abc"}, "cursor"),
+        ({"direction": "pathsToRoot"}, "direction=pathsToRoot"),
+        ({"direction": ["parents", "pathsToRoot"]}, "direction=pathsToRoot"),
+        ({"channel": "weekly"}, "channel=weekly"),
+    ],
+)
+def test_a_capability_the_stand_in_lacks_is_not_implemented(arguments, unsupported):
+    entry = {
+        "tool": "ncit_traverse",
+        "arguments": {
+            "cursor": None,
+            "direction": {
+                "name": "edge_types",
+                "values": {"parents": "parent", "pathsToRoot": None},
+            },
+            "channel": {"values": {"weekly": None}},
+        },
+    }
+    session = Session(["ncit_traverse"], answer(structured={}))
+
+    expected = f"{NOT_IMPLEMENTED}: get_concept_hierarchy with {unsupported} \\(stand-in"
+    with pytest.raises(pytest.skip.Exception, match=expected):
+        Tools(session, {"get_concept_hierarchy": entry}).call("get_concept_hierarchy", arguments)
+    assert session.calls == []
+
+
+def test_a_tool_map_entry_maps_its_arguments_and_fixed_values_by_name(tmp_path):
+    path = tmp_path / "baseline_toolmap.yaml"
+    path.write_text(
+        "resolve_release:\n  tool: ncit_release_info\n  fixed: [direction]\n", encoding="utf-8"
+    )
+
+    with pytest.raises(
+        ValueError, match="resolve_release maps its arguments and fixed values by name"
+    ):
+        load_toolmap(path)

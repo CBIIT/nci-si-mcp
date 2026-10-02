@@ -395,13 +395,16 @@ The map lets the suite call today's tools under the required names, so the tests
 
 | Required | Prototype | Parameters |
 |---|---|---|
-| `search_concepts` | `ncit_search` | `query`, `limit`; `mode` lexical → unsupported, semantic → `hybrid` |
-| `get_concept` | `ncit_lookup` | `code` |
-| `get_concept_hierarchy`, `get_concept_neighborhood` | `ncit_traverse` | `code` → `start_codes` (a list of one); `depth` → `max_depth`; `kinds` → `edge_types` (`inverseRole` → `inverse_role`, `inverseAssociation` → `inverse_association`) |
-| `resolve_release` | `ncit_release_info` | — |
+| `resolve_release` | `ncit_release_info` | `channel` weekly unsupported |
+| `get_concept` | `ncit_lookup` | `code`; `include` unsupported |
+| `search_concepts` | `ncit_search` | `query`, `limit`; `mode` semantic → `vector`, hybrid → `hybrid`, lexical and typeahead unsupported (the prototype searches its local index, not EVS); `cursor` unsupported |
+| `get_concept_hierarchy` | `ncit_traverse` | `code` → `start_codes` (a list of one); `direction` → `edge_types` (parents → `parent`, children → `child`, pathsToRoot unsupported) with `direction: both` fixed; `depth` → `max_depth`; `limit` → `max_nodes`; `cursor` unsupported |
+| `get_concept_neighborhood` | `ncit_traverse` | `code` → `start_codes`; `depth` → `max_depth`; `kinds` → `edge_types` (`inverseRole` → `inverse_role`, `inverseAssociation` → `inverse_association`) with `direction: both` fixed; `maxNodes`, `maxEdges` → `max_nodes`, `max_edges`; `budgetPerKind` and `includeNegative` unsupported |
 | all others | — | NOT IMPLEMENTED |
 
-At the furnished commit (after Phase 3) the map is therefore empty, while *Acceptance Suite* §6 makes it part of the package. Whether to ship it empty or amend §6 is for the owner to decide.
+`terminology` and `release` are not passed on: the prototype serves NCIt's current release only, and a test that depends on them fails against it. An unsupported argument or value is a capability the prototype lacks; a call using it reports NOT IMPLEMENTED rather than a failure. A self-test checks every stand-in, argument and value against the prototype's `tools/list`.
+
+At the furnished commit (after Phase 3) the map is empty. The owner decided (2 October 2026) that the mechanism goes in the change that removes its last entry.
 
 ### 9.5 CI
 

@@ -6,14 +6,22 @@ baseline tool map (`fixtures/baseline_toolmap.yaml`, MCP Behavioral Acceptance S
 while the required tool is absent. When neither exists the test is skipped as NOT
 IMPLEMENTED, which the per-tool report counts as such.
 
-    search_concepts:                      # the required tool
-      tool: ncit_search                   # the tool that stands in for it
+    get_concept_hierarchy:                # the required tool
+      tool: ncit_traverse                 # the tool that stands in for it
+      fixed: {direction: both}            # passed on every call
       arguments:                          # required argument: the stand-in's argument
-        query: query
-        mode: {name: mode, values: {semantic: hybrid}}   # values translated, also in a list
-        code: {name: start_codes, list: true}            # the value wrapped in a list
+        depth: max_depth
+        code: {name: start_codes, list: true}       # the value wrapped in a list
+        direction:                                  # values translated, also in a list
+          {name: edge_types, list: true, values: {parents: parent, pathsToRoot: null}}
+        cursor: null                                # the stand-in cannot do this
+        channel: {values: {weekly: null}}           # checked, not passed on
 
-An argument without an entry is not passed on: the stand-in has no such parameter.
+An argument without an entry is not passed on: the stand-in has no such parameter and
+behaves as the required tool would without it (the prototype serves NCIt's current
+release only). An argument or a value mapped to null is a capability the stand-in
+lacks: a call that uses it is skipped as NOT IMPLEMENTED, so that the report does not
+count as a failure what the prototype never offered.
 """
 
 from __future__ import annotations
@@ -34,6 +42,11 @@ if TYPE_CHECKING:
 
 NOT_IMPLEMENTED = "NOT IMPLEMENTED"
 
+
+class Unsupported(Exception):  # noqa: N818 - names the outcome, as NOT IMPLEMENTED does
+    """An argument or value the stand-in has no capability for."""
+
+
 type ToolMap = dict[str, dict[str, Any]]
 
 
@@ -44,30 +57,52 @@ def load_toolmap(path: Path) -> ToolMap:
         return {}
     toolmap = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     for required, entry in toolmap.items():
-        if not isinstance(entry, dict) or not isinstance(entry.get("tool"), str):
-            raise ValueError(f"{path.name}: {required} names the tool that stands in for it")
+        if problem := _entry_problem(entry):
+            raise ValueError(f"{path.name}: {required} {problem}")
     return toolmap
 
 
-def _value(rule: dict[str, Any], value: Any) -> Any:
+def _entry_problem(entry: Any) -> str | None:
+    if not isinstance(entry, dict) or not isinstance(entry.get("tool"), str):
+        return "names the tool that stands in for it"
+    if not all(isinstance(entry.get(part, {}), dict) for part in ("arguments", "fixed")):
+        return "maps its arguments and fixed values by name"
+    return None
+
+
+def _one(values: dict[Any, Any], name: str, value: Any) -> Any:
+    if value in values and values[value] is None:
+        raise Unsupported(f"{name}={value}")
+    return values.get(value, value)
+
+
+def _value(name: str, rule: dict[str, Any], value: Any) -> Any:
     values = rule.get("values", {})
     if isinstance(value, list):
-        value = [values.get(item, item) for item in value]
+        value = [_one(values, name, item) for item in value]
     else:
-        value = values.get(value, value)
+        value = _one(values, name, value)
     return [value] if rule.get("list") else value
 
 
 def translate(arguments: dict[str, Any], entry: dict[str, Any]) -> dict[str, Any]:
-    """The required tool's arguments as the stand-in takes them."""
+    """The required tool's arguments as the stand-in takes them; Unsupported when the
+    call uses a capability the stand-in lacks."""
 
-    translated = {}
+    rules = entry.get("arguments", {})
+    translated = dict(entry.get("fixed", {}))
     for name, value in arguments.items():
-        rule = entry.get("arguments", {}).get(name)
+        if name not in rules:
+            continue
+        rule = rules[name]
+        if rule is None:
+            raise Unsupported(name)
         if isinstance(rule, str):
             translated[rule] = value
-        elif rule is not None:
-            translated[rule["name"]] = _value(rule, value)
+            continue
+        converted = _value(name, rule, value)
+        if "name" in rule:
+            translated[rule["name"]] = converted
     return translated
 
 
@@ -118,6 +153,9 @@ class Tools:
         if tool is None:
             pytest.skip(f"{NOT_IMPLEMENTED}: {name}")
         if tool != name:
-            arguments = translate(arguments, self._toolmap[name])
+            try:
+                arguments = translate(arguments, self._toolmap[name])
+            except Unsupported as unsupported:
+                pytest.skip(f"{NOT_IMPLEMENTED}: {name} with {unsupported} (stand-in {tool})")
         result = self._session.call_tool(tool, arguments)
         return Result(tool, bool(result.is_error), _content(result))

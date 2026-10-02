@@ -1,0 +1,52 @@
+# The baseline tool map (docs/SPEC.md §9.5): the prototype tools that stand in for required
+# tools while the server lacks them, and how their arguments translate (tools.py). An entry
+# applies only while its required tool is absent; the mechanism goes in the change that
+# removes the last entry (owner decision, 2 October 2026).
+#
+# A required argument without an entry is not passed on: the prototype serves NCIt's current
+# release only, so `terminology` and `release` have no counterpart. An argument or value
+# mapped to null is a capability the prototype lacks: the call reports NOT IMPLEMENTED.
+
+resolve_release:
+  tool: ncit_release_info
+  arguments:
+    channel: {values: {weekly: null}}   # the prototype resolves the monthly release only
+
+get_concept:
+  tool: ncit_lookup
+  arguments:
+    code: code
+    include: null                       # no projection: the prototype returns one shape
+
+search_concepts:
+  tool: ncit_search
+  arguments:
+    query: query
+    limit: limit
+    # The prototype searches its local index: lexical and typeahead search of EVS are missing.
+    mode: {name: mode, values: {lexical: null, typeahead: null, semantic: vector, hybrid: hybrid}}
+    cursor: null
+
+get_concept_hierarchy:
+  tool: ncit_traverse
+  fixed: {direction: both}              # the edge type alone then selects parents or children
+  arguments:
+    code: {name: start_codes, list: true}
+    direction: {name: edge_types, list: true, values: {parents: parent, children: child, pathsToRoot: null}}
+    depth: max_depth
+    limit: max_nodes
+    cursor: null
+
+get_concept_neighborhood:
+  tool: ncit_traverse
+  fixed: {direction: both}
+  arguments:
+    code: {name: start_codes, list: true}
+    depth: max_depth
+    kinds:
+      name: edge_types
+      values: {inverseRole: inverse_role, inverseAssociation: inverse_association}
+    maxNodes: max_nodes
+    maxEdges: max_edges
+    budgetPerKind: null                 # no per-kind budget
+    includeNegative: null               # no polarity: negative edges are neither marked nor withheld
