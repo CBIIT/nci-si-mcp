@@ -1,8 +1,9 @@
 """The run of the suite: the server under test, its upstream, scenarios, and the request log.
 
 A test that selects scenarios (`@pytest.mark.scenario("release/unknown")`) gets a
-server process of its own, started with the scenarios active, so that nothing the
-server keeps between calls outlives them.
+server process of its own, started with the scenarios active and with their
+settings, so that nothing the server keeps between calls outlives them. Requests a
+server makes while it starts must find fixtures too.
 """
 
 from __future__ import annotations
@@ -16,7 +17,12 @@ import pytest
 from nci_si_acceptance.client import Target, open_session, server_environment
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
 from nci_si_acceptance.report import COLLECTOR, write_report
-from nci_si_acceptance.suite import UNMATCHED_UPSTREAM, skip_fixture_only, unmatched_requests
+from nci_si_acceptance.suite import (
+    UNMATCHED_UPSTREAM,
+    scenarios_of,
+    skip_fixture_only,
+    unmatched_requests,
+)
 from nci_si_acceptance.tools import Tools, load_toolmap
 
 if TYPE_CHECKING:
@@ -76,12 +82,33 @@ def server(
 
 @contextmanager
 def _tools(
-    target: Target, upstream: FixtureServer | None, tmp_path_factory: pytest.TempPathFactory
+    target: Target,
+    upstream: FixtureServer | None,
+    tmp_path_factory: pytest.TempPathFactory,
+    settings: dict[str, str] | None = None,
 ) -> Iterator[Tools]:
     url = upstream.url if upstream else None
     environment = server_environment(target.mode, tmp_path_factory.mktemp("data"), url)
-    with open_session(target.command, environment) as session:
-        yield Tools(session, load_toolmap(FIXTURES / "baseline_toolmap.yaml"))
+    with open_session(target.command, environment | (settings or {})) as session:
+        unmatched = _startup_requests(upstream)
+        if not unmatched:
+            yield Tools(session, load_toolmap(FIXTURES / "baseline_toolmap.yaml"))
+            return
+    # Failing outside the session: inside it, the failure would reach pytest wrapped
+    # in the session's exception group.
+    pytest.fail(
+        "upstream requests without a fixture while the server started:\n" + "\n".join(unmatched)
+    )
+
+
+def _startup_requests(upstream: FixtureServer | None) -> list[str]:
+    """The requests the server made while it started that found no fixture; the log is reset."""
+
+    if upstream is None:
+        return []
+    unmatched = unmatched_requests(upstream.log())
+    upstream.reset()
+    return unmatched
 
 
 @pytest.fixture
@@ -94,14 +121,14 @@ def tools(
 ) -> Iterator[Tools]:
     """The required tools of the server under test, for one test."""
 
-    marker = request.node.get_closest_marker("scenario")
-    if marker is None or upstream is None:
+    scenarios = scenarios_of(request.node)
+    if not scenarios or upstream is None:
         yield server
         return
-    upstream.activate(*marker.args)
+    upstream.activate(*scenarios)
+    settings = upstream.fixtures.settings_of(scenarios)
     try:
-        with _tools(target, upstream, tmp_path_factory) as own:
-            upstream.reset()
+        with _tools(target, upstream, tmp_path_factory, settings) as own:
             yield own
     finally:
         upstream.activate()

@@ -30,16 +30,21 @@ A fixture is a JSON file:
 
 `responses` (a list) in place of `response` answers successive requests in order,
 the last one repeating; the sequence starts again at each reset. A response may wait
-`delay_seconds` before it is sent, or be the fault `{"fault": "reset"}`: the
-connection is closed without an answer. A string `body` is sent as HTML, any other
-body as JSON, and no body as nothing. The fixture's headers are sent too and override
-the content type; headers that frame the message (`Content-Length`, ...) are the
-server's and are refused.
+`delay_seconds` before it is sent, or be the fault `{"fault": "close"}`: the
+connection is closed without an answer. That stands in for an unreachable service as
+far as a fixture can; a refused connection cannot be produced per request. A string
+`body` is sent as HTML, any other body as JSON, and no body as nothing. The fixture's
+headers are sent too and override the content type; headers that frame the message
+(`Content-Length`, ...) are the server's and are refused.
 
 Fixtures under `scenarios/<group>/<name>/` belong to the scenario `<group>/<name>`
 and answer only while it is active, before any ordinary fixture: a scenario fixture
 that matches any body wins over an ordinary one for the exact body. Two fixtures for
-the same request in one scenario, or outside the scenarios, are refused.
+the same request in one scenario, outside the scenarios, or in two scenarios active
+together, are refused. A scenario may also hold `settings.json`, the `NCI_SI_*`
+settings its server process starts with (a short timeout, a licence key).
+
+Every log entry records when the request arrived (`received_at`, monotonic seconds).
 """
 
 from __future__ import annotations
@@ -63,7 +68,9 @@ LOG_PATH = "/_log"
 FRAMING_HEADERS = frozenset(
     {"content-length", "transfer-encoding", "content-encoding", "connection"}
 )
-FAULTS = frozenset({"reset"})
+FAULTS = frozenset({"close"})
+SETTINGS = "settings.json"
+RESPONSE_FIELDS = frozenset({"status", "headers", "body", "delay_seconds", "fault"})
 _JSON = {"Content-Type": "application/json"}
 
 type Params = dict[str, list[str]]
@@ -131,11 +138,40 @@ class FixtureSet:
 
     ordinary: Fixtures
     scenarios: dict[str, Fixtures]
+    settings: dict[str, dict[str, str]] = field(default_factory=dict)
+
+    def settings_of(self, scenarios: tuple[str, ...]) -> dict[str, str]:
+        """The server settings the scenarios start their server with."""
+
+        return {
+            name: value
+            for scenario in scenarios
+            for name, value in self.settings.get(scenario, {}).items()
+        }
+
+
+def _request_problem(request: Any) -> str | None:
+    if not isinstance(request, dict) or not all(
+        isinstance(request.get(part), str) for part in ("surface", "method", "path")
+    ):
+        return "a fixture names its request: surface, method and path"
+    return _params_problem(request.get("params", {})) or _ignored_problem(request)
+
+
+def _params_problem(params: Any) -> str | None:
+    if not isinstance(params, dict) or not all(
+        isinstance(values, list) and all(isinstance(value, str) for value in values)
+        for values in params.values()
+    ):
+        return "params maps each parameter to a list of strings"
+    return None
 
 
 def _ignored_problem(request: dict[str, Any]) -> str | None:
     ignored = request.get("ignored", {})
-    if not all(isinstance(evidence, str) and evidence for evidence in ignored.values()):
+    if not isinstance(ignored, dict) or not all(
+        isinstance(evidence, str) and evidence for evidence in ignored.values()
+    ):
         return "an ignored parameter names the evidence that the service ignores it"
     if set(ignored) & set(request.get("params", {})):
         return "an ignored parameter is not also matched"
@@ -143,10 +179,12 @@ def _ignored_problem(request: dict[str, Any]) -> str | None:
 
 
 def _response_problem(response: dict[str, Any]) -> str | None:
+    if not set(response) <= RESPONSE_FIELDS:
+        return f"a response has only {', '.join(sorted(RESPONSE_FIELDS))}"
     framing = sorted(set(map(str.lower, response.get("headers", {}))) & FRAMING_HEADERS)
     if framing:
         return f"the server frames the response; remove {', '.join(framing)}"
-    if response.get("fault", "reset") not in FAULTS:
+    if response.get("fault", "close") not in FAULTS:
         return f"a fault is one of {', '.join(sorted(FAULTS))}"
     return None
 
@@ -157,7 +195,7 @@ def _problem(document: dict[str, Any]) -> str | None:
     if ("response" in document) == ("responses" in document):
         return "a fixture has either a response or responses"
     responses = document.get("responses") or [document["response"]]
-    problems = [_ignored_problem(document["request"]), *map(_response_problem, responses)]
+    problems = [_request_problem(document.get("request")), *map(_response_problem, responses)]
     return next((problem for problem in problems if problem), None) or _provenance_problem(document)
 
 
@@ -200,6 +238,18 @@ def _scenario_of(path: Path, root: Path) -> str | None:
     return f"{parts[1]}/{parts[2]}"
 
 
+def _read_settings(path: Path, root: Path, scenario: str | None) -> dict[str, str]:
+    settings = json.loads(path.read_text(encoding="utf-8"))
+    name = path.relative_to(root).as_posix()
+    if scenario is None:
+        raise ValueError(f"{name}: settings belong to a scenario")
+    if not isinstance(settings, dict) or not all(
+        key.startswith("NCI_SI_") and isinstance(value, str) for key, value in settings.items()
+    ):
+        raise ValueError(f"{name}: settings are NCI_SI_* names with string values")
+    return settings
+
+
 def load_fixtures(root: Path) -> FixtureSet:
     """Every fixture below `root`, sorted into the ordinary ones and those of each scenario."""
 
@@ -208,6 +258,9 @@ def load_fixtures(root: Path) -> FixtureSet:
     fixtures = FixtureSet({}, {})
     for path in sorted(root.rglob("*.json")):
         scenario = _scenario_of(path, root)
+        if path.name == SETTINGS:
+            fixtures.settings[str(scenario)] = _read_settings(path, root, scenario)
+            continue
         table = (
             fixtures.ordinary if scenario is None else fixtures.scenarios.setdefault(scenario, {})
         )
@@ -216,6 +269,19 @@ def load_fixtures(root: Path) -> FixtureSet:
             raise ValueError(f"{fixture.name} and {table[key].name} answer the same request")
         table[key] = fixture
     return fixtures
+
+
+def _layers(fixtures: FixtureSet, scenarios: tuple[str, ...]) -> list[Fixtures]:
+    """The fixture tables in the order they are consulted: the scenarios, then the rest."""
+
+    unknown = sorted(set(scenarios) - set(fixtures.scenarios) - set(fixtures.settings))
+    if unknown:
+        raise ValueError(f"no such scenario: {', '.join(unknown)}")
+    layers = [fixtures.scenarios.get(scenario, {}) for scenario in scenarios]
+    keys = [key for layer in layers for key in layer]
+    if len(keys) != len(set(keys)):
+        raise ValueError(f"the scenarios {', '.join(scenarios)} answer the same request")
+    return [*layers, fixtures.ordinary]
 
 
 class FixtureServer:
@@ -248,14 +314,11 @@ class FixtureServer:
     def activate(self, *scenarios: str) -> None:
         """Answer from these scenarios' fixtures first; no argument ends them. The log stays."""
 
-        unknown = sorted(set(scenarios) - set(self.fixtures.scenarios))
-        if unknown:
-            raise ValueError(f"no such scenario: {', '.join(unknown)}")
-        layers = [self.fixtures.scenarios[scenario] for scenario in reversed(scenarios)]
-        layers.append(self.fixtures.ordinary)
+        layers = _layers(self.fixtures, scenarios)
         ignored: dict[tuple[str, str, str], frozenset[str]] = {}
-        for key, fixture in ((key, fixture) for layer in layers for key, fixture in layer.items()):
-            ignored[key[:3]] = ignored.get(key[:3], frozenset()) | fixture.ignored
+        for layer in layers:
+            for key, fixture in layer.items():
+                ignored[key[:3]] = ignored.get(key[:3], frozenset()) | fixture.ignored
         with self._lock:
             self._layers, self._ignored = layers, ignored
 
@@ -294,6 +357,7 @@ class FixtureServer:
         surface, _, rest = unquote(url.path).removeprefix("/").partition("/")
         path, params = f"/{rest}", parse_qs(url.query, keep_blank_values=True)
         entry = {"surface": surface, "method": method, "path": path, "params": params}
+        entry["received_at"] = time.monotonic()
         with self._lock:
             ignored = self._ignored.get((surface, method.upper(), path), frozenset())
             matched = {name: values for name, values in params.items() if name not in ignored}
@@ -322,7 +386,7 @@ def _handler(server: FixtureServer) -> type[BaseHTTPRequestHandler]:
             body = self.rfile.read(length).decode("utf-8", "replace")
             response = server.answer(self.command, self.path, dict(self.headers), body)
             time.sleep(response.delay_seconds)
-            if response.fault == "reset":
+            if response.fault == "close":
                 self.close_connection = True
                 return
             self._send(response.status, *response.encode())

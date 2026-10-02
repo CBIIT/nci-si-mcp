@@ -21,3 +21,7 @@ CLAUDE.local.md
 
 # ephemeral working artifacts, never committed
 tmp/
+
+# Acceptance reports written by `pdm run acceptance --report=...`
+/acceptance/fixture.json
+/acceptance/live.json

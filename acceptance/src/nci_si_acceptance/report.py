@@ -4,18 +4,22 @@ A run of the suite writes one report per run mode (`pytest --report=PATH`), with
 final outcome of every test. A test counts for the tool its `tool` marker names; a
 test marked `gate` gates every tool (§3). One run gives each required tool one outcome:
 
-    PASS             every test of the tool passed, and every gate
+    PASS             every test of the tool ran and passed, and every gate
     FAIL             a test of the tool failed, or a gate did (shown as "gates only")
     NO FIXTURE       the tool's tests failed only because a request found no fixture:
                      a question for the fixture set, not a defect of the server
+    INCOMPLETE       the tool's tests that ran passed, but some were skipped
     NOT IMPLEMENTED  the server has the tool neither by name nor through the tool map
-    NOT RUN          every test of the tool was skipped for another reason (live mode)
+    NOT RUN          no test of the tool ran (in live mode: none is live-capable)
     NO TESTS         the suite has no test for the tool: a defect of the suite
+
+In a live run, the tests that run in fixture mode only leave a tool NOT RUN, never INCOMPLETE.
 
 Combining the fixture run with the live run gives the outcome of §6. A tool that
 passes against fixtures is PASS (fixture only) when each of its live failures is a
-test with a documented upstream limitation, and FAIL otherwise. Limitations are
-documented per test, in YAML: `<test id>: <upstream requirement>`.
+test with a documented upstream limitation, and FAIL otherwise; a gate that fails live
+fails every tool in the same way. Limitations are documented per test, in YAML:
+`<test id>: <upstream requirement>`.
 
     python -m nci_si_acceptance.report fixture.json [--live live.json] [--limitations FILE]
 
@@ -36,6 +40,7 @@ import pytest
 import yaml
 
 from nci_si_acceptance.inventory import REQUIRED_TOOLS
+from nci_si_acceptance.suite import FIXTURE_ONLY as FIXTURE_ONLY_SKIP
 from nci_si_acceptance.tools import NOT_IMPLEMENTED
 
 if TYPE_CHECKING:
@@ -44,33 +49,55 @@ if TYPE_CHECKING:
     from nci_si_acceptance.tools import Tools
 
 PASS, FAIL, NO_FIXTURE = "PASS", "FAIL", "NO FIXTURE"
-NOT_RUN, NO_TESTS = "NOT RUN", "NO TESTS"
+INCOMPLETE, NOT_RUN, NO_TESTS = "INCOMPLETE", "NOT RUN", "NO TESTS"
 FIXTURE_ONLY = "PASS (fixture only)"
 # The property the missing-fixture guard attaches to a test: the requests concerned.
 UNMATCHED = "unmatched_upstream"
 # A later phase of a test (setup, call, teardown) overrides an earlier outcome only
 # when it ranks higher.
-RANK = {"passed": 0, "skipped": 1, "not_implemented": 1, "failed": 2, "no_fixture": 3}
+RANK = {
+    "passed": 0,
+    "skipped": 1,
+    "not_implemented": 1,
+    "not_live": 1,
+    "failed": 2,
+    "no_fixture": 3,
+}
 FAILED = ("failed", "no_fixture")
 
 
-def tool_outcome(counts: Counter[str], gates_failed: bool) -> str:
+def tool_outcome(counts: Counter[str], gates_failed: bool, implemented: bool) -> str:
     """The outcome of one tool in one run, from the final outcomes of its tests."""
 
     if not counts:
         return NO_TESTS
+    if not implemented:
+        return NOT_IMPLEMENTED
     if counts["failed"] or (gates_failed and counts["passed"]):
         return FAIL
-    ranked = (("no_fixture", NO_FIXTURE), ("passed", PASS), ("not_implemented", NOT_IMPLEMENTED))
-    return next((outcome for kind, outcome in ranked if counts[kind]), NOT_RUN)
+    return _without_failures(counts)
+
+
+def _without_failures(counts: Counter[str]) -> str:
+    if counts["no_fixture"]:
+        return NO_FIXTURE
+    if not counts["passed"]:
+        return NOT_RUN
+    return INCOMPLETE if counts["skipped"] or counts["not_implemented"] else PASS
+
+
+def _skip_outcome(report: pytest.TestReport) -> str:
+    reason = str(report.longrepr[2]) if isinstance(report.longrepr, tuple) else ""
+    if FIXTURE_ONLY_SKIP in reason:
+        return "not_live"
+    return "not_implemented" if NOT_IMPLEMENTED in reason else "skipped"
 
 
 def _phase_outcome(report: pytest.TestReport) -> str | None:
     if report.failed:
         return "no_fixture" if dict(report.user_properties).get(UNMATCHED) else "failed"
     if report.skipped:
-        reason = str(report.longrepr[2]) if isinstance(report.longrepr, tuple) else ""
-        return "not_implemented" if NOT_IMPLEMENTED in reason else "skipped"
+        return _skip_outcome(report)
     return "passed" if report.when == "call" else None
 
 
@@ -99,7 +126,9 @@ class Collector:
         counts = Counter(test["outcome"] for test in self.tests.values() if test["tool"] == name)
         return {
             "group": group,
-            "outcome": tool_outcome(counts, gates_failed),
+            "outcome": tool_outcome(
+                counts, gates_failed, self.implemented_as.get(name) is not None
+            ),
             "gates_only": gates_failed and not (counts["failed"] or counts["no_fixture"]),
             "implemented_as": self.implemented_as.get(name),
             "counts": dict(counts),
@@ -122,7 +151,7 @@ def combine(
 
     combined = {}
     for name, row in fixture["tools"].items():
-        failing = [
+        failing = live["failed_gates"] + [
             nodeid
             for nodeid, test in live["tests"].items()
             if test["tool"] == name and test["outcome"] in FAILED
@@ -175,7 +204,7 @@ def render(report: dict[str, Any], combined: dict[str, tuple[str, list[str]]], m
         "",
         f"Gates failed: {', '.join(report['failed_gates']) or 'none'}.",
         "Tests never run against an implementation: "
-        f"{_named(combined, NOT_IMPLEMENTED, NO_TESTS)}.",
+        f"{_named(combined, NOT_IMPLEMENTED, NOT_RUN, NO_TESTS)}.",
         f"Tests run and not passing: {_named(combined, FAIL)}.",
         f"Requests without a fixture: {'; '.join(missing) or 'none'}.",
     ]
@@ -214,19 +243,26 @@ def write_report(config: pytest.Config, mode: str) -> None:
         Path(path).write_text(json.dumps(config.stash[COLLECTOR].report(mode), indent=2) + "\n")
 
 
+def _read(path: Path, mode: str) -> dict[str, Any]:
+    report = json.loads(path.read_text(encoding="utf-8"))
+    if report["mode"] != mode:
+        raise SystemExit(f"{path} is the report of a {report['mode']} run, not of a {mode} run")
+    return report
+
+
 def main(arguments: Iterable[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Render the per-tool acceptance report.")
     parser.add_argument("fixture", type=Path, help="the report of the fixture-mode run")
     parser.add_argument("--live", type=Path, help="the report of the live run")
     parser.add_argument("--limitations", type=Path, help="YAML: test id -> upstream requirement")
     options = parser.parse_args(arguments)
-    fixture = json.loads(options.fixture.read_text(encoding="utf-8"))
+    fixture = _read(options.fixture, "fixture")
     if options.live:
         limitations = {}
         if options.limitations:
             limitations = yaml.safe_load(options.limitations.read_text(encoding="utf-8")) or {}
-        live = json.loads(options.live.read_text(encoding="utf-8"))
-        combined, modes = combine(fixture, live, limitations), "fixture and live"
+        combined = combine(fixture, _read(options.live, "live"), limitations)
+        modes = "fixture and live"
     else:
         combined = {name: (row["outcome"], []) for name, row in fixture["tools"].items()}
         modes = "fixture only; the live run is not included, so no outcome here is §6's final one"

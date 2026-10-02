@@ -2,6 +2,7 @@
 
 import json
 from collections import Counter
+from types import SimpleNamespace
 
 import pytest
 
@@ -10,20 +11,25 @@ from nci_si_acceptance.report import UNMATCHED, Collector, combine, main, render
 
 
 @pytest.mark.parametrize(
-    ("counts", "gates_failed", "outcome"),
+    ("counts", "gates_failed", "implemented", "outcome"),
     [
-        ({"passed": 3}, False, "PASS"),
-        ({"passed": 2, "failed": 1}, False, "FAIL"),
-        ({"passed": 3}, True, "FAIL"),
-        ({"passed": 2, "no_fixture": 1}, False, "NO FIXTURE"),
-        ({"no_fixture": 1, "failed": 1}, False, "FAIL"),
-        ({"not_implemented": 2}, True, "NOT IMPLEMENTED"),
-        ({"skipped": 2}, False, "NOT RUN"),
-        ({}, False, "NO TESTS"),
+        ({"passed": 3}, False, True, "PASS"),
+        ({"passed": 2, "failed": 1}, False, True, "FAIL"),
+        ({"passed": 3}, True, True, "FAIL"),
+        ({"skipped": 2}, True, True, "NOT RUN"),
+        ({"passed": 2, "no_fixture": 1}, False, True, "NO FIXTURE"),
+        ({"no_fixture": 1, "failed": 1}, False, True, "FAIL"),
+        ({"passed": 2, "skipped": 1}, False, True, "INCOMPLETE"),
+        ({"passed": 2, "not_live": 1}, False, True, "PASS"),
+        ({"not_live": 2}, False, True, "NOT RUN"),
+        ({"not_implemented": 2}, True, False, "NOT IMPLEMENTED"),
+        ({}, False, False, "NO TESTS"),
     ],
 )
-def test_a_tool_outcome_follows_from_its_test_outcomes_and_the_gates(counts, gates_failed, outcome):
-    assert tool_outcome(Counter(counts), gates_failed) == outcome
+def test_a_tool_outcome_follows_from_its_test_outcomes_and_the_gates(
+    counts, gates_failed, implemented, outcome
+):
+    assert tool_outcome(Counter(counts), gates_failed, implemented) == outcome
 
 
 def phase(when, outcome, nodeid="t.py::test_a", reason="", unmatched=None):
@@ -34,8 +40,13 @@ def phase(when, outcome, nodeid="t.py::test_a", reason="", unmatched=None):
     )
 
 
-def collected(*phases):
+def collected(*phases, absent=()):
+    """The report of a run whose server has every required tool except those `absent`."""
+
     collector = Collector()
+    collector.note_tools(
+        SimpleNamespace(implemented_as=lambda name: None if name in absent else name)
+    )
     for report, tool, gate in phases:
         collector.record(report, tool, gate)
     return collector.report("fixture")
@@ -77,9 +88,10 @@ def test_skips_are_not_implemented_or_not_run_and_a_failed_gate_fails_every_pass
             "get_concepts",
             False,
         ),
-        (phase("setup", "skipped", "t.py::c", "fixture mode only"), "list_contexts", False),
+        (phase("setup", "skipped", "t.py::c", "needs a prepared index"), "list_contexts", False),
         (phase("call", "passed", "t.py::d"), "get_form", False),
         (phase("call", "failed", "t.py::gate"), None, True),
+        absent=("get_concepts",),
     )
 
     tools = report["tools"]
@@ -134,6 +146,18 @@ def test_a_live_failure_is_excused_only_test_by_test():
     assert combined["get_concept"] == ("PASS", [])
 
 
+def test_a_live_gate_failure_fails_every_tool_unless_it_is_a_documented_limitation():
+    fixture = run({"get_form": "PASS", "get_concept": "PASS"})
+    live = run({}, {"t.py::gate": {"tool": None, "gate": True, "outcome": "failed"}})
+    live["failed_gates"] = ["t.py::gate"]
+
+    assert combine(fixture, live, {})["get_form"] == ("FAIL", [])
+    assert combine(fixture, live, {"t.py::gate": "P-1"})["get_concept"] == (
+        "PASS (fixture only)",
+        ["P-1"],
+    )
+
+
 def test_the_rendered_report_states_its_modes_counts_and_what_proves_nothing_yet():
     fixture = run({"resolve_release": "FAIL", "get_concept": "NOT IMPLEMENTED"})
     fixture["tools"]["resolve_release"] |= {
@@ -161,7 +185,7 @@ def test_the_rendered_report_states_its_modes_counts_and_what_proves_nothing_yet
 
 def test_the_command_combines_the_runs_with_per_test_limitations(tmp_path, capsys):
     fixture = run({"get_form": "PASS"})
-    live = run({}, {"t.py::form": live_test("get_form", "failed")})
+    live = run({}, {"t.py::form": live_test("get_form", "failed")}) | {"mode": "live"}
     (tmp_path / "fixture.json").write_text(json.dumps(fixture), encoding="utf-8")
     (tmp_path / "live.json").write_text(json.dumps(live), encoding="utf-8")
     (tmp_path / "limitations.yaml").write_text('"t.py::form": C-4\n', encoding="utf-8")
@@ -179,6 +203,32 @@ def test_the_command_combines_the_runs_with_per_test_limitations(tmp_path, capsy
     output = capsys.readouterr().out
     assert output.startswith("Run modes: fixture and live.")
     assert "| `get_form` | B | PASS (fixture only) | 0 / 0 / 0 | — | C-4 |" in output
+
+
+def test_the_command_refuses_a_report_of_the_wrong_run_mode(tmp_path):
+    (tmp_path / "fixture.json").write_text(json.dumps(run({})), encoding="utf-8")
+
+    with pytest.raises(SystemExit, match="is the report of a fixture run, not of a live run"):
+        main([str(tmp_path / "fixture.json"), "--live", str(tmp_path / "fixture.json")])
+
+
+def test_an_empty_limitations_file_excuses_nothing(tmp_path, capsys):
+    live = run({}, {"t.py::form": live_test("get_form", "failed")}) | {"mode": "live"}
+    (tmp_path / "fixture.json").write_text(json.dumps(run({"get_form": "PASS"})), encoding="utf-8")
+    (tmp_path / "live.json").write_text(json.dumps(live), encoding="utf-8")
+    (tmp_path / "limitations.yaml").write_text("", encoding="utf-8")
+
+    main(
+        [
+            str(tmp_path / "fixture.json"),
+            "--live",
+            str(tmp_path / "live.json"),
+            "--limitations",
+            str(tmp_path / "limitations.yaml"),
+        ]
+    )
+
+    assert "| `get_form` | B | FAIL | 0 / 0 / 0 | — |  |" in capsys.readouterr().out
 
 
 def test_the_command_says_a_fixture_run_alone_is_not_the_final_outcome(tmp_path, capsys):

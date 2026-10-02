@@ -81,12 +81,17 @@ class Result:
 
 
 def _content(result: types.CallToolResult) -> Any:
-    """The structured content, or the JSON of the first text block."""
+    """The structured content, or the first text block: its JSON, or the text itself."""
 
     if result.structured_content is not None:
         return result.structured_content
     text = next((block.text for block in result.content if block.type == "text"), None)
-    return None if text is None else json.loads(text)
+    if text is None:
+        return None
+    try:
+        return json.loads(text)
+    except ValueError:
+        return text
 
 
 class Tools:

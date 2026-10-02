@@ -7,10 +7,10 @@ tool surface of a server it starts as a command; it knows nothing of the server'
 From the repository root:
 
 ```bash
-pdm run acceptance --report=fixture.json             # the suite, fixture mode, with its report
-NCI_SI_ACCEPTANCE_MODE=live pdm run acceptance       # the live-capable tests against production
+pdm run acceptance --report=fixture.json             # fixture mode; writes acceptance/fixture.json
+NCI_SI_ACCEPTANCE_MODE=live pdm run acceptance --report=live.json   # live-capable tests, production
 NCI_SI_ACCEPTANCE_SERVER="..." pdm run acceptance    # another server command (default: nci-si-mcp serve)
-pdm run python -m nci_si_acceptance.report acceptance/fixture.json [--live live.json]
+pdm run python -m nci_si_acceptance.report acceptance/fixture.json --live acceptance/live.json
 pdm run acceptance-selftest                          # the harness's own tests
 ```
 
@@ -22,13 +22,23 @@ server lacks the tool, the baseline tool map (`fixtures/baseline_toolmap.yaml`) 
 that stands in for it; otherwise the test is skipped as NOT IMPLEMENTED. Each test cites the
 section of the specification it asserts, and asserts only what that section says.
 
-`@pytest.mark.scenario("release/unknown")` serves the scenario's fixtures in place of the
-ordinary ones, to a server process of its own. A test marked `live_capable` also runs in live
+`@pytest.mark.scenario("release/unknown")` serves the scenario's fixtures before the ordinary
+ones, to a server process of its own started with the scenario's settings. A test marked `live_capable` also runs in live
 mode; every other test runs against fixtures only.
 
-In fixture mode a test fails when one of its upstream requests found no fixture: the server may
-treat the refusal as an outage and still answer plausibly. A test that provokes such requests on
-purpose is marked `unmatched_upstream`.
+In fixture mode a test fails when one of its upstream requests found no fixture, and so does a
+server whose requests while it starts found none: the server may treat the refusal as an outage
+and still answer plausibly. A test that provokes such requests on purpose is marked
+`unmatched_upstream`.
+
+## The report
+
+`--report` writes one JSON report per run; `nci_si_acceptance.report` renders it as the per-tool
+table of §6. A tool is PASS, FAIL (a failed gate fails every tool), NO FIXTURE (a request lacked
+a fixture: a question for the fixture set), INCOMPLETE (some tests skipped), NOT IMPLEMENTED,
+NOT RUN or NO TESTS; the module docstring defines each. Combined with a live report, a tool that
+passes against fixtures but fails live is PASS (fixture only) only when every failing live test
+has a documented upstream limitation (`--limitations`, YAML of test id to requirement).
 
 ## Layout
 

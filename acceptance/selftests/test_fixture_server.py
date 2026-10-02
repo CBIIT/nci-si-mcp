@@ -86,6 +86,7 @@ def test_a_request_is_answered_by_its_fixture_and_recorded(server):
     assert entry["path"] == "/api/v1/version"
     assert entry["headers"]["Accept"] == "application/json"
     assert entry["fixture"] == "recorded/evs/version.json"
+    assert entry["received_at"] <= time.monotonic()
 
 
 def test_query_parameters_match_decoded_and_in_any_order(server):
@@ -242,7 +243,17 @@ def test_a_fixture_directory_must_exist(tmp_path):
         ({"kind": "crafted"}, "a crafted fixture names its requirement"),
         ({"kind": "invented"}, "kind is recorded or crafted"),
         ({"responses": [{"status": 200}]}, "a fixture has either a response or responses"),
-        ({"response": {"fault": "hang"}}, "a fault is one of reset"),
+        ({"response": {"fault": "hang"}}, "a fault is one of close"),
+        ({"response": {"status": 200, "reason": "OK"}}, "a response has only body, delay_seconds"),
+        ({"request": None}, "a fixture names its request: surface, method and path"),
+        (
+            {"request": {"surface": "evs", "method": "GET", "path": "/x", "params": "a=1"}},
+            "params maps each parameter to a list of strings",
+        ),
+        (
+            {"request": {"surface": "evs", "method": "GET", "path": "/x", "params": {"a": "1"}}},
+            "params maps each parameter to a list of strings",
+        ),
     ],
 )
 def test_an_unusable_fixture_is_refused_naming_its_problem(tmp_path, document, problem):
@@ -297,6 +308,77 @@ def test_a_scenario_fixture_lies_two_levels_below_scenarios(tmp_path):
         load_fixtures(tmp_path)
 
 
+def test_two_fixtures_for_the_same_request_in_one_scenario_are_refused(tmp_path):
+    for name in ("a.json", "b.json"):
+        fixture_file(tmp_path, f"scenarios/release/unknown/{name}")
+
+    with pytest.raises(ValueError, match=r"b\.json and .*a\.json answer the same request"):
+        load_fixtures(tmp_path)
+
+
+def test_scenarios_answering_the_same_request_cannot_be_active_together(tmp_path):
+    for scenario in ("release/unknown", "release/mismatch"):
+        fixture_file(tmp_path, f"scenarios/{scenario}/version.json")
+
+    with (
+        FixtureServer(load_fixtures(tmp_path)) as running,
+        pytest.raises(
+            ValueError,
+            match="the scenarios release/unknown, release/mismatch answer the same request",
+        ),
+    ):
+        running.activate("release/unknown", "release/mismatch")
+
+
+def write_settings(tmp_path, name, settings):
+    path = tmp_path / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(settings), encoding="utf-8")
+
+
+def test_a_scenario_carries_the_settings_its_server_starts_with(tmp_path):
+    write_settings(tmp_path, "scenarios/evs/slow/settings.json", {"NCI_SI_TIMEOUT_SECONDS": "1"})
+    write_settings(tmp_path, "scenarios/cadsr/key/settings.json", {"NCI_SI_CADSR_KEY": "k"})
+
+    fixtures = load_fixtures(tmp_path)
+
+    assert fixtures.settings_of(("evs/slow", "cadsr/key")) == {
+        "NCI_SI_TIMEOUT_SECONDS": "1",
+        "NCI_SI_CADSR_KEY": "k",
+    }
+    assert fixtures.settings_of(()) == {}
+    with FixtureServer(fixtures) as running:
+        running.activate("evs/slow")
+
+
+@pytest.mark.parametrize(
+    ("name", "settings", "problem"),
+    [
+        ("settings.json", {"NCI_SI_TIMEOUT_SECONDS": "1"}, "settings belong to a scenario"),
+        (
+            "scenarios/evs/slow/settings.json",
+            {"TIMEOUT": "1"},
+            "settings are NCI_SI_\\* names with string values",
+        ),
+        (
+            "scenarios/evs/slow/settings.json",
+            {"NCI_SI_TIMEOUT_SECONDS": 1},
+            "settings are NCI_SI_\\* names with string values",
+        ),
+        (
+            "scenarios/evs/slow/settings.json",
+            ["NCI_SI_TIMEOUT_SECONDS"],
+            "settings are NCI_SI_\\* names with string values",
+        ),
+    ],
+)
+def test_unusable_settings_are_refused(tmp_path, name, settings, problem):
+    write_settings(tmp_path, name, settings)
+
+    with pytest.raises(ValueError, match=f"{name}: {problem}"):
+        load_fixtures(tmp_path)
+
+
 def test_the_same_request_may_have_a_fixture_in_each_scenario(tmp_path):
     for scenario in ("release/unknown", "release/mismatch"):
         fixture_file(
@@ -329,9 +411,9 @@ def test_responses_answer_in_turn_the_last_repeating_and_a_reset_rewinds(tmp_pat
     assert (first, again) == ([429, 200, 200], 429)
 
 
-def test_a_reset_fault_closes_the_connection_without_an_answer(tmp_path):
+def test_a_close_fault_closes_the_connection_without_an_answer(tmp_path):
     fixture_file(
-        tmp_path, "down.json", kind="crafted", requirement="A5.3", response={"fault": "reset"}
+        tmp_path, "down.json", kind="crafted", requirement="A5.3", response={"fault": "close"}
     )
     with (
         FixtureServer(load_fixtures(tmp_path)) as running,
