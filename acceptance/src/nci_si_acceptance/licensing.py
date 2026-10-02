@@ -101,12 +101,13 @@ class Licensing:
     def _denied(self, name: str) -> bool:
         """Whether a path segment or parameter value names a licensed terminology or mapset.
 
-        A pinned terminology is `{terminology}_{release}`, so a prefix counts.
+        A pinned terminology is `{terminology}_{release}` and a system URI may name an
+        edition below it (`http://snomed.info/sct/731000124108`), so a prefix counts.
         """
 
         folded = name.casefold()
         return any(
-            folded == named or folded.startswith(f"{named}_")
+            folded == named or folded.startswith((f"{named}_", f"{named}/"))
             for named in self.licensed | self.mapsets
         )
 

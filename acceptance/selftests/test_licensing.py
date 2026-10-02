@@ -25,6 +25,7 @@ DENY = Licensing.from_manifest(
         ("/ConceptMap/ncit_maps_to_meddra_26.09d", {}),
         ("/ConceptMap/$translate", {"url": ["http://x?fhir_cm=NCIt_Maps_To_MedDRA"]}),
         ("/ValueSet/$expand", {"url": ["http://snomed.info/sct?fhir_vs"]}),
+        ("/CodeSystem/$lookup", {"system": ["http://snomed.info/sct/731000124108"]}),
     ],
 )
 def test_a_request_naming_licensed_content_is_refused_unless_the_service_refused_it(path, params):

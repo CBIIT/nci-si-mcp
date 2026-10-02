@@ -178,6 +178,20 @@ def test_an_answer_with_another_status_than_expected_stops_the_recording():
         Recorder(manifest(), live, "2026-10-02").record(plan(manifest()))
 
 
+def test_a_404_where_200_is_expected_stops_the_recording():
+    live = upstream({("evs", "/api/v1/version", "detail=all"): (404, {"message": "gone"})})
+
+    with pytest.raises(RecordingError, match=r"version\.json: answered 404, where 200"):
+        Recorder(manifest(), live, "2026-10-02").record(plan(manifest()))
+
+
+def test_a_pin_answer_that_is_not_a_list_of_rows_is_a_problem():
+    live = upstream({RELEASE_QUERY: (200, {"terminologyVersion": "ncit_26.09d"})})
+
+    with pytest.raises(RecordingError, match=r"answered 200 with \[\], the fixture set"):
+        Recorder(manifest(), live, "2026-10-02").record(plan(manifest()))
+
+
 def test_an_entry_may_expect_another_status():
     entry = {"fixture": "scenarios/x/y/gone.json", "surface": "evs", "path": "/gone", "status": 404}
     section = manifest(requests=[entry], concepts={}, samples=[])
@@ -304,6 +318,21 @@ def test_a_sample_beyond_what_a_recording_covers_cannot_be_answered():
 
     with pytest.raises(RecordingError, match="maps: the recordings cannot answer it"):
         Recorder(section, live, "2026-10-02").record(plan(section))
+
+
+def test_a_derived_fixture_from_the_pinned_release_is_written():
+    entry = {
+        "fixture": "crafted/OP-E06/version.json",
+        "from": "recorded/evs/version.json",
+        "path": "/api/v1/version_pinned",
+        "requirement": "OP-E06",
+    }
+    live = upstream({("evs", "/api/v1/version", "detail=all"): (200, {"version": "26.09d"})})
+    section = manifest(derived=[entry])
+
+    documents = Recorder(section, live, "2026-10-02").record(plan(section))
+
+    assert documents["crafted/OP-E06/version.json"]["response"]["body"] == {"version": "26.09d"}
 
 
 def test_a_derived_fixture_from_another_release_than_the_pinned_one_stops_the_recording():

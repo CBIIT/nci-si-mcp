@@ -219,7 +219,11 @@ class Recorder:
         if answer is None:
             return
         status, rows = answer
-        live = [row.get("terminologyVersion") for row in rows] if status == HTTPStatus.OK else []
+        live = (
+            [row.get("terminologyVersion") for row in _objects(rows)]
+            if status == HTTPStatus.OK
+            else []
+        )
         if live != [pinned]:
             self.problems.append(
                 f"the live monthly release query answered {status} with {live}, the fixture set "
@@ -240,6 +244,12 @@ class Recorder:
                 self.problems.append(f"sample {sample}: the recordings cannot answer it")
             elif (composed.status, _ordered(composed.body, batch=batch)) != live:
                 self.problems.append(f"sample {sample}: the composed answer differs from EVS's")
+
+
+def _objects(rows: Any) -> list[dict[str, Any]]:
+    """The objects of a list answer; nothing for any other answer."""
+
+    return [row for row in rows if isinstance(row, dict)] if isinstance(rows, list) else []
 
 
 def _ordered(body: Any, *, batch: bool) -> Any:
