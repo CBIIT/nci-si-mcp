@@ -34,6 +34,14 @@ the test and lint tools and the `server` extra (the `mcp` package, which the `se
 and the server tests need). The commands below are written as `python -m nci_si_mcp.cli ...`:
 run them inside the environment (`eval $(pdm venv activate)`) or prefix them with `pdm run`.
 
+To run a released version without a checkout, install it from its tag; the
+[releases page](https://github.com/hniedner/nci_si_mcp/releases) lists the versions:
+
+```bash
+pip install "nci-si-mcp[server] @ git+https://github.com/hniedner/nci_si_mcp@vX.Y.Z"
+nci-si-mcp serve
+```
+
 The package version is not written in any file. It is derived from the nearest `vX.Y.Z` git
 tag when the package is installed or built; a commit after the tag gets a development version
 such as `0.1.1.dev1+g<commit>`. Install from a git clone that has its tags: a clone without
