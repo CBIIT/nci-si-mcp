@@ -107,14 +107,17 @@ class ConceptRules:
             return None
         return self.base.union(*(self.include[value] for value in values))
 
-    def composes(self, path: str) -> bool:
-        """Whether the rules answer requests of this path, given the recordings: one
-        concept, a batch, or a relation list they know."""
+    def composes(self, path: str, params: dict[str, list[str]]) -> bool:
+        """Whether the rules answer this request when the recordings hold its concepts:
+        one concept or a batch at an include they know, or a relation list they know."""
 
         match = CONCEPT_PATH.fullmatch(path)
         if match is None or match["code"] == SEARCH:
             return False
-        return match["relation"] is None or match["relation"] in self.relations
+        if match["relation"]:
+            return not params and match["relation"] in self.relations
+        include = params.get("include", [self.default])[0]
+        return _composable(params, single=match["code"] is not None) and bool(self.keys(include))
 
     def recording_problem(self, request: dict[str, Any], status: int, body: Any) -> str | None:
         """What makes a fixture unusable as a concept recording, if anything."""

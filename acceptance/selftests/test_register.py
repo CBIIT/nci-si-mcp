@@ -94,9 +94,21 @@ def test_a_crafted_scenario_names_its_requirement_and_counts_its_fixtures():
         "403 without the licence key; invented content with it. Recorded. Crafted, 1 fixture, for"
         " E-7, SOW v2 §6-§7: the licence key sent from configuration."
     )
-    assert section(VIEWS["evs.md"], "### `traversal/starvation`")[1].endswith(
-        "Crafted, 303 fixtures, for A5.5: a budget per relationship kind; no kind starved."
+    assert section(VIEWS["evs.md"], "### `traversal/starvation`")[1] == (
+        "One concept has 300 roles and 2 associations. Crafted, 303 fixtures, for A5.5: a budget"
+        " per relationship kind; no kind starved."
     )
+
+
+def test_the_evs_view_states_the_concept_rules_the_ignored_parameters_and_each_rationale():
+    view = VIEWS["evs.md"]
+    unknown = section(view, "### `release/unknown`")
+    version = next(line for line in section(view, "## Requests") if "/api/v1/version`" in line)
+
+    assert "## Concept requests answered by rule" in view
+    assert "## Concept requests answered by rule" not in VIEWS["cadsr.md"]
+    assert all("| 404; every parameter ignored |" in line for line in unknown if "`GET " in line)
+    assert "| The furnished server's ncit_release_info reads it;" in version
 
 
 @pytest.mark.parametrize("change", ["undescribed", "absent"])

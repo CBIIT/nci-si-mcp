@@ -11,7 +11,6 @@ import pytest
 import yaml
 
 from nci_si_acceptance.craft import (
-    DISCOVERY,
     EXCLUSION_ROLES,
     LICENCE_KEY,
     Recorded,
@@ -20,7 +19,7 @@ from nci_si_acceptance.craft import (
     mismatched,
 )
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
-from nci_si_acceptance.record import FIXTURES, reported_releases
+from nci_si_acceptance.record import DISCOVERY, FIXTURES, reported_releases
 
 CRAFTED = craft(FIXTURES)
 MANIFEST = yaml.safe_load((FIXTURES / "manifest.yaml").read_text(encoding="utf-8"))
@@ -96,6 +95,10 @@ def test_deep_fanout_is_served_through_the_relation_endpoints(upstream):
     assert (status, len(children)) == (200, MAX_NODES + 1)
     assert depth > MAX_DEPTH
     assert answer(f"{CONCEPT}/C99000001?include=parents")[1]["parents"][0]["code"] == "C99000000"
+    assert [
+        answer(f"{CONCEPT}/{code}?include=minimal")[1]["leaf"]
+        for code in ("C99000000", "C99000001", "C99000002")
+    ] == [False, False, True]
 
 
 def test_exclusions_are_named_as_positive_roles_and_two_positive_roles_as_exclusions():

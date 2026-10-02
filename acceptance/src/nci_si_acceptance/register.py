@@ -22,7 +22,7 @@ from typing import Any
 import yaml
 
 from nci_si_acceptance.fixture_server import MANIFEST, SCENARIOS, SETTINGS
-from nci_si_acceptance.record import FIXTURES, reported_releases
+from nci_si_acceptance.record import DISCOVERY, FIXTURES, reported_releases
 
 REGISTER = FIXTURES.parent / "request-forms"
 VIEWS = {
@@ -153,8 +153,7 @@ def _unpinned(entry: dict[str, Any], release: str) -> bool:
     """A recorded request naming no release that is not release discovery."""
 
     recorded = entry["fixture"].startswith("recorded/")
-    discovery = entry["operation"] in ("OP-E01", "baseline")
-    return recorded and not discovery and release not in entry["path"]
+    return recorded and entry["fixture"] not in DISCOVERY and release not in entry["path"]
 
 
 def _table(header: str, rows: list[str]) -> list[str]:

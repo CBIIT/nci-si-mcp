@@ -56,6 +56,16 @@ RECORDED = "recorded"
 # Payload fields that name the release or version of the content they carry: a concept's
 # `version`, a map's `sourceTerminologyVersion`.
 RELEASE_FIELDS = ("version", "sourceTerminologyVersion")
+# Release discovery and the API version: what names releases rather than serving content
+# from one, and needs no pinned form.
+DISCOVERY = frozenset(
+    {
+        "recorded/evs/version.json",
+        "recorded/evs/terminologies.json",
+        "recorded/evs/release-monthly.json",
+        "recorded/evs/release-weekly.json",
+    }
+)
 TIMEOUT_SECONDS = 120
 
 

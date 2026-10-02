@@ -21,7 +21,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from nci_si_acceptance.fixture_server import CONCEPTS
-from nci_si_acceptance.record import FIXTURES, RECORDED, RELEASE_FIELDS, reported_releases, write
+from nci_si_acceptance.record import (
+    DISCOVERY,
+    FIXTURES,
+    RECORDED,
+    RELEASE_FIELDS,
+    reported_releases,
+    write,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -108,17 +115,6 @@ def _with_release(payload: Any, release: str) -> Any:
         else _with_release(value, release)
         for key, value in payload.items()
     }
-
-
-# Release discovery names the release rather than serving content from it: rewriting it
-# would change the release a server resolves, not provoke a mismatch.
-DISCOVERY = frozenset(
-    {
-        "recorded/evs/terminologies.json",
-        "recorded/evs/release-monthly.json",
-        "recorded/evs/release-weekly.json",
-    }
-)
 
 
 def mismatched(recorded: Recorded) -> list[str]:
