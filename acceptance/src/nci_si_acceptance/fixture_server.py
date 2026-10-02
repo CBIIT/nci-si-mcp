@@ -82,6 +82,7 @@ import time
 from dataclasses import dataclass, field
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from itertools import permutations
 from typing import TYPE_CHECKING, Any, Self
 from urllib.parse import parse_qs, unquote, urlsplit
 
@@ -448,11 +449,47 @@ def _layers(
     _check_known(fixtures, scenarios)
     layers = [fixtures.scenarios.get(scenario, {}) for scenario in scenarios]
     recordings = [fixtures.recordings.get(scenario, {}) for scenario in scenarios]
-    if _overlap(layers) or _overlap(recordings):
-        raise ValueError(f"the scenarios {', '.join(scenarios)} answer the same request")
-    if _overlap(fixtures.settings.get(scenario, {}) for scenario in scenarios):
-        raise ValueError(f"the scenarios {', '.join(scenarios)} set the same setting")
+    if clash := _clash(fixtures, scenarios, layers, recordings):
+        raise ValueError(f"the scenarios {', '.join(scenarios)} {clash}")
     return [*layers, fixtures.ordinary], [*recordings, fixtures.recordings.get(None, {})]
+
+
+def _clash(
+    fixtures: FixtureSet,
+    scenarios: tuple[str, ...],
+    layers: list[Fixtures],
+    recordings: list[Concepts],
+) -> str | None:
+    """Why scenarios cannot be active together, if they cannot."""
+
+    if _overlap(layers) or _overlap(recordings):
+        return "answer the same request"
+    if _overlap(fixtures.settings.get(scenario, {}) for scenario in scenarios):
+        return "set the same setting"
+    if _hidden(layers, recordings):
+        return (
+            "cannot be active together: one answers every path of a surface the other has"
+            " fixtures for"
+        )
+    return None
+
+
+def _hidden(layers: list[Fixtures], recordings: list[Concepts]) -> bool:
+    """Whether a scenario's fixture for every path would answer for another active scenario,
+    its concept recordings included (they answer EVS concept requests)."""
+
+    surfaces = [
+        _surfaces(layer, recorded) for layer, recorded in zip(layers, recordings, strict=True)
+    ]
+    everywhere = [{key[:2] for key in layer if key[2] == EVERY_PATH} for layer in layers]
+    pairs = permutations(range(len(layers)), 2)
+    return any(everywhere[one] & surfaces[other] for one, other in pairs)
+
+
+def _surfaces(layer: Fixtures, recorded: Concepts) -> set[tuple[str, str]]:
+    """The surfaces and methods a scenario answers on; its recordings answer EVS GET."""
+
+    return {key[:2] for key in layer} | ({("evs", "GET")} if recorded else set())
 
 
 def _check_known(fixtures: FixtureSet, scenarios: tuple[str, ...]) -> None:

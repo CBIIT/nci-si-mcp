@@ -54,7 +54,7 @@ X-1:
   basis: [A3.1, A3.3]
   planned: "#55"
 X-2:
-  statement: A request for a release the platform does not serve fails closed, with the requested-release-not-available error and no content.
+  statement: A request for a release the platform does not serve fails closed, with the requested-release-not-available error, or, where the platform offers no release-pinned form of the operation (A3.2), the mismatch error; and no content.
   basis: [A3.4, A3.5]
   planned: "#55"
 X-3:
@@ -109,7 +109,7 @@ X-15:
   basis: [A2.5, M3.2]
   planned: "#52"
 X-16:
-  statement: After a 429 with Retry-After, the module waits at least that long before it asks again, and asks once more, not repeatedly.
+  statement: After a 429 with Retry-After, the module waits at least that long before it asks again, and makes no request to that endpoint in between.
   basis: [A6.5, A5.3]
   planned: "#54"
 

@@ -1,0 +1,35 @@
+{
+ "kind": "crafted",
+ "requirement": "OP-F05: a pinned $expand of an unknown release fails as every pinned path does",
+ "request": {
+  "surface": "evs-fhir",
+  "method": "GET",
+  "path": "/ValueSet/$expand",
+  "params": {
+   "url": [
+    "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492"
+   ],
+   "system-version": [
+    "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl|99.99z"
+   ]
+  },
+  "ignored": {
+   "count": "Verified 2 October 2026: count, offset and activeOnly leave the expansion unchanged (534 members, total 534); only expansion.parameter echoes them",
+   "offset": "Verified 2 October 2026: count, offset and activeOnly leave the expansion unchanged (534 members, total 534); only expansion.parameter echoes them",
+   "activeOnly": "Verified 2 October 2026: count, offset and activeOnly leave the expansion unchanged (534 members, total 534); only expansion.parameter echoes them"
+  }
+ },
+ "response": {
+  "status": 404,
+  "body": {
+   "resourceType": "OperationOutcome",
+   "issue": [
+    {
+     "severity": "error",
+     "code": "not-found",
+     "diagnostics": "Terminology not found"
+    }
+   ]
+  }
+ }
+}

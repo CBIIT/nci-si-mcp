@@ -334,6 +334,28 @@ def test_a_scenario_fixture_for_every_path_answers_what_its_scenario_does_not(tm
     assert (other_surface, after) == (501, 200)
 
 
+def test_a_fixture_for_every_path_answers_before_an_ordinary_exact_fixture(tmp_path):
+    fixture_file(tmp_path, "recorded/evs/version.json")
+    fixture_file(tmp_path, "scenarios/upstream/down/every.json", **UNAVAILABLE)
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        url = running.base_url("evs") + "/api/v1/version"
+        running.activate("upstream/down")
+        down = fetch(url)[0]
+
+    assert down == HTTPStatus.SERVICE_UNAVAILABLE
+
+
+def test_a_fixture_for_every_path_may_not_hide_another_active_scenario(tmp_path):
+    fixture_file(tmp_path, "scenarios/upstream/down/every.json", **UNAVAILABLE)
+    fixture_file(
+        tmp_path, "scenarios/release/unknown/version.json", kind="crafted", requirement="A3.4"
+    )
+    fixtures = load_fixtures(tmp_path)
+
+    with pytest.raises(ValueError, match="cannot be active together: one answers every path"):
+        FixtureServer(fixtures).activate("upstream/down", "release/unknown")
+
+
 def test_a_fixture_for_every_path_answers_before_the_concept_rules(tmp_path):
     (tmp_path / "manifest.yaml").write_text(
         "evs:\n  concepts:\n    base: [code]\n    default: minimal\n"

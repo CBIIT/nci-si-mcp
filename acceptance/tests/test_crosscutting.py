@@ -11,6 +11,7 @@ import pytest
 import yaml
 from jsonschema import Draft202012Validator
 
+from nci_si_acceptance.client import CREDENTIAL_VARIABLES
 from nci_si_acceptance.spec import RECORDS, TOOLS, items_of, parameters
 
 CALLS = yaml.safe_load((Path(__file__).parent / "calls.yaml").read_text(encoding="utf-8"))
@@ -52,8 +53,8 @@ CALLED = _per_tool(CALLS)
 PINNED = _per_tool(PINNED_TOOLS)
 # The release the release/unknown scenario answers 404 for on every content path.
 UNKNOWN_RELEASE = "99.99z"
-# A replacement history names no release, so no mismatch can show in it.
-RELEASED = [name for name in PINNED_TOOLS if name != "resolve_retired_code"]
+# The calls whose answers name the release they come from, where a mismatch can show (X-3).
+RELEASED = [name for name in PINNED_TOOLS if not CALLS[name].get("unversioned")]
 # A concept of a licensed terminology, served (license/restricted) only with the licence key.
 LICENSED = {"terminology": "mdr", "release": "29_0", "code": "10000000"}
 
@@ -226,7 +227,9 @@ def _error_code(result):
 def test_a_release_the_platform_does_not_serve_fails_closed(tools, pinned, name):
     result = _call(tools, pinned | {"release": UNKNOWN_RELEASE}, name)
 
-    assert _error_code(result) == "release_not_available", result.content
+    # A tool that can only verify the release of an unpinned answer reports the mismatch.
+    unpinned = {"release_mismatch"} if CALLS[name].get("unpinned") else set()
+    assert _error_code(result) in {"release_not_available", *unpinned}, result.content
 
 
 @pytest.mark.requirement("X-3")
@@ -255,7 +258,14 @@ def test_an_error_validates_against_the_declared_output_schema(tools, pinned, na
 
 
 def _licence_keys(upstream):
-    return set(upstream.fixtures.settings_of(("license/restricted",)).values())
+    settings = upstream.fixtures.settings_of(("license/restricted",))
+    return {settings[name] for name in CREDENTIAL_VARIABLES if name in settings}
+
+
+def _outputs(result):
+    """All a result says: its content, its _meta and every text block."""
+
+    return result.content, result.meta, result.texts
 
 
 def _carrying(keys, *outputs):
@@ -275,8 +285,9 @@ def test_the_licence_key_reaches_the_platform_and_nothing_the_server_returns_or_
 
     # Only a request that carries the key is answered.
     assert not granted.is_error, granted.content
-    log = tools.log.read_text(encoding="utf-8")
-    assert _carrying(_licence_keys(upstream), granted.content, granted.meta, log) == []
+    keys = _licence_keys(upstream)
+    assert keys
+    assert _carrying(keys, *_outputs(granted), tools.process.written()) == []
 
 
 @pytest.mark.scenario("license/restricted")
@@ -289,8 +300,8 @@ def test_an_error_carries_no_licence_key(tools, upstream):
     refused = tools.call("get_concept", LICENSED | {"code": "99999999"})
 
     assert refused.is_error
-    log = tools.log.read_text(encoding="utf-8")
-    assert _carrying(_licence_keys(upstream), refused.content, log) == []
+    keys = _licence_keys(upstream)
+    assert _carrying(keys, *_outputs(refused), tools.process.written()) == []
 
 
 @pytest.mark.scenario("upstream/rate-limited")
@@ -303,6 +314,8 @@ def test_a_rate_limited_request_is_asked_once_more_after_the_wait(tools, upstrea
     result = tools.call("resolve_release", {"terminology": pinned["terminology"]})
 
     assert not result.is_error, result.content
-    asked = [entry["received_at"] for entry in upstream.log() if entry["fixture"] == limited.name]
+    # A server may resolve the release while it starts.
+    log = [*tools.process.startup, *upstream.log()]
+    asked = [entry["received_at"] for entry in log if entry["fixture"] == limited.name]
     assert len(asked) == len(limited.responses)
     assert asked[1] - asked[0] >= wait

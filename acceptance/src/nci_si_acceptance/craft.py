@@ -36,6 +36,8 @@ if TYPE_CHECKING:
 type Documents = dict[str, dict[str, Any]]
 
 RELEASE, OTHER_RELEASE = "26.09d", "26.08e"
+# The release the release/unknown scenario serves nothing of.
+UNKNOWN = "99.99z"
 TERMINOLOGY = f"ncit_{RELEASE}"
 EXCLUSION_ROLES = frozenset(f"R{number}" for number in range(135, 143))
 # Positive roles of C4817 given a name that reads as an exclusion in traversal/exclusions.
@@ -308,6 +310,31 @@ def upstream_unavailable(_: Recorded) -> Documents:
     return documents
 
 
+def release_unknown_expand(recorded: Recorded) -> Documents:
+    """$expand pinned by system-version to the release release/unknown names: as every other
+    pinned form of that release, it answers 404. An ordinary fixture, since no other request
+    names that release; crafted, since EVS refuses system-version altogether today (400)."""
+
+    pinned = recorded("crafted/OP-F05/expand-c85492.json")["request"]
+    (version,) = pinned["params"]["system-version"]
+    request = pinned | {
+        "params": pinned["params"] | {"system-version": [version.replace(RELEASE, UNKNOWN)]}
+    }
+    outcome = {
+        "resourceType": "OperationOutcome",
+        "issue": [
+            {"severity": "error", "code": "not-found", "diagnostics": "Terminology not found"}
+        ],
+    }
+    return {
+        "crafted/OP-F05/expand-c85492-unknown-release.json": crafted(
+            "OP-F05: a pinned $expand of an unknown release fails as every pinned path does",
+            request,
+            response={"status": 404, "body": outcome},
+        )
+    }
+
+
 def upstream_rate_limited(recorded: Recorded) -> Documents:
     """429 with Retry-After on the release query, then the recorded answer."""
 
@@ -352,7 +379,11 @@ def license_restricted(_: Recorded) -> Documents:
     }
     document = crafted(requirement, request, response={"status": 200, "body": LICENSED_CONCEPT})
     return {
-        "scenarios/license/restricted/settings.json": {"NCI_SI_EVS_LICENSE_KEY": LICENCE_KEY},
+        # At debug level, so that a key logged as a detail shows (A7.5).
+        "scenarios/license/restricted/settings.json": {
+            "NCI_SI_EVS_LICENSE_KEY": LICENCE_KEY,
+            "NCI_SI_LOG_LEVEL": "DEBUG",
+        },
         "scenarios/license/restricted/granted.json": document,
     }
 
@@ -363,6 +394,7 @@ SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     traversal_deep_fanout,
     traversal_exclusions,
     traversal_starvation,
+    release_unknown_expand,
     upstream_unavailable,
     upstream_rate_limited,
     license_restricted,

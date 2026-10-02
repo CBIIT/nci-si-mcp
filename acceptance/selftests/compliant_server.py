@@ -39,8 +39,15 @@ requirements, for the harness's own tests.
     keyless           the licence key is not sent                                   (X-12)
     logs-key          the request headers, licence key included, written to the log (X-12)
     leaks-key         EVS's refusal, which repeats the request headers, in the error (X-12)
+    files-key         the request headers written to a file in the data directory  (X-12)
+    key-in-text       the licence key in a success's text block                     (X-12)
+    key-in-meta       the licence key in every result's _meta                       (X-12)
+    content-with-error content beside the error record                              (X-2)
     gives-up          no retry after a 429                                          (X-16)
     no-backoff        a retry after a 429 without the wait it asks for              (X-16)
+
+`unpinned-mismatch` is no defect for a tool without a pinned form upstream: it answers an
+unknown release with release_mismatch, as such a tool can only verify an unpinned answer (X-2).
 
 A call asks EVS for `/api/v1/version`, or for the concept of a licensed terminology with the
 licence key, unless the same call was answered before: the server caches by call, as A9.4
@@ -58,6 +65,7 @@ import urllib.error
 import urllib.request
 from datetime import UTC, datetime
 from http import HTTPStatus
+from pathlib import Path
 
 import anyio
 import mcp_types as types
@@ -74,6 +82,8 @@ LICENCE_KEY = os.environ.get("NCI_SI_EVS_LICENSE_KEY")
 LICENSED = {"mdr"}
 # What an upstream request that got no HTTP answer counts as.
 CLOSED, TIMED_OUT = 0, -1
+# How an unknown release is reported: by a tool without a pinned form, as a mismatch (X-2).
+UNKNOWN_RELEASE = "release_mismatch" if DEFECT == "unpinned-mismatch" else "release_not_available"
 # A failure the defect turns into an empty success.
 SWALLOWED = {"unknown-as-empty": "release_not_available", "outage-as-empty": "upstream_unavailable"}
 # Whether each call so far reached EVS, and the calls already answered.
@@ -109,6 +119,8 @@ def _request(arguments: dict, correlation: str) -> tuple[str, dict[str, str]]:
     if DEFECT == "logs-key":
         sys.stderr.write(f"asking with {headers}\n")
         sys.stderr.flush()
+    if DEFECT == "files-key":
+        (Path(os.environ["NCI_SI_DATA_DIR"]) / "requests.txt").write_text(str(headers))
     return (
         f"/api/v1/concept/{terminology}_{arguments.get('release')}/{arguments.get('code')}",
         headers,
@@ -135,9 +147,13 @@ def _failure(status: int, body: dict, arguments: dict) -> str | None:
     if status == TIMED_OUT:
         return "timeout"
     if status == HTTPStatus.NOT_FOUND:
-        return "release_not_available"
+        return UNKNOWN_RELEASE
     if status != HTTPStatus.OK:
         return "upstream_unavailable"
+    return _mismatch(body, arguments)
+
+
+def _mismatch(body: dict, arguments: dict) -> str | None:
     asked = arguments.get("release")
     mismatched = asked is not None and body.get("version", asked) != asked
     return "release_mismatch" if mismatched and DEFECT != "accepts-mismatch" else None
@@ -282,7 +298,8 @@ def _merged(parts: list) -> dict:
 def _error(code: str, status: int, body: dict, correlation: str) -> dict:
     said = f": {json.dumps(body)}" if DEFECT == "leaks-key" else ""
     record = {"code": code, "message": f"EVS answered {status}{said}", "correlationId": correlation}
-    return {"error": "EVS failed" if DEFECT == "unshaped-error" else record}
+    beside = {"concept": {"code": "C4817"}} if DEFECT == "content-with-error" else {}
+    return {"error": "EVS failed" if DEFECT == "unshaped-error" else record} | beside
 
 
 def _answer(name: str, arguments: dict, correlation: str) -> tuple[object, bool]:
@@ -301,17 +318,19 @@ def _answer(name: str, arguments: dict, correlation: str) -> tuple[object, bool]
 
 
 def _meta() -> dict:
-    return {
+    meta = {
         "ttlMs": 0 if DEFECT == "uncached-result" else 86_400_000,
         "cacheScope": "private" if DEFECT == "private-scope" else "public",
     }
+    return meta | ({"licence": LICENCE_KEY} if DEFECT == "key-in-meta" else {})
 
 
 async def call_tool(_context, params: types.CallToolRequestParams) -> types.CallToolResult:
     correlation = (params.meta or {}).get("correlationId", "")
     content, failed = _answer(params.name, params.arguments or {}, correlation)
+    text = json.dumps(content) + (f" {LICENCE_KEY}" if DEFECT == "key-in-text" else "")
     return types.CallToolResult(
-        content=[types.TextContent(type="text", text=json.dumps(content))],
+        content=[types.TextContent(type="text", text=text)],
         structured_content=content,
         is_error=failed,
         _meta=_meta(),

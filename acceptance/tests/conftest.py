@@ -8,9 +8,10 @@ server makes while it starts must find fixtures too.
 
 from __future__ import annotations
 
+import sys
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 import yaml
@@ -26,7 +27,7 @@ from nci_si_acceptance.suite import (
     skip_fixture_only,
     unmatched_requests,
 )
-from nci_si_acceptance.tools import Tools, load_toolmap
+from nci_si_acceptance.tools import Process, Tools, load_toolmap
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -102,29 +103,35 @@ def _tools(
     url = upstream.url if upstream else None
     if upstream:
         upstream.reset()  # what earlier tests left in the log is not this server's
-    environment = server_environment(target.mode, tmp_path_factory.mktemp("data"), url)
+    data = tmp_path_factory.mktemp("data")
+    environment = server_environment(target.mode, data, url)
     log = tmp_path_factory.mktemp("server") / "stderr.log"
-    with (
-        log.open("w", encoding="utf-8") as errlog,
-        open_session(target.command, environment | (settings or {}), errlog) as session,
-    ):
-        unmatched = _startup_requests(upstream)
-        if not unmatched:
-            yield Tools(session, load_toolmap(FIXTURES / "baseline_toolmap.yaml"), log)
-            return
+    try:
+        with (
+            log.open("w", encoding="utf-8") as errlog,
+            open_session(target.command, environment | (settings or {}), errlog) as session,
+        ):
+            startup = _startup_requests(upstream)
+            if not (unmatched := unmatched_requests(startup)):
+                toolmap = load_toolmap(FIXTURES / "baseline_toolmap.yaml")
+                yield Tools(session, toolmap, Process(log, data, tuple(startup)))
+                return
+    finally:
+        # The server's standard error, shown with a failing test's other output.
+        sys.stderr.write(log.read_text(encoding="utf-8", errors="replace"))
     # Failing outside the session: inside it, the failure would reach pytest wrapped
     # in the session's exception group.
     raise UnmatchedUpstream(unmatched, " while the server started")
 
 
-def _startup_requests(upstream: FixtureServer | None) -> list[str]:
-    """The requests the server made while it started that found no fixture; the log is reset."""
+def _startup_requests(upstream: FixtureServer | None) -> list[dict[str, Any]]:
+    """The requests the server made while it started; the log is reset."""
 
     if upstream is None:
         return []
-    unmatched = unmatched_requests(upstream.log())
+    startup = upstream.log()
     upstream.reset()
-    return unmatched
+    return startup
 
 
 @pytest.fixture
