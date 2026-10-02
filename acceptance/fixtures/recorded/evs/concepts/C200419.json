@@ -1,0 +1,296 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C200419",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C200419",
+   "name": "Acute Myeloid Leukemia with FUS-ERG",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Acute Myeloid Leukemia with FUS-ERG",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Acute Myeloid Leukemia with FUS-ERG Fusion",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Acute Myeloid Leukemia with FUS::ERG",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Acute Myeloid Leukemia with FUS::ERG Fusion",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "AML with FUS-ERG",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "AML with FUS-ERG Fusion",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "AML with FUS::ERG",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "AML with FUS::ERG Fusion",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Acute Myeloid Leukemia with FUS-ERG",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "Acute myeloid leukemia associated with FUS-ERG gene fusion. The prognosis is poor.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "type": "Logical_Definition",
+     "value": "true"
+    },
+    {
+     "code": "P208",
+     "type": "NCI_META_CUI",
+     "value": "CL1907428"
+    },
+    {
+     "code": "P363",
+     "type": "Neoplastic_Status",
+     "value": "Malignant"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Neoplastic Process"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C7175",
+     "name": "Acute Myeloid Leukemia with Recurrent Genetic Abnormalities",
+     "defining": true
+    }
+   ],
+   "roles": [
+    {
+     "code": "R142",
+     "type": "Disease_Excludes_Finding",
+     "relatedCode": "C36122",
+     "relatedName": "Benign Cellular Infiltrate"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C136648",
+     "relatedName": "Blasts 10 Percent or More of Bone Marrow Nucleated Cells"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C138056",
+     "relatedName": "Blasts 10 Percent or More of Peripheral Blood White Cells"
+    },
+    {
+     "code": "R104",
+     "type": "Disease_Has_Normal_Cell_Origin",
+     "relatedCode": "C13456",
+     "relatedName": "Bone Marrow Stem Cell"
+    },
+    {
+     "code": "R100",
+     "type": "Disease_Has_Associated_Anatomic_Site",
+     "relatedCode": "C12431",
+     "relatedName": "Bone Marrow"
+    },
+    {
+     "code": "R101",
+     "type": "Disease_Has_Primary_Anatomic_Site",
+     "relatedCode": "C12431",
+     "relatedName": "Bone Marrow"
+    },
+    {
+     "code": "R142",
+     "type": "Disease_Excludes_Finding",
+     "relatedCode": "C36158",
+     "relatedName": "Chronic Clinical Course"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C99281",
+     "relatedName": "FUS/ERG Fusion Gene",
+     "group": "Gene"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C224909",
+     "relatedName": "Genetic Abnormalities Present"
+    },
+    {
+     "code": "R100",
+     "type": "Disease_Has_Associated_Anatomic_Site",
+     "relatedCode": "C41165",
+     "relatedName": "Hematopoietic and Lymphatic System"
+    },
+    {
+     "code": "R101",
+     "type": "Disease_Has_Primary_Anatomic_Site",
+     "relatedCode": "C41165",
+     "relatedName": "Hematopoietic and Lymphatic System"
+    },
+    {
+     "code": "R104",
+     "type": "Disease_Has_Normal_Cell_Origin",
+     "relatedCode": "C32725",
+     "relatedName": "Hematopoietic and Lymphoid Cell"
+    },
+    {
+     "code": "R103",
+     "type": "Disease_Has_Normal_Tissue_Origin",
+     "relatedCode": "C41168",
+     "relatedName": "Hematopoietic and Lymphoid Tissue"
+    },
+    {
+     "code": "R103",
+     "type": "Disease_Has_Normal_Tissue_Origin",
+     "relatedCode": "C13051",
+     "relatedName": "Hematopoietic Tissue"
+    },
+    {
+     "code": "R115",
+     "type": "Disease_May_Have_Finding",
+     "relatedCode": "C35788",
+     "relatedName": "Hypercellular Bone Marrow"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C25553",
+     "relatedName": "Leukemic Cell"
+    },
+    {
+     "code": "R138",
+     "type": "Disease_Excludes_Normal_Cell_Origin",
+     "relatedCode": "C12535",
+     "relatedName": "Lymphocyte"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C12917",
+     "relatedName": "Malignant Cell"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C36115",
+     "relatedName": "Malignant Cellular Infiltrate"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C12922",
+     "relatedName": "Neoplastic Cell"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C37060",
+     "relatedName": "Neoplastic Hematopoietic and Lymphoid Cell"
+    },
+    {
+     "code": "R139",
+     "type": "Disease_Excludes_Abnormal_Cell",
+     "relatedCode": "C12914",
+     "relatedName": "Neoplastic Lymphoblast"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C37065",
+     "relatedName": "Neoplastic Myeloblast"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C41063",
+     "relatedName": "Neoplastic Myeloid Cell"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C80329",
+     "relatedName": "Recurrent Genetic Abnormalities Present"
+    },
+    {
+     "code": "R142",
+     "type": "Disease_Excludes_Finding",
+     "relatedCode": "C36182",
+     "relatedName": "Solid Growth Pattern"
+    }
+   ],
+   "history": [
+    {
+     "code": "C200419",
+     "action": "create",
+     "date": "2023-07-31"
+    },
+    {
+     "code": "C200419",
+     "action": "modify",
+     "date": "2023-11-27"
+    }
+   ]
+  }
+ }
+}

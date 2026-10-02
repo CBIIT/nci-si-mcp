@@ -293,8 +293,9 @@ record:
   concepts:
     # Ewing sarcoma and the batch of the Platform API Specification's E-5 example.
     full: [C4817, C17049, C41259]
-    # The depth-1 neighbourhood of C4817 over every relation. Without the inverse
-    # lists, which run to megabytes for the subset and cell concepts among them.
+    # The depth-1 neighbourhood of C4817 over every relation, and the concepts its role
+    # targets name as theirs (depth 2 over roles, get_concept_neighborhood-3). Without the
+    # inverse lists, which run to megabytes for the subset and cell concepts among them.
     summary,parents,children,roles,associations,maps,history:
       [C116977, C118168, C118464, C12578, C126659, C12917, C12922, C12950, C12964, C13054,
        C132849, C138188, C138190, C142853, C156952, C156966, C157711, C158520, C165258, C165667,
@@ -304,7 +305,11 @@ record:
        C36184, C36367, C36368, C36369, C36616, C36779, C37224, C37229, C37230, C37231, C37249,
        C37250, C37251, C37252, C45455, C45714, C4835, C53487, C53665, C53667, C53978, C53980,
        C54105, C7135, C7806, C7807, C7808, C8495, C90259, C9118, C9292, C99202, C99211, C99226,
-       C99259, C99262, C99281]
+       C99259, C99262, C99281,
+       C13204, C13206, C13211, C13212, C13214, C13215, C13217, C13218, C13223, C14225, C18127,
+       C18139, C18321, C18326, C19019, C20139, C20737, C21050, C24377, C24378, C28147, C32725,
+       C34058, C34228, C38536, C41165, C41168, C91852, C93138, C97482, C97876, C97912, C99238,
+       C99249, C172980, C178487, C178488, C179848, C186676, C186727, C200419]
 
   # Real projections and batches the composed answers are checked against.
   samples:

@@ -1,0 +1,165 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C20139",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C20139",
+   "name": "Ligand Binding",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Ligand Binding",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Ligand Binding",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "Ligand Binding is the tight and specific (high affinity) interaction between a small molecule (typically) and a macromolecule (usually protein) that ordinarily results in modification of its function, e.g., antigen-antibody binding, hormone- or neurotransmitter-receptor binding.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Ligand_Binding"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Molecular Function"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1517880"
+    }
+   ],
+   "children": [
+    {
+     "code": "C19407",
+     "name": "Docking",
+     "leaf": true
+    },
+    {
+     "code": "C40508",
+     "name": "Growth Factor Binding",
+     "leaf": true
+    },
+    {
+     "code": "C26052",
+     "name": "Retinoic Acid Binding",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C18219",
+     "name": "Molecular Interaction Process"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R35",
+     "type": "Biological_Process_Is_Part_Of_Process",
+     "relatedCode": "C28498",
+     "relatedName": "Biochemical Process"
+    },
+    {
+     "code": "R35",
+     "type": "Biological_Process_Is_Part_Of_Process",
+     "relatedCode": "C19899",
+     "relatedName": "Biochemical Reaction"
+    },
+    {
+     "code": "R35",
+     "type": "Biological_Process_Is_Part_Of_Process",
+     "relatedCode": "C16395",
+     "relatedName": "Intercellular Communication Process"
+    }
+   ],
+   "history": [
+    {
+     "code": "C20139",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C20139",
+     "action": "modify",
+     "date": "2003-09-29"
+    },
+    {
+     "code": "C20139",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C20139",
+     "action": "modify",
+     "date": "2004-09-10"
+    },
+    {
+     "code": "C20139",
+     "action": "modify",
+     "date": "2004-11-17"
+    },
+    {
+     "code": "C20139",
+     "action": "modify",
+     "date": "2009-04-06"
+    },
+    {
+     "code": "C20139",
+     "action": "modify",
+     "date": "2009-08-03"
+    },
+    {
+     "code": "C20139",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C20139",
+     "action": "modify",
+     "date": "2010-04-12"
+    },
+    {
+     "code": "C20139",
+     "action": "modify",
+     "date": "2010-06-28"
+    },
+    {
+     "code": "C20139",
+     "action": "modify",
+     "date": "2014-02-03"
+    }
+   ]
+  }
+ }
+}

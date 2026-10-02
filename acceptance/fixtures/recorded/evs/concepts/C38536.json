@@ -1,0 +1,370 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C38536",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C38536",
+   "name": "CREB1 Gene",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "CREB1 Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "caDSR"
+    },
+    {
+     "name": "CREB1 Gene",
+     "termType": "DN",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTRP"
+    },
+    {
+     "name": "CREB1",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "GDC"
+    },
+    {
+     "name": "CREB1",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "HGNC",
+     "code": "HGNC:2345"
+    },
+    {
+     "name": "cAMP Responsive Element Binding Protein 1 Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "CREB1",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "CREB1 Gene",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "CREB1 Gene",
+     "type": "Display_Name",
+     "typeCode": "P107"
+    },
+    {
+     "name": "CREB1 Gene",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "This gene is involved in transcriptional regulation and its activity is modulated in response to hormonal stimulation from the cAMP pathway.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTRP"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "GDC"
+    },
+    {
+     "code": "P369",
+     "type": "HGNC_ID",
+     "value": "HGNC:2345"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "CREB1_Gene"
+    },
+    {
+     "code": "P375",
+     "type": "Maps_To",
+     "value": "CREB1"
+    },
+    {
+     "code": "P100",
+     "type": "OMIM_Number",
+     "value": "123810"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Gene or Genome"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1413702"
+    }
+   ],
+   "children": [
+    {
+     "code": "C52529",
+     "name": "CREB1 wt Allele",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C38534",
+     "name": "CREB Family Gene"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142799",
+     "relatedName": "CTRP Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142800",
+     "relatedName": "CTRP Molecular Genetic Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142801",
+     "relatedName": "CTRP Reference Gene Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C116977",
+     "relatedName": "CTRP Terminology"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C173595",
+     "relatedName": "First Variant Gene Symbol"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C171253",
+     "relatedName": "Fusion Gene Downstream Gene Symbol"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C157711",
+     "relatedName": "GDC Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177537",
+     "relatedName": "GDC Value Terminology"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R37",
+     "type": "Gene_Plays_Role_In_Process",
+     "relatedCode": "C18597",
+     "relatedName": "DNA Binding"
+    },
+    {
+     "code": "R41",
+     "type": "Gene_Found_In_Organism",
+     "relatedCode": "C14225",
+     "relatedName": "Human"
+    },
+    {
+     "code": "R37",
+     "type": "Gene_Plays_Role_In_Process",
+     "relatedCode": "C17554",
+     "relatedName": "Transcriptional Activation"
+    },
+    {
+     "code": "R37",
+     "type": "Gene_Plays_Role_In_Process",
+     "relatedCode": "C19077",
+     "relatedName": "Transcriptional Regulation"
+    }
+   ],
+   "history": [
+    {
+     "code": "C38536",
+     "action": "create",
+     "date": "2004-04-30"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2004-05-28"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2004-11-17"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2005-09-29"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2006-01-27"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2009-04-06"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2009-08-03"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2013-03-11"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2014-02-03"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2016-10-31"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2016-11-21"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2017-12-26"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2018-03-26"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2018-07-30"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2019-05-28"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2019-09-30"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2019-10-28"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2020-02-24"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2020-09-29"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2021-02-22"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2021-03-29"
+    },
+    {
+     "code": "C38536",
+     "action": "modify",
+     "date": "2021-10-25"
+    }
+   ],
+   "maps": [
+    {
+     "type": "Has Synonym",
+     "targetName": "CREB1",
+     "targetTermType": "PT",
+     "targetCode": "gene_symbol",
+     "targetTerminology": "GDC"
+    },
+    {
+     "type": "Has Synonym",
+     "targetName": "CREB1",
+     "targetTermType": "PT",
+     "targetCode": "second_gene_symbol",
+     "targetTerminology": "GDC"
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,123 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C18127",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C18127",
+   "name": "RNA Transport",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "RNA Transport",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "RNA Transport",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "RNA transport is the translocation of RNA molecules from one cellular location to another, such as transport from the nucleus to the cytoplasm.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "RNA_Transport"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Molecular Function"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C0598720"
+    }
+   ],
+   "children": [
+    {
+     "code": "C19424",
+     "name": "mRNA Export",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C21079",
+     "name": "Transport Process"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R32",
+     "type": "Biological_Process_Has_Initiator_Chemical_Or_Drug",
+     "relatedCode": "C812",
+     "relatedName": "Ribonucleic Acid"
+    }
+   ],
+   "history": [
+    {
+     "code": "C18127",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C18127",
+     "action": "modify",
+     "date": "2003-09-29"
+    },
+    {
+     "code": "C18127",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C18127",
+     "action": "modify",
+     "date": "2009-04-06"
+    },
+    {
+     "code": "C18127",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C18127",
+     "action": "modify",
+     "date": "2010-09-20"
+    },
+    {
+     "code": "C18127",
+     "action": "modify",
+     "date": "2014-02-03"
+    }
+   ]
+  }
+ }
+}

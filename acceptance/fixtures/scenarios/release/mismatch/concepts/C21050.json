@@ -1,0 +1,201 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C21050",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C21050",
+   "name": "Gene Regulation Process",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Gene Expression Alteration",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Gene Expression Regulation",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Gene Regulation",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Gene Regulation Process",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Regulation of Gene Expression",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Gene Regulation Process",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "Any of the processes by which nuclear, cytoplasmic, or intercellular factors influence the differential control of gene expression at the level of transcription or translation.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Gene_Regulation"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Genetic Function"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C0017263"
+    }
+   ],
+   "children": [
+    {
+     "code": "C21051",
+     "name": "Epigenetic Process",
+     "leaf": false
+    },
+    {
+     "code": "C18952",
+     "name": "Post-Transcriptional Regulation",
+     "leaf": false
+    },
+    {
+     "code": "C19077",
+     "name": "Transcriptional Regulation",
+     "leaf": false
+    },
+    {
+     "code": "C29857",
+     "name": "Translational Regulation",
+     "leaf": false
+    },
+    {
+     "code": "C20674",
+     "name": "X-Chromosome Inactivation",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C21049",
+     "name": "Gene Expression Process"
+    }
+   ],
+   "history": [
+    {
+     "code": "C21050",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C21050",
+     "action": "modify",
+     "date": "2003-08-22"
+    },
+    {
+     "code": "C21050",
+     "action": "modify",
+     "date": "2003-10-31"
+    },
+    {
+     "code": "C21050",
+     "action": "modify",
+     "date": "2003-12-05"
+    },
+    {
+     "code": "C21050",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C21050",
+     "action": "modify",
+     "date": "2004-12-30"
+    },
+    {
+     "code": "C21050",
+     "action": "merge",
+     "date": "2003-08-12",
+     "replacementCode": "C21050",
+     "replacementName": "Gene Regulation Process"
+    },
+    {
+     "code": "C16609",
+     "action": "merge",
+     "date": "2003-08-12",
+     "replacementCode": "C21050",
+     "replacementName": "Gene Regulation Process"
+    },
+    {
+     "code": "C21050",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C40644",
+     "action": "merge",
+     "date": "2010-03-08",
+     "replacementCode": "C21050",
+     "replacementName": "Gene Regulation Process"
+    },
+    {
+     "code": "C21050",
+     "action": "merge",
+     "date": "2010-03-08",
+     "replacementCode": "C21050",
+     "replacementName": "Gene Regulation Process"
+    },
+    {
+     "code": "C21050",
+     "action": "modify",
+     "date": "2010-03-08"
+    },
+    {
+     "code": "C21050",
+     "action": "modify",
+     "date": "2015-03-09"
+    }
+   ]
+  }
+ }
+}

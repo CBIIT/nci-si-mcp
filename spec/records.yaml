@@ -53,8 +53,12 @@ traversal:
       content: Whether the assertion points outward from the origin or inward to it
       of: A4.2
     polarity:
-      content: Positive or negative
+      content: >-
+        negative exactly when the relationship's code is in its terminology's exclusion set
+        below, positive otherwise, whatever the relationship is named (A5.7); the set is
+        checked against the release's relationship catalogue by list_relationships
       values: [positive, negative]
+      exclusions: {ncit: [R135, R136, R137, R138, R139, R140, R141, R142]}
       of: A5.6
     qualifiers:
       content: Any qualifying detail the platform attaches
@@ -111,6 +115,60 @@ concept:
         property is named by its code, not its label (NCIt: P106), as A5.7 names roles
       optional: true
       of: get_concept
+node:
+  title: The node record
+  about: >-
+    A concept reached by traversal, as get_concept_hierarchy and get_concept_neighborhood
+    return it, each concept once. A relation list names a neighbour by code and name only, so
+    active and status are there where the answer the node came from carries them; the tool
+    reads no concept a second time to fill them in.
+  fields:
+    code:
+      content: The bare code the terminology publishes
+      of: A1.2
+    terminology:
+      content: The terminology the code belongs to, as the platform names it
+      of: A1.2
+    name:
+      content: The preferred name
+      of: A4.1
+    active:
+      content: As in the concept record, where the answer the node came from carries it
+      optional: true
+      of: A8.1
+    status:
+      content: As in the concept record, where the answer the node came from carries it
+      optional: true
+      of: A8.1
+    provenance:
+      content: >-
+        The traversal record: depth 0 and no relationship for the concept asked about, and for
+        any other the depth and the relationship of an edge that reached it there
+      of: A4.2
+edge:
+  title: The edge record
+  about: >-
+    One assertion between two concepts, as get_concept_neighborhood returns it, in the
+    direction the platform states it: a role or association from the concept holding it to
+    its target, a hierarchy link from child to parent.
+  fields:
+    sourceCode:
+      content: The bare code of the assertion's subject
+      of: A1.2
+    sourceTerminology:
+      content: The terminology of the subject
+      of: A1.2
+    targetCode:
+      content: The bare code of the assertion's object
+      of: A1.2
+    targetTerminology:
+      content: The terminology of the object
+      of: A1.2
+    provenance:
+      content: >-
+        The traversal record: the depth of the node it reaches, its relationship
+        { code, name, kind }, direction and polarity
+      of: A4.2
 search_result:
   title: The search result record
   about: >-

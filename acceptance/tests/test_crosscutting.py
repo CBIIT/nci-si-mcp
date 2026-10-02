@@ -59,8 +59,6 @@ CALLED = _per_tool(CALLS)
 PINNED = _per_tool(PINNED_TOOLS)
 # The release the release/unknown scenario answers 404 for on every content path.
 UNKNOWN_RELEASE = "99.99z"
-# A release the platform serves beside the pinned one (recorded/evs/terminologies.json).
-OTHER_RELEASE = "26.08e"
 # The calls whose answers name the release they come from, where a mismatch can show (X-3).
 RELEASED = [name for name in PINNED_TOOLS if not CALLS[name].get("unversioned")]
 # A concept of a licensed terminology, served (license/restricted) only with the licence key.
@@ -392,13 +390,14 @@ def test_a_bound_reached_is_reported_with_how_much_was_left_out(tools, pinned, n
 
 @pytest.mark.requirement("X-17")
 @pytest.mark.parametrize("name", _per_tool(PAGED))
-def test_a_cursor_continues_with_the_next_items_of_the_same_release(tools, pinned, name):
-    first = _call(tools, pinned, name)
+def test_a_cursor_continues_with_the_next_items_of_the_same_release(tools, pinned, recorded, name):
+    arguments = CALLS[name]["arguments"] | CALLS[name]["paged"]["arguments"]
+    first = _call(tools, pinned, name, arguments)
     assert not first.is_error, first.content
     cursor = first.content.get("nextCursor")
     assert isinstance(cursor, str) and cursor, f"no nextCursor: {first.content!r:.300}"
 
-    continued = CALLS[name]["arguments"] | {"cursor": cursor}
+    continued = arguments | {"cursor": cursor}
     second = _call(tools, pinned, name, continued)
 
     assert not second.is_error, second.content
@@ -408,5 +407,16 @@ def test_a_cursor_continues_with_the_next_items_of_the_same_release(tools, pinne
     assert [item for item in after if item in before] == []
     releases = {_release(item) for item in items_of(name, second.content)}
     assert releases == {(pinned["terminology"], pinned["release"])}
-    other = _call(tools, pinned | {"release": OTHER_RELEASE}, name, continued)
+    other = _call(tools, pinned | {"release": _other_release(recorded, pinned)}, name, continued)
     assert error_code(other) == "invalid_request", other.content
+
+
+def _other_release(recorded, pinned):
+    """A release of the pinned terminology that the platform serves beside the pinned one."""
+
+    listing = recorded("recorded/evs/terminologies.json")["response"]["body"]
+    return next(
+        row["version"]
+        for row in listing
+        if row["terminology"] == pinned["terminology"] and row["version"] != pinned["release"]
+    )

@@ -8,6 +8,10 @@
 # concept of each element of its `results`. A tool with items is content-returning, and the
 # cross-cutting requirements apply to it. `traversal: true` marks a tool whose items are
 # reached by traversal (A4.2).
+#
+# `bounds` gives the default and the maximum of each argument that bounds a result (A5.1,
+# A5.2). A value above the maximum is applied as the maximum; where content was dropped, the
+# truncation record's limit is the value applied.
 
 resolve_release:
   group: evs
@@ -39,11 +43,17 @@ search_concepts:
 get_concept_hierarchy:
   group: evs
   inputs: (terminology, release, code, direction, depth?, limit?, cursor?)
-  returns: "{ nodes[], truncation, nextCursor? }"
+  returns: "{ nodes[], paths[]?, truncation, nextCursor? }"
   items: ["nodes[]"]
   traversal: true
   values: {direction: [parent, child, pathsToRoot]}
-  summary: A concept's parents, children or paths to the root, bounded.
+  bounds: {depth: {default: 1, maximum: 4}, limit: {default: 200, maximum: 1000}}
+  summary: >-
+    A concept's parents, children or paths to the root, bounded. nodes holds the concepts
+    reached, not the one asked about, and limit is a page that the cursor continues.
+    pathsToRoot returns each path the platform gives in paths, the codes from the concept to
+    the root in the platform's order, with each concept on them once in nodes; depth, limit
+    and cursor do not apply to it.
 expand_value_set:
   group: evs
   inputs: (terminology, release, valueSet | code, count?, offset?, activeOnly?)
@@ -60,7 +70,14 @@ get_concept_neighborhood:
   items: ["nodes[]", "edges[]"]
   traversal: true
   values: {kinds: [parent, child, role, association, inverseRole, inverseAssociation]}
-  summary: Bounded traversal across roles and associations with a budget per kind; negative assertions returned marked, left out of positive expansion unless includeNegative.
+  bounds:
+    depth: {default: 2, maximum: 4}
+    maxNodes: {default: 200, maximum: 1000}
+    maxEdges: {default: 1000, maximum: 5000}
+  summary: >-
+    Bounded traversal across roles and associations with a budget per kind; nodes holds the
+    concept asked about at depth 0 and those reached. Negative assertions are returned marked
+    and left out of positive expansion unless includeNegative.
 get_concept_subsets:
   group: evs
   inputs: (terminology, release, code)

@@ -1,0 +1,293 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C172980",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C172980",
+   "name": "Malignant Gastrointestinal Neuroectodermal Tumor",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "CCS/ GNET",
+     "termType": "AB",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Gastrointestinal Clear Cell Sarcoma/Malignant Gastrointestinal Neuroectodermal Tumor",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "GNET",
+     "termType": "AB",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Malignant Gastrointestinal Neuroectodermal Tumor",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Malignant Gastrointestinal Neuroectodermal Tumor",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A rare gastrointestinal tract sarcoma with neuroectodermal differentiation characterized by the presence of neoplastic round cells with pale eosinophilic cytoplasm. Cytoplasmic clearing is seen only in a minority of cases. Half of the cases contain osteoclastic giant cells. It is associated with gene fusion translocations involving the EWSR1 gene, usually EWSR1-ATF1 fusion or EWSR1-CREB1 fusion.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "type": "Logical_Definition",
+     "value": "true"
+    },
+    {
+     "code": "P208",
+     "type": "NCI_META_CUI",
+     "value": "CL1406771"
+    },
+    {
+     "code": "P363",
+     "type": "Neoplastic_Status",
+     "value": "Malignant"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Neoplastic Process"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C172849",
+     "name": "Digestive System Sarcoma",
+     "defining": true
+    }
+   ],
+   "roles": [
+    {
+     "code": "R142",
+     "type": "Disease_Excludes_Finding",
+     "relatedCode": "C36122",
+     "relatedName": "Benign Cellular Infiltrate"
+    },
+    {
+     "code": "R135",
+     "type": "Disease_Excludes_Primary_Anatomic_Site",
+     "relatedCode": "C12366",
+     "relatedName": "Bone"
+    },
+    {
+     "code": "R100",
+     "type": "Disease_Has_Associated_Anatomic_Site",
+     "relatedCode": "C12964",
+     "relatedName": "Connective and Soft Tissue"
+    },
+    {
+     "code": "R101",
+     "type": "Disease_Has_Primary_Anatomic_Site",
+     "relatedCode": "C12964",
+     "relatedName": "Connective and Soft Tissue"
+    },
+    {
+     "code": "R100",
+     "type": "Disease_Has_Associated_Anatomic_Site",
+     "relatedCode": "C12378",
+     "relatedName": "Digestive System"
+    },
+    {
+     "code": "R101",
+     "type": "Disease_Has_Primary_Anatomic_Site",
+     "relatedCode": "C12378",
+     "relatedName": "Digestive System"
+    },
+    {
+     "code": "R138",
+     "type": "Disease_Excludes_Normal_Cell_Origin",
+     "relatedCode": "C12578",
+     "relatedName": "Epithelial Cell"
+    },
+    {
+     "code": "R137",
+     "type": "Disease_Excludes_Normal_Tissue_Origin",
+     "relatedCode": "C45714",
+     "relatedName": "Epithelial Tissue"
+    },
+    {
+     "code": "R106",
+     "type": "Disease_Has_Molecular_Abnormality",
+     "relatedCode": "C165667",
+     "relatedName": "EWSR1 Gene Rearrangement",
+     "group": "Molecular Abnormality"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C18322",
+     "relatedName": "EWSR1 Gene",
+     "group": "Gene"
+    },
+    {
+     "code": "R89",
+     "type": "Disease_May_Have_Molecular_Abnormality",
+     "relatedCode": "C37232",
+     "relatedName": "EWSR1-ATF1 Fusion Protein Expression",
+     "group": "Molecular Abnormality"
+    },
+    {
+     "code": "R89",
+     "type": "Disease_May_Have_Molecular_Abnormality",
+     "relatedCode": "C121772",
+     "relatedName": "EWSR1-CREB1 Fusion Protein Expression",
+     "group": "Molecular Abnormality"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C99216",
+     "relatedName": "EWSR1/ATF1 Fusion Gene",
+     "group": "Gene"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C99249",
+     "relatedName": "EWSR1/CREB1 Fusion Gene",
+     "group": "Gene"
+    },
+    {
+     "code": "R101",
+     "type": "Disease_Has_Primary_Anatomic_Site",
+     "relatedCode": "C34082",
+     "relatedName": "Gastrointestinal Tract",
+     "group": "Anatomic Structure, System, or Substance"
+    },
+    {
+     "code": "R142",
+     "type": "Disease_Excludes_Finding",
+     "relatedCode": "C36105",
+     "relatedName": "Indolent Clinical Course"
+    },
+    {
+     "code": "R142",
+     "type": "Disease_Excludes_Finding",
+     "relatedCode": "C53665",
+     "relatedName": "Intermediate Filaments Present"
+    },
+    {
+     "code": "R142",
+     "type": "Disease_Excludes_Finding",
+     "relatedCode": "C53667",
+     "relatedName": "Intracytoplasmic Eosinophilic Inclusion"
+    },
+    {
+     "code": "R113",
+     "type": "Disease_May_Have_Abnormal_Cell",
+     "relatedCode": "C36818",
+     "relatedName": "Large Osteoclastic Giant Cell",
+     "group": "Abnormal Cell"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C12917",
+     "relatedName": "Malignant Cell"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C36115",
+     "relatedName": "Malignant Cellular Infiltrate"
+    },
+    {
+     "code": "R139",
+     "type": "Disease_Excludes_Abnormal_Cell",
+     "relatedCode": "C36779",
+     "relatedName": "Malignant Epithelial Cell"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C12922",
+     "relatedName": "Neoplastic Cell"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C37099",
+     "relatedName": "Neoplastic Round Cell",
+     "group": "Abnormal Cell"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C43574",
+     "relatedName": "Neuroendocrine Differentiation",
+     "group": "Disease, Disorder or Finding"
+    },
+    {
+     "code": "R100",
+     "type": "Disease_Has_Associated_Anatomic_Site",
+     "relatedCode": "C12471",
+     "relatedName": "Soft Tissue"
+    },
+    {
+     "code": "R101",
+     "type": "Disease_Has_Primary_Anatomic_Site",
+     "relatedCode": "C12471",
+     "relatedName": "Soft Tissue"
+    }
+   ],
+   "history": [
+    {
+     "code": "C172980",
+     "action": "create",
+     "date": "2020-06-29"
+    },
+    {
+     "code": "C172980",
+     "action": "modify",
+     "date": "2020-06-29"
+    },
+    {
+     "code": "C172980",
+     "action": "modify",
+     "date": "2020-09-29"
+    },
+    {
+     "code": "C172980",
+     "action": "modify",
+     "date": "2026-08-31"
+    }
+   ]
+  }
+ }
+}

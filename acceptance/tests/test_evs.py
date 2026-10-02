@@ -328,3 +328,207 @@ def test_active_only_leaves_out_the_members_marked_inactive(tools, pinned, recor
     result = _expand(tools, pinned, count=COUNT, offset=0, **active_only)
 
     assert _members(result) == (_recorded_members(kept[:COUNT]), len(kept))
+
+
+# Traversal. Each tool's defaults and maxima are its bounds in spec/tools.yaml; polarity's
+# exclusion sets are the traversal record's.
+HIERARCHY, NEIGHBORHOOD = "get_concept_hierarchy", "get_concept_neighborhood"
+EXCLUSIONS = RECORDS["traversal"]["fields"]["polarity"]["exclusions"]
+# traversal/deep-fanout: a root with 1,001 children, the first heading a chain deeper than the
+# depth maximum.
+FANOUT = "scenarios/traversal/deep-fanout/concepts"
+FANOUT_ROOT, CHAIN_HEAD = "C99000000", "C99000001"
+# traversal/starvation: a hub with 300 roles and 2 associations.
+HUB = "scenarios/traversal/starvation/concepts/C99200000.json"
+# traversal/exclusions: C4817 with its exclusion roles named as positive ones and two positive
+# roles named as exclusions, in its recording and the catalogue alike.
+EXCLUDED = "scenarios/traversal/exclusions/concepts/C4817.json"
+# The paths from C4817 to the root, as EVS gives them.
+PATHS = "recorded/evs/paths-to-root.json"
+
+
+def _maximum(tool, argument):
+    return TOOLS[tool]["bounds"][argument]["maximum"]
+
+
+def _traverse(tools, pinned, tool, code, **arguments):
+    result = tools.call(tool, {**pinned, "code": code, **arguments})
+    assert not result.is_error, result.content
+    return result
+
+
+def _depth(item):
+    return (item.get("provenance") or {}).get("depth")
+
+
+def _relationship(edge):
+    return (edge.get("provenance") or {}).get("relationship") or {}
+
+
+def _codes_of(items):
+    return [item.get("code") for item in items]
+
+
+@pytest.mark.scenario("traversal/deep-fanout")
+@pytest.mark.tool(HIERARCHY)
+@pytest.mark.requirement("get_concept_hierarchy-1")
+def test_a_depth_above_the_maximum_is_applied_as_the_maximum_and_reported(tools, pinned):
+    maximum = _maximum(HIERARCHY, "depth")
+
+    result = _traverse(tools, pinned, HIERARCHY, CHAIN_HEAD, direction="child", depth=maximum + 2)
+
+    # The chain runs deeper than the maximum, so the walk reaches it and no further.
+    depths = {_depth(node) for node in result.content.get("nodes", [])}
+    assert maximum in depths
+    assert [depth for depth in depths if not isinstance(depth, int) or depth > maximum] == []
+    truncation = result.content.get("truncation") or {}
+    assert (truncation.get("bound"), truncation.get("limit")) == ("depth", maximum)
+
+
+@pytest.mark.tool(HIERARCHY)
+@pytest.mark.requirement("get_concept_hierarchy-2")
+def test_paths_to_root_are_the_platform_s_paths_in_its_order(tools, pinned, recorded):
+    paths = [_codes_of(path) for path in recorded(PATHS)["response"]["body"]]
+
+    result = _traverse(tools, pinned, HIERARCHY, CONCEPT, direction="pathsToRoot")
+
+    assert result.content.get("paths") == paths
+    # Each concept on the paths once among the nodes, the one asked about not among them.
+    reached = {code for path in paths for code in path} - {CONCEPT}
+    assert sorted(_codes_of(result.content.get("nodes", []))) == sorted(reached)
+
+
+@pytest.mark.tool(HIERARCHY)
+@pytest.mark.requirement("get_concept_hierarchy-3")
+def test_limit_is_a_page_the_cursor_continues_to_the_end(tools, pinned, recorded):
+    children = _codes_of(recorded(CURRENT)["response"]["body"]["children"])
+    limit = len(children) // 2 + 1
+
+    first = _traverse(tools, pinned, HIERARCHY, CONCEPT, direction="child", limit=limit)
+    cursor = first.content.get("nextCursor")
+    second = _traverse(
+        tools, pinned, HIERARCHY, CONCEPT, direction="child", limit=limit, cursor=cursor
+    )
+
+    pages = [_codes_of(page.content.get("nodes", [])) for page in (first, second)]
+    assert pages == [children[:limit], children[limit:]]
+    assert "nextCursor" not in second.content
+
+
+@pytest.mark.scenario("traversal/starvation")
+@pytest.mark.tool(NEIGHBORHOOD)
+@pytest.mark.requirement("get_concept_neighborhood-1")
+def test_a_kind_that_reaches_its_budget_starves_no_other(tools, pinned, recorded):
+    hub = recorded(HUB)["response"]["body"]
+    lists = {"role": "roles", "association": "associations"}
+    # Fewer nodes than the hub's roles: the roles reach the budget, the associations fit.
+    budget = len(hub["roles"]) // 2
+    assert len(hub["associations"]) < budget // len(lists)
+
+    result = _traverse(
+        tools, pinned, NEIGHBORHOOD, hub["code"], depth=1, kinds=list(lists), maxNodes=budget
+    )
+
+    kinds = {_relationship(edge).get("kind") for edge in result.content.get("edges", [])}
+    assert kinds == set(lists)
+    per_kind = (result.content.get("truncation") or {}).get("perKind") or {}
+    assert {kind for kind, record in per_kind.items() if record.get("occurred")} == {"role"}
+
+
+def _negative(code, terminology="ncit"):
+    return code in EXCLUSIONS[terminology]
+
+
+@pytest.mark.scenario("traversal/exclusions")
+@pytest.mark.tool(NEIGHBORHOOD)
+@pytest.mark.requirement("get_concept_neighborhood-2")
+def test_polarity_follows_the_relationship_code_not_its_name(tools, pinned, recorded):
+    roles = recorded(EXCLUDED)["response"]["body"]["roles"]
+    expected = {
+        (role["code"], role["relatedCode"]): "negative" if _negative(role["code"]) else "positive"
+        for role in roles
+    }
+
+    result = _traverse(tools, pinned, NEIGHBORHOOD, CONCEPT, depth=1, kinds=["role"])
+
+    found = {
+        (_relationship(edge).get("code"), edge.get("targetCode")): _polarity(edge)
+        for edge in result.content.get("edges", [])
+    }
+    assert found == expected
+
+
+# Two steps over roles: far enough to show whether a negative edge's target is followed.
+TWO_STEPS = 2
+
+
+def _polarity(edge):
+    return (edge.get("provenance") or {}).get("polarity")
+
+
+def _only_negative(roles):
+    """The targets of the negative roles, and those no positive role reaches as well."""
+
+    negative = {role["relatedCode"] for role in roles if _negative(role["code"])}
+    positive = {role["relatedCode"] for role in roles if not _negative(role["code"])}
+    return negative, negative - positive
+
+
+def _with_roles(recorded, codes):
+    """The concepts among `codes` with roles of their own to follow."""
+
+    return {
+        code
+        for code in codes
+        if recorded(f"recorded/evs/concepts/{code}.json")["response"]["body"].get("roles")
+    }
+
+
+@pytest.mark.tool(NEIGHBORHOOD)
+@pytest.mark.requirement("get_concept_neighborhood-3")
+@pytest.mark.parametrize("include", [{}, {"includeNegative": True}], ids=["default", "included"])
+def test_negative_edges_are_returned_marked_and_followed_only_when_included(
+    tools, pinned, recorded, include
+):
+    negative, only_negative = _only_negative(recorded(CURRENT)["response"]["body"]["roles"])
+    followable = _with_roles(recorded, only_negative)
+    assert followable
+
+    result = _traverse(
+        tools,
+        pinned,
+        NEIGHBORHOOD,
+        CONCEPT,
+        depth=TWO_STEPS,
+        kinds=["role"],
+        maxNodes=_maximum(NEIGHBORHOOD, "maxNodes"),
+        maxEdges=_maximum(NEIGHBORHOOD, "maxEdges"),
+        **include,
+    )
+
+    edges = result.content.get("edges", [])
+    outward = [edge for edge in edges if edge.get("sourceCode") == CONCEPT]
+    marked = {edge.get("targetCode") for edge in outward if _polarity(edge) == "negative"}
+    assert marked == negative
+    followed = {
+        edge.get("sourceCode") for edge in edges if _depth(edge) == TWO_STEPS
+    } & only_negative
+    assert followed == (followable if include else set())
+
+
+@pytest.mark.scenario("traversal/deep-fanout")
+@pytest.mark.tool(NEIGHBORHOOD)
+@pytest.mark.requirement("get_concept_neighborhood-4")
+def test_a_node_limit_above_the_maximum_is_applied_as_the_maximum(tools, pinned, recorded):
+    maximum = _maximum(NEIGHBORHOOD, "maxNodes")
+    children = recorded(f"{FANOUT}/{FANOUT_ROOT}.json")["response"]["body"]["children"]
+    assert len(children) + 1 > maximum
+
+    result = _traverse(
+        tools, pinned, NEIGHBORHOOD, FANOUT_ROOT, depth=1, kinds=["child"], maxNodes=maximum * 2
+    )
+
+    assert len(result.content.get("nodes", [])) <= maximum
+    truncation = result.content.get("truncation") or {}
+    assert (truncation.get("bound"), truncation.get("limit")) == ("nodes", maximum)
+    assert truncation.get("omitted", 0) >= 1

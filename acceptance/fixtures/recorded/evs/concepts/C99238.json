@@ -1,0 +1,276 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C99238",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C99238",
+   "name": "EWSR1/PATZ1 Fusion Gene",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "EWSR1/PATZ1 Fusion Gene",
+     "termType": "DN",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTRP"
+    },
+    {
+     "name": "EWS-ZNF278 Fusion Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWS-ZSG Fusion Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWS/ZNF278 Fusion Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWS/ZSG Fusion Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWSR1-PATZ1 Fusion Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWSR1/PATZ1 Fusion Gene",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWSR1::PATZ1 Fusion Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWSR1/PATZ1 Fusion Gene",
+     "type": "Display_Name",
+     "typeCode": "P107"
+    },
+    {
+     "name": "EWSR1/PATZ1 Fusion Gene",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A fusion gene that results from a chromosomal inversion inv(22)(q12q12) which fuses the first eight exons of the EWSR1 gene with the PATZ1 gene. This rearrangement is associated with Ewing tumor/peripheral primitive neuroectodermal tumor.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTRP"
+    },
+    {
+     "code": "P98",
+     "type": "DesignNote",
+     "value": "The EWSR1/PATZ1 fusion gene also arises in a complex rearrangement where inversion of 22q12 is followed by a translocation t(1;22)(p34;q12) that disrupts the UQCRH gene. PCR analysis of tumor cDNA and genomic DNA detected UQCRH/EWSR1, PATZ1/UQCRH and EWSR1/PATZ1 fusion transcripts. The UQCRH containing fusion genes produced out-of-frame transcripts containing premature stop codons. (OMIM)"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Gene or Genome"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1854595"
+    }
+   ],
+   "children": [
+    {
+     "code": "C99240",
+     "name": "EWSR1/PATZ1 Fusion Gene Long A Isoform",
+     "leaf": true
+    },
+    {
+     "code": "C99241",
+     "name": "EWSR1/PATZ1 Fusion Gene Long B Isoform",
+     "leaf": true
+    },
+    {
+     "code": "C99239",
+     "name": "EWSR1/PATZ1 Fusion Gene Short Isoform",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C201195",
+     "name": "FET Family Fusion Gene"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142799",
+     "relatedName": "CTRP Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142800",
+     "relatedName": "CTRP Molecular Genetic Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C116977",
+     "relatedName": "CTRP Terminology"
+    },
+    {
+     "code": "A13",
+     "type": "Related_To_Genetic_Biomarker",
+     "relatedCode": "C18322",
+     "relatedName": "EWSR1 Gene"
+    },
+    {
+     "code": "A13",
+     "type": "Related_To_Genetic_Biomarker",
+     "relatedCode": "C97876",
+     "relatedName": "PATZ1 Gene"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R132",
+     "type": "Gene_Has_Abnormality",
+     "relatedCode": "C179848",
+     "relatedName": "FET Family Gene Translocation"
+    },
+    {
+     "code": "R175",
+     "type": "Gene_Involved_In_Pathogenesis_Of_Disease",
+     "relatedCode": "C178461",
+     "relatedName": "Round Cell Sarcoma with EWSR1-PATZ1 Gene Fusion"
+    },
+    {
+     "code": "R132",
+     "type": "Gene_Has_Abnormality",
+     "relatedCode": "C37251",
+     "relatedName": "t(1;22)(p36.1;q12)"
+    }
+   ],
+   "history": [
+    {
+     "code": "C99238",
+     "action": "create",
+     "date": "2011-12-19"
+    },
+    {
+     "code": "C99238",
+     "action": "modify",
+     "date": "2012-02-27"
+    },
+    {
+     "code": "C99238",
+     "action": "modify",
+     "date": "2012-03-05"
+    },
+    {
+     "code": "C99238",
+     "action": "modify",
+     "date": "2012-03-19"
+    },
+    {
+     "code": "C99238",
+     "action": "modify",
+     "date": "2012-11-26"
+    },
+    {
+     "code": "C99238",
+     "action": "modify",
+     "date": "2013-03-11"
+    },
+    {
+     "code": "C99238",
+     "action": "modify",
+     "date": "2014-02-03"
+    },
+    {
+     "code": "C99238",
+     "action": "modify",
+     "date": "2017-10-30"
+    },
+    {
+     "code": "C99238",
+     "action": "modify",
+     "date": "2017-12-26"
+    },
+    {
+     "code": "C99238",
+     "action": "modify",
+     "date": "2018-07-30"
+    },
+    {
+     "code": "C99238",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C99238",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C99238",
+     "action": "modify",
+     "date": "2021-04-26"
+    },
+    {
+     "code": "C99238",
+     "action": "modify",
+     "date": "2023-09-25"
+    },
+    {
+     "code": "C99238",
+     "action": "modify",
+     "date": "2025-03-31"
+    }
+   ]
+  }
+ }
+}

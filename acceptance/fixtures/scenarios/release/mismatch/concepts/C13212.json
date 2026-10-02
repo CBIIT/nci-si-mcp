@@ -1,0 +1,421 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C13212",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C13212",
+   "name": "Human Chromosome 17",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "chr17",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "caDSR"
+    },
+    {
+     "name": "Chromosome 17",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "caDSR"
+    },
+    {
+     "name": "chr17",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTDC"
+    },
+    {
+     "name": "Chromosome 17",
+     "termType": "DN",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTRP"
+    },
+    {
+     "name": "chr17",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "GDC"
+    },
+    {
+     "name": "Chromosome 17",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Human Chromosome 17",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Chromosome 17",
+     "type": "Display_Name",
+     "typeCode": "P107"
+    },
+    {
+     "name": "Human Chromosome 17",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "The designation for each member of the seventeenth largest human autosomal chromosome pair. Chromosome 17 spans more than 81 million base pairs and represents between 2.5 and 3% of the total DNA in normal diploid cells.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTDC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTRP"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "GDC"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Chromosome_17"
+    },
+    {
+     "code": "P375",
+     "type": "Maps_To",
+     "value": "chr17"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Cell Component"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C0008659"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C13203",
+     "name": "Human Chromosome"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C13202",
+     "relatedName": "Chromosome"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C173073",
+     "relatedName": "CTDC Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142799",
+     "relatedName": "CTRP Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142800",
+     "relatedName": "CTRP Molecular Genetic Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C116977",
+     "relatedName": "CTRP Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C157711",
+     "relatedName": "GDC Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177537",
+     "relatedName": "GDC Value Terminology"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R82",
+     "type": "Anatomic_Structure_Is_Physical_Part_Of",
+     "relatedCode": "C13201",
+     "relatedName": "Chromatin"
+    }
+   ],
+   "history": [
+    {
+     "code": "C13212",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2003-09-29"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2004-11-17"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2009-11-02"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2013-02-25"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2013-03-04"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2013-03-11"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2013-03-18"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2013-03-25"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2013-04-01"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2013-04-08"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2013-04-15"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2013-04-22"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2013-04-29"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2013-05-06"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2013-05-13"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2013-05-20"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2013-05-28"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2013-06-03"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2013-06-10"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2013-06-17"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2013-06-24"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2013-07-01"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2013-07-08"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2016-04-04"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2017-12-26"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2018-03-26"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2018-07-30"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2018-09-24"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2019-05-28"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2019-09-30"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2019-10-28"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2020-01-27"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2020-08-31"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2020-09-29"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2021-02-22"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2021-03-29"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2021-09-27"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2022-08-29"
+    },
+    {
+     "code": "C13212",
+     "action": "modify",
+     "date": "2022-09-26"
+    }
+   ],
+   "maps": [
+    {
+     "type": "Has Synonym",
+     "targetName": "chr17",
+     "targetTermType": "PT",
+     "targetCode": "chromosome",
+     "targetTerminology": "GDC"
+    }
+   ]
+  }
+ }
+}

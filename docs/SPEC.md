@@ -164,7 +164,7 @@ One client for all surfaces, replacing `EVSClient._get_json` and the per-module 
 
 ### 3.5 Bounds (`platform/bounds.py`)
 
-`Budget(requests, nodes, edges, perKind)` is created per tool call from caller limits clamped to documented maxima, decremented by the HTTP client (requests) and the traverser (nodes, edges, per kind), and reported in `Truncation` when any bound is reached. `clamp_limits`, `clamp_edge_limit` and the `HARD_MAX_*` constants (depth 4, 1,000 nodes, 5,000 edges) move here from `traversal.py`. Per-kind budgeting (A5.5) means the walker takes one unit from each relationship kind in rotation until a kind is exhausted, so an ordering never starves a kind.
+`Budget(requests, nodes, edges, perKind)` is created per tool call from caller limits clamped to documented maxima, decremented by the HTTP client (requests) and the traverser (nodes, edges, per kind), and reported in `Truncation` when any bound is reached. `clamp_limits`, `clamp_edge_limit` and the `HARD_MAX_*` constants move here from `traversal.py`; the defaults and maxima they enforce are the tools' `bounds` in `spec/tools.yaml`. Per-kind budgeting (A5.5) means the walker takes one unit from each relationship kind in rotation until a kind is exhausted, so an ordering never starves a kind.
 
 ### 3.6 Caching hints (`platform/caching.py`)
 
@@ -224,7 +224,7 @@ Remaining, around `Budget`:
 - `kinds` filter (`parent`, `child`, `role`, `association`, `inverseRole`, `inverseAssociation`) selects edge kinds; `relationshipNames` filters within a kind; neither removes the other. The `is_a_*` pseudo-names go.
 - Every edge carries `TraversalProvenance` with polarity from the catalogue. `includeNegative=false` (default) withholds negative edges from the returned node set and lists them under `excluded[]`; it never drops them silently.
 - Per-kind rotation; truncation per kind; outbound budget includes retries.
-- `maxDepth` ≤ 4, `maxNodes` ≤ 1,000, `maxEdges` ≤ 5,000, `maxRequests` ≤ 200 — documented, clamped, reported.
+- Depth, node and edge limits clamped to the maxima of the tools' `bounds` (`spec/tools.yaml`) and reported; outbound requests at most 200 a call.
 
 ### 4.4 Index (`evs/index/`)
 
