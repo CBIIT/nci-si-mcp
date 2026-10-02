@@ -156,7 +156,7 @@ M5:
 M6:
   title: Pagination
   rules:
-    M6.1: Pagination is cursor-based, cursor in and nextCursor out, with totalKnown where it can be determined.
+    M6.1: Pagination is cursor-based, cursor in and nextCursor out, with totalKnown where it can be determined. A cursor continues the call it was issued for, presented with the same arguments, compared as applied (an optional argument left out equals its default given) and limit among them; with any argument that differs it is an invalid request.
 M7:
   title: Correlation on the wire
   rules:

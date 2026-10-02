@@ -58,6 +58,9 @@ requirements, for the harness's own tests.
     cursor-other-release the cursor's page names another release                    (X-17)
     cursor-empty      the cursor's page is empty                                    (X-17)
     cursor-ignores-release a cursor presented with another release is served        (X-17)
+    cursor-offset-only a cursor presented with other arguments is served            (X-17)
+    cursor-refuses-default a cursor presented with a default given is refused       (X-17)
+    cursor-inherits   a cursor fills arguments left out from the first call          (X-17)
     empty-with-cursor a query that matches nothing answered with nextCursor          (X-4)
 
 `unpinned-mismatch` is no defect for a tool without a pinned form upstream: it answers an
@@ -72,7 +75,9 @@ say: the concept asked about and, at depth 1 for a traversal tool, one it reache
 suite's calls (tests/calls.yaml) say of EVS's answers shapes it: their `upstream` fields go
 into provenance, their `empty` arguments match nothing, their `truncating` arguments
 reach a bound, and under their `paged` arguments a first page carries a cursor to a second,
-of other concepts; the cursor names the release it was issued for, and with another it is refused.
+of other concepts; the cursor carries the arguments it was issued for, as applied (an
+optional argument left out as the default the specification states), and presented with
+others it is refused.
 """
 
 import json
@@ -92,7 +97,7 @@ from mcp.server.caching import CacheHint
 from mcp.server.lowlevel.server import Server
 from mcp.server.stdio import stdio_server
 
-from nci_si_acceptance.spec import RECORDS, TOOLS, parameters, profile_tools
+from nci_si_acceptance.spec import RECORDS, TOOLS, defaults, parameters, profile_tools
 
 DEFECT = os.environ.get("COMPLIANT_SERVER_DEFECT", "")
 EVS = os.environ["NCI_SI_EVS_BASE_URL"]
@@ -376,10 +381,10 @@ def _page(name: str, arguments: dict, provenance: dict) -> list[dict]:
 
 
 def _next_cursor(name: str, arguments: dict, items: list[dict]) -> dict:
-    """The cursor of a paged call's first page, which is smaller than its result: it names
-    the release the page was pinned to."""
+    """The cursor of a paged call's first page, which is smaller than its result: it carries
+    the arguments the page was asked with, as applied."""
 
-    cursor = {"nextCursor": f"page-2@{arguments.get('release')}"}
+    cursor = {"nextCursor": f"page-2@{json.dumps(_applied(name, arguments), sort_keys=True)}"}
     if DEFECT == "empty-with-cursor" and not items:
         return cursor
     first = items and _paging(name, arguments) and "cursor" not in arguments
@@ -394,13 +399,25 @@ def _paging(name: str, arguments: dict) -> bool:
     return paged is not None and all(arguments.get(k) == v for k, v in paged["arguments"].items())
 
 
-def _cursor_refused(arguments: dict) -> bool:
-    """Whether a cursor is presented with another release than the one it was issued for."""
+def _applied(name: str, arguments: dict) -> dict:
+    """A call's arguments as applied: an optional argument left out is its default."""
+
+    stated = {} if DEFECT == "cursor-refuses-default" else defaults(name)
+    return stated | {key: value for key, value in arguments.items() if key != "cursor"}
+
+
+def _cursor_refused(name: str, arguments: dict) -> bool:
+    """Whether a cursor is presented with other arguments than those it was issued for."""
 
     cursor = arguments.get("cursor")
-    if cursor is None or DEFECT == "cursor-ignores-release":
+    if cursor is None or DEFECT == "cursor-offset-only":
         return False
-    return cursor.partition("@")[2] != arguments.get("release")
+    issued, now = json.loads(cursor.partition("@")[2]), _applied(name, arguments)
+    if DEFECT == "cursor-inherits":
+        now = issued | {key: value for key, value in arguments.items() if key != "cursor"}
+    if DEFECT == "cursor-ignores-release":
+        issued, now = issued | {"release": None}, now | {"release": None}
+    return issued != now
 
 
 def _shaped(name: str, items: list[dict]) -> dict:
@@ -429,7 +446,7 @@ def _refusal(name: str, arguments: dict, correlation: str) -> dict | None:
 
     if DEFECT == "empty-as-error" and _matches_nothing(name, arguments):
         return _error("not_found", HTTPStatus.NOT_FOUND, {}, correlation)
-    if _cursor_refused(arguments):
+    if _cursor_refused(name, arguments):
         return _error("invalid_request", HTTPStatus.BAD_REQUEST, {}, correlation)
     return None
 

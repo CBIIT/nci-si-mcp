@@ -59,6 +59,16 @@ DEFECTS = [
     ("cursor-other-release", PAGED),
     ("cursor-empty", PAGED),
     ("cursor-ignores-release", PAGED),
+    ("cursor-offset-only", "test_a_cursor_with_another_argument_is_an_invalid_request"),
+    (
+        "cursor-refuses-default",
+        "test_a_cursor_with_a_left_out_argument_given_as_its_default_continues",
+    ),
+    ("cursor-refuses-default", "test_a_cursor_with_a_given_default_left_out_continues"),
+    (
+        "cursor-inherits",
+        "test_a_cursor_without_an_argument_the_first_call_gave_is_an_invalid_request",
+    ),
     ("empty-with-cursor", EMPTY),
 ]
 

@@ -3,7 +3,14 @@ and the tools of a profile."""
 
 import pytest
 
-from nci_si_acceptance.spec import REQUIRED_TOOLS, items_of, parameters, profile_tools
+from nci_si_acceptance.spec import (
+    REQUIRED_TOOLS,
+    TOOLS,
+    defaults,
+    items_of,
+    parameters,
+    profile_tools,
+)
 
 CONCEPT = {"code": "C4817"}
 
@@ -84,3 +91,22 @@ def test_a_module_profile_serves_its_own_group_and_unified_serves_every_tool():
     assert {REQUIRED_TOOLS[name] for name in evs} == {"evs"}
     assert {REQUIRED_TOOLS[name] for name in cadsr} == {"cadsr"}
     assert (len(evs), len(cadsr), unified) == (12, 10, set(REQUIRED_TOOLS))
+
+
+@pytest.mark.parametrize("tool", sorted(TOOLS))
+def test_a_tool_s_defaults_are_its_stated_defaults_and_its_bounds_defaults(tool):
+    entry = TOOLS[tool]
+    bounds = entry.get("bounds", {})
+
+    found = defaults(tool)
+
+    assert {name: found.get(name) for name in entry.get("defaults", {})} == entry.get(
+        "defaults", {}
+    )
+    # A bound without a default (budgetPerKind) gives none.
+    assert {name for name in bounds if name in found} == {
+        name for name, bound in bounds.items() if "default" in bound
+    }
+    assert {name: found[name] for name in bounds if name in found} == {
+        name: bound["default"] for name, bound in bounds.items() if "default" in bound
+    }
