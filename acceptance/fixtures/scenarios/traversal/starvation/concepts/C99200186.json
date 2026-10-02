@@ -1,0 +1,26 @@
+{
+ "kind": "crafted",
+ "requirement": "A5.5: a budget per relationship kind; no kind starved",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C99200186",
+  "params": {
+   "include": [
+    "full"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C99200186",
+   "name": "Synthetic Role Target 186",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true
+  }
+ }
+}

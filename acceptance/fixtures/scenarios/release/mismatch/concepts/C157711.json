@@ -1,0 +1,1746 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C157711",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C157711",
+   "name": "GDC Terminology",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "GDC Terminology",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Genomics Data Commons Terminology",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "GDC Terminology",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "Terminology that supports the Genomic Data Commons (GDC).",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "GDC"
+    },
+    {
+     "code": "P208",
+     "type": "NCI_META_CUI",
+     "value": "CL937332"
+    },
+    {
+     "code": "P372",
+     "type": "Publish_Value_Set",
+     "value": "Yes"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Intellectual Product"
+    },
+    {
+     "code": "P376",
+     "type": "Term_Browser_Value_Set_Description",
+     "value": "Terminology that supports the Genomic Data Commons (GDC) Data Dictionary. For more information, see the <a href=\"https://evs.nci.nih.gov/ftp1/GDC/About.html\">GDC Terminology About</a> page. The files for this terminology data is available for viewing and download at the <a href=\"https://evs.nci.nih.gov/ftp1/GDC\">EVS GDC FTP</a> site."
+    }
+   ],
+   "children": [
+    {
+     "code": "C188403",
+     "name": "GDC Deprecated Terminology",
+     "leaf": true
+    },
+    {
+     "code": "C177536",
+     "name": "GDC Property Terminology",
+     "leaf": true
+    },
+    {
+     "code": "C165496",
+     "name": "GDC Regimen Terminology",
+     "leaf": true
+    },
+    {
+     "code": "C157712",
+     "name": "GDC Therapeutic Agent Terminology",
+     "leaf": true
+    },
+    {
+     "code": "C177537",
+     "name": "GDC Value Terminology",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C54443",
+     "name": "Terminology Subset"
+    }
+   ],
+   "history": [
+    {
+     "code": "C157711",
+     "action": "create",
+     "date": "2019-02-25"
+    },
+    {
+     "code": "C157711",
+     "action": "modify",
+     "date": "2019-02-25"
+    },
+    {
+     "code": "C157711",
+     "action": "modify",
+     "date": "2019-05-28"
+    },
+    {
+     "code": "C157711",
+     "action": "modify",
+     "date": "2019-11-25"
+    },
+    {
+     "code": "C157711",
+     "action": "modify",
+     "date": "2020-05-26"
+    },
+    {
+     "code": "C157711",
+     "action": "modify",
+     "date": "2021-03-29"
+    },
+    {
+     "code": "C157711",
+     "action": "modify",
+     "date": "2021-04-26"
+    },
+    {
+     "code": "C158985",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C158986",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C158987",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159036",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159037",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C158988",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171119",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C158989",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171115",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171117",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171116",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159081",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159042",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159000",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C158990",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159001",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159089",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159045",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159069",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159027",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C167372",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C167371",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171109",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C173646",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C173647",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C167367",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C168612",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159017",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159019",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159014",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159016",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C172228",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C173676",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171333",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C173673",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159020",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C173671",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C173672",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C158995",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159006",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C158996",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C158997",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C158998",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159009",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C158991",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159002",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159046",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C158992",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159003",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C158993",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C158994",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159005",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C158999",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171126",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C173668",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171125",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C173666",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C173667",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159097",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159011",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159056",
+     "action": "retire",
+     "date": "2021-09-27",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159039",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159035",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159038",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159043",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171153",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159044",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C166404",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159040",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159041",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159028",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159024",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159026",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159031",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159032",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159033",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159034",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159030",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159138",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159139",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159018",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159013",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159134",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159135",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159136",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159015",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159137",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C173677",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C173678",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C164043",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C173675",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C173674",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C172185",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159022",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C173670",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159023",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159140",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159127",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159128",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159007",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159129",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159123",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159124",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159126",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171129",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C173669",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159091",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159092",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171127",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171122",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171121",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171124",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171123",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159130",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159131",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C172294",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159098",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159010",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159132",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171120",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159099",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159133",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159012",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159094",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159095",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159096",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159116",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159118",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159119",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159112",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159079",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159113",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C163973",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159114",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159115",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171118",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C167374",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C167373",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171114",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C167376",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159080",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171111",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C167377",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171110",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171113",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171112",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159086",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159087",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159121",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159088",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159122",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159082",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159083",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159084",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159085",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159105",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159106",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159107",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159108",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159101",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159068",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159104",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171108",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159109",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171104",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C166397",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171106",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159070",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159076",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C164138",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159077",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159110",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159078",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159071",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159073",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159057",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159058",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159059",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C166390",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C166392",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C167356",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C167355",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C167358",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C167357",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171332",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159064",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159065",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C167359",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159066",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159100",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159067",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159060",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159061",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159063",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159047",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159048",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159049",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171287",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159053",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159054",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159055",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C164237",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159050",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159051",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159052",
+     "action": "retire",
+     "date": "2021-10-25",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C158984",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159117",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159021",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159120",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171130",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159062",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159029",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159008",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159025",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159102",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159004",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159103",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159125",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171107",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159090",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C171105",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C164056",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159075",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159111",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159093",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159072",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C159074",
+     "action": "retire",
+     "date": "2021-11-29",
+     "replacementCode": "C157711",
+     "replacementName": "GDC Terminology"
+    },
+    {
+     "code": "C157711",
+     "action": "modify",
+     "date": "2022-11-28"
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,418 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C36616",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C36616",
+   "name": "t(16;21)(p11;q22)",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "t(16;21)(p11;q22)",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "caDSR"
+    },
+    {
+     "name": "t(16;21)(p11;q22)FUS/ERG",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "caDSR"
+    },
+    {
+     "name": "t(16;21)(p11;q22) (Ewing sarcoma)",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CPTAC"
+    },
+    {
+     "name": "t(16;21)(p11.2;q22.2)",
+     "termType": "DN",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTRP"
+    },
+    {
+     "name": "t(16;21)(p11.2;q22.2)",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "t(16;21)(p11;q22)",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "t(16;21)(p11.2;q22.2)",
+     "type": "Display_Name",
+     "typeCode": "P107"
+    },
+    {
+     "name": "t(16;21)(p11;q22)",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    },
+    {
+     "name": "t(16;21)(p11;q22)",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "AML"
+    },
+    {
+     "name": "t(16;21)(p11;q22)",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "EWS"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A chromosomal translocation involving the FUS gene on chromosome 16p11 and the ERG gene on chromosome 21q22.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CPTAC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTRP"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "PCDC"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "t_16_21_p11_q22"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Cell or Molecular Dysfunction"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1515727"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C82366",
+     "name": "ERG Gene Rearrangement"
+    },
+    {
+     "code": "C168530",
+     "name": "FUS Gene Translocation"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C174019",
+     "relatedName": "AML Authorized Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C173236",
+     "relatedName": "AML Minimal Residual Disease Table"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C173233",
+     "relatedName": "AML Molecular Analysis Table"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C156953",
+     "relatedName": "CPTAC Baseline Medical Forms Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C159414",
+     "relatedName": "CPTAC Sarcoma Baseline Form"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C156952",
+     "relatedName": "CPTAC Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142799",
+     "relatedName": "CTRP Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142800",
+     "relatedName": "CTRP Molecular Genetic Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C116977",
+     "relatedName": "CTRP Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C174237",
+     "relatedName": "EWS Authorized Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C174252",
+     "relatedName": "EWS Molecular Analysis Table"
+    },
+    {
+     "code": "A24",
+     "type": "Is_PCDC_AML_Authorized_Value_For_Variable",
+     "relatedCode": "C168895",
+     "relatedName": "Measurable Residual Disease Molecular Marker"
+    },
+    {
+     "code": "A24",
+     "type": "Is_PCDC_AML_Authorized_Value_For_Variable",
+     "relatedCode": "C3910",
+     "relatedName": "Molecular Abnormality"
+    },
+    {
+     "code": "A28",
+     "type": "Is_PCDC_EWS_Authorized_Value_For_Variable",
+     "relatedCode": "C3910",
+     "relatedName": "Molecular Abnormality"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C18139",
+     "relatedName": "ERG Gene"
+    },
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C18326",
+     "relatedName": "ETS Family Gene"
+    },
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C186676",
+     "relatedName": "FET Family Gene"
+    },
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C91852",
+     "relatedName": "FUS Gene"
+    },
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C99281",
+     "relatedName": "FUS/ERG Fusion Gene"
+    },
+    {
+     "code": "R173",
+     "type": "Cytogenetic_Abnormality_Involves_Chromosome",
+     "relatedCode": "C13211",
+     "relatedName": "Human Chromosome 16"
+    },
+    {
+     "code": "R173",
+     "type": "Cytogenetic_Abnormality_Involves_Chromosome",
+     "relatedCode": "C13217",
+     "relatedName": "Human Chromosome 21"
+    }
+   ],
+   "history": [
+    {
+     "code": "C36616",
+     "action": "create",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2011-07-11"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2011-07-25"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2011-12-19"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2014-02-03"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2019-02-25"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2019-04-29"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2019-05-28"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2019-06-24"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2019-07-29"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2019-12-30"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2020-01-27"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2020-02-24"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2020-03-30"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2020-04-27"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2020-05-26"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2020-06-29"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2020-07-27"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2020-08-31"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2020-09-29"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2020-10-26"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2020-11-30"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2020-12-28"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2021-06-28"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2022-10-31"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2023-02-27"
+    },
+    {
+     "code": "C36616",
+     "action": "modify",
+     "date": "2023-06-26"
+    }
+   ]
+  }
+ }
+}

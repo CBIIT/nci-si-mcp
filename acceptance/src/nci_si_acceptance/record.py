@@ -53,6 +53,19 @@ type Fetch = Callable[[str, str, Params], tuple[int, Any]]
 
 FIXTURES = Path(__file__).parents[2] / "fixtures"
 RECORDED = "recorded"
+# Payload fields that name the release or version of the content they carry: a concept's
+# `version`, a map's `sourceTerminologyVersion`.
+RELEASE_FIELDS = ("version", "sourceTerminologyVersion")
+# Release discovery and the API version: what names releases rather than serving content
+# from one, and needs no pinned form.
+DISCOVERY = frozenset(
+    {
+        "recorded/evs/version.json",
+        "recorded/evs/terminologies.json",
+        "recorded/evs/release-monthly.json",
+        "recorded/evs/release-weekly.json",
+    }
+)
 TIMEOUT_SECONDS = 120
 
 
@@ -259,6 +272,17 @@ def _ordered(body: Any, *, batch: bool) -> Any:
     if batch and isinstance(body, list):
         return sorted(body, key=lambda concept: concept["code"])
     return body
+
+
+def reported_releases(payload: Any) -> set[str]:
+    """Every release or version a payload reports for its content, at any depth."""
+
+    if isinstance(payload, list):
+        return set().union(*map(reported_releases, payload))
+    if not isinstance(payload, dict):
+        return set()
+    own = {str(payload[key]) for key in RELEASE_FIELDS if key in payload}
+    return own.union(*map(reported_releases, payload.values()))
 
 
 def _served_release(document: dict[str, Any]) -> str | None:

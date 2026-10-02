@@ -63,86 +63,139 @@ licensing:
     - ICDO_TO_NCI_TOPOGRAPHY
     - ICDO_TO_NCI_AXIS
 
+# What each scenario of Acceptance Suite §2.3 provokes, in the order the register lists
+# them (register.py). Whether a scenario is recorded or crafted is read from its fixtures.
+scenarios:
+  release/unknown: Every content path of `ncit_99.99z` answers 404
+  release/mismatch: >-
+    Every payload that reports the pinned release names 26.08e instead, the unpinned forms
+    included; release discovery is left as recorded
+  release/two-latest: >-
+    A weekly and a monthly row are both `latest`, the weekly first in every list; each
+    form of the release query gives a channel the same release
+  batch/silent-drop: A code EVS does not know is left out of a batch
+  retired/with-replacement: C154421 is retired with a replacement, and one bad code fails a batch
+  traversal/deep-fanout: >-
+    One root has 1,001 children, and a chain runs deeper than depth 4 from its first child,
+    C99000001 (the node maximum is reached at depth 1 from the root)
+  traversal/exclusions: Exclusion roles are named like positive ones, and two the other way
+  traversal/starvation: One concept has 300 roles and 2 associations
+  upstream/unavailable: A closed connection, then 503, then no answer within the timeout
+  upstream/rate-limited: 429 with `Retry-After` on the release query, then the answer
+  license/restricted: 403 without the licence key; invented content with it
+
 record:
   requests:
     # Release resolution: the listing, and the one-row query per channel (SPEC §3.3).
     - fixture: recorded/evs/version.json
+      operation: baseline
+      rationale: The furnished server's ncit_release_info reads it; no required tool needs it.
       surface: evs
       path: /api/v1/version
     - fixture: recorded/evs/terminologies.json
+      operation: OP-E01
+      rationale: The listing behind list_terminologies, and what the furnished server filters today.
       surface: evs
       path: /api/v1/metadata/terminologies
     - fixture: recorded/evs/release-monthly.json
+      operation: OP-E01
+      rationale: 'The one-row release query: latest is channel-scoped, so the channel is given as a tag (E-1).'
       surface: evs
       path: /api/v1/metadata/terminologies?terminology=ncit&latest=true&tag=monthly
     - fixture: recorded/evs/release-weekly.json
+      operation: OP-E01
+      rationale: The same query for the weekly channel.
       surface: evs
       path: /api/v1/metadata/terminologies?terminology=ncit&latest=true&tag=weekly
     # The relationship catalogue of the pinned release.
     - fixture: recorded/evs/roles.json
+      operation: OP-E02
+      rationale: The role catalogue of the pinned release, for polarity by code.
       surface: evs
       path: /api/v1/metadata/ncit_26.09d/roles
     - fixture: recorded/evs/associations.json
+      operation: OP-E03
+      rationale: The association catalogue of the pinned release.
       surface: evs
       path: /api/v1/metadata/ncit_26.09d/associations
     # Search: lexical, typeahead, a page after the first, and a query matching nothing.
     - fixture: recorded/evs/search-contains.json
+      operation: OP-E08
+      rationale: 'Lexical search: type=contains, minimal concepts with highlights for matchedOn, the page given in full.'
       surface: evs
       path: /api/v1/concept/ncit_26.09d/search?term=ewing sarcoma&type=contains&include=minimal,highlights&fromRecord=0&pageSize=10
     - fixture: recorded/evs/search-contains-page-2.json
+      operation: OP-E08
+      rationale: The second page of the same search.
       surface: evs
       path: /api/v1/concept/ncit_26.09d/search?term=ewing sarcoma&type=contains&include=minimal,highlights&fromRecord=10&pageSize=10
     - fixture: recorded/evs/search-starts-with.json
+      operation: OP-E08
+      rationale: 'Typeahead: type=startsWith.'
       surface: evs
       path: /api/v1/concept/ncit_26.09d/search?term=ewing&type=startsWith&include=minimal,highlights&fromRecord=0&pageSize=10
     - fixture: recorded/evs/search-no-match.json
+      operation: OP-E08
+      rationale: 'A search matching nothing: empty is not an error.'
       surface: evs
       path: /api/v1/concept/ncit_26.09d/search?term=qqxyzzyqq&type=contains&include=minimal,highlights&fromRecord=0&pageSize=10
     # Hierarchy.
     - fixture: recorded/evs/paths-to-root.json
+      operation: OP-E13
+      rationale: "EVS serves pathsToRoot; \xA710 spells it paths-to-root, which EVS answers 404."
       surface: evs
       path: /api/v1/concept/ncit_26.09d/C4817/pathsToRoot?include=minimal
-    # Retired codes: one retired and one active (OP-E21), and the batch of both.
-    - fixture: recorded/evs/replacement-retired.json
-      surface: evs
-      path: /api/v1/history/ncit_26.09d/C154421/replacements
+    # An active code's replacements (OP-E21, and the ?list= batch form); the retired
+    # code is in scenarios/retired/with-replacement.
     - fixture: recorded/evs/replacement-active.json
+      operation: OP-E21
+      rationale: An active code's replacements, one code.
       surface: evs
       path: /api/v1/history/ncit_26.09d/C4817/replacements
-    - fixture: recorded/evs/replacements-retired.json
-      surface: evs
-      path: /api/v1/history/ncit_26.09d/replacements?list=C154421
     - fixture: recorded/evs/replacements-active.json
+      operation: OP-E21
+      rationale: The ?list= batch form, which fails the whole batch on one unknown code.
       surface: evs
       path: /api/v1/history/ncit_26.09d/replacements?list=C4817
-    - fixture: recorded/evs/replacements-both.json
-      surface: evs
-      path: /api/v1/history/ncit_26.09d/replacements?list=C154421,C4817
     # Subsets: the GDC Value Terminology, unpinned (the pinned form is crafted under
     # `derived`) and the first page of its members.
     - fixture: recorded/evs/subset-gdc-unpinned.json
+      operation: OP-E06
+      rationale: 'The subset by its unpinned path: the pinned path answers 404 today; the payload names its release.'
       surface: evs
       path: /api/v1/subset/ncit/C177537
     - fixture: recorded/evs/subset-gdc-members.json
+      operation: OP-E19
+      rationale: "The members of a subset; EVS keys them by the subset's code, unlike \xA710's form."
       surface: evs
       path: /api/v1/subset/ncit_26.09d/C177537/members?fromRecord=0&pageSize=10&include=minimal
     # Mapsets: the listing (names and metadata only) and the GDC mapset.
     - fixture: recorded/evs/mapsets.json
+      operation: Acceptance Suite §5.1
+      rationale: "Mapsets as first-class objects; not in \xA710. Names and metadata only for licensed ones."
       surface: evs
       path: /api/v1/mapset
     - fixture: recorded/evs/mapset-gdc.json
+      operation: Acceptance Suite §5.1
+      rationale: The GDC mapset, versioned by the NCIt release.
       surface: evs
       path: /api/v1/mapset/NCIt_Maps_To_GDC
     # Its maps (issue #6: the cross-domain tests need them), by a GDC value and by a
     # concept code; `term` matches as a prefix (C4817 also finds C48177).
     - fixture: recorded/evs/mapset-gdc-maps-value.json
+      operation: Acceptance Suite §5.1
+      rationale: GDC maps found by a GDC value (resolve_stored_value); term matches as a prefix.
       surface: evs
       path: /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=Ewing sarcoma&fromRecord=0&pageSize=10
     - fixture: recorded/evs/mapset-gdc-maps-code.json
+      operation: Acceptance Suite §5.1
+      rationale: GDC maps found by an NCIt code.
       surface: evs
       path: /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C4817&fromRecord=0&pageSize=10
     # A value set of 534 members (CDISC SDTM Method Terminology) through FHIR $expand.
     - fixture: recorded/evs-fhir/expand-c85492.json
+      operation: OP-F05
+      rationale: 'The unpinned expansion: system-version answers 400 today; count, offset and activeOnly are ignored.'
       surface: evs-fhir
       path: /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492
       ignored:
@@ -152,17 +205,101 @@ record:
         offset: *expand-ignores
         activeOnly: *expand-ignores
 
+    # Scenarios recorded from live (the crafted ones come from craft.py).
+    # release/unknown: every content path of an unknown release answers 404 "Terminology
+    # not found", whatever is asked; recorded with the parameters a tool would send.
+    - &unknown
+      fixture: scenarios/release/unknown/concept.json
+      operation: OP-E06
+      rationale: 'An unknown release answers 404 on every content path: the server fails closed.'
+      surface: evs
+      path: /api/v1/concept/ncit_99.99z/C4817?include=summary
+      status: 404
+      ignored:
+        "*": >-
+          Verified 2 October 2026: EVS answers 404 "Terminology not found" for an unknown
+          release on every content path, whatever the parameters
+    - {<<: *unknown, fixture: scenarios/release/unknown/concepts.json, path: "/api/v1/concept/ncit_99.99z?list=C4817&include=summary"}
+    - {<<: *unknown, fixture: scenarios/release/unknown/parents.json, path: /api/v1/concept/ncit_99.99z/C4817/parents}
+    - {<<: *unknown, fixture: scenarios/release/unknown/children.json, path: /api/v1/concept/ncit_99.99z/C4817/children}
+    - {<<: *unknown, fixture: scenarios/release/unknown/roles.json, path: /api/v1/concept/ncit_99.99z/C4817/roles}
+    - {<<: *unknown, fixture: scenarios/release/unknown/inverse-roles.json, path: /api/v1/concept/ncit_99.99z/C4817/inverseRoles}
+    - {<<: *unknown, fixture: scenarios/release/unknown/associations.json, path: /api/v1/concept/ncit_99.99z/C4817/associations}
+    - {<<: *unknown, fixture: scenarios/release/unknown/inverse-associations.json, path: /api/v1/concept/ncit_99.99z/C4817/inverseAssociations}
+    - {<<: *unknown, fixture: scenarios/release/unknown/maps.json, path: /api/v1/concept/ncit_99.99z/C4817/maps}
+    - {<<: *unknown, fixture: scenarios/release/unknown/search.json, path: "/api/v1/concept/ncit_99.99z/search?term=ewing sarcoma&type=contains&include=minimal,highlights&fromRecord=0&pageSize=10"}
+    - {<<: *unknown, fixture: scenarios/release/unknown/paths-to-root.json, path: "/api/v1/concept/ncit_99.99z/C4817/pathsToRoot?include=minimal"}
+    - {<<: *unknown, fixture: scenarios/release/unknown/role-catalogue.json, path: /api/v1/metadata/ncit_99.99z/roles}
+    - {<<: *unknown, fixture: scenarios/release/unknown/association-catalogue.json, path: /api/v1/metadata/ncit_99.99z/associations}
+    - {<<: *unknown, fixture: scenarios/release/unknown/replacement.json, path: /api/v1/history/ncit_99.99z/C154421/replacements}
+    - {<<: *unknown, fixture: scenarios/release/unknown/replacements.json, path: "/api/v1/history/ncit_99.99z/replacements?list=C154421"}
+    - {<<: *unknown, fixture: scenarios/release/unknown/subset.json, path: /api/v1/subset/ncit_99.99z/C177537}
+    - {<<: *unknown, fixture: scenarios/release/unknown/subset-members.json, path: "/api/v1/subset/ncit_99.99z/C177537/members?fromRecord=0&pageSize=10&include=minimal"}
+    - {<<: *unknown, fixture: scenarios/release/unknown/descendants.json, path: "/api/v1/concept/ncit_99.99z/C4817/descendants?maxLevel=4"}
+    - {<<: *unknown, fixture: scenarios/release/unknown/property-catalogue.json, path: /api/v1/metadata/ncit_99.99z/properties}
+    # batch/silent-drop: a code EVS does not know, which a batch leaves out (E-5).
+    - fixture: scenarios/batch/silent-drop/concepts/CBOGUS999999.json
+      operation: OP-E07
+      rationale: 'A code EVS does not know: a batch leaves it out without a signal (E-5).'
+      surface: evs
+      path: /api/v1/concept/ncit_26.09d/CBOGUS999999?include=full
+      status: 404
+    # retired/with-replacement: C154421, retired with a replacement (A8), and a batch
+    # that one unknown code fails as a whole.
+    - fixture: scenarios/retired/with-replacement/concepts/C154421.json
+      operation: OP-E05
+      rationale: A retired concept (A8).
+      surface: evs
+      path: /api/v1/concept/ncit_26.09d/C154421?include=full
+    - fixture: scenarios/retired/with-replacement/replacement.json
+      operation: OP-E21
+      rationale: A retired code with its replacement.
+      surface: evs
+      path: /api/v1/history/ncit_26.09d/C154421/replacements
+    - fixture: scenarios/retired/with-replacement/replacements.json
+      operation: OP-E21
+      rationale: The batch form for the retired code.
+      surface: evs
+      path: /api/v1/history/ncit_26.09d/replacements?list=C154421
+    - fixture: scenarios/retired/with-replacement/replacements-with-active.json
+      operation: OP-E21
+      rationale: A batch of a retired and an active code, answered per code.
+      surface: evs
+      path: /api/v1/history/ncit_26.09d/replacements?list=C154421,C4817
+    - fixture: scenarios/retired/with-replacement/replacements-with-unknown.json
+      operation: OP-E21
+      rationale: One unknown code fails the whole batch (404).
+      surface: evs
+      path: /api/v1/history/ncit_26.09d/replacements?list=C154421,CBOGUS999999
+      status: 404
+    # license/restricted: EVS's refusal without the licence key; craft.py adds the answer
+    # with it.
+    - fixture: scenarios/license/restricted/refused.json
+      operation: SOW v2 §6-§7
+      rationale: EVS refuses mdr without the X-EVSRESTAPI-License-Key header (403).
+      surface: evs
+      path: /api/v1/concept/mdr_29_0/10000000?include=summary
+      status: 403
+      ignored:
+        "*": >-
+          Verified 2 October 2026: EVS refuses every request for mdr without the licence
+          key (403), whatever the path or parameters
+
   # Crafted fixtures for the form a requirement prescribes where EVS does not yet answer
   # it, each carrying the answer of a recording (Acceptance Suite §2.1): the live run shows
   # the gap.
   derived:
     - fixture: crafted/OP-E06/subset-gdc.json
+      operation: OP-E06
+      rationale: The pinned subset path a requirement prescribes, carrying the unpinned answer.
       from: recorded/evs/subset-gdc-unpinned.json
       path: /api/v1/subset/ncit_26.09d/C177537
       requirement: >-
         OP-E06: every content path accepts {terminology}_{release}. EVS answered this
         pinned path with 404 "Subset not found" on 2 October 2026
     - fixture: crafted/OP-F05/expand-c85492.json
+      operation: OP-F05
+      rationale: "$expand pinned by system-version, as \xA710 prescribes, carrying the unpinned answer."
       from: recorded/evs-fhir/expand-c85492.json
       path: /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492&system-version=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl|26.09d
       requirement: >-
@@ -175,9 +312,8 @@ record:
 
   # Concepts, by the include each is recorded at (concepts.py).
   concepts:
-    # Ewing sarcoma, the batch of the Platform API Specification's E-5 example, and a
-    # retired code.
-    full: [C4817, C17049, C41259, C154421]
+    # Ewing sarcoma and the batch of the Platform API Specification's E-5 example.
+    full: [C4817, C17049, C41259]
     # The depth-1 neighbourhood of C4817 over every relation. Without the inverse
     # lists, which run to megabytes for the subset and cell concepts among them.
     summary,parents,children,roles,associations,maps,history:
@@ -220,5 +356,4 @@ record:
     - /api/v1/concept/ncit_26.09d/C4817/associations
     - /api/v1/concept/ncit_26.09d/C4817/inverseAssociations
     - /api/v1/concept/ncit_26.09d/C4817/maps
-    - /api/v1/concept/ncit_26.09d/C154421/children
     - /api/v1/concept/ncit_26.09d/C7806/roles

@@ -1,0 +1,38 @@
+{
+ "kind": "crafted",
+ "requirement": "A5.1-A5.4: descendants beyond the depth and node bounds",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C99100002",
+  "params": {
+   "include": [
+    "full"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C99100002",
+   "name": "Synthetic Chain Level 3",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "parents": [
+    {
+     "code": "C99100001",
+     "name": "Synthetic Chain Level 2"
+    }
+   ],
+   "children": [
+    {
+     "code": "C99100003",
+     "name": "Synthetic Chain Level 4"
+    }
+   ]
+  }
+ }
+}

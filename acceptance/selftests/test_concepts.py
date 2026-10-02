@@ -404,3 +404,70 @@ def test_a_recording_has_one_plain_response(tmp_path):
         ValueError, match="a concept recording has one response, of status and body"
     ):
         load_fixtures(tmp_path)
+
+
+@pytest.mark.parametrize(
+    "extra", [{"headers": {"X-EVSRESTAPI-License-Key": "key"}}, {"ignored": {"*": "evidence"}}]
+)
+def test_a_recording_naming_headers_or_ignored_parameters_is_refused(tmp_path, extra):
+    write_manifest(tmp_path)
+    recording(tmp_path, "C1")
+    path = tmp_path / "recorded/evs/concepts/C1.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    document["request"] |= extra
+    path.write_text(json.dumps(document), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="matched by its concept alone"):
+        load_fixtures(tmp_path)
+
+
+def exact_fixture(root, where, path, params=None):
+    """An exact fixture answering GET evs `path` with `params`, written under `where`."""
+
+    target = root / where
+    target.parent.mkdir(parents=True, exist_ok=True)
+    request = {"surface": "evs", "method": "GET", "path": path, "params": params or {}}
+    document = {
+        "kind": "crafted",
+        "requirement": "self-test",
+        "request": request,
+        "response": {"status": 200, "body": []},
+    }
+    target.write_text(json.dumps(document), encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    ("path", "params"),
+    [
+        ("/api/v1/concept/ncit_26.09d/C1", {}),
+        ("/api/v1/concept/ncit_26.09d/C1", {"include": ["roles"]}),
+        ("/api/v1/concept/ncit_26.09d", {"list": ["C1,C2"]}),
+        ("/api/v1/concept/ncit_26.09d/C1/roles", {}),
+    ],
+)
+def test_an_ordinary_exact_fixture_where_the_rules_answer_is_refused(tmp_path, path, params):
+    write_manifest(tmp_path)
+    exact_fixture(tmp_path, "crafted/x.json", path, params)
+
+    with pytest.raises(ValueError, match=r"crafted/x\.json: the concept rules answer this path"):
+        load_fixtures(tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("where", "path", "params"),
+    [
+        ("scenarios/upstream/down/x.json", "/api/v1/concept/ncit_26.09d/C1", {}),
+        ("crafted/search.json", "/api/v1/concept/ncit_26.09d/search", {}),
+        ("crafted/paths.json", "/api/v1/concept/ncit_26.09d/C1/pathsToRoot", {}),
+        ("crafted/paths.json", "/api/v1/concept/ncit_26.09d/C1", {"include": ["paths"]}),
+        ("crafted/batch.json", "/api/v1/concept/ncit_26.09d", {"list": [",".join(["C1"] * 1001)]}),
+        ("crafted/roles.json", "/api/v1/concept/ncit_26.09d/C1/roles", {"limit": ["5"]}),
+    ],
+)
+def test_an_exact_fixture_for_a_request_the_rules_cannot_answer_or_in_a_scenario_loads(
+    tmp_path, where, path, params
+):
+    write_manifest(tmp_path)
+    exact_fixture(tmp_path, where, path, params)
+
+    assert load_fixtures(tmp_path)

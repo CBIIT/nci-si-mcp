@@ -7,14 +7,20 @@ answered or not, whatever its method:
     GET    /_log    the requests received since the last reset, as JSON
     DELETE /_log    reset: clear the log and rewind every response sequence
 
-A request is answered by the fixture whose surface, method, path, query parameters
-and body match it. Paths and values are compared decoded, the order of different
-parameters does not matter, and repeated values of one parameter keep their order.
-Bodies are compared as parsed JSON where they are JSON, and otherwise as text with
-runs of whitespace collapsed (SPARQL). A fixture without a `body` matches any
+A request is answered by the fixture whose surface, method, path, query parameters,
+headers and body match it. Paths and values are compared decoded, the order of
+different parameters does not matter, and repeated values of one parameter keep their
+order. Bodies are compared as parsed JSON where they are JSON, and otherwise as text
+with runs of whitespace collapsed (SPARQL). A fixture without a `body` matches any
 request body. A parameter the live service is shown to ignore may be declared under
-`ignored`, with the evidence; it is then left out of the match. A request that no
-fixture answers gets HTTP 501.
+`ignored`, with the evidence; it is then left out of the match, and `"*"` leaves out
+every parameter (an unknown release answers 404 whatever is asked; a fault fixture
+fails whatever is asked), the fixture's `params` then only recording what was asked
+when it was captured. A fixture's `headers` must be present with those values,
+header names in any case; among the fixtures of one path in one layer (below), the one
+naming the most headers the request carries answers (a licence key granted, else the
+refusal), and between header sets of the same size the first by name. A request that
+no fixture answers gets HTTP 501.
 
 A fixture is a JSON file:
 
@@ -24,6 +30,7 @@ A fixture is a JSON file:
       "requirement": "C-1",               # crafted: the requirement it stands in for
       "request": {"surface": "evs", "method": "GET", "path": "/api/v1/version",
                   "params": {"include": ["summary"]}, "body": "...",
+                  "headers": {"X-EVSRESTAPI-License-Key": "..."},
                   "ignored": {"count": "the evidence that the service ignores it"}},
       "response": {"status": 200, "headers": {}, "body": {...}},
       "redacted": ["/maps/7 (MedDRA)"]    # recorded: licensed items removed (licensing.py)
@@ -39,8 +46,9 @@ headers are sent too and override the content type; headers that frame the messa
 (`Content-Length`, ...) are the server's and are refused.
 
 Fixtures under `scenarios/<group>/<name>/` belong to the scenario `<group>/<name>`
-and answer only while it is active, before any ordinary fixture: a scenario fixture
-that matches any body wins over an ordinary one for the exact body. Two fixtures for
+and answer only while it is active, before any ordinary fixture: each active scenario
+is a layer consulted before the ordinary fixtures, so a scenario fixture wins over an
+ordinary one that names more headers or the exact body. Two fixtures for
 the same request in one scenario, outside the scenarios, or in two scenarios active
 together, are refused. A scenario may also hold `settings.json`, the `NCI_SI_*`
 settings its server process starts with (a short timeout, a licence key); the settings
@@ -51,7 +59,10 @@ A fixture in a `concepts/` directory is a concept recording: EVS's answer to a
 concept request, which `concepts.py` projects and batches by the rules the manifest
 (`manifest.yaml`, `evs.concepts`) declares. A request no fixture answers exactly is
 answered by those rules where the active recordings allow, a scenario's recording of
-a code before the ordinary one.
+a code before the ordinary one. Every exact fixture is tried before the rules: an
+ordinary one for a request the rules answer is refused, since it would answer before a
+scenario's recording; an active scenario's exact fixture (a fault) answers before
+another active scenario's recording, by design.
 
 Every log entry records when the request arrived (`received_at`, monotonic seconds),
 and the fixture or recordings that answered it.
@@ -101,7 +112,9 @@ RESPONSE_FIELDS = frozenset({"status", "headers", "body", "delay_seconds", "faul
 _JSON = {"Content-Type": "application/json"}
 
 type Params = dict[str, list[str]]
-type Key = tuple[str, str, str, tuple[tuple[str, tuple[str, ...]], ...], str | None]
+type Key = tuple[
+    str, str, str, tuple[tuple[str, tuple[str, ...]], ...], tuple[tuple[str, str], ...], str | None
+]
 type Fixtures = dict[Key, Fixture]
 type Concepts = dict[tuple[str, str], Recording]
 
@@ -119,11 +132,20 @@ def body_key(body: Any) -> str | None:
     return json.dumps(body, sort_keys=True, separators=(",", ":"))
 
 
-def request_key(surface: str, method: str, path: str, params: Params, body: Any = None) -> Key:
-    """What a request is matched on; `body` None stands for any body."""
+def request_key(
+    surface: str,
+    method: str,
+    path: str,
+    params: Params,
+    body: Any = None,
+    headers: dict[str, str] | None = None,
+) -> Key:
+    """What a request is matched on; `body` None stands for any body, and only the
+    headers a fixture names are matched."""
 
     query = tuple(sorted((name, tuple(values)) for name, values in params.items()))
-    return (surface, method.upper(), path, query, body_key(body))
+    named = tuple(sorted((name.lower(), value) for name, value in (headers or {}).items()))
+    return (surface, method.upper(), path, query, named, body_key(body))
 
 
 def _merge(defaults: dict[str, str], headers: dict[str, str]) -> dict[str, str]:
@@ -189,7 +211,11 @@ def _request_problem(request: Any) -> str | None:
         isinstance(request.get(part), str) for part in ("surface", "method", "path")
     ):
         return "a fixture names its request: surface, method and path"
-    return _params_problem(request.get("params", {})) or _ignored_problem(request)
+    return (
+        _params_problem(request.get("params", {}))
+        or _headers_problem(request.get("headers", {}))
+        or _ignored_problem(request)
+    )
 
 
 def _params_problem(params: Any) -> str | None:
@@ -198,6 +224,14 @@ def _params_problem(params: Any) -> str | None:
         for values in params.values()
     ):
         return "params maps each parameter to a list of strings"
+    return None
+
+
+def _headers_problem(headers: Any) -> str | None:
+    if not isinstance(headers, dict) or not all(
+        isinstance(name, str) and isinstance(value, str) for name, value in headers.items()
+    ):
+        return "headers maps each header name to its value"
     return None
 
 
@@ -242,6 +276,12 @@ def _provenance_problem(document: dict[str, Any]) -> str | None:
     return "kind is recorded or crafted"
 
 
+def _matched_params(request: dict[str, Any]) -> Params:
+    """The parameters a fixture matches on: none where it ignores them all."""
+
+    return {} if "*" in request.get("ignored", {}) else request.get("params", {})
+
+
 def _read_fixture(path: Path, root: Path) -> tuple[Key, Fixture]:
     document = json.loads(path.read_text(encoding="utf-8"))
     name = path.relative_to(root).as_posix()
@@ -252,8 +292,9 @@ def _read_fixture(path: Path, root: Path) -> tuple[Key, Fixture]:
         request["surface"],
         request["method"],
         request["path"],
-        request.get("params", {}),
+        _matched_params(request),
         request.get("body"),
+        request.get("headers"),
     )
     responses = tuple(
         Response(**response) for response in document.get("responses") or [document["response"]]
@@ -284,6 +325,8 @@ def _recording_problem(document: dict[str, Any], rules: ConceptRules) -> str | N
     response = document.get("response")
     if response is None or not set(response) <= {"status", "body"}:
         return "a concept recording has one response, of status and body"
+    if set(document["request"]) & {"headers", "ignored"}:
+        return "a concept recording is matched by its concept alone: no headers, nothing ignored"
     return rules.recording_problem(document["request"], response["status"], response.get("body"))
 
 
@@ -351,9 +394,21 @@ def _add_recording(
 def _add_fixture(fixtures: FixtureSet, scenario: str | None, path: Path, root: Path) -> None:
     table = fixtures.ordinary if scenario is None else fixtures.scenarios.setdefault(scenario, {})
     key, fixture = _read_fixture(path, root)
+    if scenario is None and _composed_path(fixtures.rules, key):
+        # Exact fixtures are tried before the rules, so this one would answer in place of
+        # an active scenario's recording of the concept.
+        raise ValueError(f"{fixture.name}: the concept rules answer this path; record the concept")
     if key in table:
         raise ValueError(f"{fixture.name} and {table[key].name} answer the same request")
     table[key] = fixture
+
+
+def _composed_path(rules: ConceptRules | None, key: Key) -> bool:
+    surface, method, path, query = key[:4]
+    params = {name: list(values) for name, values in query}
+    return (
+        rules is not None and (surface, method) == ("evs", "GET") and rules.composes(path, params)
+    )
 
 
 def _layers(
@@ -383,6 +438,25 @@ def _overlap(tables: Iterable[dict[Any, Any]]) -> bool:
     return len(keys) != len(set(keys))
 
 
+def _left_out(names: set[str], ignored: frozenset[str]) -> list[str]:
+    """Which of these parameter names `ignored` leaves out of the match."""
+
+    return sorted(names if "*" in ignored else names & ignored)
+
+
+def _header_sets(layers: list[Fixtures]) -> dict[tuple[str, str, str], list[tuple[str, ...]]]:
+    """The header names the fixtures of each path match on, the most specific first and
+    those of one size by name, so that the order never depends on hashing."""
+
+    named: dict[tuple[str, str, str], set[tuple[str, ...]]] = {}
+    for layer in layers:
+        for key in layer:
+            named.setdefault(key[:3], set()).add(tuple(name for name, _ in key[4]))
+    return {
+        path: sorted(sets, key=lambda names: (-len(names), names)) for path, sets in named.items()
+    }
+
+
 def _ignored_by_path(layers: list[Fixtures]) -> dict[tuple[str, str, str], frozenset[str]]:
     """The parameters left out of the match, per request path, over every active fixture.
 
@@ -396,7 +470,7 @@ def _ignored_by_path(layers: list[Fixtures]) -> dict[tuple[str, str, str], froze
             ignored[key[:3]] = ignored.get(key[:3], frozenset()) | fixture.ignored
     for layer in layers:
         for key, fixture in layer.items():
-            if clash := sorted({name for name, _ in key[3]} & ignored[key[:3]]):
+            if clash := _left_out({name for name, _ in key[3]}, ignored[key[:3]]):
                 names = ", ".join(clash)
                 raise ValueError(f"{fixture.name} matches on {names}, which its path ignores")
     return ignored
@@ -409,6 +483,7 @@ class FixtureServer:
         self.fixtures = fixtures
         self._layers: list[Fixtures] = []
         self._recordings: list[Concepts] = []
+        self._headers: dict[tuple[str, str, str], list[tuple[str, ...]]] = {}
         self._ignored: dict[tuple[str, str, str], frozenset[str]] = {}
         self._served: dict[str, int] = {}
         self._log: list[dict[str, Any]] = []
@@ -434,9 +509,10 @@ class FixtureServer:
         """Answer from these scenarios' fixtures first; no argument ends them. The log stays."""
 
         layers, recordings = _layers(self.fixtures, scenarios)
-        ignored = _ignored_by_path(layers)
+        ignored, headers = _ignored_by_path(layers), _header_sets(layers)
         with self._lock:
-            self._layers, self._recordings, self._ignored = layers, recordings, ignored
+            self._layers, self._recordings = layers, recordings
+            self._ignored, self._headers = ignored, headers
 
     def log(self) -> list[dict[str, Any]]:
         with self._lock:
@@ -447,19 +523,37 @@ class FixtureServer:
             self._log.clear()
             self._served.clear()
 
-    def _find(self, key: Key) -> Fixture | None:
-        """The fixture for a request: a selected scenario first, each layer by exact body first."""
+    def _find(
+        self, path: tuple[str, str, str], params: Params, body: str, headers: dict[str, str]
+    ) -> Fixture | None:
+        """The fixture for a request: the active scenarios' layers first, then the ordinary
+        one; within a layer the most headers matched first, the exact body before any body."""
 
+        carried = self._carried(path, headers)
         for layer in self._layers:
-            fixture = layer.get(key) or layer.get((*key[:4], None))
-            if fixture is not None:
-                return fixture
+            for named in carried:
+                key = request_key(*path, params, body, named)
+                if fixture := layer.get(key) or layer.get((*key[:5], None)):
+                    return fixture
         return None
 
-    def _next(self, key: Key) -> tuple[str | None, Response | None]:
-        """The fixture for a request and its response in turn."""
+    def _carried(self, path: tuple[str, str, str], headers: dict[str, str]) -> list[dict[str, str]]:
+        """The header sets the fixtures of this path name that the request carries, with the
+        request's values, the most specific first."""
 
-        fixture = self._find(key)
+        lowered = {name.lower(): value for name, value in headers.items()}
+        return [
+            {name: lowered[name] for name in names}
+            for names in self._headers.get(path, [])
+            if all(name in lowered for name in names)
+        ]
+
+    def _next(
+        self, path: tuple[str, str, str], params: Params, body: str, headers: dict[str, str]
+    ) -> tuple[str | None, Response | None]:
+        """The fixture answering a request and its response in turn."""
+
+        fixture = self._find(path, params, body, headers)
         if fixture is None:
             return None, None
         turn = self._served.get(fixture.name, 0)
@@ -472,14 +566,16 @@ class FixtureServer:
                 return recording
         return None
 
-    def _composed(self, key: Key, params: Params) -> tuple[str | None, Response | None]:
+    def _composed(
+        self, path: tuple[str, str, str], params: Params
+    ) -> tuple[str | None, Response | None]:
         """The answer the concept rules compose from the active recordings, if they can."""
 
-        surface, method, path = key[:3]
+        surface, method, path_only = path
         rules = self.fixtures.rules
         if rules is None or (surface, method) != ("evs", "GET"):
             return None, None
-        answer = rules.answer(path, params, self._recording)
+        answer = rules.answer(path_only, params, self._recording)
         if answer is None:
             return None, None
         return ", ".join(answer.names), Response(answer.status, {}, answer.body)
@@ -493,12 +589,12 @@ class FixtureServer:
         entry = {"surface": surface, "method": method, "path": path, "params": params}
         entry["received_at"] = time.monotonic()
         with self._lock:
-            ignored = self._ignored.get((surface, method.upper(), path), frozenset())
-            matched = {name: values for name, values in params.items() if name not in ignored}
-            key = request_key(surface, method, path, matched, body)
-            fixture, response = self._next(key)
+            where = (surface, method.upper(), path)
+            left_out = _left_out(set(params), self._ignored.get(where, frozenset()))
+            matched = {name: values for name, values in params.items() if name not in left_out}
+            fixture, response = self._next(where, matched, body, headers)
             if fixture is None:
-                fixture, response = self._composed(key, params)
+                fixture, response = self._composed(where, params)
             entry |= {"headers": headers, "body": body, "fixture": fixture}
             self._log.append(entry)
         if response is None:

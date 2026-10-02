@@ -1,0 +1,461 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C18322",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C18322",
+   "name": "EWSR1 Gene",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "EWSR1 Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "caDSR"
+    },
+    {
+     "name": "EWSR1 Gene",
+     "termType": "DN",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTRP"
+    },
+    {
+     "name": "EWSR1",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "GDC"
+    },
+    {
+     "name": "EWSR1",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "HGNC",
+     "code": "HGNC:3508"
+    },
+    {
+     "name": "Ewing Sarcoma Breakpoint Region 1 Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWS RNA-Binding Protein 1 Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWSR1",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWSR1 Gene",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWSR1 Gene",
+     "type": "Display_Name",
+     "typeCode": "P107"
+    },
+    {
+     "name": "EWSR1 Gene",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "This gene may play a role in post-transcriptional regulation; however the function remains to be elucidated. Mutations in the gene result in Ewing sarcoma and other tumors.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTRP"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "GDC"
+    },
+    {
+     "code": "P369",
+     "type": "HGNC_ID",
+     "value": "HGNC:3508"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "EWSR1_Gene"
+    },
+    {
+     "code": "P375",
+     "type": "Maps_To",
+     "value": "EWSR1"
+    },
+    {
+     "code": "P100",
+     "type": "OMIM_Number",
+     "value": "133450"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Gene or Genome"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C0808901"
+    }
+   ],
+   "children": [
+    {
+     "code": "C51239",
+     "name": "EWSR1 wt Allele",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C186676",
+     "name": "FET Family Gene"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142799",
+     "relatedName": "CTRP Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142800",
+     "relatedName": "CTRP Molecular Genetic Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142801",
+     "relatedName": "CTRP Reference Gene Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C116977",
+     "relatedName": "CTRP Terminology"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C173595",
+     "relatedName": "First Variant Gene Symbol"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C171253",
+     "relatedName": "Fusion Gene Downstream Gene Symbol"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C157711",
+     "relatedName": "GDC Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177537",
+     "relatedName": "GDC Value Terminology"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R175",
+     "type": "Gene_Involved_In_Pathogenesis_Of_Disease",
+     "relatedCode": "C27291",
+     "relatedName": "Ewing Sarcoma/Peripheral Primitive Neuroectodermal Tumor"
+    },
+    {
+     "code": "R37",
+     "type": "Gene_Plays_Role_In_Process",
+     "relatedCode": "C21050",
+     "relatedName": "Gene Regulation Process"
+    },
+    {
+     "code": "R41",
+     "type": "Gene_Found_In_Organism",
+     "relatedCode": "C14225",
+     "relatedName": "Human"
+    },
+    {
+     "code": "R37",
+     "type": "Gene_Plays_Role_In_Process",
+     "relatedCode": "C20139",
+     "relatedName": "Ligand Binding"
+    },
+    {
+     "code": "R175",
+     "type": "Gene_Involved_In_Pathogenesis_Of_Disease",
+     "relatedCode": "C172980",
+     "relatedName": "Malignant Gastrointestinal Neuroectodermal Tumor"
+    },
+    {
+     "code": "R37",
+     "type": "Gene_Plays_Role_In_Process",
+     "relatedCode": "C20737",
+     "relatedName": "RNA Binding"
+    },
+    {
+     "code": "R37",
+     "type": "Gene_Plays_Role_In_Process",
+     "relatedCode": "C18127",
+     "relatedName": "RNA Transport"
+    },
+    {
+     "code": "R37",
+     "type": "Gene_Plays_Role_In_Process",
+     "relatedCode": "C19019",
+     "relatedName": "RNA-Protein Interaction"
+    }
+   ],
+   "history": [
+    {
+     "code": "C18322",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2003-10-31"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2003-12-05"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2004-02-23"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2004-11-17"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2005-09-09"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2006-01-03"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2006-06-30"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2009-04-06"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2009-08-03"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2011-12-19"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2012-03-05"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2013-03-11"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2014-02-03"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2015-08-24"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2016-01-29"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2016-10-31"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2016-11-21"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2017-12-26"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2018-01-29"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2018-03-26"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2018-07-30"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2019-05-28"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2019-09-30"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2019-10-28"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2020-02-24"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2020-06-29"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2020-09-29"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2021-02-22"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2021-03-29"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2021-10-25"
+    },
+    {
+     "code": "C18322",
+     "action": "modify",
+     "date": "2022-04-25"
+    }
+   ],
+   "maps": [
+    {
+     "type": "Has Synonym",
+     "targetName": "EWSR1",
+     "targetTermType": "PT",
+     "targetCode": "gene_symbol",
+     "targetTerminology": "GDC"
+    },
+    {
+     "type": "Has Synonym",
+     "targetName": "EWSR1",
+     "targetTermType": "PT",
+     "targetCode": "second_gene_symbol",
+     "targetTerminology": "GDC"
+    }
+   ]
+  }
+ }
+}

@@ -358,18 +358,21 @@ acceptance/
   pyproject.toml            separate package: nci-si-acceptance, versioned on its own; pytest, mcp, jsonschema
   src/nci_si_acceptance/    the harness
     client.py               connect over stdio or streamable HTTP; tools/list, tools/call
-    fixture_server.py       serves fixtures by (surface, method, path, params, body) with a request log endpoint
+    fixture_server.py       serves fixtures by (surface, method, path, params, headers, body), active scenarios first, with a request log endpoint
     concepts.py             composes EVS concept answers from one recording per concept (§9.6)
     licensing.py            the deny list: licensed content is neither recorded nor left in a payload
     record.py               re-records `recorded/` from live against the manifest's pins (`pdm run acceptance-record`)
+    craft.py                crafts the scenario fixtures EVS does not produce on demand (`pdm run acceptance-craft`)
+    register.py             writes the register of request forms from the manifest (`pdm run acceptance-register`)
     tools.py                baseline tool map application
     report.py               per-tool outcome: PASS | PASS (fixture only) | FAIL | NO FIXTURE | INCOMPLETE | NOT IMPLEMENTED | NOT RUN | NO TESTS; marks rows served through the tool map
   fixtures/
     manifest.yaml           pinned NCIt release (caDSR export date and SI graph dates to come), concept rules, deny list, the requests recorded
     recorded/<surface>/…    captured responses with the request that produced them
     crafted/<requirement>/… hand-written responses naming the requirement they stand in for
-    scenarios/…             the sixteen scenario fixtures
+    scenarios/…             the sixteen scenario fixtures (the eleven EVS ones so far)
     baseline_toolmap.yaml   required tool → prototype tool + parameter renaming, for the server before Phase 2 (§9.4)
+  request-forms/            the register of request forms: views for the EVS team, the caDSR team, and both
   tests/
     test_protocol.py        §3 gates
     test_crosscutting.py    §4, parameterised over the inventory
@@ -409,7 +412,7 @@ Because the suite and the tools are written by the same hands, two rules keep th
 
 ### 9.6 Request forms
 
-The fixtures use the request forms of the platform operations in *MCP API Specification* §10, release-pinned; `acceptance/fixtures/README.md` lists where §10 and EVS differ. Where EVS does not yet answer the form a requirement prescribes, the ordinary fixture is crafted to the requirement and names it, and the live run shows the gap (*Acceptance Suite* §2.1). Two kinds of request are answered whatever their form:
+The fixtures use the request forms of the platform operations in *MCP API Specification* §10, release-pinned; the generated register (`acceptance/request-forms/`) gives each form's operation and rationale, including where §10 and EVS differ. Where EVS does not yet answer the form a requirement prescribes, the ordinary fixture is crafted to the requirement and names it, and the live run shows the gap (*Acceptance Suite* §2.1). Two kinds of request are answered whatever their form:
 
 - **EVS concepts.** One recording per concept answers every projection, batch and relation list through declared rules (`concepts.py`): project by `include` (the include-to-key table in the manifest; EVS's `include` is a clean key projection, verified 2 October 2026), select by `list` (each code once, unknown codes left out, in no particular order, since EVS keeps none), and one relation list on its own. `record.py` checks composed answers against real ones.
 - **Ignored parameters.** A parameter the service is shown to ignore is declared with its evidence and left out of the match.

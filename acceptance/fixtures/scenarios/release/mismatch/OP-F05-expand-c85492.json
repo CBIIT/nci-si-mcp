@@ -1,0 +1,2719 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs-fhir",
+  "method": "GET",
+  "path": "/ValueSet/$expand",
+  "params": {
+   "url": [
+    "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492"
+   ],
+   "system-version": [
+    "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl|26.09d"
+   ]
+  },
+  "ignored": {
+   "count": "Verified 2 October 2026: count, offset and activeOnly leave the expansion unchanged (534 members, total 534); only expansion.parameter echoes them",
+   "offset": "Verified 2 October 2026: count, offset and activeOnly leave the expansion unchanged (534 members, total 534); only expansion.parameter echoes them",
+   "activeOnly": "Verified 2 October 2026: count, offset and activeOnly leave the expansion unchanged (534 members, total 534); only expansion.parameter echoes them"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "resourceType": "ValueSet",
+   "id": "ncit_c85492",
+   "url": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+   "identifier": [
+    {
+     "value": "C85492"
+    }
+   ],
+   "version": "26.08e",
+   "name": "CDISC SDTM Method Terminology",
+   "title": "ncit",
+   "status": "active",
+   "experimental": false,
+   "publisher": "National Cancer Institute",
+   "description": "Value set representing the ncit subset C85492",
+   "expansion": {
+    "timestamp": "2026-10-02T05:27:10-04:00",
+    "total": 534,
+    "offset": 0,
+    "contains": [
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C135452",
+      "display": "Accelerator Mass Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C23015",
+      "display": "Acid Fast Bacillae Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85554",
+      "display": "Acridine Orange Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C180883",
+      "display": "Actigraphy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C187892",
+      "display": "Activity Tracking"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85555",
+      "display": "Agar Dilution Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C172558",
+      "display": "Agar Proportion"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C130170",
+      "display": "AHG-enhanced Complement-dependent Lymphocytotoxicity Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C92304",
+      "display": "Alcian Blue and Periodic Acid Schiff Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C92299",
+      "display": "Alcian Blue Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C130179",
+      "display": "Allele Specific Primer Polymerase Chain Reaction"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85556",
+      "display": "Aminoglycoside Screening Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C123464",
+      "display": "Amsler Grid"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120681",
+      "display": "Analytical Ultracentrifugation"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85557",
+      "display": "Antibiotic Agar Screening Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C187893",
+      "display": "Antibody Dependent Cellular Cytotoxicity Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85558",
+      "display": "Antimicrobial Combination Testing Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120682",
+      "display": "Applanation Tonometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C116450",
+      "display": "Arterial Spin Labeling Magnetic Resonance Imaging"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85574",
+      "display": "Atomic Absorption Spectroscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C38036",
+      "display": "Audiometric Test"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C102599",
+      "display": "Auramine Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85573",
+      "display": "Auscultation"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C166060",
+      "display": "Automated Capillary Electrophoresis Western Blot"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C154794",
+      "display": "Automated Count"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C198345",
+      "display": "Automated Microscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C176330",
+      "display": "Autorefraction"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C116157",
+      "display": "Bacterial Artificial Chromosome Array-based Comparative Genomic Hybridization"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C51955",
+      "display": "Bacterial Typing Procedure"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C150875",
+      "display": "Ballpoint Pen Technique"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85576",
+      "display": "Beta Lactamase Screening Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C172556",
+      "display": "Bioimpedance Spectroscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C116155",
+      "display": "Biopolymer Sequencing"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C15189",
+      "display": "Biopsy Procedure"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C198346",
+      "display": "Biuret Reaction Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C49099",
+      "display": "Blood Oxygen Level-Dependent Functional MRI"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C163545",
+      "display": "BrdU Cellular Proliferation Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C116515",
+      "display": "Breath Test"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85577",
+      "display": "Calcofluor White Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C54125",
+      "display": "Calculation"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C17637",
+      "display": "Capillary Electrophoresis"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C150870",
+      "display": "Cardiac Output Thermodilution Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C191331",
+      "display": "Cardiff Acuity Cards"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C150876",
+      "display": "Cell Based Bioassay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C202401",
+      "display": "Cell Based Neutralizing Antibody Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C172559",
+      "display": "Cell Cytotoxicity Neutralization Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C116553",
+      "display": "Cell Proliferation Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C198347",
+      "display": "Cell-based Transduction Inhibition Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C158248",
+      "display": "Cell-of-Origin Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16410",
+      "display": "Centrifugation"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C172553",
+      "display": "Charcoal Enhanced Flocculation"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C225692",
+      "display": "Chemiluminescent Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C111235",
+      "display": "Chemiluminescent Immunoassay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C172557",
+      "display": "Chemiluminescent Microparticle Immunoassay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16431",
+      "display": "Chromatography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C166061",
+      "display": "Chromogenic Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C40960",
+      "display": "Chromogenic In Situ Hybridization"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C127679",
+      "display": "Cineangiography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C142334",
+      "display": "Clauss Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C124351",
+      "display": "Clinical Evaluation"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C111095",
+      "display": "Clot Detection"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C189603",
+      "display": "CO-oximetry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C181464",
+      "display": "Cold Precipitation"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C191328",
+      "display": "Colloidal Gold Immunofiltration Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C111096",
+      "display": "Colorimetry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C184683",
+      "display": "Competitive DNA Hybridization"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C178028",
+      "display": "Competitive Enzyme-linked Immunosorbent Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C154799",
+      "display": "Complement Fixation Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C70611",
+      "display": "Complement Hemolytic Activity Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C130171",
+      "display": "Complement-dependent Lymphocytotoxicity Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C190521",
+      "display": "Computed Radiography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C202408",
+      "display": "Computed Tomography Angiography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C116442",
+      "display": "Computed Tomography Perfusion Imaging"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C137805",
+      "display": "Computed Tomography with Contrast"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C137806",
+      "display": "Computed Tomography without Contrast"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C17204",
+      "display": "Computed Tomography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C172554",
+      "display": "Computerized Corneal Topography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C198349",
+      "display": "Conditioned Orientation Reflex Audiometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C198348",
+      "display": "Conditioned Play Audiometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C17753",
+      "display": "Confocal Microscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C154782",
+      "display": "Congo Red Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120683",
+      "display": "Contact Specular Microscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C172562",
+      "display": "Contrast Enhanced PET Scan"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C142335",
+      "display": "Contrast Enhanced PET-CT Scan"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C172560",
+      "display": "Contrast Enhanced Spiral CT Scan"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C154783",
+      "display": "Contrast Enhanced X-ray"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C46087",
+      "display": "Contrast-enhanced Magnetic Resonance Imaging"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C100085",
+      "display": "Coronary Angiography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C174335",
+      "display": "Coulometric Titration"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C111163",
+      "display": "Cross-Linking and Immunoprecipitation"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C116152",
+      "display": "Cross-linking Immunoprecipitation High-throughput Sequencing"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C122162",
+      "display": "Cryoscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C166062",
+      "display": "Cystometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16482",
+      "display": "Cystoscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85837",
+      "display": "Dark Field Microscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C62298",
+      "display": "Dental Percussion"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C19641",
+      "display": "Dideoxy Chain Termination DNA Sequencing"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C64862",
+      "display": "Diffusion Tensor Imaging"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C111116",
+      "display": "Diffusion Weighted Imaging"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C116158",
+      "display": "Digital Array"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C166063",
+      "display": "Digital Polymerase Chain Reaction"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C18001",
+      "display": "Digital Radiography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C178142",
+      "display": "Dipstick Measurement Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C209648",
+      "display": "Direct Digital Radiography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C187894",
+      "display": "Direct Enzyme-linked Immunosorbent Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C228302",
+      "display": "Direct Fick Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C116154",
+      "display": "Direct Sequencing"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85595",
+      "display": "Disk Diffusion Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C18158",
+      "display": "DNA Microarray Chip"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C38634",
+      "display": "Doppler Echocardiography Test"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C62781",
+      "display": "Doppler Ultrasound"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C163546",
+      "display": "Double Immunodiffusion"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C166064",
+      "display": "Droplet Digital PCR"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C48789",
+      "display": "Dual X-ray Absorptiometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C225693",
+      "display": "Dual-Color Chromogenic in Situ Hybridization"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C123465",
+      "display": "Ductography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C122163",
+      "display": "Duke Incision Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C202406",
+      "display": "Dye Dilution Method Measurement"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C62665",
+      "display": "Dynamic Contrast-Enhanced Magnetic Resonance Imaging"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C116453",
+      "display": "Dynamic Susceptibility Contrast-Enhanced Magnetic Resonance Imaging"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C161407",
+      "display": "Dynamometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C117877",
+      "display": "Early Treatment of Diabetic Retinopathy Study Eye Chart"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16525",
+      "display": "Echocardiography Test"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C106517",
+      "display": "Elastography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C166065",
+      "display": "Electrical Impedance Myography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C111194",
+      "display": "Electrochemiluminescence Immunoassay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C111193",
+      "display": "Electrochemiluminescence"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C38054",
+      "display": "Electroencephalography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C150871",
+      "display": "Electrogastrography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C38056",
+      "display": "Electromyography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C154784",
+      "display": "Electroneurography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16536",
+      "display": "Electrophoresis"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16553",
+      "display": "ELISA"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16546",
+      "display": "Endoscopic Procedure"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16430",
+      "display": "Endoscopic Retrograde Cholangiopancreatography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C46078",
+      "display": "Endoscopic Ultrasound"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120684",
+      "display": "Endpoint Dilution Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C111195",
+      "display": "Enzymatic Colorimetry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C154785",
+      "display": "Enzymatic Spectrophotometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C122164",
+      "display": "Enzymatic Ultracentrifugation"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C17455",
+      "display": "Enzyme Immunoassay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C111196",
+      "display": "Enzyme Multiplied Immunoassay Technique"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C102632",
+      "display": "Enzyme-linked Immunosorbent Spot Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C147466",
+      "display": "Enzyme-Linked Lectin Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85596",
+      "display": "Epsilometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C172564",
+      "display": "Ergospirometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C38112",
+      "display": "Esophagography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C147467",
+      "display": "Eye Fundus Photography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C130172",
+      "display": "Farnsworth-Munsell 100 Hue Test"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C172551",
+      "display": "Farr Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C106523",
+      "display": "Flame Photometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C154798",
+      "display": "Flocculation Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16585",
+      "display": "Flow Cytometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C112284",
+      "display": "Flow Microscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C82392",
+      "display": "Fluid Attenuated Inversion Recovery MRI"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C158242",
+      "display": "Fluorescein Stain"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C116569",
+      "display": "Fluorescence Angiography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C17563",
+      "display": "Fluorescence In Situ Hybridization"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C154786",
+      "display": "Fluorescence Lifetime Imaging Microscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16856",
+      "display": "Fluorescence Microscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C202404",
+      "display": "Fluorescence Resonance Energy Transfer"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C17370",
+      "display": "Fluorescent Antibody Procedure"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C158247",
+      "display": "Fluorescent Antibody Virus Neutralization Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C142336",
+      "display": "Fluorescent Enzyme Immunoassay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C132427",
+      "display": "Fluorescent Spot Test"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C62322",
+      "display": "Fluorimetry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16588",
+      "display": "Fluoroscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C202399",
+      "display": "Focus Forming Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C191335",
+      "display": "Focus Reduction Neutralization Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C122165",
+      "display": "Forced Oscillation Technique"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C135453",
+      "display": "Freezing Point Depression"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C17958",
+      "display": "Functional Magnetic Resonance Imaging"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C135454",
+      "display": "Gas Chromatography and Flame Ionization Detection"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C111203",
+      "display": "Gas Chromatography Mass Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120686",
+      "display": "Gas Chromatography/Chemical Ionization Mass Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120687",
+      "display": "Gas Chromatography/Electron Ionization Mass Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120685",
+      "display": "Gas Chromatography/Tandem Mass Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C18091",
+      "display": "Gel Electrophoresis"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16433",
+      "display": "Gel Filtration Chromatography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85598",
+      "display": "Giemsa Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85599",
+      "display": "Gradient Diffusion Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C23014",
+      "display": "Gram Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C186193",
+      "display": "Hand-held Dynamometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C111205",
+      "display": "Hansel Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C130173",
+      "display": "Hemagglutination Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120688",
+      "display": "Hemagglutination Inhibition Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C23011",
+      "display": "Hematoxylin and Eosin Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120689",
+      "display": "Hemocytometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C95525",
+      "display": "Hepatitis C Virus Recombinant Immunoblot Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C103513",
+      "display": "High Performance Liquid Chromatography Mass Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C202403",
+      "display": "High Performance Liquid Chromatography/Accelerator Mass Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16434",
+      "display": "High Performance Liquid Chromatography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C20644",
+      "display": "High Resolution Computed Tomography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C130174",
+      "display": "High Resolution Melt Analysis"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C198350",
+      "display": "High-Performance Liquid Chromatography with Electrochemical Detection"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120692",
+      "display": "High-performance Liquid Chromatography-Fluorescence"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120693",
+      "display": "High-performance Liquid Chromatography-UV"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120690",
+      "display": "High-performance Liquid Chromatography/Ion-Exchange Chromatography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120691",
+      "display": "High-performance Liquid Chromatography/Tandem Mass Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C132428",
+      "display": "Hillmen Color Chart"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C158249",
+      "display": "Immune Repertoire Deep Sequencing"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C228301",
+      "display": "Immune Repertoire Sequencing"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C225694",
+      "display": "Immune Repertoire Targeted Sequencing"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C163547",
+      "display": "Immuno-Positron Emission Tomography Scan"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C202400",
+      "display": "Immunoagglutination Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C17638",
+      "display": "Immunoblot Analysis"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C154792",
+      "display": "Immunochromatography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C17731",
+      "display": "Immunocytochemistry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C158239",
+      "display": "Immunodiffusion"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16714",
+      "display": "Immunoenzyme Procedure"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C54536",
+      "display": "Immunofixation"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C142337",
+      "display": "Immunofluorescent Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C23020",
+      "display": "Immunohistochemistry Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C142338",
+      "display": "Immunomagnetic Fluorescence Microscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16724",
+      "display": "Immunoprecipitation"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C111236",
+      "display": "Immunoradiometric Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C106536",
+      "display": "Immunoturbidimetry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C154797",
+      "display": "Impedance Conductivity"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C122166",
+      "display": "Impulse Oscillometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C17562",
+      "display": "In Situ Hybridization"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C158251",
+      "display": "In vitro Gene Expression Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C122039",
+      "display": "Incision-induced Bleeding Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85642",
+      "display": "India Ink Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C178027",
+      "display": "Indirect Binding Electrochemiluminescence Immunoassay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C209649",
+      "display": "Indirect Digital Radiography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C187895",
+      "display": "Indirect Enzyme-linked Immunosorbent Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C228303",
+      "display": "Indirect Fick Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C176332",
+      "display": "Indirect Immunofluorescence"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C202397",
+      "display": "Indirect Immunofluorescent Microscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C62328",
+      "display": "Inductively-Coupled Plasma Mass Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85643",
+      "display": "Infrared Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C128363",
+      "display": "Interferon Gamma Release Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C178032",
+      "display": "International Reading Speed Text Test"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C124352",
+      "display": "Interrupter Technique"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C202396",
+      "display": "Intra-Arterial Differential Pressure Transduction"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C178026",
+      "display": "Intracellular Cytokine Stain Flow Cytometric Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C190550",
+      "display": "Intravascular Optical Coherence Tomography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C99535",
+      "display": "Intravascular Ultrasound"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C20177",
+      "display": "Intravenous Pyelography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85649",
+      "display": "Iodine Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85650",
+      "display": "Iron Hematoxylin Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C123466",
+      "display": "Ishihara Color Plates"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C184684",
+      "display": "Isothermal Amplification"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C214705",
+      "display": "Isotope-release Cytotoxicity Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C122167",
+      "display": "Ivy Incision Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C130175",
+      "display": "Jaeger Eye Chart"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120694",
+      "display": "Jaffe Reaction"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16768",
+      "display": "Karyotyping"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C142339",
+      "display": "Kinetic Chromogenic Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C111240",
+      "display": "Kinetic Microparticle Immunoassay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85651",
+      "display": "Kinyoun Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C161409",
+      "display": "Kleihauer-Betke Staining Procedure"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C154787",
+      "display": "Knemometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C142340",
+      "display": "Landolt Ring"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16969",
+      "display": "Laparoscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C19263",
+      "display": "Laser Capture Microdissection"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C116492",
+      "display": "Laser Speckle Imaging"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C189805",
+      "display": "Lateral Flow Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C221635",
+      "display": "Lea Symbols Eye Chart"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C92301",
+      "display": "Lead Citrate Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C178030",
+      "display": "Ligand Binding Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C17995",
+      "display": "Light Microscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C20059",
+      "display": "Light-Scattering Spectroscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C187896",
+      "display": "Limiting Antigen-Avidity Enzyme Immunoassay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C102656",
+      "display": "Line Probe Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C18475",
+      "display": "Liquid Chromatography Mass Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C122169",
+      "display": "Liquid Chromatography-Fluorescence"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C122168",
+      "display": "Liquid Chromatography/Tandem Mass Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C122170",
+      "display": "Liquid Scintillation Counting"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C158241",
+      "display": "Lissamine Green Stain"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C102661",
+      "display": "Loop-mediated Isothermal Amplification"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C187897",
+      "display": "Luciferase Immunoprecipitation System Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C198351",
+      "display": "Luciferase Protein Complementation Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C92300",
+      "display": "Luxol Fast Blue and Cresyl Violet Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C38069",
+      "display": "Lymphangiography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85697",
+      "display": "Macro Broth Dilution Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C184678",
+      "display": "Macroflocculation Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C113775",
+      "display": "Magnetic Resonance Cholangiopancreatography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C19338",
+      "display": "Magnetic Resonance Elastography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C176331",
+      "display": "Magnetic Resonance Enterography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16809",
+      "display": "Magnetic Resonance Imaging"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C29934",
+      "display": "Magnetic Resonance Spectroscopic Imaging"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16811",
+      "display": "Magnetoencephalography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16818",
+      "display": "Mammography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C111245",
+      "display": "Manual Clot Detection"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C154795",
+      "display": "Manual Count"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C187898",
+      "display": "Mass Cytometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C17156",
+      "display": "Mass Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C48040",
+      "display": "Matrix-Assisted Laser Desorption Ionization Mass Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C19935",
+      "display": "Matrix-Assisted Laser Desorption/Ionization-Time of Flight Mass Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C225695",
+      "display": "May-Grunwald Giemsa Stain"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C225696",
+      "display": "May-Grunwald Stain"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C111249",
+      "display": "Mechanical Clot Detection"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16829",
+      "display": "Mediastinoscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C221633",
+      "display": "Metabolic Inhibition Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C184682",
+      "display": "Methylation-Sensitive Quantitative Locked Nucleic Acid Polymerase Chain Reaction"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85701",
+      "display": "Micro Broth Dilution Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C142341",
+      "display": "Micro-Latex Particle-Mediated Immunoassay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C44282",
+      "display": "Microarray"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85702",
+      "display": "Microbial Concentration Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C25300",
+      "display": "Microbial Culture Procedure"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C102668",
+      "display": "Microbial Liquid Culture"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C102669",
+      "display": "Microbial Solid Culture"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C150872",
+      "display": "Microdensitometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C184679",
+      "display": "Microflocculation Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C189604",
+      "display": "Microfluidic ELISA"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C186194",
+      "display": "Microfluidic Immunoassay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C111252",
+      "display": "Microparticle Enzyme Immunoassay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16853",
+      "display": "Microscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85736",
+      "display": "Modified Acid Fast Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C19770",
+      "display": "Molecular Analysis"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120700",
+      "display": "Monocular Pupillometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C166066",
+      "display": "Mouse Protection Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C114184",
+      "display": "MRI Without Contrast"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C114867",
+      "display": "MRI-Based Angiogram"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C106545",
+      "display": "Multi-slice Spiral Computed Tomography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C38073",
+      "display": "Multigated Acquisition Scan"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C130176",
+      "display": "Multiple Breath Washout"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C116160",
+      "display": "Multiple Complete Digest Restriction Fragment Mapping"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C161408",
+      "display": "Multiple Inert Gas Elimination Technique"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C116159",
+      "display": "Multiplex Amplifiable Probe Hybridization"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C116161",
+      "display": "Multiplex Ligation-dependent Probe Amplification"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C158250",
+      "display": "Multiplex Real-time Polymerase Chain Reaction Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C135455",
+      "display": "Multiplexed Bead Based Immunoassay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C166067",
+      "display": "Multiplexed Digital Gene Expression Analysis"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C181928",
+      "display": "Multiplexed Immunofluorescence"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C181927",
+      "display": "Multiplexed Immunohistochemistry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C147468",
+      "display": "Multiplexed Opsonophagocytic Killing Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C158245",
+      "display": "Myeloperoxidase Stain"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C111281",
+      "display": "Nephelometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C127880",
+      "display": "Nested PCR"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120696",
+      "display": "Neuraminidase Inhibition Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C101293",
+      "display": "Next Generation Sequencing"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C130177",
+      "display": "Next Generation Targeted Sequencing"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C53269",
+      "display": "No Information Available"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120697",
+      "display": "Non-Contact Specular Microscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C166068",
+      "display": "Non-Invasive Dielectric Sensing"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16810",
+      "display": "Nuclear Magnetic Resonance Spectroscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C127514",
+      "display": "Nuclear Radiology Imaging Procedure"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C20055",
+      "display": "Nucleic Acid Amplification Test"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16924",
+      "display": "Nucleic Acid Hybridization"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C18881",
+      "display": "Nucleic Acid Sequencing"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C25598",
+      "display": "Observation Activity"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C116156",
+      "display": "Oligonucleotide Array-based Comparative Genomic Hybridization"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120698",
+      "display": "Ophthalmoscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C209650",
+      "display": "Opsonophagocytic Killing Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C20828",
+      "display": "Optical Coherence Tomography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85776",
+      "display": "Optical Density Measurement"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C116162",
+      "display": "Optical Mapping"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C163548",
+      "display": "Orchidometry Measurement"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C154788",
+      "display": "Oscillometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C154793",
+      "display": "Palm Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16950",
+      "display": "Palpation"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C94528",
+      "display": "Panendoscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C128984",
+      "display": "Papanicolaou Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C125952",
+      "display": "Particle-Enhanced Nephelometric Immunoassay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C125953",
+      "display": "Particle-Enhanced Turbidimetric Immunoassay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C125006",
+      "display": "Pathologic Examination"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C122171",
+      "display": "Peak Flowmetry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C117878",
+      "display": "Pelli-Robson Contrast Sensitivity Eye Chart"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C181461",
+      "display": "Penicillin Zone Edge"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C93243",
+      "display": "Perfusion Magnetic Resonance Imaging"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C23019",
+      "display": "Periodic Acid Schiff Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C117879",
+      "display": "Peripheral Angiography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C191330",
+      "display": "PET SCAN Without Contrast"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C142342",
+      "display": "PET-CT Scan Without Contrast"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C176471",
+      "display": "pH Meter Measurement Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C135456",
+      "display": "Phase-Contrast Magnetic Resonance Imaging"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16857",
+      "display": "Phase-Contrast Microscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C130178",
+      "display": "Phenotypic Multiple Antigen Bead-based Multiplex Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120699",
+      "display": "Phoropter"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C94527",
+      "display": "Photography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C111291",
+      "display": "Photometric Clot Detection"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C65109",
+      "display": "Photometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C62329",
+      "display": "Photon Correlation Spectroscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C198843",
+      "display": "Photoplethysmography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C20989",
+      "display": "Physical Examination"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C184680",
+      "display": "Pinhole Occlusion Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C172555",
+      "display": "Plaque Reduction Neutralization Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C122173",
+      "display": "Plethysmography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C166069",
+      "display": "Polygraphy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C17003",
+      "display": "Polymerase Chain Reaction"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C114185",
+      "display": "Polysomnography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C135457",
+      "display": "Population Sequencing"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C103512",
+      "display": "Positron Emission Tomography and Computed Tomography Scan"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C103514",
+      "display": "Positron Emission Tomography and Magnetic Resonance Imaging"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C111297",
+      "display": "Positron Emission Tomography and Single Photon Emission Computed Tomography Scan"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C17007",
+      "display": "Positron Emission Tomography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C142343",
+      "display": "Potentiometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C221636",
+      "display": "Proximity Extension Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C172552",
+      "display": "Pseudovirion-Based Neutralization Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C154789",
+      "display": "Pulmonary Angiography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C38085",
+      "display": "Pulse Oximetry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C17426",
+      "display": "Pulsed-Field Gel Electrophoresis"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C99481",
+      "display": "Pyrosequencing"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C161405",
+      "display": "Quantitative Computed Tomography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120701",
+      "display": "Quantitative Coronary Angiography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C184681",
+      "display": "Quantitative Methylation-Specific Polymerase Chain Reaction"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120702",
+      "display": "Quantitative Peripheral Angiography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C28408",
+      "display": "Quantitative Reverse Transcriptase PCR"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C150873",
+      "display": "Quantitative Ultrasound"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C225697",
+      "display": "Quellung Reaction"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C119296",
+      "display": "Radial Immunodiffusion"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C15312",
+      "display": "Radiation Dosimetry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C128940",
+      "display": "Radiographic Examination"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C17057",
+      "display": "Radioimmunoassay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C172383",
+      "display": "Radioimmunoprecipitation Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C62667",
+      "display": "Radionuclide Imaging"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C135458",
+      "display": "Raji Cell Enzyme Immunoassay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C135459",
+      "display": "Raji Cell Radioimmunoassay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C53465",
+      "display": "Rapid Antigen Test"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C178031",
+      "display": "Rapid Immunoassay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C51962",
+      "display": "Real Time PCR"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120703",
+      "display": "Rebound Tonometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C19340",
+      "display": "Reflectance or Transmission Spectroscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C111304",
+      "display": "Refractometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C40211",
+      "display": "Representational Oligonucleotide Microarray Analysis"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C178024",
+      "display": "Resting Functional Magnetic Resonance Imaging"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C17633",
+      "display": "Restriction Fragment Length Polymorphism Analysis"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C28654",
+      "display": "Retrograde Pyelogram"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C184797",
+      "display": "Reverse Phase Protein Array"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C18136",
+      "display": "Reverse Transcriptase-Polymerase Chain Reaction"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C191334",
+      "display": "Rinne Test Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C158240",
+      "display": "Romanowsky Stain"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C214704",
+      "display": "Rotational Thromboelastography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C179765",
+      "display": "Roth-28 Hue Test"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C176469",
+      "display": "Ruler Measurement Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85801",
+      "display": "Ryan Blue Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C187899",
+      "display": "Sandwich Enzyme-linked Immunosorbent Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16855",
+      "display": "Scanning Electron Microscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C75526",
+      "display": "Schirmer Test Wetting"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C181462",
+      "display": "Secondary Electrospray Ionization High-resolution Mass Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C154790",
+      "display": "Secondary Ion Mass Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C178029",
+      "display": "Self Assessment"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C74528",
+      "display": "Self-Report"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C202402",
+      "display": "Semi-Quantitative Reverse Transcriptase Polymerase Chain Reaction"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C130180",
+      "display": "Sequence-based Typing"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C130181",
+      "display": "Sequence-specific Oligonucleotide Probe Polymerase Chain Reaction"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C221637",
+      "display": "Serum Bactericidal Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C176328",
+      "display": "Sheath Flow Direct Current Detection"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C166070",
+      "display": "Sickle Cell Solubility Test"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C142344",
+      "display": "Silver-Enhanced in Situ Hybridization"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C130182",
+      "display": "Single Antigen Bead-based Multiplex Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C150874",
+      "display": "Single Energy X-Ray Absorptiometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C116151",
+      "display": "Single Nucleotide Polymorphism Array"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C17203",
+      "display": "Single Photon Emission Computed Tomography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C154791",
+      "display": "Single Photon Tomography and Computed Tomography Scan"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C161406",
+      "display": "Single-Molecule Array"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C209651",
+      "display": "Single-Nucleotide Primer Extension"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C106567",
+      "display": "Single-slice Spiral Computed Tomography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C130183",
+      "display": "Single-strand Conformation Polymerase Chain Reaction"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C158243",
+      "display": "Slit Lamp Photography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C75583",
+      "display": "Slit-lamp Examination"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C117880",
+      "display": "Sloan Letter Eye Chart 1.25 Percent"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C158246",
+      "display": "Sloan Letter Eye Chart 100 Percent"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C117881",
+      "display": "Sloan Letter Eye Chart 2.5 Percent"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C65126",
+      "display": "Smear"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C209652",
+      "display": "Smoking Topography Research"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C221634",
+      "display": "Snellen E Optotype Chart"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C123467",
+      "display": "Snellen Eye Chart"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C176329",
+      "display": "Sodium Lauryl Sulphate Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C162464",
+      "display": "Spectral Domain-Optical Coherence Tomography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C116701",
+      "display": "Spectrophotometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120542",
+      "display": "Specular Microscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C172561",
+      "display": "Spiral CT Scan Without Contrast"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C20645",
+      "display": "Spiral CT"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85397",
+      "display": "Spirometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C174334",
+      "display": "Static Perimetry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C80407",
+      "display": "Stress Echocardiography Test"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C18117",
+      "display": "Surface Plasmon Resonance"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C121377",
+      "display": "Susceptibility Weighted Imaging"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C191332",
+      "display": "Sweep Visual Evoked Potential"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C18142",
+      "display": "Tandem Mass Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C158253",
+      "display": "Targeted Genome Sequencing"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C158252",
+      "display": "Targeted Transcriptome Sequencing"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C178023",
+      "display": "Task Functional Magnetic Resonance Imaging"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C142345",
+      "display": "Teller Acuity Cards"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C122174",
+      "display": "Template Incision Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C50322",
+      "display": "Test Strip Device"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C158244",
+      "display": "Thermal Ionization Mass Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85819",
+      "display": "Thick Smear Technique"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85820",
+      "display": "Thin Smear Technique"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C202398",
+      "display": "Thromboelastography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C181463",
+      "display": "Titrimetry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C92302",
+      "display": "Toluidine Blue Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120543",
+      "display": "Tonometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C96640",
+      "display": "Total Body Radiography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C15350",
+      "display": "Total-Body Irradiation"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C186195",
+      "display": "Tourniquet Test"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C187900",
+      "display": "Toxin Neutralization Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C71375",
+      "display": "Transabdominal Ultrasound"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C122175",
+      "display": "Transcription-mediated Amplification"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C80405",
+      "display": "Transesophageal Echocardiography Test"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C147464",
+      "display": "Transesophageal Echocardiography With Contrast"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C18216",
+      "display": "Transmission Electron Microscopy"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C80404",
+      "display": "Transthoracic Echocardiography Test"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C147465",
+      "display": "Transthoracic Echocardiography With Contrast"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C17644",
+      "display": "Transvaginal Ultrasound"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C23012",
+      "display": "Trichrome Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C130184",
+      "display": "Triple Phase MRI"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C19907",
+      "display": "Triple-Phase Spiral CT"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C163743",
+      "display": "Trypan Blue Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C111328",
+      "display": "Turbidimetry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C116153",
+      "display": "Two Color Microarray"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C88505",
+      "display": "Tympanometry Assessment"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C209653",
+      "display": "Ultra High Performance Liquid Chromatography/Accelerator Mass Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C122176",
+      "display": "Ultra High-performance Liquid Chromatography/Tandem Mass Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C172563",
+      "display": "Ultrasonographic Elastography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C17230",
+      "display": "Ultrasound Imaging"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C92303",
+      "display": "Uranyl Acetate Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C178025",
+      "display": "Van de Kamer Titration Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C38100",
+      "display": "Ventilation Perfusion Scanning"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C176470",
+      "display": "Vernier Caliper Measurement Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C120695",
+      "display": "Virus Neutralization Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C174336",
+      "display": "Virus Plaque Assay"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C121547",
+      "display": "Visual Analog Scale"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C214703",
+      "display": "Visual Inspection"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C198352",
+      "display": "Visual Reinforcement Audiometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C202407",
+      "display": "Volume Conductivity Scatter Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C186196",
+      "display": "Wallace Rule of Nines"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85828",
+      "display": "Weber Green Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C191333",
+      "display": "Weber Test Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C154796",
+      "display": "Westergren Tube Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C16357",
+      "display": "Western Blotting"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C101295",
+      "display": "Whole Exome Sequencing"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C101294",
+      "display": "Whole Genome Sequencing"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C124261",
+      "display": "Whole Transcriptome Sequencing"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85829",
+      "display": "Wright Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C23041",
+      "display": "Wright-Giemsa Staining Method"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C20080",
+      "display": "X-ray Angiography"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85830",
+      "display": "X-Ray Fluorescence Spectrometry"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C38101",
+      "display": "X-Ray Imaging"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C191329",
+      "display": "X-Ray Without Contrast"
+     },
+     {
+      "system": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492",
+      "code": "C85831",
+      "display": "Ziehl Neelsen Acid Fast Staining Method"
+     }
+    ]
+   }
+  }
+ }
+}

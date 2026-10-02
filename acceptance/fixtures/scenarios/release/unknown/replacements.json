@@ -1,0 +1,27 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/history/ncit_99.99z/replacements",
+  "params": {
+   "list": [
+    "C154421"
+   ]
+  },
+  "ignored": {
+   "*": "Verified 2 October 2026: EVS answers 404 \"Terminology not found\" for an unknown release on every content path, whatever the parameters"
+  }
+ },
+ "response": {
+  "status": 404,
+  "body": {
+   "timestamp": 1790933239520,
+   "status": 404,
+   "error": "Not Found",
+   "message": "Terminology not found = ncit_99.99z",
+   "path": "/api/v1/history/ncit_99.99z/replacements"
+  }
+ }
+}

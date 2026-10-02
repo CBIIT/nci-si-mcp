@@ -1,0 +1,18 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/mapset/NCIt_Maps_To_GDC"
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "NCIt_Maps_To_GDC",
+   "name": "NCIt_Maps_To_GDC",
+   "version": "26.08e",
+   "active": true
+  }
+ }
+}

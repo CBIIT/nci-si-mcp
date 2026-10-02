@@ -1,0 +1,1622 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C3038",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C3038",
+   "name": "Fever",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Fever",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "ACC/AHA",
+     "code": "VAR",
+     "subSource": "SARS2"
+    },
+    {
+     "name": "Fever",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "ACC/AHA",
+     "subSource": "PCC"
+    },
+    {
+     "name": "Fever",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "caDSR"
+    },
+    {
+     "name": "Fever",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTCAE",
+     "code": "E11102"
+    },
+    {
+     "name": "Fever",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "FDA",
+     "code": "1858",
+     "subSource": "CDRH"
+    },
+    {
+     "name": "Fever",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "GDC"
+    },
+    {
+     "name": "fever",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI-GLOSS",
+     "code": "CDR0000450108"
+    },
+    {
+     "name": "Fever",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Fever",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NICHD"
+    },
+    {
+     "name": "Pyrexia",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NICHD"
+    },
+    {
+     "name": "Fever",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    },
+    {
+     "name": "FEVER",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "HL"
+    },
+    {
+     "name": "Fever",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "SeroNet"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A disorder characterized by elevation of the body's temperature above the upper limit of normal.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "CTCAE"
+    },
+    {
+     "definition": "An increase in body temperature above normal (98.6 degrees F), usually caused by disease.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "NCI-GLOSS"
+    },
+    {
+     "definition": "Elevation of body temperature above normal due to inflammatory or immune responses.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    },
+    {
+     "definition": "Elevation of body temperature above normal due to the bodies own responses.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "FDA",
+     "qualifiers": [
+      {
+       "code": "P381",
+       "type": "attribution",
+       "value": "CDRH"
+      }
+     ]
+    },
+    {
+     "definition": "Elevation of body temperature above normal due to the production of more heat than the body is able to dissipate.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "NICHD"
+    },
+    {
+     "definition": "Temperature greater than or equal to 100.4 degrees F (38.0 degrees C)",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "ACC/AHA",
+     "qualifiers": [
+      {
+       "code": "P381",
+       "type": "attribution",
+       "value": "SARS2"
+      }
+     ]
+    },
+    {
+     "definition": "The elevation of the body's temperature above the upper limit of normal, usually taken as 37.7 degrees Celsius.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "ACC/AHA"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "ACC/AHA"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTCAE"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "FDA"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "GDC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "MedDRA"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "NICHD"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "PCDC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "SeroNet"
+    },
+    {
+     "code": "P317",
+     "type": "FDA_Table",
+     "value": "Patient Code (Appendix B)"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Fever"
+    },
+    {
+     "code": "P375",
+     "type": "Maps_To",
+     "value": "Fever"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Sign or Symptom"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C0015967"
+    },
+    {
+     "code": "P333",
+     "type": "Use_For",
+     "value": "Pyrogenic"
+    },
+    {
+     "code": "P333",
+     "type": "Use_For",
+     "value": "Pyrogenic reaction"
+    },
+    {
+     "code": "P333",
+     "type": "Use_For",
+     "value": "Reaction, pyrogenic"
+    },
+    {
+     "code": "oboInOwl:hasDbXref",
+     "type": "xRef",
+     "value": "IMDRF:E230101"
+    }
+   ],
+   "children": [
+    {
+     "code": "C34608",
+     "name": "Fever of Unknown Origin",
+     "leaf": true
+    },
+    {
+     "code": "C36169",
+     "name": "Hemorrhagic Fever",
+     "leaf": true
+    },
+    {
+     "code": "C176698",
+     "name": "High Grade Fever",
+     "leaf": false
+    },
+    {
+     "code": "C35367",
+     "name": "Intermittent Pyrexia",
+     "leaf": true
+    },
+    {
+     "code": "C114374",
+     "name": "Intrapartum Pyrexia",
+     "leaf": true
+    },
+    {
+     "code": "C35292",
+     "name": "Low Grade Fever",
+     "leaf": true
+    },
+    {
+     "code": "C176699",
+     "name": "Moderate Grade Fever",
+     "leaf": true
+    },
+    {
+     "code": "C114405",
+     "name": "Postpartum Pyrexia",
+     "leaf": true
+    },
+    {
+     "code": "C173825",
+     "name": "Subjective Fever",
+     "leaf": true
+    },
+    {
+     "code": "C35052",
+     "name": "Sweating Fever",
+     "leaf": true
+    },
+    {
+     "code": "C35662",
+     "name": "Tumor Associated Fever",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C53458",
+     "name": "Sign"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C191200",
+     "relatedName": "ACC/AHA Cardiovascular and Noncardiovascular Complications of COVID-19 Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C191670",
+     "relatedName": "ACC/AHA COVID-19 Appendix Variables"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C167409",
+     "relatedName": "ACC/AHA Pediatric and Congenital Cardiology EHR Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C191385",
+     "relatedName": "Appendix 6: Symptoms and Signs Terminology"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C43283",
+     "relatedName": "B-Symptoms"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C54450",
+     "relatedName": "CDRH Health Effects - Clinical Signs and Symptoms or Conditions Terminology"
+    },
+    {
+     "code": "A23",
+     "type": "Has_PCDC_Data_Type",
+     "relatedCode": "C25162",
+     "relatedName": "Code"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C208333",
+     "relatedName": "CTCAE Adverse Events Version 4.0 Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C191398",
+     "relatedName": "Current Symptoms and Signs: Clinical Symptoms Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C157711",
+     "relatedName": "GDC Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177537",
+     "relatedName": "GDC Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C186317",
+     "relatedName": "HL Disease Characteristics Table"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C186342",
+     "relatedName": "HL Variable Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C90259",
+     "relatedName": "NICHD Terminology"
+    },
+    {
+     "code": "A48",
+     "type": "Has_ACC-AHA_SARS2_Authorized_Value",
+     "relatedCode": "C49487",
+     "relatedName": "No"
+    },
+    {
+     "code": "A39",
+     "type": "Has_PCDC_HL_Authorized_Value",
+     "relatedCode": "C49487",
+     "relatedName": "No"
+    },
+    {
+     "code": "A37",
+     "type": "Has_SeroNet_Authorized_Value",
+     "relatedCode": "C49487",
+     "relatedName": "No"
+    },
+    {
+     "code": "A37",
+     "type": "Has_SeroNet_Authorized_Value",
+     "relatedCode": "C48660",
+     "relatedName": "Not Applicable"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C189762",
+     "relatedName": "Pediatric Adverse Events Terminology Mapped to MedDRA"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C118464",
+     "relatedName": "Pediatric Adverse Events Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C96388",
+     "relatedName": "Pediatric Immunization Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C128453",
+     "relatedName": "Pediatric Infectious Disease Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C179027",
+     "relatedName": "SeroNet Authorized Values"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C178718",
+     "relatedName": "SeroNet Research Participant Metadata"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C189083",
+     "relatedName": "SeroNet Study Descriptors"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C179026",
+     "relatedName": "SeroNet Variables"
+    },
+    {
+     "code": "A48",
+     "type": "Has_ACC-AHA_SARS2_Authorized_Value",
+     "relatedCode": "C17998",
+     "relatedName": "Unknown"
+    },
+    {
+     "code": "A37",
+     "type": "Has_SeroNet_Authorized_Value",
+     "relatedCode": "C17998",
+     "relatedName": "Unknown"
+    },
+    {
+     "code": "A48",
+     "type": "Has_ACC-AHA_SARS2_Authorized_Value",
+     "relatedCode": "C49488",
+     "relatedName": "Yes"
+    },
+    {
+     "code": "A39",
+     "type": "Has_PCDC_HL_Authorized_Value",
+     "relatedCode": "C49488",
+     "relatedName": "Yes"
+    },
+    {
+     "code": "A37",
+     "type": "Has_SeroNet_Authorized_Value",
+     "relatedCode": "C49488",
+     "relatedName": "Yes"
+    }
+   ],
+   "history": [
+    {
+     "code": "C3038",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2003-10-31"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2004-08-02"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2005-12-01"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2006-01-03"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2006-03-31"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2008-04-30"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2009-08-03"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2009-11-09"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2010-03-08"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2010-07-26"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2010-08-02"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2010-08-09"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2010-08-16"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2010-08-23"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2010-08-30"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2010-09-07"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2010-09-13"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2010-09-20"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2010-09-27"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2010-11-01"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2010-11-08"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2010-11-15"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2010-11-22"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2010-11-29"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2010-12-06"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2010-12-13"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2010-12-27"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2011-01-03"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2011-01-10"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2011-01-17"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2011-01-24"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2011-01-31"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2011-05-02"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2011-05-09"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2011-05-16"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2011-05-23"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2011-05-31"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2011-06-06"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2011-06-13"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2011-06-20"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2011-06-27"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2012-03-12"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2012-03-26"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2012-09-17"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2012-10-01"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2012-10-09"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2012-10-15"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2012-10-22"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2012-10-31"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2012-11-05"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2012-11-13"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2012-11-19"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2012-11-26"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2012-12-03"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2012-12-10"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2012-12-17"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2012-12-28"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-01-07"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-01-14"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-01-23"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-02-04"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-02-11"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-02-19"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-02-25"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-03-04"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-03-11"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-03-18"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-03-25"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-04-01"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-04-08"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-04-15"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-04-22"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-04-29"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-05-06"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-05-13"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-05-20"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-05-28"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-06-03"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-06-10"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-06-17"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-06-24"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-07-01"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-07-08"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2013-09-30"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2014-09-22"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2014-10-27"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2014-11-03"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2014-11-10"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2014-11-17"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2014-11-24"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2014-12-01"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2014-12-08"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2014-12-15"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2014-12-22"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2014-12-29"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-01-05"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-01-12"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-01-20"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-01-26"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-02-02"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-02-09"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-02-17"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-02-23"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-03-02"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-03-09"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-03-16"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-03-23"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-03-30"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-04-06"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-04-13"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-04-20"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-04-27"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-05-04"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-05-11"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-05-18"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-05-26"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-06-01"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-06-08"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-06-15"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-06-22"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-06-29"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-07-06"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-07-13"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-08-12"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-08-24"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-08-31"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-09-08"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-09-14"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-09-21"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-09-28"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-10-05"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-10-13"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-10-19"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-10-26"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-11-02"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-11-09"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-11-16"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-11-23"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-11-30"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-12-07"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-12-14"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-12-21"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2015-12-28"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-01-04"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-01-11"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-01-19"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-01-29"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-04-18"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-05-09"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-05-16"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-05-23"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-05-31"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-06-06"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-06-13"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-06-17"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-06-27"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-07-05"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-07-11"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-07-18"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-07-25"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-08-01"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-08-08"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-08-15"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-08-22"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-08-29"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-09-06"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-09-12"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-09-20"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-09-26"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-10-03"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-10-11"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-10-17"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-10-24"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-10-31"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-11-07"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-11-14"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-11-21"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-11-28"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-12-05"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-12-12"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-12-19"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2016-12-27"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2017-01-03"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2017-01-09"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2017-01-17"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2017-01-23"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2017-02-13"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2017-05-04"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2017-08-28"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2017-09-26"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2017-12-26"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2018-10-29"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2018-10-29"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2019-09-30"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2020-01-27"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2020-02-24"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2020-03-30"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2020-05-26"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2020-08-31"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2020-09-29"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2021-02-22"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2021-03-29"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2021-04-26"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2022-02-28"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2022-03-28"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2022-08-29"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2022-09-26"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2022-10-31"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2022-12-27"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2023-02-27"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2024-07-29"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2024-08-26"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2024-08-26"
+    },
+    {
+     "code": "C3038",
+     "action": "modify",
+     "date": "2025-05-27"
+    }
+   ],
+   "maps": [
+    {
+     "type": "Has Synonym",
+     "targetName": "Fever",
+     "targetTermType": "PT",
+     "targetCode": "ann_arbor_b_symptoms_described",
+     "targetTerminology": "GDC"
+    }
+   ]
+  }
+ }
+}

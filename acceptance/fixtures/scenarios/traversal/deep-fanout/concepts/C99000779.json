@@ -1,0 +1,32 @@
+{
+ "kind": "crafted",
+ "requirement": "A5.1-A5.4: descendants beyond the depth and node bounds",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C99000779",
+  "params": {
+   "include": [
+    "full"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C99000779",
+   "name": "Synthetic Fanout Child 779",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "parents": [
+    {
+     "code": "C99000000",
+     "name": "Synthetic Fanout Root"
+    }
+   ]
+  }
+ }
+}

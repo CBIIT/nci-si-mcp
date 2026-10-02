@@ -1,0 +1,257 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C165668",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C165668",
+   "name": "CIC Gene Rearrangement",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "CIC Gene Rearrangement",
+     "termType": "DN",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTRP"
+    },
+    {
+     "name": "Capicua (Drosophila) Homolog Gene Rearrangement",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Capicua Homolog (Drosophila) Gene Rearrangement",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Capicua Transcriptional Repressor Gene Rearrangement",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Capicua, Drosophila, Homolog of Gene Rearrangement",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "CIC Gene Rearrangement",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "CIC Rearrangement",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "CIC Gene Rearrangement",
+     "type": "Display_Name",
+     "typeCode": "P107"
+    },
+    {
+     "name": "CIC Gene Rearrangement",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    },
+    {
+     "name": "CIC Rearranged",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "EWS"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A molecular abnormality indicating rearrangement of the CIC gene.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTRP"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "PCDC"
+    },
+    {
+     "code": "P208",
+     "type": "NCI_META_CUI",
+     "value": "CL978935"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Cell or Molecular Dysfunction"
+    }
+   ],
+   "children": [
+    {
+     "code": "C120223",
+     "name": "t(10;19)(q26;q13)",
+     "leaf": true
+    },
+    {
+     "code": "C174482",
+     "name": "t(4;19)(q25;q13)",
+     "leaf": true
+    },
+    {
+     "code": "C120222",
+     "name": "t(4;19)(q35;q13)",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C133155",
+     "name": "Gene Rearrangement Abnormality"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142799",
+     "relatedName": "CTRP Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142800",
+     "relatedName": "CTRP Molecular Genetic Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C116977",
+     "relatedName": "CTRP Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C174237",
+     "relatedName": "EWS Authorized Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C174252",
+     "relatedName": "EWS Molecular Analysis Table"
+    },
+    {
+     "code": "A28",
+     "type": "Is_PCDC_EWS_Authorized_Value_For_Variable",
+     "relatedCode": "C3910",
+     "relatedName": "Molecular Abnormality"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C97912",
+     "relatedName": "CIC Gene"
+    },
+    {
+     "code": "R173",
+     "type": "Cytogenetic_Abnormality_Involves_Chromosome",
+     "relatedCode": "C13214",
+     "relatedName": "Human Chromosome 19"
+    }
+   ],
+   "history": [
+    {
+     "code": "C165668",
+     "action": "create",
+     "date": "2019-11-25"
+    },
+    {
+     "code": "C165668",
+     "action": "modify",
+     "date": "2019-11-25"
+    },
+    {
+     "code": "C165668",
+     "action": "modify",
+     "date": "2020-04-27"
+    },
+    {
+     "code": "C165668",
+     "action": "modify",
+     "date": "2020-10-26"
+    },
+    {
+     "code": "C165668",
+     "action": "modify",
+     "date": "2020-11-30"
+    },
+    {
+     "code": "C165668",
+     "action": "modify",
+     "date": "2020-12-28"
+    },
+    {
+     "code": "C165668",
+     "action": "modify",
+     "date": "2021-06-28"
+    },
+    {
+     "code": "C165668",
+     "action": "modify",
+     "date": "2022-04-25"
+    },
+    {
+     "code": "C165668",
+     "action": "modify",
+     "date": "2022-10-31"
+    },
+    {
+     "code": "C165668",
+     "action": "modify",
+     "date": "2023-02-27"
+    },
+    {
+     "code": "C165668",
+     "action": "modify",
+     "date": "2023-05-30"
+    }
+   ]
+  }
+ }
+}

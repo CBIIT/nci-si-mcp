@@ -1,0 +1,116 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C54105",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C54105",
+   "name": "Germinal Layer",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Germinal Layer",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Germinal Layer",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Germinal_Layer"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Tissue"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1708239"
+    }
+   ],
+   "children": [
+    {
+     "code": "C12703",
+     "name": "Ectoderm",
+     "leaf": false
+    },
+    {
+     "code": "C12706",
+     "name": "Endoderm",
+     "leaf": true
+    },
+    {
+     "code": "C12750",
+     "name": "Mesoderm",
+     "leaf": false
+    }
+   ],
+   "parents": [
+    {
+     "code": "C12950",
+     "name": "Embryonic Tissue"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R82",
+     "type": "Anatomic_Structure_Is_Physical_Part_Of",
+     "relatedCode": "C28147",
+     "relatedName": "Embryo"
+    },
+    {
+     "code": "R82",
+     "type": "Anatomic_Structure_Is_Physical_Part_Of",
+     "relatedCode": "C34058",
+     "relatedName": "Trilaminar Embryonic Disc"
+    }
+   ],
+   "history": [
+    {
+     "code": "C54105",
+     "action": "create",
+     "date": "2006-03-31"
+    },
+    {
+     "code": "C54105",
+     "action": "modify",
+     "date": "2009-04-06"
+    },
+    {
+     "code": "C54105",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C54105",
+     "action": "modify",
+     "date": "2014-02-03"
+    }
+   ]
+  }
+ }
+}

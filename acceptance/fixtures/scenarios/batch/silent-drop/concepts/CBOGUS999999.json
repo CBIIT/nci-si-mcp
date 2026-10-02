@@ -1,0 +1,24 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/CBOGUS999999",
+  "params": {
+   "include": [
+    "full"
+   ]
+  }
+ },
+ "response": {
+  "status": 404,
+  "body": {
+   "timestamp": 1790933242122,
+   "status": 404,
+   "error": "Not Found",
+   "message": "CBOGUS999999 not found",
+   "path": "/api/v1/concept/ncit_26.09d/CBOGUS999999"
+  }
+ }
+}

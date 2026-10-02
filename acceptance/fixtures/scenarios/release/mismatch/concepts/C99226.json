@@ -1,0 +1,305 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C99226",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C99226",
+   "name": "EWSR1/FEV Fusion Gene",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "EWSR1/FEV Fusion Gene",
+     "termType": "DN",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTRP"
+    },
+    {
+     "name": "EWS-FEV Fusion Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWS/FEV Fusion Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWSR1-FEV Fusion Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWSR1/FEV Fusion Gene",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWSR1::FEV Fusion Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "FEV-EWSR1 Fusion Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "FEV/EWS Fusion Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWSR1/FEV Fusion Gene",
+     "type": "Display_Name",
+     "typeCode": "P107"
+    },
+    {
+     "name": "EWSR1/FEV Fusion Gene",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    },
+    {
+     "name": "EWSR1-FEV",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "EWS"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A fusion gene that results from a chromosomal translocation t(2;22)(q36;q12) which fuses either the first seven or ten exons of the EWSR1 gene with exon 1 or 2 of the FEV gene. This rearrangement is associated with Ewing tumor/peripheral primitive neuroectodermal tumor.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTRP"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "PCDC"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Gene or Genome"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1851464"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C186677",
+     "name": "FET/ETS Family Fusion Gene"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142799",
+     "relatedName": "CTRP Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142800",
+     "relatedName": "CTRP Molecular Genetic Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C116977",
+     "relatedName": "CTRP Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C174237",
+     "relatedName": "EWS Authorized Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C174252",
+     "relatedName": "EWS Molecular Analysis Table"
+    },
+    {
+     "code": "A13",
+     "type": "Related_To_Genetic_Biomarker",
+     "relatedCode": "C18322",
+     "relatedName": "EWSR1 Gene"
+    },
+    {
+     "code": "A13",
+     "type": "Related_To_Genetic_Biomarker",
+     "relatedCode": "C97482",
+     "relatedName": "FEV Gene"
+    },
+    {
+     "code": "A28",
+     "type": "Is_PCDC_EWS_Authorized_Value_For_Variable",
+     "relatedCode": "C3910",
+     "relatedName": "Molecular Abnormality"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R132",
+     "type": "Gene_Has_Abnormality",
+     "relatedCode": "C186727",
+     "relatedName": "ETS Family Gene Rearrangement"
+    },
+    {
+     "code": "R175",
+     "type": "Gene_Involved_In_Pathogenesis_Of_Disease",
+     "relatedCode": "C27291",
+     "relatedName": "Ewing Sarcoma/Peripheral Primitive Neuroectodermal Tumor"
+    },
+    {
+     "code": "R132",
+     "type": "Gene_Has_Abnormality",
+     "relatedCode": "C179848",
+     "relatedName": "FET Family Gene Translocation"
+    }
+   ],
+   "history": [
+    {
+     "code": "C99226",
+     "action": "create",
+     "date": "2011-12-19"
+    },
+    {
+     "code": "C99226",
+     "action": "modify",
+     "date": "2012-02-27"
+    },
+    {
+     "code": "C99226",
+     "action": "modify",
+     "date": "2012-03-05"
+    },
+    {
+     "code": "C99226",
+     "action": "modify",
+     "date": "2012-03-19"
+    },
+    {
+     "code": "C99226",
+     "action": "modify",
+     "date": "2012-11-26"
+    },
+    {
+     "code": "C99226",
+     "action": "modify",
+     "date": "2013-03-11"
+    },
+    {
+     "code": "C99226",
+     "action": "modify",
+     "date": "2014-02-03"
+    },
+    {
+     "code": "C99226",
+     "action": "modify",
+     "date": "2017-10-30"
+    },
+    {
+     "code": "C99226",
+     "action": "modify",
+     "date": "2017-12-26"
+    },
+    {
+     "code": "C99226",
+     "action": "modify",
+     "date": "2018-07-30"
+    },
+    {
+     "code": "C99226",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C99226",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C99226",
+     "action": "modify",
+     "date": "2020-10-26"
+    },
+    {
+     "code": "C99226",
+     "action": "modify",
+     "date": "2020-11-30"
+    },
+    {
+     "code": "C99226",
+     "action": "modify",
+     "date": "2020-12-28"
+    },
+    {
+     "code": "C99226",
+     "action": "modify",
+     "date": "2021-06-28"
+    },
+    {
+     "code": "C99226",
+     "action": "modify",
+     "date": "2022-04-25"
+    },
+    {
+     "code": "C99226",
+     "action": "modify",
+     "date": "2022-10-31"
+    },
+    {
+     "code": "C99226",
+     "action": "modify",
+     "date": "2023-02-27"
+    }
+   ]
+  }
+ }
+}

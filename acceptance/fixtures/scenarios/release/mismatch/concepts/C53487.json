@@ -1,0 +1,86 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C53487",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C53487",
+   "name": "Malignant Small Round Cell",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Malignant Small Round Cell",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Malignant Small Round Cell",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Malignant_Small_Round_Cell"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Cell"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1708907"
+    }
+   ],
+   "children": [
+    {
+     "code": "C60805",
+     "name": "Malignant Small Round Cell with Scant Amount of Dark Granular Cytoplasm",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C36860",
+     "name": "Malignant Small Cell"
+    },
+    {
+     "code": "C37100",
+     "name": "Neoplastic Small Round Cell"
+    }
+   ],
+   "history": [
+    {
+     "code": "C53487",
+     "action": "create",
+     "date": "2006-02-24"
+    },
+    {
+     "code": "C53487",
+     "action": "modify",
+     "date": "2009-11-23"
+    }
+   ]
+  }
+ }
+}

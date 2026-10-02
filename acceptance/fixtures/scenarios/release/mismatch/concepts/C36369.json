@@ -1,0 +1,269 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C36369",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C36369",
+   "name": "t(17;22)(q21;q12)",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "t(17;22)(q21;q12) (Ewing sarcoma)",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CPTAC"
+    },
+    {
+     "name": "t(17;22)(q21;q12)",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "t(17;22)(q21;q12)",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    },
+    {
+     "name": "t(17;22)(q21;q12)",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "EWS"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A chromosomal translocation involving the ETV4 gene on chromosome 17q21 and the EWSR1 gene on chromosome 22q12.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CPTAC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "PCDC"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "t_17_22_q21_q12"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Cell or Molecular Dysfunction"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1515731"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C186854",
+     "name": "ETV4 Gene Rearrangement"
+    },
+    {
+     "code": "C128648",
+     "name": "EWSR1 Gene Translocation"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C156953",
+     "relatedName": "CPTAC Baseline Medical Forms Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C159414",
+     "relatedName": "CPTAC Sarcoma Baseline Form"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C156952",
+     "relatedName": "CPTAC Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C174237",
+     "relatedName": "EWS Authorized Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C174252",
+     "relatedName": "EWS Molecular Analysis Table"
+    },
+    {
+     "code": "A28",
+     "type": "Is_PCDC_EWS_Authorized_Value_For_Variable",
+     "relatedCode": "C3910",
+     "relatedName": "Molecular Abnormality"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C18326",
+     "relatedName": "ETS Family Gene"
+    },
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C24378",
+     "relatedName": "ETV4 Gene"
+    },
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C18322",
+     "relatedName": "EWSR1 Gene"
+    },
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C99262",
+     "relatedName": "EWSR1/ETV4 Fusion Gene"
+    },
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C186676",
+     "relatedName": "FET Family Gene"
+    },
+    {
+     "code": "R173",
+     "type": "Cytogenetic_Abnormality_Involves_Chromosome",
+     "relatedCode": "C13212",
+     "relatedName": "Human Chromosome 17"
+    },
+    {
+     "code": "R173",
+     "type": "Cytogenetic_Abnormality_Involves_Chromosome",
+     "relatedCode": "C13218",
+     "relatedName": "Human Chromosome 22"
+    }
+   ],
+   "history": [
+    {
+     "code": "C36369",
+     "action": "create",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C36369",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C36369",
+     "action": "modify",
+     "date": "2011-07-11"
+    },
+    {
+     "code": "C36369",
+     "action": "modify",
+     "date": "2011-07-25"
+    },
+    {
+     "code": "C36369",
+     "action": "modify",
+     "date": "2014-02-03"
+    },
+    {
+     "code": "C36369",
+     "action": "modify",
+     "date": "2017-11-27"
+    },
+    {
+     "code": "C36369",
+     "action": "modify",
+     "date": "2019-02-25"
+    },
+    {
+     "code": "C36369",
+     "action": "modify",
+     "date": "2020-01-27"
+    },
+    {
+     "code": "C36369",
+     "action": "modify",
+     "date": "2020-09-29"
+    },
+    {
+     "code": "C36369",
+     "action": "modify",
+     "date": "2020-10-26"
+    },
+    {
+     "code": "C36369",
+     "action": "modify",
+     "date": "2020-11-30"
+    },
+    {
+     "code": "C36369",
+     "action": "modify",
+     "date": "2020-12-28"
+    },
+    {
+     "code": "C36369",
+     "action": "modify",
+     "date": "2021-03-29"
+    },
+    {
+     "code": "C36369",
+     "action": "modify",
+     "date": "2021-06-28"
+    },
+    {
+     "code": "C36369",
+     "action": "modify",
+     "date": "2022-04-25"
+    },
+    {
+     "code": "C36369",
+     "action": "modify",
+     "date": "2022-10-31"
+    },
+    {
+     "code": "C36369",
+     "action": "modify",
+     "date": "2023-02-27"
+    }
+   ]
+  }
+ }
+}

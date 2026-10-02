@@ -579,3 +579,125 @@ def test_an_ignored_parameter_is_declared_with_evidence_and_only_once(
 
     with pytest.raises(ValueError, match=f"f.json: {problem}"):
         load_fixtures(tmp_path)
+
+
+def test_a_fixture_ignoring_every_parameter_answers_whatever_is_asked(tmp_path):
+    fixture_file(
+        tmp_path,
+        "unknown.json",
+        request={
+            "surface": "evs",
+            "method": "GET",
+            "path": "/api/v1/concept/ncit_99.99z/C4817",
+            "ignored": {"*": "EVS answers 404 for an unknown release whatever is asked"},
+        },
+        response={"status": 404, "body": {"message": "Terminology not found = ncit_99.99z"}},
+    )
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        url = running.base_url("evs") + "/api/v1/concept/ncit_99.99z/C4817"
+        statuses = [fetch(url)[0], fetch(url + "?include=summary&limit=5")[0]]
+        logged = running.log()[1]["params"]
+
+    assert statuses == [404, 404]
+    assert logged == {"include": ["summary"], "limit": ["5"]}
+
+
+def test_a_fixture_ignoring_every_parameter_keeps_what_was_asked_without_matching_it(tmp_path):
+    request = {"surface": "evs", "method": "GET", "path": "/x", "ignored": {"*": "evidence"}}
+    fixture_file(tmp_path, "x.json", request=request | {"params": {"list": ["C1"]}})
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        statuses = [fetch(running.base_url("evs") + target)[0] for target in ("/x", "/x?list=C2")]
+
+    assert statuses == [200, 200]
+
+
+def test_no_fixture_may_match_on_a_parameter_its_path_ignores_altogether(tmp_path):
+    request = {"surface": "evs", "method": "GET", "path": "/x"}
+    fixture_file(tmp_path, "a.json", request=request | {"ignored": {"*": "evidence"}})
+    fixture_file(tmp_path, "b.json", request=request | {"params": {"a": ["1"]}})
+
+    with pytest.raises(ValueError, match=r"b\.json matches on a, which its path ignores"):
+        FixtureServer(load_fixtures(tmp_path))
+
+
+def licence_fixtures(tmp_path, refusal=True):
+    request = {"surface": "evs", "method": "GET", "path": "/api/v1/concept/mdr/1"}
+    fixture_file(
+        tmp_path,
+        "granted.json",
+        kind="crafted",
+        requirement="E-7",
+        request=request | {"headers": {"X-EVSRESTAPI-License-Key": "key"}},
+        response={"status": 200, "body": {"code": "1"}},
+    )
+    if refusal:
+        fixture_file(tmp_path, "refused.json", request=request, response={"status": 403})
+
+
+def test_the_fixture_naming_the_headers_a_request_carries_answers_it(tmp_path):
+    licence_fixtures(tmp_path)
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        url = running.base_url("evs") + "/api/v1/concept/mdr/1"
+        answers = [
+            fetch(url, headers={"x-evsrestapi-license-key": "key"})[0],
+            fetch(url)[0],
+            fetch(url, headers={"X-EVSRESTAPI-License-Key": "wrong"})[0],
+        ]
+        answered_by = [entry["fixture"] for entry in running.log()]
+
+    assert answers == [200, 403, 403]
+    assert answered_by == ["granted.json", "refused.json", "refused.json"]
+
+
+def test_a_request_without_the_headers_every_fixture_of_its_path_names_is_unanswered(tmp_path):
+    licence_fixtures(tmp_path, refusal=False)
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        status = fetch(running.base_url("evs") + "/api/v1/concept/mdr/1")[0]
+
+    assert status == HTTPStatus.NOT_IMPLEMENTED
+
+
+def test_headers_map_names_to_values(tmp_path):
+    request = {"surface": "evs", "method": "GET", "path": "/x", "headers": {"X-Key": 1}}
+    fixture_file(tmp_path, "x.json", request=request)
+
+    with pytest.raises(ValueError, match="headers maps each header name to its value"):
+        load_fixtures(tmp_path)
+
+
+def test_an_active_scenario_wins_over_an_ordinary_fixture_naming_more_headers(tmp_path):
+    accept = {"Accept": "application/json"}
+    fixture_file(
+        tmp_path,
+        "recorded/evs/version.json",
+        request={"surface": "evs", "method": "GET", "path": "/api/v1/version", "headers": accept},
+    )
+    fixture_file(
+        tmp_path,
+        "scenarios/upstream/down/version.json",
+        kind="crafted",
+        requirement="A2.5",
+        response={"status": 503},
+    )
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        running.activate("upstream/down")
+        status = fetch(running.base_url("evs") + "/api/v1/version", headers=accept)[0]
+
+    assert status == HTTPStatus.SERVICE_UNAVAILABLE
+
+
+def test_between_header_sets_of_one_size_the_first_by_name_answers(tmp_path):
+    request = {"surface": "evs", "method": "GET", "path": "/api/v1/version"}
+    for name, status in (("X-B", 202), ("X-A", 201)):
+        fixture_file(
+            tmp_path,
+            f"{name}.json",
+            request=request | {"headers": {name: "1"}},
+            response={"status": status},
+        )
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        status = fetch(
+            running.base_url("evs") + "/api/v1/version", headers={"X-A": "1", "X-B": "1"}
+        )
+
+    assert status[0] == HTTPStatus.CREATED
