@@ -32,16 +32,32 @@ requirements, for the harness's own tests.
     uncached-result   results with ttlMs 0                                          (X-13)
     private-scope     results with cacheScope private                               (X-13)
     list-result       a result that is a bare list of its items                     (X-14)
+    unknown-as-empty  an unknown release answered as an empty success               (X-2)
+    accepts-mismatch  content of another release served as asked                    (X-3)
+    outage-as-empty   an unavailable EVS answered as an empty success               (X-5)
+    unshaped-error    an error that is no error record                              (X-6)
+    keyless           the licence key is not sent                                   (X-12)
+    logs-key          the request headers, licence key included, written to the log (X-12)
+    leaks-key         EVS's refusal, which repeats the request headers, in the error (X-12)
+    gives-up          no retry after a 429                                          (X-16)
+    no-backoff        a retry after a 429 without the wait it asks for              (X-16)
 
-A call asks EVS for `/api/v1/version` unless the same call was made before: the server caches
-by call, as A9.4 allows. It answers with items where the tool's `items` say: the concept asked
-about and, at depth 1 for a traversal tool, one it reaches.
+A call asks EVS for `/api/v1/version`, or for the concept of a licensed terminology with the
+licence key, unless the same call was answered before: the server caches by call, as A9.4
+allows. An answer that is not content is an error record: 404 release_not_available, another
+version than the release asked for release_mismatch, a timeout timeout, anything else
+upstream_unavailable; a 429 is waited out once. Content has items where the tool's `items`
+say: the concept asked about and, at depth 1 for a traversal tool, one it reaches.
 """
 
 import json
 import os
+import sys
+import time
+import urllib.error
 import urllib.request
 from datetime import UTC, datetime
+from http import HTTPStatus
 
 import anyio
 import mcp_types as types
@@ -52,18 +68,79 @@ from mcp.server.stdio import stdio_server
 from nci_si_acceptance.spec import RECORDS, TOOLS, parameters, profile_tools
 
 DEFECT = os.environ.get("COMPLIANT_SERVER_DEFECT", "")
-VERSION = os.environ["NCI_SI_EVS_BASE_URL"] + "/api/v1/version"
+EVS = os.environ["NCI_SI_EVS_BASE_URL"]
+TIMEOUT = float(os.environ.get("NCI_SI_TIMEOUT_SECONDS", "10"))
+LICENCE_KEY = os.environ.get("NCI_SI_EVS_LICENSE_KEY")
+LICENSED = {"mdr"}
+# What an upstream request that got no HTTP answer counts as.
+CLOSED, TIMED_OUT = 0, -1
+# A failure the defect turns into an empty success.
+SWALLOWED = {"unknown-as-empty": "release_not_available", "outage-as-empty": "upstream_unavailable"}
 # Whether each call so far reached EVS, and the calls already answered.
 reached = []
 answered = set()
 
 
-def _reaches_evs(headers: dict[str, str]) -> bool:
+def _ask(path: str, headers: dict[str, str]) -> tuple[int, dict, dict]:
+    """One request to EVS: its status (or CLOSED, TIMED_OUT), body and headers."""
+
+    request = urllib.request.Request(EVS + path, headers=headers)  # noqa: S310 - the fixtures
     try:
-        with urllib.request.urlopen(urllib.request.Request(VERSION, headers=headers)):  # noqa: S310
-            return True
-    except OSError:
-        return False
+        with urllib.request.urlopen(request, timeout=TIMEOUT) as response:  # noqa: S310
+            return response.status, json.loads(response.read() or b"{}"), dict(response.headers)
+    except urllib.error.HTTPError as error:
+        return error.code, json.loads(error.read() or b"{}"), dict(error.headers)
+    except OSError as error:
+        # A timeout comes as itself, or inside a URLError as its reason.
+        reason = getattr(error, "reason", error)
+        return (TIMED_OUT if isinstance(reason, TimeoutError) else CLOSED), {}, {}
+
+
+def _request(arguments: dict, correlation: str) -> tuple[str, dict[str, str]]:
+    """The path a call asks EVS for, and its headers: the licence key only for licensed
+    content (A7.5)."""
+
+    headers = {} if DEFECT == "no-correlation" else {"X-Correlation-ID": correlation}
+    terminology = arguments.get("terminology")
+    if terminology not in LICENSED:
+        return "/api/v1/version", headers
+    if LICENCE_KEY and DEFECT != "keyless":
+        headers["X-EVSRESTAPI-License-Key"] = LICENCE_KEY
+    if DEFECT == "logs-key":
+        sys.stderr.write(f"asking with {headers}\n")
+        sys.stderr.flush()
+    return (
+        f"/api/v1/concept/{terminology}_{arguments.get('release')}/{arguments.get('code')}",
+        headers,
+    )
+
+
+def _asked(arguments: dict, correlation: str) -> tuple[int, dict]:
+    """EVS's answer to a call, after one wait and retry on 429 (A6.5)."""
+
+    path, headers = _request(arguments, correlation)
+    status, body, answer_headers = _ask(path, headers)
+    if status == HTTPStatus.TOO_MANY_REQUESTS and DEFECT != "gives-up":
+        time.sleep(0 if DEFECT == "no-backoff" else float(answer_headers.get("Retry-After", 0)))
+        status, body, _ = _ask(path, headers)
+    if DEFECT == "repeated-request":
+        _ask(path, headers)
+    reached.append(status == HTTPStatus.OK)
+    return status, body
+
+
+def _failure(status: int, body: dict, arguments: dict) -> str | None:
+    """The error code of EVS's answer, or None for content of the release asked for."""
+
+    if status == TIMED_OUT:
+        return "timeout"
+    if status == HTTPStatus.NOT_FOUND:
+        return "release_not_available"
+    if status != HTTPStatus.OK:
+        return "upstream_unavailable"
+    asked = arguments.get("release")
+    mismatched = asked is not None and body.get("version", asked) != asked
+    return "release_mismatch" if mismatched and DEFECT != "accepts-mismatch" else None
 
 
 def _input_schema(name: str) -> dict:
@@ -202,15 +279,25 @@ def _merged(parts: list) -> dict:
     return {key: value for part in parts for key, value in part.items()}
 
 
-def _ask_evs(name: str, arguments: dict, correlation: str) -> None:
-    """Ask EVS, unless the same call was answered before."""
+def _error(code: str, status: int, body: dict, correlation: str) -> dict:
+    said = f": {json.dumps(body)}" if DEFECT == "leaks-key" else ""
+    record = {"code": code, "message": f"EVS answered {status}{said}", "correlationId": correlation}
+    return {"error": "EVS failed" if DEFECT == "unshaped-error" else record}
+
+
+def _answer(name: str, arguments: dict, correlation: str) -> tuple[object, bool]:
+    """The content of a call and whether it is an error; a call answered before is not
+    asked again, as A9.4 allows."""
 
     call = json.dumps([name, arguments], sort_keys=True)
     if call not in answered and DEFECT != "asks-nothing":
-        headers = {} if DEFECT == "no-correlation" else {"X-Correlation-ID": correlation}
-        asked = 2 if DEFECT == "repeated-request" else 1
-        reached.extend(_reaches_evs(headers) for _ in range(asked))
+        status, body = _asked(arguments, correlation)
+        if code := _failure(status, body, arguments):
+            if code == SWALLOWED.get(DEFECT):
+                return {}, False
+            return _error(code, status, body, correlation), True
     answered.add(call)
+    return _content(name, arguments, correlation), False
 
 
 def _meta() -> dict:
@@ -222,12 +309,11 @@ def _meta() -> dict:
 
 async def call_tool(_context, params: types.CallToolRequestParams) -> types.CallToolResult:
     correlation = (params.meta or {}).get("correlationId", "")
-    arguments = params.arguments or {}
-    _ask_evs(params.name, arguments, correlation)
-    content = _content(params.name, arguments, correlation)
+    content, failed = _answer(params.name, params.arguments or {}, correlation)
     return types.CallToolResult(
         content=[types.TextContent(type="text", text=json.dumps(content))],
         structured_content=content,
+        is_error=failed,
         _meta=_meta(),
     )
 

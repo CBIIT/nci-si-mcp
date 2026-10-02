@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from nci_si_acceptance.fixture_server import CONCEPTS
+from nci_si_acceptance.fixture_server import CONCEPTS, EVERY_PATH
 from nci_si_acceptance.record import (
     DISCOVERY,
     FIXTURES,
@@ -281,21 +281,10 @@ def traversal_starvation(_: Recorded) -> Documents:
     return documents
 
 
-# Requests every tool's first upstream call is likely to be: the release query and the
-# concept endpoints, which answer the same whatever their parameters under a fault.
-FAULTED = {
-    "release": (
-        "/api/v1/metadata/terminologies",
-        {"terminology": ["ncit"], "latest": ["true"], "tag": ["monthly"]},
-    ),
-    "concept": (f"/api/v1/concept/{TERMINOLOGY}/C4817", {}),
-    "concepts": (f"/api/v1/concept/{TERMINOLOGY}", {}),
-}
-
-
 def upstream_unavailable(_: Recorded) -> Documents:
-    """A refused connection (as near as a fixture can: closed), then 503, then no answer
-    at all: the connection held past the server's timeout and closed, the last repeating."""
+    """Every request to either EVS surface, whatever its path: a refused connection (as near
+    as a fixture can: closed), then 503, then no answer at all, the connection held past the
+    server's timeout and closed, the last repeating."""
 
     requirement = "A2.5, A5.3: bounded retries, counted, then a structured error"
     responses = [
@@ -306,14 +295,14 @@ def upstream_unavailable(_: Recorded) -> Documents:
     documents: Documents = {
         "scenarios/upstream/unavailable/settings.json": {"NCI_SI_TIMEOUT_SECONDS": "1"}
     }
-    for name, (path, params) in FAULTED.items():
-        request = {"surface": "evs", "method": "GET", "path": path}
-        request |= (
-            {"params": params}
-            if params
-            else {"ignored": {"*": "crafted: an unavailable service answers no request at all"}}
-        )
-        documents[f"scenarios/upstream/unavailable/{name}.json"] = crafted(
+    for surface in ("evs", "evs-fhir"):
+        request = {
+            "surface": surface,
+            "method": "GET",
+            "path": EVERY_PATH,
+            "ignored": {"*": "crafted: an unavailable service answers no request at all"},
+        }
+        documents[f"scenarios/upstream/unavailable/{surface}.json"] = crafted(
             requirement, request, responses=responses
         )
     return documents

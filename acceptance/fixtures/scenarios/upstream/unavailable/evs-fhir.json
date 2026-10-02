@@ -2,9 +2,9 @@
  "kind": "crafted",
  "requirement": "A2.5, A5.3: bounded retries, counted, then a structured error",
  "request": {
-  "surface": "evs",
+  "surface": "evs-fhir",
   "method": "GET",
-  "path": "/api/v1/concept/ncit_26.09d/C4817",
+  "path": "*",
   "ignored": {
    "*": "crafted: an unavailable service answers no request at all"
   }

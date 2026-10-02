@@ -298,6 +298,88 @@ def test_a_scenario_answers_in_place_of_the_ordinary_fixture_only_while_active(t
     assert logged == "scenarios/release/unknown/version.json"
 
 
+UNAVAILABLE = {
+    "kind": "crafted",
+    "requirement": "A2.5",
+    "request": {
+        "surface": "evs",
+        "method": "GET",
+        "path": "*",
+        "ignored": {"*": "an unavailable service answers no request at all"},
+    },
+    "response": {"status": 503, "body": {"message": "Service Unavailable"}},
+}
+
+
+def test_a_scenario_fixture_for_every_path_answers_what_its_scenario_does_not(tmp_path):
+    fixture_file(tmp_path, "recorded/evs/version.json")
+    fixture_file(tmp_path, "scenarios/upstream/down/every.json", **UNAVAILABLE)
+    fixture_file(
+        tmp_path,
+        "scenarios/upstream/down/version.json",
+        kind="crafted",
+        requirement="A2.5",
+        response={"status": 429, "body": {"message": "Too Many Requests"}},
+    )
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        evs = running.base_url("evs")
+        running.activate("upstream/down")
+        during = [fetch(evs + path)[0] for path in ("/api/v1/version", "/api/v1/anything?x=1")]
+        other_surface = fetch(running.base_url("cadsr") + "/anything")[0]
+        running.activate()
+        after = fetch(evs + "/api/v1/version")[0]
+
+    # Its scenario's exact fixture first, then every other path of its surface, and only its.
+    assert during == [429, 503]
+    assert (other_surface, after) == (501, 200)
+
+
+def test_a_fixture_for_every_path_answers_before_the_concept_rules(tmp_path):
+    (tmp_path / "manifest.yaml").write_text(
+        "evs:\n  concepts:\n    base: [code]\n    default: minimal\n"
+        "    include: {minimal: []}\n    relations: []\n",
+        encoding="utf-8",
+    )
+    fixture_file(
+        tmp_path,
+        "recorded/evs/concepts/C1.json",
+        request={
+            "surface": "evs",
+            "method": "GET",
+            "path": "/api/v1/concept/ncit_26.09d/C1",
+            "params": {"include": ["minimal"]},
+        },
+        response={"status": 200, "body": {"code": "C1"}},
+    )
+    fixture_file(tmp_path, "scenarios/upstream/down/every.json", **UNAVAILABLE)
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        url = running.base_url("evs") + "/api/v1/concept/ncit_26.09d/C1"
+        composed = fetch(url)[0]
+        running.activate("upstream/down")
+        down = fetch(url)[0]
+
+    assert (composed, down) == (200, 503)
+
+
+@pytest.mark.parametrize(
+    ("name", "request_fields"),
+    [
+        ("recorded/evs/every.json", {}),
+        ("scenarios/upstream/down/every.json", {"params": {"x": ["1"]}, "ignored": {}}),
+        ("scenarios/upstream/down/every.json", {"headers": {"X-Key": "1"}}),
+        ("scenarios/upstream/down/every.json", {"body": {"query": "x"}}),
+    ],
+)
+def test_a_fixture_for_every_path_is_a_scenario_s_and_matches_on_nothing_else(
+    tmp_path, name, request_fields
+):
+    document = UNAVAILABLE | {"request": UNAVAILABLE["request"] | request_fields}
+    fixture_file(tmp_path, name, **document)
+
+    with pytest.raises(ValueError, match="a fixture for every path belongs to a scenario"):
+        load_fixtures(tmp_path)
+
+
 def test_an_unknown_scenario_is_refused(server):
     with pytest.raises(ValueError, match="no such scenario: nothing/here"):
         server.activate("nothing/here")

@@ -16,14 +16,15 @@ from __future__ import annotations
 
 import os
 import shlex
+import sys
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, TextIO
 
 from anyio.from_thread import BlockingPortal, start_blocking_portal
 from mcp.client import Client
-from mcp.client.stdio import StdioServerParameters
+from mcp.client.stdio import StdioServerParameters, stdio_client
 
 from nci_si_acceptance.fixture_server import UPSTREAM_VARIABLES
 from nci_si_acceptance.spec import PROFILES
@@ -109,15 +110,19 @@ class Session:
 
 
 @contextmanager
-def open_session(command: list[str], environment: dict[str, str]) -> Iterator[Session]:
-    """Start the server's command and hold one MCP session with it."""
+def open_session(
+    command: list[str], environment: dict[str, str], errlog: TextIO = sys.stderr
+) -> Iterator[Session]:
+    """Start the server's command, its standard error going to `errlog`, and hold one MCP
+    session with it."""
 
     server = StdioServerParameters(command=command[0], args=command[1:], env=environment)
+    transport = stdio_client(server, errlog=errlog)
     with (
         start_blocking_portal() as portal,
         portal.wrap_async_context_manager(
             # No response cache: each tools/list must reach the server (P-6).
-            Client(server, read_timeout_seconds=READ_TIMEOUT_SECONDS, cache=None)
+            Client(transport, read_timeout_seconds=READ_TIMEOUT_SECONDS, cache=None)
         ) as client,
     ):
         yield Session(portal, client)

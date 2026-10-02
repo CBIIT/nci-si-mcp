@@ -4,7 +4,7 @@
  "request": {
   "surface": "evs",
   "method": "GET",
-  "path": "/api/v1/concept/ncit_26.09d",
+  "path": "*",
   "ignored": {
    "*": "crafted: an unavailable service answers no request at all"
   }

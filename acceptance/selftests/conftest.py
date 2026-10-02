@@ -10,29 +10,52 @@ import pytest
 SUITE = Path(__file__).parent.parent / "tests"
 COMPLIANT_SERVER = Path(__file__).parent / "compliant_server.py"
 VERSION = {"surface": "evs", "method": "GET", "path": "/api/v1/version"}
-# Where the server's one request is answered: everywhere, and with 503 while the platform is
-# unavailable.
+LICENCE_KEY = "selftest-licence-key"
+CURRENT = {"status": 200, "body": {"version": "26.09d"}}
+# The answers to the compliant server's requests: EVS's version, which names the release it
+# serves, in each scenario the suite uses; and the licensed concept, only with the key.
 ANSWERS = {
-    "crafted/version.json": 200,
-    "scenarios/upstream/unavailable/version.json": 503,
-    "scenarios/retired/with-replacement/version.json": 200,
+    "crafted/version.json": {"response": CURRENT},
+    "scenarios/retired/with-replacement/version.json": {"response": CURRENT},
+    "scenarios/release/unknown/version.json": {"response": {"status": 404, "body": {}}},
+    "scenarios/release/mismatch/version.json": {
+        "response": {"status": 200, "body": {"version": "26.08e"}}
+    },
+    "scenarios/upstream/unavailable/version.json": {"response": {"status": 503, "body": {}}},
+    "scenarios/upstream/rate-limited/version.json": {
+        "responses": [{"status": 429, "headers": {"Retry-After": "1"}, "body": {}}, CURRENT]
+    },
+    "scenarios/license/restricted/concept.json": {
+        "request": VERSION
+        | {
+            "path": "/api/v1/concept/mdr_29_0/10000000",
+            "headers": {"X-EVSRESTAPI-License-Key": LICENCE_KEY},
+        },
+        "response": {"status": 200, "body": {}},
+    },
+    "scenarios/license/restricted/refused.json": {
+        "request": VERSION | {"path": "/api/v1/concept/mdr_29_0/10000000"},
+        "response": {"status": 403, "body": {}},
+    },
 }
 
 
-def _fixture(path: Path, status: int) -> None:
+def _fixture(path: Path, answer: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     document = {"kind": "crafted", "requirement": "self-test", "request": VERSION}
-    path.write_text(json.dumps(document | {"response": {"status": status, "body": {}}}))
+    path.write_text(json.dumps(document | answer), encoding="utf-8")
 
 
 @pytest.fixture
 def compliant(pytester, monkeypatch):
-    """The suite's tests against the compliant server, with fixtures for its one request."""
+    """The suite's tests against the compliant server, with fixtures for its requests."""
 
     fixtures = pytester.mkdir("fixtures")
     (fixtures / "manifest.yaml").write_text("evs:\n  release: ncit_26.09d\n", encoding="utf-8")
-    for path, status in ANSWERS.items():
-        _fixture(fixtures / path, status)
+    for path, answer in ANSWERS.items():
+        _fixture(fixtures / path, answer)
+    settings = fixtures / "scenarios" / "license" / "restricted" / "settings.json"
+    settings.write_text(json.dumps({"NCI_SI_EVS_LICENSE_KEY": LICENCE_KEY}), encoding="utf-8")
     tests = pytester.mkdir("tests")
     for name in ("conftest.py", "test_protocol.py", "test_crosscutting.py", "calls.yaml"):
         (tests / name).write_text((SUITE / name).read_text(encoding="utf-8"), encoding="utf-8")

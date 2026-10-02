@@ -103,10 +103,14 @@ def _tools(
     if upstream:
         upstream.reset()  # what earlier tests left in the log is not this server's
     environment = server_environment(target.mode, tmp_path_factory.mktemp("data"), url)
-    with open_session(target.command, environment | (settings or {})) as session:
+    log = tmp_path_factory.mktemp("server") / "stderr.log"
+    with (
+        log.open("w", encoding="utf-8") as errlog,
+        open_session(target.command, environment | (settings or {}), errlog) as session,
+    ):
         unmatched = _startup_requests(upstream)
         if not unmatched:
-            yield Tools(session, load_toolmap(FIXTURES / "baseline_toolmap.yaml"))
+            yield Tools(session, load_toolmap(FIXTURES / "baseline_toolmap.yaml"), log)
             return
     # Failing outside the session: inside it, the failure would reach pytest wrapped
     # in the session's exception group.

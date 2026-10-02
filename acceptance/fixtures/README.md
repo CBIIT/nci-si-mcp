@@ -66,7 +66,8 @@ A request in any other form finds no fixture, and the test that sent it reports 
 Two more things decide which fixture answers (`fixture_server.py` has the rules): a fixture may
 name request headers it requires (a licence key), and while a test selects a scenario, the
 scenario's fixtures answer before any ordinary one, `"*"` under `ignored` making one answer
-whatever parameters are asked. A request the concept rules answer has no ordinary exact fixture:
+whatever parameters are asked, and a scenario fixture whose path is `"*"` answering every
+request of its surface that the scenario's other fixtures do not (`upstream/unavailable`). A request the concept rules answer has no ordinary exact fixture:
 the loader refuses one, since it would answer before a scenario's recording.
 
 ## Content and terms

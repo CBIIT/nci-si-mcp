@@ -42,7 +42,8 @@ in `tests/calls.yaml`, and find a result's items where the tool's `items` in
 `@pytest.mark.scenario("release/unknown")` serves the scenario's fixtures before the ordinary
 ones, to a server process of its own started with the scenario's settings. A test that must
 see the server ask upstream is marked `own_server`, for a server process of its own that no
-earlier call can have filled a cache of. A test marked
+earlier call can have filled a cache of. The server's standard error is kept per process, in
+the file `tools.log` names, for a test that must show what the server logs. A test marked
 `live_capable` also runs in live mode, unless it selects a scenario; every other test runs
 against fixtures only.
 

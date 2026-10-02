@@ -153,9 +153,11 @@ def _content(result: types.CallToolResult) -> Any:
 class Tools:
     """The required tools of one server session."""
 
-    def __init__(self, session: Session, toolmap: ToolMap) -> None:
+    def __init__(self, session: Session, toolmap: ToolMap, log: Path | None = None) -> None:
         self._session = session
         self._toolmap = toolmap
+        # Where the server's standard error goes, if the harness keeps it.
+        self.log = log
         self.listing = session.list_tools()
         self.available = {tool.name: tool for tool in self.listing.tools}
 

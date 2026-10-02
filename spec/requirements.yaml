@@ -56,23 +56,23 @@ X-1:
 X-2:
   statement: A request for a release the platform does not serve fails closed, with the requested-release-not-available error and no content.
   basis: [A3.4, A3.5]
-  planned: "#52"
+  planned: "#55"
 X-3:
   statement: Content the upstream serves from another release than the one requested fails closed, with the mismatch error.
   basis: [A3.4]
-  planned: "#52"
+  planned: "#55"
 X-4:
   statement: A query that legitimately matches nothing returns an empty result with provenance, not an error.
   basis: [A2.5, A2.6, M3.2]
   planned: "#52"
 X-5:
-  statement: An upstream failure, including one masked as a successful response, is an upstream error, never an empty success.
+  statement: An upstream failure (a refused or closed connection, a server error, no answer in time) is an upstream error or a timeout, never an empty success.
   basis: [A2.5, M3.2]
-  planned: "#52"
+  planned: "#55"
 X-6:
   statement: structuredContent validates against the tool's declared outputSchema, for successes and errors alike.
   basis: [M3.1]
-  planned: "#52"
+  planned: "#55"
 X-7:
   statement: Every item carries release, source surface, retrieval time and servedBy, and, where reached by traversal, depth, relationship, direction and polarity.
   basis: [A4.1, A4.2, A4.4, provenance, traversal]
@@ -90,13 +90,12 @@ X-10:
   basis: [A5.1, A5.4]
   planned: "#52"
 X-11:
-  statement: No upstream endpoint is called twice with identical parameters within one tool call.
+  statement: Within one tool call, no upstream request is made again with identical parameters, except to retry one that failed.
   basis: [A5.8]
   planned: "#55"
 X-12:
   statement: The licence key reaches the upstream request and appears in no log, error message or result.
   basis: [A7.5]
-  planned: "#52"
 X-13:
   statement: Every release-pinned result carries a positive ttlMs in its _meta, with cacheScope public for governed content and private for results computed from caller-supplied values.
   basis: [M2.2, M2.3, M2.5]
@@ -105,6 +104,14 @@ X-14:
   statement: Every result is a JSON object, its lists of items named fields of it.
   basis: [M3.3]
   planned: "#55"
+X-15:
+  statement: An upstream failure masked as a successful response (an error envelope in an HTTP 200, HTML where JSON was asked for) is an upstream error, never parsed as content.
+  basis: [A2.5, M3.2]
+  planned: "#52"
+X-16:
+  statement: After a 429 with Retry-After, the module waits at least that long before it asks again, and asks once more, not repeatedly.
+  basis: [A6.5, A5.3]
+  planned: "#54"
 
 # EVS tools.
 resolve_release-1:

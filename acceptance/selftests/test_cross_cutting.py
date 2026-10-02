@@ -6,6 +6,8 @@ import pytest
 pytest_plugins = ["pytester"]
 
 CROSS_CUTTING = "tests/test_crosscutting.py"
+LICENCE_REACHES = "test_the_licence_key_reaches_the_platform_and_nothing_the_server_returns_or_logs"
+BACKOFF = "test_a_rate_limited_request_is_asked_once_more_after_the_wait"
 # Each defect of the compliant server, and the cross-cutting test whose every case must fail.
 DEFECTS = [
     ("wrong-release", "test_every_item_carries_the_release_requested"),
@@ -21,6 +23,15 @@ DEFECTS = [
     ("asks-nothing", "test_no_upstream_request_is_repeated_within_a_call"),
     ("uncached-result", "test_a_release_pinned_result_may_be_cached"),
     ("private-scope", "test_a_release_pinned_result_may_be_cached"),
+    ("unknown-as-empty", "test_a_release_the_platform_does_not_serve_fails_closed"),
+    ("accepts-mismatch", "test_content_of_another_release_fails_closed"),
+    ("outage-as-empty", "test_an_unavailable_platform_is_an_upstream_error"),
+    ("unshaped-error", "test_an_error_validates_against_the_declared_output_schema"),
+    ("keyless", LICENCE_REACHES),
+    ("logs-key", LICENCE_REACHES),
+    ("leaks-key", "test_an_error_carries_no_licence_key"),
+    ("gives-up", BACKOFF),
+    ("no-backoff", BACKOFF),
 ]
 
 
