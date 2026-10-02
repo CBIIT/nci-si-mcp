@@ -38,7 +38,7 @@ search_concepts:
 get_concept_hierarchy:
   group: evs
   inputs: (terminology, release, code, direction, depth?, limit?, cursor?)
-  returns: "{ nodes[], truncation }"
+  returns: "{ nodes[], truncation, nextCursor? }"
   items: ["nodes[]"]
   traversal: true
   values: {direction: [parent, child, pathsToRoot]}
@@ -144,7 +144,7 @@ list_classification_schemes:
 find_data_elements_for_concept:
   group: cross-domain
   inputs: (conceptCode, terminology?, release?, expandDescendants?, includePermissibleValues?, limit?, cursor?)
-  returns: "{ dataElements[], truncation }"
+  returns: "{ dataElements[], truncation, nextCursor? }"
   summary: The data elements and permissible values that use a concept, optionally across its descendants.
 get_concept_for_permissible_value:
   group: cross-domain

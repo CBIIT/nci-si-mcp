@@ -269,7 +269,7 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 | `get_concept` | `(terminology, release, code, include[]?) → concept` | One concept with the detail selected. `include`: synonyms, definitions, properties, semanticType, status. Items: `.`. |
 | `get_concepts` | `(terminology, release, codes[], include[]?) → { concepts[], missing[] }` | Many concepts in one platform call, with the detail selected. Items: `concepts[]`. |
 | `search_concepts` | `(terminology, release, query, mode?, limit?, cursor?) → { results[{ concept, score?, matchedOn? }], nextCursor? }` | Ranked search of a terminology; semantic and hybrid from the interim NCIt index (M4.1). `mode`: lexical, typeahead, semantic, hybrid. Items: `results[].concept`. |
-| `get_concept_hierarchy` | `(terminology, release, code, direction, depth?, limit?, cursor?) → { nodes[], truncation }` | A concept's parents, children or paths to the root, bounded. `direction`: parent, child, pathsToRoot. Items: `nodes[]`. |
+| `get_concept_hierarchy` | `(terminology, release, code, direction, depth?, limit?, cursor?) → { nodes[], truncation, nextCursor? }` | A concept's parents, children or paths to the root, bounded. `direction`: parent, child, pathsToRoot. Items: `nodes[]`. |
 | `expand_value_set` | `(terminology, release, valueSet \| code, count?, offset?, activeOnly?) → { members[], total?, truncation }` | The members of a value set, paged and bounded by the tool itself; $lookup, $validate-code, $subsumes and $translate where a caller asks. Items: `members[]`. |
 | `get_concept_neighborhood` | `(terminology, release, code, depth?, kinds[]?, maxNodes?, maxEdges?, budgetPerKind?, includeNegative?) → { nodes[], edges[], truncation }` | Bounded traversal across roles and associations with a budget per kind; negative assertions returned marked, left out of positive expansion unless includeNegative. `kinds`: parent, child, role, association, inverseRole, inverseAssociation. Items: `nodes[]`, `edges[]`. |
 | `get_concept_subsets` | `(terminology, release, code) → { subsets[] }` | The subsets and value sets a concept belongs to. Items: `subsets[]`. |
@@ -297,7 +297,7 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 
 | Tool | Inputs → result | What it does |
 |---|---|---|
-| `find_data_elements_for_concept` | `(conceptCode, terminology?, release?, expandDescendants?, includePermissibleValues?, limit?, cursor?) → { dataElements[], truncation }` | The data elements and permissible values that use a concept, optionally across its descendants. |
+| `find_data_elements_for_concept` | `(conceptCode, terminology?, release?, expandDescendants?, includePermissibleValues?, limit?, cursor?) → { dataElements[], truncation, nextCursor? }` | The data elements and permissible values that use a concept, optionally across its descendants. |
 | `get_concept_for_permissible_value` | `(permissibleValueId \| { dataElementId, value }) → concept` | The concept a permissible value stands for. |
 | `resolve_stored_value` | `(conceptCode, commons, dataElementId?) → { storedValues[], confidence, evidence }` | The literal a data commons stores for a concept. |
 | `get_release_alignment` | `() → { datasets[{ name, version, date }], maxIntervalDays, warning? }` | The release of every dataset a cross-domain answer touches, and the interval between them. |
