@@ -407,10 +407,11 @@ def test_a_cursor_continues_with_the_next_items_of_the_same_release(tools, pinne
     assert error_code(other) == "invalid_request", other.content
 
 
-def _first_page(tools, pinned, name):
-    """A paged call's arguments and its first page, which carries a cursor."""
+def _first_page(tools, pinned, name, extra=None):
+    """A paged call's arguments, with `extra` added, and its first page, which carries a
+    cursor."""
 
-    arguments = CALLS[name]["arguments"] | CALLS[name]["paged"]["arguments"]
+    arguments = CALLS[name]["arguments"] | CALLS[name]["paged"]["arguments"] | (extra or {})
     first = _call(tools, pinned, name, arguments)
     assert not first.is_error, first.content
     cursor = first.content.get("nextCursor")
@@ -469,15 +470,14 @@ def test_a_cursor_with_a_left_out_argument_given_as_its_default_continues(tools,
 @pytest.mark.requirement("X-17")
 @pytest.mark.parametrize("name", _per_tool(PAGED))
 def test_a_cursor_with_a_given_default_left_out_continues(tools, pinned, name):
-    arguments, _ = _first_page(tools, pinned, name)
-    given = _left_out(name, arguments)
+    given = _left_out(name, CALLS[name]["arguments"] | CALLS[name]["paged"]["arguments"])
     assert given
-    explicit = _call(tools, pinned, name, arguments | given)
-    assert not explicit.is_error, explicit.content
-    cursor = {"cursor": explicit.content.get("nextCursor")}
+    arguments, explicit = _first_page(tools, pinned, name, given)
+    cursor = {"cursor": explicit.content["nextCursor"]}
+    without = {key: value for key, value in arguments.items() if key not in given}
 
-    repeated = _call(tools, pinned, name, arguments | given | cursor)
-    left_out = _call(tools, pinned, name, arguments | cursor)
+    repeated = _call(tools, pinned, name, arguments | cursor)
+    left_out = _call(tools, pinned, name, without | cursor)
 
     pages = _pages(name, repeated, left_out)
     assert pages[1] == pages[0]
