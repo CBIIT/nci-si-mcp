@@ -37,7 +37,17 @@ MOCK_ASSERTION = re.compile(
     r"assert_(not_)?(called|awaited)\w*|assert_any_(call|await)|assert_has_(calls|awaits)"
 )
 WEAK = {"mock": "how a mock was used", "callable": "that something is callable"}
-MOCK_STATE = {"call_count", "called", "call_args", "call_args_list", "await_count"}
+MOCK_STATE = {
+    "called",
+    "call_count",
+    "call_args",
+    "call_args_list",
+    "mock_calls",
+    "method_calls",
+    "await_count",
+    "await_args",
+    "await_args_list",
+}
 
 
 def _called_name(call: ast.Call) -> str:

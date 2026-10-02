@@ -1,4 +1,5 @@
 import io
+import json
 import unittest
 from email.message import Message
 from http.client import IncompleteRead
@@ -92,12 +93,14 @@ class EVSClientTest(unittest.TestCase):
         self.assertIn("still down", str(raised.exception))
 
     def test_requests_use_the_configured_timeout(self, urlopen, sleep):
-        urlopen.return_value = FakeResponse(b"{}")
+        # The transport answers with the timeout it was given.
+        urlopen.side_effect = lambda request, timeout: FakeResponse(
+            json.dumps({"timeout": timeout}).encode()
+        )
 
         version = EVSClient("https://example.invalid", timeout_seconds=2.5).get_api_version()
 
-        self.assertEqual(version, {})
-        self.assertEqual(urlopen.call_args.kwargs["timeout"], 2.5)
+        self.assertEqual(version, {"timeout": 2.5})
 
     def test_retry_wait_is_capped(self, urlopen, sleep):
         urlopen.side_effect = [URLError("down")] * 10
@@ -130,13 +133,32 @@ class EVSClientTest(unittest.TestCase):
         with self.assertRaises(EVSNotFoundError):
             client.get_concept("C1")
 
-    def test_an_error_without_a_body_is_described_by_its_status(self, urlopen, sleep):
-        urlopen.side_effect = HTTPError("https://example.invalid", 403, "Forbidden", {}, None)
+    def test_an_error_without_a_usable_body_is_described_by_its_status(self, urlopen, sleep):
+        class BrokenBody(io.BytesIO):
+            def read(self, *_):
+                raise OSError("connection reset")
 
-        with self.assertRaises(EVSResponseError) as raised:
-            self.client().get_api_version()
+        bodies = {
+            "no body": None,
+            "not JSON": io.BytesIO(b"<html>"),
+            "a JSON list": io.BytesIO(b"[]"),
+            "a JSON string": io.BytesIO(b'"text"'),
+            "no message": io.BytesIO(b"{}"),
+            "longer than the part that is read": io.BytesIO(
+                json.dumps({"message": "x" * 5000}).encode()
+            ),
+            "unreadable": BrokenBody(),
+        }
+        for case, body in bodies.items():
+            with self.subTest(case):
+                urlopen.side_effect = HTTPError(
+                    "https://example.invalid", 403, "Forbidden", Message(), body
+                )
 
-        self.assertTrue(str(raised.exception).endswith("HTTP 403 Forbidden"))
+                with self.assertRaises(EVSResponseError) as raised:
+                    self.client().get_api_version()
+
+                self.assertTrue(str(raised.exception).endswith("HTTP 403 Forbidden"))
 
     def test_a_backoff_of_zero_retries_without_waiting(self, urlopen, sleep):
         urlopen.side_effect = [URLError("temporary"), FakeResponse(b'{"version": "test"}')]

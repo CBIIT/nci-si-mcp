@@ -21,8 +21,10 @@ DEFAULT_PATHS = ("src", "scripts", "tests")
 
 
 def python_files(paths: list[str]) -> list[Path]:
+    """The Python files named by the paths or below them; the default paths if none is given."""
+
     files: list[Path] = []
-    for path in map(Path, paths):
+    for path in map(Path, paths or DEFAULT_PATHS):
         files += sorted(path.rglob("*.py")) if path.is_dir() else [path]
     return files
 
@@ -51,9 +53,7 @@ def violations(path: Path) -> list[str]:
 
 
 def main(arguments: list[str]) -> int:
-    found = [
-        line for path in python_files(arguments or list(DEFAULT_PATHS)) for line in violations(path)
-    ]
+    found = [line for path in python_files(arguments) for line in violations(path)]
     if not found:
         return 0
     print(f"Cyclomatic complexity of {THRESHOLD} or more:")

@@ -158,6 +158,7 @@ class EVSTest(unittest.TestCase):
         self.assertEqual(concept.evidence["semantic_types"], ["Neoplastic Process"])
         self.assertEqual(concept.evidence["contributing_sources"], ["GDC"])
         self.assertNotIn("raw", concept.to_dict())
+        self.assertIn("raw", concept.to_dict(include_raw=True))
 
     def test_a_concept_of_another_terminology_is_not_labelled_nci_thesaurus(self):
         concept = normalize_concept(
@@ -165,7 +166,6 @@ class EVSTest(unittest.TestCase):
         )
 
         self.assertEqual((concept.terminology, concept.source_vocabulary), ("ncim", "ncim"))
-        self.assertIn("raw", concept.to_dict(include_raw=True))
 
 
 if __name__ == "__main__":

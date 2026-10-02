@@ -4,7 +4,7 @@ import io
 import tempfile
 import textwrap
 import unittest
-from contextlib import redirect_stdout
+from contextlib import chdir, redirect_stdout
 from pathlib import Path
 
 import check_complexity
@@ -16,6 +16,7 @@ class GateTestCase(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         path = Path(directory.name) / name
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(textwrap.dedent(source), encoding="utf-8")
         return path
 
@@ -40,6 +41,11 @@ class ComplexityGateTest(GateTestCase):
 
     def test_complexity_seven_passes(self):
         self.assertEqual(check_complexity.violations(self.write(self.BRANCHY.format(last=""))), [])
+
+    def test_assertions_are_not_counted(self):
+        path = self.write(self.BRANCHY.format(last="assert value != 7"))
+
+        self.assertEqual(check_complexity.violations(path), [])
 
     def test_boolean_operators_and_comprehensions_count(self):
         path = self.write(
@@ -70,19 +76,32 @@ class ComplexityGateTest(GateTestCase):
 
         self.assertEqual(names, ["A.B.m has complexity 8", "outer.tangled has complexity 8"])
 
-    def test_exit_code_and_report(self):
+    def test_directories_are_searched_at_every_depth(self):
         clean = self.write("def simple():\n    return 1\n", "clean.py")
-        tangled = self.write(self.BRANCHY.format(last="if value == 7: return 7"))
+        tangled = self.write(self.BRANCHY.format(last="if value == 7: return 7"), "a/b/module.py")
         output = io.StringIO()
 
         with redirect_stdout(output):
             codes = (
                 check_complexity.main([str(clean)]),
-                check_complexity.main([str(tangled.parent)]),
+                check_complexity.main([str(tangled.parent.parent.parent)]),
             )
 
         self.assertEqual(codes, (0, 1))
         self.assertIn("tangled has complexity 8", output.getvalue())
+
+    def test_without_arguments_the_source_the_scripts_and_the_tests_are_checked(self):
+        with chdir(Path(__file__).parent.parent):
+            checked = {str(path) for path in check_complexity.python_files([])}
+
+        self.assertLessEqual(
+            {
+                "src/nci_si_mcp/service.py",
+                "scripts/validation/check_complexity.py",
+                "tests/test_quality_gates.py",
+            },
+            checked,
+        )
 
 
 class TestQualityGateTest(GateTestCase):
@@ -113,6 +132,9 @@ class TestQualityGateTest(GateTestCase):
             "mock.assert_has_calls([])",
             "mock.assert_any_await(1)",
             "self.assertEqual(mock.call_count, 2)",
+            "self.assertEqual(mock.await_count, 2)",
+            "self.assertEqual(len(mock.call_args_list), 2)",
+            "self.assertEqual(mock.mock_calls, [])",
             "assert mock.called",
             "self.assertEqual(mock.call_args.kwargs['timeout'], 2)",
         ):
@@ -168,6 +190,24 @@ class TestQualityGateTest(GateTestCase):
         docstring = "Scores are normalized to 100% of the best hit."
 
         self.assertEqual(self.findings("assert compute() == 2", docstring), [])
+
+    def test_test_methods_and_async_tests_are_checked_and_located(self):
+        path = self.write(
+            """
+            class ThingTest(unittest.TestCase):
+                def test_method(self):
+                    compute()
+
+                async def test_async(self):
+                    await compute()
+            """,
+            "test_methods.py",
+        )
+
+        self.assertEqual(
+            check_test_quality.findings(path),
+            [f"{path}:3: test_method asserts nothing", f"{path}:6: test_async asserts nothing"],
+        )
 
     def test_helpers_are_not_tests(self):
         path = self.write("def helper():\n    return 1\n", "test_helpers.py")

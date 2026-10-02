@@ -176,7 +176,7 @@ def normalize_concept(
         code=str(raw.get("code", "")),
         preferred_name=str(raw.get("name", "")),
         # Any other terminology keeps its identifier as the label.
-        source_vocabulary=SOURCE_VOCABULARIES.get(terminology.lower(), terminology),
+        source_vocabulary=SOURCE_VOCABULARIES.get(terminology, terminology),
         terminology=terminology,
         release_version=str(raw.get("version", "")),
         release_date=release_date,

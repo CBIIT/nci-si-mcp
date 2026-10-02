@@ -150,17 +150,20 @@ class EmbeddingConfigurationTest(unittest.TestCase):
                 self.name = name
 
             def encode(self, texts, normalize_embeddings):
-                return [(len(text), int(normalize_embeddings)) for text in texts]
+                # Like the library, it takes a list and returns rows that are not lists.
+                if not isinstance(texts, list):
+                    raise TypeError(type(texts))
+                return [(len(text), int(normalize_embeddings), len(self.name)) for text in texts]
 
         library = types.SimpleNamespace(SentenceTransformer=FakeModel)
         with patch.dict(sys.modules, {"sentence_transformers": library}):
-            provider = create_embedding_provider("Sentence-Transformers", "all-MiniLM-L6-v2")
+            provider = create_embedding_provider("Sentence-Transformers", "a-model")
 
-        self.assertEqual(
-            (provider.name, provider.model), ("sentence-transformers", "all-MiniLM-L6-v2")
-        )
-        # Unit vectors are requested, and the rows come back as lists of floats.
-        self.assertEqual(provider.embed(iter(["ab", "c"])), [[2.0, 1.0], [1.0, 1.0]])
+        self.assertEqual((provider.name, provider.model), ("sentence-transformers", "a-model"))
+        # The named model is loaded and asked for unit vectors.
+        vectors = provider.embed(iter(["ab", "c"]))
+        self.assertEqual(vectors, [[2.0, 1.0, 7.0], [1.0, 1.0, 7.0]])
+        self.assertEqual({type(value) for row in vectors for value in row}, {float})
 
     def test_missing_embeddings_extra_is_explained(self):
         with (
@@ -170,6 +173,7 @@ class EmbeddingConfigurationTest(unittest.TestCase):
             create_embedding_provider("sentence-transformers", "all-MiniLM-L6-v2")
 
         self.assertIn("'embeddings' extra", str(raised.exception))
+        self.assertIn("Import failed", str(raised.exception))
 
 
 if __name__ == "__main__":

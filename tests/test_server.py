@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import re
 import sys
 import tempfile
 import unittest
@@ -16,7 +17,7 @@ from nci_si_mcp.config import Settings
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.evs import EVSUnavailableError
 from nci_si_mcp.index import LocalIndex
-from nci_si_mcp.server import create_mcp
+from nci_si_mcp.server import INSTRUCTIONS, create_mcp
 from nci_si_mcp.service import NCISIService
 from test_docs import README, bullet_names, section
 
@@ -101,11 +102,12 @@ class ServerTest(unittest.TestCase):
 
     def test_server_reports_the_installed_package_version(self, _):
         async def server_info(client):
-            return client.server_info
+            return client.server_info, client.instructions
 
-        info = self.session(server_info)
+        info, instructions = self.session(server_info)
 
         self.assertEqual((info.name, info.version), ("nci-si-mcp", metadata.version("nci-si-mcp")))
+        self.assertEqual(instructions, INSTRUCTIONS)
 
     def test_five_tools_are_registered_with_descriptions_and_closed_value_sets(self, _):
         tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
@@ -120,6 +122,14 @@ class ServerTest(unittest.TestCase):
         for value in ("both", "inverse_role", "descendant"):
             self.assertIn(f'"{value}"', traverse_schema)
         self.assertIn('"hybrid"', json.dumps(tools["ncit_search"].input_schema))
+        # The README lists every argument of ncit_traverse.
+        arguments = section(README, "MCP Tools").split("`ncit_traverse` supports:\n\n")[1]
+        documented = {
+            name
+            for bullet in arguments.split("\n\n")[0].splitlines()
+            for name in re.findall(r"`(\w+)`", bullet.split(":")[0])
+        }
+        self.assertEqual(documented, set(tools["ncit_traverse"].input_schema["properties"]))
         for term in ("version_mismatch", "concept_not_found", "fallback", "live_only"):
             self.assertIn(term, tools["ncit_lookup"].description)
         for term in ("truncated", "unexpanded_codes", "descendant", "relationship_names"):
@@ -238,6 +248,13 @@ class ServerTest(unittest.TestCase):
         for version in ("active", "26.06e"):
             manifest = self.read(f"nci-si://index/ncit/{version}/manifest")
             self.assertEqual(manifest["concept_count"], 1)
+
+    def test_concept_resource_is_a_lookup_with_the_default_options(self, _):
+        self.service.index_codes(["C3262"])
+
+        self.assertNotIn("raw", self.read("nci-si://concept/ncit/C3262"))
+        self.evs.errors = {"get_concept": EVSUnavailableError("down")}
+        self.assertEqual(self.read("nci-si://concept/ncit/C3262")["source"], "active_cache")
 
     def test_resource_failures_are_protocol_errors_carrying_the_envelope(self, _):
         self.service.index_codes(["C3262"])
