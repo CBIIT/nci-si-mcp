@@ -19,6 +19,7 @@ from nci_si_acceptance.client import Target, open_session, server_environment
 from nci_si_acceptance.fixture_server import MANIFEST, FixtureServer, load_fixtures
 from nci_si_acceptance.report import COLLECTOR, write_report
 from nci_si_acceptance.suite import (
+    OWN_SERVER,
     UNMATCHED_UPSTREAM,
     UnmatchedUpstream,
     scenarios_of,
@@ -123,16 +124,6 @@ def _startup_requests(upstream: FixtureServer | None) -> list[str]:
 
 
 @pytest.fixture
-def fresh_server(
-    target: Target, upstream: FixtureServer | None, tmp_path_factory: pytest.TempPathFactory
-) -> Iterator[Tools]:
-    """A server of its own for one test, so that nothing an earlier test asked is cached."""
-
-    with _tools(target, upstream, tmp_path_factory) as tools:
-        yield tools
-
-
-@pytest.fixture
 def tools(
     request: pytest.FixtureRequest,
     target: Target,
@@ -141,11 +132,13 @@ def tools(
 ) -> Iterator[Tools]:
     """The required tools of the server under test, for one test.
 
-    A scenario test does not start the shared server: it runs against its own.
+    A scenario test, and one marked `own_server`, does not use the shared server: it runs
+    against its own, which nothing an earlier test asked can have filled.
     """
 
     scenarios = scenarios_of(request.node)
-    if not scenarios or upstream is None:
+    own = request.node.get_closest_marker(OWN_SERVER) is not None
+    if not (scenarios or own) or upstream is None:
         yield request.getfixturevalue("server")
         return
     upstream.activate(*scenarios)

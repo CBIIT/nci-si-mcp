@@ -9,12 +9,18 @@ CROSS_CUTTING = "tests/test_crosscutting.py"
 # Each defect of the compliant server, and the cross-cutting test whose every case must fail.
 DEFECTS = [
     ("wrong-release", "test_every_item_carries_the_release_requested"),
+    ("wrong-terminology", "test_every_item_carries_the_release_requested"),
     ("invalid-result", "test_a_result_validates_against_the_declared_output_schema"),
+    ("list-result", "test_a_result_is_an_object"),
     ("no-served-by", "test_every_item_carries_its_provenance"),
+    ("bad-timestamp", "test_every_item_carries_its_provenance"),
     ("no-polarity", "test_an_item_reached_by_traversal_says_how"),
+    ("nothing-reached", "test_an_item_reached_by_traversal_says_how"),
     ("prefixed-code", "test_codes_are_bare_with_their_terminology_beside_them"),
     ("repeated-request", "test_no_upstream_request_is_repeated_within_a_call"),
+    ("asks-nothing", "test_no_upstream_request_is_repeated_within_a_call"),
     ("uncached-result", "test_a_release_pinned_result_may_be_cached"),
+    ("private-scope", "test_a_release_pinned_result_may_be_cached"),
 ]
 
 

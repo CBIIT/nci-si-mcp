@@ -39,7 +39,7 @@ traversal:
   about: The provenance record, with these fields added (A4.2).
   fields:
     depth:
-      content: Steps from the concept the caller asked about
+      content: Steps from the concept the caller asked about; an edge has the depth of the item it reaches
       of: A4.2
     relationship:
       content: "The relationship that brought the item in: { code, name, kind }; the code decides polarity"

@@ -18,7 +18,9 @@ FIELDS = RECORDS["provenance"]["fields"] | RECORDS["traversal"]["fields"]
 # What every item's provenance carries (X-7), and what an item reached by traversal adds.
 CARRIED = ("release", "source", "retrievedAt", "servedBy")
 REACHED = ("relationship", "direction", "polarity")
-PREFIXED = re.compile(r"[:/#\s]")
+# The bare form NCIt publishes its codes in (A1.2: C4817); other terminologies are held only to
+# carry no URI, since some publish punctuation in their codes (HGNC:3508, ICD-O-3 8001/3).
+BARE = {"ncit": re.compile(r"[A-Z][0-9]+")}
 
 
 def _per_tool(names):
@@ -74,6 +76,29 @@ def _valid(value, field):
     return value is not None and value in field.get("values", [value])
 
 
+def _codes(item):
+    """Each code an item carries, with the terminology beside it."""
+
+    if not isinstance(item, dict):
+        return []
+    coded = [key for key in item if key == "code" or key.endswith("Code")]
+    return [(item[key], item.get(_beside(key))) for key in coded]
+
+
+def _beside(key):
+    """Where the terminology of a code is: `code` with `terminology`, `targetCode` with
+    `targetTerminology`."""
+
+    return "terminology" if key == "code" else key.removesuffix("Code") + "Terminology"
+
+
+def _bare(code, terminology):
+    code = str(code)
+    pattern = BARE.get(str(terminology).lower())
+    uri = "://" in code or code.lower().startswith("urn:")
+    return not uri and (pattern is None or pattern.fullmatch(code) is not None)
+
+
 def _timestamp(value):
     try:
         return datetime.fromisoformat(value).tzinfo is not None
@@ -96,10 +121,17 @@ def test_every_item_carries_the_release_requested(tools, pinned, name):
 def test_a_result_validates_against_the_declared_output_schema(tools, pinned, name):
     result = _call(tools, pinned, name)
 
+    assert not result.is_error, result.content
     schema = tools.available[result.tool].output_schema
     assert schema is not None
     errors = [error.message for error in Draft202012Validator(schema).iter_errors(result.content)]
     assert errors == []
+
+
+@pytest.mark.requirement("X-14")
+@pytest.mark.parametrize("name", CALLED)
+def test_a_result_is_an_object(tools, pinned, name):
+    assert isinstance(_call(tools, pinned, name).content, dict)
 
 
 @pytest.mark.requirement("X-7")
@@ -126,13 +158,16 @@ def test_an_item_reached_by_traversal_says_how(tools, pinned, name):
 @pytest.mark.requirement("X-9")
 @pytest.mark.parametrize("name", CALLED)
 def test_codes_are_bare_with_their_terminology_beside_them(tools, pinned, name):
-    coded = [item for item in _items(tools, pinned, name) if "code" in item]
+    # A1.2 is about the codes items carry, in `code` or a field such as `targetCode`; an item
+    # without one, such as an edge, has none to check.
+    codes = [pair for item in _items(tools, pinned, name) for pair in _codes(item)]
 
-    # A prefix (NCIT:C4817), a URI or a fragment shows in punctuation no bare code carries.
-    assert [item["code"] for item in coded if PREFIXED.search(str(item["code"]))] == []
-    assert [item["code"] for item in coded if not item.get("terminology")] == []
+    assert [code for code, terminology in codes if not _bare(code, terminology)] == []
+    assert [code for code, terminology in codes if not terminology] == []
 
 
+# A server that answered the same call before may serve it from its cache, asking nothing.
+@pytest.mark.own_server
 @pytest.mark.requirement("X-11")
 @pytest.mark.parametrize("name", CALLED)
 def test_no_upstream_request_is_repeated_within_a_call(tools, upstream, pinned, name):
@@ -153,4 +188,5 @@ def test_a_release_pinned_result_may_be_cached(tools, pinned, name):
 
     assert not result.is_error
     assert result.meta.get("ttlMs", 0) > 0
-    assert result.meta.get("cacheScope") == TOOLS[name].get("cacheScope", "public")
+    # Governed content; the results computed from caller-supplied values are caDSR's (M2.3).
+    assert result.meta.get("cacheScope") == "public"

@@ -61,8 +61,6 @@ def _step(found: list[Any], step: str) -> list[Any]:
 
 
 def _field(value: Any, key: str) -> Any:
-    if not key:
-        return value
     return value.get(key) if isinstance(value, dict) else None
 
 

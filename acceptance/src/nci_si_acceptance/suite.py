@@ -12,6 +12,8 @@ if TYPE_CHECKING:
 
 LIVE_CAPABLE = "live_capable"
 SCENARIO = "scenario"
+# A test marked so runs against a server process of its own, as a scenario test does.
+OWN_SERVER = "own_server"
 FIXTURE_ONLY = "fixture mode only"
 # A test marked so expects requests without a fixture, and checks them itself.
 UNMATCHED_UPSTREAM = "unmatched_upstream"

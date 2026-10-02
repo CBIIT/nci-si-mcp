@@ -12,7 +12,12 @@ CONCEPT = {"code": "C4817"}
     ("tool", "result", "items"),
     [
         ("get_concept", CONCEPT, [CONCEPT]),
-        ("get_concepts", [CONCEPT, CONCEPT], [CONCEPT, CONCEPT]),
+        ("get_concepts", {"concepts": [CONCEPT, CONCEPT], "missing": []}, [CONCEPT, CONCEPT]),
+        (
+            "resolve_retired_code",
+            {**CONCEPT, "replacements": [CONCEPT]},
+            [{**CONCEPT, "replacements": [CONCEPT]}, CONCEPT],
+        ),
         ("search_concepts", {"results": [{"concept": CONCEPT, "score": 1}]}, [CONCEPT]),
         (
             "get_concept_neighborhood",
@@ -24,8 +29,8 @@ CONCEPT = {"code": "C4817"}
         ("search_concepts", {"results": [{"concept": None}]}, []),
         ("get_concepts", "an error, in words", []),
         ("get_concept", None, []),
-        # A tool that declares no items.
-        ("resolve_release", {"version": "26.09d"}, []),
+        # A tool that declares no items yet.
+        ("get_data_element", {"publicId": "2200604"}, []),
     ],
 )
 def test_the_items_of_a_result_are_where_the_tool_says(tool, result, items):

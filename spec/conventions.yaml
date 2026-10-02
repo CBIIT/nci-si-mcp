@@ -142,6 +142,9 @@ M3:
   rules:
     M3.1: Every tool declares an outputSchema covering its success and its error shape.
     M3.2: A platform failure, including one wrapped in an HTTP 200, is a result with isError; a genuine empty result has its provenance and no isError.
+    M3.3: A result is a JSON object; a list of items is a named field of it, beside the cursor, the truncation and what was left out.
+  why:
+    M3.3: Protocol revisions before 2026-07-28 define structuredContent as an object, and a bare list leaves no place for nextCursor (M6.1), a bound reached (A5.4) or the identifiers the platform left out.
 M4:
   title: The interim NCIt index
   rules:

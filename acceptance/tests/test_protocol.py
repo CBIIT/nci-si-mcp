@@ -142,12 +142,11 @@ def test_tools_list_is_the_same_while_the_platform_is_unavailable(server, tools,
 
 
 @pytest.mark.gate
+# A server that answered the same call before may serve it from its cache, asking nothing.
+@pytest.mark.own_server
 @pytest.mark.requirement("P-7")
-def test_a_correlation_identifier_goes_upstream_and_comes_back(fresh_server, upstream, pinned):
-    # A server of its own: one that answered the same call before may serve it from its cache.
-    result = fresh_server.call(
-        "get_concept", {**pinned, "code": "C4817"}, {"correlationId": CORRELATION}
-    )
+def test_a_correlation_identifier_goes_upstream_and_comes_back(tools, upstream, pinned):
+    result = tools.call("get_concept", {**pinned, "code": "C4817"}, {"correlationId": CORRELATION})
 
     sent = [
         {name.lower(): value for name, value in entry["headers"].items()}.get(CORRELATION_HEADER)

@@ -4,15 +4,16 @@
 # conventions.yaml apply to every tool; requirements.yaml says what the suite tests of each.
 #
 # `items` says where a result's items are, each carrying its provenance (A4.4): "." is the
-# result itself, "[]" each element of a list, and `nodes[]` each element of the result's
-# `nodes`. A tool with items is content-returning, and the cross-cutting requirements apply to
-# it. `traversal: true` marks a tool whose items are reached by traversal (A4.2), and
-# `cacheScope: private` one whose results are computed from caller-supplied values (M2.3).
+# result itself, `nodes[]` each element of the result's `nodes`, and `results[].concept` the
+# concept of each element of its `results`. A tool with items is content-returning, and the
+# cross-cutting requirements apply to it. `traversal: true` marks a tool whose items are
+# reached by traversal (A4.2).
 
 resolve_release:
   group: evs
   inputs: (terminology, channel?)
   returns: "{ terminology, channel, version, date, alternatives[] }"
+  items: ["."]
   summary: Which release of a terminology is current, by channel; called explicitly, and its answer is passed to every later call.
 get_concept:
   group: evs
@@ -24,8 +25,8 @@ get_concept:
 get_concepts:
   group: evs
   inputs: (terminology, release, codes[], include[]?)
-  returns: concept[]
-  items: ["[]"]
+  returns: "{ concepts[], missing[] }"
+  items: ["concepts[]"]
   summary: Many concepts in one platform call, with the detail selected.
 search_concepts:
   group: evs
@@ -59,32 +60,32 @@ get_concept_neighborhood:
 get_concept_subsets:
   group: evs
   inputs: (terminology, release, code)
-  returns: subset[]
-  items: ["[]"]
+  returns: "{ subsets[] }"
+  items: ["subsets[]"]
   summary: The subsets and value sets a concept belongs to.
 get_concept_mappings:
   group: evs
   inputs: (terminology, release, code, targetTerminology?)
-  returns: mapping[]
-  items: ["[]"]
+  returns: "{ mappings[] }"
+  items: ["mappings[]"]
   summary: A concept's mappings to other terminologies, each mapset with its own name and version.
 resolve_retired_code:
   group: evs
   inputs: (terminology, release, code)
-  returns: "{ status, replacements[] }"
-  items: ["replacements[]"]
+  returns: "{ code, terminology, status, replacements[] }"
+  items: [".", "replacements[]"]
   summary: Whether a code is retired, and what replaces it.
 list_relationships:
   group: evs
   inputs: (terminology, release)
-  returns: "relationship[{ code, name, kind, polarity, axisFamily }]"
-  items: ["[]"]
+  returns: "{ relationships[{ code, name, kind, polarity, axisFamily }] }"
+  items: ["relationships[]"]
   summary: The relationship catalogue of a release, polarity marked by code.
 list_terminologies:
   group: evs
   inputs: ()
-  returns: terminology[]
-  items: ["[]"]
+  returns: "{ terminologies[] }"
+  items: ["terminologies[]"]
   summary: The terminologies available, with their current releases.
 
 resolve_registry_release:
@@ -108,13 +109,11 @@ match_data_elements:
   group: cadsr
   inputs: "(entities[{ name, userTip?, permissibleValues[]? }], matchLimit?, modelVariant?, similarityThreshold?, filters?, cursor?)"
   returns: "{ matches[{ dataElement, score, rule, matchedText }], nextCursor? }"
-  cacheScope: private
   summary: Data elements matched to described entities, keyword and AI-enhanced, scored.
 match_value_meanings:
   group: cadsr
   inputs: (values[], strictness?, terminologyScope?, cursor?)
   returns: "{ matches[{ valueMeaning, score, crosswalk[] }], nextCursor? }"
-  cacheScope: private
   summary: Value meanings matched to values, with crosswalk codes.
 get_form:
   group: cadsr
@@ -129,17 +128,17 @@ get_permissible_value:
 get_code_map:
   group: cadsr
   inputs: (sourceSystem?, targetContext?, dataElementId?, cursor?)
-  returns: codeMap[]
+  returns: "{ codeMaps[], nextCursor? }"
   summary: Code maps between source code systems and registered value sets, the CRDC crosswalk included.
 list_contexts:
   group: cadsr
   inputs: (cursor?)
-  returns: context[]
+  returns: "{ contexts[], nextCursor? }"
   summary: The registry's contexts.
 list_classification_schemes:
   group: cadsr
   inputs: (context?, cursor?)
-  returns: classificationScheme[]
+  returns: "{ classificationSchemes[], nextCursor? }"
   summary: Classification schemes as objects with their nested items.
 
 find_data_elements_for_concept:
@@ -177,5 +176,4 @@ harmonize_data_dictionary:
   group: workflow
   inputs: "(columns[{ name, description?, sampleValues[]? }], registryRelease, filters?)"
   returns: "{ columns[{ matches[{ dataElement, score, rule }], permissibleValueAlignment }], unmatched[], provenance }"
-  cacheScope: private
   summary: A data dictionary's columns matched to data elements, with permissible-value alignment.

@@ -20,15 +20,22 @@ requirements, for the harness's own tests.
     parameter-renamed get_concept takes conceptCode in place of code                (P-12)
     release-optional  get_concept does not require release                          (P-12)
     wrong-release     items name another release than the one requested             (X-1)
+    wrong-terminology items name another terminology than the one requested         (X-1)
     invalid-result    a result its outputSchema refuses                             (X-6)
     no-served-by      provenance without servedBy                                   (X-7)
+    bad-timestamp     a retrievedAt that is no ISO-8601 timestamp                   (X-7)
     no-polarity       an item reached by traversal without polarity                 (X-7)
+    nothing-reached   a traversal whose items are all at depth 0                    (X-7)
     prefixed-code     codes written NCIT:C4817                                      (X-9)
     repeated-request  each call asks EVS twice for the same thing                   (X-11)
+    asks-nothing      calls that ask EVS nothing                                    (X-11)
     uncached-result   results with ttlMs 0                                          (X-13)
+    private-scope     results with cacheScope private                               (X-13)
+    list-result       a result that is a bare list of its items                     (X-14)
 
-Each call asks EVS for `/api/v1/version`, and answers with two items where the tool's `items`
-say: the concept asked about and, at depth 1 for a traversal tool, one it reaches.
+A call asks EVS for `/api/v1/version` unless the same call was made before: the server caches
+by call, as A9.4 allows. It answers with items where the tool's `items` say: the concept asked
+about and, at depth 1 for a traversal tool, one it reaches.
 """
 
 import json
@@ -46,8 +53,9 @@ from nci_si_acceptance.spec import RECORDS, TOOLS, parameters, profile_tools
 
 DEFECT = os.environ.get("COMPLIANT_SERVER_DEFECT", "")
 VERSION = os.environ["NCI_SI_EVS_BASE_URL"] + "/api/v1/version"
-# Whether each call so far reached EVS.
+# Whether each call so far reached EVS, and the calls already answered.
 reached = []
+answered = set()
 
 
 def _reaches_evs(headers: dict[str, str]) -> bool:
@@ -78,7 +86,7 @@ ERROR = {
     "required": ["code", "message"],
     "properties": {"code": {"enum": CODES[:1] if DEFECT == "one-code" else CODES}},
 }
-# A success may be a list (protocol revision 2026-07-28).
+# A success is anything but an error record, so that a list result reaches the suite (X-14).
 OUTPUT_SCHEMAS = {
     "": {
         "oneOf": [
@@ -131,10 +139,11 @@ async def list_tools(_context, _params) -> types.ListToolsResult:
 
 def _provenance(arguments: dict, correlation: str) -> dict:
     release = "26.08e" if DEFECT == "wrong-release" else arguments.get("release")
+    terminology = "mdr" if DEFECT == "wrong-terminology" else arguments.get("terminology")
     provenance = {
-        "release": {"terminology": arguments.get("terminology"), "identifier": release},
+        "release": {"terminology": terminology, "identifier": release},
         "source": "evs_rest",
-        "retrievedAt": datetime.now(UTC).isoformat(),
+        "retrievedAt": "today" if DEFECT == "bad-timestamp" else datetime.now(UTC).isoformat(),
         "servedBy": "live",
         "correlationId": correlation,
     }
@@ -151,8 +160,13 @@ def _items(name: str, provenance: dict) -> list[dict]:
         if DEFECT == "no-polarity":
             del how["polarity"]
         items[0]["provenance"] = provenance | {"depth": 0}
+        depth = 0 if DEFECT == "nothing-reached" else 1
         items.append(
-            {"code": "C3262", "terminology": "ncit", "provenance": provenance | {"depth": 1} | how}
+            {
+                "code": "C3262",
+                "terminology": "ncit",
+                "provenance": provenance | {"depth": depth} | how,
+            }
         )
     return items
 
@@ -168,14 +182,15 @@ def _placed(steps: list[str], items: list[dict]) -> object:
         value = [_placed(rest, [item]) for item in items]
     else:
         value = _placed(rest, items)
-    key = step.removesuffix("[]")
-    return {key: value} if key else value
+    return {step.removesuffix("[]"): value}
 
 
 def _content(name: str, arguments: dict, correlation: str) -> object:
     if DEFECT == "invalid-result":
         return {"error": "not an error record"}
     items = _items(name, _provenance(arguments, correlation))
+    if DEFECT == "list-result":
+        return items
     paths = TOOLS[name].get("items", ["."])
     placed = [_placed([step for step in path.split(".") if step], items) for path in paths]
     return placed[0] if len(placed) == 1 else _merged(placed)
@@ -187,16 +202,33 @@ def _merged(parts: list) -> dict:
     return {key: value for part in parts for key, value in part.items()}
 
 
+def _ask_evs(name: str, arguments: dict, correlation: str) -> None:
+    """Ask EVS, unless the same call was answered before."""
+
+    call = json.dumps([name, arguments], sort_keys=True)
+    if call not in answered and DEFECT != "asks-nothing":
+        headers = {} if DEFECT == "no-correlation" else {"X-Correlation-ID": correlation}
+        asked = 2 if DEFECT == "repeated-request" else 1
+        reached.extend(_reaches_evs(headers) for _ in range(asked))
+    answered.add(call)
+
+
+def _meta() -> dict:
+    return {
+        "ttlMs": 0 if DEFECT == "uncached-result" else 86_400_000,
+        "cacheScope": "private" if DEFECT == "private-scope" else "public",
+    }
+
+
 async def call_tool(_context, params: types.CallToolRequestParams) -> types.CallToolResult:
     correlation = (params.meta or {}).get("correlationId", "")
-    headers = {} if DEFECT == "no-correlation" else {"X-Correlation-ID": correlation}
-    reached.extend(_reaches_evs(headers) for _ in range(2 if DEFECT == "repeated-request" else 1))
-    content = _content(params.name, params.arguments or {}, correlation)
-    meta = {"ttlMs": 0 if DEFECT == "uncached-result" else 86_400_000, "cacheScope": "public"}
+    arguments = params.arguments or {}
+    _ask_evs(params.name, arguments, correlation)
+    content = _content(params.name, arguments, correlation)
     return types.CallToolResult(
         content=[types.TextContent(type="text", text=json.dumps(content))],
         structured_content=content,
-        _meta=meta,
+        _meta=_meta(),
     )
 
 

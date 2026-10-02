@@ -3,6 +3,7 @@
 # are added to the arguments of every tool that takes them; `scenario` names the scenario the
 # call needs, for a concept only a scenario holds.
 
+resolve_release: {arguments: {}}
 get_concept: {arguments: {code: C4817}}
 get_concepts: {arguments: {codes: [C4817]}}
 search_concepts: {arguments: {query: ewing sarcoma, mode: lexical}}

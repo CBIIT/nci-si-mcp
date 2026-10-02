@@ -40,7 +40,9 @@ in `tests/calls.yaml`, and find a result's items where the tool's `items` in
 [`../spec/tools.yaml`](../spec/tools.yaml) say. A tool joins them with those two entries.
 
 `@pytest.mark.scenario("release/unknown")` serves the scenario's fixtures before the ordinary
-ones, to a server process of its own started with the scenario's settings. A test marked
+ones, to a server process of its own started with the scenario's settings. A test that must
+see the server ask upstream is marked `own_server`, for a server process of its own that no
+earlier call can have filled a cache of. A test marked
 `live_capable` also runs in live mode, unless it selects a scenario; every other test runs
 against fixtures only.
 
