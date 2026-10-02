@@ -59,7 +59,8 @@ A fixture in a `concepts/` directory is a concept recording: EVS's answer to a
 concept request, which `concepts.py` projects and batches by the rules the manifest
 (`manifest.yaml`, `evs.concepts`) declares. A request no fixture answers exactly is
 answered by those rules where the active recordings allow, a scenario's recording of
-a code before the ordinary one.
+a code before the ordinary one. An ordinary fixture on a path the rules answer is
+refused: it would answer before a scenario's recording.
 
 Every log entry records when the request arrived (`received_at`, monotonic seconds),
 and the fixture or recordings that answered it.
@@ -391,9 +392,18 @@ def _add_recording(
 def _add_fixture(fixtures: FixtureSet, scenario: str | None, path: Path, root: Path) -> None:
     table = fixtures.ordinary if scenario is None else fixtures.scenarios.setdefault(scenario, {})
     key, fixture = _read_fixture(path, root)
+    if scenario is None and _composed_path(fixtures.rules, key):
+        # Exact fixtures are tried before the rules, so this one would answer in place of
+        # an active scenario's recording of the concept.
+        raise ValueError(f"{fixture.name}: the concept rules answer this path; record the concept")
     if key in table:
         raise ValueError(f"{fixture.name} and {table[key].name} answer the same request")
     table[key] = fixture
+
+
+def _composed_path(rules: ConceptRules | None, key: Key) -> bool:
+    surface, method, path = key[:3]
+    return rules is not None and (surface, method) == ("evs", "GET") and rules.composes(path)
 
 
 def _layers(

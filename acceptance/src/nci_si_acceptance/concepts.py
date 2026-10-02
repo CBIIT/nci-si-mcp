@@ -46,6 +46,8 @@ MAX_BATCH = 1000
 CONCEPT_PATH = re.compile(
     r"/api/v1/concept/(?P<terminology>[^/]+)(?:/(?P<code>[^/]+)(?:/(?P<relation>[^/]+))?)?"
 )
+# The one name in a concept's place that is an endpoint of its own.
+SEARCH = "search"
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,6 +106,15 @@ class ConceptRules:
         if not all(value in self.include for value in values):
             return None
         return self.base.union(*(self.include[value] for value in values))
+
+    def composes(self, path: str) -> bool:
+        """Whether the rules answer requests of this path, given the recordings: one
+        concept, a batch, or a relation list they know."""
+
+        match = CONCEPT_PATH.fullmatch(path)
+        if match is None or match["code"] == SEARCH:
+            return False
+        return match["relation"] is None or match["relation"] in self.relations
 
     def recording_problem(self, request: dict[str, Any], status: int, body: Any) -> str | None:
         """What makes a fixture unusable as a concept recording, if anything."""

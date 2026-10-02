@@ -419,3 +419,48 @@ def test_a_recording_naming_headers_or_ignored_parameters_is_refused(tmp_path, e
 
     with pytest.raises(ValueError, match="matched by its concept alone"):
         load_fixtures(tmp_path)
+
+
+def exact_fixture(root, where, path):
+    """An exact fixture answering GET evs `path`, written under `where`."""
+
+    target = root / where
+    target.parent.mkdir(parents=True, exist_ok=True)
+    document = {
+        "kind": "crafted",
+        "requirement": "self-test",
+        "request": {"surface": "evs", "method": "GET", "path": path},
+        "response": {"status": 200, "body": []},
+    }
+    target.write_text(json.dumps(document), encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/v1/concept/ncit_26.09d/C1",
+        "/api/v1/concept/ncit_26.09d",
+        "/api/v1/concept/ncit_26.09d/C1/roles",
+    ],
+)
+def test_an_ordinary_exact_fixture_where_the_rules_answer_is_refused(tmp_path, path):
+    write_manifest(tmp_path)
+    exact_fixture(tmp_path, "crafted/x.json", path)
+
+    with pytest.raises(ValueError, match=r"crafted/x\.json: the concept rules answer this path"):
+        load_fixtures(tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("where", "path"),
+    [
+        ("scenarios/upstream/down/x.json", "/api/v1/concept/ncit_26.09d/C1"),
+        ("crafted/search.json", "/api/v1/concept/ncit_26.09d/search"),
+        ("crafted/paths.json", "/api/v1/concept/ncit_26.09d/C1/pathsToRoot"),
+    ],
+)
+def test_a_scenario_fixture_or_a_path_the_rules_do_not_answer_may_be_exact(tmp_path, where, path):
+    write_manifest(tmp_path)
+    exact_fixture(tmp_path, where, path)
+
+    assert load_fixtures(tmp_path)
