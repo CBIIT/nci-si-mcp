@@ -27,7 +27,7 @@
   "status": 200,
   "body": {
    "total": 1027,
-   "timeTaken": 54,
+   "timeTaken": 46,
    "parameters": {
     "term": "ewing sarcoma",
     "type": "contains",

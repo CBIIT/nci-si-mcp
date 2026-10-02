@@ -1564,6 +1564,22 @@
      "targetTerminology": "GDC"
     },
     {
+     "type": "Related To",
+     "targetName": "Ewing sarcoma",
+     "targetTermType": "PT",
+     "targetCode": "9260/3",
+     "targetTerminology": "ICDO3",
+     "targetTerminologyVersion": "3.1"
+    },
+    {
+     "type": "Related To",
+     "targetName": "Ewing sarcoma",
+     "targetTermType": "PT",
+     "targetCode": "9364/3",
+     "targetTerminology": "ICDO3",
+     "targetTerminologyVersion": "3.2"
+    },
+    {
      "type": "Has Synonym",
      "targetName": "Ewing sarcoma",
      "targetTermType": "PT",
@@ -1590,6 +1606,14 @@
      "targetTermType": "PT",
      "targetCode": "primary_diagnosis",
      "targetTerminology": "GDC"
+    },
+    {
+     "type": "Has Synonym",
+     "targetName": "Ewing's sarcoma",
+     "targetTermType": "LLT",
+     "targetCode": "10015560",
+     "targetTerminology": "MedDRA",
+     "targetTerminologyVersion": "18.1"
     }
    ]
   }

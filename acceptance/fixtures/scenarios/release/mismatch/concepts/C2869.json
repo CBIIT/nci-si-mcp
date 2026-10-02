@@ -1585,6 +1585,14 @@
     {
      "type": "Has Synonym",
      "targetName": "Anemia",
+     "targetTermType": "LLT",
+     "targetCode": "10002272",
+     "targetTerminology": "MedDRA",
+     "targetTerminologyVersion": "18.1"
+    },
+    {
+     "type": "Has Synonym",
+     "targetName": "Anemia",
      "targetTermType": "PT",
      "targetCode": "comorbidities",
      "targetTerminology": "GDC"

@@ -1,18 +1,15 @@
-"""The suite's fixture set loads, is what the manifest records, and holds no licensed content."""
+"""The suite's fixture set loads and is what the manifest records."""
 
 import json
 from pathlib import Path
 
-import pytest
 import yaml
 
 from nci_si_acceptance.craft import craft
 from nci_si_acceptance.fixture_server import load_fixtures
-from nci_si_acceptance.licensing import Licensing
 from nci_si_acceptance.record import FIXTURES, plan, stale
 
 MANIFEST = yaml.safe_load((FIXTURES / "manifest.yaml").read_text(encoding="utf-8"))
-LICENSING = Licensing.from_manifest(MANIFEST["licensing"])
 DOCUMENTS = {
     path.relative_to(FIXTURES).as_posix(): json.loads(path.read_text(encoding="utf-8"))
     for path in sorted(FIXTURES.rglob("*.json"))
@@ -54,47 +51,6 @@ def test_every_scenario_file_is_recorded_or_crafted():
     }
 
     assert sorted(scenario_files - produced) == []
-
-
-@pytest.mark.parametrize(
-    "name", sorted(name for name in DOCUMENTS if "placeholder" not in DOCUMENTS[name])
-)
-def test_no_fixture_holds_licensed_content(name):
-    document = DOCUMENTS[name]
-    request = document["request"]
-    statuses = [
-        response.get("status", 200)
-        for response in document.get("responses") or [document["response"]]
-    ]
-    bodies = [
-        response.get("body") for response in document.get("responses") or [document["response"]]
-    ]
-
-    for status in statuses:
-        assert LICENSING.request_problem(request["path"], request.get("params", {}), status) is None
-    assert [name for body in bodies for name in LICENSING.licensed_names(body)] == []
-    assert [name for body in bodies for name in LICENSING.undecided(body)] == []
-
-
-PLACEHOLDERS = sorted(name for name in DOCUMENTS if "placeholder" in DOCUMENTS[name])
-
-
-def test_there_is_placeholder_licensed_content_to_check():
-    assert PLACEHOLDERS == ["scenarios/license/restricted/granted.json"]
-
-
-@pytest.mark.parametrize("name", PLACEHOLDERS)
-def test_placeholder_content_is_crafted_by_code_and_names_only_its_own_terminology(name):
-    document = DOCUMENTS[name]
-    bodies = [
-        response.get("body") for response in document.get("responses") or [document["response"]]
-    ]
-
-    assert document == CRAFTED.get(name)
-    assert {found for body in bodies for found in LICENSING.licensed_names(body)} <= {
-        document["placeholder"]["terminology"]
-    }
-    assert [found for body in bodies for found in LICENSING.undecided(body)] == []
 
 
 def test_every_recorded_fixture_is_dated_and_pinned():

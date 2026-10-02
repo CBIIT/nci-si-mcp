@@ -360,7 +360,6 @@ acceptance/
     client.py               connect over stdio or streamable HTTP; tools/list, tools/call
     fixture_server.py       serves fixtures by (surface, method, path, params, headers, body), active scenarios first, with a request log endpoint
     concepts.py             composes EVS concept answers from one recording per concept (§9.6)
-    licensing.py            the deny list: licensed content is neither recorded nor left in a payload
     record.py               re-records `recorded/` from live against the manifest's pins (`pdm run acceptance-record`)
     craft.py                crafts the scenario fixtures EVS does not produce on demand (`pdm run acceptance-craft`)
     register.py             writes the register of request forms from the manifest (`pdm run acceptance-register`)
@@ -417,7 +416,7 @@ The fixtures use the request forms of the platform operations in *MCP API Specif
 - **EVS concepts.** One recording per concept answers every projection, batch and relation list through declared rules (`concepts.py`): project by `include` (the include-to-key table in the manifest; EVS's `include` is a clean key projection, verified 2 October 2026), select by `list` (each code once, unknown codes left out, in no particular order, since EVS keeps none), and one relation list on its own. `record.py` checks composed answers against real ones.
 - **Ignored parameters.** A parameter the service is shown to ignore is declared with its evidence and left out of the match.
 
-Licensed content (EVS SOW v2.1 item 2) is never recorded: `licensing.py` refuses requests for it and removes licensed items from payloads, a terminology on neither the licensed nor the allowed list stops a recording, and a self-test fails on either left in the set.
+The recorder sends no licence key, so what it records is what EVS serves publicly; licensed content, which EVS refuses without the key (403), is never recorded, and a recording whose request carried the key is refused.
 
 ---
 

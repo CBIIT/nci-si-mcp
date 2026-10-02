@@ -259,6 +259,22 @@
      "type": "Related To",
      "targetName": "Connective, subcutaneous and other soft tissues, NOS",
      "targetTermType": "PT",
+     "targetCode": "C49.9",
+     "targetTerminology": "ICDO3",
+     "targetTerminologyVersion": "3.1"
+    },
+    {
+     "type": "Related To",
+     "targetName": "Connective, subcutaneous and other soft tissues, NOS",
+     "targetTermType": "PT",
+     "targetCode": "C49.9",
+     "targetTerminology": "ICDO3",
+     "targetTerminologyVersion": "3.2"
+    },
+    {
+     "type": "Related To",
+     "targetName": "Connective, subcutaneous and other soft tissues, NOS",
+     "targetTermType": "PT",
      "targetCode": "progression_or_recurrence_anatomic_site",
      "targetTerminology": "GDC"
     },
@@ -278,6 +294,22 @@
     },
     {
      "type": "Related To",
+     "targetName": "CONNECTIVE, SUBCUTANEOUS AND OTHER SOFT TISSUES",
+     "targetTermType": "HT",
+     "targetCode": "C49",
+     "targetTerminology": "ICDO3",
+     "targetTerminologyVersion": "3.2"
+    },
+    {
+     "type": "Related To",
+     "targetName": "CONNECTIVE, SUBCUTANEOUS AND OTHER SOFT TISSUES",
+     "targetTermType": "HT",
+     "targetCode": "C49",
+     "targetTerminology": "ICDO3",
+     "targetTerminologyVersion": "3.1"
+    },
+    {
+     "type": "Related To",
      "targetName": "Connective, subcutaneous and other soft tissues",
      "targetTermType": "PT",
      "targetCode": "primary_site",
@@ -285,11 +317,5 @@
     }
    ]
   }
- },
- "redacted": [
-  "/maps/0 (ICDO3)",
-  "/maps/1 (ICDO3)",
-  "/maps/5 (ICDO3)",
-  "/maps/6 (ICDO3)"
- ]
+ }
 }

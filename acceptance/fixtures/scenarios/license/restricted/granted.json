@@ -24,8 +24,5 @@
    "active": true
   }
  },
- "placeholder": {
-  "terminology": "mdr",
-  "reason": "no MedDRA content: the code and name are invented"
- }
+ "placeholder": "invented: the code and name stand for a licensed MedDRA concept"
 }

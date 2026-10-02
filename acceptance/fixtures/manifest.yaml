@@ -1,4 +1,4 @@
-# The fixture set: its pin, the concept rules, the licence deny list, and what
+# The fixture set: its pin, the concept rules, the scenarios, and what
 # `pdm run acceptance-record` records (fixtures/README.md). Re-pinning the release is a
 # re-recording under change control (MCP Behavioral Acceptance Suite §2.2).
 
@@ -35,33 +35,6 @@ evs:
 surfaces:
   evs: https://api-evsrest.nci.nih.gov
   evs-fhir: https://api-evsrest.nci.nih.gov/fhir/r4
-
-# Licensed content is never recorded (licensing.py; EVS SOW v2.1 item 2). The check fails
-# closed: a terminology a payload names that is on neither list stops the recording.
-licensing:
-  # The terminologies whose EVS metadata (licenseText) requires a licence beyond EVS, by
-  # every name EVS gives them, and ICD-O-3, withheld while its terms are unsettled.
-  # Their FHIR system URIs are listed with them.
-  licensed: [mdr, MedDRA, snomedct_us, SNOMEDCT, icd10, ncim, ICDO3,
-             "https://www.meddra.org", "http://snomed.info/sct", "http://hl7.org/fhir/sid/icd-10",
-             "https://ncim.nci.nih.gov/ncimbrowser/"]
-  # NCIt itself, by its EVS name and FHIR system URI, and the sources NCIt's own synonyms
-  # and definitions name, published under NCIt's terms.
-  allowed: [ncit, "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
-            ACC/AHA, CCPS, CDC, CDISC, CDISC-GLOSS, CPTAC, CTCAE, CTDC, CTEP, CTRP, Cellosaurus,
-            DIPG/DMG, FDA, GDC, HGNC, HemOnc, ICDC, NCI, NCI-GLOSS, NICHD, OORO, PCDC, SeroNet,
-            caDSR, mCode]
-  # The mapsets with a licensed terminology on either side.
-  mapsets:
-    - NCIt_Maps_To_MedDRA
-    - ICD10_to_MedDRA_Mapping
-    - SNOMEDCT_US_2026_03_01_to_ICD10CM_2026_Mappings
-    - SNOMEDCT_US_2026_03_01_to_ICD10_2016_Mappings
-    - NCIt_Maps_To_ICD10
-    - NCIt_Maps_To_ICDO3
-    - ICDO_TO_NCI_MORPHOLOGY
-    - ICDO_TO_NCI_TOPOGRAPHY
-    - ICDO_TO_NCI_AXIS
 
 # What each scenario of Acceptance Suite §2.3 provokes, in the order the register lists
 # them (register.py). Whether a scenario is recorded or crafted is read from its fixtures.

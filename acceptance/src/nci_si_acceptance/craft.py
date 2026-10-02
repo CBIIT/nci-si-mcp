@@ -337,7 +337,7 @@ def upstream_rate_limited(recorded: Recorded) -> Documents:
     }
 
 
-# Placeholder content: no MedDRA term or code is redistributed (licensing.py).
+# Invented content: no licence key is available to record EVS's answer with one.
 LICENSED_CONCEPT = {
     "code": "10000000",
     "name": "Placeholder licensed term",
@@ -362,10 +362,7 @@ def license_restricted(_: Recorded) -> Documents:
         "ignored": {"*": "placeholder content answers every projection alike"},
     }
     document = crafted(requirement, request, response={"status": 200, "body": LICENSED_CONCEPT})
-    document["placeholder"] = {
-        "terminology": "mdr",
-        "reason": "no MedDRA content: the code and name are invented",
-    }
+    document["placeholder"] = "invented: the code and name stand for a licensed MedDRA concept"
     return {
         "scenarios/license/restricted/settings.json": {"NCI_SI_EVS_LICENSE_KEY": LICENCE_KEY},
         "scenarios/license/restricted/granted.json": document,

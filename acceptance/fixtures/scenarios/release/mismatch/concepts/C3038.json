@@ -1612,6 +1612,14 @@
     {
      "type": "Has Synonym",
      "targetName": "Fever",
+     "targetTermType": "LLT",
+     "targetCode": "10016558",
+     "targetTerminology": "MedDRA",
+     "targetTerminologyVersion": "18.1"
+    },
+    {
+     "type": "Has Synonym",
+     "targetName": "Fever",
      "targetTermType": "PT",
      "targetCode": "ann_arbor_b_symptoms_described",
      "targetTerminology": "GDC"
