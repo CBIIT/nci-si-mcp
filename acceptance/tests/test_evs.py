@@ -191,3 +191,140 @@ def test_every_terminology_the_platform_serves_is_listed_with_its_current_releas
     assert {row["terminology"] for row in listing} - set(listed) == set()
     # NCIt's current release is the monthly one the fixture set is pinned to.
     assert listed[pinned["terminology"]] == pinned["release"]
+
+
+# Lexical search is EVS's type=contains and typeahead its type=startsWith, each recorded a page
+# of 10 at a time with highlights asked for (fixtures/manifest.yaml); EVS returns highlights for
+# contains only. The lexical search is recorded for its first two pages.
+LEXICAL = ["recorded/evs/search-contains.json", "recorded/evs/search-contains-page-2.json"]
+TYPEAHEAD = "recorded/evs/search-starts-with.json"
+# A field a record leaves out where the source says nothing: null or false is not absent.
+ABSENT = "(absent)"
+
+
+def _search(tools, pinned, recording, mode, **arguments):
+    """The search a recording answers, by its term and page size, in `mode`."""
+
+    params = recording["request"]["params"]
+    query, (size,) = params["term"][0], params["pageSize"]
+    search = {"query": query, "mode": mode, "limit": int(size)}
+    return tools.call("search_concepts", {**pinned, **search, **arguments})
+
+
+def _matches(result):
+    """Each result's code, its matchedOn (ABSENT where it has none) and whether it carries a
+    score."""
+
+    assert not result.is_error, result.content
+    return [
+        (
+            (entry.get("concept") or {}).get("code"),
+            entry.get("matchedOn", ABSENT),
+            "score" in entry,
+        )
+        for entry in result.content.get("results", [])
+    ]
+
+
+def _recorded_matches(recording):
+    """What EVS answered, as the search result record passes it on: no score from EVS."""
+
+    concepts = recording["response"]["body"].get("concepts", [])
+    return [(concept["code"], concept.get("highlight", ABSENT), False) for concept in concepts]
+
+
+@pytest.mark.tool("search_concepts")
+@pytest.mark.requirement("search_concepts-1")
+def test_lexical_search_returns_the_platform_s_matches_in_its_order_a_page_at_a_time(
+    tools, pinned, recorded
+):
+    first, second = (recorded(file) for file in LEXICAL)
+
+    page = _search(tools, pinned, first, "lexical")
+    assert _matches(page) == _recorded_matches(first)
+    assert page.content.get("totalKnown") == first["response"]["body"]["total"]
+    following = _search(tools, pinned, first, "lexical", cursor=page.content.get("nextCursor"))
+
+    assert _matches(following) == _recorded_matches(second)
+
+
+@pytest.mark.tool("search_concepts")
+@pytest.mark.requirement("search_concepts-2")
+def test_typeahead_returns_the_platform_s_prefix_matches_in_its_order(tools, pinned, recorded):
+    recording = recorded(TYPEAHEAD)
+
+    result = _search(tools, pinned, recording, "typeahead")
+
+    assert _matches(result) == _recorded_matches(recording)
+
+
+# Value set C85492 (CDISC SDTM Method Terminology), recorded whole: FHIR $expand ignores count,
+# offset and activeOnly (fixtures/manifest.yaml).
+VALUE_SET = "C85492"
+EXPANSION = "recorded/evs-fhir/expand-c85492.json"
+COUNT = 10
+
+
+def _expand(tools, pinned, **arguments):
+    return tools.call("expand_value_set", {**pinned, "valueSet": VALUE_SET, **arguments})
+
+
+def _members(result):
+    """Each member's code, name and inactive mark (ABSENT where it has none), and the total."""
+
+    assert not result.is_error, result.content
+    members = items_of("expand_value_set", result.content)
+    found = [
+        (member.get("code"), member.get("name"), member.get("inactive", ABSENT))
+        for member in members
+    ]
+    return found, result.content.get("total")
+
+
+def _recorded_members(contains):
+    return [
+        (member["code"], member["display"], member.get("inactive", ABSENT)) for member in contains
+    ]
+
+
+@pytest.mark.tool("expand_value_set")
+@pytest.mark.requirement("expand_value_set-1")
+@pytest.mark.parametrize("page", ["first", "middle", "last"])
+def test_count_and_offset_select_the_members_and_total_counts_them_all(
+    tools, pinned, recorded, page
+):
+    expansion = recorded(EXPANSION)["response"]["body"]["expansion"]
+    contains = expansion["contains"]
+    # The last page holds fewer members than COUNT.
+    offset = {"first": 0, "middle": 100, "last": len(contains) - 4}[page]
+
+    result = _expand(tools, pinned, count=COUNT, offset=offset)
+
+    assert _members(result) == (
+        _recorded_members(contains[offset : offset + COUNT]),
+        expansion["total"],
+    )
+
+
+INACTIVE = "scenarios/valueset/inactive-members/expand.json"
+
+
+@pytest.mark.scenario("valueset/inactive-members")
+@pytest.mark.tool("expand_value_set")
+@pytest.mark.requirement("expand_value_set-2")
+@pytest.mark.parametrize(
+    "active_only",
+    [{"activeOnly": True}, {"activeOnly": False}, {}],
+    ids=["true", "false", "default"],
+)
+def test_active_only_leaves_out_the_members_marked_inactive(tools, pinned, recorded, active_only):
+    contains = recorded(INACTIVE)["response"]["body"]["expansion"]["contains"]
+    inactive = [member for member in contains if member.get("inactive")]
+    # The scenario marks members on the first page, or the test would show nothing.
+    assert inactive and all(member in contains[:COUNT] for member in inactive)
+    left_out = inactive if active_only.get("activeOnly") else []
+    kept = [member for member in contains if member not in left_out]
+
+    result = _expand(tools, pinned, count=COUNT, offset=0, **active_only)
+
+    assert _members(result) == (_recorded_members(kept[:COUNT]), len(kept))

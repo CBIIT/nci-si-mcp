@@ -50,15 +50,17 @@ def _scenarios(name):
 
 
 PINNED_TOOLS = [name for name in CALLS if "release" in parameters(name)[0]]
-# The calls that also carry an upstream origin (X-8), match nothing (X-4), or exceed a bound
-# (X-10).
-UPSTREAM, EMPTY, TRUNCATING = (
-    [n for n in CALLS if key in CALLS[n]] for key in ("upstream", "empty", "truncating")
+# The calls that also carry an upstream origin (X-8), match nothing (X-4), exceed a bound
+# (X-10), or are larger than their page (X-17).
+UPSTREAM, EMPTY, TRUNCATING, PAGED = (
+    [n for n in CALLS if key in CALLS[n]] for key in ("upstream", "empty", "truncating", "paged")
 )
 CALLED = _per_tool(CALLS)
 PINNED = _per_tool(PINNED_TOOLS)
 # The release the release/unknown scenario answers 404 for on every content path.
 UNKNOWN_RELEASE = "99.99z"
+# A release the platform serves beside the pinned one (recorded/evs/terminologies.json).
+OTHER_RELEASE = "26.08e"
 # The calls whose answers name the release they come from, where a mismatch can show (X-3).
 RELEASED = [name for name in PINNED_TOOLS if not CALLS[name].get("unversioned")]
 # A concept of a licensed terminology, served (license/restricted) only with the licence key.
@@ -86,6 +88,17 @@ def _items(tools, pinned, name):
 
 def _provenance(item):
     return item.get("provenance") or {} if isinstance(item, dict) else {}
+
+
+def _release(item):
+    """The terminology and release an item's provenance names."""
+
+    release = _provenance(item).get("release") or {}
+    return release.get("terminology"), release.get("identifier")
+
+
+def _identity(item):
+    return (item.get("terminology"), item.get("code")) if isinstance(item, dict) else item
 
 
 def _wrong(provenance, names):
@@ -133,9 +146,7 @@ def _timestamp(value):
 def test_every_item_carries_the_release_requested(tools, pinned, name):
     found = _items(tools, pinned, name)
 
-    releases = [_provenance(item).get("release") or {} for item in found]
-    named = {(release.get("terminology"), release.get("identifier")) for release in releases}
-    assert named == {(pinned["terminology"], pinned["release"])}
+    assert {_release(item) for item in found} == {(pinned["terminology"], pinned["release"])}
 
 
 @pytest.mark.requirement("X-6")
@@ -326,6 +337,7 @@ def test_a_query_that_matches_nothing_is_an_empty_result_with_provenance(tools, 
 
     assert not result.is_error, result.content
     assert items_of(name, result.content) == []
+    assert "nextCursor" not in result.content
     # With no item to carry it, the result carries the provenance itself.
     provenance = _provenance(result.content)
     assert _wrong(provenance, CARRIED) == []
@@ -376,3 +388,25 @@ def test_a_bound_reached_is_reported_with_how_much_was_left_out(tools, pinned, n
     # How much was left out is a number, exact or a stated lower bound; a flag is not enough.
     assert _whole(record.get("omitted")) and record["omitted"] >= 1
     assert isinstance(record.get("exact"), bool)
+
+
+@pytest.mark.requirement("X-17")
+@pytest.mark.parametrize("name", _per_tool(PAGED))
+def test_a_cursor_continues_with_the_next_items_of_the_same_release(tools, pinned, name):
+    first = _call(tools, pinned, name)
+    assert not first.is_error, first.content
+    cursor = first.content.get("nextCursor")
+    assert isinstance(cursor, str) and cursor, f"no nextCursor: {first.content!r:.300}"
+
+    continued = CALLS[name]["arguments"] | {"cursor": cursor}
+    second = _call(tools, pinned, name, continued)
+
+    assert not second.is_error, second.content
+    before = {_identity(item) for item in items_of(name, first.content)}
+    after = [_identity(item) for item in items_of(name, second.content)]
+    assert after, "the cursor's page is empty"
+    assert [item for item in after if item in before] == []
+    releases = {_release(item) for item in items_of(name, second.content)}
+    assert releases == {(pinned["terminology"], pinned["release"])}
+    other = _call(tools, pinned | {"release": OTHER_RELEASE}, name, continued)
+    assert error_code(other) == "invalid_request", other.content

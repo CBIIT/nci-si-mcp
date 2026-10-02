@@ -16,6 +16,7 @@ EMPTY = "test_a_query_that_matches_nothing_is_an_empty_result_with_provenance"
 TRUNCATED = "test_a_bound_reached_is_reported_with_how_much_was_left_out"
 LICENCE_REACHES = "test_the_licence_key_reaches_the_platform_and_nothing_the_server_returns_or_logs"
 BACKOFF = "test_a_rate_limited_request_is_asked_once_more_after_the_wait"
+PAGED = "test_a_cursor_continues_with_the_next_items_of_the_same_release"
 # Each defect of the compliant server, and the cross-cutting test whose every case must fail.
 DEFECTS = [
     ("wrong-release", "test_every_item_carries_the_release_requested"),
@@ -53,6 +54,12 @@ DEFECTS = [
     ("omitted-unknown", TRUNCATED),
     ("exact-missing", TRUNCATED),
     ("reached-over", TRUNCATED),
+    ("no-next-cursor", PAGED),
+    ("cursor-repeats", PAGED),
+    ("cursor-other-release", PAGED),
+    ("cursor-empty", PAGED),
+    ("cursor-ignores-release", PAGED),
+    ("empty-with-cursor", EMPTY),
 ]
 
 
