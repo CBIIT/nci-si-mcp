@@ -4,6 +4,7 @@ import pytest
 
 
 @pytest.mark.live_capable
+@pytest.mark.requirement("P-1")
 def test_tools_list_names_each_tool_with_its_input_schema(server):
     assert server.available
     for name, tool in server.available.items():

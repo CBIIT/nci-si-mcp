@@ -364,6 +364,7 @@ acceptance/
     craft.py                crafts the scenario fixtures EVS does not produce on demand (`pdm run acceptance-craft`)
     register.py             writes the register of request forms from the manifest (`pdm run acceptance-register`)
     tools.py                baseline tool map application
+    requirements.py         the rule that tests cite `spec/requirements.yaml` and every requirement is cited or planned
     report.py               per-tool outcome: PASS | PASS (fixture only) | FAIL | NO FIXTURE | INCOMPLETE | NOT IMPLEMENTED | NOT RUN | NO TESTS; marks rows served through the tool map
   fixtures/
     manifest.yaml           pinned NCIt release (caDSR export date and SI graph dates to come), concept rules, the scenarios, the requests recorded
