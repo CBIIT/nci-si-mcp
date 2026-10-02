@@ -158,6 +158,7 @@ Binding on every tool.
 | M1.2 | The tool surface does not vary with the terminology, the release pinned or what the platform offers today; a capability not yet available is a tool returning a structured unavailable error, never an absent tool. |
 | M1.3 | Each tool's group (evs, cadsr, cross-domain, workflow) is carried in its metadata. |
 | M1.4 | Every tool declares the read-only annotations readOnlyHint true, destructiveHint false, idempotentHint true and openWorldHint true. |
+| M1.5 | A server serves one profile, which decides which tools tools/list names and nothing else. The profile evs serves the EVS tools, cadsr the caDSR tools, and unified all four groups; the cross-domain and workflow tools need both modules, so only unified has them (A1.4). |
 
 ### M2 · Caching hints
 
@@ -167,6 +168,9 @@ Binding on every tool.
 | M2.2 | A release-pinned result has a long ttlMs, an unpinned one a short ttlMs, and resolve_release, resolve_registry_release and get_release_alignment ttlMs 0; tools/list is long and public. |
 | M2.3 | cacheScope is public for governed content and private for results computed from caller-supplied values. |
 | M2.4 | A cursor pins the release it was issued against; presented after that release is superseded, it is a structured error. |
+| M2.5 | A tool result carries ttlMs and cacheScope in its _meta. |
+
+*Why M2.5.* The protocol carries ttlMs and cacheScope as fields of the results of the list methods, resources/read and server/discover only (revision 2026-07-28), so a tool result needs a stated place for them.
 
 ### M3 · Typed results
 
@@ -193,6 +197,12 @@ Binding on every tool.
 |---|---|
 | M6.1 | Pagination is cursor-based, cursor in and nextCursor out, with totalKnown where it can be determined. |
 
+### M7 · Correlation on the wire
+
+| Id | Convention |
+|---|---|
+| M7.1 | A caller passes its correlation identifier as correlationId in the _meta of tools/call. The module sends it upstream on every platform request the call makes, in the X-Correlation-ID header until the platform defines a parameter or header of its own (A6.2a), and returns it in the provenance of each item and in the error record. |
+
 ### The provenance record
 
 Every returned item carries one, beside its identifier and status, which are fields of the item (A4.1, A4.4). Field names are camelCase.
@@ -204,7 +214,7 @@ Every returned item carries one, beside its identifier and status, which are fie
 | `servedBy` | Where the answer came from: one of `live`, `cache`, `index`, `fixture` | A4.1 |
 | `retrievedAt` | When it was retrieved, ISO-8601 | A4.1 |
 | `sourceUri` | The upstream URL that produced the item | A4.1 |
-| `correlationId` | The call's correlation identifier | A6.2 |
+| `correlationId` | The call's correlation identifier | M7.1 |
 | `graphs` | For items served by the Shared SI Service: the identifier and date of each graph touched | A1.5 |
 | `upstream` | The fields the platform supplied, passed through unchanged | A4.3 |
 
@@ -220,6 +230,17 @@ The provenance record, with these fields added (A4.2).
 | `polarity` | Positive or negative: one of `positive`, `negative` | A5.6 |
 | `qualifiers` | Any qualifying detail the platform attaches | A4.2 |
 | `evidence` | Supporting evidence, where the platform supplies it | A4.2 |
+
+### The error record
+
+A failed call returns { error } as its structuredContent, with isError set (M3.2); it never resembles an empty result (A2.5).
+
+| Field | Content | Rule |
+|---|---|---|
+| `code` | The class of the failure: those A2.5 names, a release mismatch (A3.4), a timeout, a capability not yet available (M1.2) and a cursor whose release is superseded (M2.4): one of `invalid_request`, `not_found`, `release_not_available`, `release_mismatch`, `upstream_unavailable`, `timeout`, `bound_exceeded`, `capability_unavailable`, `cursor_expired`, `internal_error` | A2.5 |
+| `message` | What failed, in words | A2.5 |
+| `details` | An object holding what the caller needs for its next step, such as the release requested and the release served, the bound, its limit and the amount reached, or the surface, status and attempts of a failed upstream request (optional) | A2.5 |
+| `correlationId` | The call's correlation identifier | M7.1 |
 
 ## 2. Tools
 
@@ -245,7 +266,7 @@ The provenance record, with these fields added (A4.2).
 | Tool | Inputs → result | What it does |
 |---|---|---|
 | `resolve_registry_release` | `() → { identifier, generatedAt, sourceDistribution }` | The registry's content state; no identifier is invented where caDSR publishes none. |
-| `get_data_element` | `(publicId, version? \| longName? \| questionText?, include[]?) → dataElement` | One data element with the detail selected. `include`: permissibleValues, valueDomain, conceptAssociations, alternateNames, provenance. |
+| `get_data_element` | `(publicId \| longName \| questionText, version?, include[]?) → dataElement` | One data element with the detail selected. `include`: permissibleValues, valueDomain, conceptAssociations, alternateNames, provenance. |
 | `search_data_elements` | `(query, mode?, filters?, limit?, cursor?) → { results[{ dataElement, score?, matchedOn? }], nextCursor?, totalKnown? }` | Search of data elements, filtered by context, status and value-domain type. `mode`: lexical, semantic, hybrid. `filters`: context, workflowStatus, registrationStatus, valueDomainType. |
 | `match_data_elements` | `(entities[{ name, userTip?, permissibleValues[]? }], matchLimit?, modelVariant?, similarityThreshold?, filters?, cursor?) → { matches[{ dataElement, score, rule, matchedText }], nextCursor? }` | Data elements matched to described entities, keyword and AI-enhanced, scored. |
 | `match_value_meanings` | `(values[], strictness?, terminologyScope?, cursor?) → { matches[{ valueMeaning, score, crosswalk[] }], nextCursor? }` | Value meanings matched to values, with crosswalk codes. |
@@ -278,16 +299,18 @@ The provenance record, with these fields added (A4.2).
 
 | Id | Requirement | Basis | Tests | Status |
 |---|---|---|---|---|
-| P-1 | tools/list names every tool of the profile under test, and no other. | M1.2 | `tests/test_protocol.py::test_tools_list_names_each_tool_with_its_input_schema` | planned #52 |
-| P-2 | Every tool declares an outputSchema that is valid JSON Schema and covers both the success and the error shape. | M3.1 | — | planned #52 |
-| P-3 | No tool description contains an operator, wildcard or parameter value a tool test shows unsupported, nor placeholder or debug text. | A2.3, A2.4 | — | planned #52 |
-| P-4 | Tool names are verb-led, lowercase and underscore-separated, and equivalent operations share a name pattern across the EVS and caDSR modules. | A2.1, A2.2 | — | planned #52 |
-| P-5 | tools/list carries ttlMs and cacheScope public; release discovery results carry ttlMs 0 and release-pinned results a positive ttlMs. | M2.1, M2.2 | — | planned #52 |
-| P-6 | tools/list is identical whatever the terminology selected, the release pinned and the run mode. | M1.2 | — | planned #52 |
-| P-7 | A correlation identifier supplied on a call appears in the result and in the upstream request log. | A6.2 | — | planned #52 |
+| P-1 | tools/list names every tool of the profile under test, and no other. | M1.2, M1.5 | `tests/test_protocol.py::test_tools_list_names_the_tools_of_the_profile_and_no_other` | tested |
+| P-2 | Every tool declares an outputSchema that is valid JSON Schema and covers the error record, admitting one and refusing one with a code outside its closed set or with no code. | M3.1, error | `tests/test_protocol.py::test_every_output_schema_admits_the_error_record_and_refuses_a_malformed_one` | tested |
+| P-3 | No tool description, nor any description in a tool's schemas, contains placeholder, debug or development text. | A2.4, A10.3 | `tests/test_protocol.py::test_no_description_holds_placeholder_or_debug_text` | tested |
+| P-4 | Tool names are verb-led, lowercase and underscore-separated. | A2.1 | `tests/test_protocol.py::test_tool_names_are_verb_led_lowercase_and_underscore_separated` | tested |
+| P-5 | tools/list carries a positive ttlMs and cacheScope public. | M2.1, M2.2 | `tests/test_protocol.py::test_tools_list_may_be_cached_and_shared` | tested |
+| P-6 | tools/list is the same after calls that pin a terminology and release, and while the platform is unavailable. | M1.2 | `tests/test_protocol.py::test_tools_list_is_the_same_after_a_call_that_pins_a_terminology_and_release`, `tests/test_protocol.py::test_tools_list_is_the_same_while_the_platform_is_unavailable` | tested |
+| P-7 | A correlation identifier passed on a call is sent upstream on every platform request the call makes, and returned in the provenance of each item. | A6.2, M7.1 | `tests/test_protocol.py::test_a_correlation_identifier_goes_upstream_and_comes_back` | tested |
 | P-8 | prompts/list and resources/list list the furnished prompts and resources with their arguments, and a prompt names only tools present in the profile. | M5.1 | — | planned #60 |
 | P-9 | resources/read results carry ttlMs, cacheScope and a provenance record. | M2.1, A4.1, M5.1 | — | planned #60 |
-| P-10 | Every tool declares readOnlyHint true, destructiveHint false, idempotentHint true and openWorldHint true. | M1.4 | — | planned #52 |
+| P-10 | Every tool declares readOnlyHint true, destructiveHint false, idempotentHint true and openWorldHint true. | M1.4 | `tests/test_protocol.py::test_every_tool_is_annotated_read_only_idempotent_and_open_world` | tested |
+| P-11 | No tool description shows an operator, wildcard, filter syntax or parameter value that a tool test shows unsupported. | A2.3, A10.3 | — | planned #53 |
+| P-12 | Each tool takes the parameters the specification names for it, under those names, and requires exactly those not marked optional, so that equivalent operations of the two modules share parameter names. | A2.2 | `tests/test_protocol.py::test_each_tool_takes_the_parameters_the_specification_names` | tested |
 
 ### Cross-cutting: against every content-returning tool
 
@@ -305,6 +328,7 @@ The provenance record, with these fields added (A4.2).
 | X-10 | With a caller limit smaller than the result, truncation is reported with the bound reached and the magnitude omitted. | A5.1, A5.4 | — | planned #52 |
 | X-11 | No upstream endpoint is called twice with identical parameters within one tool call. | A5.8 | — | planned #52 |
 | X-12 | The licence key reaches the upstream request and appears in no log, error message or result. | A7.5 | — | planned #52 |
+| X-13 | Every release-pinned result carries a positive ttlMs in its _meta, with cacheScope public for governed content and private for results computed from caller-supplied values. | M2.2, M2.3, M2.5 | — | planned #52 |
 
 ### EVS tools
 

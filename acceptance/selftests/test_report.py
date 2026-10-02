@@ -49,7 +49,9 @@ def collected(*phases, absent=()):
 
     collector = Collector()
     collector.note_tools(
-        SimpleNamespace(implemented_as=lambda name: None if name in absent else name)
+        SimpleNamespace(
+            implemented_as=lambda name: None if name in absent else name, listing_bytes=4096
+        )
     )
     for report, tool, gate in phases:
         collector.record(report, tool, gate)
@@ -108,6 +110,17 @@ def test_skips_are_not_implemented_or_not_run_and_a_failed_gate_fails_every_pass
     assert set(tools) == set(REQUIRED_TOOLS)
 
 
+def test_a_gate_that_did_not_run_is_listed_and_the_listing_size_kept():
+    report = collected(
+        (phase("call", "passed", "t.py::listed"), None, True),
+        (phase("call", "skipped", "t.py::called", "NOT IMPLEMENTED: get_concept"), None, True),
+        (phase("call", "skipped", "t.py::tool", "NOT IMPLEMENTED: get_form"), "get_form", False),
+    )
+
+    gates = (report["failed_gates"], report["unrun_gates"])
+    assert (*gates, report["tools_list_bytes"]) == ([], ["t.py::called"], 4096)
+
+
 def test_a_live_run_counts_a_fixture_only_test_without_making_its_tool_incomplete():
     report = collected(
         (phase("setup", "skipped", "t.py::a", "fixture mode only"), "get_form", False),
@@ -147,7 +160,14 @@ def run(outcomes, tests=None):
     }
     for name, outcome in outcomes.items():
         tools[name]["outcome"] = outcome
-    return {"mode": "fixture", "failed_gates": [], "tools": tools, "tests": tests or {}}
+    return {
+        "mode": "fixture",
+        "failed_gates": [],
+        "unrun_gates": [],
+        "tools_list_bytes": None,
+        "tools": tools,
+        "tests": tests or {},
+    }
 
 
 def live_test(tool, outcome):
@@ -201,6 +221,7 @@ def test_the_rendered_report_states_its_modes_counts_and_what_proves_nothing_yet
         "counts": {"passed": 4},
     }
     fixture["tools"]["get_form"]["counts"] = {"passed": 3, "not_implemented": 4, "skipped": 1}
+    fixture |= {"unrun_gates": ["t.py::correlation"], "tools_list_bytes": 61234}
     fixture["tests"] = {
         "t.py::x": live_test("get_concepts", "no_fixture") | {"unmatched": ["GET evs /x {}"]}
     }
@@ -216,6 +237,8 @@ def test_the_rendered_report_states_its_modes_counts_and_what_proves_nothing_yet
     assert "| `get_form` | cadsr | INCOMPLETE | 3 / 0 / 0 / 5 | — |  |" in text
     assert "Tests run and not passing: resolve_release, get_concepts, get_form." in text
     assert "Requests without a fixture: GET evs /x {}." in text
+    assert "Gates not run: t.py::correlation." in text
+    assert "Size of the tools/list result: 61,234 bytes." in text
     never_run = next(line for line in text.splitlines() if line.startswith("Tests never run"))
     assert "get_concept" in never_run
     assert "list_contexts" in never_run
@@ -277,3 +300,4 @@ def test_the_command_says_a_fixture_run_alone_is_not_the_final_outcome(tmp_path,
     output = capsys.readouterr().out
     assert "the live run is not included" in output
     assert "| `get_form` | cadsr | PASS | 0 / 0 / 0 / 0 | — |  |" in output
+    assert "Size of the tools/list result: not measured, no server started." in output

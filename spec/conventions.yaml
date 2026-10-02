@@ -1,7 +1,7 @@
 # The conventions binding every tool of both modules, so that a caller cannot tell from a
 # response which module produced it. Each rule states what a requirement needs to be read on
 # its own, and `why` gives the reason where the rule is not self-evident. The A ids are those
-# the programme's documents cite, kept stable for that reason; M1 to M5 are the MCP surface's
+# the programme's documents cite, kept stable for that reason; the M ids are the MCP surface's
 # own. Ids are never renumbered once merged.
 
 A1:
@@ -126,6 +126,7 @@ M1:
     M1.3: Each tool's group (evs, cadsr, cross-domain, workflow) is carried in its metadata.
     # M1.4: owner decision, 2 October 2026.
     M1.4: Every tool declares the read-only annotations readOnlyHint true, destructiveHint false, idempotentHint true and openWorldHint true.
+    M1.5: A server serves one profile, which decides which tools tools/list names and nothing else. The profile evs serves the EVS tools, cadsr the caDSR tools, and unified all four groups; the cross-domain and workflow tools need both modules, so only unified has them (A1.4).
 M2:
   title: Caching hints
   rules:
@@ -133,6 +134,9 @@ M2:
     M2.2: A release-pinned result has a long ttlMs, an unpinned one a short ttlMs, and resolve_release, resolve_registry_release and get_release_alignment ttlMs 0; tools/list is long and public.
     M2.3: cacheScope is public for governed content and private for results computed from caller-supplied values.
     M2.4: A cursor pins the release it was issued against; presented after that release is superseded, it is a structured error.
+    M2.5: A tool result carries ttlMs and cacheScope in its _meta.
+  why:
+    M2.5: The protocol carries ttlMs and cacheScope as fields of the results of the list methods, resources/read and server/discover only (revision 2026-07-28), so a tool result needs a stated place for them.
 M3:
   title: Typed results
   rules:
@@ -150,3 +154,7 @@ M6:
   title: Pagination
   rules:
     M6.1: Pagination is cursor-based, cursor in and nextCursor out, with totalKnown where it can be determined.
+M7:
+  title: Correlation on the wire
+  rules:
+    M7.1: A caller passes its correlation identifier as correlationId in the _meta of tools/call. The module sends it upstream on every platform request the call makes, in the X-Correlation-ID header until the platform defines a parameter or header of its own (A6.2a), and returns it in the provenance of each item and in the error record.

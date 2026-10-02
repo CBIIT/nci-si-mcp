@@ -55,7 +55,8 @@ def _conventions() -> list[str]:
 
 def _values(field: dict[str, Any]) -> str:
     values = field.get("values")
-    return f": one of {', '.join(f'`{value}`' for value in values)}" if values else ""
+    listed = f": one of {', '.join(f'`{value}`' for value in values)}" if values else ""
+    return listed + (" (optional)" if field.get("optional") else "")
 
 
 def _record(record: dict[str, Any]) -> list[str]:

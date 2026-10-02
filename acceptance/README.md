@@ -10,6 +10,7 @@ From the repository root:
 pdm run acceptance --report=fixture.json             # fixture mode; writes acceptance/fixture.json
 NCI_SI_ACCEPTANCE_MODE=live pdm run acceptance --report=live.json  # live-capable tests
 NCI_SI_ACCEPTANCE_SERVER="..." pdm run acceptance    # another server (default: nci-si-mcp serve)
+NCI_SI_ACCEPTANCE_PROFILE=evs NCI_SI_ACCEPTANCE_SERVER="..." pdm run acceptance  # a server of one profile (default: unified)
 pdm run python -m nci_si_acceptance.report acceptance/fixture.json --live acceptance/live.json
 pdm run acceptance-selftest                          # the harness's own tests
 pdm run acceptance-record                            # re-record fixtures/recorded/ from live
@@ -21,7 +22,8 @@ pdm run spec-render                                  # regenerate docs/specifica
 ## Writing a test
 
 A test calls a required tool by its name, `tools.call("get_concept", {...})`, and names the tool
-it is for with `@pytest.mark.tool("get_concept")`; a protocol gate is marked `gate`. When the
+it is for with `@pytest.mark.tool("get_concept")`; a protocol gate is marked `gate`. A gate that cannot
+run leaves the module unaccepted, since acceptance needs every gate to pass. When the
 server lacks the tool, the baseline tool map (`fixtures/baseline_toolmap.yaml`) may name a tool
 that stands in for it; otherwise the test is skipped as NOT IMPLEMENTED. Each test asserts only
 what the specification says.
@@ -60,6 +62,8 @@ table of the specification's §4. A tool is PASS, FAIL (a failed gate fails ever
 a fixture: a question for the fixture set), INCOMPLETE (the tests that ran passed but some could
 not run: a hardening candidate), NOT IMPLEMENTED, NOT RUN or NO TESTS; the module docstring
 defines each, and each row counts the tests passed, failed, without a fixture and not run.
+Below the table it names the gates that failed and those that did not run, and gives the size
+of the tools/list result in bytes, which every client session reads.
 Combined with a live report, a tool that
 passes against fixtures but fails live is PASS (fixture only) only when every failing live test
 has a documented upstream limitation (`--limitations`, YAML of test id to requirement).

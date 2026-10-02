@@ -75,7 +75,7 @@ resolve_registry_release:
   summary: The registry's content state; no identifier is invented where caDSR publishes none.
 get_data_element:
   group: cadsr
-  inputs: (publicId, version? | longName? | questionText?, include[]?)
+  inputs: (publicId | longName | questionText, version?, include[]?)
   returns: dataElement
   values: {include: [permissibleValues, valueDomain, conceptAssociations, alternateNames, provenance]}
   summary: One data element with the detail selected.

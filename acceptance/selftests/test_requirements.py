@@ -157,8 +157,11 @@ def test_the_specification_document_is_what_spec_renders(pytester, monkeypatch):
         "| `servedBy` | Where the answer came from: one of `live`, `cache`, `index`, `fixture`"
         " | A4.1 |" in on_disk
     )
+    assert "| `details` | An object holding what the caller needs for its next step," in on_disk
+    assert "failed upstream request (optional) | A2.5 |" in on_disk
     assert (
-        "`tests/test_protocol.py::test_tools_list_names_each_tool_with_its_input_schema`" in on_disk
+        "`tests/test_protocol.py::test_tools_list_names_the_tools_of_the_profile_and_no_other`"
+        in on_disk
     )
 
 

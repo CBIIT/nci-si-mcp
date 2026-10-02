@@ -13,9 +13,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
+import yaml
 
 from nci_si_acceptance.client import Target, open_session, server_environment
-from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
+from nci_si_acceptance.fixture_server import MANIFEST, FixtureServer, load_fixtures
 from nci_si_acceptance.report import COLLECTOR, write_report
 from nci_si_acceptance.suite import (
     UNMATCHED_UPSTREAM,
@@ -54,6 +55,15 @@ def pytest_sessionfinish(session: pytest.Session) -> None:
 @pytest.fixture(scope="session")
 def target(pytestconfig: pytest.Config) -> Target:
     return pytestconfig.stash[TARGET]
+
+
+@pytest.fixture(scope="session")
+def pinned() -> dict[str, str]:
+    """The terminology and release the fixture set is pinned to, as a caller names them."""
+
+    manifest = yaml.safe_load((FIXTURES / MANIFEST).read_text(encoding="utf-8"))
+    terminology, _, release = manifest["evs"]["release"].partition("_")
+    return {"terminology": terminology, "release": release}
 
 
 @pytest.fixture(scope="session")
@@ -110,6 +120,16 @@ def _startup_requests(upstream: FixtureServer | None) -> list[str]:
     unmatched = unmatched_requests(upstream.log())
     upstream.reset()
     return unmatched
+
+
+@pytest.fixture
+def fresh_server(
+    target: Target, upstream: FixtureServer | None, tmp_path_factory: pytest.TempPathFactory
+) -> Iterator[Tools]:
+    """A server of its own for one test, so that nothing an earlier test asked is cached."""
+
+    with _tools(target, upstream, tmp_path_factory) as tools:
+        yield tools
 
 
 @pytest.fixture
