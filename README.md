@@ -51,15 +51,13 @@ and the tests of each group follow. The
 
 ## Start here
 
-- **Contractors**: [docs/SPEC.md](docs/SPEC.md) specifies the work, phase by phase;
+- **The EVS and caDSR teams**: [docs/SPEC.md](docs/SPEC.md) specifies the work, phase by phase;
   [acceptance/README.md](acceptance/README.md) runs the suite against your server and renders the
-  per-tool report.
-- **The EVS and caDSR teams**: the upstream requests the tools rest on, each with its operation
-  and rationale, for [EVS](acceptance/request-forms/evs.md), for
+  per-tool report; the upstream requests the tools rest on, each with its operation and
+  rationale, are listed for [EVS](acceptance/request-forms/evs.md), for
   [caDSR](acceptance/request-forms/cadsr.md) and for [both](acceptance/request-forms/all.md).
 - **NCI reviewers and the suite's maintainers**: [acceptance/README.md](acceptance/README.md) and
-  [acceptance/fixtures/README.md](acceptance/fixtures/README.md), where the fixtures come from and
-  under which terms.
+  [acceptance/fixtures/README.md](acceptance/fixtures/README.md), where the fixtures come from.
 - **Working on this repository**: [CONTRIBUTING.md](CONTRIBUTING.md) for the commands, standards
   and gates; [ARCHITECTURE.md](ARCHITECTURE.md) for how the server is built.
 
