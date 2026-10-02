@@ -15,12 +15,13 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-from nci_si_acceptance.fixture_server import MANIFEST
+from nci_si_acceptance.fixture_server import MANIFEST, SCENARIOS, SETTINGS
 from nci_si_acceptance.record import FIXTURES
 
 REGISTER = FIXTURES.parent / "request-forms"
@@ -32,6 +33,9 @@ VIEWS = {
 FALLBACK_HEADER = (
     "| Operation | Prescribed form (crafted) | Served form (recorded) | Release reported |"
 )
+REQUESTS_HEADER = "| Operation | Request | Expected | Made | Rationale | Fixture |"
+SCENARIO_HEADER = "| Operation | Request | Expected | Rationale | Fixture |"
+SHARED_HEADER = "| Operation | Request | Expected | Fixture |"
 # Payload fields that name the release or version of the content they carry.
 RELEASE_FIELDS = ("version", "sourceTerminologyVersion")
 INTRODUCTION = """\
@@ -55,6 +59,14 @@ relation list the recordings cover (`acceptance/src/nci_si_acceptance/concepts.p
 | OP-E05 | `GET /api/v1/concept/{terminology}_{release}/{code}?include=…` |
 | OP-E07 | `GET /api/v1/concept/{terminology}_{release}?list=…&include=…`, ≤ 1,000 codes |
 | OP-E10, E11, E14 to E17, E20 | `GET /api/v1/concept/{terminology}_{release}/{code}/{relation}` |
+"""
+SCENARIOS_INTRODUCTION = """\
+## Scenarios
+
+Each scenario provokes one case (*Acceptance Suite* §2.3); its fixtures answer before the ordinary
+ones while a test selects it. A recorded fixture is what the service answers today. A crafted one
+stands in for a case the service does not produce on demand, under the requirement it names, and
+answers the ordinary forms above.
 """
 FALLBACK = """\
 ## Operations without a pinned form upstream
@@ -88,13 +100,34 @@ def _shown(entry: dict[str, Any], surfaces: set[str] | None) -> bool:
     return surfaces is None or entry["surface"] in surfaces
 
 
-def _rows(manifest: dict[str, Any], surfaces: set[str] | None) -> list[str]:
-    return [
-        f"| {entry['operation']} | {_split_form(entry)} | {_expected(entry)} "
-        f"| {_cell(entry['rationale'])} | `{entry['fixture']}` |"
-        for entry in manifest["record"].get("requests", [])
-        if _shown(entry, surfaces)
-    ]
+def _row(entry: dict[str, Any], *cells: str) -> str:
+    """A request as a table row: its operation, form and expected answer, then `cells`."""
+
+    middle = "".join(f" | {_cell(cell)}" for cell in cells)
+    return (
+        f"| {entry['operation']} | {_split_form(entry)} | {_expected(entry)}{middle} "
+        f"| `{entry['fixture']}` |"
+    )
+
+
+def _in_scenario(entry: dict[str, Any]) -> bool:
+    return entry["fixture"].startswith(f"{SCENARIOS}/")
+
+
+def _request_rows(manifest: dict[str, Any], surfaces: set[str] | None) -> list[str]:
+    """The ordinary requests, each crafted form a requirement prescribes after the recording
+    whose answer it carries."""
+
+    derived = {entry["from"]: entry for entry in manifest["record"].get("derived", [])}
+    rows = []
+    for entry in manifest["record"].get("requests", []):
+        if _in_scenario(entry) or not _shown(entry, surfaces):
+            continue
+        rows.append(_row(entry, "recorded", entry["rationale"]))
+        if pinned := derived.get(entry["fixture"]):
+            crafted = pinned | {"surface": entry["surface"]}
+            rows.append(_row(crafted, f"crafted for {pinned['requirement']}", pinned["rationale"]))
+    return rows
 
 
 def _fallback_rows(manifest: dict[str, Any], root: Path, surfaces: set[str] | None) -> list[str]:
@@ -150,6 +183,73 @@ def _table(header: str, rows: list[str]) -> list[str]:
     return [header, "|" + "---|" * columns, *rows, ""]
 
 
+def _documents(directory: Path) -> list[dict[str, Any]]:
+    """The fixtures of a scenario, without its settings."""
+
+    paths = sorted(directory.rglob("*.json"))
+    return [json.loads(path.read_text(encoding="utf-8")) for path in paths if path.name != SETTINGS]
+
+
+def _made(documents: list[dict[str, Any]]) -> str:
+    """Whether a scenario's fixtures are recorded, crafted (under which requirement), or both."""
+
+    crafted = Counter(item["requirement"] for item in documents if item["kind"] == "crafted")
+    parts = ["Recorded."] if sum(crafted.values()) < len(documents) else []
+    parts += [
+        f"Crafted, {count:,} fixture{'s' if count > 1 else ''}, for {requirement}."
+        for requirement, count in crafted.items()
+    ]
+    return " ".join(parts)
+
+
+def _scenario(
+    name: str, provokes: str, documents: list[dict[str, Any]], requests: list[dict[str, Any]]
+) -> list[str]:
+    """One scenario: what it provokes, how it is made, and the requests recorded for it."""
+
+    entries = [entry for entry in requests if entry["fixture"].startswith(f"{SCENARIOS}/{name}/")]
+    return [f"### `{name}`", "", f"{provokes}. {_made(documents)}", "", *_scenario_table(entries)]
+
+
+def _scenario_table(entries: list[dict[str, Any]]) -> list[str]:
+    """The requests recorded for a scenario, a rationale they all share stated once."""
+
+    rationales = {entry["rationale"] for entry in entries}
+    if len(entries) > 1 and len(rationales) == 1:
+        rows = [_row(entry) for entry in entries]
+        return [f"Each request: {_cell(rationales.pop())}", "", *_table(SHARED_HEADER, rows)]
+    rows = [_row(entry, entry["rationale"]) for entry in entries]
+    return _table(SCENARIO_HEADER, rows) if rows else []
+
+
+def _scenario_names(manifest: dict[str, Any], root: Path) -> list[str]:
+    """The scenarios in the manifest's order, each described there and present on disk."""
+
+    described = list(manifest.get("scenarios", {}))
+    found = {
+        path.relative_to(root / SCENARIOS).as_posix() for path in (root / SCENARIOS).glob("*/*")
+    }
+    if differing := sorted(found.symmetric_difference(described)):
+        raise ValueError(
+            f"{MANIFEST} describes the scenarios on disk and no others: {', '.join(differing)}"
+        )
+    return described
+
+
+def _touches(documents: list[dict[str, Any]], surfaces: set[str] | None) -> bool:
+    return surfaces is None or any(item["request"]["surface"] in surfaces for item in documents)
+
+
+def _scenarios(manifest: dict[str, Any], root: Path, surfaces: set[str] | None) -> list[str]:
+    requests = [entry for entry in manifest["record"].get("requests", []) if _in_scenario(entry)]
+    lines = []
+    for name in _scenario_names(manifest, root):
+        documents = _documents(root / SCENARIOS / name)
+        if _touches(documents, surfaces):
+            lines += _scenario(name, manifest["scenarios"][name], documents, requests)
+    return lines or ["None yet.", ""]
+
+
 def render(root: Path = FIXTURES) -> dict[str, str]:
     """Each view of the register, by file name."""
 
@@ -163,19 +263,15 @@ def render(root: Path = FIXTURES) -> dict[str, str]:
             " do not edit by hand.",
             "",
             INTRODUCTION,
+            FALLBACK,
+            *_table(FALLBACK_HEADER, _fallback_rows(manifest, root, surfaces)),
             "## Requests",
             "",
-            *_table(
-                "| Operation | Request | Expected | Rationale | Fixture |",
-                _rows(manifest, surfaces),
-            ),
+            *_table(REQUESTS_HEADER, _request_rows(manifest, surfaces)),
         ]
         if surfaces is None or "evs" in surfaces:
             lines.append(RULES)
-        lines += [
-            FALLBACK,
-            *_table(FALLBACK_HEADER, _fallback_rows(manifest, root, surfaces)),
-        ]
+        lines += [SCENARIOS_INTRODUCTION, *_scenarios(manifest, root, surfaces)]
         views[f"{name}.md"] = "\n".join(lines).rstrip() + "\n"
     return views
 

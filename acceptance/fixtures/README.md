@@ -18,23 +18,10 @@ service does not produce on demand (and which requirement it stands in for).
 
 ## Scenarios
 
-The scenario fixtures of *Acceptance Suite* §2.3, recorded from live where EVS produces the case
-on demand (`acceptance-record`), crafted otherwise (`pdm run acceptance-craft`, from the recorded
-set where they change a real answer):
-
-| Scenario | Made | What it provokes |
-|---|---|---|
-| `release/unknown` | recorded | every content path of `ncit_99.99z` answers 404 |
-| `release/mismatch` | crafted | content, including the unpinned forms, names release 26.08e |
-| `release/two-latest` | crafted | a monthly and a weekly row both `latest` |
-| `batch/silent-drop` | recorded | a code EVS does not know, left out of a batch |
-| `retired/with-replacement` | recorded | C154421 retired with a replacement; one bad code fails a batch |
-| `traversal/deep-fanout` | crafted | 1,001 children of one root, and a chain deeper than depth 4 |
-| `traversal/exclusions` | crafted | exclusion roles named as positive ones, and two the other way |
-| `traversal/starvation` | crafted | 300 roles and 2 associations on one concept |
-| `upstream/unavailable` | crafted | closed connection, 503, then no answer within the timeout |
-| `upstream/rate-limited` | crafted | 429 with `Retry-After` on the release query, then the answer |
-| `license/restricted` | both | 403 without the licence key (recorded); invented content with it |
+The scenario fixtures of *Acceptance Suite* §2.3 are recorded from live where EVS produces the
+case on demand (`acceptance-record`) and crafted otherwise (`pdm run acceptance-craft`, from the
+recorded set where they change a real answer). The manifest's `scenarios` section says what each
+provokes; the register below lists them with how each is made and its requests.
 
 ## Recording
 
@@ -51,10 +38,12 @@ re-records. Re-pinning the release is a re-recording under change control.
 
 ## Request forms
 
-The register of request forms, generated from the manifest, lists every request with the platform
-operation it serves (*MCP API Specification* §10) and the reason for its form, in a view for the
-EVS team, one for the caDSR team and one for both: [`../request-forms/`](../request-forms/). It
-also lists the operations without a pinned form upstream, with the release each payload reports.
+The register of request forms, generated from the manifest, is written for the service teams, in
+a view for the EVS team, one for the caDSR team and one for both:
+[`../request-forms/`](../request-forms/). It opens with the operations without a pinned form
+upstream, with the release each payload reports; then lists every ordinary request with the
+platform operation it serves (*MCP API Specification* §10), whether it is recorded or crafted
+(and for which requirement), and the reason for its form; then each scenario.
 Where EVS does not yet answer the form a requirement prescribes, the ordinary fixture is crafted
 to the requirement and names it, and the live run shows the gap (*Acceptance Suite* §2.1).
 

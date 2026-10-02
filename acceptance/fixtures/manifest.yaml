@@ -63,6 +63,21 @@ licensing:
     - ICDO_TO_NCI_TOPOGRAPHY
     - ICDO_TO_NCI_AXIS
 
+# What each scenario of Acceptance Suite §2.3 provokes, in the order the register lists
+# them (register.py). Whether a scenario is recorded or crafted is read from its fixtures.
+scenarios:
+  release/unknown: Every content path of `ncit_99.99z` answers 404
+  release/mismatch: Content, including the unpinned forms, names release 26.08e
+  release/two-latest: A monthly and a weekly row are both `latest`
+  batch/silent-drop: A code EVS does not know is left out of a batch
+  retired/with-replacement: C154421 is retired with a replacement, and one bad code fails a batch
+  traversal/deep-fanout: One root has 1,001 children, and a chain runs deeper than depth 4
+  traversal/exclusions: Exclusion roles are named like positive ones, and two the other way
+  traversal/starvation: One concept has 300 roles and 2 associations
+  upstream/unavailable: A closed connection, then 503, then no answer within the timeout
+  upstream/rate-limited: 429 with `Retry-After` on the release query, then the answer
+  license/restricted: 403 without the licence key; invented content with it
+
 record:
   requests:
     # Release resolution: the listing, and the one-row query per channel (SPEC §3.3).
