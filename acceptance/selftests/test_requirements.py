@@ -1,12 +1,16 @@
 """Every requirement is cited by a test or planned in an issue; every test cites requirements."""
 
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 import yaml
 
+from nci_si_acceptance.document import DOCUMENT, render
 from nci_si_acceptance.requirements import citations, load_requirements, never_runs, problems
+from nci_si_acceptance.spec import REQUIRED_TOOLS, is_basis
 
 pytest_plugins = ["pytester"]
 
@@ -17,9 +21,14 @@ REQUIREMENTS = {
 }
 
 
-def test_the_suite_and_the_requirements_agree(pytester, monkeypatch):
+def collect_suite(pytester, monkeypatch):
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_MODE", "fixture")
     items, _ = pytester.inline_genitems(str(SUITE_TESTS), "-p", "no:cacheprovider")
+    return items
+
+
+def test_the_suite_and_the_requirements_agree(pytester, monkeypatch):
+    items = collect_suite(pytester, monkeypatch)
     cited = citations(items)
     idle = [item.nodeid for item in items if never_runs(item)]
 
@@ -60,6 +69,11 @@ def write(tmp_path, requirements):
         ({"statement": "s", "basis": []}, "names its basis"),
         ({"statement": "s", "basis": [3]}, "names its basis"),
         ({"statement": "s", "basis": "A1"}, "names its basis"),
+        ({"statement": "s", "basis": ["A3.9"]}, "names its basis among the conventions and tools"),
+        (
+            {"statement": "s", "basis": ["A1", "A3.9"]},
+            "names its basis among the conventions and tools",
+        ),
         ({"statement": "s", "basis": ["A1"], "planned": "52"}, "is planned in an issue"),
         ({"statement": "s", "basis": ["A1"], "planned": "#52 later"}, "is planned in an issue"),
     ],
@@ -127,3 +141,68 @@ def test_every_test_cites_but_only_one_that_runs_covers(pytester):
     assert sorted(cited["test_cites.py::test_cited"]) == ["P-1", "P-2", "P-3", "X-1"]
     assert sorted(cited["test_cites.py::test_expected_to_fail"]) == ["P-99", "X-1"]
     assert idle == ["test_expected_to_fail", "test_skipped", "test_skipped_if_true"]
+
+
+def test_the_specification_document_is_what_spec_renders(pytester, monkeypatch):
+    on_disk = DOCUMENT.read_text(encoding="utf-8")
+
+    assert on_disk == render(citations(collect_suite(pytester, monkeypatch)))
+    assert "| P-1 | tools/list names every tool" in on_disk
+    assert (
+        "*Why A5.7.* NCIt's exclusion relationships are exactly eight roles, R135 to R142."
+        in on_disk
+    )
+    assert (
+        "| `servedBy` | Where the answer came from: one of `live`, `cache`, `index`, `fixture`"
+        " | A4.1 |" in on_disk
+    )
+    assert (
+        "`tests/test_protocol.py::test_tools_list_names_each_tool_with_its_input_schema`" in on_disk
+    )
+
+
+def test_the_command_writes_the_rendered_specification(tmp_path):
+    output = tmp_path / "specification.md"
+
+    completed = subprocess.run(  # noqa: S603 - this interpreter, a module of the suite
+        [sys.executable, "-m", "nci_si_acceptance.document", "--output", str(output)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert output.read_text(encoding="utf-8") == DOCUMENT.read_text(encoding="utf-8")
+
+
+def test_the_required_tools_are_the_twenty_nine_of_four_groups():
+    groups = list(REQUIRED_TOOLS.values())
+
+    assert {group: groups.count(group) for group in "ABCW"} == {"A": 12, "B": 10, "C": 4, "W": 3}
+
+
+@pytest.mark.parametrize(
+    ("name", "known"),
+    [
+        ("A6", True),
+        ("A3", True),
+        ("A3.6", True),
+        ("A3.6.1", True),
+        ("M2.2", True),
+        ("get_concept", True),
+        ("provenance", True),
+        ("traversal", True),
+        ("A3.9", False),
+        ("S-5", False),
+        ("MCP API §8.2", False),
+        ("A", False),
+    ],
+)
+def test_a_basis_is_a_convention_or_a_tool(name, known):
+    assert is_basis(name) is known
+
+
+@pytest.mark.parametrize("key", ["P-x", "Y-1", "get_concpt-1", "P1", "get_concept"])
+def test_an_id_is_a_gate_a_cross_cutting_test_or_a_tools_own(tmp_path, key):
+    with pytest.raises(ValueError, match=f"{key} is not P-<n>, X-<n> or <required tool>-<n>"):
+        load_requirements(write(tmp_path, {key: {"statement": "s", "basis": ["A1"]}}))

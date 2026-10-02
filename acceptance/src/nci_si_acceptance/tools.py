@@ -1,8 +1,8 @@
 """Call a required tool by its name: directly, through the baseline tool map, or not at all.
 
-A test calls the tool the *MCP API Specification* names. When the server lacks it, the
-baseline tool map (`fixtures/baseline_toolmap.yaml`, MCP Behavioral Acceptance Suite
-§6) may name a tool of the prototype that stands in for it; an entry applies only
+A test calls the tool the specification (`spec/tools.yaml`) names. When the server lacks it, the
+baseline tool map (`fixtures/baseline_toolmap.yaml`, docs/SPEC.md §9.4) may
+name a tool of the prototype that stands in for it; an entry applies only
 while the required tool is absent. When neither exists the test is skipped as NOT
 IMPLEMENTED, which the per-tool report counts as such.
 

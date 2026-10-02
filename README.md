@@ -36,7 +36,7 @@ services; it knows nothing of the server's code.
 
 ## Status
 
-The *MCP API Specification* names 29 tools in four groups.
+The [specification](docs/specification.md) names 29 tools in four groups.
 
 | Group | Tools | Status |
 |---|---|---|
@@ -51,7 +51,9 @@ and the tests of each group follow. The
 
 ## Start here
 
-- **The EVS and caDSR teams**: [docs/SPEC.md](docs/SPEC.md) specifies the work, phase by phase;
+- **The EVS and caDSR teams**: [docs/specification.md](docs/specification.md) specifies the
+  required tools and their behaviour (rendered from `spec/`); [docs/SPEC.md](docs/SPEC.md) plans
+  the work, phase by phase;
   [acceptance/README.md](acceptance/README.md) runs the suite against your server and renders the
   per-tool report; the upstream requests the tools rest on, each with its operation and
   rationale, are listed for [EVS](acceptance/request-forms/evs.md), for

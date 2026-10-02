@@ -1,6 +1,6 @@
 # Fixtures
 
-The upstream responses the suite runs against in fixture mode (MCP Behavioral Acceptance Suite §2).
+The upstream responses the suite runs against in fixture mode.
 Each is a JSON file in the format `src/nci_si_acceptance/fixture_server.py` describes, and states
 whether it was **recorded** from a live service (and when) or **crafted** for a case the live
 service does not produce on demand (and which requirement it stands in for).
@@ -18,7 +18,7 @@ service does not produce on demand (and which requirement it stands in for).
 
 ## Scenarios
 
-The scenario fixtures of *Acceptance Suite* §2.3 are recorded from live where EVS produces the
+The scenario fixtures are recorded from live where EVS produces the
 case on demand (`acceptance-record`) and crafted otherwise (`pdm run acceptance-craft`, from the
 recorded set where they change a real answer). The manifest's `scenarios` section says what each
 provokes; the register below lists them with how each is made and its requests.
@@ -33,24 +33,32 @@ its entry expects; every concept recording is one the fixture server accepts and
 concept answers equal real ones; every derived fixture comes from a recording of the pinned
 release; and no file under `recorded/`, and no derived fixture, is left over. The set grows with
 the tests: a test that needs another upstream answer adds its request to the manifest and
-re-records. Re-pinning the release is a re-recording under change control.
+re-records. Re-pinning the release is a re-recording under change control. The fixture set is
+versioned on its own: a re-recording or a re-pinning makes a new fixture-set version,
+independent of the suite's.
 
 ## Request forms
+
+The fixture set constrains the form of an upstream request only where the specification
+prescribes it: the release-pinned path, the batch endpoint in place of one request per concept,
+the one-row release query, `Accept: application/json`, and the licence key. Elsewhere it answers
+any form a fixture records.
 
 The register of request forms, generated from the manifest, is written for the service teams, in
 a view for the EVS team, one for the caDSR team and one for both:
 [`../request-forms/`](../request-forms/). It opens with the operations without a pinned form
 upstream, with the release each payload reports; then lists every ordinary request with the
-platform operation it serves (*MCP API Specification* §10), whether it is recorded or crafted
+platform operation it serves (its `OP-` id, from `operations.yaml` of the programme's platform
+conformance suite), whether it is recorded or crafted
 (and for which requirement), and the reason for its form; then each scenario.
 Where EVS does not yet answer the form a requirement prescribes, the ordinary fixture is crafted
-to the requirement and names it, and the live run shows the gap (*Acceptance Suite* §2.1).
+to the requirement and names it, and the live run shows the gap.
 
 Two kinds of request are answered whatever their form:
 
-- **Concepts.** One recording per concept answers every projection (`include`), every batch
-  (`?list=`) and every relation list the recordings cover, by the rules of
-  `src/nci_si_acceptance/concepts.py`. A batch comes back in no particular order: EVS keeps none.
+- **Concepts.** One recording per concept answers every projection (`include`) of that concept
+  and each of its relation lists the recording covers, and every batch (`?list=`) is composed
+  from the recordings of the concepts it names, by the rules of `src/nci_si_acceptance/concepts.py`. A batch comes back in no particular order: EVS keeps none.
 - **Ignored parameters.** A parameter the live service is shown to ignore is declared with the
   evidence and left out of the match (FHIR `$expand` ignores `count`, `offset` and `activeOnly`).
 

@@ -6,8 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from nci_si_acceptance.inventory import REQUIRED_TOOLS
 from nci_si_acceptance.report import UNMATCHED, Collector, combine, main, render, tool_outcome
+from nci_si_acceptance.spec import REQUIRED_TOOLS
 
 
 @pytest.mark.parametrize(

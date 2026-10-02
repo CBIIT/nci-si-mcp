@@ -3,7 +3,7 @@
 EVS's concept endpoints return any projection (`include`) of a concept, alone
 (`/api/v1/concept/{terminology}/{code}`) or in a batch (`/api/v1/concept/{terminology}
 ?list=`), and one relation list of a concept on its own
-(`/api/v1/concept/{terminology}/{code}/roles`, MCP API Specification §10 OP-E10, E11,
+(`/api/v1/concept/{terminology}/{code}/roles`, operations OP-E10, E11,
 E14 to E17, E20). Rather than one recording per request form, the fixture set records
 each concept once, and three rules compose the answer EVS gives; `record.py` checks the
 composition against real projections, batches and relation lists:

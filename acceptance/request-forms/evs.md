@@ -3,7 +3,8 @@
 Generated from `acceptance/fixtures/manifest.yaml` by `pdm run acceptance-register`; do not edit by hand.
 
 The upstream requests the acceptance suite's fixtures answer, each with the platform operation it
-serves (*MCP API Specification* §10, or the requirement where the operation is missing) and why
+serves (its `OP-` id in the programme's operation inventory, or the requirement where the
+operation is missing) and why
 it has this form. They are initial versions, from the published API documentation and live checks
 where the operation exists and a draft where it does not, furnished for the EVS and caDSR teams to
 refine as needed, each change with the approval of the branch chief or a delegate.
@@ -53,12 +54,13 @@ content state of its own, named in provenance and not presented as release-verif
 | OP-E25 | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=Ewing sarcoma&fromRecord=0&pageSize=10` | 200 | recorded | GDC maps found by a GDC value (resolve_stored_value); term matches as a prefix. | `recorded/evs/mapset-gdc-maps-value.json` |
 | OP-E25 | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C4817&fromRecord=0&pageSize=10` | 200 | recorded | GDC maps found by an NCIt code. | `recorded/evs/mapset-gdc-maps-code.json` |
 | OP-F05 | `GET evs-fhir /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492` | 200; ignores activeOnly, count, offset | recorded | The unpinned expansion: system-version answers 400 today; count, offset and activeOnly are ignored. | `recorded/evs-fhir/expand-c85492.json` |
-| OP-F05 | `GET evs-fhir /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492&system-version=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl\|26.09d` | 200; ignores activeOnly, count, offset | crafted for OP-F05: $expand pinned by system-version. EVS answered "Input parameter 'system-version' is not supported" (400) on 2 October 2026 | $expand pinned by system-version, as §10 prescribes, carrying the unpinned answer. | `crafted/OP-F05/expand-c85492.json` |
+| OP-F05 | `GET evs-fhir /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492&system-version=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl\|26.09d` | 200; ignores activeOnly, count, offset | crafted for OP-F05: $expand pinned by system-version. EVS answered "Input parameter 'system-version' is not supported" (400) on 2 October 2026 | $expand pinned by system-version, as the operation inventory prescribes (OP-F05), carrying the unpinned answer. | `crafted/OP-F05/expand-c85492.json` |
 
 ## Concept requests answered by rule
 
-One recording per concept answers each of these in every projection (`include`), batch and
-relation list the recordings cover (`acceptance/src/nci_si_acceptance/concepts.py`).
+One recording per concept answers each projection (`include`) and relation list of that concept
+it covers, and a batch is composed from the recordings of the concepts it names
+(`acceptance/src/nci_si_acceptance/concepts.py`).
 
 | Operations | Form |
 |---|---|
@@ -68,7 +70,7 @@ relation list the recordings cover (`acceptance/src/nci_si_acceptance/concepts.p
 
 ## Scenarios
 
-Each scenario provokes one case (*Acceptance Suite* §2.3); its fixtures answer before the ordinary
+Each scenario provokes one case; its fixtures answer before the ordinary
 ones while a test selects it. A recorded fixture is what the service answers today. A crafted one
 stands in for a case the service does not produce on demand, under the requirement it names, and
 answers the ordinary forms above.
@@ -151,8 +153,8 @@ A closed connection, then 503, then no answer within the timeout. Crafted, 3 fix
 
 ### `license/restricted`
 
-403 without the licence key; invented content with it. Recorded. Crafted, 1 fixture, for E-7, SOW v2 §6-§7: the licence key sent from configuration.
+403 without the licence key; invented content with it. Recorded. Crafted, 1 fixture, for E-7, A7.5: the licence key sent from configuration.
 
 | Operation | Request | Expected | Rationale | Fixture |
 |---|---|---|---|---|
-| SOW v2 §6-§7 | `GET evs /api/v1/concept/mdr_29_0/10000000?include=summary` | 403; every parameter ignored | EVS refuses mdr without the X-EVSRESTAPI-License-Key header (403). | `scenarios/license/restricted/refused.json` |
+| A7.5 | `GET evs /api/v1/concept/mdr_29_0/10000000?include=summary` | 403; every parameter ignored | EVS refuses mdr without the X-EVSRESTAPI-License-Key header (403). | `scenarios/license/restricted/refused.json` |

@@ -3,7 +3,7 @@ requires = ["pdm-backend>=2.4"]
 build-backend = "pdm.backend"
 
 # The suite is versioned on its own, independently of the server and of the fixture
-# set (MCP Behavioral Acceptance Suite §8); the version changes by hand, under change
+# set (docs/specification.md §4); the version changes by hand, under change
 # control.
 [project]
 name = "nci-si-acceptance"
@@ -26,7 +26,7 @@ testpaths = ["tests"]
 markers = [
     "tool(name): the required tool the test is for, in the per-tool report",
     "requirement(*ids): the requirements of spec/requirements.yaml the test enforces",
-    "gate: a protocol-level gate (Acceptance Suite §3); a failure fails every tool",
+    "gate: a protocol-level gate (a P requirement); a failure fails every tool",
     "scenario(*names): the scenarios active for the test, on a server process of its own",
     "live_capable: also runs in live mode",
     "unmatched_upstream: expects upstream requests without a fixture, and checks them itself",

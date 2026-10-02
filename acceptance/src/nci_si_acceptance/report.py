@@ -1,4 +1,4 @@
-"""The per-tool report (MCP Behavioral Acceptance Suite §6).
+"""The per-tool report (docs/specification.md §4).
 
 A run of the suite writes one report per run mode (`pytest --report=PATH`), with the
 final outcome of every test. A test counts for the tool its `tool` marker names; a
@@ -17,7 +17,7 @@ test marked `gate` gates every tool (§3). One run gives each required tool one 
 
 In a live run, the tests that run in fixture mode only leave a tool NOT RUN, never INCOMPLETE.
 
-Combining the fixture run with the live run gives the outcome of §6. A tool that
+Combining the fixture run with the live run gives the final outcome. A tool that
 passes against fixtures is PASS (fixture only) when each of its live failures is a
 test with a documented upstream limitation, and FAIL otherwise; a gate that fails live
 fails every tool in the same way. Limitations are documented per test, in YAML:
@@ -41,7 +41,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 import yaml
 
-from nci_si_acceptance.inventory import REQUIRED_TOOLS
+from nci_si_acceptance.spec import REQUIRED_TOOLS
 from nci_si_acceptance.suite import FIXTURE_ONLY as FIXTURE_ONLY_SKIP
 from nci_si_acceptance.suite import UnmatchedUpstream
 from nci_si_acceptance.tools import NOT_IMPLEMENTED
@@ -156,7 +156,7 @@ class Collector:
 def combine(
     fixture: dict[str, Any], live: dict[str, Any], limitations: dict[str, str]
 ) -> dict[str, tuple[str, list[str]]]:
-    """Each tool's outcome over both run modes (§6), with the limitations that excuse it."""
+    """Each tool's outcome over both run modes, with the limitations that excuse it."""
 
     combined = {}
     for name, row in fixture["tools"].items():
@@ -277,7 +277,7 @@ def main(arguments: Iterable[str] | None = None) -> int:
         modes = "fixture and live"
     else:
         combined = {name: (row["outcome"], []) for name, row in fixture["tools"].items()}
-        modes = "fixture only; the live run is not included, so no outcome here is §6's final one"
+        modes = "fixture only; the live run is not included, so no outcome here is final"
     sys.stdout.write(render(fixture, combined, modes))
     return 0
 

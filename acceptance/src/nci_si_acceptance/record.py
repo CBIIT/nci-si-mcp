@@ -1,4 +1,4 @@
-"""Record the fixture set from the live services, as the manifest says (Acceptance Suite §2.1).
+"""Record the fixture set from the live services, as the manifest says.
 
     pdm run acceptance-record [--fixtures DIR]
 
@@ -7,8 +7,8 @@ key, and becomes a
 recorded fixture, dated today; each concept under `record.concepts` is recorded once,
 at the include it is listed under, in `recorded/evs/concepts/`. Each entry under
 `record.derived` becomes a crafted fixture for the request form a requirement prescribes
-where EVS does not answer it yet, carrying the answer of a recording (Acceptance Suite
-§2.1). Nothing is written unless all of this holds:
+where EVS does not answer it yet, carrying the answer of a recording.
+Nothing is written unless all of this holds:
 
 - the live monthly NCIt release is the one the manifest pins (`evs.release`):
   re-pinning is a re-recording under change control;

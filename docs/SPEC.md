@@ -1,12 +1,12 @@
-# Specification: from EVS-first prototype to the shared NCI Semantic Infrastructure MCP platform
+# Implementation plan: from EVS-first prototype to the shared NCI Semantic Infrastructure MCP platform
 
 **Status:** accepted for implementation · **Written:** 1 October 2026 · **Updated:** 2 October 2026, to the code on `main` after `v0.2.0` · **Furnished commit:** tagged when the owner furnishes it, after Phase 3 (§1.2, §11)
 
 The work is tracked on GitHub as one milestone per phase and one for the furnished package (§11), with one issue per deliverable; issues cite this document by section. Where a section describes the code "today", it means `main` at the *Updated* date above.
 
-This document specifies how `nci_si_mcp` is extended from the current EVS-first prototype into the shared platform, EVS module and caDSR module that *Reconciled SOW v2.1 (EVS)* and *SOW v1.1 (caDSR)* describe, together with the government-furnished *MCP Behavioral Acceptance Suite* that is the acceptance instrument for both. It is written against the code as it is, so every change is stated as a delta from a named module, and it is ordered so that each phase leaves the repository releasable.
+This document is the implementation plan: how `nci_si_mcp` is extended from the current EVS-first prototype into the shared platform, EVS module and caDSR module that the two Statements of Work scope, together with the acceptance suite that is the acceptance instrument for both. It is written against the code as it is, so every change is stated as a delta from a named module, and it is ordered so that each phase leaves the repository releasable.
 
-Governing documents, in precedence order where they differ: the two SOWs; *Platform API Specification* Part 6 (the shared conventions, cited below as A1–A11); *MCP API Specification* (the tool inventory and §8 client-execution requirements); *MCP Behavioral Acceptance Suite* (what the tests assert). They belong to the programme's document set and are not in this repository. Nothing here changes a requirement in those documents; where this document is more specific, it is because the code forces a decision they leave open.
+The Statements of Work frame and bound the scope; within it, the specification of the required tools and their behaviour is the source of record. It lives in this repository as data in `spec/` (conventions, tools, requirements), rendered as [`docs/specification.md`](specification.md), and is cited below by convention id (A1–A11, M1–M5) and requirement id. The requests to the platform teams stay in the programme's *Platform API Specification*. Where this plan is more specific than the specification, it is because the code forces a decision the specification leaves open.
 
 ---
 
@@ -23,7 +23,7 @@ Governing documents, in precedence order where they differ: the two SOWs; *Platf
 | **Workflow** | 3 composite tools | `nci_si_mcp.workflows` |
 | **Acceptance suite** | Harness, fixture server, fixture set, baseline tool map, per-tool tests | `acceptance/` (separate package in this repository, separately versioned) |
 
-Twenty-nine tools in total, named and typed exactly as in *MCP API Specification* §2–§4 and §8.4. Three profiles: `evs`, `cadsr`, `unified`. A profile determines which tools `tools/list` returns and nothing else; the surface within a profile is static (§8.1 there).
+Twenty-nine tools in total, named and typed exactly as in the specification (`spec/tools.yaml`). Three profiles: `evs`, `cadsr`, `unified`. A profile determines which tools `tools/list` returns and nothing else; the surface within a profile is static (M1.2).
 
 ### 1.2 Baseline
 
@@ -36,7 +36,7 @@ Done:
 
 Remaining:
 
-- Tag the furnished commit, when the owner decides to furnish it (§11), as `baseline-YYYY-MM` for the month it is cut (`baseline-2026-10` if that is this month). This is the commit both SOWs furnish (EVS SOW v2.1 item 1, caDSR SOW v1.1 item 1) and the commit the baseline run reports against. It is a manual tag beside the automatic `vX.Y.Z` release tags.
+- Tag the furnished commit, when the owner decides to furnish it (§11), as `baseline-YYYY-MM` for the month it is cut (`baseline-2026-10` if that is this month). This is the commit the Prototype Baseline Package furnishes and the commit the baseline run reports against. It is a manual tag beside the automatic `vX.Y.Z` release tags.
 
 ### 1.3 Ground rules carried forward from the current code
 
@@ -78,7 +78,7 @@ src/nci_si_mcp/
     bounds.py               Budget: outbound requests incl. retries, nodes, edges, per-kind (A5)
     http.py                 one instrumented HTTP client: retries, Accept, correlation header, request log hook
     audit.py                structured audit record per tool call (A6)
-    caching.py              ttlMs / cacheScope policy per tool class (MCP API Spec §8.2)
+    caching.py              ttlMs / cacheScope policy per tool class (M2)
     schema.py               outputSchema generation from the dataclasses; static-surface assertion
     registry.py             ToolSpec: name, group, profile, input model, output model, handler
     transport.py            stdio and streamable-HTTP entry points
@@ -89,7 +89,7 @@ src/nci_si_mcp/
     traversal.py            reworked walker (A5)
     index/                  was index.py, embeddings.py, retrieval.py, evaluation.py
       store.py              SQLite; per-release tables; manifests with embedding metadata
-      activation.py         atomic activation and rollback (SOW v2 §3)
+      activation.py         atomic activation and rollback (M4.1)
       build.py              full-NCIt build from the batch endpoint
       evaluate.py           retrieval evaluation set and scoring protocol
     tools.py                the 12 Group A tools
@@ -134,19 +134,7 @@ Serialisation: every tool handler returns a dataclass or raises a `PlatformError
 
 ### 3.2 Provenance (`platform/provenance.py`)
 
-Extend `models.py`'s per-concept fields into one `ProvenanceEnvelope` attached **per item** (A4.4):
-
-```
-release          { terminology|registry, identifier, date }         — EVS: "26.08e"; caDSR: export date + "no registry identifier"
-source           evs_rest | evs_fhir | evs_index | cadsr_rest | ssis_facade | ssis_sparql
-servedBy         live | cache | index | fixture
-retrievedAt      ISO-8601
-sourceUri        the upstream URL that produced the item
-correlationId
-graphs[]         for SSIS-served items: one entry per graph touched, each with identifier and date (A1.5, A3.7.1)
-```
-
-`TraversalProvenance` adds `depth`, `relationship {code, name, kind}`, `direction`, `polarity`, `qualifiers`, `evidence`. Fields the upstream supplies are passed through unchanged under `upstream` (A4.3). The `raw` payload is dropped from MCP results and kept only behind the CLI flag.
+Extend `models.py`'s per-concept fields into one `ProvenanceEnvelope` attached **per item** (A4.4), with the fields of the specification's provenance record (`spec/records.yaml`), and a `TraversalProvenance` adding those of its traversal record. For caDSR, `release` carries the export date and says that no registry identifier exists (A3.8.2). The `raw` payload is dropped from MCP results and kept only behind the CLI flag.
 
 `Truncation` carries `occurred`, `bound` (`results` | `depth` | `nodes` | `edges` | `requests` | `upstream_cap`), `limit`, `reached`, `omitted` (count or `unknown`), and `perKind` where traversal is involved (A5.4).
 
@@ -184,15 +172,15 @@ One client for all surfaces, replacing `EVSClient._get_json` and the per-module 
 | unpinned read (only the discovery tools qualify) | 0 | public |
 | results computed over caller-supplied content (`match_*`, `harmonize_data_dictionary`, `validate`-style results) | 0 | **private** |
 
-A cursor encodes the release it was issued against; presenting it after that release is superseded returns `release_unavailable` (MCP API Spec §8.2).
+A cursor encodes the release it was issued against; presenting it after that release is superseded returns `release_unavailable` (M2.4).
 
 ### 3.7 Schema generation (`platform/schema.py`)
 
-`outputSchema` is generated from the result dataclasses for every tool, success and error shapes alike, and checked by a unit test that renders `tools/list` for each profile and validates every schema. A second test asserts the rendered surface is byte-identical across terminology, release and upstream mode (static surface, *MCP API Specification* §8.1). A third asserts no description contains placeholder text or an operator a tool test shows unsupported (A2.3, A2.4).
+`outputSchema` is generated from the result dataclasses for every tool, success and error shapes alike, and checked by a unit test that renders `tools/list` for each profile and validates every schema. A second test asserts the rendered surface is byte-identical across terminology, release and upstream mode (static surface, M1.2). A third asserts no description contains placeholder text or an operator a tool test shows unsupported (A2.3, A2.4).
 
 ### 3.8 Transport (`platform/transport.py`)
 
-stdio stays. Add the NCI-approved remote transport — streamable HTTP in `mcp>=2.0` — behind the same registry. Authentication and authorisation are hooks on the transport layer with a no-op default; the SOW leaves the mechanism to NCI approval, and the hook is what lets it be supplied without touching tools.
+stdio stays. Add the NCI-approved remote transport — streamable HTTP in `mcp>=2.0` — behind the same registry. Authentication and authorisation are hooks on the transport layer with a no-op default; the mechanism is NCI's to approve, and the hook is what lets it be supplied without touching tools.
 
 ### 3.9 Audit (`platform/audit.py`)
 
@@ -209,7 +197,7 @@ Delta from `evs.py`:
 | Method | Change |
 |---|---|
 | `get_concept`, `get_concepts_by_codes`, `get_related`, `search` | Address `/concept/{terminology}_{release}/…`; take `ReleaseContext` |
-| `get_concepts_by_codes` | The endpoint omits unresolvable codes silently and keeps no order: mostly lexicographic, but the same request answered in two orders on 2 October 2026. Traversal and indexing already reconcile requested against returned codes by code and request only the relation lists they need through `include=`. Remaining: return `{found: {code: concept}, missing: [codes]}` to the tools, never relying on position (SOW v2 §5) |
+| `get_concepts_by_codes` | The endpoint omits unresolvable codes silently and keeps no order: mostly lexicographic, but the same request answered in two orders on 2 October 2026. Traversal and indexing already reconcile requested against returned codes by code and request only the relation lists they need through `include=`. Remaining: return `{found: {code: concept}, missing: [codes]}` to the tools, never relying on position (get_concepts-1) |
 | `get_replacements(codes)` | New. `/history/{t}_{r}/replacements?list=` — note it errors the whole batch on one bad code, the opposite of the batch concept endpoint; split and retry per code on error |
 | `get_roles_catalogue(release)`, `get_associations_catalogue(release)` | New; feed `evs/catalogue.py` |
 | `get_subsets`, `get_subset_members`, `get_mapsets`, `get_mapset_maps` | New; the 9 subset/mapset paths and 18 mapsets verified present |
@@ -223,7 +211,7 @@ Per release: roles and associations with `code`, `name`, `kind`, and `polarity`.
 
 ### 4.3 Traversal (`evs/traversal.py`)
 
-In place today: each depth is read in batched requests to the batch endpoint (50 concepts a request, 10 when inverse relations are followed), asking only for the selected relation lists (A5.8; SOW v2 §5), with halving on an oversized response; `descendant` edges come from one `/descendants` request per start code; node and edge limits are claimed nearest first; edge types are selected independently of relationship names (the name filter still applies to hierarchy edges); concepts whose relations exceed the response-size limit are reported under `unexpanded_codes`.
+In place today: each depth is read in batched requests to the batch endpoint (50 concepts a request, 10 when inverse relations are followed), asking only for the selected relation lists (A5.8), with halving on an oversized response; `descendant` edges come from one `/descendants` request per start code; node and edge limits are claimed nearest first; edge types are selected independently of relationship names (the name filter still applies to hierarchy edges); concepts whose relations exceed the response-size limit are reported under `unexpanded_codes`.
 
 Remaining, around `Budget`:
 
@@ -236,18 +224,18 @@ Remaining, around `Budget`:
 
 ### 4.4 Index (`evs/index/`)
 
-The interim index SOW v2 §3 requires, built from `index.py` / `embeddings.py` / `retrieval.py` / `evaluation.py`:
+The interim index (M4.1), built from `index.py` / `embeddings.py` / `retrieval.py` / `evaluation.py`:
 
 - **Per-release tables**, keyed `(release, code)`, plus a `manifests` table carrying release, embedding provider, model, dimension, build timestamp, evaluation-set version and score, and `active` flag. Today the index holds exactly one release (schema 4), and indexing another release replaces it in place.
 - **Atomic activation and rollback**: a build writes under a new manifest; activation flips `active` in one transaction; rollback flips it back. `search_concepts` reads only the active manifest's release and refuses with `release_unavailable` if it differs from the requested release.
 - **Full NCIt build** from the batch endpoint in pages of 1,000 (the enforced `pageSize` maximum), release-pinned; the current `index-sample` stays as a developer command.
 - **The two traps** — provider selection requires both provider and model to be set, and a mismatch is `invalid_configuration` at startup; `cosine_similarity` normalises, and a dimension mismatch is `index_incompatible`, never `0.0`. Changing provider or model invalidates the manifest. Today: provider and model are validated together at startup (a failure is `invalid_configuration`), and a provider, model or dimension mismatch is refused on every write and search. `cosine_similarity` is a dot product that relies on the providers returning unit vectors, which both do; it does not normalise itself.
-- **Evaluation set** (`evaluate.py`): versioned NCIt scenarios with expected concepts and scoring thresholds; run on every build; score recorded in the manifest. This is the SOW's retrieval evaluation deliverable in executable form.
+- **Evaluation set** (`evaluate.py`): versioned NCIt scenarios with expected concepts and scoring thresholds; run on every build; score recorded in the manifest. This is the retrieval evaluation set in executable form.
 - **Retirement condition**: when EVS exposes a semantic mode (E-9), `search_concepts(mode=semantic|hybrid)` is re-pointed to it behind the same tool and the index is deactivated. The tool surface does not change.
 
 ### 4.5 Tools (`evs/tools.py`) — Group A
 
-Twelve tools, signatures per *MCP API Specification* §2. Mapping from the current surface:
+Twelve tools, signatures in the specification (`spec/tools.yaml`, group A). Mapping from the current surface:
 
 | Current | Becomes | Note |
 |---|---|---|
@@ -288,7 +276,7 @@ All matching calls hold any credential server-side (both contracts declare `401`
 
 ### 5.2 Tools (`cadsr/tools.py`) — Group B
 
-Ten tools per *MCP API Specification* §3. Specific behaviours:
+Ten tools, signatures in the specification (group B). Specific behaviours:
 
 - `resolve_registry_release` → `{identifier: null, exportDate, note}` today; `ttlMs` 0.
 - `search_data_elements` → filters by context, workflow status, registration status, value-domain type; truncation at the cap reported; `totalKnown` where available.
@@ -319,7 +307,7 @@ Ten tools per *MCP API Specification* §3. Specific behaviours:
 
 ## 7. Workflow module
 
-Three composites per *MCP API Specification* §8.4, implemented as orchestrations of the registry's own tools with one `Budget` and one `ReleaseContext` across the chain:
+Three composites (the specification's group W), implemented as orchestrations of the registry's own tools with one `Budget` and one `ReleaseContext` across the chain:
 
 - `ground_value` — fails closed if either content state cannot be named; truncation from each hop carried through.
 - `expand_cohort` — `codes[]` and `excluded[]`; asserted equal to composing `get_concept_neighborhood` + `get_concepts`.
@@ -349,7 +337,7 @@ Settings after the change. `NCI_SI_EVS_BASE_URL`, `NCI_SI_TIMEOUT_SECONDS`, `NCI
 
 ## 9. Acceptance suite (`acceptance/`)
 
-Specified in full in *MCP Behavioral Acceptance Suite*; this section states how it lives in the repository.
+The requirements it tests and its acceptance rules are in the specification's §3 and §4; this section states how it lives in the repository.
 
 ### 9.1 Layout
 
@@ -374,8 +362,8 @@ acceptance/
     baseline_toolmap.yaml   required tool → prototype tool + parameter renaming, for the server before Phase 2 (§9.4)
   request-forms/            the register of request forms: views for the EVS team, the caDSR team, and both
   tests/
-    test_protocol.py        §3 gates
-    test_crosscutting.py    §4, parameterised over the inventory
+    test_protocol.py        the P requirements (protocol gates)
+    test_crosscutting.py    the X requirements, parameterised over the required tools
     test_group_a.py … test_group_w.py
   selftests/                the harness's own tests, run in the unit CI job
 ```
@@ -392,7 +380,7 @@ The fixture server exposes `GET /_log` returning every request it received since
 
 ### 9.4 Baseline tool map
 
-The map lets the suite call today's tools under the required names, so the tests of the mapped Group A tools run against an implementation from Phase 0 on instead of reporting NOT IMPLEMENTED; the report marks those rows *implemented under another name*. Unlike *Acceptance Suite* §6, which applies the map to the baseline run only, the harness applies an entry in every run while the required tool is absent from `tools/list`. Written against today's server, which serves NCIt's current monthly release only: every entry checks `terminology` is `ncit` and accepts `release` without passing either on, and any argument an entry does not list is unsupported:
+The map lets the suite call today's tools under the required names, so the tests of the mapped Group A tools run against an implementation from Phase 0 on instead of reporting NOT IMPLEMENTED; the report marks those rows *implemented under another name*. The harness applies an entry in every run while the required tool is absent from `tools/list`. Written against today's server, which serves NCIt's current monthly release only: every entry checks `terminology` is `ncit` and accepts `release` without passing either on, and any argument an entry does not list is unsupported:
 
 | Required | Prototype | Parameters |
 |---|---|---|
@@ -410,13 +398,13 @@ At the furnished commit (after Phase 3) the map is empty. The owner decided (2 O
 
 A job beside the existing `quality` and `test` jobs runs the acceptance suite in `fixture` mode against the server built from the checkout, and becomes a required check on `main`. It is a ratchet over individual tests: the outcome of every test must equal a committed expected outcome, and the per-tool report is derived from them. The job stays green while tools are NOT IMPLEMENTED or FAIL, catches a test that stops passing inside a tool that still fails, and a pull request that changes an outcome updates the expected outcomes in the same change. `live` mode is a manual workflow with the network location recorded.
 
-Because the suite and the tools are written by the same hands, two rules keep the suite honest. A suite test asserts what the *MCP Behavioral Acceptance Suite* (§3–§5) and the *MCP API Specification* say, cites the section, and never asserts what the current implementation happens to return. A pull request that changes a suite test or fixture while making a tool pass lists each change with the passage that justifies it: correcting a wrong test before the interface baseline is frozen is expected, weakening one is not.
+Because the suite and the tools are written by the same hands, two rules keep the suite honest. A suite test asserts what the specification says, cites the requirements it enforces (`@pytest.mark.requirement`), and never asserts what the current implementation happens to return. A pull request that changes a suite test or fixture while making a tool pass lists each change with the passage that justifies it: correcting a wrong test before the interface baseline is frozen is expected, weakening one is not.
 
 ### 9.6 Request forms
 
-The fixtures use the request forms of the platform operations in *MCP API Specification* §10, release-pinned; the generated register (`acceptance/request-forms/`) gives each form's operation and rationale, including where §10 and EVS differ. Where EVS does not yet answer the form a requirement prescribes, the ordinary fixture is crafted to the requirement and names it, and the live run shows the gap (*Acceptance Suite* §2.1). Two kinds of request are answered whatever their form:
+The fixtures use the request forms of the platform operations (their `OP-` ids, from `operations.yaml` of the programme's platform conformance suite), release-pinned; the generated register (`acceptance/request-forms/`) gives each form's operation and rationale, including where the inventory's form and EVS differ. Where EVS does not yet answer the form a requirement prescribes, the ordinary fixture is crafted to the requirement and names it, and the live run shows the gap (*Acceptance Suite* §2.1). Two kinds of request are answered whatever their form:
 
-- **EVS concepts.** One recording per concept answers every projection, batch and relation list through declared rules (`concepts.py`): project by `include` (the include-to-key table in the manifest; EVS's `include` is a clean key projection, verified 2 October 2026), select by `list` (each code once, unknown codes left out, in no particular order, since EVS keeps none), and one relation list on its own. `record.py` checks composed answers against real ones.
+- **EVS concepts.** One recording per concept answers every projection and relation list of that concept, and every batch is composed from the recordings of the concepts it names, through declared rules (`concepts.py`): project by `include` (the include-to-key table in the manifest; EVS's `include` is a clean key projection, verified 2 October 2026), select by `list` (each code once, unknown codes left out, in no particular order, since EVS keeps none), and one relation list on its own. `record.py` checks composed answers against real ones.
 - **Ignored parameters.** A parameter the service is shown to ignore is declared with its evidence and left out of the match.
 
 The recorder sends no licence key, so what it records is what EVS serves publicly; licensed content, which EVS refuses without the key (403), is never recorded, and a recording whose request carried the key is refused.
@@ -443,7 +431,7 @@ Keep `unittest`-style tests under the gates in `CONTRIBUTING.md`. Extend `tests/
 
 ## 11. Phases and definition of done
 
-Both SOWs furnish the acceptance suite, with "the behavioral tests for each required MCP tool and the upstream fixture set they run against" (EVS SOW v2.1 item 1), and the caDSR SOW furnishes "the shared platform, the EVS module, and the caDSR client, tools and tests completed at award" (caDSR SOW v1.1, Objective).
+The Prototype Baseline Package furnishes the specification, the acceptance suite with its fixture set, and the prototype: the shared platform, the EVS module and the caDSR client, tools and tests completed at award.
 
 The suite is therefore completed first, for all twenty-nine tools, so that it is complete at whatever point the package is furnished. A tool the prototype lacks is a valid NOT IMPLEMENTED row; a required tool without tests is a defect in the package. The phases then make the tools pass their tests, in the order of the table below.
 
@@ -455,11 +443,11 @@ Each phase ends with the unit suite green, the acceptance suite's expected outco
 | **1 · Platform** | §3 in full; `service.py` retired; EVS tools re-homed on the registry with no behaviour change | §3 protocol gates pass; existing EVS behaviour unchanged under the new error and provenance model |
 | **2 · EVS module** | §4: release-pinned addressing, batch reconciliation, catalogue polarity, traversal rewrite, FHIR, mapsets, retired codes; index with activation and rollback | all Group A tools PASS in fixture mode; live-capable tests PASS live |
 | **3 · caDSR module** | §5 | all Group B tools PASS in fixture mode; PASS (fixture only) rows name their upstream requirement |
-| **Furnished package** | §1.2: the tag and the Prototype Baseline Package, with the baseline run report against that commit, naming the tools whose tests have never passed against any implementation (EVS SOW v2.1 item 1, caDSR SOW v1.1 item 1) | the tag is on the commit the report ran against and both SOWs' package checklists are met (#3); cut when the owner decides, not before Phase 3 is done (*Project Plan* §7: "repository Phases 0–3 to the point where both modules yield a meaningful baseline report") |
+| **Furnished package** | §1.2: the tag and the Prototype Baseline Package, with the baseline run report against that commit, naming the tools whose tests have never passed against any implementation | the tag is on the commit the report ran against and both SOWs' package checklists are met (#3); cut when the owner decides, not before Phase 3 is done (*Project Plan* §7: "repository Phases 0–3 to the point where both modules yield a meaningful baseline report") |
 | **4 · Cross-domain** | §6 | Group C PASS; both release identities on every result |
-| **5 · Workflows, remote transport, audit** | §7, §3.8, §3.9 | Group W PASS; unified profile accepted under §6 of the acceptance specification |
+| **5 · Workflows, remote transport, audit** | §7, §3.8, §3.9 | Group W PASS; unified profile accepted under the specification's §4 |
 
-Work proceeds in the order of the table above until award. What remains at the furnished commit is the contractors' work under SOW v2.1 and v1.1, and this specification is what the Prototype Baseline Assessment measures the prototype against.
+Work proceeds in the order of the table above until award. What remains at the furnished commit is the contractors' work under the two Statements of Work, and the specification is what the Prototype Baseline Assessment measures the prototype against.
 
 ---
 
