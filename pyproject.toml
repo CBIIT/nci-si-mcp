@@ -27,6 +27,7 @@ nci-si-mcp = "nci_si_mcp.cli:main"
 test = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
+    "pytest-xdist>=3.6",
 ]
 # Ruff and basedpyright are pinned exactly, so that `pdm update` does not move them:
 # a new release can add findings.
@@ -98,7 +99,7 @@ fmt = "ruff format ."
 # The acceptance suite against the server (fixture mode unless NCI_SI_ACCEPTANCE_MODE says
 # otherwise), and the harness's own tests with its coverage minimum.
 acceptance = { cmd = "pytest", working_dir = "acceptance" }
-acceptance-selftest = { cmd = "pytest selftests --cov --cov-report=term-missing", working_dir = "acceptance" }
+acceptance-selftest = { cmd = "pytest selftests -n auto --cov --cov-report=term-missing", working_dir = "acceptance" }
 acceptance-record = "python -m nci_si_acceptance.record"
 acceptance-craft = "python -m nci_si_acceptance.craft"
 acceptance-register = "python -m nci_si_acceptance.register"
