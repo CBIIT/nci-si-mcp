@@ -59,6 +59,8 @@ CALLED = _per_tool(CALLS)
 PINNED = _per_tool(PINNED_TOOLS)
 # The release the release/unknown scenario answers 404 for on every content path.
 UNKNOWN_RELEASE = "99.99z"
+# A release the platform serves beside the pinned one (recorded/evs/terminologies.json).
+OTHER_RELEASE = "26.08e"
 # The calls whose answers name the release they come from, where a mismatch can show (X-3).
 RELEASED = [name for name in PINNED_TOOLS if not CALLS[name].get("unversioned")]
 # A concept of a licensed terminology, served (license/restricted) only with the licence key.
@@ -335,6 +337,7 @@ def test_a_query_that_matches_nothing_is_an_empty_result_with_provenance(tools, 
 
     assert not result.is_error, result.content
     assert items_of(name, result.content) == []
+    assert "nextCursor" not in result.content
     # With no item to carry it, the result carries the provenance itself.
     provenance = _provenance(result.content)
     assert _wrong(provenance, CARRIED) == []
@@ -395,7 +398,8 @@ def test_a_cursor_continues_with_the_next_items_of_the_same_release(tools, pinne
     cursor = first.content.get("nextCursor")
     assert isinstance(cursor, str) and cursor, f"no nextCursor: {first.content!r:.300}"
 
-    second = _call(tools, pinned, name, CALLS[name]["arguments"] | {"cursor": cursor})
+    continued = CALLS[name]["arguments"] | {"cursor": cursor}
+    second = _call(tools, pinned, name, continued)
 
     assert not second.is_error, second.content
     before = {_identity(item) for item in items_of(name, first.content)}
@@ -404,3 +408,5 @@ def test_a_cursor_continues_with_the_next_items_of_the_same_release(tools, pinne
     assert [item for item in after if item in before] == []
     releases = {_release(item) for item in items_of(name, second.content)}
     assert releases == {(pinned["terminology"], pinned["release"])}
+    other = _call(tools, pinned | {"release": OTHER_RELEASE}, name, continued)
+    assert error_code(other) == "invalid_request", other.content

@@ -62,7 +62,7 @@ X-3:
   basis: [A3.4]
   planned: "#55"
 X-4:
-  statement: A query that legitimately matches nothing returns an empty result with provenance, not an error.
+  statement: A query that legitimately matches nothing returns an empty result with provenance and no nextCursor, not an error.
   basis: [A2.5, A2.6, M3.2, provenance]
   planned: "#55"
 X-5:
@@ -113,7 +113,7 @@ X-16:
   basis: [A6.5, A5.3]
   planned: "#54"
 X-17:
-  statement: A page smaller than the result carries nextCursor; following it returns the next items, repeats none of the page before, and keeps the release the first page was pinned to.
+  statement: A page smaller than the result carries nextCursor; following it returns the next items, repeats none of the page before, and keeps the release the first page was pinned to; presented with another release, the cursor is an invalid request.
   basis: [M6.1, M2.4]
 
 # EVS tools.
@@ -145,7 +145,7 @@ get_concepts-3:
   statement: The concepts come back in request order, never in the upstream's order.
   basis: [get_concepts]
 search_concepts-1:
-  statement: lexical search returns the platform's matches in the platform's order, a page at a time, each with the platform's highlight as matchedOn and no score.
+  statement: lexical search returns the platform's matches in the platform's order, a page at a time, each with the platform's highlight as matchedOn and no score, and the platform's total as totalKnown.
   basis: [search_concepts, search_result, A9.2]
 search_concepts-2:
   statement: typeahead returns the platform's prefix matches in the platform's order, with neither matchedOn nor score, since the platform gives neither.
@@ -162,6 +162,10 @@ search_concepts-5:
   statement: An index built for another release than the one asked for fails closed.
   basis: [search_concepts, M4.1, A3.4]
   planned: "#53"
+search_concepts-6:
+  statement: How search treats retired concepts is documented, and the caller can override it.
+  basis: [search_concepts, A8.3]
+  planned: "#53"
 get_concept_hierarchy-1:
   statement: The depth bound holds, pathsToRoot returns complete paths, and truncation is reported.
   basis: [get_concept_hierarchy, A5.1]
@@ -170,7 +174,7 @@ expand_value_set-1:
   statement: count and offset, which the platform ignores, select the members the tool returns, in the platform's order, and total counts them all.
   basis: [expand_value_set, member, A5.1]
 expand_value_set-2:
-  statement: activeOnly, which the platform ignores, leaves out the members the expansion marks inactive, and total counts those left; without it they are listed, marked inactive.
+  statement: activeOnly, which the platform ignores, leaves out the members the expansion marks inactive, and total counts those kept; when it is false or not given they are listed, marked inactive.
   basis: [expand_value_set, member, A8.3]
 get_concept_neighborhood-1:
   statement: Per-kind budgets hold and no kind is starved; exclusion edges are marked and left out of positive expansion unless includeNegative; polarity follows the role code; the outbound budget counts retries; truncation names cause and magnitude.

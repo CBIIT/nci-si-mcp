@@ -115,27 +115,30 @@ search_result:
   title: The search result record
   about: >-
     One result of search_concepts, in the order the source ranked it: the module ranks and
-    scores nothing itself (A9.2).
+    scores nothing itself (A9.2), except through the interim index (M4.1).
   fields:
     concept:
       content: The concept record, with no section
       of: concept
     score:
-      content: The score the source returned, unchanged; absent where it returns none (EVS)
+      content: >-
+        The score the source returned, unchanged: the interim index's (M4.1); absent where the
+        source returns none (EVS)
       optional: true
       of: A9.2
     matchedOn:
       content: >-
         Where the match was found, as the source says it: from EVS its highlight, unchanged
         (the matched text, the query's terms marked); from the interim index the field
-        matched. Absent where the source says nothing (EVS typeahead)
+        matched. Its form follows the mode the caller asked for. Absent where the source says
+        nothing (EVS typeahead), never null
       optional: true
       of: A9.2
 member:
   title: The value set member record
   about: >-
     A member of a value set, as expand_value_set returns it. count and offset select a page of
-    the members in the platform's order, and total counts every member activeOnly leaves, so a
+    the members in the platform's order, and total counts every member activeOnly keeps, so a
     page is no truncation: truncation reports a bound of the tool's own (A5.2).
   fields:
     code:
@@ -149,8 +152,9 @@ member:
       of: A9.1
     inactive:
       content: >-
-        true where the expansion marks the member inactive (FHIR contains.inactive), and
-        absent where it does not; activeOnly leaves such members out (A8.3)
+        true where the expansion marks the member inactive (FHIR contains.inactive: no longer
+        active, retired members among them), and absent, never false or null, where it does
+        not; activeOnly leaves such members out (A8.3)
       optional: true
       of: A8.1
     provenance:
@@ -175,7 +179,7 @@ truncation:
     The truncation field of a result whose tool bounds it. When nothing was truncated it holds
     occurred false and no other field. When a bound was reached it holds occurred, bound, limit,
     reached, omitted and exact, and perKind as well where a traversal spans several
-    relationship kinds. A page that a cursor continues is not a truncation (M6.1).
+    relationship kinds. A page that a cursor or an offset continues is not a truncation (M6.1).
   fields:
     occurred:
       content: Whether a bound was reached

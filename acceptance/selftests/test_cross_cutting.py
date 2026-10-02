@@ -57,6 +57,9 @@ DEFECTS = [
     ("no-next-cursor", PAGED),
     ("cursor-repeats", PAGED),
     ("cursor-other-release", PAGED),
+    ("cursor-empty", PAGED),
+    ("cursor-ignores-release", PAGED),
+    ("empty-with-cursor", EMPTY),
 ]
 
 

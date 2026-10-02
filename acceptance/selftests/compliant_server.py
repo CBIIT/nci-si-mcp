@@ -56,6 +56,9 @@ requirements, for the harness's own tests.
     no-next-cursor    a page smaller than the result without nextCursor            (X-17)
     cursor-repeats    the cursor's page repeats the page before                     (X-17)
     cursor-other-release the cursor's page names another release                    (X-17)
+    cursor-empty      the cursor's page is empty                                    (X-17)
+    cursor-ignores-release a cursor presented with another release is served        (X-17)
+    empty-with-cursor a query that matches nothing answered with nextCursor          (X-4)
 
 `unpinned-mismatch` is no defect for a tool without a pinned form upstream: it answers an
 unknown release with release_mismatch, as such a tool can only verify an unpinned answer (X-2).
@@ -69,7 +72,7 @@ say: the concept asked about and, at depth 1 for a traversal tool, one it reache
 suite's calls (tests/calls.yaml) say of EVS's answers shapes it: their `upstream` fields go
 into provenance, their `empty` arguments match nothing, their `truncating` arguments
 reach a bound, and a `paged` call's first page carries a cursor to a second, of another
-concept.
+concept; the cursor names the release it was issued for, and with another it is refused.
 """
 
 import json
@@ -361,16 +364,30 @@ def _page(name: str, arguments: dict, provenance: dict) -> list[dict]:
 
     if "cursor" not in arguments or DEFECT == "cursor-repeats":
         return _items(name, provenance)
+    if DEFECT == "cursor-empty":
+        return []
     if DEFECT == "cursor-other-release":
         provenance = provenance | {"release": provenance["release"] | {"identifier": "26.08e"}}
     return _items(name, provenance, "C2991")
 
 
 def _next_cursor(name: str, arguments: dict, items: list[dict]) -> dict:
-    """The cursor of a paged call's first page, which is smaller than its result."""
+    """The cursor of a paged call's first page, which is smaller than its result: it names
+    the release the page was pinned to."""
 
-    first = items and CALLS.get(name, {}).get("paged") and "cursor" not in arguments
-    return {"nextCursor": "page-2"} if first and DEFECT != "no-next-cursor" else {}
+    found = items or DEFECT == "empty-with-cursor"
+    first = found and CALLS.get(name, {}).get("paged") and "cursor" not in arguments
+    cursor = f"page-2@{arguments.get('release')}"
+    return {"nextCursor": cursor} if first and DEFECT != "no-next-cursor" else {}
+
+
+def _cursor_refused(arguments: dict) -> bool:
+    """Whether a cursor is presented with another release than the one it was issued for."""
+
+    cursor = arguments.get("cursor")
+    if cursor is None or DEFECT == "cursor-ignores-release":
+        return False
+    return cursor.partition("@")[2] != arguments.get("release")
 
 
 def _shaped(name: str, items: list[dict]) -> dict:
@@ -394,13 +411,23 @@ def _error(code: str, status: int, body: dict, correlation: str) -> dict:
     return {"error": "EVS failed" if DEFECT == "unshaped-error" else record} | beside
 
 
+def _refusal(name: str, arguments: dict, correlation: str) -> dict | None:
+    """The error a call gets without asking EVS, if any."""
+
+    if DEFECT == "empty-as-error" and _matches_nothing(name, arguments):
+        return _error("not_found", HTTPStatus.NOT_FOUND, {}, correlation)
+    if _cursor_refused(arguments):
+        return _error("invalid_request", HTTPStatus.BAD_REQUEST, {}, correlation)
+    return None
+
+
 def _answer(name: str, arguments: dict, correlation: str) -> tuple[object, bool]:
     """The content of a call and whether it is an error; a call answered before is not
     asked again, as A9.4 allows."""
 
     call = json.dumps([name, arguments], sort_keys=True)
-    if DEFECT == "empty-as-error" and _matches_nothing(name, arguments):
-        return _error("not_found", HTTPStatus.NOT_FOUND, {}, correlation), True
+    if refusal := _refusal(name, arguments, correlation):
+        return refusal, True
     if call not in answered and DEFECT != "asks-nothing":
         status, body = _asked(arguments, correlation)
         if code := _failure(status, body, arguments):

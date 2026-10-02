@@ -32,7 +32,7 @@ get_concepts:
 search_concepts:
   group: evs
   inputs: (terminology, release, query, mode?, limit?, cursor?)
-  returns: "{ results[{ concept, score?, matchedOn? }], nextCursor? }"
+  returns: "{ results[{ concept, score?, matchedOn? }], nextCursor?, totalKnown? }"
   items: ["results[].concept"]
   values: {mode: [lexical, typeahead, semantic, hybrid]}
   summary: Ranked search of a terminology; semantic and hybrid from the interim NCIt index (M4.1).
@@ -47,9 +47,12 @@ get_concept_hierarchy:
 expand_value_set:
   group: evs
   inputs: (terminology, release, valueSet | code, count?, offset?, activeOnly?)
-  returns: "{ members[], total?, truncation }"
+  returns: "{ members[], total, truncation }"
   items: ["members[]"]
-  summary: The members of a value set, paged and bounded by the tool itself; $lookup, $validate-code, $subsumes and $translate where a caller asks.
+  summary: >-
+    The members of a value set, paged and bounded by the tool itself; $lookup, $validate-code,
+    $subsumes and $translate where a caller asks. It pages by count and offset, as FHIR $expand
+    does, in place of a cursor (the exception to M6.1); activeOnly is false unless given.
 get_concept_neighborhood:
   group: evs
   inputs: (terminology, release, code, depth?, kinds[]?, maxNodes?, maxEdges?, budgetPerKind?, includeNegative?)
