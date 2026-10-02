@@ -14,19 +14,20 @@ resolve_release:
   inputs: (terminology, channel?)
   returns: "{ terminology, channel, version, date, alternatives[] }"
   items: ["."]
-  summary: Which release of a terminology is current, by channel; called explicitly, and its answer is passed to every later call.
+  summary: Which release of a terminology is current, by channel (without one, the channel configured, A3.6.2); called explicitly, and its answer is passed to every later call.
 get_concept:
   group: evs
   inputs: (terminology, release, code, include[]?)
   returns: concept
   items: ["."]
-  values: {include: [synonyms, definitions, properties, semanticType, status]}
+  values: {include: [synonyms, definitions, properties, semanticType]}
   summary: One concept with the detail selected.
 get_concepts:
   group: evs
   inputs: (terminology, release, codes[], include[]?)
   returns: "{ concepts[], missing[] }"
   items: ["concepts[]"]
+  values: {include: [synonyms, definitions, properties, semanticType]}
   summary: Many concepts in one platform call, with the detail selected.
 search_concepts:
   group: evs

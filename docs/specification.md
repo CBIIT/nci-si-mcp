@@ -234,6 +234,33 @@ The provenance record, with these fields added (A4.2).
 | `qualifiers` | Any qualifying detail the platform attaches | A4.2 |
 | `evidence` | Supporting evidence, where the platform supplies it | A4.2 |
 
+### The concept record
+
+A concept as a terminology tool returns it: these fields, status where the platform publishes one, and the sections the caller's include selects. Status is the platform's own, unchanged: a status set of the module's would lose what the platform said and differ between terminologies (A9.1).
+
+| Field | Content | Rule |
+|---|---|---|
+| `code` | The bare code the terminology publishes | A1.2 |
+| `terminology` | The terminology the code belongs to, as the platform names it | A1.2 |
+| `name` | The preferred name | A4.1 |
+| `active` | Whether the platform publishes the concept as active, its boolean unchanged | A8.1 |
+| `status` | The platform's own status value, unchanged, where it publishes one (from EVS: DEFAULT, Header_Concept, Retired_Concept, ...) (optional) | A8.1 |
+| `provenance` | The provenance record | A4.4 |
+| `synonyms` | The platform's synonym entries, unchanged, when include selects them (optional) | get_concept |
+| `definitions` | The platform's definition entries, unchanged, when include selects them (optional) | get_concept |
+| `properties` | The platform's property entries, unchanged, when include selects them; the semantic-type property among them (optional) | get_concept |
+| `semanticType` | The values of the terminology's semantic-type property, when include selects them; the property is named by its code, not its label (NCIt: P106), as A5.7 names roles (optional) | get_concept |
+
+### The terminology record
+
+A terminology the platform serves, as list_terminologies returns it.
+
+| Field | Content | Rule |
+|---|---|---|
+| `terminology` | The terminology's identifier, as the platform's metadata names it | A7.1 |
+| `release` | Its current release identifier | A7.2 |
+| `provenance` | The provenance record | A4.4 |
+
 ### The truncation record
 
 The truncation field of a result whose tool bounds it. When nothing was truncated it holds occurred false and no other field. When a bound was reached it holds occurred, bound, limit, reached, omitted and exact, and perKind as well where a traversal spans several relationship kinds. A page that a cursor continues is not a truncation (M6.1).
@@ -254,7 +281,7 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 
 | Field | Content | Rule |
 |---|---|---|
-| `code` | The class of the failure: those A2.5 names, a release mismatch (A3.4), a timeout, a capability not yet available (M1.2) and a cursor whose release is superseded (M2.4): one of `invalid_request`, `not_found`, `release_not_available`, `release_mismatch`, `upstream_unavailable`, `timeout`, `bound_exceeded`, `capability_unavailable`, `cursor_expired`, `internal_error` | A2.5 |
+| `code` | The class of the failure: those A2.5 names, a release mismatch (A3.4), a timeout, a capability not yet available (M1.2) and a cursor whose release is superseded (M2.4). release_not_available also covers a channel whose current release cannot be named, as when one channel's query names two releases (A3.6.3): one of `invalid_request`, `not_found`, `release_not_available`, `release_mismatch`, `upstream_unavailable`, `timeout`, `bound_exceeded`, `capability_unavailable`, `cursor_expired`, `internal_error` | A2.5 |
 | `message` | What failed, in words | A2.5 |
 | `details` | An object holding what the caller needs for its next step, such as the release requested and the release served, the bound, its limit and the amount reached, or the surface, status and attempts of a failed upstream request (optional) | A2.5 |
 | `correlationId` | The call's correlation identifier | M7.1 |
@@ -265,9 +292,9 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 
 | Tool | Inputs → result | What it does |
 |---|---|---|
-| `resolve_release` | `(terminology, channel?) → { terminology, channel, version, date, alternatives[] }` | Which release of a terminology is current, by channel; called explicitly, and its answer is passed to every later call. Items: `.`. |
-| `get_concept` | `(terminology, release, code, include[]?) → concept` | One concept with the detail selected. `include`: synonyms, definitions, properties, semanticType, status. Items: `.`. |
-| `get_concepts` | `(terminology, release, codes[], include[]?) → { concepts[], missing[] }` | Many concepts in one platform call, with the detail selected. Items: `concepts[]`. |
+| `resolve_release` | `(terminology, channel?) → { terminology, channel, version, date, alternatives[] }` | Which release of a terminology is current, by channel (without one, the channel configured, A3.6.2); called explicitly, and its answer is passed to every later call. Items: `.`. |
+| `get_concept` | `(terminology, release, code, include[]?) → concept` | One concept with the detail selected. `include`: synonyms, definitions, properties, semanticType. Items: `.`. |
+| `get_concepts` | `(terminology, release, codes[], include[]?) → { concepts[], missing[] }` | Many concepts in one platform call, with the detail selected. `include`: synonyms, definitions, properties, semanticType. Items: `concepts[]`. |
 | `search_concepts` | `(terminology, release, query, mode?, limit?, cursor?) → { results[{ concept, score?, matchedOn? }], nextCursor? }` | Ranked search of a terminology; semantic and hybrid from the interim NCIt index (M4.1). `mode`: lexical, typeahead, semantic, hybrid. Items: `results[].concept`. |
 | `get_concept_hierarchy` | `(terminology, release, code, direction, depth?, limit?, cursor?) → { nodes[], truncation, nextCursor? }` | A concept's parents, children or paths to the root, bounded. `direction`: parent, child, pathsToRoot. Items: `nodes[]`. |
 | `expand_value_set` | `(terminology, release, valueSet \| code, count?, offset?, activeOnly?) → { members[], total?, truncation }` | The members of a value set, paged and bounded by the tool itself; $lookup, $validate-code, $subsumes and $translate where a caller asks. Items: `members[]`. |
@@ -355,9 +382,15 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 
 | Id | Requirement | Basis | Tests | Status |
 |---|---|---|---|---|
-| resolve_release-1 | One release per channel, resolved by tag and never by the first latest row; with two latest rows and no channel it fails closed; ttlMs 0. | resolve_release, A3.6, M2.2 | — | planned #53 |
-| get_concept-1 | Each include value returns its section and nothing else; descendants is refused as an include value. | get_concept | — | planned #53 |
-| get_concepts-1 | A batch of n codes is one upstream call; a code the upstream omits is named in the result; results are in request order or keyed by code, never positional. | get_concepts, A5.8 | — | planned #53 |
+| resolve_release-1 | A channel's release is resolved by its tag, never by the first row flagged latest; with a weekly and a monthly row both latest, each channel gets its own. | resolve_release, A3.6.1, A3.6.2 | `tests/test_evs.py::test_a_channel_s_release_is_the_row_its_tag_names[monthly]`, `tests/test_evs.py::test_a_channel_s_release_is_the_row_its_tag_names[weekly]` | tested |
+| resolve_release-2 | Where one channel's query names two releases, the tool fails closed with release_not_available, naming both in details. | resolve_release, A3.6.3, error | `tests/test_evs.py::test_a_channel_whose_query_names_two_releases_fails_closed` | tested |
+| resolve_release-3 | The result carries ttlMs 0. | resolve_release, M2.2 | `tests/test_evs.py::test_a_resolved_release_is_never_cached` | tested |
+| get_concept-1 | Each include value returns its section and no other section. | get_concept, concept | `tests/test_evs.py::test_an_include_value_returns_its_section_and_no_other[synonyms]`, `tests/test_evs.py::test_an_include_value_returns_its_section_and_no_other[definitions]`, `tests/test_evs.py::test_an_include_value_returns_its_section_and_no_other[properties]`, `tests/test_evs.py::test_an_include_value_returns_its_section_and_no_other[semanticType]` | tested |
+| get_concept-2 | descendants as an include value is an invalid request. | get_concept, error | `tests/test_evs.py::test_descendants_is_no_include_value` | tested |
+| get_concept-3 | The concept carries code, terminology, name and active always, and status where the platform publishes one; active and status as the platform publishes them. | get_concept, concept, A8.1, A9.1 | `tests/test_evs.py::test_a_concept_carries_its_identity_and_the_status_the_platform_publishes[current]`, `tests/test_evs.py::test_a_concept_carries_its_identity_and_the_status_the_platform_publishes[retired]` | tested |
+| get_concepts-1 | A batch of codes is one upstream request. | get_concepts, A5.8 | `tests/test_evs.py::test_a_batch_is_one_upstream_request` | tested |
+| get_concepts-2 | A code the upstream omits is named in missing. | get_concepts | `tests/test_evs.py::test_a_code_the_platform_leaves_out_of_a_batch_is_named_missing` | tested |
+| get_concepts-3 | The concepts come back in request order, never in the upstream's order. | get_concepts | `tests/test_evs.py::test_a_batch_comes_back_in_request_order[as-listed]`, `tests/test_evs.py::test_a_batch_comes_back_in_request_order[reversed]` | tested |
 | search_concepts-1 | lexical and typeahead return ranked results with matchedOn; semantic and hybrid return a score and the field matched from the interim index, its release in provenance; a mode the profile does not offer is an invalid request, not an empty result; an index built for another release fails closed. | search_concepts, M4.1, A3.4 | — | planned #53 |
 | get_concept_hierarchy-1 | The depth bound holds, pathsToRoot returns complete paths, and truncation is reported. | get_concept_hierarchy, A5.1 | — | planned #53 |
 | expand_value_set-1 | The tool applies count, offset and activeOnly itself, which the upstream ignores, and reports the total; activeOnly leaves out retired members. | expand_value_set, A5.1 | — | planned #53 |
@@ -366,7 +399,7 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 | get_concept_mappings-1 | Mapsets are first-class objects; licensed targets carry attribution; a mapset whose version is not the NCIt release is a content state of its own. | get_concept_mappings, A7.3 | — | planned #53 |
 | resolve_retired_code-1 | A retired code returns status retired with its replacement and an active code status active; a batch fails as a whole on one bad code only where the upstream does, and says which. | resolve_retired_code, A8 | — | planned #53 |
 | list_relationships-1 | The pinned release's roles are listed, the exclusion roles with negative polarity, derived from the code and not the name. | list_relationships, A5.6, A5.7 | — | planned #53 |
-| list_terminologies-1 | The available terminologies are listed with their current releases, none the platform offers left out. | list_terminologies, A7.2 | — | planned #53 |
+| list_terminologies-1 | The available terminologies are listed with their current releases, none the platform offers left out. | list_terminologies, A7.2, terminology | `tests/test_evs.py::test_every_terminology_the_platform_serves_is_listed_with_its_current_release` | tested |
 
 ### caDSR tools
 

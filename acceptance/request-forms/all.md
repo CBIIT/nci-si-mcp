@@ -111,6 +111,10 @@ Every payload that reports the pinned release names 26.08e instead, the unpinned
 
 A weekly and a monthly row are both `latest`, the weekly first in every list; each form of the release query gives a channel the same release. Crafted, 4 fixtures, for A3.6.1-A3.6.3: two releases carry latest at once, one per channel.
 
+### `release/duplicate-tag`
+
+Two releases are both latest with the monthly tag; the monthly query and the listing name both. Crafted, 2 fixtures, for A3.6.3: a release with duplicate tags fails closed.
+
 ### `batch/silent-drop`
 
 A code EVS does not know is left out of a batch. Recorded.

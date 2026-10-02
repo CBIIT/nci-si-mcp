@@ -46,6 +46,9 @@ scenarios:
   release/two-latest: >-
     A weekly and a monthly row are both `latest`, the weekly first in every list; each
     form of the release query gives a channel the same release
+  release/duplicate-tag: >-
+    Two releases are both latest with the monthly tag; the monthly query and the listing name
+    both
   batch/silent-drop: A code EVS does not know is left out of a batch
   retired/with-replacement: C154421 is retired with a replacement, and one bad code fails a batch
   traversal/deep-fanout: >-
