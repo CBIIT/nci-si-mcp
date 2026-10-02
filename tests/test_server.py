@@ -19,7 +19,7 @@ from nci_si_mcp.evs import EVSUnavailableError
 from nci_si_mcp.index import LocalIndex
 from nci_si_mcp.server import INSTRUCTIONS, create_mcp
 from nci_si_mcp.service import NCISIService
-from test_docs import README, bullet_names, section
+from test_docs import QUICKSTART, bullet_names, section
 
 NEOPLASM = concept(
     "C3262",
@@ -124,12 +124,12 @@ class ServerTest(unittest.TestCase):
         for term in ("truncated", "unexpanded_codes", "descendant", "relationship_names"):
             self.assertIn(term, tools["ncit_traverse"].description)
 
-    def test_readme_lists_the_tools_and_every_argument_of_traverse(self, _):
+    def test_quickstart_lists_the_tools_and_every_argument_of_traverse(self, _):
         tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
 
         # The names in backticks that start the bullets of the section.
         leads = re.findall(
-            r"^- ((?:`\w+`(?:, )?)+)", section(README, "MCP Tools"), flags=re.MULTILINE
+            r"^- ((?:`\w+`(?:, )?)+)", section(QUICKSTART, "MCP Tools"), flags=re.MULTILINE
         )
         names = {name for lead in leads for name in re.findall(r"`(\w+)`", lead)}
 
@@ -167,7 +167,7 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(len(templates), 3)
         self.assertEqual(
             {template.uri_template for template in templates},
-            set(bullet_names(section(README, "MCP Resources"))),
+            set(bullet_names(section(QUICKSTART, "MCP Resources"))),
         )
         for template in templates:
             self.assertEqual(template.mime_type, "application/json")

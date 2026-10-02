@@ -329,7 +329,7 @@ Three composites per *MCP API Specification* §8.4, implemented as orchestration
 
 ## 8. Configuration and profiles (`config.py`)
 
-Settings after the change. `NCI_SI_EVS_BASE_URL`, `NCI_SI_TIMEOUT_SECONDS`, `NCI_SI_DATA_DIR` and the embedding pair exist today; the README's other settings (EVS retries, backoff and response limit, index batch size, log level) stay as they are. Each is validated at startup with a message naming its variable, as the existing ones are.
+Settings after the change. `NCI_SI_EVS_BASE_URL`, `NCI_SI_TIMEOUT_SECONDS`, `NCI_SI_DATA_DIR` and the embedding pair exist today; QUICKSTART.md's other settings (EVS retries, backoff and response limit, index batch size, log level) stay as they are. Each is validated at startup with a message naming its variable, as the existing ones are.
 
 | Setting | Default | Purpose |
 |---|---|---|
