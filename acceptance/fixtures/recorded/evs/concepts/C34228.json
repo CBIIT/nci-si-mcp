@@ -1,0 +1,155 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C34228",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C34228",
+   "name": "Neuroectoderm",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Ectomesenchyme",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Neuroectoderm",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Neuroectoderm",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "The dorsal surface of the early vertebrate embryo that gives rise to the nervous system.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Neuroectoderm"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Embryonic Structure"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1518271"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C12703",
+     "name": "Ectoderm"
+    },
+    {
+     "code": "C41409",
+     "name": "Neuroepithelial Tissue"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R82",
+     "type": "Anatomic_Structure_Is_Physical_Part_Of",
+     "relatedCode": "C34156",
+     "relatedName": "Embryonic Nervous System"
+    },
+    {
+     "code": "R82",
+     "type": "Anatomic_Structure_Is_Physical_Part_Of",
+     "relatedCode": "C28147",
+     "relatedName": "Embryo"
+    },
+    {
+     "code": "R82",
+     "type": "Anatomic_Structure_Is_Physical_Part_Of",
+     "relatedCode": "C12755",
+     "relatedName": "Nervous System"
+    },
+    {
+     "code": "R82",
+     "type": "Anatomic_Structure_Is_Physical_Part_Of",
+     "relatedCode": "C34058",
+     "relatedName": "Trilaminar Embryonic Disc"
+    }
+   ],
+   "history": [
+    {
+     "code": "C34228",
+     "action": "create",
+     "date": "2004-02-23"
+    },
+    {
+     "code": "C34228",
+     "action": "modify",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C34228",
+     "action": "modify",
+     "date": "2005-01-28"
+    },
+    {
+     "code": "C34228",
+     "action": "modify",
+     "date": "2005-07-29"
+    },
+    {
+     "code": "C34228",
+     "action": "modify",
+     "date": "2006-07-28"
+    },
+    {
+     "code": "C34228",
+     "action": "modify",
+     "date": "2009-04-06"
+    },
+    {
+     "code": "C34228",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C34228",
+     "action": "modify",
+     "date": "2010-08-02"
+    },
+    {
+     "code": "C34228",
+     "action": "modify",
+     "date": "2014-02-03"
+    }
+   ]
+  }
+ }
+}

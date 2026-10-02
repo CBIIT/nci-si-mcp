@@ -1,0 +1,107 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C34058",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C34058",
+   "name": "Trilaminar Embryonic Disc",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Trilaminar Embryonic Disc",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Trilaminar Embryonic Disc",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "The flat, three-layered embryonic structure that is formed following gastrulation at approximately week three of gestation, and which is comprises three germ layers: ectoderm, mesoderm, and endoderm.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Trilaminar_Embryonic_Disc"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Embryonic Structure"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1284022"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C34150",
+     "name": "Embryonic Disc"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R82",
+     "type": "Anatomic_Structure_Is_Physical_Part_Of",
+     "relatedCode": "C28147",
+     "relatedName": "Embryo"
+    },
+    {
+     "code": "R82",
+     "type": "Anatomic_Structure_Is_Physical_Part_Of",
+     "relatedCode": "C34057",
+     "relatedName": "Gastrula"
+    }
+   ],
+   "history": [
+    {
+     "code": "C34058",
+     "action": "create",
+     "date": "2004-02-23"
+    },
+    {
+     "code": "C34058",
+     "action": "modify",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C34058",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C34058",
+     "action": "modify",
+     "date": "2017-10-30"
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,284 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C18326",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C18326",
+   "name": "ETS Family Gene",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "ETS Family Gene",
+     "termType": "DN",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTRP"
+    },
+    {
+     "name": "ETS Family Gene",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "ETS Family Proto-Oncogenes",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "ETS Family Gene",
+     "type": "Display_Name",
+     "typeCode": "P107"
+    },
+    {
+     "name": "ETS Family Gene",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "The Ets family of transcription factors includes nuclear phosphoproteins that are involved in cell proliferation, differentiation and oncogenic transformation. The family is defined by a conserved DNA-binding domain (the ETS-DBD), which forms a highly conserved, winged, helix-turn-helix structural motif. As targets of the Ras-MAPK signaling pathway, Ets proteins function as critical nuclear integrators of ubiquitous signaling cascades. To direct signals to specific target genes, ETS proteins interact with other transcription factors that determine the binding specificity of ETS proteins to RAS-response elements in target genes.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTRP"
+    },
+    {
+     "code": "P96",
+     "type": "Gene_Encodes_Product",
+     "value": "ETS Family Protein"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "ETS_Family_Gene"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Gene or Genome"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C0812200"
+    }
+   ],
+   "children": [
+    {
+     "code": "C24361",
+     "name": "EHF Gene",
+     "leaf": false
+    },
+    {
+     "code": "C20899",
+     "name": "ELF3 Gene",
+     "leaf": false
+    },
+    {
+     "code": "C97470",
+     "name": "ELF4 Gene",
+     "leaf": false
+    },
+    {
+     "code": "C18461",
+     "name": "ELK1 Gene",
+     "leaf": false
+    },
+    {
+     "code": "C18446",
+     "name": "ELK3 Gene",
+     "leaf": false
+    },
+    {
+     "code": "C97476",
+     "name": "ELK4 Gene",
+     "leaf": false
+    },
+    {
+     "code": "C24376",
+     "name": "ERF Gene",
+     "leaf": false
+    },
+    {
+     "code": "C18139",
+     "name": "ERG Gene",
+     "leaf": false
+    },
+    {
+     "code": "C18327",
+     "name": "ETS1 Gene",
+     "leaf": false
+    },
+    {
+     "code": "C18328",
+     "name": "ETS2 Gene",
+     "leaf": false
+    },
+    {
+     "code": "C24377",
+     "name": "ETV1 Gene",
+     "leaf": false
+    },
+    {
+     "code": "C18391",
+     "name": "ETV3 Gene",
+     "leaf": false
+    },
+    {
+     "code": "C24378",
+     "name": "ETV4 Gene",
+     "leaf": false
+    },
+    {
+     "code": "C97479",
+     "name": "ETV5 Gene",
+     "leaf": false
+    },
+    {
+     "code": "C18312",
+     "name": "ETV6 Gene",
+     "leaf": false
+    },
+    {
+     "code": "C97482",
+     "name": "FEV Gene",
+     "leaf": false
+    },
+    {
+     "code": "C18321",
+     "name": "FLI1 Gene",
+     "leaf": false
+    },
+    {
+     "code": "C102918",
+     "name": "SPDEF Gene",
+     "leaf": false
+    },
+    {
+     "code": "C18553",
+     "name": "SPI1 Gene",
+     "leaf": false
+    },
+    {
+     "code": "C99651",
+     "name": "SPIB Gene",
+     "leaf": false
+    }
+   ],
+   "parents": [
+    {
+     "code": "C20420",
+     "name": "Transcription Factor Gene"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142799",
+     "relatedName": "CTRP Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142800",
+     "relatedName": "CTRP Molecular Genetic Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C116977",
+     "relatedName": "CTRP Terminology"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R37",
+     "type": "Gene_Plays_Role_In_Process",
+     "relatedCode": "C18597",
+     "relatedName": "DNA Binding"
+    },
+    {
+     "code": "R41",
+     "type": "Gene_Found_In_Organism",
+     "relatedCode": "C14225",
+     "relatedName": "Human"
+    },
+    {
+     "code": "R37",
+     "type": "Gene_Plays_Role_In_Process",
+     "relatedCode": "C19077",
+     "relatedName": "Transcriptional Regulation"
+    }
+   ],
+   "history": [
+    {
+     "code": "C18326",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C18326",
+     "action": "modify",
+     "date": "2003-10-31"
+    },
+    {
+     "code": "C18326",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C18326",
+     "action": "modify",
+     "date": "2009-04-06"
+    },
+    {
+     "code": "C18326",
+     "action": "modify",
+     "date": "2009-08-03"
+    },
+    {
+     "code": "C18326",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C18326",
+     "action": "modify",
+     "date": "2014-02-03"
+    },
+    {
+     "code": "C18326",
+     "action": "modify",
+     "date": "2021-07-26"
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,88 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C41165",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C41165",
+   "name": "Hematopoietic and Lymphatic System",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Hematopoietic and Lymphatic System",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Hematopoietic and Lymphatic System",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "The bodily system of organs and tissues, primarily the bone marrow, spleen, tonsils, and lymph nodes, involved in the production of blood considered together with the interconnected system of spaces and vessels between body tissues and organs by which lymph circulates throughout the body.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Hematopoietic_and_Lymphatic_System"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Body System"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1512394"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C12919",
+     "name": "Organ System"
+    }
+   ],
+   "history": [
+    {
+     "code": "C41165",
+     "action": "create",
+     "date": "2004-11-01"
+    },
+    {
+     "code": "C41165",
+     "action": "modify",
+     "date": "2006-07-28"
+    },
+    {
+     "code": "C41165",
+     "action": "modify",
+     "date": "2009-11-23"
+    }
+   ]
+  }
+ }
+}

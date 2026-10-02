@@ -1,0 +1,389 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C28147",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C28147",
+   "name": "Embryo",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "EMBRYO",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CDISC"
+    },
+    {
+     "name": "Human Embryo",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "FDA",
+     "subSource": "SPL"
+    },
+    {
+     "name": "embryo",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI-GLOSS",
+     "code": "CDR0000044202"
+    },
+    {
+     "name": "Embryo",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Embryologic",
+     "termType": "AD",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Embryo",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "An organism in its initial stage of development following fertilization. The human embryonic period lasts approximately eight weeks, during which time organogenesis takes place.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    },
+    {
+     "definition": "Early stage in the development of a plant or an animal.  In vertebrate animals (have a backbone or spinal column), this stage lasts from shortly after fertilization until all major body parts appear.  In particular, in humans, this stage lasts from about 2 weeks after fertilization until the end of the seventh or eighth week of pregnancy.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "NCI-GLOSS"
+    },
+    {
+     "definition": "Early stage in the prenatal development of an animal. This stage occurs from implantation until closure of the hard palate.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "CDISC"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CDISC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "FDA"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Embryo"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Embryonic Structure"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C0013935"
+    }
+   ],
+   "children": [
+    {
+     "code": "C13739",
+     "name": "Blastocyst",
+     "leaf": true
+    },
+    {
+     "code": "C34131",
+     "name": "Conceptus",
+     "leaf": true
+    },
+    {
+     "code": "C34057",
+     "name": "Gastrula",
+     "leaf": true
+    },
+    {
+     "code": "C34212",
+     "name": "Morula",
+     "leaf": true
+    },
+    {
+     "code": "C34229",
+     "name": "Neurula",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C13229",
+     "name": "Embryonic Structure"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C124316",
+     "relatedName": "CDISC SEND Implantation Findings Result Category Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C77526",
+     "relatedName": "CDISC SEND Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C61410",
+     "relatedName": "Clinical Data Interchange Standards Consortium Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C54452",
+     "relatedName": "FDA Structured Product Labeling Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C133250",
+     "relatedName": "SPL Tissue Form Product Type Terminology"
+    }
+   ],
+   "history": [
+    {
+     "code": "C28147",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2004-02-23"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2006-06-30"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2011-02-28"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2011-03-07"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2015-08-17"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2015-08-24"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2015-08-31"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2015-09-08"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2015-09-14"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2015-09-21"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2015-09-28"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2015-10-05"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2015-10-13"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2015-10-19"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2015-10-26"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2015-11-02"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2015-11-09"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2015-11-16"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2015-11-23"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2015-11-30"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2015-12-07"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2015-12-14"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2015-12-21"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2015-12-28"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2016-01-04"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2016-01-11"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2016-01-19"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2016-01-29"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2017-04-10"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2017-04-17"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2017-04-24"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2017-05-01"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2017-05-04"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2017-07-31"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2017-10-30"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2022-11-28"
+    },
+    {
+     "code": "C28147",
+     "action": "modify",
+     "date": "2023-01-31"
+    }
+   ]
+  }
+ }
+}

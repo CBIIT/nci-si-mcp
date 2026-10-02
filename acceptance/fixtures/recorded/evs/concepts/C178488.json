@@ -1,0 +1,200 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C178488",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C178488",
+   "name": "FUS/NFATC2 Fusion Gene",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "FUS/NFATC2 Fusion Gene",
+     "termType": "DN",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTRP"
+    },
+    {
+     "name": "FUS RNA Binding Protein-Nuclear Factor of Activated T Cells 2 Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "FUS RNA Binding Protein/Nuclear Factor of Activated T Cells 2 Fusion Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "FUS-NFATC2 Fusion Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "FUS/NFATC2 Fusion Gene",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "FUS::NFATC2 Fusion Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "FUS/NFATC2 Fusion Gene",
+     "type": "Display_Name",
+     "typeCode": "P107"
+    },
+    {
+     "name": "FUS/NFATC2 Fusion Gene",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A fusion gene that results from a chromosomal translocation t(16;20)(p11;q13) which fuses exon 6 of the FUS gene with exon 3 of the NFATC2 gene. This rearrangement is associated with round cell sarcoma.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTRP"
+    },
+    {
+     "code": "P208",
+     "type": "NCI_META_CUI",
+     "value": "CL1648050"
+    },
+    {
+     "code": "P171",
+     "type": "PubMedID_Primary_Reference",
+     "value": "31972596"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Gene or Genome"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C201195",
+     "name": "FET Family Fusion Gene"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142799",
+     "relatedName": "CTRP Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142800",
+     "relatedName": "CTRP Molecular Genetic Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C116977",
+     "relatedName": "CTRP Terminology"
+    },
+    {
+     "code": "A13",
+     "type": "Related_To_Genetic_Biomarker",
+     "relatedCode": "C91852",
+     "relatedName": "FUS Gene"
+    },
+    {
+     "code": "A13",
+     "type": "Related_To_Genetic_Biomarker",
+     "relatedCode": "C93138",
+     "relatedName": "NFATC2 Gene"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R132",
+     "type": "Gene_Has_Abnormality",
+     "relatedCode": "C179848",
+     "relatedName": "FET Family Gene Translocation"
+    },
+    {
+     "code": "R175",
+     "type": "Gene_Involved_In_Pathogenesis_Of_Disease",
+     "relatedCode": "C178462",
+     "relatedName": "Round Cell Sarcoma with FUS-NFATC2 Gene Fusion"
+    },
+    {
+     "code": "R175",
+     "type": "Gene_Involved_In_Pathogenesis_Of_Disease",
+     "relatedCode": "C2904",
+     "relatedName": "Simple Bone Cyst"
+    }
+   ],
+   "history": [
+    {
+     "code": "C178488",
+     "action": "create",
+     "date": "2021-04-26"
+    },
+    {
+     "code": "C178488",
+     "action": "modify",
+     "date": "2021-04-26"
+    },
+    {
+     "code": "C178488",
+     "action": "modify",
+     "date": "2021-08-30"
+    },
+    {
+     "code": "C178488",
+     "action": "modify",
+     "date": "2023-09-25"
+    },
+    {
+     "code": "C178488",
+     "action": "modify",
+     "date": "2023-11-27"
+    },
+    {
+     "code": "C178488",
+     "action": "modify",
+     "date": "2025-02-24"
+    }
+   ]
+  }
+ }
+}

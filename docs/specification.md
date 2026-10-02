@@ -230,7 +230,7 @@ The provenance record, with these fields added (A4.2).
 | `depth` | Steps from the concept the caller asked about; an edge has the depth of the item it reaches | A4.2 |
 | `relationship` | The relationship that brought the item in: { code, name, kind }; the code decides polarity | A5.7 |
 | `direction` | Whether the assertion points outward from the origin or inward to it | A4.2 |
-| `polarity` | Positive or negative: one of `positive`, `negative` | A5.6 |
+| `polarity` | Negative exactly when the relationship's code is in its terminology's exclusion set below, positive otherwise, whatever the relationship is named (A5.7); the set is checked against the release's relationship catalogue by list_relationships: one of `positive`, `negative`; exclusion set of ncit: R135, R136, R137, R138, R139, R140, R141, R142 | A5.6 |
 | `qualifiers` | Any qualifying detail the platform attaches | A4.2 |
 | `evidence` | Supporting evidence, where the platform supplies it | A4.2 |
 
@@ -250,6 +250,31 @@ A concept as a terminology tool returns it: these fields, status where the platf
 | `definitions` | The platform's definition entries, unchanged, when include selects them (optional) | get_concept |
 | `properties` | The platform's property entries, unchanged, when include selects them; the semantic-type property among them (optional) | get_concept |
 | `semanticType` | The values of the terminology's semantic-type property, when include selects them; the property is named by its code, not its label (NCIt: P106), as A5.7 names roles (optional) | get_concept |
+
+### The node record
+
+A concept reached by traversal, as get_concept_hierarchy and get_concept_neighborhood return it, each concept once, with its status as the concept record carries it (A8.1). A relation list names a neighbour by code and name only, so the tool reads the nodes of the last depth, which it follows no further, for their status: one batch, bounded by the node bound.
+
+| Field | Content | Rule |
+|---|---|---|
+| `code` | The bare code the terminology publishes | A1.2 |
+| `terminology` | The terminology the code belongs to, as the platform names it | A1.2 |
+| `name` | The preferred name | A4.1 |
+| `active` | Whether the platform publishes the concept as active, its boolean unchanged | A8.1 |
+| `status` | The platform's own status value, unchanged, where it publishes one (optional) | A8.1 |
+| `provenance` | The traversal record: depth 0 and no relationship for the concept asked about, and for any other the depth and the relationship of an edge that reached it there | A4.2 |
+
+### The edge record
+
+One assertion between two concepts, as get_concept_neighborhood returns it, in the direction the platform states it: a role or association from the concept holding it to its target, a hierarchy link from child to parent.
+
+| Field | Content | Rule |
+|---|---|---|
+| `sourceCode` | The bare code of the assertion's subject | A1.2 |
+| `sourceTerminology` | The terminology of the subject | A1.2 |
+| `targetCode` | The bare code of the assertion's object | A1.2 |
+| `targetTerminology` | The terminology of the object | A1.2 |
+| `provenance` | The traversal record: the depth of the node it reaches, its relationship { code, name, kind }, direction and polarity | A4.2 |
 
 ### The search result record
 
@@ -318,9 +343,9 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 | `get_concept` | `(terminology, release, code, include[]?) → concept` | One concept with the detail selected. `include`: synonyms, definitions, properties, semanticType. Items: `.`. |
 | `get_concepts` | `(terminology, release, codes[], include[]?) → { concepts[], missing[] }` | Many concepts in one platform call, with the detail selected. `include`: synonyms, definitions, properties, semanticType. Items: `concepts[]`. |
 | `search_concepts` | `(terminology, release, query, mode?, limit?, cursor?) → { results[{ concept, score?, matchedOn? }], nextCursor?, totalKnown? }` | Ranked search of a terminology; semantic and hybrid from the interim NCIt index (M4.1). `mode`: lexical, typeahead, semantic, hybrid. Items: `results[].concept`. |
-| `get_concept_hierarchy` | `(terminology, release, code, direction, depth?, limit?, cursor?) → { nodes[], truncation, nextCursor? }` | A concept's parents, children or paths to the root, bounded. `direction`: parent, child, pathsToRoot. Items: `nodes[]`. |
+| `get_concept_hierarchy` | `(terminology, release, code, direction, depth?, limit?, cursor?) → { nodes[], paths[]?, truncation, nextCursor? }` | A concept's parents, children or paths to the root, bounded. nodes holds the concepts reached, not the one asked about, and limit is a page that the cursor continues. pathsToRoot returns each path the platform gives in paths, the codes from the concept to the root in the platform's order, with each concept on them once in nodes; depth, limit and cursor do not apply to it. `direction`: parent, child, pathsToRoot. `depth`: default 1, at most 4. `limit`: default 200, at most 1000. Items: `nodes[]`. |
 | `expand_value_set` | `(terminology, release, valueSet \| code, count?, offset?, activeOnly?) → { members[], total, truncation }` | The members of a value set, paged and bounded by the tool itself; $lookup, $validate-code, $subsumes and $translate where a caller asks. It pages by count and offset, as FHIR $expand does, in place of a cursor (the exception to M6.1); activeOnly is false unless given. Items: `members[]`. |
-| `get_concept_neighborhood` | `(terminology, release, code, depth?, kinds[]?, maxNodes?, maxEdges?, budgetPerKind?, includeNegative?) → { nodes[], edges[], truncation }` | Bounded traversal across roles and associations with a budget per kind; negative assertions returned marked, left out of positive expansion unless includeNegative. `kinds`: parent, child, role, association, inverseRole, inverseAssociation. Items: `nodes[]`, `edges[]`. |
+| `get_concept_neighborhood` | `(terminology, release, code, depth?, kinds[]?, maxNodes?, maxEdges?, budgetPerKind?, includeNegative?) → { nodes[], edges[], truncation }` | Bounded traversal across roles and associations with a budget per kind; nodes holds the concept asked about at depth 0 and those reached, and maxNodes counts them all. Given, budgetPerKind bounds the nodes each kind adds; not given, the tool shares maxNodes among the kinds asked so that none present is starved, in a way of its own. Negative assertions are returned marked, with the nodes they reach, which are not followed further unless includeNegative. `kinds`: parent, child, role, association, inverseRole, inverseAssociation. `depth`: default 2, at most 4. `maxNodes`: default 200, at most 1000. `maxEdges`: default 1000, at most 5000. `budgetPerKind`: at most 1000. Items: `nodes[]`, `edges[]`. |
 | `get_concept_subsets` | `(terminology, release, code) → { subsets[] }` | The subsets and value sets a concept belongs to. Items: `subsets[]`. |
 | `get_concept_mappings` | `(terminology, release, code, targetTerminology?) → { mappings[] }` | A concept's mappings to other terminologies, each mapset with its own name and version. Items: `mappings[]`. |
 | `resolve_retired_code` | `(terminology, release, code) → { code, terminology, status, replacements[] }` | Whether a code is retired, and what replaces it. Items: `.`, `replacements[]`. |
@@ -398,7 +423,8 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 | X-14 | Every result is a JSON object, its lists of items named fields of it. | M3.3 | `tests/test_crosscutting.py::test_a_result_is_an_object[resolve_release]`, `tests/test_crosscutting.py::test_a_result_is_an_object[get_concept]`, `tests/test_crosscutting.py::test_a_result_is_an_object[get_concepts]`, `tests/test_crosscutting.py::test_a_result_is_an_object[search_concepts]`, `tests/test_crosscutting.py::test_a_result_is_an_object[get_concept_hierarchy]`, `tests/test_crosscutting.py::test_a_result_is_an_object[expand_value_set]`, `tests/test_crosscutting.py::test_a_result_is_an_object[get_concept_neighborhood]`, `tests/test_crosscutting.py::test_a_result_is_an_object[get_concept_subsets]`, `tests/test_crosscutting.py::test_a_result_is_an_object[get_concept_mappings]`, `tests/test_crosscutting.py::test_a_result_is_an_object[resolve_retired_code]`, `tests/test_crosscutting.py::test_a_result_is_an_object[list_relationships]`, `tests/test_crosscutting.py::test_a_result_is_an_object[list_terminologies]` | planned #55 |
 | X-15 | An upstream failure masked as a successful response (an error envelope in an HTTP 200, HTML where JSON was asked for) is an upstream error, never parsed as content. | A2.5, M3.2 | — | planned #52 |
 | X-16 | After a 429 with Retry-After, the module waits at least that long before it asks again, and makes no request to that endpoint in between. | A6.5, A5.3 | `tests/test_crosscutting.py::test_a_rate_limited_request_is_asked_once_more_after_the_wait` | planned #54 |
-| X-17 | A page smaller than the result carries nextCursor; following it returns the next items, repeats none of the page before, and keeps the release the first page was pinned to; presented with another release, the cursor is an invalid request. | M6.1, M2.4 | `tests/test_crosscutting.py::test_a_cursor_continues_with_the_next_items_of_the_same_release[search_concepts]` | tested |
+| X-17 | A page smaller than the result carries nextCursor; following it returns the next items, repeats none of the page before, and keeps the release the first page was pinned to; presented with another release, the cursor is an invalid request. | M6.1, M2.4 | `tests/test_crosscutting.py::test_a_cursor_continues_with_the_next_items_of_the_same_release[search_concepts]`, `tests/test_crosscutting.py::test_a_cursor_continues_with_the_next_items_of_the_same_release[get_concept_hierarchy]` | tested |
+| X-18 | A value below 1 for an argument with bounds is an invalid request, never raised to 1. | A5.1, A2.5 | — | planned #53 |
 
 ### EVS tools
 
@@ -419,10 +445,17 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 | search_concepts-4 | A mode the server cannot serve for the terminology asked is an invalid request, never an empty result. | search_concepts, A2.5 | — | planned #53 |
 | search_concepts-5 | An index built for another release than the one asked for fails closed. | search_concepts, M4.1, A3.4 | — | planned #53 |
 | search_concepts-6 | How search treats retired concepts is documented, and the caller can override it. | search_concepts, A8.3 | — | planned #53 |
-| get_concept_hierarchy-1 | The depth bound holds, pathsToRoot returns complete paths, and truncation is reported. | get_concept_hierarchy, A5.1 | — | planned #53 |
+| get_concept_hierarchy-1 | A depth above the maximum is applied as the maximum; no node is deeper, and a hierarchy that continues below it is reported as truncation by depth, with the depth applied as the limit. | get_concept_hierarchy, node, A5.2, A5.4 | `tests/test_evs.py::test_a_depth_above_the_maximum_is_applied_as_the_maximum_and_reported` | tested |
+| get_concept_hierarchy-2 | pathsToRoot returns every path the platform gives, each the codes from the concept to the root in the platform's order. | get_concept_hierarchy, A9.1 | `tests/test_evs.py::test_paths_to_root_are_the_platform_s_paths_in_its_order` | tested |
+| get_concept_hierarchy-3 | limit is a page that the cursor continues; the pages together hold the concepts the platform lists, in its order, none twice. | get_concept_hierarchy, node, M6.1 | `tests/test_evs.py::test_limit_is_a_page_the_cursor_continues_to_the_end` | tested |
 | expand_value_set-1 | count and offset, which the platform ignores, select the members the tool returns, in the platform's order, and total counts them all. | expand_value_set, member, A5.1 | `tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all[first]`, `tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all[middle]`, `tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all[last]` | tested |
 | expand_value_set-2 | activeOnly, which the platform ignores, leaves out the members the expansion marks inactive, and total counts those kept; when it is false or not given they are listed, marked inactive. | expand_value_set, member, A8.3 | `tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive[true]`, `tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive[false]`, `tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive[default]` | tested |
-| get_concept_neighborhood-1 | Per-kind budgets hold and no kind is starved; exclusion edges are marked and left out of positive expansion unless includeNegative; polarity follows the role code; the outbound budget counts retries; truncation names cause and magnitude. | get_concept_neighborhood, A5.3, A5.4, A5.5, A5.6, A5.7 | — | planned #53 |
+| get_concept_neighborhood-1 | A node budget reached by one kind starves no other kind asked for that is present, and truncation.perKind names the kind that reached it. | get_concept_neighborhood, truncation, A5.5 | `tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[in-order-roles]`, `tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[in-order-associations]`, `tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[reversed-roles]`, `tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[reversed-associations]` | tested |
+| get_concept_neighborhood-2 | An edge is negative exactly when its relationship's code is in the terminology's exclusion set, whatever the relationship is named. | get_concept_neighborhood, edge, traversal, A5.7 | `tests/test_evs.py::test_polarity_follows_the_relationship_code_not_its_name` | tested |
+| get_concept_neighborhood-3 | Negative edges are returned, marked, and not followed further unless includeNegative is true. | get_concept_neighborhood, edge, A5.6 | `tests/test_evs.py::test_negative_edges_are_returned_marked_and_followed_only_when_included[default]`, `tests/test_evs.py::test_negative_edges_are_returned_marked_and_followed_only_when_included[included]` | tested |
+| get_concept_neighborhood-4 | A node limit above the maximum is applied as the maximum, and the truncation record's limit shows the value applied. | get_concept_neighborhood, truncation, A5.2 | `tests/test_evs.py::test_a_node_limit_above_the_maximum_is_applied_as_the_maximum` | tested |
+| get_concept_neighborhood-5 | The outbound request budget counts retries. | get_concept_neighborhood, A5.3 | — | planned #53 |
+| get_concept_neighborhood-6 | budgetPerKind, when given, bounds the nodes each kind adds, and a kind that reaches it is named in truncation.perKind. | get_concept_neighborhood, truncation, A5.5 | — | planned #53 |
 | get_concept_subsets-1 | Membership is returned with subset codes, and the GDC Value Terminology subset resolves. | get_concept_subsets | — | planned #53 |
 | get_concept_mappings-1 | Mapsets are first-class objects; licensed targets carry attribution; a mapset whose version is not the NCIt release is a content state of its own. | get_concept_mappings, A7.3 | — | planned #53 |
 | resolve_retired_code-1 | A retired code returns status retired with its replacement and an active code status active; a batch fails as a whole on one bad code only where the upstream does, and says which. | resolve_retired_code, A8 | — | planned #53 |

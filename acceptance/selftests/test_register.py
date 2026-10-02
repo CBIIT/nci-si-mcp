@@ -95,8 +95,9 @@ def test_a_crafted_scenario_names_its_requirement_and_counts_its_fixtures():
         " E-7, A7.5: the licence key sent from configuration."
     )
     assert section(VIEWS["evs.md"], "### `traversal/starvation`")[1] == (
-        "One concept has 300 roles and 2 associations. Crafted, 303 fixtures, for A5.5: a budget"
-        " per relationship kind; no kind starved."
+        "One concept has 300 roles and 2 associations, and another 300 associations and 2 roles,"
+        " to the same targets. Crafted, 304 fixtures, for A5.5: a budget per relationship kind;"
+        " no kind starved."
     )
 
 

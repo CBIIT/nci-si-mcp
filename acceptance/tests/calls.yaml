@@ -15,9 +15,9 @@
 # fixture set's pin. `empty` gives arguments, in place of the call's, that legitimately match
 # nothing (X-4). `truncating` gives arguments, added to the call's, under which the result
 # exceeds a bound, and the bound the truncation record must name (X-10); a limit that a
-# cursor or an offset continues pages instead, and is not one (M6.1, X-17). `paged` marks a
-# call whose result is larger than the page it asks for, so that it carries a cursor to the
-# next page (X-17).
+# cursor or an offset continues pages instead, and is not one (M6.1, X-17). `paged` gives
+# arguments, added to the call's, under which the result is larger than the page asked for,
+# so that it carries a cursor to the next page (X-17).
 #
 # A limit a call gives is the page size of the recordings; a server's own default could ask
 # for another, which no fixture answers.
@@ -33,10 +33,11 @@ search_concepts:
   arguments: {query: ewing sarcoma, mode: lexical, limit: 10}   # 1,027 matches
   upstream: *concept
   empty: {query: qqxyzzyqq, mode: lexical, limit: 10}
-  paged: true
+  paged: {arguments: {}}
 get_concept_hierarchy:
   arguments: {code: C4817, direction: parent, depth: 1}
   unversioned: true
+  paged: {arguments: {direction: child, limit: 5}}   # C4817 has 10 children
 expand_value_set:
   arguments: {valueSet: C85492}
   unpinned: true

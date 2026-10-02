@@ -1,0 +1,217 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C41168",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C41168",
+   "name": "Hematopoietic and Lymphoid Tissue",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Hematopoietic And Lymphoid Tissue",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CDISC"
+    },
+    {
+     "name": "HEMOLYMPHORETICULAR TISSUE",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CDISC"
+    },
+    {
+     "name": "Hematopoietic and Lymphoid Tissue",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Hematopoietic and Lymphoid Tissue",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "Any of the tissues that contain hematopoietic cells and/or lymphocytes and immune system cells.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "CDISC"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CDISC"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Hematopoietic_and_Lymphoid_Tissue"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Tissue"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1512398"
+    }
+   ],
+   "children": [
+    {
+     "code": "C13051",
+     "name": "Hematopoietic Tissue",
+     "leaf": true
+    },
+    {
+     "code": "C13049",
+     "name": "Lymphoid Tissue",
+     "leaf": false
+    }
+   ],
+   "parents": [
+    {
+     "code": "C12801",
+     "name": "Tissue"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C77529",
+     "relatedName": "CDISC SEND Biospecimens Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C77526",
+     "relatedName": "CDISC SEND Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C61410",
+     "relatedName": "Clinical Data Interchange Standards Consortium Terminology"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R82",
+     "type": "Anatomic_Structure_Is_Physical_Part_Of",
+     "relatedCode": "C41165",
+     "relatedName": "Hematopoietic and Lymphatic System"
+    }
+   ],
+   "history": [
+    {
+     "code": "C41168",
+     "action": "create",
+     "date": "2004-11-01"
+    },
+    {
+     "code": "C41168",
+     "action": "modify",
+     "date": "2005-09-09"
+    },
+    {
+     "code": "C41168",
+     "action": "modify",
+     "date": "2009-04-06"
+    },
+    {
+     "code": "C41168",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C41168",
+     "action": "modify",
+     "date": "2010-10-25"
+    },
+    {
+     "code": "C41168",
+     "action": "modify",
+     "date": "2011-04-25"
+    },
+    {
+     "code": "C41168",
+     "action": "modify",
+     "date": "2011-05-02"
+    },
+    {
+     "code": "C41168",
+     "action": "modify",
+     "date": "2011-05-09"
+    },
+    {
+     "code": "C41168",
+     "action": "modify",
+     "date": "2011-05-16"
+    },
+    {
+     "code": "C41168",
+     "action": "modify",
+     "date": "2011-05-23"
+    },
+    {
+     "code": "C41168",
+     "action": "modify",
+     "date": "2011-05-31"
+    },
+    {
+     "code": "C41168",
+     "action": "modify",
+     "date": "2011-06-06"
+    },
+    {
+     "code": "C41168",
+     "action": "modify",
+     "date": "2011-06-13"
+    },
+    {
+     "code": "C41168",
+     "action": "modify",
+     "date": "2011-06-20"
+    },
+    {
+     "code": "C41168",
+     "action": "modify",
+     "date": "2011-06-27"
+    },
+    {
+     "code": "C41168",
+     "action": "modify",
+     "date": "2014-02-03"
+    },
+    {
+     "code": "C41168",
+     "action": "modify",
+     "date": "2017-03-06"
+    }
+   ]
+  }
+ }
+}

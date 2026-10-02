@@ -1,0 +1,169 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C186727",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C186727",
+   "name": "ETS Family Gene Rearrangement",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "ETS Family Gene Rearrangement",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Ets Family Rearrangement",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Ets Gene Family Rearrangement",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "ETS Gene Rearrangement",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "ETS Rearrangement",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "ETS Family Gene Rearrangement",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A molecular abnormality indicating rearrangement of an ETS family gene.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P208",
+     "type": "NCI_META_CUI",
+     "value": "CL1779120"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Cell or Molecular Dysfunction"
+    }
+   ],
+   "children": [
+    {
+     "code": "C82366",
+     "name": "ERG Gene Rearrangement",
+     "leaf": false
+    },
+    {
+     "code": "C186852",
+     "name": "ETS1 Gene Rearrangement",
+     "leaf": true
+    },
+    {
+     "code": "C160359",
+     "name": "ETV Gene Rearrangement",
+     "leaf": false
+    },
+    {
+     "code": "C186859",
+     "name": "FEV Gene Rearrangement",
+     "leaf": false
+    },
+    {
+     "code": "C186860",
+     "name": "FLI1 Gene Rearrangement",
+     "leaf": false
+    },
+    {
+     "code": "C203429",
+     "name": "SPI1 Gene Rearrangement",
+     "leaf": false
+    }
+   ],
+   "parents": [
+    {
+     "code": "C133155",
+     "name": "Gene Rearrangement Abnormality"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C213301",
+     "relatedName": "Pediatric Oncology Target Molecular Abnormalities Terminology"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C18326",
+     "relatedName": "ETS Family Gene"
+    }
+   ],
+   "history": [
+    {
+     "code": "C186727",
+     "action": "create",
+     "date": "2022-04-25"
+    },
+    {
+     "code": "C186727",
+     "action": "modify",
+     "date": "2022-04-25"
+    },
+    {
+     "code": "C186727",
+     "action": "modify",
+     "date": "2022-09-26"
+    },
+    {
+     "code": "C186727",
+     "action": "modify",
+     "date": "2025-01-27"
+    },
+    {
+     "code": "C186727",
+     "action": "modify",
+     "date": "2025-02-24"
+    }
+   ]
+  }
+ }
+}

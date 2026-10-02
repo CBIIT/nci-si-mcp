@@ -71,8 +71,8 @@ upstream_unavailable; a 429 is waited out once. Content has items where the tool
 say: the concept asked about and, at depth 1 for a traversal tool, one it reaches. What the
 suite's calls (tests/calls.yaml) say of EVS's answers shapes it: their `upstream` fields go
 into provenance, their `empty` arguments match nothing, their `truncating` arguments
-reach a bound, and a `paged` call's first page carries a cursor to a second, of another
-concept; the cursor names the release it was issued for, and with another it is refused.
+reach a bound, and under their `paged` arguments a first page carries a cursor to a second,
+of other concepts; the cursor names the release it was issued for, and with another it is refused.
 """
 
 import json
@@ -312,7 +312,11 @@ def _reached(bound: str, limit: int) -> dict:
     return record | ({} if DEFECT == "exact-missing" else {"exact": True})
 
 
-def _items(name: str, provenance: dict, code: str = "C4817") -> list[dict]:
+def _items(name: str, provenance: dict, codes: tuple[str, str] = ("C4817", "C3262")) -> list[dict]:
+    """The concept `codes` names first and, for a traversal tool, the one it names second,
+    reached at depth 1."""
+
+    code, reached = codes
     code = f"NCIT:{code}" if DEFECT == "prefixed-code" else code
     items = [{"code": code, "terminology": "ncit", "provenance": provenance}]
     if TOOLS[name].get("traversal"):
@@ -323,7 +327,7 @@ def _items(name: str, provenance: dict, code: str = "C4817") -> list[dict]:
         depth = 0 if DEFECT == "nothing-reached" else 1
         items.append(
             {
-                "code": "C3262",
+                "code": reached,
                 "terminology": "ncit",
                 "provenance": provenance | {"depth": depth} | how,
             }
@@ -368,7 +372,7 @@ def _page(name: str, arguments: dict, provenance: dict) -> list[dict]:
         return []
     if DEFECT == "cursor-other-release":
         provenance = provenance | {"release": provenance["release"] | {"identifier": "26.08e"}}
-    return _items(name, provenance, "C2991")
+    return _items(name, provenance, ("C2991", "C9118"))
 
 
 def _next_cursor(name: str, arguments: dict, items: list[dict]) -> dict:
@@ -376,9 +380,17 @@ def _next_cursor(name: str, arguments: dict, items: list[dict]) -> dict:
     the release the page was pinned to."""
 
     found = items or DEFECT == "empty-with-cursor"
-    first = found and CALLS.get(name, {}).get("paged") and "cursor" not in arguments
+    first = found and _paging(name, arguments) and "cursor" not in arguments
     cursor = f"page-2@{arguments.get('release')}"
     return {"nextCursor": cursor} if first and DEFECT != "no-next-cursor" else {}
+
+
+def _paging(name: str, arguments: dict) -> bool:
+    """Whether a call sets the suite's paged arguments, under which a page is smaller than
+    the result."""
+
+    paged = CALLS.get(name, {}).get("paged")
+    return paged is not None and all(arguments.get(k) == v for k, v in paged["arguments"].items())
 
 
 def _cursor_refused(arguments: dict) -> bool:

@@ -105,7 +105,7 @@ Each request: An unknown release answers 404 on every content path: the server f
 
 ### `release/mismatch`
 
-Every payload that reports the pinned release names 26.08e instead, the unpinned forms included; release discovery is left as recorded. Crafted, 106 fixtures, for A3.4: the content served names another release than the one requested.
+Every payload that reports the pinned release names 26.08e instead, the unpinned forms included; release discovery is left as recorded. Crafted, 157 fixtures, for A3.4: the content served names another release than the one requested.
 
 ### `release/two-latest`
 
@@ -145,7 +145,7 @@ Exclusion roles are named like positive ones, and two the other way. Crafted, 2 
 
 ### `traversal/starvation`
 
-One concept has 300 roles and 2 associations. Crafted, 303 fixtures, for A5.5: a budget per relationship kind; no kind starved.
+One concept has 300 roles and 2 associations, and another 300 associations and 2 roles, to the same targets. Crafted, 304 fixtures, for A5.5: a budget per relationship kind; no kind starved.
 
 ### `valueset/inactive-members`
 

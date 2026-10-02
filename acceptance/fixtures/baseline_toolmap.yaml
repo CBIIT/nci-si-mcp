@@ -34,7 +34,7 @@ get_concept_hierarchy:
     code: {name: start_codes, list: true}
     direction: {name: edge_types, list: true, values: {parent: parent, child: child, pathsToRoot: null}}
     depth: max_depth
-    limit: max_nodes
+    limit: null                         # a page; the prototype's max_nodes is a bound
     cursor: null
 
 get_concept_neighborhood:

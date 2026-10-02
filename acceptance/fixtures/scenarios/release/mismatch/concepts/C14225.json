@@ -1,0 +1,256 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C14225",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C14225",
+   "name": "Human",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Homo sapiens",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CDISC"
+    },
+    {
+     "name": "HUMAN",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CDISC"
+    },
+    {
+     "name": "Human",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "FDA",
+     "subSource": "PQCMC"
+    },
+    {
+     "name": "Homo sapiens",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Human",
+     "termType": "AD",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Human",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Human, General",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Human",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "The bipedal primate mammal assigned to the species Homo sapiens.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "CDISC"
+    },
+    {
+     "definition": "The bipedal primate mammal, Homo sapiens; belonging to man or mankind; pertaining to man or to the race of man; use of man as experimental subject or unit of analysis in research.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "PQCMC"
+    },
+    {
+     "definition": "The bipedal primate mammal, Homo sapiens; belonging to man or mankind; pertaining to man or to the race of man; use of man as experimental subject or unit of analysis in research.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CDISC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "FDA"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Human"
+    },
+    {
+     "code": "P331",
+     "type": "NCBI_Taxon_ID",
+     "value": "9606"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Human"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C0086418"
+    }
+   ],
+   "children": [
+    {
+     "code": "C14366",
+     "name": "Man",
+     "leaf": true
+    },
+    {
+     "code": "C14284",
+     "name": "Woman",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C79740",
+     "name": "Hominidae"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C77808",
+     "relatedName": "CDISC SEND Laboratory Animal Species Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C77526",
+     "relatedName": "CDISC SEND Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C61410",
+     "relatedName": "Clinical Data Interchange Standards Consortium Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C133862",
+     "relatedName": "PQ/CMC Source Type Terminology"
+    }
+   ],
+   "history": [
+    {
+     "code": "C14225",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C14225",
+     "action": "modify",
+     "date": "2003-10-31"
+    },
+    {
+     "code": "C14225",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C14225",
+     "action": "modify",
+     "date": "2005-03-16"
+    },
+    {
+     "code": "C14225",
+     "action": "modify",
+     "date": "2005-12-01"
+    },
+    {
+     "code": "C14225",
+     "action": "modify",
+     "date": "2006-03-31"
+    },
+    {
+     "code": "C14225",
+     "action": "modify",
+     "date": "2009-02-06"
+    },
+    {
+     "code": "C14225",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C14225",
+     "action": "modify",
+     "date": "2017-05-18"
+    },
+    {
+     "code": "C14225",
+     "action": "modify",
+     "date": "2017-10-30"
+    },
+    {
+     "code": "C14225",
+     "action": "modify",
+     "date": "2019-02-25"
+    },
+    {
+     "code": "C14225",
+     "action": "modify",
+     "date": "2020-03-30"
+    },
+    {
+     "code": "C14225",
+     "action": "modify",
+     "date": "2022-01-31"
+    },
+    {
+     "code": "C14225",
+     "action": "modify",
+     "date": "2024-03-25"
+    },
+    {
+     "code": "C14225",
+     "action": "modify",
+     "date": "2024-11-25"
+    }
+   ]
+  }
+ }
+}

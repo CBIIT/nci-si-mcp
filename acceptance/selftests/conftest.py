@@ -13,8 +13,19 @@ VERSION = {"surface": "evs", "method": "GET", "path": "/api/v1/version"}
 LICENCE_KEY = "selftest-licence-key"
 CURRENT = {"status": 200, "body": {"version": "26.09d"}}
 # The answers to the compliant server's requests: EVS's version, which names the release it
-# serves, in each scenario the suite uses; and the licensed concept, only with the key.
+# serves, in each scenario the suite uses; and the licensed concept, only with the key. The
+# terminology listing is read by the suite itself (X-17), never asked.
 ANSWERS = {
+    "recorded/evs/terminologies.json": {
+        "request": VERSION | {"path": "/api/v1/metadata/terminologies"},
+        "response": {
+            "status": 200,
+            "body": [
+                {"terminology": "ncit", "version": "26.09d"},
+                {"terminology": "ncit", "version": "26.08e"},
+            ],
+        },
+    },
     "crafted/version.json": {"response": CURRENT},
     "scenarios/retired/with-replacement/version.json": {"response": CURRENT},
     "scenarios/release/unknown/version.json": {"response": {"status": 404, "body": {}}},

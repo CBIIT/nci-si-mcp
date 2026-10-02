@@ -115,6 +115,10 @@ X-16:
 X-17:
   statement: A page smaller than the result carries nextCursor; following it returns the next items, repeats none of the page before, and keeps the release the first page was pinned to; presented with another release, the cursor is an invalid request.
   basis: [M6.1, M2.4]
+X-18:
+  statement: A value below 1 for an argument with bounds is an invalid request, never raised to 1.
+  basis: [A5.1, A2.5]
+  planned: "#53"
 
 # EVS tools.
 resolve_release-1:
@@ -167,9 +171,14 @@ search_concepts-6:
   basis: [search_concepts, A8.3]
   planned: "#53"
 get_concept_hierarchy-1:
-  statement: The depth bound holds, pathsToRoot returns complete paths, and truncation is reported.
-  basis: [get_concept_hierarchy, A5.1]
-  planned: "#53"
+  statement: A depth above the maximum is applied as the maximum; no node is deeper, and a hierarchy that continues below it is reported as truncation by depth, with the depth applied as the limit.
+  basis: [get_concept_hierarchy, node, A5.2, A5.4]
+get_concept_hierarchy-2:
+  statement: pathsToRoot returns every path the platform gives, each the codes from the concept to the root in the platform's order.
+  basis: [get_concept_hierarchy, A9.1]
+get_concept_hierarchy-3:
+  statement: limit is a page that the cursor continues; the pages together hold the concepts the platform lists, in its order, none twice.
+  basis: [get_concept_hierarchy, node, M6.1]
 expand_value_set-1:
   statement: count and offset, which the platform ignores, select the members the tool returns, in the platform's order, and total counts them all.
   basis: [expand_value_set, member, A5.1]
@@ -177,8 +186,24 @@ expand_value_set-2:
   statement: activeOnly, which the platform ignores, leaves out the members the expansion marks inactive, and total counts those kept; when it is false or not given they are listed, marked inactive.
   basis: [expand_value_set, member, A8.3]
 get_concept_neighborhood-1:
-  statement: Per-kind budgets hold and no kind is starved; exclusion edges are marked and left out of positive expansion unless includeNegative; polarity follows the role code; the outbound budget counts retries; truncation names cause and magnitude.
-  basis: [get_concept_neighborhood, A5.3, A5.4, A5.5, A5.6, A5.7]
+  statement: A node budget reached by one kind starves no other kind asked for that is present, and truncation.perKind names the kind that reached it.
+  basis: [get_concept_neighborhood, truncation, A5.5]
+get_concept_neighborhood-2:
+  statement: An edge is negative exactly when its relationship's code is in the terminology's exclusion set, whatever the relationship is named.
+  basis: [get_concept_neighborhood, edge, traversal, A5.7]
+get_concept_neighborhood-3:
+  statement: Negative edges are returned, marked, and not followed further unless includeNegative is true.
+  basis: [get_concept_neighborhood, edge, A5.6]
+get_concept_neighborhood-4:
+  statement: A node limit above the maximum is applied as the maximum, and the truncation record's limit shows the value applied.
+  basis: [get_concept_neighborhood, truncation, A5.2]
+get_concept_neighborhood-5:
+  statement: The outbound request budget counts retries.
+  basis: [get_concept_neighborhood, A5.3]
+  planned: "#53"
+get_concept_neighborhood-6:
+  statement: budgetPerKind, when given, bounds the nodes each kind adds, and a kind that reaches it is named in truncation.perKind.
+  basis: [get_concept_neighborhood, truncation, A5.5]
   planned: "#53"
 get_concept_subsets-1:
   statement: Membership is returned with subset codes, and the GDC Value Terminology subset resolves.

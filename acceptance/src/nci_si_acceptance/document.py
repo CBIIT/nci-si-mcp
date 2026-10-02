@@ -56,7 +56,11 @@ def _conventions() -> list[str]:
 def _values(field: dict[str, Any]) -> str:
     values = field.get("values")
     listed = f": one of {', '.join(f'`{value}`' for value in values)}" if values else ""
-    return listed + (" (optional)" if field.get("optional") else "")
+    sets = field.get("exclusions", {})
+    excluded = "".join(
+        f"; exclusion set of {key}: {', '.join(codes)}" for key, codes in sets.items()
+    )
+    return listed + excluded + (" (optional)" if field.get("optional") else "")
 
 
 def _record(record: dict[str, Any]) -> list[str]:
@@ -70,6 +74,11 @@ def _record(record: dict[str, Any]) -> list[str]:
     return [*header, "| Field | Content | Rule |", "|---|---|---|", *rows, ""]
 
 
+def _bound(bound: dict[str, Any]) -> str:
+    default = f"default {bound['default']}, " if "default" in bound else ""
+    return f"{default}at most {bound['maximum']}"
+
+
 def _tool_row(name: str, tool: dict[str, Any]) -> str:
     values = "".join(
         f" `{argument}`: {', '.join(choices)}."
@@ -79,7 +88,10 @@ def _tool_row(name: str, tool: dict[str, Any]) -> str:
     items = (
         f" Items: {', '.join(f'`{path}`' for path in tool['items'])}." if "items" in tool else ""
     )
-    return f"| `{name}` | `{signature}` | {_cell(tool['summary'])}{values}{items} |"
+    bounds = "".join(
+        f" `{argument}`: {_bound(bound)}." for argument, bound in tool.get("bounds", {}).items()
+    )
+    return f"| `{name}` | `{signature}` | {_cell(tool['summary'])}{values}{bounds}{items} |"
 
 
 def _tools() -> list[str]:

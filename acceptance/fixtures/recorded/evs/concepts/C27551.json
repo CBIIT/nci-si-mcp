@@ -1,0 +1,26 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C27551",
+  "params": {
+   "include": [
+    "minimal"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C27551",
+   "name": "Disorder by Site",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "Header_Concept",
+   "leaf": false,
+   "active": true
+  }
+ }
+}

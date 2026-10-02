@@ -1,0 +1,201 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C179848",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C179848",
+   "name": "FET Family Gene Translocation",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "FET-Family Translocation",
+     "termType": "DN",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTRP"
+    },
+    {
+     "name": "FET Family Gene Translocation",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "FET Family Translocation",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "FET Translocation",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "FUS-EWSR1-TAF15 Family Gene Translocation",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "FUS-EWSR1-TAF15 Gene Translocation",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "FET-Family Translocation",
+     "type": "Display_Name",
+     "typeCode": "P107"
+    },
+    {
+     "name": "FET Family Gene Translocation",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A cytogenetic abnormality that refers to the translocation of involving a member of the FET (FUS, EWSR1 or TAF15) gene family.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTRP"
+    },
+    {
+     "code": "P208",
+     "type": "NCI_META_CUI",
+     "value": "CL1662380"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Cell or Molecular Dysfunction"
+    }
+   ],
+   "children": [
+    {
+     "code": "C128648",
+     "name": "EWSR1 Gene Translocation",
+     "leaf": false
+    },
+    {
+     "code": "C168530",
+     "name": "FUS Gene Translocation",
+     "leaf": false
+    },
+    {
+     "code": "C36393",
+     "name": "t(9;17)(q22;q11)",
+     "leaf": true
+    },
+    {
+     "code": "C199602",
+     "name": "t(9;17)(q22;q11.2)",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C3420",
+     "name": "Chromosomal Translocation"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142799",
+     "relatedName": "CTRP Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142800",
+     "relatedName": "CTRP Molecular Genetic Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C116977",
+     "relatedName": "CTRP Terminology"
+    },
+    {
+     "code": "A13",
+     "type": "Related_To_Genetic_Biomarker",
+     "relatedCode": "C18322",
+     "relatedName": "EWSR1 Gene"
+    },
+    {
+     "code": "A13",
+     "type": "Related_To_Genetic_Biomarker",
+     "relatedCode": "C91852",
+     "relatedName": "FUS Gene"
+    },
+    {
+     "code": "A13",
+     "type": "Related_To_Genetic_Biomarker",
+     "relatedCode": "C95994",
+     "relatedName": "TAF15 Gene"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C186676",
+     "relatedName": "FET Family Gene"
+    }
+   ],
+   "history": [
+    {
+     "code": "C179848",
+     "action": "create",
+     "date": "2021-06-28"
+    },
+    {
+     "code": "C179848",
+     "action": "modify",
+     "date": "2021-06-28"
+    },
+    {
+     "code": "C179848",
+     "action": "modify",
+     "date": "2021-08-30"
+    },
+    {
+     "code": "C179848",
+     "action": "modify",
+     "date": "2022-04-25"
+    }
+   ]
+  }
+ }
+}

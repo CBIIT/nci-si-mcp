@@ -1,0 +1,203 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C32725",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C32725",
+   "name": "Hematopoietic and Lymphoid Cell",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Hematopoietic and Lymphoid Cell",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Hematopoietic and Lymphoid Cell",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "One of the cells of the blood or bone marrow, a leukocyte or erythrocyte.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Hematopoietic_Cell"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Cell"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1512385"
+    }
+   ],
+   "children": [
+    {
+     "code": "C156591",
+     "name": "Bone Marrow Mononuclear Cell",
+     "leaf": true
+    },
+    {
+     "code": "C133262",
+     "name": "Derived Placental Blood Cell",
+     "leaf": true
+    },
+    {
+     "code": "C12918",
+     "name": "Hematopoietic Blast Cell",
+     "leaf": false
+    },
+    {
+     "code": "C12551",
+     "name": "Hematopoietic Stem Cell",
+     "leaf": false
+    },
+    {
+     "code": "C43251",
+     "name": "Histiocytic and Dendritic Cell",
+     "leaf": false
+    },
+    {
+     "code": "C132890",
+     "name": "Immune Cell",
+     "leaf": false
+    },
+    {
+     "code": "C12535",
+     "name": "Lymphocyte",
+     "leaf": false
+    },
+    {
+     "code": "C12747",
+     "name": "Mast Cell",
+     "leaf": true
+    },
+    {
+     "code": "C73123",
+     "name": "Mononucleated Blood Cell",
+     "leaf": true
+    },
+    {
+     "code": "C12549",
+     "name": "Myeloid Cell",
+     "leaf": false
+    },
+    {
+     "code": "C73126",
+     "name": "Nucleated Blood Cell",
+     "leaf": true
+    },
+    {
+     "code": "C73125",
+     "name": "Nucleated Red Blood Cell",
+     "leaf": true
+    },
+    {
+     "code": "C12519",
+     "name": "Peripheral Blood Cell",
+     "leaf": false
+    }
+   ],
+   "parents": [
+    {
+     "code": "C12508",
+     "name": "Cell"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R82",
+     "type": "Anatomic_Structure_Is_Physical_Part_Of",
+     "relatedCode": "C41168",
+     "relatedName": "Hematopoietic and Lymphoid Tissue"
+    }
+   ],
+   "history": [
+    {
+     "code": "C32725",
+     "action": "create",
+     "date": "2004-02-23"
+    },
+    {
+     "code": "C32725",
+     "action": "modify",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C32725",
+     "action": "modify",
+     "date": "2004-04-30"
+    },
+    {
+     "code": "C32725",
+     "action": "modify",
+     "date": "2004-11-01"
+    },
+    {
+     "code": "C32725",
+     "action": "modify",
+     "date": "2005-03-16"
+    },
+    {
+     "code": "C32725",
+     "action": "modify",
+     "date": "2005-05-27"
+    },
+    {
+     "code": "C32725",
+     "action": "modify",
+     "date": "2005-09-09"
+    },
+    {
+     "code": "C32725",
+     "action": "modify",
+     "date": "2009-04-06"
+    },
+    {
+     "code": "C32725",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C32725",
+     "action": "modify",
+     "date": "2012-09-24"
+    },
+    {
+     "code": "C32725",
+     "action": "modify",
+     "date": "2014-02-03"
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,117 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C19019",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C19019",
+   "name": "RNA-Protein Interaction",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "RNA-Protein Interaction",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "RNA-Protein Interaction",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "Interactions responsible for the assembly and stability of protein-RNA complexes.  Such complexes are of fundamental importance, affecting processes such as translation (ribosome), RNA processing (spliceosome), and DNA synthesis at telomeres (telomerase).  Protein structural motifs involved in RNA binding include beta sheet surfaces, alpha helices, and beta turns.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "RNA-Protein_Interaction"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Genetic Function"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1514661"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C20737",
+     "name": "RNA Binding"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R35",
+     "type": "Biological_Process_Is_Part_Of_Process",
+     "relatedCode": "C28498",
+     "relatedName": "Biochemical Process"
+    },
+    {
+     "code": "R35",
+     "type": "Biological_Process_Is_Part_Of_Process",
+     "relatedCode": "C19899",
+     "relatedName": "Biochemical Reaction"
+    }
+   ],
+   "history": [
+    {
+     "code": "C19019",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C19019",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C19019",
+     "action": "modify",
+     "date": "2004-11-17"
+    },
+    {
+     "code": "C19019",
+     "action": "modify",
+     "date": "2009-04-06"
+    },
+    {
+     "code": "C19019",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C19019",
+     "action": "modify",
+     "date": "2014-02-03"
+    }
+   ]
+  }
+ }
+}
