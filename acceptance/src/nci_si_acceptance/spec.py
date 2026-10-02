@@ -22,7 +22,7 @@ def _load(name: str) -> dict[str, Any]:
 CONVENTIONS: dict[str, dict[str, Any]] = _load("conventions.yaml")
 TOOLS: dict[str, dict[str, Any]] = _load("tools.yaml")
 RECORDS: dict[str, dict[str, Any]] = _load("records.yaml")
-# The group of each required tool: A terminology, B metadata, C cross-domain, W workflow.
+# The group of each required tool: evs, cadsr, cross-domain or workflow.
 REQUIRED_TOOLS = {name: tool["group"] for name, tool in TOOLS.items()}
 
 

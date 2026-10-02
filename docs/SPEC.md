@@ -92,19 +92,19 @@ src/nci_si_mcp/
       activation.py         atomic activation and rollback (M4.1)
       build.py              full-NCIt build from the batch endpoint
       evaluate.py           retrieval evaluation set and scoring protocol
-    tools.py                the 12 Group A tools
+    tools.py                the 12 EVS tools
 
   cadsr/
     client.py               Data Element, Form 2.0, LOV, Model, CDE Match, VM Match, FTP listing
     registry_state.py       export date and item versions in lieu of a registry release (A3.8)
-    tools.py                the 10 Group B tools
+    tools.py                the 10 caDSR tools
 
   seam/
     ssis.py                 Shared SI façade and SPARQL client; required-parameter enforcement
-    tools.py                the 4 Group C tools
+    tools.py                the 4 cross-domain tools
 
   workflows/
-    tools.py                the 3 Group W tools
+    tools.py                the 3 workflow tools
 
 acceptance/                 separate package, see §9
 ```
@@ -233,9 +233,9 @@ The interim index (M4.1), built from `index.py` / `embeddings.py` / `retrieval.p
 - **Evaluation set** (`evaluate.py`): versioned NCIt scenarios with expected concepts and scoring thresholds; run on every build; score recorded in the manifest. This is the retrieval evaluation set in executable form.
 - **Retirement condition**: when EVS exposes a semantic mode (E-9), `search_concepts(mode=semantic|hybrid)` is re-pointed to it behind the same tool and the index is deactivated. The tool surface does not change.
 
-### 4.5 Tools (`evs/tools.py`) — Group A
+### 4.5 Tools (`evs/tools.py`)
 
-Twelve tools, signatures in the specification (`spec/tools.yaml`, group A). Mapping from the current surface:
+Twelve tools, signatures in the specification (`spec/tools.yaml`, group `evs`). Mapping from the current surface:
 
 | Current | Becomes | Note |
 |---|---|---|
@@ -274,9 +274,9 @@ Built on `platform/http.py`. Endpoints, all verified live:
 
 All matching calls hold any credential server-side (both contracts declare `401`, neither enforced it when tested; the module is correct under either outcome).
 
-### 5.2 Tools (`cadsr/tools.py`) — Group B
+### 5.2 Tools (`cadsr/tools.py`)
 
-Ten tools, signatures in the specification (group B). Specific behaviours:
+Ten tools, signatures in the specification (group `cadsr`). Specific behaviours:
 
 - `resolve_registry_release` → `{identifier: null, exportDate, note}` today; `ttlMs` 0.
 - `search_data_elements` → filters by context, workflow status, registration status, value-domain type; truncation at the cap reported; `totalKnown` where available.
@@ -296,7 +296,7 @@ Ten tools, signatures in the specification (group B). Specific behaviours:
 - SPARQL at `https://shared.semantics.cancer.gov/sparql`. The WAF rejects property paths and `SERVICE` with HTML `403`; the client avoids property paths, and a `403` with HTML is `upstream_unavailable(reason="query rejected by inspection layer")`, never an empty result.
 - Graph choice is explicit and recorded: `Thesaurus.rdf` for NCIt hierarchy (`Thesaurus.owl` has 24,049 named classes without a named parent and returns empty for `subClassOf*`), `caDSR` for data elements. Both graphs' identities go into `provenance.graphs[]`.
 
-### 6.2 Tools (`seam/tools.py`) — Group C
+### 6.2 Tools (`seam/tools.py`)
 
 - `find_data_elements_for_concept` → SPARQL join with optional subsumption expansion (bounded, per `Budget`); falls back to caDSR REST `/DataElements/Concept` with its timeout when SSIS is unavailable; both release identities recorded.
 - `get_concept_for_permissible_value` → reverse SPARQL lookup.
@@ -307,7 +307,7 @@ Ten tools, signatures in the specification (group B). Specific behaviours:
 
 ## 7. Workflow module
 
-Three composites (the specification's group W), implemented as orchestrations of the registry's own tools with one `Budget` and one `ReleaseContext` across the chain:
+Three composites (the specification's group `workflow`), implemented as orchestrations of the registry's own tools with one `Budget` and one `ReleaseContext` across the chain:
 
 - `ground_value` — fails closed if either content state cannot be named; truncation from each hop carried through.
 - `expand_cohort` — `codes[]` and `excluded[]`; asserted equal to composing `get_concept_neighborhood` + `get_concepts`.
@@ -380,7 +380,7 @@ The fixture server exposes `GET /_log` returning every request it received since
 
 ### 9.4 Baseline tool map
 
-The map lets the suite call today's tools under the required names, so the tests of the mapped Group A tools run against an implementation from Phase 0 on instead of reporting NOT IMPLEMENTED; the report marks those rows *implemented under another name*. The harness applies an entry in every run while the required tool is absent from `tools/list`. Written against today's server, which serves NCIt's current monthly release only: every entry checks `terminology` is `ncit` and accepts `release` without passing either on, and any argument an entry does not list is unsupported:
+The map lets the suite call today's tools under the required names, so the tests of the mapped EVS tools run against an implementation from Phase 0 on instead of reporting NOT IMPLEMENTED; the report marks those rows *implemented under another name*. The harness applies an entry in every run while the required tool is absent from `tools/list`. Written against today's server, which serves NCIt's current monthly release only: every entry checks `terminology` is `ncit` and accepts `release` without passing either on, and any argument an entry does not list is unsupported:
 
 | Required | Prototype | Parameters |
 |---|---|---|
@@ -439,13 +439,13 @@ Each phase ends with the unit suite green, the acceptance suite's expected outco
 
 | Phase | Delivers | Done when |
 |---|---|---|
-| **0 · Acceptance suite** | Licence; §9: harness, fixture mechanics (scenarios, response sequences, request bodies), recorded and crafted fixtures for every surface and all sixteen scenarios, protocol gates, cross-cutting tests, per-tool tests for Groups A, B, C and W, the baseline tool map as a working aid, the per-tool report, the fixture-mode CI job | every required tool has its tests; the report runs against the server at the end of Phase 0, through the tool map where one applies |
+| **0 · Acceptance suite** | Licence; §9: harness, fixture mechanics (scenarios, response sequences, request bodies), recorded and crafted fixtures for every surface and all sixteen scenarios, protocol gates, cross-cutting tests, per-tool tests for every tool group, the baseline tool map as a working aid, the per-tool report, the fixture-mode CI job | every required tool has its tests; the report runs against the server at the end of Phase 0, through the tool map where one applies |
 | **1 · Platform** | §3 in full; `service.py` retired; EVS tools re-homed on the registry with no behaviour change | §3 protocol gates pass; existing EVS behaviour unchanged under the new error and provenance model |
-| **2 · EVS module** | §4: release-pinned addressing, batch reconciliation, catalogue polarity, traversal rewrite, FHIR, mapsets, retired codes; index with activation and rollback | all Group A tools PASS in fixture mode; live-capable tests PASS live |
-| **3 · caDSR module** | §5 | all Group B tools PASS in fixture mode; PASS (fixture only) rows name their upstream requirement |
+| **2 · EVS module** | §4: release-pinned addressing, batch reconciliation, catalogue polarity, traversal rewrite, FHIR, mapsets, retired codes; index with activation and rollback | all EVS tools PASS in fixture mode; live-capable tests PASS live |
+| **3 · caDSR module** | §5 | all caDSR tools PASS in fixture mode; PASS (fixture only) rows name their upstream requirement |
 | **Furnished package** | §1.2: the tag and the Prototype Baseline Package, with the baseline run report against that commit, naming the tools whose tests have never passed against any implementation | the tag is on the commit the report ran against and both SOWs' package checklists are met (#3); cut when the owner decides, not before Phase 3 is done (*Project Plan* §7: "repository Phases 0–3 to the point where both modules yield a meaningful baseline report") |
-| **4 · Cross-domain** | §6 | Group C PASS; both release identities on every result |
-| **5 · Workflows, remote transport, audit** | §7, §3.8, §3.9 | Group W PASS; unified profile accepted under the specification's §4 |
+| **4 · Cross-domain** | §6 | cross-domain tools PASS; both release identities on every result |
+| **5 · Workflows, remote transport, audit** | §7, §3.8, §3.9 | workflow tools PASS; unified profile accepted under the specification's §4 |
 
 Work proceeds in the order of the table above until award. What remains at the furnished commit is the contractors' work under the two Statements of Work, and the specification is what the Prototype Baseline Assessment measures the prototype against.
 

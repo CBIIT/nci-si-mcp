@@ -156,7 +156,7 @@ Binding on every tool.
 |---|---|
 | M1.1 | Each tool description stands alone, naming its domain, its object and how it pins a release, without reference to another tool. |
 | M1.2 | The tool surface does not vary with the terminology, the release pinned or what the platform offers today; a capability not yet available is a tool returning a structured unavailable error, never an absent tool. |
-| M1.3 | Each tool's group (terminology, metadata, cross-domain, workflow) is carried in its metadata. |
+| M1.3 | Each tool's group (evs, cadsr, cross-domain, workflow) is carried in its metadata. |
 | M1.4 | Every tool declares the read-only annotations readOnlyHint true, destructiveHint false, idempotentHint true and openWorldHint true. |
 
 ### M2 · Caching hints
@@ -223,7 +223,7 @@ The provenance record, with these fields added (A4.2).
 
 ## 2. Tools
 
-### A · Terminology
+### EVS tools
 
 | Tool | Inputs → result | What it does |
 |---|---|---|
@@ -240,7 +240,7 @@ The provenance record, with these fields added (A4.2).
 | `list_relationships` | `(terminology, release) → relationship[{ code, name, kind, polarity, axisFamily }]` | The relationship catalogue of a release, polarity marked by code. |
 | `list_terminologies` | `() → terminology[]` | The terminologies available, with their current releases. |
 
-### B · Metadata
+### caDSR tools
 
 | Tool | Inputs → result | What it does |
 |---|---|---|
@@ -255,7 +255,7 @@ The provenance record, with these fields added (A4.2).
 | `list_contexts` | `(cursor?) → context[]` | The registry's contexts. |
 | `list_classification_schemes` | `(context?, cursor?) → classificationScheme[]` | Classification schemes as objects with their nested items. |
 
-### C · Cross-domain
+### Cross-domain tools
 
 | Tool | Inputs → result | What it does |
 |---|---|---|
@@ -264,7 +264,7 @@ The provenance record, with these fields added (A4.2).
 | `resolve_stored_value` | `(conceptCode, commons, dataElementId?) → { storedValues[], confidence, evidence }` | The literal a data commons stores for a concept. |
 | `get_release_alignment` | `() → { datasets[{ name, version, date }], maxIntervalDays, warning? }` | The release of every dataset a cross-domain answer touches, and the interval between them. |
 
-### W · Workflow
+### Workflow tools
 
 | Tool | Inputs → result | What it does |
 |---|---|---|
@@ -306,7 +306,7 @@ The provenance record, with these fields added (A4.2).
 | X-11 | No upstream endpoint is called twice with identical parameters within one tool call. | A5.8 | — | planned #52 |
 | X-12 | The licence key reaches the upstream request and appears in no log, error message or result. | A7.5 | — | planned #52 |
 
-### Terminology tools
+### EVS tools
 
 | Id | Requirement | Basis | Tests | Status |
 |---|---|---|---|---|
@@ -323,7 +323,7 @@ The provenance record, with these fields added (A4.2).
 | list_relationships-1 | The pinned release's roles are listed, the exclusion roles with negative polarity, derived from the code and not the name. | list_relationships, A5.6, A5.7 | — | planned #53 |
 | list_terminologies-1 | The available terminologies are listed with their current releases, none the platform offers left out. | list_terminologies, A7.2 | — | planned #53 |
 
-### Metadata tools
+### caDSR tools
 
 | Id | Requirement | Basis | Tests | Status |
 |---|---|---|---|---|

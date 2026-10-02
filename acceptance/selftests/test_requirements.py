@@ -3,6 +3,7 @@
 import re
 import subprocess
 import sys
+from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -176,9 +177,12 @@ def test_the_command_writes_the_rendered_specification(tmp_path):
 
 
 def test_the_required_tools_are_the_twenty_nine_of_four_groups():
-    groups = list(REQUIRED_TOOLS.values())
-
-    assert {group: groups.count(group) for group in "ABCW"} == {"A": 12, "B": 10, "C": 4, "W": 3}
+    assert Counter(REQUIRED_TOOLS.values()) == {
+        "evs": 12,
+        "cadsr": 10,
+        "cross-domain": 4,
+        "workflow": 3,
+    }
 
 
 @pytest.mark.parametrize(
