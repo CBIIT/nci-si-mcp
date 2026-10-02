@@ -1,0 +1,445 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C178243",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C178243",
+   "name": "Family Cancer History Relative Primary Diagnosis Question",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "relationship primary diagnosis",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "GDC",
+     "code": "VAR"
+    },
+    {
+     "name": "relationship_primary_diagnosis",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "GDC",
+     "code": "VAR"
+    },
+    {
+     "name": "Family Cancer History Relative Primary Diagnosis Question",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Family Cancer History Relative Primary Diagnosis Question",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A request to report the primary diagnosis for family members who were diagnosed with a neoplastic disease.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "GDC"
+    },
+    {
+     "code": "P208",
+     "type": "NCI_META_CUI",
+     "value": "CL1647886"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Intellectual Product"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C91102",
+     "name": "Clinical or Research Assessment Question"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4912",
+     "relatedName": "Bladder Carcinoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4872",
+     "relatedName": "Breast Carcinoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C9039",
+     "relatedName": "Cervical Carcinoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C7708",
+     "relatedName": "Childhood Malignant Liver Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C2946",
+     "relatedName": "Chondrosarcoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C2955",
+     "relatedName": "Colorectal Carcinoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3513",
+     "relatedName": "Esophageal Carcinoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4817",
+     "relatedName": "Ewing Sarcoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4911",
+     "relatedName": "Gastric Carcinoma"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177536",
+     "relatedName": "GDC Property Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C157711",
+     "relatedName": "GDC Terminology"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3058",
+     "relatedName": "Glioblastoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C27134",
+     "relatedName": "Hematopoietic and Lymphoid Cell Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C9087",
+     "relatedName": "Kaposi Sarcoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C9384",
+     "relatedName": "Kidney Carcinoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4855",
+     "relatedName": "Laryngeal Carcinoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3161",
+     "relatedName": "Leukemia"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C116915",
+     "relatedName": "Liquid Tumor"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4878",
+     "relatedName": "Lung Carcinoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3208",
+     "relatedName": "Lymphoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C9338",
+     "relatedName": "Malignant Adrenal Gland Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C227650",
+     "relatedName": "Malignant Bile Duct Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4016",
+     "relatedName": "Malignant Bone Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3568",
+     "relatedName": "Malignant Brain Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4627",
+     "relatedName": "Malignant Central Nervous System Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4913",
+     "relatedName": "Malignant Female Reproductive System Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C7481",
+     "relatedName": "Malignant Gallbladder Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4013",
+     "relatedName": "Malignant Head and Neck Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C190593",
+     "relatedName": "Malignant Liver Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C35812",
+     "relatedName": "Malignant Lymph Node Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C9305",
+     "relatedName": "Malignant Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C7431",
+     "relatedName": "Malignant Ovarian Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C2920",
+     "relatedName": "Malignant Skin Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3539",
+     "relatedName": "Malignant Splenic Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C7251",
+     "relatedName": "Malignant Testicular Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3552",
+     "relatedName": "Malignant Uterine Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3224",
+     "relatedName": "Melanoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3786",
+     "relatedName": "Mesothelial Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3242",
+     "relatedName": "Multiple Myeloma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3270",
+     "relatedName": "Neuroblastoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C43234",
+     "relatedName": "Not Reported"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C9145",
+     "relatedName": "Osteosarcoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C207229",
+     "relatedName": "Pancreatic Carcinoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4863",
+     "relatedName": "Prostate Carcinoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C9382",
+     "relatedName": "Rectal Carcinoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3359",
+     "relatedName": "Rhabdomyosarcoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C9118",
+     "relatedName": "Sarcoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C2921",
+     "relatedName": "Skin Basal Cell Carcinoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C35506",
+     "relatedName": "Throat Carcinoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4815",
+     "relatedName": "Thyroid Gland Carcinoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4824",
+     "relatedName": "Tongue Carcinoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4825",
+     "relatedName": "Tonsillar Carcinoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C17998",
+     "relatedName": "Unknown"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3267",
+     "relatedName": "Wilms Tumor"
+    }
+   ],
+   "history": [
+    {
+     "code": "C178243",
+     "action": "create",
+     "date": "2021-03-29"
+    },
+    {
+     "code": "C178243",
+     "action": "modify",
+     "date": "2021-03-29"
+    },
+    {
+     "code": "C178243",
+     "action": "modify",
+     "date": "2021-08-30"
+    },
+    {
+     "code": "C178243",
+     "action": "modify",
+     "date": "2024-07-08"
+    },
+    {
+     "code": "C178243",
+     "action": "modify",
+     "date": "2024-10-28"
+    },
+    {
+     "code": "C178243",
+     "action": "modify",
+     "date": "2026-06-29"
+    }
+   ]
+  }
+ }
+}

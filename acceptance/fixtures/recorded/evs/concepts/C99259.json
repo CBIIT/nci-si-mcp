@@ -1,0 +1,327 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C99259",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C99259",
+   "name": "EWSR1/ETV1 Fusion Gene",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "EWSR1/ETV1 Fusion Gene",
+     "termType": "DN",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTRP"
+    },
+    {
+     "name": "ETV1/EWS Fusion Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "ETV1/EWSR1 Fusion Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWS-ETV1 Fusion Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWS/ETV1 Fusion Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWSR1-ETV1 Fusion Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWSR1/ETV1 Fusion Gene",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWSR1::ETV1 Fusion Gene",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "EWSR1/ETV1 Fusion Gene",
+     "type": "Display_Name",
+     "typeCode": "P107"
+    },
+    {
+     "name": "EWSR1/ETV1 Fusion Gene",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    },
+    {
+     "name": "EWSR1-ETV1",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "EWS"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A fusion gene that results from a chromosomal translocation t(7;22)(p22;q12) which fuses exon 7 of the EWSR1 gene to either exon 10 or 11 of the ETV1 gene. This rearrangement is associated with Ewing sarcoma.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTRP"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "PCDC"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Gene or Genome"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C2677452"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C186677",
+     "name": "FET/ETS Family Fusion Gene"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142799",
+     "relatedName": "CTRP Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142800",
+     "relatedName": "CTRP Molecular Genetic Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C116977",
+     "relatedName": "CTRP Terminology"
+    },
+    {
+     "code": "A13",
+     "type": "Related_To_Genetic_Biomarker",
+     "relatedCode": "C24377",
+     "relatedName": "ETV1 Gene"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C174237",
+     "relatedName": "EWS Authorized Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C174252",
+     "relatedName": "EWS Molecular Analysis Table"
+    },
+    {
+     "code": "A13",
+     "type": "Related_To_Genetic_Biomarker",
+     "relatedCode": "C18322",
+     "relatedName": "EWSR1 Gene"
+    },
+    {
+     "code": "A28",
+     "type": "Is_PCDC_EWS_Authorized_Value_For_Variable",
+     "relatedCode": "C3910",
+     "relatedName": "Molecular Abnormality"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C213301",
+     "relatedName": "Pediatric Oncology Target Molecular Abnormalities Terminology"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R132",
+     "type": "Gene_Has_Abnormality",
+     "relatedCode": "C186727",
+     "relatedName": "ETS Family Gene Rearrangement"
+    },
+    {
+     "code": "R175",
+     "type": "Gene_Involved_In_Pathogenesis_Of_Disease",
+     "relatedCode": "C27291",
+     "relatedName": "Ewing Sarcoma/Peripheral Primitive Neuroectodermal Tumor"
+    },
+    {
+     "code": "R132",
+     "type": "Gene_Has_Abnormality",
+     "relatedCode": "C179848",
+     "relatedName": "FET Family Gene Translocation"
+    },
+    {
+     "code": "R132",
+     "type": "Gene_Has_Abnormality",
+     "relatedCode": "C36368",
+     "relatedName": "t(7;22)(p22;q12)"
+    }
+   ],
+   "history": [
+    {
+     "code": "C99259",
+     "action": "create",
+     "date": "2011-12-19"
+    },
+    {
+     "code": "C99259",
+     "action": "modify",
+     "date": "2012-02-27"
+    },
+    {
+     "code": "C99259",
+     "action": "modify",
+     "date": "2012-03-05"
+    },
+    {
+     "code": "C99259",
+     "action": "modify",
+     "date": "2012-03-19"
+    },
+    {
+     "code": "C99259",
+     "action": "modify",
+     "date": "2012-11-26"
+    },
+    {
+     "code": "C99259",
+     "action": "modify",
+     "date": "2013-03-11"
+    },
+    {
+     "code": "C99259",
+     "action": "modify",
+     "date": "2014-02-03"
+    },
+    {
+     "code": "C99259",
+     "action": "modify",
+     "date": "2017-10-30"
+    },
+    {
+     "code": "C99259",
+     "action": "modify",
+     "date": "2017-12-26"
+    },
+    {
+     "code": "C99259",
+     "action": "modify",
+     "date": "2018-07-30"
+    },
+    {
+     "code": "C99259",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C99259",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C99259",
+     "action": "modify",
+     "date": "2020-10-26"
+    },
+    {
+     "code": "C99259",
+     "action": "modify",
+     "date": "2020-11-30"
+    },
+    {
+     "code": "C99259",
+     "action": "modify",
+     "date": "2020-12-28"
+    },
+    {
+     "code": "C99259",
+     "action": "modify",
+     "date": "2021-06-28"
+    },
+    {
+     "code": "C99259",
+     "action": "modify",
+     "date": "2022-04-25"
+    },
+    {
+     "code": "C99259",
+     "action": "modify",
+     "date": "2022-10-31"
+    },
+    {
+     "code": "C99259",
+     "action": "modify",
+     "date": "2023-02-27"
+    },
+    {
+     "code": "C99259",
+     "action": "modify",
+     "date": "2025-01-27"
+    },
+    {
+     "code": "C99259",
+     "action": "modify",
+     "date": "2025-02-24"
+    }
+   ]
+  }
+ }
+}

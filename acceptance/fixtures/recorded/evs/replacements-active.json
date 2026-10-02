@@ -1,0 +1,24 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/history/ncit_26.09d/replacements",
+  "params": {
+   "list": [
+    "C4817"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": [
+   {
+    "code": "C4817",
+    "name": "Ewing Sarcoma",
+    "action": "active"
+   }
+  ]
+ }
+}

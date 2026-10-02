@@ -25,7 +25,8 @@ A fixture is a JSON file:
       "request": {"surface": "evs", "method": "GET", "path": "/api/v1/version",
                   "params": {"include": ["summary"]}, "body": "...",
                   "ignored": {"count": "the evidence that the service ignores it"}},
-      "response": {"status": 200, "headers": {}, "body": {...}}
+      "response": {"status": 200, "headers": {}, "body": {...}},
+      "redacted": ["/maps/7 (MedDRA)"]    # recorded: licensed items removed (licensing.py)
     }
 
 `responses` (a list) in place of `response` answers successive requests in order,
@@ -46,7 +47,14 @@ settings its server process starts with (a short timeout, a licence key); the se
 the harness makes itself (upstream URLs, mode, data directory) are refused, and so are
 two scenarios active together that set the same one.
 
-Every log entry records when the request arrived (`received_at`, monotonic seconds).
+A fixture in a `concepts/` directory is a concept recording: EVS's answer to a
+concept request, which `concepts.py` projects and batches by the rules the manifest
+(`manifest.yaml`, `evs.concepts`) declares. A request no fixture answers exactly is
+answered by those rules where the active recordings allow, a scenario's recording of
+a code before the ordinary one.
+
+Every log entry records when the request arrived (`received_at`, monotonic seconds),
+and the fixture or recordings that answered it.
 """
 
 from __future__ import annotations
@@ -59,6 +67,10 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import TYPE_CHECKING, Any, Self
 from urllib.parse import parse_qs, unquote, urlsplit
+
+import yaml
+
+from nci_si_acceptance.concepts import ConceptRules, Recording, recording_key
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -83,12 +95,15 @@ FRAMING_HEADERS = frozenset(
 )
 FAULTS = frozenset({"close"})
 SETTINGS = "settings.json"
+MANIFEST = "manifest.yaml"
+CONCEPTS = "concepts"
 RESPONSE_FIELDS = frozenset({"status", "headers", "body", "delay_seconds", "fault"})
 _JSON = {"Content-Type": "application/json"}
 
 type Params = dict[str, list[str]]
 type Key = tuple[str, str, str, tuple[tuple[str, tuple[str, ...]], ...], str | None]
 type Fixtures = dict[Key, Fixture]
+type Concepts = dict[tuple[str, str], Recording]
 
 
 def body_key(body: Any) -> str | None:
@@ -147,11 +162,17 @@ class Fixture:
 
 @dataclass(frozen=True, slots=True)
 class FixtureSet:
-    """The ordinary fixtures, and the fixtures of each scenario."""
+    """The ordinary fixtures, and the fixtures of each scenario.
+
+    Concept recordings are kept apart, by (terminology, code), under the scenario they
+    belong to; the ordinary ones under None.
+    """
 
     ordinary: Fixtures
     scenarios: dict[str, Fixtures]
     settings: dict[str, dict[str, str]] = field(default_factory=dict)
+    rules: ConceptRules | None = None
+    recordings: dict[str | None, Concepts] = field(default_factory=dict)
 
     def settings_of(self, scenarios: tuple[str, ...]) -> dict[str, str]:
         """The server settings the scenarios start their server with."""
@@ -240,6 +261,41 @@ def _read_fixture(path: Path, root: Path) -> tuple[Key, Fixture]:
     return key, Fixture(name, responses, frozenset(request.get("ignored", {})))
 
 
+def _read_recording(
+    path: Path, root: Path, rules: ConceptRules | None
+) -> tuple[tuple[str, str], Recording]:
+    """A concept recording, keyed by the terminology and code its request names."""
+
+    document = json.loads(path.read_text(encoding="utf-8"))
+    name = path.relative_to(root).as_posix()
+    if rules is None:
+        raise ValueError(f"{name}: concept recordings need the concept rules of {MANIFEST}")
+    problem = _problem(document) or _recording_problem(document, rules)
+    if problem:
+        raise ValueError(f"{name}: {problem}")
+    request, response = document["request"], document["response"]
+    covers = rules.keys(request["params"]["include"][0]) or frozenset()
+    return recording_key(request["path"]), Recording(
+        name, response["status"], response.get("body"), covers
+    )
+
+
+def _recording_problem(document: dict[str, Any], rules: ConceptRules) -> str | None:
+    response = document.get("response")
+    if response is None or not set(response) <= {"status", "body"}:
+        return "a concept recording has one response, of status and body"
+    return rules.recording_problem(document["request"], response["status"], response.get("body"))
+
+
+def _read_manifest(root: Path) -> ConceptRules | None:
+    path = root / MANIFEST
+    if not path.is_file():
+        return None
+    manifest = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    section = manifest.get("evs", {}).get("concepts") if isinstance(manifest, dict) else None
+    return None if section is None else ConceptRules.from_manifest(section)
+
+
 def _scenario_of(path: Path, root: Path) -> str | None:
     parts = path.relative_to(root).parts
     if parts[0] != SCENARIOS:
@@ -270,34 +326,56 @@ def load_fixtures(root: Path) -> FixtureSet:
 
     if not root.is_dir():
         raise ValueError(f"{root} is not a fixture directory")
-    fixtures = FixtureSet({}, {})
+    fixtures = FixtureSet({}, {}, rules=_read_manifest(root))
     for path in sorted(root.rglob("*.json")):
         scenario = _scenario_of(path, root)
         if path.name == SETTINGS:
             fixtures.settings[str(scenario)] = _read_settings(path, root, scenario)
-            continue
-        table = (
-            fixtures.ordinary if scenario is None else fixtures.scenarios.setdefault(scenario, {})
-        )
-        key, fixture = _read_fixture(path, root)
-        if key in table:
-            raise ValueError(f"{fixture.name} and {table[key].name} answer the same request")
-        table[key] = fixture
+        elif path.parent.name == CONCEPTS:
+            _add_recording(fixtures, scenario, _read_recording(path, root, fixtures.rules))
+        else:
+            _add_fixture(fixtures, scenario, path, root)
     return fixtures
 
 
-def _layers(fixtures: FixtureSet, scenarios: tuple[str, ...]) -> list[Fixtures]:
-    """The fixture tables in the order they are consulted: the scenarios, then the rest."""
+def _add_recording(
+    fixtures: FixtureSet, scenario: str | None, keyed: tuple[tuple[str, str], Recording]
+) -> None:
+    key, recording = keyed
+    table = fixtures.recordings.setdefault(scenario, {})
+    if key in table:
+        raise ValueError(f"{recording.name} and {table[key].name} record the same concept")
+    table[key] = recording
 
-    unknown = sorted(set(scenarios) - set(fixtures.scenarios) - set(fixtures.settings))
-    if unknown:
-        raise ValueError(f"no such scenario: {', '.join(unknown)}")
+
+def _add_fixture(fixtures: FixtureSet, scenario: str | None, path: Path, root: Path) -> None:
+    table = fixtures.ordinary if scenario is None else fixtures.scenarios.setdefault(scenario, {})
+    key, fixture = _read_fixture(path, root)
+    if key in table:
+        raise ValueError(f"{fixture.name} and {table[key].name} answer the same request")
+    table[key] = fixture
+
+
+def _layers(
+    fixtures: FixtureSet, scenarios: tuple[str, ...]
+) -> tuple[list[Fixtures], list[Concepts]]:
+    """The fixtures and the concept recordings in the order they are consulted: the
+    scenarios, then the rest."""
+
+    _check_known(fixtures, scenarios)
     layers = [fixtures.scenarios.get(scenario, {}) for scenario in scenarios]
-    if _overlap(layers):
+    recordings = [fixtures.recordings.get(scenario, {}) for scenario in scenarios]
+    if _overlap(layers) or _overlap(recordings):
         raise ValueError(f"the scenarios {', '.join(scenarios)} answer the same request")
     if _overlap(fixtures.settings.get(scenario, {}) for scenario in scenarios):
         raise ValueError(f"the scenarios {', '.join(scenarios)} set the same setting")
-    return [*layers, fixtures.ordinary]
+    return [*layers, fixtures.ordinary], [*recordings, fixtures.recordings.get(None, {})]
+
+
+def _check_known(fixtures: FixtureSet, scenarios: tuple[str, ...]) -> None:
+    known = {*fixtures.scenarios, *fixtures.settings, *fixtures.recordings}
+    if unknown := sorted(set(scenarios) - known):
+        raise ValueError(f"no such scenario: {', '.join(unknown)}")
 
 
 def _overlap(tables: Iterable[dict[Any, Any]]) -> bool:
@@ -330,6 +408,7 @@ class FixtureServer:
     def __init__(self, fixtures: FixtureSet) -> None:
         self.fixtures = fixtures
         self._layers: list[Fixtures] = []
+        self._recordings: list[Concepts] = []
         self._ignored: dict[tuple[str, str, str], frozenset[str]] = {}
         self._served: dict[str, int] = {}
         self._log: list[dict[str, Any]] = []
@@ -354,10 +433,10 @@ class FixtureServer:
     def activate(self, *scenarios: str) -> None:
         """Answer from these scenarios' fixtures first; no argument ends them. The log stays."""
 
-        layers = _layers(self.fixtures, scenarios)
+        layers, recordings = _layers(self.fixtures, scenarios)
         ignored = _ignored_by_path(layers)
         with self._lock:
-            self._layers, self._ignored = layers, ignored
+            self._layers, self._recordings, self._ignored = layers, recordings, ignored
 
     def log(self) -> list[dict[str, Any]]:
         with self._lock:
@@ -377,7 +456,7 @@ class FixtureServer:
                 return fixture
         return None
 
-    def _next(self, key: Key) -> tuple[Fixture | None, Response | None]:
+    def _next(self, key: Key) -> tuple[str | None, Response | None]:
         """The fixture for a request and its response in turn."""
 
         fixture = self._find(key)
@@ -385,7 +464,25 @@ class FixtureServer:
             return None, None
         turn = self._served.get(fixture.name, 0)
         self._served[fixture.name] = turn + 1
-        return fixture, fixture.responses[min(turn, len(fixture.responses) - 1)]
+        return fixture.name, fixture.responses[min(turn, len(fixture.responses) - 1)]
+
+    def _recording(self, terminology: str, code: str) -> Recording | None:
+        for layer in self._recordings:
+            if recording := layer.get((terminology, code)):
+                return recording
+        return None
+
+    def _composed(self, key: Key, params: Params) -> tuple[str | None, Response | None]:
+        """The answer the concept rules compose from the active recordings, if they can."""
+
+        surface, method, path = key[:3]
+        rules = self.fixtures.rules
+        if rules is None or (surface, method) != ("evs", "GET"):
+            return None, None
+        answer = rules.answer(path, params, self._recording)
+        if answer is None:
+            return None, None
+        return ", ".join(answer.names), Response(answer.status, {}, answer.body)
 
     def answer(self, method: str, target: str, headers: dict[str, str], body: str) -> Response:
         """Choose the response to one upstream request, and record the request."""
@@ -398,8 +495,11 @@ class FixtureServer:
         with self._lock:
             ignored = self._ignored.get((surface, method.upper(), path), frozenset())
             matched = {name: values for name, values in params.items() if name not in ignored}
-            fixture, response = self._next(request_key(surface, method, path, matched, body))
-            entry |= {"headers": headers, "body": body, "fixture": fixture and fixture.name}
+            key = request_key(surface, method, path, matched, body)
+            fixture, response = self._next(key)
+            if fixture is None:
+                fixture, response = self._composed(key, params)
+            entry |= {"headers": headers, "body": body, "fixture": fixture}
             self._log.append(entry)
         if response is None:
             message = {"error": "no fixture answers this request", **entry}

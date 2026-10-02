@@ -1,0 +1,119 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/mapset/NCIt_Maps_To_GDC/maps",
+  "params": {
+   "term": [
+    "C4817"
+   ],
+   "fromRecord": [
+    "0"
+   ],
+   "pageSize": [
+    "10"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "total": 6,
+   "parameters": {
+    "term": "C4817",
+    "type": "contains",
+    "include": "minimal",
+    "fromRecord": 0,
+    "pageSize": 10
+   },
+   "maps": [
+    {
+     "mapsetCode": "NCIt_Maps_To_GDC",
+     "source": "ncit",
+     "sourceName": "Ewing Sarcoma",
+     "sourceCode": "C4817",
+     "sourceTerminology": "NCI Thesaurus",
+     "sourceTerminologyVersion": "26.09d",
+     "type": "Has Synonym",
+     "target": "GDC",
+     "targetName": "Ewing tumor",
+     "targetTermType": "PT",
+     "targetCode": "primary_diagnosis",
+     "targetTerminology": "GDC"
+    },
+    {
+     "mapsetCode": "NCIt_Maps_To_GDC",
+     "source": "ncit",
+     "sourceName": "Ewing Sarcoma",
+     "sourceCode": "C4817",
+     "sourceTerminology": "NCI Thesaurus",
+     "sourceTerminologyVersion": "26.09d",
+     "type": "Has Synonym",
+     "target": "GDC",
+     "targetName": "Ewing sarcoma",
+     "targetTermType": "PT",
+     "targetCode": "primary_diagnosis",
+     "targetTerminology": "GDC"
+    },
+    {
+     "mapsetCode": "NCIt_Maps_To_GDC",
+     "source": "ncit",
+     "sourceName": "Ewing Sarcoma",
+     "sourceCode": "C4817",
+     "sourceTerminology": "NCI Thesaurus",
+     "sourceTerminologyVersion": "26.09d",
+     "type": "Has Synonym",
+     "target": "GDC",
+     "targetName": "Ewing Sarcoma",
+     "targetTermType": "PT",
+     "targetCode": "relationship_primary_diagnosis",
+     "targetTerminology": "GDC"
+    },
+    {
+     "mapsetCode": "NCIt_Maps_To_GDC",
+     "source": "ncit",
+     "sourceName": "Ewing Sarcoma",
+     "sourceCode": "C4817",
+     "sourceTerminology": "NCI Thesaurus",
+     "sourceTerminologyVersion": "26.09d",
+     "type": "Has Synonym",
+     "target": "GDC",
+     "targetName": "Ewing sarcoma",
+     "targetTermType": "PT",
+     "targetCode": "tumor_code",
+     "targetTerminology": "GDC"
+    },
+    {
+     "mapsetCode": "NCIt_Maps_To_GDC",
+     "source": "ncit",
+     "sourceName": "Ewing Sarcoma",
+     "sourceCode": "C4817",
+     "sourceTerminology": "NCI Thesaurus",
+     "sourceTerminologyVersion": "26.09d",
+     "type": "Related To",
+     "target": "GDC",
+     "targetName": "9260/3",
+     "targetTermType": "PT",
+     "targetCode": "morphology",
+     "targetTerminology": "GDC"
+    },
+    {
+     "mapsetCode": "NCIt_Maps_To_GDC",
+     "source": "ncit",
+     "sourceName": "Processing",
+     "sourceCode": "C48177",
+     "sourceTerminology": "NCI Thesaurus",
+     "sourceTerminologyVersion": "26.09d",
+     "type": "Has Synonym",
+     "target": "GDC",
+     "targetName": "processing",
+     "targetTermType": "PT",
+     "targetCode": "state",
+     "targetTerminology": "GDC"
+    }
+   ]
+  }
+ }
+}

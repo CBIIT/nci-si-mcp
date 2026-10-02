@@ -1,0 +1,151 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C165258",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C165258",
+   "name": "Cellosaurus Disease Terminology",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Cellosaurus Disease Terminology",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Cellosaurus Disease Terminology",
+     "type": "Display_Name",
+     "typeCode": "P107"
+    },
+    {
+     "name": "Cellosaurus Disease Terminology",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "The Cellosaurus Disease Terminology is a set of terms used to annotate cell lines originating from a diseased patient or animal. For inherited diseases, the relevant terms are only applied to cell lines originating from individuals suffering or at risk for a disease and not for individuals that are carriers for such disease. For cancers, the relevant terms are only applied to cell lines established from a cancerous tissue. The Cellosaurus is developed by Dr. Amos Bairoch of the CALIPHO group at the Swiss Institute of Bioinformatics.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "Cellosaurus"
+    },
+    {
+     "code": "P208",
+     "type": "NCI_META_CUI",
+     "value": "CL978558"
+    },
+    {
+     "code": "P372",
+     "type": "Publish_Value_Set",
+     "value": "Yes"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Intellectual Product"
+    },
+    {
+     "code": "P376",
+     "type": "Term_Browser_Value_Set_Description",
+     "value": "<p>The Cellosaurus Disease Terminology is a set of terms used to annotate cell lines originating from a diseased patient or animal. For inherited diseases, the relevant terms are only applied to cell lines originating from individuals suffering or at risk for a disease and not for individuals that are carriers for such disease. For cancers, the relevant terms are only applied to cell lines established from a cancerous tissue. </p<p>The<a href=\"https://www.cellosaurus.org\"> Cellosaurus</a> is developed by <a href=\"https://www.sib.swiss/amos-bairoch-lydie-lane-group\"> Dr. Amos Bairoch</a> of the CALIPHO group at the <a href=\"https://www.sib.swiss\">Swiss Institute of Bioinformatics.</a></p>"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C192842",
+     "name": "Cellosaurus Terminology"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C192842",
+     "relatedName": "Cellosaurus Terminology"
+    }
+   ],
+   "history": [
+    {
+     "code": "C165258",
+     "action": "create",
+     "date": "2019-10-28"
+    },
+    {
+     "code": "C165258",
+     "action": "modify",
+     "date": "2019-10-28"
+    },
+    {
+     "code": "C165258",
+     "action": "modify",
+     "date": "2020-04-27"
+    },
+    {
+     "code": "C165258",
+     "action": "modify",
+     "date": "2021-03-29"
+    },
+    {
+     "code": "C165258",
+     "action": "modify",
+     "date": "2022-11-28"
+    },
+    {
+     "code": "C165258",
+     "action": "modify",
+     "date": "2023-02-27"
+    },
+    {
+     "code": "C165258",
+     "action": "modify",
+     "date": "2023-03-27"
+    },
+    {
+     "code": "C165258",
+     "action": "modify",
+     "date": "2023-05-30"
+    },
+    {
+     "code": "C165258",
+     "action": "modify",
+     "date": "2025-03-31"
+    },
+    {
+     "code": "C165258",
+     "action": "modify",
+     "date": "2025-04-28"
+    },
+    {
+     "code": "C165258",
+     "action": "modify",
+     "date": "2026-07-27"
+    }
+   ]
+  }
+ }
+}

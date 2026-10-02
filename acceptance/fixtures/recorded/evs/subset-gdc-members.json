@@ -1,0 +1,115 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/subset/ncit_26.09d/C177537/members",
+  "params": {
+   "fromRecord": [
+    "0"
+   ],
+   "pageSize": [
+    "10"
+   ],
+   "include": [
+    "minimal"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": [
+   {
+    "code": "C202215",
+    "name": "0-30 Days",
+    "terminology": "ncit",
+    "version": "26.09d",
+    "conceptStatus": "DEFAULT",
+    "leaf": true,
+    "active": true
+   },
+   {
+    "code": "C957",
+    "name": "10-Deacetyltaxol",
+    "terminology": "ncit",
+    "version": "26.09d",
+    "conceptStatus": "DEFAULT",
+    "leaf": true,
+    "active": true
+   },
+   {
+    "code": "C49172",
+    "name": "11C Topotecan",
+    "terminology": "ncit",
+    "version": "26.09d",
+    "conceptStatus": "DEFAULT",
+    "leaf": true,
+    "active": true
+   },
+   {
+    "code": "C28781",
+    "name": "11D10 AluGel Anti-Idiotype Monoclonal Antibody",
+    "terminology": "ncit",
+    "version": "26.09d",
+    "conceptStatus": "DEFAULT",
+    "leaf": true,
+    "active": true
+   },
+   {
+    "code": "C41441",
+    "name": "12-Allyldeoxoartemisinin",
+    "terminology": "ncit",
+    "version": "26.09d",
+    "conceptStatus": "DEFAULT",
+    "leaf": true,
+    "active": true
+   },
+   {
+    "code": "C2494",
+    "name": "13-Deoxydoxorubicin",
+    "terminology": "ncit",
+    "version": "26.09d",
+    "conceptStatus": "DEFAULT",
+    "leaf": true,
+    "active": true
+   },
+   {
+    "code": "C62553",
+    "name": "14C BMS-275183",
+    "terminology": "ncit",
+    "version": "26.09d",
+    "conceptStatus": "DEFAULT",
+    "leaf": true,
+    "active": true
+   },
+   {
+    "code": "C133224",
+    "name": "17beta-Hydroxysteroid Dehydrogenase Type 5 Inhibitor ASP9521",
+    "terminology": "ncit",
+    "version": "26.09d",
+    "conceptStatus": "DEFAULT",
+    "leaf": true,
+    "active": true
+   },
+   {
+    "code": "C80036",
+    "name": "2'-F-ara-deoxyuridine",
+    "terminology": "ncit",
+    "version": "26.09d",
+    "conceptStatus": "DEFAULT",
+    "leaf": true,
+    "active": true
+   },
+   {
+    "code": "C29796",
+    "name": "2,6-Diaminopurine",
+    "terminology": "ncit",
+    "version": "26.09d",
+    "conceptStatus": "DEFAULT",
+    "leaf": true,
+    "active": true
+   }
+  ]
+ }
+}

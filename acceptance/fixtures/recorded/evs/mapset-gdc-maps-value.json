@@ -1,0 +1,175 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/mapset/NCIt_Maps_To_GDC/maps",
+  "params": {
+   "term": [
+    "Ewing sarcoma"
+   ],
+   "fromRecord": [
+    "0"
+   ],
+   "pageSize": [
+    "10"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "total": 168,
+   "parameters": {
+    "term": "Ewing sarcoma",
+    "type": "contains",
+    "include": "minimal",
+    "fromRecord": 0,
+    "pageSize": 10
+   },
+   "maps": [
+    {
+     "mapsetCode": "NCIt_Maps_To_GDC",
+     "source": "ncit",
+     "sourceName": "Ewing Sarcoma",
+     "sourceCode": "C4817",
+     "sourceTerminology": "NCI Thesaurus",
+     "sourceTerminologyVersion": "26.09d",
+     "type": "Has Synonym",
+     "target": "GDC",
+     "targetName": "Ewing sarcoma",
+     "targetTermType": "PT",
+     "targetCode": "primary_diagnosis",
+     "targetTerminology": "GDC"
+    },
+    {
+     "mapsetCode": "NCIt_Maps_To_GDC",
+     "source": "ncit",
+     "sourceName": "Ewing Sarcoma",
+     "sourceCode": "C4817",
+     "sourceTerminology": "NCI Thesaurus",
+     "sourceTerminologyVersion": "26.09d",
+     "type": "Has Synonym",
+     "target": "GDC",
+     "targetName": "Ewing Sarcoma",
+     "targetTermType": "PT",
+     "targetCode": "relationship_primary_diagnosis",
+     "targetTerminology": "GDC"
+    },
+    {
+     "mapsetCode": "NCIt_Maps_To_GDC",
+     "source": "ncit",
+     "sourceName": "Ewing Sarcoma",
+     "sourceCode": "C4817",
+     "sourceTerminology": "NCI Thesaurus",
+     "sourceTerminologyVersion": "26.09d",
+     "type": "Has Synonym",
+     "target": "GDC",
+     "targetName": "Ewing sarcoma",
+     "targetTermType": "PT",
+     "targetCode": "tumor_code",
+     "targetTerminology": "GDC"
+    },
+    {
+     "mapsetCode": "NCIt_Maps_To_GDC",
+     "source": "ncit",
+     "sourceName": "Ewing Sarcoma",
+     "sourceCode": "C4817",
+     "sourceTerminology": "NCI Thesaurus",
+     "sourceTerminologyVersion": "26.09d",
+     "type": "Has Synonym",
+     "target": "GDC",
+     "targetName": "Ewing tumor",
+     "targetTermType": "PT",
+     "targetCode": "primary_diagnosis",
+     "targetTerminology": "GDC"
+    },
+    {
+     "mapsetCode": "NCIt_Maps_To_GDC",
+     "source": "ncit",
+     "sourceName": "Ewing Sarcoma",
+     "sourceCode": "C4817",
+     "sourceTerminology": "NCI Thesaurus",
+     "sourceTerminologyVersion": "26.09d",
+     "type": "Related To",
+     "target": "GDC",
+     "targetName": "9260/3",
+     "targetTermType": "PT",
+     "targetCode": "morphology",
+     "targetTerminology": "GDC"
+    },
+    {
+     "mapsetCode": "NCIt_Maps_To_GDC",
+     "source": "ncit",
+     "sourceName": "Giant Cell Sarcoma",
+     "sourceCode": "C66759",
+     "sourceTerminology": "NCI Thesaurus",
+     "sourceTerminologyVersion": "26.09d",
+     "type": "Has Synonym",
+     "target": "GDC",
+     "targetName": "Giant cell sarcoma",
+     "targetTermType": "PT",
+     "targetCode": "primary_diagnosis",
+     "targetTerminology": "GDC"
+    },
+    {
+     "mapsetCode": "NCIt_Maps_To_GDC",
+     "source": "ncit",
+     "sourceName": "Hepatocellular Sarcomatoid Carcinoma",
+     "sourceCode": "C43627",
+     "sourceTerminology": "NCI Thesaurus",
+     "sourceTerminologyVersion": "26.09d",
+     "type": "Has Synonym",
+     "target": "GDC",
+     "targetName": "Hepatocellular carcinoma, sarcomatoid",
+     "targetTermType": "PT",
+     "targetCode": "primary_diagnosis",
+     "targetTerminology": "GDC"
+    },
+    {
+     "mapsetCode": "NCIt_Maps_To_GDC",
+     "source": "ncit",
+     "sourceName": "Interdigitating Dendritic Cell Sarcoma",
+     "sourceCode": "C9282",
+     "sourceTerminology": "NCI Thesaurus",
+     "sourceTerminologyVersion": "26.09d",
+     "type": "Related To",
+     "target": "GDC",
+     "targetName": "Interdigitating cell sarcoma",
+     "targetTermType": "PT",
+     "targetCode": "primary_diagnosis",
+     "targetTerminology": "GDC"
+    },
+    {
+     "mapsetCode": "NCIt_Maps_To_GDC",
+     "source": "ncit",
+     "sourceName": "Low Grade Myofibroblastic Sarcoma",
+     "sourceCode": "C49024",
+     "sourceTerminology": "NCI Thesaurus",
+     "sourceTerminologyVersion": "26.09d",
+     "type": "Has Synonym",
+     "target": "GDC",
+     "targetName": "Myofibroblastic sarcoma",
+     "targetTermType": "PT",
+     "targetCode": "primary_diagnosis",
+     "targetTerminology": "GDC"
+    },
+    {
+     "mapsetCode": "NCIt_Maps_To_GDC",
+     "source": "ncit",
+     "sourceName": "Myeloid Sarcoma",
+     "sourceCode": "C3520",
+     "sourceTerminology": "NCI Thesaurus",
+     "sourceTerminologyVersion": "26.09d",
+     "type": "Has Synonym",
+     "target": "GDC",
+     "targetName": "Myeloid sarcoma",
+     "targetTermType": "PT",
+     "targetCode": "primary_diagnosis",
+     "targetTerminology": "GDC"
+    }
+   ]
+  }
+ }
+}

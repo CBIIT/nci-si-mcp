@@ -1,0 +1,509 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C8495",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C8495",
+   "name": "Hereditary Retinoblastoma",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Hereditary Retinoblastoma",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CCPS"
+    },
+    {
+     "name": "Familial Retinoblastoma",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Hereditary Retinoblastoma",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Retinoblastoma Syndrome",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Hereditary Retinoblastoma",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    },
+    {
+     "name": "Hereditary Retinoblastoma",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "HL"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "An inherited malignant tumor that originates in the nuclear layer of the retina. A predisposition to retinoblastoma has been associated with 13q14 cytogenetic abnormalities affecting the RB1 gene. Patients with the inherited form appear to be at increased risk for secondary non-ocular malignancies such as osteosarcoma, malignant fibrous histiocytoma, and fibrosarcoma.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CCPS"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "PCDC"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Hereditary_Retinoblastoma_RB1"
+    },
+    {
+     "type": "Logical_Definition",
+     "value": "true"
+    },
+    {
+     "code": "P363",
+     "type": "Neoplastic_Status",
+     "value": "Malignant"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Neoplastic Process"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C0751483"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C9479",
+     "name": "Hereditary Malignant Neoplasm",
+     "defining": true
+    },
+    {
+     "code": "C7541",
+     "name": "Retinoblastoma",
+     "defining": true
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177516",
+     "relatedName": "CCPS Disease Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177281",
+     "relatedName": "Childhood Cancer Predisposition Study Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C186341",
+     "relatedName": "HL Authorized Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C186315",
+     "relatedName": "HL Medical History Table"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C126659",
+     "relatedName": "NCIt Neoplasm Core Terminology"
+    },
+    {
+     "code": "A13",
+     "type": "Related_To_Genetic_Biomarker",
+     "relatedCode": "C17360",
+     "relatedName": "RB1 Gene"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R142",
+     "type": "Disease_Excludes_Finding",
+     "relatedCode": "C36122",
+     "relatedName": "Benign Cellular Infiltrate"
+    },
+    {
+     "code": "R115",
+     "type": "Disease_May_Have_Finding",
+     "relatedCode": "C3672",
+     "relatedName": "Calcification"
+    },
+    {
+     "code": "R106",
+     "type": "Disease_Has_Molecular_Abnormality",
+     "relatedCode": "C36339",
+     "relatedName": "Cell Cycle Deregulation"
+    },
+    {
+     "code": "R100",
+     "type": "Disease_Has_Associated_Anatomic_Site",
+     "relatedCode": "C12438",
+     "relatedName": "Central Nervous System"
+    },
+    {
+     "code": "R116",
+     "type": "Disease_May_Have_Associated_Disease",
+     "relatedCode": "C2946",
+     "relatedName": "Chondrosarcoma",
+     "group": "Disease, Disorder or Finding"
+    },
+    {
+     "code": "R116",
+     "type": "Disease_May_Have_Associated_Disease",
+     "relatedCode": "C3709",
+     "relatedName": "Epithelial Neoplasm",
+     "group": "Disease, Disorder or Finding"
+    },
+    {
+     "code": "R116",
+     "type": "Disease_May_Have_Associated_Disease",
+     "relatedCode": "C4817",
+     "relatedName": "Ewing Sarcoma",
+     "group": "Disease, Disorder or Finding"
+    },
+    {
+     "code": "R100",
+     "type": "Disease_Has_Associated_Anatomic_Site",
+     "relatedCode": "C12401",
+     "relatedName": "Eye"
+    },
+    {
+     "code": "R116",
+     "type": "Disease_May_Have_Associated_Disease",
+     "relatedCode": "C3043",
+     "relatedName": "Fibrosarcoma",
+     "group": "Disease, Disorder or Finding"
+    },
+    {
+     "code": "R115",
+     "type": "Disease_May_Have_Finding",
+     "relatedCode": "C35941",
+     "relatedName": "Flexner-Wintersteiner Rosette Formation"
+    },
+    {
+     "code": "R116",
+     "type": "Disease_May_Have_Associated_Disease",
+     "relatedCode": "C27134",
+     "relatedName": "Hematopoietic and Lymphoid Cell Neoplasm",
+     "group": "Disease, Disorder or Finding"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C54062",
+     "relatedName": "Hereditary Lesion"
+    },
+    {
+     "code": "R115",
+     "type": "Disease_May_Have_Finding",
+     "relatedCode": "C35942",
+     "relatedName": "Homer Wright Rosette Formation"
+    },
+    {
+     "code": "R142",
+     "type": "Disease_Excludes_Finding",
+     "relatedCode": "C36105",
+     "relatedName": "Indolent Clinical Course"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C36497",
+     "relatedName": "Loss of Chromosome 13q"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C12917",
+     "relatedName": "Malignant Cell"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C36115",
+     "relatedName": "Malignant Cellular Infiltrate"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C36861",
+     "relatedName": "Malignant Small Hyperchromatic Cell"
+    },
+    {
+     "code": "R116",
+     "type": "Disease_May_Have_Associated_Disease",
+     "relatedCode": "C3224",
+     "relatedName": "Melanoma",
+     "group": "Disease, Disorder or Finding"
+    },
+    {
+     "code": "R89",
+     "type": "Disease_May_Have_Molecular_Abnormality",
+     "relatedCode": "C36673",
+     "relatedName": "MYCN Gene Amplification"
+    },
+    {
+     "code": "R115",
+     "type": "Disease_May_Have_Finding",
+     "relatedCode": "C36184",
+     "relatedName": "Necrosis"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C12922",
+     "relatedName": "Neoplastic Cell"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C41408",
+     "relatedName": "Neoplastic Neuroepithelial Cell and Neoplastic Perineural Cell"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C37125",
+     "relatedName": "Neoplastic Neuroepithelial Cell"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C42604",
+     "relatedName": "Neoplastic Retinal Ganglion Cell"
+    },
+    {
+     "code": "R103",
+     "type": "Disease_Has_Normal_Tissue_Origin",
+     "relatedCode": "C41406",
+     "relatedName": "Nerve Tissue, Neuroepithelial Tissue, and Nerve Sheaths"
+    },
+    {
+     "code": "R100",
+     "type": "Disease_Has_Associated_Anatomic_Site",
+     "relatedCode": "C12755",
+     "relatedName": "Nervous System"
+    },
+    {
+     "code": "R103",
+     "type": "Disease_Has_Normal_Tissue_Origin",
+     "relatedCode": "C33166",
+     "relatedName": "Neural Retina"
+    },
+    {
+     "code": "R104",
+     "type": "Disease_Has_Normal_Cell_Origin",
+     "relatedCode": "C41410",
+     "relatedName": "Neuroepithelial Cell"
+    },
+    {
+     "code": "R103",
+     "type": "Disease_Has_Normal_Tissue_Origin",
+     "relatedCode": "C41409",
+     "relatedName": "Neuroepithelial Tissue"
+    },
+    {
+     "code": "R104",
+     "type": "Disease_Has_Normal_Cell_Origin",
+     "relatedCode": "C41405",
+     "relatedName": "Neuron, Neuroepithelial Cell, and Supporting Cell of the Nervous System"
+    },
+    {
+     "code": "R116",
+     "type": "Disease_May_Have_Associated_Disease",
+     "relatedCode": "C9145",
+     "relatedName": "Osteosarcoma",
+     "group": "Disease, Disorder or Finding"
+    },
+    {
+     "code": "R104",
+     "type": "Disease_Has_Normal_Cell_Origin",
+     "relatedCode": "C12634",
+     "relatedName": "Photoreceptor Cell"
+    },
+    {
+     "code": "R116",
+     "type": "Disease_May_Have_Associated_Disease",
+     "relatedCode": "C9344",
+     "relatedName": "Pineoblastoma",
+     "group": "Disease, Disorder or Finding"
+    },
+    {
+     "code": "R106",
+     "type": "Disease_Has_Molecular_Abnormality",
+     "relatedCode": "C42600",
+     "relatedName": "RB-E2F Pathway Deregulation"
+    },
+    {
+     "code": "R106",
+     "type": "Disease_Has_Molecular_Abnormality",
+     "relatedCode": "C133696",
+     "relatedName": "RB1 Gene Mutation"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C17360",
+     "relatedName": "RB1 Gene"
+    },
+    {
+     "code": "R100",
+     "type": "Disease_Has_Associated_Anatomic_Site",
+     "relatedCode": "C12343",
+     "relatedName": "Retina"
+    },
+    {
+     "code": "R101",
+     "type": "Disease_Has_Primary_Anatomic_Site",
+     "relatedCode": "C12343",
+     "relatedName": "Retina"
+    }
+   ],
+   "history": [
+    {
+     "code": "C8495",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C8495",
+     "action": "modify",
+     "date": "2003-10-31"
+    },
+    {
+     "code": "C8495",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C8495",
+     "action": "modify",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C8495",
+     "action": "modify",
+     "date": "2004-09-10"
+    },
+    {
+     "code": "C8495",
+     "action": "modify",
+     "date": "2004-12-30"
+    },
+    {
+     "code": "C8495",
+     "action": "modify",
+     "date": "2006-03-31"
+    },
+    {
+     "code": "C8495",
+     "action": "modify",
+     "date": "2007-10-29"
+    },
+    {
+     "code": "C8495",
+     "action": "modify",
+     "date": "2009-10-27"
+    },
+    {
+     "code": "C8495",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C8495",
+     "action": "modify",
+     "date": "2014-02-03"
+    },
+    {
+     "code": "C8495",
+     "action": "modify",
+     "date": "2015-05-26"
+    },
+    {
+     "code": "C8495",
+     "action": "modify",
+     "date": "2016-04-25"
+    },
+    {
+     "code": "C8495",
+     "action": "modify",
+     "date": "2021-01-25"
+    },
+    {
+     "code": "C8495",
+     "action": "modify",
+     "date": "2021-02-22"
+    },
+    {
+     "code": "C8495",
+     "action": "modify",
+     "date": "2021-05-24"
+    },
+    {
+     "code": "C8495",
+     "action": "modify",
+     "date": "2022-02-28"
+    },
+    {
+     "code": "C8495",
+     "action": "modify",
+     "date": "2022-03-28"
+    },
+    {
+     "code": "C8495",
+     "action": "modify",
+     "date": "2022-10-31"
+    },
+    {
+     "code": "C8495",
+     "action": "modify",
+     "date": "2023-02-27"
+    }
+   ]
+  }
+ }
+}

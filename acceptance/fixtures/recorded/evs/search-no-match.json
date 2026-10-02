@@ -1,0 +1,43 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/search",
+  "params": {
+   "term": [
+    "qqxyzzyqq"
+   ],
+   "type": [
+    "contains"
+   ],
+   "include": [
+    "minimal,highlights"
+   ],
+   "fromRecord": [
+    "0"
+   ],
+   "pageSize": [
+    "10"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "total": 0,
+   "timeTaken": 28,
+   "parameters": {
+    "term": "qqxyzzyqq",
+    "type": "contains",
+    "include": "minimal,highlights",
+    "fromRecord": 0,
+    "pageSize": 10,
+    "terminology": [
+     "ncit_26.09d"
+    ]
+   }
+  }
+ }
+}

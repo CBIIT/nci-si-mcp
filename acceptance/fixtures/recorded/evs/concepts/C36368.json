@@ -1,0 +1,244 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C36368",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C36368",
+   "name": "t(7;22)(p22;q12)",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "t(7;22)(p22;q12) (Ewing sarcoma)",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CPTAC"
+    },
+    {
+     "name": "t(7;22)(p22;q12)",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "t(7;22)(p22;q12)",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    },
+    {
+     "name": "t(7;22)(p22;q12)",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "EWS"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A cytogenetic abnormality that refers to the translocation of the short arm (p22) of chromosome 7 and the long arm (q12) of chromosome 22.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CPTAC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "PCDC"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "t_7_22_p22_q12"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Cell or Molecular Dysfunction"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1515787"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C3420",
+     "name": "Chromosomal Translocation"
+    },
+    {
+     "code": "C150479",
+     "name": "Chromosome 7 Rearrangement"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C156953",
+     "relatedName": "CPTAC Baseline Medical Forms Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C159414",
+     "relatedName": "CPTAC Sarcoma Baseline Form"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C156952",
+     "relatedName": "CPTAC Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C174237",
+     "relatedName": "EWS Authorized Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C174252",
+     "relatedName": "EWS Molecular Analysis Table"
+    },
+    {
+     "code": "A28",
+     "type": "Is_PCDC_EWS_Authorized_Value_For_Variable",
+     "relatedCode": "C3910",
+     "relatedName": "Molecular Abnormality"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R173",
+     "type": "Cytogenetic_Abnormality_Involves_Chromosome",
+     "relatedCode": "C13218",
+     "relatedName": "Human Chromosome 22"
+    },
+    {
+     "code": "R173",
+     "type": "Cytogenetic_Abnormality_Involves_Chromosome",
+     "relatedCode": "C13223",
+     "relatedName": "Human Chromosome 7"
+    }
+   ],
+   "history": [
+    {
+     "code": "C36368",
+     "action": "create",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C36368",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C36368",
+     "action": "modify",
+     "date": "2011-07-11"
+    },
+    {
+     "code": "C36368",
+     "action": "modify",
+     "date": "2014-02-03"
+    },
+    {
+     "code": "C36368",
+     "action": "modify",
+     "date": "2018-05-29"
+    },
+    {
+     "code": "C36368",
+     "action": "modify",
+     "date": "2019-02-25"
+    },
+    {
+     "code": "C36368",
+     "action": "modify",
+     "date": "2019-04-29"
+    },
+    {
+     "code": "C36368",
+     "action": "modify",
+     "date": "2019-05-28"
+    },
+    {
+     "code": "C36368",
+     "action": "modify",
+     "date": "2019-06-24"
+    },
+    {
+     "code": "C36368",
+     "action": "modify",
+     "date": "2019-07-29"
+    },
+    {
+     "code": "C36368",
+     "action": "modify",
+     "date": "2020-03-30"
+    },
+    {
+     "code": "C36368",
+     "action": "modify",
+     "date": "2020-10-26"
+    },
+    {
+     "code": "C36368",
+     "action": "modify",
+     "date": "2020-11-30"
+    },
+    {
+     "code": "C36368",
+     "action": "modify",
+     "date": "2020-12-28"
+    },
+    {
+     "code": "C36368",
+     "action": "modify",
+     "date": "2021-06-28"
+    },
+    {
+     "code": "C36368",
+     "action": "modify",
+     "date": "2022-04-25"
+    },
+    {
+     "code": "C36368",
+     "action": "modify",
+     "date": "2022-10-31"
+    },
+    {
+     "code": "C36368",
+     "action": "modify",
+     "date": "2023-02-27"
+    }
+   ]
+  }
+ }
+}

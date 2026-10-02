@@ -1,0 +1,208 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C36779",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C36779",
+   "name": "Malignant Epithelial Cell",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Carcinoma Cell",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Malignant Epithelial Cell",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Malignant Epithelial Cell",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Malignant_Epithelial_Cell"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Cell"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1518174"
+    }
+   ],
+   "children": [
+    {
+     "code": "C36773",
+     "name": "Adenocarcinoma Cell",
+     "leaf": false
+    },
+    {
+     "code": "C12959",
+     "name": "Breast Cancer Cell",
+     "leaf": true
+    },
+    {
+     "code": "C62500",
+     "name": "Malignant Apocrine Cell",
+     "leaf": false
+    },
+    {
+     "code": "C62227",
+     "name": "Malignant Basaloid Cell",
+     "leaf": false
+    },
+    {
+     "code": "C62177",
+     "name": "Malignant Cuboidal Epithelial Cell",
+     "leaf": true
+    },
+    {
+     "code": "C62499",
+     "name": "Malignant Eccrine Cell",
+     "leaf": false
+    },
+    {
+     "code": "C36929",
+     "name": "Malignant Endocrine Cell",
+     "leaf": false
+    },
+    {
+     "code": "C54589",
+     "name": "Malignant Epithelial Cell with Ground Glass Cytoplasm",
+     "leaf": true
+    },
+    {
+     "code": "C36784",
+     "name": "Malignant Epithelial Clear Cell",
+     "leaf": false
+    },
+    {
+     "code": "C36822",
+     "name": "Malignant Epithelial Large Cell",
+     "leaf": false
+    },
+    {
+     "code": "C61002",
+     "name": "Malignant Epithelial Medium-Sized Polygonal Cell",
+     "leaf": true
+    },
+    {
+     "code": "C60991",
+     "name": "Malignant Epithelial Oval Cell",
+     "leaf": false
+    },
+    {
+     "code": "C36795",
+     "name": "Malignant Epithelial Small Cell",
+     "leaf": false
+    },
+    {
+     "code": "C37109",
+     "name": "Malignant Epithelial Spindle Cell",
+     "leaf": false
+    },
+    {
+     "code": "C54245",
+     "name": "Malignant Hyperchromatic Epithelial Cell",
+     "leaf": false
+    },
+    {
+     "code": "C36780",
+     "name": "Malignant Myoepithelial Cell",
+     "leaf": true
+    },
+    {
+     "code": "C47808",
+     "name": "Malignant Squamoid Cell",
+     "leaf": true
+    },
+    {
+     "code": "C36771",
+     "name": "Malignant Squamous Cell",
+     "leaf": false
+    },
+    {
+     "code": "C36778",
+     "name": "Malignant Transitional Cell",
+     "leaf": false
+    },
+    {
+     "code": "C68658",
+     "name": "Malignant Trophoblastic Cell",
+     "leaf": false
+    },
+    {
+     "code": "C54219",
+     "name": "Mucin-Producing Malignant Epithelial Cell",
+     "leaf": false
+    },
+    {
+     "code": "C37170",
+     "name": "Pleomorphic Epithelial Cell",
+     "leaf": false
+    },
+    {
+     "code": "C37085",
+     "name": "Undifferentiated Carcinoma Cell",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C36807",
+     "name": "Dysplastic Epithelial Cell"
+    },
+    {
+     "code": "C12917",
+     "name": "Malignant Cell"
+    }
+   ],
+   "history": [
+    {
+     "code": "C36779",
+     "action": "create",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C36779",
+     "action": "modify",
+     "date": "2006-05-26"
+    },
+    {
+     "code": "C36779",
+     "action": "modify",
+     "date": "2009-11-23"
+    }
+   ]
+  }
+ }
+}

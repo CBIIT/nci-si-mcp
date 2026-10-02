@@ -1,0 +1,377 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-02",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C27214",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C27214",
+   "name": "t(11;22)(q24;q12)",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": true,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "t(11;22)(q24;q12) (Ewing sarcoma)",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CPTAC"
+    },
+    {
+     "name": "t(11;22)(q24;q12)",
+     "termType": "DN",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTRP"
+    },
+    {
+     "name": "t(11;22) (q24;q12)",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "t(11;22) EWS-FLI1",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "t(11;22)(q24;q12)",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "t(11;22)(q24;q12)(EWS/FLI-1)",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "t(11;22)(q24;q12)",
+     "type": "Display_Name",
+     "typeCode": "P107"
+    },
+    {
+     "name": "t(11;22)(q24;q12)",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    },
+    {
+     "name": "t(11;22)(q24;q12)",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "EWS"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A chromosomal translocation involving the FLI1 gene on chromosome 11q24 and the EWSR1 gene on chromosome 22q12.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CPTAC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTRP"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "PCDC"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "t_11_22_q24_q12_EWS-FLI1"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Cell or Molecular Dysfunction"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C1515713"
+    }
+   ],
+   "parents": [
+    {
+     "code": "C133693",
+     "name": "11q Translocation"
+    },
+    {
+     "code": "C128648",
+     "name": "EWSR1 Gene Translocation"
+    },
+    {
+     "code": "C186860",
+     "name": "FLI1 Gene Rearrangement"
+    },
+    {
+     "code": "C128642",
+     "name": "t(11;22)"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C156953",
+     "relatedName": "CPTAC Baseline Medical Forms Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C159414",
+     "relatedName": "CPTAC Sarcoma Baseline Form"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C156952",
+     "relatedName": "CPTAC Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142799",
+     "relatedName": "CTRP Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C142800",
+     "relatedName": "CTRP Molecular Genetic Biomarker Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C116977",
+     "relatedName": "CTRP Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C174237",
+     "relatedName": "EWS Authorized Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C174252",
+     "relatedName": "EWS Molecular Analysis Table"
+    },
+    {
+     "code": "A28",
+     "type": "Is_PCDC_EWS_Authorized_Value_For_Variable",
+     "relatedCode": "C3910",
+     "relatedName": "Molecular Abnormality"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C18326",
+     "relatedName": "ETS Family Gene"
+    },
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C18322",
+     "relatedName": "EWSR1 Gene"
+    },
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C99202",
+     "relatedName": "EWSR1/FLI1 Fusion Gene"
+    },
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C186676",
+     "relatedName": "FET Family Gene"
+    },
+    {
+     "code": "R177",
+     "type": "Molecular_Abnormality_Involves_Gene",
+     "relatedCode": "C18321",
+     "relatedName": "FLI1 Gene"
+    },
+    {
+     "code": "R173",
+     "type": "Cytogenetic_Abnormality_Involves_Chromosome",
+     "relatedCode": "C13206",
+     "relatedName": "Human Chromosome 11"
+    },
+    {
+     "code": "R173",
+     "type": "Cytogenetic_Abnormality_Involves_Chromosome",
+     "relatedCode": "C13218",
+     "relatedName": "Human Chromosome 22"
+    }
+   ],
+   "history": [
+    {
+     "code": "C27214",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2003-09-29"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2003-10-31"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C27214",
+     "action": "merge",
+     "date": "2007-04-30",
+     "replacementCode": "C27214",
+     "replacementName": "t(11;22)(q24;q12)"
+    },
+    {
+     "code": "C36316",
+     "action": "merge",
+     "date": "2007-04-30",
+     "replacementCode": "C27214",
+     "replacementName": "t(11;22)(q24;q12)"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2011-07-11"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2014-02-03"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2019-02-25"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2019-04-29"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2019-05-28"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2019-06-24"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2019-07-29"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2020-03-30"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2020-10-26"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2020-11-30"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2020-12-28"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2021-06-28"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2021-11-29"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2022-04-25"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2022-10-31"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2023-02-27"
+    },
+    {
+     "code": "C27214",
+     "action": "modify",
+     "date": "2025-10-27"
+    }
+   ]
+  }
+ }
+}

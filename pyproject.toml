@@ -99,6 +99,7 @@ fmt = "ruff format ."
 # otherwise), and the harness's own tests with its coverage minimum.
 acceptance = { cmd = "pytest", working_dir = "acceptance" }
 acceptance-selftest = { cmd = "pytest selftests --cov --cov-report=term-missing", working_dir = "acceptance" }
+acceptance-record = "python -m nci_si_acceptance.record"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,0 +1,224 @@
+# The fixture set: its pin, the concept rules, the licence deny list, and what
+# `pdm run acceptance-record` records (fixtures/README.md). Re-pinning the release is a
+# re-recording under change control (MCP Behavioral Acceptance Suite §2.2).
+
+evs:
+  release: ncit_26.09d
+  # The concept rules (concepts.py). The include table was read from EVS on
+  # 2 October 2026: each value adds these keys to the base, and `full` is the union
+  # of the others; `paths`, `descendants` and `disjointWith` are not in it, so a
+  # request for them goes unanswered.
+  concepts:
+    base: [code, name, terminology, version, conceptStatus, leaf, active]
+    default: summary
+    include:
+      minimal: []
+      summary: [synonyms, definitions, properties]
+      synonyms: [synonyms]
+      definitions: [definitions]
+      properties: [properties]
+      parents: [parents]
+      children: [children]
+      roles: [roles]
+      inverseRoles: [inverseRoles]
+      associations: [associations]
+      inverseAssociations: [inverseAssociations]
+      maps: [maps]
+      history: [history]
+      full: [synonyms, definitions, properties, parents, children, roles, inverseRoles,
+             associations, inverseAssociations, maps, history]
+    # The relation lists answered on their own, /api/v1/concept/{terminology}/{code}/{relation}
+    # (MCP API Specification §10 OP-E10, E11, E14 to E17, E20).
+    relations: [parents, children, roles, inverseRoles, associations, inverseAssociations, maps]
+
+# The base URL of each recorded surface; a fixture's path is relative to it.
+surfaces:
+  evs: https://api-evsrest.nci.nih.gov
+  evs-fhir: https://api-evsrest.nci.nih.gov/fhir/r4
+
+# Licensed content is never recorded (licensing.py; EVS SOW v2.1 item 2). The check fails
+# closed: a terminology a payload names that is on neither list stops the recording.
+licensing:
+  # The terminologies whose EVS metadata (licenseText) requires a licence beyond EVS, by
+  # every name EVS gives them, and ICD-O-3, withheld while its terms are unsettled.
+  # Their FHIR system URIs are listed with them.
+  licensed: [mdr, MedDRA, snomedct_us, SNOMEDCT, icd10, ncim, ICDO3,
+             "https://www.meddra.org", "http://snomed.info/sct", "http://hl7.org/fhir/sid/icd-10",
+             "https://ncim.nci.nih.gov/ncimbrowser/"]
+  # NCIt itself, by its EVS name and FHIR system URI, and the sources NCIt's own synonyms
+  # and definitions name, published under NCIt's terms.
+  allowed: [ncit, "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+            ACC/AHA, CCPS, CDC, CDISC, CDISC-GLOSS, CPTAC, CTCAE, CTDC, CTEP, CTRP, Cellosaurus,
+            DIPG/DMG, FDA, GDC, HGNC, HemOnc, ICDC, NCI, NCI-GLOSS, NICHD, OORO, PCDC, SeroNet,
+            caDSR, mCode]
+  # The mapsets with a licensed terminology on either side.
+  mapsets:
+    - NCIt_Maps_To_MedDRA
+    - ICD10_to_MedDRA_Mapping
+    - SNOMEDCT_US_2026_03_01_to_ICD10CM_2026_Mappings
+    - SNOMEDCT_US_2026_03_01_to_ICD10_2016_Mappings
+    - NCIt_Maps_To_ICD10
+    - NCIt_Maps_To_ICDO3
+    - ICDO_TO_NCI_MORPHOLOGY
+    - ICDO_TO_NCI_TOPOGRAPHY
+    - ICDO_TO_NCI_AXIS
+
+record:
+  requests:
+    # Release resolution: the listing, and the one-row query per channel (SPEC §3.3).
+    - fixture: recorded/evs/version.json
+      surface: evs
+      path: /api/v1/version
+    - fixture: recorded/evs/terminologies.json
+      surface: evs
+      path: /api/v1/metadata/terminologies
+    - fixture: recorded/evs/release-monthly.json
+      surface: evs
+      path: /api/v1/metadata/terminologies?terminology=ncit&latest=true&tag=monthly
+    - fixture: recorded/evs/release-weekly.json
+      surface: evs
+      path: /api/v1/metadata/terminologies?terminology=ncit&latest=true&tag=weekly
+    # The relationship catalogue of the pinned release.
+    - fixture: recorded/evs/roles.json
+      surface: evs
+      path: /api/v1/metadata/ncit_26.09d/roles
+    - fixture: recorded/evs/associations.json
+      surface: evs
+      path: /api/v1/metadata/ncit_26.09d/associations
+    # Search: lexical, typeahead, a page after the first, and a query matching nothing.
+    - fixture: recorded/evs/search-contains.json
+      surface: evs
+      path: /api/v1/concept/ncit_26.09d/search?term=ewing sarcoma&type=contains&include=minimal,highlights&fromRecord=0&pageSize=10
+    - fixture: recorded/evs/search-contains-page-2.json
+      surface: evs
+      path: /api/v1/concept/ncit_26.09d/search?term=ewing sarcoma&type=contains&include=minimal,highlights&fromRecord=10&pageSize=10
+    - fixture: recorded/evs/search-starts-with.json
+      surface: evs
+      path: /api/v1/concept/ncit_26.09d/search?term=ewing&type=startsWith&include=minimal,highlights&fromRecord=0&pageSize=10
+    - fixture: recorded/evs/search-no-match.json
+      surface: evs
+      path: /api/v1/concept/ncit_26.09d/search?term=qqxyzzyqq&type=contains&include=minimal,highlights&fromRecord=0&pageSize=10
+    # Hierarchy.
+    - fixture: recorded/evs/paths-to-root.json
+      surface: evs
+      path: /api/v1/concept/ncit_26.09d/C4817/pathsToRoot?include=minimal
+    # Retired codes: one retired and one active (OP-E21), and the batch of both.
+    - fixture: recorded/evs/replacement-retired.json
+      surface: evs
+      path: /api/v1/history/ncit_26.09d/C154421/replacements
+    - fixture: recorded/evs/replacement-active.json
+      surface: evs
+      path: /api/v1/history/ncit_26.09d/C4817/replacements
+    - fixture: recorded/evs/replacements-retired.json
+      surface: evs
+      path: /api/v1/history/ncit_26.09d/replacements?list=C154421
+    - fixture: recorded/evs/replacements-active.json
+      surface: evs
+      path: /api/v1/history/ncit_26.09d/replacements?list=C4817
+    - fixture: recorded/evs/replacements-both.json
+      surface: evs
+      path: /api/v1/history/ncit_26.09d/replacements?list=C154421,C4817
+    # Subsets: the GDC Value Terminology, unpinned (the pinned form is crafted under
+    # `derived`) and the first page of its members.
+    - fixture: recorded/evs/subset-gdc-unpinned.json
+      surface: evs
+      path: /api/v1/subset/ncit/C177537
+    - fixture: recorded/evs/subset-gdc-members.json
+      surface: evs
+      path: /api/v1/subset/ncit_26.09d/C177537/members?fromRecord=0&pageSize=10&include=minimal
+    # Mapsets: the listing (names and metadata only) and the GDC mapset.
+    - fixture: recorded/evs/mapsets.json
+      surface: evs
+      path: /api/v1/mapset
+    - fixture: recorded/evs/mapset-gdc.json
+      surface: evs
+      path: /api/v1/mapset/NCIt_Maps_To_GDC
+    # Its maps (issue #6: the cross-domain tests need them), by a GDC value and by a
+    # concept code; `term` matches as a prefix (C4817 also finds C48177).
+    - fixture: recorded/evs/mapset-gdc-maps-value.json
+      surface: evs
+      path: /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=Ewing sarcoma&fromRecord=0&pageSize=10
+    - fixture: recorded/evs/mapset-gdc-maps-code.json
+      surface: evs
+      path: /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C4817&fromRecord=0&pageSize=10
+    # A value set of 534 members (CDISC SDTM Method Terminology) through FHIR $expand.
+    - fixture: recorded/evs-fhir/expand-c85492.json
+      surface: evs-fhir
+      path: /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492
+      ignored:
+        count: &expand-ignores >-
+          Verified 2 October 2026: count, offset and activeOnly leave the expansion
+          unchanged (534 members, total 534); only expansion.parameter echoes them
+        offset: *expand-ignores
+        activeOnly: *expand-ignores
+
+  # Crafted fixtures for the form a requirement prescribes where EVS does not yet answer
+  # it, each carrying the answer of a recording (Acceptance Suite §2.1): the live run shows
+  # the gap.
+  derived:
+    - fixture: crafted/OP-E06/subset-gdc.json
+      from: recorded/evs/subset-gdc-unpinned.json
+      path: /api/v1/subset/ncit_26.09d/C177537
+      requirement: >-
+        OP-E06: every content path accepts {terminology}_{release}. EVS answered this
+        pinned path with 404 "Subset not found" on 2 October 2026
+    - fixture: crafted/OP-F05/expand-c85492.json
+      from: recorded/evs-fhir/expand-c85492.json
+      path: /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492&system-version=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl|26.09d
+      requirement: >-
+        OP-F05: $expand pinned by system-version. EVS answered "Input parameter
+        'system-version' is not supported" (400) on 2 October 2026
+      ignored:
+        count: *expand-ignores
+        offset: *expand-ignores
+        activeOnly: *expand-ignores
+
+  # Concepts, by the include each is recorded at (concepts.py).
+  concepts:
+    # Ewing sarcoma, the batch of the Platform API Specification's E-5 example, and a
+    # retired code.
+    full: [C4817, C17049, C41259, C154421]
+    # The depth-1 neighbourhood of C4817 over every relation. Without the inverse
+    # lists, which run to megabytes for the subset and cell concepts among them.
+    summary,parents,children,roles,associations,maps,history:
+      [C116977, C118168, C118464, C12578, C126659, C12917, C12922, C12950, C12964, C13054,
+       C132849, C138188, C138190, C142853, C156952, C156966, C157711, C158520, C165258, C165667,
+       C165668, C168655, C168656, C168657, C168658, C168661, C168662, C174456, C176985, C177537,
+       C177615, C177621, C178243, C178457, C178458, C18322, C189002, C189762, C202904, C21513,
+       C227412, C27214, C27291, C2869, C3038, C34222, C35380, C35942, C36105, C36115, C36122,
+       C36184, C36367, C36368, C36369, C36616, C36779, C37224, C37229, C37230, C37231, C37249,
+       C37250, C37251, C37252, C45455, C45714, C4835, C53487, C53665, C53667, C53978, C53980,
+       C54105, C7135, C7806, C7807, C7808, C8495, C90259, C9118, C9292, C99202, C99211, C99226,
+       C99259, C99262, C99281]
+
+  # Real projections and batches the composed answers are checked against.
+  samples:
+    - /api/v1/concept/ncit_26.09d/C4817
+    - /api/v1/concept/ncit_26.09d/C4817?include=minimal
+    - /api/v1/concept/ncit_26.09d/C4817?include=summary
+    - /api/v1/concept/ncit_26.09d/C4817?include=full
+    - /api/v1/concept/ncit_26.09d/C4817?include=synonyms
+    - /api/v1/concept/ncit_26.09d/C4817?include=definitions
+    - /api/v1/concept/ncit_26.09d/C4817?include=properties
+    - /api/v1/concept/ncit_26.09d/C4817?include=parents
+    - /api/v1/concept/ncit_26.09d/C4817?include=children
+    - /api/v1/concept/ncit_26.09d/C4817?include=roles
+    - /api/v1/concept/ncit_26.09d/C4817?include=inverseRoles
+    - /api/v1/concept/ncit_26.09d/C4817?include=associations
+    - /api/v1/concept/ncit_26.09d/C4817?include=inverseAssociations
+    - /api/v1/concept/ncit_26.09d/C4817?include=maps
+    - /api/v1/concept/ncit_26.09d/C4817?include=history
+    - /api/v1/concept/ncit_26.09d/C4817?include=summary,parents,children,roles,inverseRoles,associations,inverseAssociations
+    - /api/v1/concept/ncit_26.09d?list=C4817,C17049,C41259&include=summary
+    - /api/v1/concept/ncit_26.09d?list=C41259,C4817,C17049,C4817&include=minimal
+    - /api/v1/concept/ncit_26.09d?list=C4835,C7135,C7806,C7807,C7808,C132849&include=summary,children
+    - /api/v1/concept/ncit_26.09d?list=C9118,C27291&include=parents,roles,associations
+    - /api/v1/concept/ncit_26.09d/C4817/parents
+    - /api/v1/concept/ncit_26.09d/C4817/children
+    - /api/v1/concept/ncit_26.09d/C4817/roles
+    - /api/v1/concept/ncit_26.09d/C4817/inverseRoles
+    - /api/v1/concept/ncit_26.09d/C4817/associations
+    - /api/v1/concept/ncit_26.09d/C4817/inverseAssociations
+    - /api/v1/concept/ncit_26.09d/C4817/maps
+    - /api/v1/concept/ncit_26.09d/C154421/children
+    - /api/v1/concept/ncit_26.09d/C7806/roles
