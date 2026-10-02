@@ -82,7 +82,7 @@ A9:
   title: The lean module
   rules:
     A9.1: The module is a thin interface over its platform; it returns results unmodified in substance.
-    A9.2: Without a written amendment naming the capability, the module keeps no embeddings, search index or persistent copy of platform content, computes no ranking or score, and derives no content (the interim NCIt index is that amendment, MCP API §5.5).
+    A9.2: Without a written amendment naming the capability, the module keeps no embeddings, search index or persistent copy of platform content, computes no ranking or score, and derives no content (the interim NCIt index is that amendment, M4.1).
     A9.3: A capability that needs more is a platform dependency, recorded as such.
     A9.4: Request-scoped caching and caching bound to a release under A3.4 are allowed.
     A9.5: An absent platform capability is shown to the caller, never compensated for silently.
@@ -90,6 +90,7 @@ A9:
 A10:
   title: Joint conformance and acceptance
   rules:
+    # A10.2 assigns responsibility for the joint test between contracts; it stays in Part 6.
     A10.1: A joint conformance test spans both modules and checks A1.2, A3, A4, A5.4 and correlation propagation.
     A10.3: No tool description contains placeholder text or an unsupported operator, parameter or syntax example.
     A10.4: Response-time criteria are relative to the platform's capability at delivery.
@@ -105,7 +106,8 @@ M1:
     M1.1: Each tool description stands alone, naming its domain, its object and how it pins a release, without reference to another tool.
     M1.2: The tool surface does not vary with the terminology, the release pinned or what the platform offers today; a capability not yet available is a tool returning a structured unavailable error, never an absent tool.
     M1.3: Each tool's group (terminology, metadata, cross-domain, workflow) is carried in its metadata.
-    M1.4: Every tool declares the read-only annotations readOnlyHint true, destructiveHint false, idempotentHint true and openWorldHint true (owner decision, 2 October 2026).
+    # M1.4: owner decision, 2 October 2026.
+    M1.4: Every tool declares the read-only annotations readOnlyHint true, destructiveHint false, idempotentHint true and openWorldHint true.
 M2:
   title: Caching hints
   rules:

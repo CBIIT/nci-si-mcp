@@ -353,7 +353,7 @@ def license_restricted(_: Recorded) -> Documents:
     """With the licence key from configuration, a licensed concept is served; without
     it, EVS's refusal (recorded by record.py) answers."""
 
-    requirement = "E-7, SOW v2 §6-§7: the licence key sent from configuration"
+    requirement = "E-7, A7.5: the licence key sent from configuration"
     request = {
         "surface": "evs",
         "method": "GET",

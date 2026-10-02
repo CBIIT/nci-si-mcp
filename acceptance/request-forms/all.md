@@ -153,8 +153,8 @@ A closed connection, then 503, then no answer within the timeout. Crafted, 3 fix
 
 ### `license/restricted`
 
-403 without the licence key; invented content with it. Recorded. Crafted, 1 fixture, for E-7, SOW v2 §6-§7: the licence key sent from configuration.
+403 without the licence key; invented content with it. Recorded. Crafted, 1 fixture, for E-7, A7.5: the licence key sent from configuration.
 
 | Operation | Request | Expected | Rationale | Fixture |
 |---|---|---|---|---|
-| SOW v2 §6-§7 | `GET evs /api/v1/concept/mdr_29_0/10000000?include=summary` | 403; every parameter ignored | EVS refuses mdr without the X-EVSRESTAPI-License-Key header (403). | `scenarios/license/restricted/refused.json` |
+| A7.5 | `GET evs /api/v1/concept/mdr_29_0/10000000?include=summary` | 403; every parameter ignored | EVS refuses mdr without the X-EVSRESTAPI-License-Key header (403). | `scenarios/license/restricted/refused.json` |

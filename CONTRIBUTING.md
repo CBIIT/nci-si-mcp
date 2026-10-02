@@ -24,6 +24,7 @@ pdm run pre-commit install     # run the gates on every commit
 | `pdm run pre-commit run --all-files` | Every hook, as the CI `quality` job runs them |
 | `pdm run acceptance` | The acceptance suite against the server ([acceptance/README.md](acceptance/README.md)) |
 | `pdm run spec-render` | Regenerate [docs/specification.md](docs/specification.md) from `spec/`, after any change there |
+| `pandoc -f gfm docs/specification.md -o specification.docx` | The Word copy of the specification, a build product: never committed or edited |
 
 The tests are `unittest.TestCase` classes, run by pytest. None contacts EVS: `FakeEVS` in
 `tests/fakes.py` stands in for the client, and the client's own tests replace `urlopen`.

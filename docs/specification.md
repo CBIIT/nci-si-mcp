@@ -109,7 +109,7 @@ Binding on every tool.
 | Id | Convention |
 |---|---|
 | A9.1 | The module is a thin interface over its platform; it returns results unmodified in substance. |
-| A9.2 | Without a written amendment naming the capability, the module keeps no embeddings, search index or persistent copy of platform content, computes no ranking or score, and derives no content (the interim NCIt index is that amendment, MCP API §5.5). |
+| A9.2 | Without a written amendment naming the capability, the module keeps no embeddings, search index or persistent copy of platform content, computes no ranking or score, and derives no content (the interim NCIt index is that amendment, M4.1). |
 | A9.3 | A capability that needs more is a platform dependency, recorded as such. |
 | A9.4 | Request-scoped caching and caching bound to a release under A3.4 are allowed. |
 | A9.5 | An absent platform capability is shown to the caller, never compensated for silently. |
@@ -138,7 +138,7 @@ Binding on every tool.
 | M1.1 | Each tool description stands alone, naming its domain, its object and how it pins a release, without reference to another tool. |
 | M1.2 | The tool surface does not vary with the terminology, the release pinned or what the platform offers today; a capability not yet available is a tool returning a structured unavailable error, never an absent tool. |
 | M1.3 | Each tool's group (terminology, metadata, cross-domain, workflow) is carried in its metadata. |
-| M1.4 | Every tool declares the read-only annotations readOnlyHint true, destructiveHint false, idempotentHint true and openWorldHint true (owner decision, 2 October 2026). |
+| M1.4 | Every tool declares the read-only annotations readOnlyHint true, destructiveHint false, idempotentHint true and openWorldHint true. |
 
 ### M2 · Caching hints
 
@@ -167,6 +167,34 @@ Binding on every tool.
 | Id | Convention |
 |---|---|
 | M5.1 | The furnished prompt templates and resources are listed by prompts/list and resources/list with their arguments, and a prompt names only tools present in the profile. |
+
+### The provenance record
+
+Every returned item carries one, beside its identifier and status, which are fields of the item (A4.1, A4.4). Field names are camelCase.
+
+| Field | Content | Rule |
+|---|---|---|
+| `release` | The release in effect: { terminology \| registry, identifier, date } | A3.3 |
+| `source` | The surface that supplied the item: one of `evs_rest`, `evs_fhir`, `evs_index`, `cadsr_rest`, `ssis_facade`, `ssis_sparql` | A4.1 |
+| `servedBy` | Where the answer came from: one of `live`, `cache`, `index`, `fixture` | A4.1 |
+| `retrievedAt` | When it was retrieved, ISO-8601 | A4.1 |
+| `sourceUri` | The upstream URL that produced the item | A4.1 |
+| `correlationId` | The call's correlation identifier | A6.2 |
+| `graphs` | For items served by the Shared SI Service: the identifier and date of each graph touched | A1.5 |
+| `upstream` | The fields the platform supplied, passed through unchanged | A4.3 |
+
+### The provenance record of an item reached by traversal
+
+The provenance record, with these fields added (A4.2).
+
+| Field | Content | Rule |
+|---|---|---|
+| `depth` | Steps from the concept the caller asked about | A4.2 |
+| `relationship` | The relationship that brought the item in: { code, name, kind }; the code decides polarity | A5.7 |
+| `direction` | Whether the assertion points outward from the origin or inward to it | A4.2 |
+| `polarity` | Positive or negative: one of `positive`, `negative` | A5.6 |
+| `qualifiers` | Any qualifying detail the platform attaches | A4.2 |
+| `evidence` | Supporting evidence, where the platform supplies it | A4.2 |
 
 ## 2. Tools
 
@@ -246,8 +274,8 @@ Binding on every tool.
 | X-4 | A query that legitimately matches nothing returns an empty result with provenance, not an error. | A2.5, A2.6, M3.2 | — | planned #52 |
 | X-5 | An upstream failure, including one masked as a successful response, is an upstream error, never an empty success. | A2.5, M3.2 | — | planned #52 |
 | X-6 | structuredContent validates against the tool's declared outputSchema, for successes and errors alike. | M3.1 | — | planned #52 |
-| X-7 | Every item carries release, source surface, retrieval time and servedBy, and, where reached by traversal, depth, relationship, direction and polarity. | A4.1, A4.2, A4.4 | — | planned #52 |
-| X-8 | Fields the upstream supplied appear unchanged in provenance; none is dropped or renamed. | A4.3 | — | planned #52 |
+| X-7 | Every item carries release, source surface, retrieval time and servedBy, and, where reached by traversal, depth, relationship, direction and polarity. | A4.1, A4.2, A4.4, provenance, traversal | — | planned #52 |
+| X-8 | Fields the upstream supplied appear unchanged in provenance; none is dropped or renamed. | A4.3, provenance | — | planned #52 |
 | X-9 | A code is returned bare, with its terminology in a separate field; never with an embedded prefix or as a URI. | A1.2, A1.3 | — | planned #52 |
 | X-10 | With a caller limit smaller than the result, truncation is reported with the bound reached and the magnitude omitted. | A5.1, A5.4 | — | planned #52 |
 | X-11 | No upstream endpoint is called twice with identical parameters within one tool call. | A5.8 | — | planned #52 |
@@ -319,9 +347,15 @@ required tool one outcome:
 | NO TESTS | The suite has no test for the tool: a defect of the suite |
 | NOT IMPLEMENTED | The server exposes the tool neither by name nor through the baseline tool map (the Prototype Baseline Assessment) |
 
-A module is accepted when no tool is FAIL and the gates pass. Every report names the suite
-version, the fixture-set version, a digest over the suite, and the tools whose tests have never
-run against an implementation.
+An upstream limitation excuses a failing live test only test by test, each with its
+requirement named, and each such limitation is an entry in the upstream requirements package. A
+gate that fails live fails every tool, as a failing live test does. A module is accepted when no
+tool is FAIL and the gates pass. Every report names the suite version, the fixture-set version,
+a digest over the suite, and the tools whose tests have never run against an implementation.
+
+The Prototype Baseline Assessment reads the outcomes of a run against the furnished prototype:
+a tool that passes is a reuse candidate, one that fails or is INCOMPLETE a hardening candidate,
+and one NOT IMPLEMENTED new development.
 
 The suite does not test response time and throughput (the benchmark), the ranking quality of
 semantic search (the retrieval evaluation set), security controls (the contractor's security

@@ -76,11 +76,11 @@ X-6:
   planned: "#52"
 X-7:
   statement: Every item carries release, source surface, retrieval time and servedBy, and, where reached by traversal, depth, relationship, direction and polarity.
-  basis: [A4.1, A4.2, A4.4]
+  basis: [A4.1, A4.2, A4.4, provenance, traversal]
   planned: "#52"
 X-8:
   statement: Fields the upstream supplied appear unchanged in provenance; none is dropped or renamed.
-  basis: [A4.3]
+  basis: [A4.3, provenance]
   planned: "#52"
 X-9:
   statement: A code is returned bare, with its terminology in a separate field; never with an embedded prefix or as a URI.

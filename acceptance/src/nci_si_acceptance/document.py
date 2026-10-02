@@ -19,7 +19,7 @@ from typing import Any
 import pytest
 
 from nci_si_acceptance.requirements import citations, load_requirements
-from nci_si_acceptance.spec import CONVENTIONS, SPEC, TOOLS
+from nci_si_acceptance.spec import CONVENTIONS, RECORDS, SPEC, TOOLS
 
 DOCUMENT = SPEC.parent / "docs" / "specification.md"
 SUITE = Path(__file__).parents[2] / "tests"
@@ -49,7 +49,23 @@ def _conventions() -> list[str]:
         rows = [f"| {rule} | {_cell(text)} |" for rule, text in section["rules"].items()]
         lines += [f"### {key} · {section['title']}", "", "| Id | Convention |", "|---|---|"]
         lines += [*rows, ""]
-    return lines
+    return lines + [line for record in RECORDS.values() for line in _record(record)]
+
+
+def _values(field: dict[str, Any]) -> str:
+    values = field.get("values")
+    return f": one of {', '.join(f'`{value}`' for value in values)}" if values else ""
+
+
+def _record(record: dict[str, Any]) -> list[str]:
+    """A record of the specification as a table of its fields."""
+
+    rows = [
+        f"| `{name}` | {_cell(field['content'])}{_values(field)} | {field['of']} |"
+        for name, field in record["fields"].items()
+    ]
+    header = [f"### {record['title']}", "", _cell(record["about"]), ""]
+    return [*header, "| Field | Content | Rule |", "|---|---|---|", *rows, ""]
 
 
 def _tool_row(name: str, tool: dict[str, Any]) -> str:
@@ -71,7 +87,7 @@ def _tools() -> list[str]:
 
 
 def _status(key: str, entry: dict[str, Any], tests: dict[str, list[str]]) -> str:
-    cited = "<br>".join(f"`{test}`" for test in tests.get(key, []))
+    cited = ", ".join(f"`{test}`" for test in tests.get(key, []))
     planned = f"planned {entry['planned']}" if "planned" in entry else ""
     return " | ".join([cited or "—", planned or "tested"])
 

@@ -1,0 +1,59 @@
+# The records every tool returns in the same shape, field by field. A field's `values` are
+# the closed set it takes; `of` names the rule that requires it. Rendered with the
+# conventions (docs/specification.md §1).
+
+provenance:
+  title: The provenance record
+  about: >-
+    Every returned item carries one, beside its identifier and status, which are fields of the
+    item (A4.1, A4.4). Field names are camelCase.
+  fields:
+    release:
+      content: "The release in effect: { terminology | registry, identifier, date }"
+      of: A3.3
+    source:
+      content: The surface that supplied the item
+      values: [evs_rest, evs_fhir, evs_index, cadsr_rest, ssis_facade, ssis_sparql]
+      of: A4.1
+    servedBy:
+      content: Where the answer came from
+      values: [live, cache, index, fixture]
+      of: A4.1
+    retrievedAt:
+      content: When it was retrieved, ISO-8601
+      of: A4.1
+    sourceUri:
+      content: The upstream URL that produced the item
+      of: A4.1
+    correlationId:
+      content: The call's correlation identifier
+      of: A6.2
+    graphs:
+      content: "For items served by the Shared SI Service: the identifier and date of each graph touched"
+      of: A1.5
+    upstream:
+      content: The fields the platform supplied, passed through unchanged
+      of: A4.3
+traversal:
+  title: The provenance record of an item reached by traversal
+  about: The provenance record, with these fields added (A4.2).
+  fields:
+    depth:
+      content: Steps from the concept the caller asked about
+      of: A4.2
+    relationship:
+      content: "The relationship that brought the item in: { code, name, kind }; the code decides polarity"
+      of: A5.7
+    direction:
+      content: Whether the assertion points outward from the origin or inward to it
+      of: A4.2
+    polarity:
+      content: Positive or negative
+      values: [positive, negative]
+      of: A5.6
+    qualifiers:
+      content: Any qualifying detail the platform attaches
+      of: A4.2
+    evidence:
+      content: Supporting evidence, where the platform supplies it
+      of: A4.2

@@ -248,7 +248,7 @@ record:
     # license/restricted: EVS's refusal without the licence key; craft.py adds the answer
     # with it.
     - fixture: scenarios/license/restricted/refused.json
-      operation: SOW v2 §6-§7
+      operation: A7.5
       rationale: EVS refuses mdr without the X-EVSRESTAPI-License-Key header (403).
       surface: evs
       path: /api/v1/concept/mdr_29_0/10000000?include=summary

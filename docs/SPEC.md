@@ -1,4 +1,4 @@
-# Specification: from EVS-first prototype to the shared NCI Semantic Infrastructure MCP platform
+# Implementation plan: from EVS-first prototype to the shared NCI Semantic Infrastructure MCP platform
 
 **Status:** accepted for implementation · **Written:** 1 October 2026 · **Updated:** 2 October 2026, to the code on `main` after `v0.2.0` · **Furnished commit:** tagged when the owner furnishes it, after Phase 3 (§1.2, §11)
 
@@ -134,19 +134,7 @@ Serialisation: every tool handler returns a dataclass or raises a `PlatformError
 
 ### 3.2 Provenance (`platform/provenance.py`)
 
-Extend `models.py`'s per-concept fields into one `ProvenanceEnvelope` attached **per item** (A4.4):
-
-```
-release          { terminology|registry, identifier, date }         — EVS: "26.08e"; caDSR: export date + "no registry identifier"
-source           evs_rest | evs_fhir | evs_index | cadsr_rest | ssis_facade | ssis_sparql
-servedBy         live | cache | index | fixture
-retrievedAt      ISO-8601
-sourceUri        the upstream URL that produced the item
-correlationId
-graphs[]         for SSIS-served items: one entry per graph touched, each with identifier and date (A1.5, A3.7.1)
-```
-
-`TraversalProvenance` adds `depth`, `relationship {code, name, kind}`, `direction`, `polarity`, `qualifiers`, `evidence`. Fields the upstream supplies are passed through unchanged under `upstream` (A4.3). The `raw` payload is dropped from MCP results and kept only behind the CLI flag.
+Extend `models.py`'s per-concept fields into one `ProvenanceEnvelope` attached **per item** (A4.4), with the fields of the specification's provenance record (`spec/records.yaml`), and a `TraversalProvenance` adding those of its traversal record. For caDSR, `release` carries the export date and says that no registry identifier exists (A3.8.2). The `raw` payload is dropped from MCP results and kept only behind the CLI flag.
 
 `Truncation` carries `occurred`, `bound` (`results` | `depth` | `nodes` | `edges` | `requests` | `upstream_cap`), `limit`, `reached`, `omitted` (count or `unknown`), and `perKind` where traversal is involved (A5.4).
 
@@ -414,7 +402,7 @@ Because the suite and the tools are written by the same hands, two rules keep th
 
 ### 9.6 Request forms
 
-The fixtures use the request forms of the platform operations (the `OP-` ids of the programme's operation inventory), release-pinned; the generated register (`acceptance/request-forms/`) gives each form's operation and rationale, including where §10 and EVS differ. Where EVS does not yet answer the form a requirement prescribes, the ordinary fixture is crafted to the requirement and names it, and the live run shows the gap (*Acceptance Suite* §2.1). Two kinds of request are answered whatever their form:
+The fixtures use the request forms of the platform operations (the `OP-` ids of the programme's operation inventory), release-pinned; the generated register (`acceptance/request-forms/`) gives each form's operation and rationale, including where the inventory's form and EVS differ. Where EVS does not yet answer the form a requirement prescribes, the ordinary fixture is crafted to the requirement and names it, and the live run shows the gap (*Acceptance Suite* §2.1). Two kinds of request are answered whatever their form:
 
 - **EVS concepts.** One recording per concept answers every projection and relation list of that concept, and every batch is composed from the recordings of the concepts it names, through declared rules (`concepts.py`): project by `include` (the include-to-key table in the manifest; EVS's `include` is a clean key projection, verified 2 October 2026), select by `list` (each code once, unknown codes left out, in no particular order, since EVS keeps none), and one relation list on its own. `record.py` checks composed answers against real ones.
 - **Ignored parameters.** A parameter the service is shown to ignore is declared with its evidence and left out of the match.

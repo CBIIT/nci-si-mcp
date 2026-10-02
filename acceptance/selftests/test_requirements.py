@@ -145,6 +145,10 @@ def test_the_specification_document_is_what_spec_renders(pytester, monkeypatch):
     assert on_disk == render(citations(collect_suite(pytester, monkeypatch)))
     assert "| P-1 | tools/list names every tool" in on_disk
     assert (
+        "| `servedBy` | Where the answer came from: one of `live`, `cache`, `index`, `fixture`"
+        " | A4.1 |" in on_disk
+    )
+    assert (
         "`tests/test_protocol.py::test_tools_list_names_each_tool_with_its_input_schema`" in on_disk
     )
 
@@ -178,6 +182,8 @@ def test_the_required_tools_are_the_twenty_nine_of_four_groups():
         ("A3.6.1", True),
         ("M2.2", True),
         ("get_concept", True),
+        ("provenance", True),
+        ("traversal", True),
         ("A3.9", False),
         ("S-5", False),
         ("MCP API §8.2", False),

@@ -16,9 +16,15 @@ required tool one outcome:
 | NO TESTS | The suite has no test for the tool: a defect of the suite |
 | NOT IMPLEMENTED | The server exposes the tool neither by name nor through the baseline tool map (the Prototype Baseline Assessment) |
 
-A module is accepted when no tool is FAIL and the gates pass. Every report names the suite
-version, the fixture-set version, a digest over the suite, and the tools whose tests have never
-run against an implementation.
+An upstream limitation excuses a failing live test only test by test, each with its
+requirement named, and each such limitation is an entry in the upstream requirements package. A
+gate that fails live fails every tool, as a failing live test does. A module is accepted when no
+tool is FAIL and the gates pass. Every report names the suite version, the fixture-set version,
+a digest over the suite, and the tools whose tests have never run against an implementation.
+
+The Prototype Baseline Assessment reads the outcomes of a run against the furnished prototype:
+a tool that passes is a reuse candidate, one that fails or is INCOMPLETE a hardening candidate,
+and one NOT IMPLEMENTED new development.
 
 The suite does not test response time and throughput (the benchmark), the ranking quality of
 semantic search (the retrieval evaluation set), security controls (the contractor's security
