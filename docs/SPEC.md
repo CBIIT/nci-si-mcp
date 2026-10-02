@@ -431,7 +431,7 @@ Both SOWs furnish the acceptance suite, with "the behavioral tests for each requ
 
 The suite is therefore completed first, for all twenty-nine tools, so that it is complete at whatever point the package is furnished. A tool the prototype lacks is a valid NOT IMPLEMENTED row; a required tool without tests is a defect in the package. The phases then make the tools pass their tests, in the order of the table below.
 
-Each phase ends with the unit suite green, the acceptance suite's expected report updated for every tool that now passes, and a `vX.Y.Z` release where a merged `feat`, `fix` or `perf` pull request cuts one.
+Each phase ends with the unit suite green, the acceptance suite's expected outcomes updated for every test whose outcome changed, and a `vX.Y.Z` release where a merged `feat`, `fix` or `perf` pull request cuts one.
 
 | Phase | Delivers | Done when |
 |---|---|---|
