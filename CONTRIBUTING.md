@@ -50,14 +50,14 @@ skipped (`--no-verify` and `SKIP=` are not used).
 
 | Gate | What it enforces |
 | --- | --- |
-| Ruff format and lint | Style, imports, likely bugs, security patterns, `print` outside the CLI and the gate scripts, a broad `except` that neither raises nor logs the traceback |
+| Ruff format and lint | Style, imports, likely bugs, security patterns, a bare `print` outside the gate scripts, a broad `except` that neither passes the exception on nor logs the traceback |
 | basedpyright | Types, over `src` and `scripts` |
-| Complexity | Every function below cyclomatic complexity 8, in the tests too (`scripts/validation/check_complexity.py`) |
+| Complexity | Every function below cyclomatic complexity 8, nested ones and the tests included (`scripts/validation/check_complexity.py`) |
 | Test quality | No test without an assertion, or with only mock or `callable` assertions (`scripts/validation/check_test_quality.py`) |
 | Dead code | No unused functions, classes or variables (vulture) |
 | gitleaks, zizmor | No secrets; safe GitHub Actions workflows |
 | Tests and coverage | The suite passes; CI fails below the coverage minimum of standard 3 and warns when the aim is missed |
 
 A finding is fixed in the code. Where a rule does not fit, it is suppressed as narrowly as
-possible (a line, then a file in `pyproject.toml`), with the reason beside the suppression, or
-once in the module when it repeats.
+possible (a line, then a file or a directory, then the project, in `pyproject.toml`), with the
+reason beside the suppression, or once in the module when it repeats.

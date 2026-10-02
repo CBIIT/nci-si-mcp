@@ -1,8 +1,6 @@
 ---
-# Pre-commit is the primary quality gate. It runs these hooks on the files of each
-# commit, and CI runs them on all files. The test suite with its coverage minimum
-# runs in CI and with `pdm run test`. Hooks are never skipped; a failing hook is
-# fixed.
+# The hooks that run on the files of each commit, and in CI on all files.
+# CONTRIBUTING.md describes the gates.
 #
 # Install once:  pdm run pre-commit install
 exclude: ^tmp/

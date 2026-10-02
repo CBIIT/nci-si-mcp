@@ -55,7 +55,7 @@ source = "scm"
 fallback_version = "0.0.0"
 
 [tool.pdm.scripts]
-# `test` is the whole suite with the coverage floor; `pytest` runs a selection without it.
+# `test` is the whole suite with the coverage minimum; `pytest` runs a selection without it.
 test = "pytest --cov=nci_si_mcp --cov-report=term-missing"
 pytest = "pytest"
 # The fast check before a commit; the commit itself runs every hook.
@@ -71,9 +71,7 @@ pythonpath = ["tests", "scripts/validation"]
 branch = true
 source = ["nci_si_mcp"]
 
-# The checked minimum. The aim is higher (CONTRIBUTING.md); CI reports a shortfall
-# against it but does not enforce it: the gap keeps anyone from writing tests for
-# the number.
+# The checked minimum; standard 3 in CONTRIBUTING.md gives the aim and the reason for the gap.
 [tool.coverage.report]
 fail_under = 90
 precision = 2
@@ -88,7 +86,7 @@ src = ["src", "tests", "scripts"]
 [tool.ruff.lint]
 select = [
     "F", "E", "W",  # pyflakes and pycodestyle
-    "BLE",          # a broad except that neither raises nor logs the traceback
+    "BLE",          # a broad except that neither passes the exception on nor logs the traceback
     "I",            # isort
     "N",            # pep8-naming
     "UP",           # pyupgrade
@@ -98,7 +96,7 @@ select = [
     "RUF",          # ruff-specific
     "S",            # flake8-bandit (security)
     "ASYNC",        # flake8-async
-    "TCH",          # type-checking imports
+    "TCH",          # TYPE_CHECKING blocks and quoted casts; the import rules are ignored below
     "PL",           # pylint
     "T20",          # print: over stdio, stdout belongs to the MCP protocol
 ]
@@ -113,13 +111,12 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-# assert and magic values in tests; unittest's assertion names are camelCase
-"tests/**/*.py" = ["S101", "PLR2004", "N802"]
+# A helper assertion is named like unittest's own: assertError.
+"tests/**/*.py" = ["N802"]
 # Optional extras (mcp, sentence-transformers) are imported where they are first needed.
 "src/nci_si_mcp/embeddings.py" = ["PLC0415"]
 "src/nci_si_mcp/server.py" = ["PLC0415"]
-# The CLI prints its result on purpose, and the gate scripts report on the terminal.
-"src/nci_si_mcp/cli.py" = ["T20"]
+# The gate scripts report on the terminal.
 "scripts/**/*.py" = ["T20"]
 
 # Dead code. The names listed are used in ways vulture cannot see: the MCP SDK
@@ -134,6 +131,7 @@ ignore_names = ["row_factory", "built_at", "index_path", "state", "reuse_targets
 [tool.basedpyright]
 pythonVersion = "3.13"
 typeCheckingMode = "standard"
-# The tests are left out: they pass wrong types on purpose, to check that they are rejected.
+# The tests are left out. They pass wrong types on purpose, and they are not written
+# to type-check: fakes that are not subclasses, results used without narrowing.
 include = ["src", "scripts"]
 reportMissingImports = true

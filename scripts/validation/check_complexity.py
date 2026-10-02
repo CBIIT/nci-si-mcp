@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
 """Fail when a function or method has a cyclomatic complexity of 8 or more.
 
-The count is radon's cyclomatic complexity, with assertions left out. A class has
-no count of its own; its methods are checked one by one, and so are the functions
-and classes defined inside a function or a class.
+The count is radon's cyclomatic complexity, with assertions left out. Every
+function and method is checked on its own, wherever it is defined: a function or a
+class nested in another has its own count, and a class has none.
 
     python scripts/validation/check_complexity.py [path ...]
 
 Without arguments the source package, the scripts and the tests are checked.
 """
 
+import ast
 import sys
 from collections.abc import Iterator
 from pathlib import Path
 
-from radon.visitors import Class, ComplexityVisitor, Function
+from radon.visitors import ComplexityVisitor
+
+Function = ast.FunctionDef | ast.AsyncFunctionDef
 
 THRESHOLD = 8
 DEFAULT_PATHS = ("src", "scripts", "tests")
@@ -29,27 +32,29 @@ def python_files(paths: list[str]) -> list[Path]:
     return files
 
 
-def _functions(blocks: list[Function | Class], scope: str = "") -> Iterator[tuple[str, Function]]:
-    """Every function with its qualified name, at any depth of nesting."""
+def _functions(node: ast.AST, scope: str = "") -> Iterator[tuple[str, Function]]:
+    """Every function below the node with its qualified name, wherever it is defined."""
 
-    for block in blocks:
-        name = scope + block.name
-        if isinstance(block, Class):
-            yield from _functions([*block.methods, *block.inner_classes], f"{name}.")
+    for child in ast.iter_child_nodes(node):
+        if isinstance(child, Function | ast.ClassDef):
+            name = scope + child.name
+            if isinstance(child, Function):
+                yield name, child
+            yield from _functions(child, f"{name}.")
         else:
-            yield name, block
-            yield from _functions(block.closures, f"{name}.")
+            yield from _functions(child, scope)
 
 
 def violations(path: Path) -> list[str]:
     """One line for each function or method of the file at or above the threshold."""
 
-    visitor = ComplexityVisitor.from_code(path.read_text(encoding="utf-8"), no_assert=True)
-    return [
-        f"{path}:{function.lineno}: {name} has complexity {function.complexity}"
-        for name, function in _functions([*visitor.functions, *visitor.classes])
-        if function.complexity >= THRESHOLD
-    ]
+    found = []
+    for name, function in _functions(ast.parse(path.read_text(encoding="utf-8"))):
+        # radon counts a function without the functions and classes defined in it.
+        complexity = ComplexityVisitor.from_ast(function, no_assert=True).functions[0].complexity
+        if complexity >= THRESHOLD:
+            found.append(f"{path}:{function.lineno}: {name} has complexity {complexity}")
+    return found
 
 
 def main(arguments: list[str]) -> int:

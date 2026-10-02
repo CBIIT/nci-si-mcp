@@ -50,7 +50,7 @@ class DocumentationTest(unittest.TestCase):
         self.assertEqual(table | exported, read_by_the_code)
         self.assertEqual(set(setting.findall(README)), read_by_the_code)
 
-    def test_readme_states_the_default_of_each_setting(self):
+    def test_readme_states_the_default_of_each_setting_in_the_table(self):
         table = section(README, "Build A Small Local Index")
         documented = dict(re.findall(r"^\| `(\w+)` \| `([^`]+)` \|", table, flags=re.MULTILINE))
         with patch.dict(os.environ, clear=True):

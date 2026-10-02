@@ -14,8 +14,9 @@ for a number.
 The tests are `unittest` style. An assertion is an `assert` statement, a
 `unittest` assertion method (`self.assertEqual`, `self.assertRaises`,
 `self.fail`, ...), or a call to a helper whose name starts with `assert_` and is
-not a mock assertion. An assertion inside a function that the test defines but
-never names again does not count: it never runs.
+not a mock assertion. An assertion inside a function that the test defines and
+never refers to by name does not count, nor does one in a method of a class that
+the test defines: the test itself has to assert.
 
     python scripts/validation/check_test_quality.py tests/test_a.py [...]
 """

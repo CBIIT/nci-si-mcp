@@ -16,8 +16,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # The hooks of a local commit, on all files: this also catches what a commit of
-  # other files did not check again.
+  # The pre-commit hooks, on all files. A commit checks only the files it changes,
+  # so this also catches a file that a change elsewhere (a rule, a pin) put in breach.
   quality:
     name: quality
     runs-on: ubuntu-latest
@@ -69,8 +69,7 @@ jobs:
         run: pdm run python -c "import os, sys; assert sys.version.startswith(os.environ['EXPECTED'] + '.'), sys.version"
       # The suite with line and branch coverage; it fails below the minimum in pyproject.toml.
       - run: pdm run test
-      # The aim is above the minimum. Falling short of it is reported, not
-      # enforced, so that nobody writes a test for the number.
+      # Falling short of the aim is reported, not enforced (CONTRIBUTING.md, standard 3).
       - name: Report coverage against the aim
         run: |
           total="$(pdm run coverage report --format=total)"

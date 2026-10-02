@@ -65,16 +65,24 @@ class ComplexityGateTest(GateTestCase):
 
         self.assertEqual(check_complexity.violations(path), [f"{path}:3: Thing.m has complexity 8"])
 
-    def test_functions_and_classes_nested_in_others_are_checked(self):
-        tangled = textwrap.dedent(self.BRANCHY.format(last="if value == 7: return 7"))
-        method = textwrap.indent(tangled.replace("def tangled(", "def m(self, "), " " * 8)
-        path = self.write(
-            "def outer():" + textwrap.indent(tangled, "    ") + "\nclass A:\n    class B:" + method
+    def test_a_function_is_checked_wherever_it_is_defined(self):
+        tangled = textwrap.dedent(self.BRANCHY.format(last="if value == 7: return 7")).strip()
+        places = (
+            ("outer.tangled", "def outer():\n{}"),
+            ("A.m.tangled", "class A:\n    def m(self):\n{}"),
+            ("A.B.tangled", "class A:\n    class B:\n{}"),
+            ("outer.Local.tangled", "def outer():\n    class Local:\n{}"),
+            ("outer.tangled", "def outer():\n    if True:\n{}"),
+            ("tangled", "async {}"),
         )
+        for name, place in places:
+            with self.subTest(place):
+                depth = place.count("\n") * 4
+                path = self.write(place.format(textwrap.indent(tangled, " " * depth)))
 
-        names = sorted(line.split(": ")[1] for line in check_complexity.violations(path))
+                (violation,) = check_complexity.violations(path)
 
-        self.assertEqual(names, ["A.B.m has complexity 8", "outer.tangled has complexity 8"])
+                self.assertTrue(violation.endswith(f": {name} has complexity 8"), violation)
 
     def test_directories_are_searched_at_every_depth(self):
         clean = self.write("def simple():\n    return 1\n", "clean.py")
