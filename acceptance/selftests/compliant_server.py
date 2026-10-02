@@ -61,6 +61,7 @@ requirements, for the harness's own tests.
     cursor-offset-only a cursor presented with other arguments is served            (X-17)
     cursor-refuses-default a cursor presented with a default given is refused       (X-17)
     cursor-inherits   a cursor fills arguments left out from the first call          (X-17)
+    wrong-default     a left-out argument with a stated default served otherwise    (X-20)
     empty-with-cursor a query that matches nothing answered with nextCursor          (X-4)
 
 `unpinned-mismatch` is no defect for a tool without a pinned form upstream: it answers an
@@ -300,7 +301,9 @@ def _truncation(name: str, arguments: dict) -> dict:
     if "truncation" not in TOOLS[name]["returns"]:
         return {}
     truncating = CALLS.get(name, {}).get("truncating", {"arguments": {}})
-    limits = [arguments[key] for key in truncating["arguments"] if key in arguments]
+    limits = [
+        value for key, value in truncating["arguments"].items() if arguments.get(key) == value
+    ]
     if not limits:
         return {"truncation": {"occurred": False}}
     return {"truncation": _reached(truncating["bound"], limits[0])}
@@ -371,6 +374,8 @@ def _content(name: str, arguments: dict, correlation: str) -> object:
 def _page(name: str, arguments: dict, provenance: dict) -> list[dict]:
     """The items of a call: with a cursor, those of the page after the first."""
 
+    if DEFECT == "wrong-default" and set(defaults(name)) - set(arguments):
+        return _items(name, provenance, ("C2991", "C9118"))
     if "cursor" not in arguments or DEFECT == "cursor-repeats":
         return _items(name, provenance)
     if DEFECT == "cursor-empty":

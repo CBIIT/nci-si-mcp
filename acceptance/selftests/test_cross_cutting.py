@@ -70,6 +70,7 @@ DEFECTS = [
         "test_a_cursor_without_an_argument_the_first_call_gave_is_an_invalid_request",
     ),
     ("empty-with-cursor", EMPTY),
+    ("wrong-default", "test_a_left_out_argument_is_its_stated_default"),
 ]
 
 

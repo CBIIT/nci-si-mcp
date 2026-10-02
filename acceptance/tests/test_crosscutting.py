@@ -506,6 +506,40 @@ def test_a_cursor_without_an_argument_the_first_call_gave_is_an_invalid_request(
     assert error_code(result) == "invalid_request", result.content
 
 
+def _as_stated(name):
+    """A tool's base call without the arguments that give their stated default, and with
+    every stated default given; the arguments that differ from their default are in both."""
+
+    stated = defaults(name)
+    kept = {
+        key: value
+        for key, value in CALLS[name]["arguments"].items()
+        if key not in stated or stated[key] != value
+    }
+    return kept, stated | kept
+
+
+def _outcome(name, result):
+    """A successful result's items by identity, and its truncation where the tool reports one."""
+
+    assert not result.is_error, result.content
+    items = [_identity(item) for item in items_of(name, result.content)]
+    return items, result.content.get("truncation")
+
+
+@pytest.mark.requirement("X-20")
+@pytest.mark.parametrize("name", _per_tool(name for name in CALLS if defaults(name)))
+def test_a_left_out_argument_is_its_stated_default(tools, pinned, name):
+    left_out, given = _as_stated(name)
+    # The calls differ by at least one stated default, or the case shows nothing.
+    assert given != left_out
+
+    implicit = _call(tools, pinned, name, left_out)
+    explicit = _call(tools, pinned, name, given)
+
+    assert _outcome(name, implicit) == _outcome(name, explicit)
+
+
 def _other_release(recorded, pinned):
     """A release of the pinned terminology that the platform serves beside the pinned one."""
 
