@@ -1,0 +1,55 @@
+name: Audit
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 6 * * 1"  # weekly: a vulnerability published since the last change
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audit-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Known vulnerabilities in the runtime dependencies the lock file pins: the server and
+  # embeddings extras. The core has none (`dependencies = []`), so `--prod` alone would
+  # export nothing.
+  pip-audit:
+    name: pip-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0  # the package version is derived from the nearest tag
+          persist-credentials: false
+      - uses: pdm-project/setup-pdm@544d7237314ee09c256785bd360f6b30add38b37  # v4.6
+        with:
+          python-version: "3.14"
+          version: "2.29.2"
+          cache: true
+          # An environment built from another lock file may hold packages this one dropped.
+          cache-restore-exact-match: true
+      - run: pdm install --check
+      - name: Audit the runtime dependencies
+        run: |
+          pdm export -G server -G embeddings --prod --without-hashes -o "$RUNNER_TEMP/requirements.txt"
+          pdm run pip-audit -r "$RUNNER_TEMP/requirements.txt" --no-deps --disable-pip --strict
+
+  # A pull request that brings in a dependency with a known vulnerability of high severity fails.
+  dependency-review:
+    name: dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294  # v5.0.0
+        with:
+          fail-on-severity: high

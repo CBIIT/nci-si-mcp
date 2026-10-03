@@ -1,0 +1,16 @@
+# The workflows' actions only: Dependabot cannot update pdm.lock, so a Python update of its
+# would fail `pdm install --check`. Python dependencies are audited instead (audit.yml).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # A release a week old has had time to be withdrawn if it was compromised.
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: ci

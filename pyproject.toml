@@ -38,6 +38,10 @@ lint = [
     "radon>=6.0",
     "vulture>=2.16",
 ]
+# Known vulnerabilities in the runtime dependencies, in CI (.github/workflows/audit.yml).
+audit = [
+    "pip-audit>=2.9",
+]
 
 [tool.pdm]
 distribution = true
