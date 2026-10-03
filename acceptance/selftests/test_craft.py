@@ -21,7 +21,7 @@ from nci_si_acceptance.craft import (
     mismatched,
 )
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
-from nci_si_acceptance.record import DISCOVERY, FIXTURES, reported_releases
+from nci_si_acceptance.record import DISCOVERY, FIXTURES, plan, reported_releases
 from nci_si_acceptance.register import EVS_SURFACES
 
 CRAFTED = craft(FIXTURES)
@@ -412,6 +412,10 @@ def test_the_recorded_scenarios_are_not_crafted(name):
 def test_the_command_writes_what_craft_makes(tmp_path, capsys):
     for directory in ("recorded", "crafted"):
         shutil.copytree(FIXTURES / directory, tmp_path / directory)
+    # The scenario fixtures recorded live, which some crafted ones are made from.
+    for file in (each.file for each in plan(MANIFEST) if each.file.startswith("scenarios/")):
+        (tmp_path / file).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(FIXTURES / file, tmp_path / file)
 
     assert main(["--fixtures", str(tmp_path)]) == 0
 

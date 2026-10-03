@@ -172,7 +172,7 @@ Every upstream request, whatever its surface and path, gets a closed connection,
 
 ### `license/restricted`
 
-403 without the licence key; invented content with it. Recorded. Crafted, 1 fixture, for E-7, A7.5: the licence key sent from configuration.
+403 without the licence key; invented content with it. Recorded. Crafted, 4 fixtures, for A7.5: EVS refuses every request for mdr without the licence key. Crafted, 5 fixtures, for E-7, A7.5: the licence key sent from configuration.
 
 | Operation | Request | Expected | Rationale | Fixture |
 |---|---|---|---|---|

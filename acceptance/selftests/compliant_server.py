@@ -73,10 +73,11 @@ requirements, for the harness's own tests.
 `unpinned-mismatch` is no defect for a tool without a pinned form upstream: it answers an
 unknown release with release_mismatch, as such a tool can only verify an unpinned answer (X-2).
 
-A call asks EVS for `/api/v1/version`, or for the concept of a licensed terminology with the
-licence key, unless the same call was answered before: the server caches by call, as A9.4
-allows. An answer that is not content is an error record: 404 release_not_available, another
-version than the release asked for release_mismatch, a timeout timeout, anything else
+A call asks EVS for `/api/v1/version`, or for the concept of a licensed terminology (or its
+search, for a call that names no code) with the licence key, unless the same call was
+answered before: the server caches by call, as A9.4 allows. An answer that is not content
+is an error record: 404 release_not_available, another version than the release asked for
+release_mismatch, a timeout timeout, anything else
 upstream_unavailable; a 429 is waited out once. Content has items where the tool's `items`
 say: the concept asked about and, at depth 1 for a traversal tool, one it reaches. What the
 suite's calls (tests/calls.yaml) say of EVS's answers shapes it: their `upstream` fields go
@@ -150,15 +151,20 @@ def _request(arguments: dict, correlation: str) -> tuple[str, dict[str, str]]:
         return "/api/v1/version", headers
     if LICENCE_KEY and DEFECT != "keyless":
         headers["X-EVSRESTAPI-License-Key"] = LICENCE_KEY
+    _leak(headers)
+    # The concept a call names, the first of the codes it names, or else the search.
+    code = arguments.get("code") or next(iter(arguments.get("codes", [])), "search")
+    return f"/api/v1/concept/{terminology}_{arguments.get('release')}/{code}", headers
+
+
+def _leak(headers: dict[str, str]) -> None:
+    """The request headers, licence key included, written where the defect says (X-12)."""
+
     if DEFECT == "logs-key":
         sys.stderr.write(f"asking with {headers}\n")
         sys.stderr.flush()
     if DEFECT == "files-key":
         (Path(os.environ["NCI_SI_DATA_DIR"]) / "requests.txt").write_text(str(headers))
-    return (
-        f"/api/v1/concept/{terminology}_{arguments.get('release')}/{arguments.get('code')}",
-        headers,
-    )
 
 
 def _asked(arguments: dict, correlation: str) -> tuple[int, dict]:

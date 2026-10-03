@@ -740,15 +740,34 @@ def test_a_bounded_argument_below_one_is_an_invalid_request(tools, pinned, name,
     assert error_code(result) == "invalid_request", result.content
 
 
-def _attribution(result):
+# The licensed concept as each tool that returns concept items asks for it; the concept is a
+# leaf, so the hierarchy holds it alone.
+LICENSED_CALLS = {
+    "get_concept": {"code": LICENSED["code"]},
+    "get_concepts": {"codes": [LICENSED["code"]]},
+    "search_concepts": {"query": "placeholder licensed term", "mode": "lexical"},
+    "get_concept_hierarchy": {"code": LICENSED["code"], "direction": "child"},
+}
+ATTRIBUTED = [
+    pytest.param(
+        name, id=name, marks=[pytest.mark.tool(name), pytest.mark.scenario("license/restricted")]
+    )
+    for name in LICENSED_CALLS
+]
+
+
+def _attributions(name, result):
+    """The attribution of each item of a successful result."""
+
     assert not result.is_error, result.content
-    return _provenance(result.content).get("attribution")
+    found = items_of(name, result.content)
+    assert found, f"no item where {TOOLS[name]['items']} say: {result.content!r:.300}"
+    return {_provenance(item).get("attribution") for item in found}
 
 
-@pytest.mark.scenario("license/restricted")
-@pytest.mark.tool("get_concept")
 @pytest.mark.requirement("X-19")
-def test_an_item_of_a_licensed_terminology_carries_its_licence_text(tools, pinned, recorded):
+@pytest.mark.parametrize("name", ATTRIBUTED)
+def test_an_item_of_a_licensed_terminology_carries_its_licence_text(tools, pinned, recorded, name):
     rows = recorded("recorded/evs/terminologies.json")["response"]["body"]
     licence = {
         (row["terminology"], row["version"]): row.get("metadata", {}).get("licenseText")
@@ -758,8 +777,9 @@ def test_an_item_of_a_licensed_terminology_carries_its_licence_text(tools, pinne
     # MedDRA's row carries licence text and NCIt's none, or the cases would show nothing.
     assert text
     assert licence[(pinned["terminology"], pinned["release"])] is None
+    release = {key: LICENSED[key] for key in ("terminology", "release")}
 
-    licensed = tools.call("get_concept", LICENSED)
-    plain = tools.call("get_concept", {**pinned, "code": "C4817"})
+    licensed = tools.call(name, release | LICENSED_CALLS[name])
+    plain = _call(tools, pinned, name)
 
-    assert (_attribution(licensed), _attribution(plain)) == (text, None)
+    assert (_attributions(name, licensed), _attributions(name, plain)) == ({text}, {None})

@@ -490,26 +490,62 @@ LICENSED_CONCEPT = {
 }
 
 
-def license_restricted(_: Recorded) -> Documents:
-    """With the licence key from configuration, a licensed concept is served; without
-    it, EVS's refusal (recorded by record.py) answers."""
+# The forms besides the concept itself that the licensed tools ask for (X-19), with their
+# answers: a batch, a search, and the leaf's children and descendants.
+LICENSED_PATHS = {
+    "batch": ("/api/v1/concept/mdr_29_0", [LICENSED_CONCEPT]),
+    "search": (
+        "/api/v1/concept/mdr_29_0/search",
+        {"total": 1, "timeTaken": 1, "concepts": [LICENSED_CONCEPT]},
+    ),
+    "children": ("/api/v1/concept/mdr_29_0/10000000/children", []),
+    "descendants": ("/api/v1/concept/mdr_29_0/10000000/descendants", []),
+}
+
+
+def license_restricted(recorded: Recorded) -> Documents:
+    """With the licence key from configuration, a licensed concept is served, in every form a
+    tool asks for it; without it, EVS's refusal (recorded by record.py) answers."""
 
     requirement = "E-7, A7.5: the licence key sent from configuration"
-    request = {
-        "surface": "evs",
-        "method": "GET",
-        "path": "/api/v1/concept/mdr_29_0/10000000",
-        "headers": {"X-EVSRESTAPI-License-Key": LICENCE_KEY},
-        "ignored": {"*": "placeholder content answers every projection alike"},
-    }
-    document = crafted(requirement, request, response={"status": 200, "body": LICENSED_CONCEPT})
-    return {
+    refusal = recorded("scenarios/license/restricted/refused.json")
+    documents = {
         # At debug level, so that a key logged as a detail shows (A7.5).
         "scenarios/license/restricted/settings.json": {
             "NCI_SI_EVS_LICENSE_KEY": LICENCE_KEY,
             "NCI_SI_LOG_LEVEL": "DEBUG",
         },
-        "scenarios/license/restricted/granted.json": document,
+        "scenarios/license/restricted/granted.json": crafted(
+            requirement,
+            _licensed("/api/v1/concept/mdr_29_0/10000000"),
+            response={"status": 200, "body": LICENSED_CONCEPT},
+        ),
+    }
+    for name, (path, body) in LICENSED_PATHS.items():
+        request = _licensed(path)
+        documents[f"scenarios/license/restricted/{name}.json"] = crafted(
+            requirement,
+            request,
+            response={"status": 200, "body": body},
+        )
+        documents[f"scenarios/license/restricted/{name}-refused.json"] = crafted(
+            "A7.5: EVS refuses every request for mdr without the licence key",
+            {key: value for key, value in request.items() if key != "headers"}
+            | {"ignored": refusal["request"]["ignored"]},
+            response=refusal["response"],
+        )
+    return documents
+
+
+def _licensed(path: str) -> dict[str, Any]:
+    """A request for licensed content, made with the licence key."""
+
+    return {
+        "surface": "evs",
+        "method": "GET",
+        "path": path,
+        "headers": {"X-EVSRESTAPI-License-Key": LICENCE_KEY},
+        "ignored": {"*": "placeholder content answers every projection alike"},
     }
 
 

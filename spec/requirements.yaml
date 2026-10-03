@@ -118,7 +118,6 @@ X-18:
 X-19:
   statement: An item of a terminology whose listing row carries licence text carries that text as its attribution.
   basis: [A7.3, provenance]
-  planned: "#52"
 X-20:
   statement: A call that leaves out an optional argument with a stated default returns what the call that gives the default returns.
   basis: [A5.1, M6.1]
