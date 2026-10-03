@@ -1,0 +1,19 @@
+{
+ "kind": "crafted",
+ "requirement": "A7.3, X-19: the licence text given with the content, in `licenseText` on each concept, as asked of EVS (#42)",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/mdr_29_0/10000001/descendants",
+  "headers": {
+   "X-EVSRESTAPI-License-Key": "acceptance-licence-key"
+  },
+  "ignored": {
+   "*": "placeholder content answers every projection alike"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": []
+ }
+}

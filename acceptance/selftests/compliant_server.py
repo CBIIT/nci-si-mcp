@@ -68,8 +68,13 @@ requirements, for the harness's own tests.
     empty-with-cursor a query that matches nothing answered with nextCursor          (X-4)
     raised-to-one     a bounded argument below one served as one                    (X-18)
     release-defaulted a call without its required release served all the same        (X-22)
-    no-attribution    an item of a licensed terminology without its licence text    (X-19)
-    attribution-everywhere every item with licence text, NCIt's included            (X-19)
+    joins-listing     a licensed item with the listing's licence text, given or not (X-19)
+    attribution-everywhere every item with the listing's licence text, NCIt's included (X-19)
+    drops-attribution the licence text EVS gives with an item left out             (X-19)
+    alters-attribution the licence text EVS gives with an item cut short            (X-19)
+    attributes-all-but-last the licence text EVS gives left off the last item         (X-19)
+    attributes-ncit   NCIt items with a licence text of the server's own            (X-19)
+    sticky-attribution an item EVS gave no text with carries the last text it gave   (X-19)
 
 `unpinned-mismatch` is no defect for a tool without a pinned form upstream: it answers an
 unknown release with release_mismatch, as such a tool can only verify an unpinned answer (X-2).
@@ -86,8 +91,8 @@ into provenance, their `empty` arguments match nothing, their `truncating` argum
 reach a bound, and under their `paged` arguments a first page carries a cursor to a second,
 of other concepts; the cursor carries the arguments it was issued for, as applied (an
 optional argument left out as the default the specification states), and presented with
-others it is refused. A bounded argument below one is refused, and an item of a licensed
-terminology carries the licence text the terminology listing gives it.
+others it is refused. A bounded argument below one is refused, and an item carries the licence
+text EVS's answer gives with the concept asked for, and none of its own.
 """
 
 import json
@@ -114,7 +119,7 @@ EVS = os.environ["NCI_SI_EVS_BASE_URL"]
 TIMEOUT = float(os.environ.get("NCI_SI_TIMEOUT_SECONDS", "10"))
 LICENCE_KEY = os.environ.get("NCI_SI_EVS_LICENSE_KEY")
 LICENSED = {"mdr"}
-# The licensed placeholder concept and its child (license/restricted).
+# The licensed placeholder concept and its child (license/restricted, license/attributed).
 LICENSED_CODES = ["10000000", "10000001"]
 # What an upstream request that got no HTTP answer counts as.
 CLOSED, TIMED_OUT = 0, -1
@@ -124,9 +129,11 @@ UNKNOWN_RELEASE = "release_mismatch" if DEFECT == "unpinned-mismatch" else "rele
 SWALLOWED = {"unknown-as-empty": "release_not_available", "outage-as-empty": "upstream_unavailable"}
 # The suite's calls (tests/calls.yaml): what each tool's upstream answers would say.
 CALLS = yaml.safe_load((Path(__file__).parent.parent / "tests" / "calls.yaml").read_text())
-# Whether each call so far reached EVS, and the calls already answered.
+# Whether each call so far reached EVS, and EVS's answer to each call already answered.
 reached = []
-answered = set()
+answered: dict[str, dict] = {}
+# The licence texts EVS gave so far (the sticky-attribution defect).
+given: list[str] = []
 
 
 def _ask(path: str, headers: dict[str, str]) -> tuple[int, dict, dict]:
@@ -145,8 +152,8 @@ def _ask(path: str, headers: dict[str, str]) -> tuple[int, dict, dict]:
 
 
 def _request(arguments: dict, correlation: str) -> tuple[str, dict[str, str]]:
-    """The path a call asks EVS for, and its headers: the licence key only for licensed
-    content (A7.5)."""
+    """The path a call asks EVS for, and its headers: the licence key with every request for
+    licensed content, the only requests this server sends EVS's content paths."""
 
     headers = {} if DEFECT == "no-correlation" else {"X-Correlation-ID": correlation}
     terminology = arguments.get("terminology")
@@ -285,7 +292,7 @@ async def list_tools(_context, _params) -> types.ListToolsResult:
     return types.ListToolsResult(tools=[_tool(name) for name in _names()])
 
 
-def _provenance(name: str, arguments: dict, correlation: str) -> dict:
+def _provenance(name: str, arguments: dict, correlation: str, answer: dict) -> dict:
     release = "26.08e" if DEFECT == "wrong-release" else arguments.get("release")
     terminology = "mdr" if DEFECT == "wrong-terminology" else arguments.get("terminology")
     provenance = {
@@ -298,16 +305,41 @@ def _provenance(name: str, arguments: dict, correlation: str) -> dict:
     }
     if DEFECT == "no-served-by":
         del provenance["servedBy"]
-    return provenance | _attribution(terminology)
+    return provenance | _attribution(terminology, answer)
 
 
-def _attribution(terminology: str | None) -> dict:
-    """The licence text of a licensed terminology's items (X-19)."""
+def _attribution(terminology: str | None, answer: dict) -> dict:
+    """The licence text EVS's answer gives with the concept asked for, as the item's
+    attribution (X-19)."""
 
-    licensed = terminology in LICENSED and DEFECT != "no-attribution"
-    if licensed or DEFECT == "attribution-everywhere":
-        return {"attribution": _licence_text(LICENSED)}
-    return {}
+    text = _remembered(_own_text(terminology) or _given_text(answer))
+    if not text or DEFECT == "drops-attribution":
+        return {}
+    return {"attribution": text[:40] if DEFECT == "alters-attribution" else text}
+
+
+def _own_text(terminology: str | None) -> str | None:
+    """The licence text a defect attaches where EVS gave none."""
+
+    if DEFECT == "attributes-ncit" and terminology not in LICENSED:
+        return "Licensed by this server."
+    joined = DEFECT == "joins-listing" and terminology in LICENSED
+    return _licence_text(LICENSED) if joined or DEFECT == "attribution-everywhere" else None
+
+
+def _remembered(text: str | None) -> str | None:
+    """`text`; under the sticky defect, the last text given where there is none."""
+
+    if text:
+        given.append(text)
+        return text
+    return given[-1] if DEFECT == "sticky-attribution" and given else None
+
+
+def _given_text(answer: dict) -> str | None:
+    """The licence text EVS gives with the concept, or the first concept of a search."""
+
+    return (answer.get("concepts") or [answer])[0].get("licenseText")
 
 
 def _licence_text(terminologies: set[str]) -> str:
@@ -401,10 +433,10 @@ def _placed(steps: list[str], items: list[dict]) -> object:
     return {step.removesuffix("[]"): value}
 
 
-def _content(name: str, arguments: dict, correlation: str) -> object:
+def _content(name: str, arguments: dict, correlation: str, answer: dict) -> object:
     if DEFECT == "invalid-result":
         return {"error": "not an error record"}
-    provenance = _provenance(name, arguments, correlation)
+    provenance = _provenance(name, arguments, correlation, answer)
     items = _items_of_call(name, arguments, provenance)
     if DEFECT == "list-result":
         return items
@@ -429,9 +461,18 @@ def _licensed_items(name: str, arguments: dict, provenance: dict) -> list[dict]:
 
     if TOOLS[name].get("traversal"):
         reached = provenance | {"depth": 1} | _how()
-        return [{"code": "10000001", "terminology": "mdr", "provenance": reached}]
-    codes = [arguments["code"]] if "code" in arguments else arguments.get("codes", LICENSED_CODES)
-    return [{"code": code, "terminology": "mdr", "provenance": provenance} for code in codes]
+        items = [{"code": "10000001", "terminology": "mdr", "provenance": reached}]
+    else:
+        codes = (
+            [arguments["code"]] if "code" in arguments else arguments.get("codes", LICENSED_CODES)
+        )
+        items = [{"code": code, "terminology": "mdr", "provenance": provenance} for code in codes]
+    if DEFECT == "attributes-all-but-last":
+        last = items[-1]["provenance"]
+        items[-1] = items[-1] | {
+            "provenance": {k: v for k, v in last.items() if k != "attribution"}
+        }
+    return items
 
 
 def _how() -> dict:
@@ -556,8 +597,8 @@ def _answer(name: str, arguments: dict, correlation: str) -> tuple[object, bool]
             if code == SWALLOWED.get(DEFECT):
                 return {}, False
             return _error(code, status, body, correlation), True
-    answered.add(call)
-    return _content(name, arguments, correlation), False
+        answered[call] = body
+    return _content(name, arguments, correlation, answered.get(call, {})), False
 
 
 def _meta() -> dict:

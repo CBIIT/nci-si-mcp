@@ -521,6 +521,10 @@ Every upstream request, whatever its surface and path, gets a closed connection,
 |---|---|---|---|---|
 | A7.5 | `GET evs /api/v1/concept/mdr_29_0/10000000?include=summary` | 403; every parameter ignored | EVS refuses mdr without the X-EVSRESTAPI-License-Key header (403). | `scenarios/license/restricted/refused.json` |
 
+### `license/attributed`
+
+The invented licensed content of license/restricted, each concept carrying the terminology's licence text as EVS is asked to send it (#42). Crafted, 8 fixtures, for A7.3, X-19: the licence text given with the content, in `licenseText` on each concept, as asked of EVS (#42).
+
 ### `cadsr/with-registry-release`
 
 caDSR publishes a registry release: /registry/releases names one, and a data element asked with it is answered with the release echoed (C-1). Crafted, 3 fixtures, for C-1: a published registry release, named in every answer and accepted on every content call.
