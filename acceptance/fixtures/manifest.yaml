@@ -77,6 +77,9 @@ scenarios:
     The server holds caDSR credentials: contexts and CDE Match answer to the contracts,
     where the API refuses an anonymous caller (401)
   cadsr/match-timeout: vmMatch answers later than the match timeout the scenario sets
+  cadsr/html-for-json: >-
+    A data element asked for with Accept: application/json is answered with the HTML caDSR
+    sends to a request without it
 
 record:
   requests:

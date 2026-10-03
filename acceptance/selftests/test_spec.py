@@ -10,6 +10,7 @@ from nci_si_acceptance.client import CREDENTIAL_VARIABLES, INDEX_CODES_VARIABLE
 from nci_si_acceptance.fixture_server import HARNESS_VARIABLES, SCENARIOS, SETTINGS
 from nci_si_acceptance.record import FIXTURES
 from nci_si_acceptance.spec import (
+    RECORDS,
     REQUIRED_TOOLS,
     SPEC,
     TOOLS,
@@ -152,3 +153,28 @@ def test_the_specification_names_every_setting_the_suite_gives_a_server_and_when
     # when each is set.
     named = {setting: set(re.findall(r"`(\w+/[\w-]+)`", when)) for setting, when in rows.items()}
     assert named == {setting: set(scenarios.get(setting, [])) for setting in rows}
+
+
+def _list_inputs(tool):
+    """The parameters `tool` takes as lists: those its inputs write with brackets."""
+
+    return set(re.findall(r"(\w+)\[", TOOLS[tool]["inputs"]))
+
+
+def _returned_fields(tool):
+    """The names what `tool` returns holds: those its returns text names, and the fields of
+    each record it names."""
+
+    names = set(re.findall(r"\w+", TOOLS[tool]["returns"]))
+    return names.union(*(set(RECORDS[name]["fields"]) for name in names & set(RECORDS)))
+
+
+@pytest.mark.parametrize("tool", sorted(TOOLS))
+def test_what_a_tool_states_of_its_arguments_and_items_names_what_it_takes_and_returns(tool):
+    entry, (names, _) = TOOLS[tool], parameters(tool)
+    stated = {*entry.get("defaults", {}), *entry.get("bounds", {}), *entry.get("values", {})}
+    steps = {step.removesuffix("[]") for path in entry.get("items", []) for step in path.split(".")}
+
+    assert stated - names == set()
+    assert set(entry.get("lists", {})) - _list_inputs(tool) == set()
+    assert steps - {""} - _returned_fields(tool) == set()

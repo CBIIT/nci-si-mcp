@@ -14,9 +14,11 @@ provenance:
       forms:
         terminology: "{ terminology, identifier, date }: the terminology and the release the call pinned"
         registry: >-
-          { registry, date, identifier? }: registry is cadsr; date is the export date while caDSR
-          publishes no registry release (A3.8.2), and identifier, the registry release, is
-          present only where caDSR publishes one (A3.8.1)
+          { registry, identifier?, date? }: registry is cadsr; identifier and date are the
+          registry release's, present only where caDSR publishes one (A3.8.1). Content the API
+          serves without one names neither: it is newer than the export (2200604 modified
+          2026-08-25, the export of 2026-07-01), so the export's date would mislabel it, and its
+          retrievedAt and the item's own version identify it (A3.8.2)
       of: A3.3
     source:
       content: The surface that supplied the item
@@ -433,6 +435,9 @@ permissible_value:
         Its value meaning: { publicId, version, longName, concepts[] }, each concept
         { conceptCode, longName, primary } as the platform gives it
       of: A9.1
+    provenance:
+      content: The provenance record, its release in the registry form
+      of: A4.4
 classification_scheme:
   title: The classification scheme record
   about: >-
@@ -454,6 +459,9 @@ classification_scheme:
     items:
       content: Its classification scheme items, each { publicId, version, longName }
       of: A7.2
+    provenance:
+      content: The provenance record, its release in the registry form
+      of: A4.4
 context:
   title: The context record
   about: >-
@@ -486,11 +494,13 @@ value_meaning_match:
   title: The value meaning match record
   about: One match of match_value_meanings, in the platform's order.
   fields:
-    valueMeaning:
+    item:
       content: >-
-        The value meaning matched: { publicId, version, longName, concept, context,
-        workflowStatus, registrationStatus, provenance }, from vmMatch's itemId, version,
-        matchedName and concept
+        The item matched, as vmMatch gives it: { itemType, publicId, version, name, concept?,
+        evsSource?, context, workflowStatus, registrationStatus, provenance }. itemType is
+        Concept or ValueMeaning, publicId that item's caDSR public id (itemId), name its
+        matchedName; concept is the code it stands for, in the code system evsSource names
+        (NCI_CONCEPT_CODE, SNOMED-CT_CODE, ...), each absent where the platform gives none
       of: A9.1
     rule:
       content: The rule the platform says matched (vmMatch's ruleDescription), unchanged
@@ -501,8 +511,10 @@ value_meaning_match:
       of: A9.2
     crosswalk:
       content: >-
-        The crosswalk codes the platform gives, each { code, description }; empty where it
-        gives none, the platform's NA meaning no crosswalk
+        The crosswalk the platform gives, { code, description } from crosswalkCode and
+        crosswalkDescription; absent where it gives none, the platform's NA meaning no
+        crosswalk
+      optional: true
       of: match_value_meanings
 form:
   title: The form record
@@ -538,25 +550,32 @@ form:
 code_map:
   title: The code map record
   about: >-
-    The values one data element binds to concepts for one commons, from the CRDC crosswalk,
-    as get_code_map returns it.
+    The values one data element of the CRDC crosswalk binds to concepts, with the contexts and
+    commons that use it, as get_code_map returns it. The values do not vary by user.
   fields:
     dataElement:
       content: "{ publicId, version } of the data element"
       of: A1.2
-    commons:
-      content: The commons that uses it, one of the platform's Used By names
+    crdcName:
+      content: Its CRDC name, as the platform gives it
+      of: A9.1
+    usedBy:
+      content: >-
+        The contexts and commons that use it, the platform's Used By names split at their
+        commas (CRDC, GDC, Pediatric Cancer, CTEP, ...); empty where it names none
       of: get_code_map
     valueLevelBinding:
       content: >-
-        Whether the data element binds values to concepts (enumerated, with permissible
-        values); false says so rather than returning no values
+        Whether the data element binds values to concepts, which it does where the platform
+        gives its permissible values; false says so rather than returning no values
       of: get_code_map
     coverage:
       content: The number of its values bound to a concept code
       of: get_code_map
     values:
-      content: Its values, each { value, conceptCode? }, as the platform gives them
+      content: >-
+        Its values, each { value, conceptCode? }, as the platform gives them: conceptCode
+        colon-joined where it names several (C15388:C20821), absent where it names none
       of: A9.1
     provenance:
       content: The provenance record, its release in the registry form

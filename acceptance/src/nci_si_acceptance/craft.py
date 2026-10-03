@@ -638,6 +638,19 @@ def cadsr_match_timeout(recorded: Recorded) -> Documents:
     }
 
 
+def cadsr_html_for_json(recorded: Recorded) -> Documents:
+    """A request that asks for JSON answered with the HTML caDSR sends without Accept: the
+    server reports an upstream error, never content parsed from the HTML (X-15)."""
+
+    asked = recorded("recorded/cadsr/data-element-2200604.json")["request"]
+    html = recorded("recorded/cadsr/data-element-2200604-html.json")["response"]
+    return {
+        "scenarios/cadsr/html-for-json/data-element-2200604.json": crafted(
+            "X-15: HTML where JSON was asked for is an upstream error", asked, response=html
+        )
+    }
+
+
 def cadsr_over_cap(_: Recorded) -> Documents:
     """A keyword search, in the inventory's form (OP-C03), answered with as many data
     elements as the contract's cap allows and no sign that more exist: the server reports
@@ -687,6 +700,7 @@ SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     cadsr_credentialed,
     cadsr_match_timeout,
     cadsr_over_cap,
+    cadsr_html_for_json,
 )
 
 

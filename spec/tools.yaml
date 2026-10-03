@@ -167,7 +167,7 @@ get_data_element:
   summary: >-
     One data element, at its latest version or the version given, with the sections include
     selects; without include, the record's own fields. questionText finds it by its preferred
-    question text; longName is capability_unavailable until the platform serves that lookup
+    question text, an invalid request naming the candidates where several have it; longName is capability_unavailable until the platform serves that lookup
     (OP-C02).
 search_data_elements:
   group: cadsr
@@ -201,12 +201,12 @@ match_value_meanings:
   group: cadsr
   inputs: (values[], strictness?, terminologyScope?, registryRelease?)
   returns: "{ matches[value_meaning_match] }"
-  items: ["matches[].valueMeaning"]
+  items: ["matches[].item"]
   values: {strictness: [restricted, unrestricted]}
   defaults: {strictness: restricted}
   lists: {values: 10}
   summary: >-
-    Value meanings matched to values, each rule-attributed with its crosswalk codes;
+    Value meanings and concepts matched to values, each rule-attributed with its crosswalk;
     strictness is vmMatch's matchType, terminologyScope its evsTerminologyCodes. At most 10
     values a call: the contract states no maximum, and one value took 15.5 s (10 September
     2026) against a match timeout of 45 s.
@@ -237,9 +237,9 @@ get_code_map:
   bounds: {limit: {default: 100, maximum: 1000}}
   defaults: {sourceSystem: CRDC}
   summary: >-
-    Code maps between source code systems and registered value sets, per data element and
-    commons, from the CRDC crosswalk; targetContext selects a commons, dataElementId a data
-    element.
+    Code maps between source code systems and registered value sets, one per data element of
+    the CRDC crosswalk with the contexts and commons that use it; targetContext selects those
+    a context or commons uses, dataElementId one data element.
 list_contexts:
   group: cadsr
   inputs: (limit?, cursor?, registryRelease?)
