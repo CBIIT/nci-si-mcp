@@ -140,8 +140,8 @@ again.
 ## Usage examples
 
 Each example gives what a user asks, the call a client makes for it, and the result. The calls
-are exact. The results are captured from a live run and are still to be filled in; the search
-example needs the five sample concepts of the previous section in the index.
+are exact. The results are captured from a live run on 2026-10-03 against EVS release 26.09d,
+shortened where marked …; the search example needs the five sample concepts of the previous section in the index.
 
 ### Look up a concept
 
@@ -155,7 +155,72 @@ Call:
 
 Result:
 
-<!-- result: to be captured from a live run -->
+```json
+{
+  "code": "C4817",
+  "preferred_name": "Ewing Sarcoma",
+  "source_vocabulary": "NCI Thesaurus",
+  "terminology": "ncit",
+  "release_version": "26.09d",
+  "release_date": "2026-09-28",
+  "retrieved_at": "2026-10-03T22:47:35.948616Z",
+  "source": "live_evs",
+  "evidence": {
+    "definitions": [
+      {
+        "definition": "A malignant neoplasm of the bone, or the soft tissue adjacent to bone, that is comprised of primitive neuroectodermal cells.",
+        "type": "ALT_DEFINITION",
+        "source": "NICHD"
+      },
+      {
+        "definition": "A small round cell tumor that lacks morphologic, immunohistochemical, and electron microscopic evidence of neuroectodermal differentiation. It represents one of the two ends of the spectrum called Ewing sarcoma/peripheral neuroectodermal tumor. It affects mostly males under age 20, and it can occur in soft tissue or bone. Pain and the presence of a mass are the most common clinical symptoms.",
+        "type": "DEFINITION",
+        "source": "NCI"
+      },
+      {
+        "definition": "A type of cancer that forms in bone or soft tissue.",
+        "type": "ALT_DEFINITION",
+        "source": "NCI-GLOSS"
+      }
+    ],
+    "synonyms": [
+      {
+        "name": "Ewing Sarcoma",
+        "term_type": "PT",
+        "type": "FULL_SYN",
+        "source": "Cellosaurus"
+      },
+      {
+        "name": "Ewing Sarcoma",
+        "term_type": "PT",
+        "type": "FULL_SYN",
+        "source": "CPTAC"
+      },
+      {
+        "name": "Ewing Sarcoma",
+        "term_type": "PT",
+        "type": "FULL_SYN",
+        "source": "CTRP"
+      },
+      {
+        "…": "13 more items omitted"
+      }
+    ],
+    "semantic_types": [
+      "Neoplastic Process"
+    ],
+    "contributing_sources": [
+      "Cellosaurus",
+      "CPTAC",
+      "CTRP",
+      "GDC",
+      "HemOnc",
+      "MedDRA",
+      "NICHD"
+    ]
+  }
+}
+```
 
 ### Search the local index
 
@@ -169,7 +234,170 @@ Call:
 
 Result:
 
-<!-- result: to be captured from a live run -->
+```json
+{
+  "query": "kinase inhibition",
+  "mode": "hybrid",
+  "release_version": "26.09d",
+  "hits": [
+    {
+      "concept": {
+        "code": "C40704",
+        "preferred_name": "Receptor Tyrosine Kinase Inhibition",
+        "source_vocabulary": "NCI Thesaurus",
+        "terminology": "ncit",
+        "release_version": "26.09d",
+        "release_date": "2026-09-28",
+        "retrieved_at": "2026-10-03T22:47:33.896612Z",
+        "source": "active_cache",
+        "evidence": {
+          "contributing_sources": [],
+          "definitions": [
+            {
+              "definition": "A process that negatively regulates the intracellular catalytic activities that originate with the binding of a tyrosine kinase-associated transmembrane receptor with its cognate ligand. This process is involved in regulation of signaling related to cellular division, cellular differentiation and morphogenesis.",
+              "source": "NCI",
+              "type": "DEFINITION"
+            }
+          ],
+          "semantic_types": [
+            "Physiologic Function"
+          ],
+          "synonyms": [
+            {
+              "name": "Receptor Tyrosine Kinase Inhibition",
+              "source": "NCI",
+              "term_type": "PT",
+              "type": "FULL_SYN"
+            },
+            {
+              "name": "Tyrosine Kinase Receptor Inhibition",
+              "source": "NCI",
+              "term_type": "SY",
+              "type": "FULL_SYN"
+            },
+            {
+              "name": "Receptor Tyrosine Kinase Inhibition",
+              "source": null,
+              "term_type": null,
+              "type": "Preferred_Name"
+            }
+          ]
+        }
+      },
+      "score": 0.969251231258575,
+      "rank": 1,
+      "score_components": {
+        "bm25": 0.9440931477428637,
+        "vector": 1.0
+      }
+    },
+    {
+      "concept": {
+        "code": "C153397",
+        "preferred_name": "In Vitro Kinase Inhibitor Assay",
+        "source_vocabulary": "NCI Thesaurus",
+        "terminology": "ncit",
+        "release_version": "26.09d",
+        "release_date": "2026-10-03T22:47:33.896588Z",
+        "retrieved_at": "2026-10-03T22:47:33.896588Z",
+        "source": "active_cache",
+        "evidence": {
+          "contributing_sources": [
+            "CTRP"
+          ],
+          "definitions": [
+            {
+              "definition": "Any of various laboratory assay methods designed to measure the kinase inhibition activity of a test compound.",
+              "source": "NCI",
+              "type": "DEFINITION"
+            }
+          ],
+          "semantic_types": [
+            "Laboratory Procedure"
+          ],
+          "synonyms": [
+            {
+              "name": "In Vitro Kinase Inhibitor Assay",
+              "source": "CTRP",
+              "term_type": "DN",
+              "type": "FULL_SYN"
+            },
+            {
+              "name": "In Vitro Kinase Inhibition Assay",
+              "source": "NCI",
+              "term_type": "SY",
+              "type": "FULL_SYN"
+            },
+            {
+              "name": "In Vitro Kinase Inhibitor Assay",
+              "source": "NCI",
+              "term_type": "PT",
+              "type": "FULL_SYN"
+            }
+          ]
+        }
+      },
+      "score": 0.9560088666814356,
+      "rank": 2,
+      "score_components": {
+        "bm25": 1.0,
+        "vector": 0.9022419259587456
+      }
+    },
+    {
+      "concept": {
+        "code": "C116938",
+        "preferred_name": "CDK4/6 Inhibition",
+        "source_vocabulary": "NCI Thesaurus",
+        "terminology": "ncit",
+        "release_version": "26.09d",
+        "release_date": "2026-09-28",
+        "retrieved_at": "2026-10-03T22:47:33.896569Z",
+        "source": "active_cache",
+        "evidence": {
+          "contributing_sources": [
+            "GDC"
+          ],
+          "definitions": [
+            {
+              "definition": "Inhibition of cyclin-dependent kinases 4 and 6 pathway activity to prevent proliferation of cancer cells and tumor growth.",
+              "source": "NCI",
+              "type": "DEFINITION"
+            }
+          ],
+          "semantic_types": [
+            "Therapeutic or Preventive Procedure"
+          ],
+          "synonyms": [
+            {
+              "name": "CDK4/6 Inhibition",
+              "source": "NCI",
+              "term_type": "PT",
+              "type": "FULL_SYN"
+            },
+            {
+              "name": "Cyclin-Dependent Kinases 4 and 6 Inhibition",
+              "source": "NCI",
+              "term_type": "SY",
+              "type": "FULL_SYN"
+            }
+          ]
+        }
+      },
+      "score": 0.33446213441111494,
+      "rank": 3,
+      "score_components": {
+        "bm25": 0.0,
+        "vector": 0.7432491875802554
+      }
+    },
+    {
+      "…": "2 more items omitted"
+    }
+  ],
+  "retrieved_at": "2026-10-03T22:47:35.952544Z"
+}
+```
 
 ### List the subtypes of a concept
 
@@ -183,7 +411,76 @@ Call:
 
 Result:
 
-<!-- result: to be captured from a live run -->
+```json
+{
+  "start_codes": [
+    "C3262"
+  ],
+  "release_version": "26.09d",
+  "nodes": [
+    {
+      "code": "C3262",
+      "preferred_name": "Neoplasm",
+      "terminology": "ncit",
+      "release_version": "26.09d",
+      "source_vocabulary": "NCI Thesaurus"
+    },
+    {
+      "code": "C4741",
+      "preferred_name": "Neoplasm by Morphology",
+      "terminology": "ncit",
+      "release_version": "26.09d",
+      "source_vocabulary": "NCI Thesaurus"
+    },
+    {
+      "code": "C3263",
+      "preferred_name": "Neoplasm by Site",
+      "terminology": "ncit",
+      "release_version": "26.09d",
+      "source_vocabulary": "NCI Thesaurus"
+    },
+    {
+      "code": "C7062",
+      "preferred_name": "Neoplasm by Special Category",
+      "terminology": "ncit",
+      "release_version": "26.09d",
+      "source_vocabulary": "NCI Thesaurus"
+    }
+  ],
+  "edges": [
+    {
+      "source_code": "C3262",
+      "target_code": "C4741",
+      "edge_type": "child",
+      "relationship_name": "is_a_child",
+      "target_name": "Neoplasm by Morphology",
+      "source_name": "Neoplasm"
+    },
+    {
+      "source_code": "C3262",
+      "target_code": "C3263",
+      "edge_type": "child",
+      "relationship_name": "is_a_child",
+      "target_name": "Neoplasm by Site",
+      "source_name": "Neoplasm"
+    },
+    {
+      "source_code": "C3262",
+      "target_code": "C7062",
+      "edge_type": "child",
+      "relationship_name": "is_a_child",
+      "target_name": "Neoplasm by Special Category",
+      "source_name": "Neoplasm"
+    }
+  ],
+  "truncated": false,
+  "max_depth": 1,
+  "max_nodes": 200,
+  "max_edges": 1000,
+  "retrieved_at": "2026-10-03T22:47:37.361790Z",
+  "unexpanded_codes": []
+}
+```
 
 ## MCP Tools
 
