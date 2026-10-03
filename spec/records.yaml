@@ -10,7 +10,15 @@ provenance:
     result with items does not, the items carrying theirs. Field names are camelCase.
   fields:
     release:
-      content: "The release in effect: { terminology | registry, identifier, date }"
+      content: The release in effect, in one of two forms
+      forms:
+        terminology: "{ terminology, identifier, date }: the terminology and the release the call pinned"
+        registry: >-
+          { registry, identifier?, date? }: registry is cadsr; identifier and date are the
+          registry release's, present only where caDSR publishes one (A3.8.1). Content the API
+          serves without one names neither: it is newer than the export (2200604 modified
+          2026-08-25, the export of 2026-07-01), so the export's date would mislabel it; the
+          item's own version and dateModified identify it, with retrievedAt beside them (A3.8.2)
       of: A3.3
     source:
       content: The surface that supplied the item
@@ -334,6 +342,255 @@ terminology:
       of: A7.2
     provenance:
       content: The provenance record
+      of: A4.4
+registry_release:
+  title: The registry release record
+  about: >-
+    The registry's content state, as resolve_registry_release returns it. caDSR publishes no
+    registry release today, so the export's date stands for it and no identifier is invented
+    (A3.8).
+  fields:
+    published:
+      content: Whether caDSR publishes a registry release; false today
+      of: A3.8.1
+    identifier:
+      content: The registry release, present only where caDSR publishes one
+      optional: true
+      of: A3.8.1
+    generatedAt:
+      content: >-
+        When the content was generated, ISO-8601: the release's own date where one is
+        published, otherwise the export's date as the export folder gives it (A3.8.2)
+      of: A3.8.2
+    sourceDistribution:
+      content: The distribution generatedAt is read from (today releasedCDEsXML-OD.zip)
+      of: A3.8.2
+data_element:
+  title: The data element record
+  about: >-
+    A data element as a caDSR tool returns it: these fields, the platform's own, and the
+    sections the caller's include selects; no include returns these fields alone. Names follow
+    the caDSR API's (DataElement), statuses unchanged (A9.1).
+  fields:
+    publicId:
+      content: The data element's public id
+      of: A1.2
+    version:
+      content: The data element's own version, never the registry's state
+      of: A3.8.3
+    longName:
+      content: Its long name
+      of: A4.1
+    context:
+      content: The context that owns it
+      of: A3.8.3
+    workflowStatus:
+      content: The platform's workflow status, unchanged (RELEASED, RETIRED ARCHIVED, ...)
+      of: A3.8.3
+    registrationStatus:
+      content: The platform's registration status, unchanged (Standard, Application, ...)
+      of: A3.8.3
+    dateCreated:
+      content: When the platform created it, its own value unchanged
+      of: A3.8.2
+    dateModified:
+      content: When the platform last modified it, its own value unchanged
+      of: A3.8.2
+    provenance:
+      content: The provenance record, its release in the registry form
+      of: A4.4
+    permissibleValues:
+      content: The permissible value records of its value domain, when include selects them
+      optional: true
+      of: get_data_element
+    valueDomain:
+      content: >-
+        The platform's value domain fields, unchanged but for its permissible values, which
+        permissibleValues holds, when include selects it
+      optional: true
+      of: get_data_element
+    conceptAssociations:
+      content: >-
+        The concepts of its data element concept, each { conceptCode, longName, role }, role
+        objectClass or property, as the platform's ObjectClass and Property give them, when
+        include selects them
+      optional: true
+      of: get_data_element
+    alternateNames:
+      content: The platform's alternate name entries, unchanged, when include selects them
+      optional: true
+      of: get_data_element
+    classificationSchemes:
+      content: The classification scheme records it is classified in, when include selects them
+      optional: true
+      of: get_data_element
+permissible_value:
+  title: The permissible value record
+  about: A permissible value of a value domain, with the value meaning it stands for.
+  fields:
+    publicId:
+      content: >-
+        The identifier caDSR REST publishes for it; no platform operation retrieves a value by
+        it yet (OP-C10)
+      of: A1.2
+    value:
+      content: The value as stored
+      of: A9.1
+    valueMeaning:
+      content: >-
+        Its value meaning: { publicId, version, longName, concepts[] }, each concept
+        { conceptCode, longName, primary } as the platform gives it
+      of: A9.1
+    provenance:
+      content: The provenance record, its release in the registry form
+      of: A4.4
+classification_scheme:
+  title: The classification scheme record
+  about: >-
+    A classification scheme as an object with its nested items (A7.2). The platform lists
+    none on their own today (OP-C13): a data element carries the schemes it is classified in.
+  fields:
+    publicId:
+      content: The scheme's public id
+      of: A1.2
+    version:
+      content: The scheme's version
+      of: A3.8.3
+    longName:
+      content: Its long name
+      of: A4.1
+    context:
+      content: The context that owns it
+      of: A7.2
+    items:
+      content: Its classification scheme items, each { publicId, version, longName }
+      of: A7.2
+    provenance:
+      content: The provenance record, its release in the registry form
+      of: A4.4
+context:
+  title: The context record
+  about: >-
+    A context of the registry, as list_contexts returns it. The platform publishes a context
+    by its name alone, so the name is its identifier (A7.2).
+  fields:
+    name:
+      content: The context's name, its identifier
+      of: A7.2
+    provenance:
+      content: The provenance record, its release in the registry form
+      of: A4.4
+data_element_match:
+  title: The data element match record
+  about: One match of match_data_elements, in the platform's order.
+  fields:
+    dataElement:
+      content: The data element record, with no section
+      of: data_element
+    score:
+      content: The platform's score, unchanged
+      of: A9.2
+    rule:
+      content: The rule the platform says matched (CDE Match's ruleDescription), unchanged
+      of: A9.2
+    matchedText:
+      content: The text the platform says matched, unchanged
+      of: A9.2
+value_meaning_match:
+  title: The value meaning match record
+  about: One match of match_value_meanings, in the platform's order.
+  fields:
+    item:
+      content: >-
+        The item matched, as vmMatch gives it: { itemType, publicId, version, name, concept?,
+        evsSource?, context, workflowStatus, registrationStatus, provenance }. itemType is
+        Concept or ValueMeaning, publicId that item's caDSR public id (itemId), name its
+        matchedName; concept is the code it stands for, in the code system evsSource names
+        (NCI_CONCEPT_CODE, SNOMED-CT_CODE, ...), each absent where the platform gives none
+      of: A9.1
+    rule:
+      content: The rule the platform says matched (vmMatch's ruleDescription), unchanged
+      of: A9.2
+    score:
+      content: The platform's score, where it gives one; absent, never null, where it does not (vmMatch gives none)
+      optional: true
+      of: A9.2
+    crosswalk:
+      content: >-
+        The crosswalk the platform gives, { code, description } from crosswalkCode and
+        crosswalkDescription; absent where it gives none, the platform's NA meaning no
+        crosswalk
+      optional: true
+      of: match_value_meanings
+form:
+  title: The form record
+  about: A form as get_form returns it, its status the platform's own (A8.1).
+  fields:
+    publicId:
+      content: The form's public id (the Form API's publicID)
+      of: A1.2
+    version:
+      content: The form's version
+      of: A3.8.3
+    longName:
+      content: Its long name
+      of: A4.1
+    context:
+      content: The context that owns it
+      of: A3.8.3
+    workflowStatus:
+      content: The platform's workflow status, unchanged (RETIRED ARCHIVED is surfaced, not hidden)
+      of: A8.1
+    registrationStatus:
+      content: The platform's registration status, unchanged
+      of: A3.8.3
+    dateCreated:
+      content: When the platform created it, its own value unchanged
+      of: A3.8.2
+    dateModified:
+      content: When the platform last modified it, its own value unchanged
+      of: A3.8.2
+    provenance:
+      content: The provenance record, its release in the registry form
+      of: A4.4
+    modules:
+      content: >-
+        Its modules in the platform's order, each with its questions, the platform's entries
+        unchanged; absent when includeModules is false
+      optional: true
+      of: get_form
+code_map:
+  title: The code map record
+  about: >-
+    The values one data element of the CRDC crosswalk binds to concepts, with the contexts and
+    commons that use it, as get_code_map returns it. The values do not vary by user.
+  fields:
+    dataElement:
+      content: "{ publicId, version } of the data element"
+      of: A1.2
+    crdcName:
+      content: Its CRDC name, as the platform gives it
+      of: A9.1
+    usedBy:
+      content: >-
+        The contexts and commons that use it, the platform's Used By names split at their
+        commas (CRDC, GDC, Pediatric Cancer, CTEP, ...); empty where it names none
+      of: get_code_map
+    valueLevelBinding:
+      content: >-
+        Whether the data element binds values to concepts, which it does where the platform
+        gives its permissible values; false says so rather than returning no values
+      of: get_code_map
+    coverage:
+      content: The number of its values bound to a concept code
+      of: get_code_map
+    values:
+      content: >-
+        Its values, each { value, conceptCode? }, as the platform gives them: conceptCode
+        colon-joined where it names several (C15388:C20821), absent where it names none
+      of: A9.1
+    provenance:
+      content: The provenance record, its release in the registry form
       of: A4.4
 truncation:
   title: The truncation record

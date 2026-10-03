@@ -216,3 +216,7 @@ The server holds caDSR credentials: contexts and CDE Match answer to the contrac
 ### `cadsr/match-timeout`
 
 vmMatch answers later than the match timeout the scenario sets. Crafted, 1 fixture, for A2.5: matching slower than its declared timeout is a timeout error.
+
+### `cadsr/html-for-json`
+
+A data element asked for with Accept: application/json is answered with the HTML caDSR sends to a request without it. Crafted, 1 fixture, for X-15: HTML where JSON was asked for is an upstream error.

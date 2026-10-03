@@ -62,6 +62,32 @@ def _descriptions(schema: object) -> list[str]:
     return [text for text in _under(schema, ("description",)) if isinstance(text, str)]
 
 
+def _content_calls(server, profile: str, pinned: dict) -> list[tuple[str, dict]]:
+    """A content call of each group a server of `profile` serves and implements: a concept of
+    the pinned release from EVS, a data element from caDSR, the unified profile making both.
+    A server that implements neither gets the first, which the suite reports NOT IMPLEMENTED."""
+
+    calls = [
+        call
+        for group, call in {
+            "evs": ("get_concept", {**pinned, "code": "C4817"}),
+            "cadsr": ("get_data_element", {"publicId": "2200604"}),
+        }.items()
+        if profile in (group, "unified")
+    ]
+    return [call for call in calls if server.implemented_as(call[0])] or calls[:1]
+
+
+def _header(entry: dict, name: str) -> str | None:
+    return {key.lower(): value for key, value in entry["headers"].items()}.get(name)
+
+
+def _surface(tool: str) -> str:
+    """The upstream surface a gate's content call reaches."""
+
+    return "cadsr" if tool == "get_data_element" else "evs"
+
+
 def _listing(result) -> list[dict]:
     return [tool.model_dump(by_alias=True) for tool in result.tools]
 
@@ -189,21 +215,22 @@ def test_tools_list_may_be_cached_and_shared(server):
 
 @pytest.mark.gate
 @pytest.mark.requirement("P-6")
-def test_tools_list_is_the_same_after_a_call_that_pins_a_terminology_and_release(server, pinned):
+def test_tools_list_is_the_same_after_a_content_call(server, target, pinned):
     before = _listing(server.listing)
 
-    pinning = server.call("get_concept", {**pinned, "code": "C4817"})
+    called = [server.call(*call) for call in _content_calls(server, target.profile, pinned)]
 
-    assert not pinning.is_error
+    assert [result.content for result in called if result.is_error] == []
     assert _listing(server.list_again()) == before
 
 
 @pytest.mark.gate
 @pytest.mark.scenario("upstream/unavailable")
 @pytest.mark.requirement("P-6")
-def test_tools_list_is_the_same_while_the_platform_is_unavailable(server, tools, pinned):
+def test_tools_list_is_the_same_while_the_platform_is_unavailable(server, target, tools, pinned):
     # A server may notice the outage only when a call fails, so one is made first.
-    tools.call("get_concept", {**pinned, "code": "C4817"})
+    for call in _content_calls(tools, target.profile, pinned):
+        tools.call(*call)
 
     assert _listing(tools.list_again()) == _listing(server.listing)
 
@@ -212,17 +239,19 @@ def test_tools_list_is_the_same_while_the_platform_is_unavailable(server, tools,
 # A server that answered the same call before may serve it from its cache, asking nothing.
 @pytest.mark.own_server
 @pytest.mark.requirement("P-7")
-def test_a_correlation_identifier_goes_upstream_and_comes_back(tools, upstream, pinned):
-    result = tools.call("get_concept", {**pinned, "code": "C4817"}, {"correlationId": CORRELATION})
+def test_a_correlation_identifier_goes_upstream_and_comes_back(tools, target, upstream, pinned):
+    meta = {"correlationId": CORRELATION}
 
-    sent = [
-        {name.lower(): value for name, value in entry["headers"].items()}.get(CORRELATION_HEADER)
-        for entry in upstream.log()
-    ]
-    assert sent
-    assert set(sent) == {CORRELATION}
-    assert not result.is_error
-    assert result.content["provenance"]["correlationId"] == CORRELATION
+    calls = _content_calls(tools, target.profile, pinned)
+
+    results = [tools.call(*call, meta) for call in calls]
+
+    sent = {(entry["surface"], _header(entry, CORRELATION_HEADER)) for entry in upstream.log()}
+    # Each group's requests carry it: the unified profile's caDSR requests as much as its EVS.
+    assert {surface for surface, _ in sent} >= {_surface(name) for name, _ in calls}
+    assert {value for _, value in sent} == {CORRELATION}
+    assert [result.content for result in results if result.is_error] == []
+    assert {result.content["provenance"]["correlationId"] for result in results} == {CORRELATION}
 
 
 @pytest.mark.gate
