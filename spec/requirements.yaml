@@ -127,6 +127,12 @@ X-21:
 X-22:
   statement: A call that leaves out a release the tool requires is an invalid request; the server never chooses the release for it.
   basis: [A3.1, A2.5]
+X-23:
+  statement: An identifier that does not match the form its tool states (patterns), a release among them, is an invalid request before anything else the tool would answer, capability_unavailable included, and no upstream request carries it; an identifier without a stated form reaches the platform as one encoded path segment or parameter value. A release of that form the platform does not serve stays release_not_available (X-2).
+  basis: [A7.6, A2.5]
+X-24:
+  statement: Free text reaches the platform as one parameter value or body field equal to what the caller gave, never split into parameters, cut at a fragment, or written into a path or a query text.
+  basis: [A7.7]
 
 # EVS tools.
 resolve_release-1:
@@ -299,6 +305,9 @@ get_concept_for_permissible_value-1:
 get_concept_for_permissible_value-2:
   statement: By permissibleValueId the tool is capability_unavailable (OP-C10), never not_found or empty.
   basis: [get_concept_for_permissible_value, M1.2, A9.3]
+get_concept_for_permissible_value-3:
+  statement: The value is compared with the data element's permissible values by exact, case-sensitive equality; a value it does not have as given, in another case or with a space around it, is not_found.
+  basis: [get_concept_for_permissible_value, A7.7]
 resolve_stored_value-1:
   statement: A GDC value resolves through the mapset named in each stored value's source and in evidence, confidence asserted, the release the mapset reports matching the one the call requires (release_mismatch otherwise).
   basis: [resolve_stored_value, stored_value]

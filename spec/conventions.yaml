@@ -81,12 +81,16 @@ A7:
   rules:
     A7.1: Terminology and context identifiers come from the platform's metadata at build or start-up, never hard-coded or guessed.
     A7.2: A tool lists the terminologies, contexts or classification schemes available, with identifiers and current releases.
-    A7.3: Where the platform gives licence text with an item, the item carries it unchanged; the module adds none of its own.
+    A7.3: Where the platform gives licence text with an item, or once with the answer that holds it, each such item carries it unchanged; the module adds none of its own.
     A7.4: A credentialed operation degrades explicitly when the credential is absent and is never presented as public.
     A7.5: A credential or licence key is sent only to the platform that issued it (the EVS licence key to EVS, the caDSR credential to caDSR) and appears in no log, error message or result.
+    A7.6: An identifier that goes into an upstream path or query text (a terminology, a release, a concept code, a registry id or version) is checked before any upstream request. One with a stated form that it does not match as a whole is an invalid request; one without a stated form is sent as one percent-encoded path segment or parameter value. A release of the stated form that the platform does not serve is still not available (A3.4); the form does not replace that check.
+    A7.7: Free text (a search query, a name, a description, a value) goes upstream only as one encoded parameter value or body field, never as path, parameter or query syntax, and never into a query text such as SPARQL, encoded or not.
+    A7.8: Upstream hosts come only from configuration; no argument names or changes one.
   why:
     A7.1: A public EVS MCP server sends the terminology key loinc where EVS expects lnc, so every LOINC call answers 404, and its own tests assert the wrong value.
     A7.3: The module is a thin interface (A9.1, A9.5) and holds no stricter standard than the platform it serves. Licence text the platform does not send with the content is the platform's to send, and its absence is shown, not compensated.
+    A7.6: An argument is caller input, and a model as caller can carry text it was handed; the module never lets an argument change which request it makes.
 A8:
   title: Content status and retired identifiers
   rules:

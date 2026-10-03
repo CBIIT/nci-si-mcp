@@ -206,6 +206,14 @@ def test_the_required_tools_are_the_twenty_nine_of_four_groups_each_rendered():
     }
 
 
+def test_a_tool_row_states_its_identifier_forms_and_free_text():
+    rendered = render({})
+
+    assert "`code` form for ncit `^C[1-9][0-9]*$`." in rendered
+    assert "`release` form `^[A-Za-z0-9][A-Za-z0-9._-]*$`." in rendered
+    assert "Free text: `entities[].name`, `entities[].userTip`" in rendered
+
+
 @pytest.mark.parametrize(
     ("name", "known"),
     [

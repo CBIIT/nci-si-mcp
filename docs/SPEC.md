@@ -378,7 +378,7 @@ The root project installs the package editable (dependency group `acceptance`); 
 
 ### 9.3 The request log
 
-The fixture server exposes `GET /_log` returning every request it received since `DELETE /_log`. Tests use it for: outbound budget including retries; batch endpoint used instead of fan-out; no endpoint called twice with identical parameters in one tool call; `Accept: application/json` present on every caDSR call; licence key present on licensed calls and absent from results.
+The fixture server exposes `GET /_log` returning every request it received since `DELETE /_log`, each decoded (surface, path, parameters, body) and as sent (`raw`, the path and query undecoded). Tests use it for: hostile identifiers that reach no request, free text that arrives as one value, a code sent as one encoded path segment; outbound budget including retries; batch endpoint used instead of fan-out; no endpoint called twice with identical parameters in one tool call; `Accept: application/json` present on every caDSR call; licence key present on licensed calls and absent from results.
 
 ### 9.4 Baseline tool map
 

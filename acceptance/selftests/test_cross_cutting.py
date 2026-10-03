@@ -22,6 +22,7 @@ BACKOFF = "test_a_rate_limited_request_is_asked_once_more_after_the_wait"
 PAGED = "test_a_cursor_continues_with_the_next_items_of_the_same_release"
 PASSED_THROUGH = "test_licence_text_the_platform_gives_with_an_item_is_passed_through_unchanged"
 NOT_GIVEN = "test_no_item_carries_licence_text_the_platform_did_not_give_with_it"
+OFF_FORM = "test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it"
 # Each defect of the compliant server, and the cross-cutting test whose every case must fail.
 DEFECTS = [
     ("wrong-release", "test_every_item_carries_the_release_requested"),
@@ -78,6 +79,16 @@ DEFECTS = [
     ("wrong-default", "test_a_left_out_argument_is_its_stated_default"),
     ("raised-to-one", "test_a_bounded_argument_below_one_is_an_invalid_request"),
     ("release-defaulted", "test_a_call_without_its_required_release_is_an_invalid_request"),
+    ("unchecked-identifiers", OFF_FORM),
+    ("checks-after-asking", OFF_FORM),
+    ("asks-in-path-then-refuses", OFF_FORM),
+    ("asks-in-form-then-refuses", OFF_FORM),
+    ("text-twice", "test_free_text_reaches_the_platform_as_one_value_equal_to_it"),
+    (
+        "unencoded-code",
+        "test_a_code_of_a_terminology_without_a_stated_form_goes_upstream_as_one_segment",
+    ),
+    ("unencoded-text", "test_free_text_reaches_the_platform_as_one_value_equal_to_it"),
     ("joins-listing", NOT_GIVEN),
     ("attribution-everywhere", NOT_GIVEN),
     ("drops-attribution", PASSED_THROUGH),

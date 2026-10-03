@@ -112,6 +112,17 @@ def parameters(tool: str) -> tuple[set[str], set[str]]:
     return names, required
 
 
+def alternatives(tool: str, name: str) -> set[str]:
+    """The parameters `tool` takes in place of `name` (`a | b`); none where it has no
+    alternative."""
+
+    for part in _split(TOOLS[tool]["inputs"].strip()[1:-1], ","):
+        found = [set(_names(alternative)) for alternative in _split(part, "|")]
+        if any(name in each for each in found):
+            return set().union(*(each for each in found if name not in each))
+    return set()
+
+
 def is_basis(name: str) -> bool:
     """Whether `name` is a convention (a section such as A6, or a rule such as A3.6.1, or a
     subsection such as A3.6 above rules), a record (provenance) or a required tool."""
