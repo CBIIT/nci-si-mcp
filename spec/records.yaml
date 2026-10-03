@@ -483,8 +483,11 @@ context:
       of: A4.4
 data_element_match:
   title: The data element match record
-  about: One match of match_data_elements, in the platform's order.
+  about: One match of match_data_elements, in the platform's order, each entity's after the one before.
   fields:
+    entity:
+      content: The name of the entity it matches, as the caller gave it
+      of: match_data_elements
     dataElement:
       content: The data element record, with no section
       of: data_element

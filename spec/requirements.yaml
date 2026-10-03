@@ -93,7 +93,7 @@ X-11:
   basis: [A5.8]
   planned: "#55"
 X-12:
-  statement: The licence key reaches the upstream request and appears in no log, error message or result.
+  statement: The licence key and the caDSR credential reach the upstream request and appear in no log, error message or result.
   basis: [A7.5]
 X-13:
   statement: Every result carries in its _meta the ttlMs and cacheScope M2.2 and M2.3 give what it holds.

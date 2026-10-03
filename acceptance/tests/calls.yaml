@@ -92,6 +92,7 @@ get_code_map:
 # contract's cap of 1,000 data elements (crafted/OP-C03/search-over-cap.json).
 search_data_elements:
   arguments: {query: patient}
+  empty: {query: qqxyzzyqq}
   truncating: {arguments: {}, bound: upstream_cap, limit: 1000}   # the contract's cap
   paged:
     - arguments: {}

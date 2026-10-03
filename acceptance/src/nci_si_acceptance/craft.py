@@ -33,7 +33,7 @@ from nci_si_acceptance.record import (
 from nci_si_acceptance.spec import RECORDS
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable, Iterable, Iterator
 
 type Documents = dict[str, dict[str, Any]]
 
@@ -66,6 +66,8 @@ REGISTRY_RELEASE = "2026.07.02"
 # The record cap of every caDSR list query, by contract: "The maximum number of results per
 # query is 1000."
 CADSR_CAP = 1000
+# The keyword the crafted empty search answers.
+NO_MATCH = "qqxyzzyqq"
 # Synthetic data elements of the over-cap answer use public ids from 99000000 up.
 SYNTHETIC_PUBLIC_ID = 99000000
 # The positions, in the recorded expansion, of the members valueset/inactive-members marks
@@ -530,10 +532,11 @@ def cadsr_with_registry_release(recorded: Recorded) -> Documents:
         "C-1: a published registry release, named in every answer and accepted on every "
         "content call"
     )
-    # generatedAt is the export's Last-Modified (recorded/cadsr-ftp/cde-xml-listing.json).
+    # generatedAt as the export folder dates the export (recorded/cadsr-ftp/cde-xml-listing.json),
+    # in the server's time, which the listing does not name.
     releases = {
         "registryReleases": [
-            {"identifier": REGISTRY_RELEASE, "generatedAt": "2026-07-02T02:19:40Z", "latest": True}
+            {"identifier": REGISTRY_RELEASE, "generatedAt": "2026-07-01T22:19", "latest": True}
         ]
     }
     element = recorded("recorded/cadsr/data-element-2200604.json")["response"]
@@ -562,37 +565,56 @@ def cadsr_with_registry_release(recorded: Recorded) -> Documents:
 def _contexts(recorded: Recorded) -> list[str]:
     """The context names the recorded data elements carry, at any depth."""
 
-    def names(value: Any) -> set[str]:
-        if isinstance(value, list):
-            return set().union(*map(names, value))
-        if not isinstance(value, dict):
-            return set()
-        own = {value["context"]} if isinstance(value.get("context"), str) else set()
-        return own.union(*map(names, value.values()))
-
+    # In the order the recordings name them, each once: an order of the platform's own, which
+    # a server that sorts the list would not keep.
     files = ("data-element-2200604.json", "classification-3685569.json")
-    return sorted(set().union(*(names(recorded(f"recorded/cadsr/{f}")) for f in files)))
+    found = [name for f in files for name in _context_names(recorded(f"recorded/cadsr/{f}"))]
+    return list(dict.fromkeys(found))
 
 
-def _cde_match(recorded: Recorded) -> dict[str, Any]:
+def _context_names(value: Any) -> Iterator[str]:
+    """The context names a recording carries, at any depth, in its order."""
+
+    if isinstance(value, dict):
+        if isinstance(value.get("context"), str):
+            yield value["context"]
+        value = list(value.values())
+    if isinstance(value, list):
+        for each in value:
+            yield from _context_names(each)
+
+
+# The entities the crafted CDE Match answers are for, each with the recorded data elements it
+# matches: 2200604 itself, and from the concept search (header fields only) 2180389.
+MATCHED_ENTITIES = {
+    "Patient Gender": (
+        "recorded/cadsr/data-element-2200604.json",
+        "recorded/cadsr/concept-c17357.json",
+    ),
+    "Transplant Donor Gender": ("recorded/cadsr/concept-c17357.json",),
+}
+# Invented, as no answer can be recorded without credentials: the scores and the rule, marked so.
+SCORES = (0.97, 0.83)
+RULE = "Crafted: long name"
+
+
+def _matched_element(recorded: Recorded, file: str) -> dict[str, Any]:
+    body = recorded(file)["response"]["body"]
+    return body["DataElement"] if "DataElement" in body else body["DataElements"][0]
+
+
+def _cde_match(recorded: Recorded, entity: str = "Patient Gender") -> dict[str, Any]:
     """CDE Match's answer to its 2.0 contract (cdeMatch_POST_response: apiResponse, and
-    matchResults an odeResults with odeMatch matches), matching 2200604 to "Patient Gender",
-    each value read from the recording; the contract gives no example."""
+    matchResults an odeResults with odeMatch matches) for one entity, the matched data
+    elements' fields read from the recordings; the contract gives no example."""
 
-    element = recorded("recorded/cadsr/data-element-2200604.json")["response"]["body"]
-    element = element["DataElement"]
-    # A second match, so that matchLimit shows: a data element the concept search recorded.
-    (second, *_) = recorded("recorded/cadsr/concept-c17357.json")["response"]["body"][
-        "DataElements"
-    ]
-    matches = [
-        _ode_match(element, 1.0, len(element["ValueDomain"]["PermissibleValues"])),
-        _ode_match(second, 0.8, 0),
-    ]
+    elements = [_matched_element(recorded, file) for file in MATCHED_ENTITIES[entity]]
+    matches = [_ode_match(element, score) for element, score in zip(elements, SCORES, strict=False)]
     results = {
         "sequenceNumber": 1,
-        "entity": "Patient Gender",
+        "entity": entity,
         "numberOfMatches": len(matches),
+        # The entity names no permissible values, so none is matched.
         "numberofPVs": 0,
         "lastRunType": "Crafted",
         "matches": matches,
@@ -600,23 +622,26 @@ def _cde_match(recorded: Recorded) -> dict[str, Any]:
     return {"apiResponse": {"type": "S"}, "matchResults": results}
 
 
-def _ode_match(element: dict[str, Any], score: float, values: int) -> dict[str, Any]:
-    """An odeMatch of the CDE Match 2.0 contract, its fields read from a recorded data element."""
+def _ode_match(element: dict[str, Any], score: float) -> dict[str, Any]:
+    """An odeMatch of the CDE Match 2.0 contract, its fields read from a recorded data element;
+    its count of permissible values only where the recording holds them."""
 
-    return {
-        "ruleDescription": "Crafted: long name",
+    values = (element.get("ValueDomain") or {}).get("PermissibleValues")
+    match = {
+        "ruleDescription": RULE,
         "score": score,
         "publicId": element["publicId"],
         "version": element["version"],
         "numberOfPVsInSource": 0,
-        "numberOfPVsInCDE": values,
-        "numberofPVsMatch": 0,
-        "matchedText": element["longName"],
+        "numberOfPVsMatch": 0,
+        # What matched, as recorded: the short name, which differs from the long name.
+        "matchedText": element["shortName"],
         "longName": element["longName"],
         "context": element["context"],
         "workflowStatus": element["workflowStatus"],
         "registrationStatus": element["registrationStatus"],
     }
+    return match | ({"numberOfPVsInCDE": len(values)} if values is not None else {})
 
 
 def cadsr_credentialed(recorded: Recorded) -> Documents:
@@ -643,14 +668,22 @@ def cadsr_credentialed(recorded: Recorded) -> Documents:
             "since 3 October 2026 at the latest (401, recorded/cadsr/cde-match-refused*.json)",
             {"status": 200, "body": _cde_match(recorded)},
         ),
+        **_cde_match_forms(
+            f"{scenario}/cde-match-donor",
+            "OP-M01, A9.3: CDE Match to its 2.0 contract for a second entity",
+            {"status": 200, "body": _cde_match(recorded, "Transplant Donor Gender")},
+            "Transplant Donor Gender",
+        ),
     }
 
 
-def _cde_match_forms(stem: str, requirement: str, response: dict[str, Any]) -> Documents:
+def _cde_match_forms(
+    stem: str, requirement: str, response: dict[str, Any], entity: str = "Patient Gender"
+) -> Documents:
     """One answer to both forms of CDE Match's body: the contract's apiinput object, and the
     array the service answered on 10 September; which it takes is asked in #42."""
 
-    contract = _cde_match_request()
+    contract = _cde_match_request(entity)
     observed = contract | {"body": [contract["body"]]}
     return {
         f"{stem}.json": crafted(requirement, contract, response=response),
@@ -660,7 +693,7 @@ def _cde_match_forms(stem: str, requirement: str, response: dict[str, Any]) -> D
     }
 
 
-def _cde_match_request() -> dict[str, Any]:
+def _cde_match_request(entity: str = "Patient Gender") -> dict[str, Any]:
     """CDE Match asked as its 2.0 contract says, with the scenario's credentials: POST
     /cdeMatch, its body dataInput one apiinput object (the call of 10 September sent an
     array, which recorded/cadsr/cde-match-refused.json keeps)."""
@@ -674,7 +707,7 @@ def _cde_match_request() -> dict[str, Any]:
             "Content-Type": "application/json",
             "Authorization": CADSR_AUTHORIZATION,
         },
-        "body": {"entity": "Patient Gender"},
+        "body": {"entity": entity},
     }
 
 
@@ -715,7 +748,7 @@ def cadsr_match_without_a_concept(recorded: Recorded) -> Documents:
     source = recorded("recorded/cadsr/vm-match-male.json")
     (answer,) = source["response"]["body"]["matchResults"]
     match = next(m for m in answer["matches"] if m["itemType"] == "ValueMeaning")
-    blank = match | {"concept": None, "evsSource": None}
+    blank = match | {"concept": None, "evsSource": None, "importedVMName": NO_CONCEPT}
     body = {
         "matchResults": [answer | {"name": NO_CONCEPT, "numberOfMatches": "1", "matches": [blank]}]
     }
@@ -764,12 +797,18 @@ def cadsr_over_cap(_: Recorded) -> Documents:
         ignored={"pageSize": "crafted: the cap answers 1,000 whatever page size is asked"},
     )
     body = {"status": None, "message": None, "numRecords": None, "DataElements": elements}
+    nothing = request | {"params": {"keyword": [NO_MATCH]}}
     return {
+        "crafted/OP-C03/search-no-match.json": crafted(
+            "X-4: a keyword search matching nothing is an empty result",
+            nothing,
+            response={"status": 200, "body": body | {"DataElements": []}},
+        ),
         "crafted/OP-C03/search-over-cap.json": crafted(
             'C-3: "The maximum number of results per query is 1000", with no pagination',
             request,
             response={"status": 200, "body": body},
-        )
+        ),
     }
 
 

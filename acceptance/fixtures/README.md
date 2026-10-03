@@ -60,8 +60,11 @@ caDSR's own behaviour is in the ordinary fixtures, with no scenario of its own:
 - **Credentials.** The lists-of-values API and CDE Match refuse an anonymous caller (401,
   recorded). Until NCI issues credentials (owner's decision, 3 October 2026),
   `cadsr/credentialed` answers for a server that holds `NCI_SI_CADSR_CREDENTIAL` with answers
-  crafted from the published contracts, recorded under `recorded/cadsr-contracts/`: their values
-  are the recorded content's, and a self-test holds each to its contract's definitions. Their
+  crafted from the published contracts, recorded under `recorded/cadsr-contracts/`. The data
+  elements and contexts in them are the recorded content's; what no recording can give (CDE
+  Match's scores, its rule, marked "Crafted") is invented. A self-test holds each answer to its
+  contract: its operation and base path, its answer's definition with no field the definition
+  does not name, its request body, and the basic authentication the contract requires. Their
   tests report PASS (fixture only); with credentials the recorder records the answers instead,
   taking the credential from the operator's environment and writing it into no fixture.
 

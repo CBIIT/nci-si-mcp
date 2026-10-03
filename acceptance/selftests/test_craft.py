@@ -445,12 +445,48 @@ CONTRACT_ANSWERS = [
 ]
 
 
+def _closed(schema):
+    """A definition with every object closed to the properties it names, so that a field the
+    contract does not name, a misspelt one among them, shows."""
+
+    if isinstance(schema, list):
+        return [_closed(each) for each in schema]
+    if not isinstance(schema, dict):
+        return schema
+    closed = {key: _closed(value) for key, value in schema.items()}
+    return closed | ({"additionalProperties": False} if "properties" in schema else {})
+
+
 def _violations(contract, definition, value):
     """How `value` departs from the contract's definition, swagger 2.0 being JSON Schema
-    draft 4 in this respect."""
+    draft 4 in this respect, with no field the definition does not name."""
 
-    schema = {"$ref": f"#/definitions/{definition}", "definitions": contract["definitions"]}
+    definitions = _closed(contract["definitions"])
+    schema = {"$ref": f"#/definitions/{definition}", "definitions": definitions}
     return [error.message for error in Draft4Validator(schema).iter_errors(value)]
+
+
+def _basic_auth(contract):
+    """Whether the contract requires HTTP basic authentication of every operation."""
+
+    schemes = contract.get("securityDefinitions", {})
+    required = {name for each in contract.get("security", []) for name in each}
+    return any(schemes[name].get("type") == "basic" for name in required)
+
+
+def _operations(contract):
+    """Each operation of a contract, by method and its path under the cadsr surface (the
+    basePath less /rad), with the definition its answer takes and the bodies it consumes."""
+
+    base = contract["basePath"].removeprefix("/rad")
+    return {
+        (method.upper(), base + path): (
+            operation["responses"]["200"]["schema"]["$ref"],
+            operation.get("consumes", contract.get("consumes")),
+        )
+        for path, methods in contract["paths"].items()
+        for method, operation in methods.items()
+    }
 
 
 @pytest.mark.parametrize("scenario", ["credentialed", "match-timeout"])
@@ -469,11 +505,15 @@ def test_a_crafted_credentialed_answer_follows_its_published_contract(
 ):
     contract = json.loads((FIXTURES / source).read_text(encoding="utf-8"))["response"]["body"]
     request, response = CRAFTED[fixture]["request"], CRAFTED[fixture]["response"]
-    operations = {
-        (method.upper(), path) for path, methods in contract["paths"].items() for method in methods
-    }
 
-    assert [(m, p) for m, p in operations if m == request["method"] and request["path"].endswith(p)]
+    # The contract's operation, at its base path, whose answer is the definition named here.
+    takes, consumes = _operations(contract)[request["method"], request["path"]]
+    assert takes == f"#/definitions/{answer}"
+    # A contract that requires basic authentication is answered only with its header.
+    if _basic_auth(contract):
+        assert request["headers"].get("Authorization", "").startswith("Basic ")
+    # A body is sent as the operation consumes it.
+    assert "body" not in request or request["headers"].get("Content-Type") in (consumes or [])
     assert _violations(contract, answer, response["body"]) == []
     if body:
         assert _violations(contract, body, request["body"]) == []

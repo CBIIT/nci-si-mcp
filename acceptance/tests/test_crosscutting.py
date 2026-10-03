@@ -1,6 +1,7 @@
 """Cross-cutting tests (the X requirements of spec/requirements.yaml), each against every
 content-returning tool whose call is in calls.yaml."""
 
+import base64
 import json
 import re
 from collections import Counter
@@ -345,8 +346,34 @@ def test_an_error_carries_no_licence_key(tools, upstream):
     assert _carrying(keys, *_outputs(refused), tools.process.written()) == []
 
 
-# Each surface's rate-limited request, by the call that makes it: EVS's release query and
-# caDSR's data element.
+def _basic(credential):
+    """The Authorization header a caDSR credential, user:password, is sent as."""
+
+    return "Basic " + base64.b64encode(credential.encode()).decode()
+
+
+@pytest.mark.requirement("X-12")
+@pytest.mark.parametrize("name", _per_tool(["match_data_elements"], "cadsr/credentialed"))
+def test_the_cadsr_credential_reaches_the_platform_and_nothing_the_server_returns_or_logs(
+    tools, upstream, pinned, name
+):
+    settings = upstream.fixtures.settings_of(("cadsr/credentialed",))
+    credential = settings["NCI_SI_CADSR_CREDENTIAL"]
+
+    granted = _call(tools, pinned, name)
+
+    # Only a request that carries the credential is answered.
+    assert not granted.is_error, granted.content
+    sent = {_header(entry, "authorization") for entry in upstream.log()} - {None}
+    assert sent == {_basic(credential)}
+    secrets = {credential, _basic(credential), _basic(credential).removeprefix("Basic ")}
+    assert _carrying(secrets, *_outputs(granted), tools.process.written()) == []
+
+
+def _header(entry, name):
+    return {key.lower(): value for key, value in entry["headers"].items()}.get(name)
+
+
 # A call of each surface the rate-limited scenario answers with 429: EVS's release query and
 # caDSR's data element.
 RATE_LIMITED_CALLS = {"resolve_release": {}, "get_data_element": {"publicId": "2200604"}}

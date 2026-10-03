@@ -67,6 +67,8 @@ ELEMENT = {"publicId": "2200604", "version": "4", "longName": "Person Sex Text T
         (ELEMENT, ("2200604", "4")),
         ({"dataElement": {"publicId": "88", "version": "5.1"}, "usedBy": ["GDC"]}, ("88", "5.1")),
         ({"name": "NCIP", "provenance": {}}, "NCIP"),
+        # A data element that is no record names nothing to identify the item by but its name.
+        ({"dataElement": "2200604", "name": "a code map"}, "a code map"),
         ("bare", "bare"),
     ],
 )
@@ -84,7 +86,7 @@ def test_an_item_is_identified_by_what_it_is(item, expected):
     ],
 )
 def test_an_item_s_release_is_its_terminology_or_registry_and_identifier(release, expected):
-    item = {"provenance": {"release": release}} if release else {}
+    item = {"provenance": {"release": release}} if release else {"provenance": None}
 
     assert release_of(item) == expected
 

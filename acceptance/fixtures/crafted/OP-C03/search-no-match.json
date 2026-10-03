@@ -1,0 +1,29 @@
+{
+ "kind": "crafted",
+ "requirement": "X-4: a keyword search matching nothing is an empty result",
+ "request": {
+  "surface": "cadsr",
+  "method": "GET",
+  "path": "/NCIAPI/1.0/api/DataElement/search",
+  "headers": {
+   "Accept": "application/json"
+  },
+  "params": {
+   "keyword": [
+    "qqxyzzyqq"
+   ]
+  },
+  "ignored": {
+   "pageSize": "crafted: the cap answers 1,000 whatever page size is asked"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "status": null,
+   "message": null,
+   "numRecords": null,
+   "DataElements": []
+  }
+ }
+}
