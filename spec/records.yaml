@@ -292,7 +292,7 @@ search_result:
       content: >-
         Where the match was found, as the source says it: from EVS its highlight, unchanged
         (the matched text, the query's terms marked); from the interim index the field
-        matched. Its form follows the mode the caller asked for. Absent where the source says
+        matched, name, synonym or definition. Its form follows the mode the caller asked for. Absent where the source says
         nothing (EVS typeahead), never null
       optional: true
       of: A9.2

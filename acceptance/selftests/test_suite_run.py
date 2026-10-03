@@ -337,6 +337,11 @@ def test_shared(tools):
 def test_own(tools):
     assert (tools.process.data / "codes.txt").exists()
     assert not (tools.process.data / "written.txt").exists()
+
+@pytest.mark.unprepared
+@pytest.mark.tool("resolve_release")
+def test_unprepared(tools):
+    assert not (tools.process.data / "codes.txt").exists()
 """
 
 
@@ -362,14 +367,14 @@ def test_the_prepare_command_runs_once_and_every_server_starts_from_its_data(sui
 
     result = run(suite, PREPARED_PROBE)
 
-    result.assert_outcomes(passed=2)
+    result.assert_outcomes(passed=3)
     assert runs.read_text(encoding="utf-8").splitlines() == ["run"]
 
 
 def test_without_a_prepare_command_a_test_that_needs_it_is_not_run(suite):
     result = run(suite, PREPARED_PROBE, "-rs")
 
-    result.assert_outcomes(skipped=2)
+    result.assert_outcomes(passed=1, skipped=2)
     result.stdout.fnmatch_lines(["*NOT RUN: no prepare command*"])
 
 

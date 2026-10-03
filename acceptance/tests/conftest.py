@@ -31,6 +31,7 @@ from nci_si_acceptance.report import COLLECTOR, write_report
 from nci_si_acceptance.suite import (
     OWN_SERVER,
     UNMATCHED_UPSTREAM,
+    UNPREPARED,
     UnmatchedUpstream,
     index_set,
     scenarios_of,
@@ -206,14 +207,16 @@ def tools(
     """
 
     scenarios = scenarios_of(request.node)
-    own = request.node.get_closest_marker(OWN_SERVER) is not None
+    unprepared = request.node.get_closest_marker(UNPREPARED) is not None
+    own = unprepared or request.node.get_closest_marker(OWN_SERVER) is not None
     if not (scenarios or own) or upstream is None:
         yield request.getfixturevalue("server")
         return
     upstream.activate(*scenarios)
     settings = upstream.fixtures.settings_of(scenarios)
     try:
-        with _tools(target, upstream, tmp_path_factory, prepared, settings) as own:
+        data = None if unprepared else prepared
+        with _tools(target, upstream, tmp_path_factory, data, settings) as own:
             request.config.stash[COLLECTOR].note_tools(own)
             yield own
     finally:

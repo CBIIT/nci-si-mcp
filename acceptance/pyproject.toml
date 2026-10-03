@@ -33,6 +33,7 @@ markers = [
     "live_capable: also runs in live mode",
     "unmatched_upstream: expects upstream requests without a fixture, and checks them itself",
     "prepared: needs what the operator's prepare command produced; NOT RUN without it",
+    "unprepared: runs on a server of its own started without what the prepare command produced",
 ]
 
 [tool.coverage.run]
