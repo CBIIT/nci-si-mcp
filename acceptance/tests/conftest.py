@@ -5,8 +5,8 @@ server process of its own, started with the scenarios active and with their
 settings, so that nothing the server keeps between calls outlives them. Requests a
 server makes while it starts must find fixtures too.
 
-The operator's prepare command, where one is given, runs once before any test, in the
-server's environment, with the codes of the index set listed in the file
+The operator's prepare command, where one is given, runs once, before the first test that
+starts a server, in the server's environment, with the codes of the index set listed in the file
 `NCI_SI_ACCEPTANCE_INDEX_CODES` names; every server then starts from a copy of the data
 directory it produced. A prepare command that fails, or whose requests find no fixture,
 ends the run.
@@ -117,10 +117,16 @@ def prepared(
     environment = server_environment(target.mode, data, url) | {INDEX_CODES_VARIABLE: str(codes)}
     if upstream:
         upstream.reset()
-    # The operator's own command line, as a shell runs it (the acceptance README).
-    ran = subprocess.run(target.prepare, shell=True, env=environment, check=False)  # noqa: S602
+    # The operator's own command line, as a shell runs it (the acceptance README); its output
+    # is kept for its failure, not charged to the first test that starts a server.
+    ran = subprocess.run(  # noqa: S602
+        target.prepare, shell=True, env=environment, check=False, capture_output=True, text=True
+    )
     if ran.returncode:
-        pytest.exit(f"the prepare command failed with exit status {ran.returncode}", returncode=1)
+        said = (ran.stdout + ran.stderr)[-2000:]
+        pytest.exit(
+            f"the prepare command failed with exit status {ran.returncode}:\n{said}", returncode=1
+        )
     if unmatched := unmatched_requests(_startup_requests(upstream)):
         pytest.exit(str(UnmatchedUpstream(unmatched, " while preparing")), returncode=1)
     return data

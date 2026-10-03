@@ -54,14 +54,15 @@ that passes live and fails against fixtures means the server behaves differently
 different upstreams: a defect.
 
 A run may begin with one operator-supplied prepare command, `NCI_SI_ACCEPTANCE_PREPARE`, a
-shell command line run once before any test in the server's environment, against the
-ordinary fixtures: the same settings the server gets, its upstream base URLs and a fresh
-`NCI_SI_DATA_DIR`. The file that `NCI_SI_ACCEPTANCE_INDEX_CODES` names holds the index set, every
-concept the fixture set records at an include that holds its summary. Every server then
+shell command line run once, before the first test that starts a server, in the server's
+environment against the ordinary fixtures (in live mode, the live services): the same settings
+the server gets, its upstream base URLs and a fresh `NCI_SI_DATA_DIR`. The file that
+`NCI_SI_ACCEPTANCE_INDEX_CODES` names holds the index set, one code per line: every concept the
+fixture set records at an include that holds its summary. Every server then
 starts from a copy of that data directory. A test marked `prepared` needs it and is NOT RUN
 without the command; a command that fails, or whose requests find no fixture, ends the run.
-For this server it builds the interim NCIt index, in seconds and a few MB with the default
-hashing embedder:
+For this server it builds the interim NCIt index, in under a second and under a MB with the
+default hashing embedder:
 
     NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")'
 

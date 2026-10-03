@@ -328,12 +328,15 @@ import pytest
 def test_shared(tools):
     codes = (tools.process.data / "codes.txt").read_text(encoding="utf-8")
     assert codes.split() == ["C4817", "C3262"]
+    # What a server writes stays in its own copy (the next test starts another).
+    (tools.process.data / "written.txt").write_text("shared", encoding="utf-8")
 
 @pytest.mark.prepared
 @pytest.mark.own_server
 @pytest.mark.tool("resolve_release")
 def test_own(tools):
     assert (tools.process.data / "codes.txt").exists()
+    assert not (tools.process.data / "written.txt").exists()
 """
 
 
@@ -373,7 +376,10 @@ def test_without_a_prepare_command_a_test_that_needs_it_is_not_run(suite):
 @pytest.mark.parametrize(
     ("script", "said"),
     [
-        ("raise SystemExit(3)", "*the prepare command failed with exit status 3*"),
+        (
+            "import sys\nsys.stderr.write('no index built\\n')\nraise SystemExit(3)",
+            "*no index built*",
+        ),
         (
             "import os, urllib.request\n"
             "try: urllib.request.urlopen(os.environ['NCI_SI_EVS_BASE_URL'] + '/api/v1/version')\n"
