@@ -1,6 +1,7 @@
 """The cross-cutting tests pass against a server that meets them, and each fails on its own
 defect (compliant_server.py)."""
 
+import ast
 from pathlib import Path
 
 import pytest
@@ -95,12 +96,45 @@ def _served(found):
     return {case: outcome for case, outcome in found.items() if not other(case)}
 
 
-def test_every_cross_cutting_test_passes_against_a_server_that_meets_them(outcomes):
-    passed = _served(outcomes(CROSS_CUTTING))
+def _functions():
+    """The test functions of the cross-cutting file, read from it."""
 
-    assert passed
-    assert {case: outcome for case, outcome in passed.items() if outcome != "passed"} == {}
-    assert {name.partition("[")[0] for name in passed} == {test for _, test in DEFECTS}
+    tree = ast.parse((SUITE / "test_crosscutting.py").read_text(encoding="utf-8"))
+    return [
+        node.name
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name.startswith("test_")
+    ]
+
+
+FUNCTIONS = _functions()
+DEFECTIVE = {test for _, test in DEFECTS}
+
+
+def test_every_defect_names_a_cross_cutting_test():
+    assert FUNCTIONS
+    assert sorted(DEFECTIVE - set(FUNCTIONS)) == []
+
+
+# The functions in as many nested runs as the self-tests have workers, so that the runs
+# spread over them; each run a subprocess, which costs its start.
+CHUNKS = 4
+
+
+def _function_of(case):
+    return case.partition("[")[0]
+
+
+# A test with a defect of its own passes in every case the compliant server serves, and in at
+# least one; any other test serves none.
+@pytest.mark.parametrize("chunk", range(CHUNKS))
+def test_every_cross_cutting_test_passes_against_a_server_that_meets_it(outcomes, chunk):
+    tests = FUNCTIONS[chunk::CHUNKS]
+
+    served = _served(outcomes(*(f"{CROSS_CUTTING}::{test}" for test in tests)))
+
+    assert {test for test in tests if test in DEFECTIVE} == set(map(_function_of, served))
+    assert {case: outcome for case, outcome in served.items() if outcome != "passed"} == {}
 
 
 def test_only_a_call_without_a_pinned_form_may_answer_an_unknown_release_with_the_mismatch(
