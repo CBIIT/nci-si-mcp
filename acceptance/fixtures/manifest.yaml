@@ -457,9 +457,21 @@ record:
       method: POST
       path: /NCIAPI.v2_0.cdeMatch.api:cdeMatch_rad/cdeMatch
       headers: {Accept: application/json, Content-Type: application/json}
-      # An array of entities, as the inventory says and the call of 10 September sent; the
-      # contract's schema names one object, which the API refuses alike (401).
+      # An array of entities, as the inventory says and the call of 10 September sent; which
+      # form the service takes is asked in #42.
       body: [{entity: Patient Gender}]
+      status: 401
+    - <<: *cadsr
+      fixture: recorded/cadsr/cde-match-refused-object.json
+      operation: OP-M01
+      rationale: >-
+        CDE Match asked with the contract's body, one apiinput object, refused alike (401).
+        Which form the service takes, the contract's object or the array it answered on 10
+        September, is asked in #42; the fixtures answer both.
+      method: POST
+      path: /NCIAPI.v2_0.cdeMatch.api:cdeMatch_rad/cdeMatch
+      headers: {Accept: application/json, Content-Type: application/json}
+      body: {entity: Patient Gender}
       status: 401
     - <<: *cadsr
       fixture: recorded/cadsr/registry-releases.json

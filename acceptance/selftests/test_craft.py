@@ -330,21 +330,21 @@ def test_the_cadsr_credential_of_the_settings_is_what_opens_contexts_and_cde_mat
     credential = CRAFTED["scenarios/cadsr/credentialed/settings.json"]["NCI_SI_CADSR_CREDENTIAL"]
     basic = {"Authorization": "Basic " + base64.b64encode(credential.encode()).decode()}
     sent = {"Content-Type": "application/json"}
-    # The contract's body, one apiinput object; the recorded refusal keeps the array the call
-    # of 10 September sent.
-    match, refused_match = {"entity": "Patient Gender"}, [{"entity": "Patient Gender"}]
+    # Both forms of the body: the contract's apiinput object and the array of 10 September.
+    forms = [{"entity": "Patient Gender"}, [{"entity": "Patient Gender"}]]
     with FixtureServer(load_fixtures(FIXTURES)) as running:
         running.activate("cadsr/credentialed")
         granted = [
             ask(running, CONTEXTS, JSON | basic),
-            ask(running, CDE_MATCH, JSON | sent | basic, match),
+            *[ask(running, CDE_MATCH, JSON | sent | basic, form) for form in forms],
         ]
         refused = [
             ask(running, CONTEXTS, JSON),
-            ask(running, CDE_MATCH, JSON | sent, refused_match),
+            *[ask(running, CDE_MATCH, JSON | sent, form) for form in forms],
         ]
 
-    assert [status for status, _ in granted + refused] == [200, 200, 401, 401]
+    assert [status for status, _ in granted + refused] == [200, 200, 200, 401, 401, 401]
+    assert granted[1][1] == granted[2][1]
     assert "NCIP" in granted[0][1]["contextNames"]
     assert [m["publicId"] for m in granted[1][1]["matchResults"]["matches"]] == [
         "2200604",
@@ -451,6 +451,16 @@ def _violations(contract, definition, value):
 
     schema = {"$ref": f"#/definitions/{definition}", "definitions": contract["definitions"]}
     return [error.message for error in Draft4Validator(schema).iter_errors(value)]
+
+
+@pytest.mark.parametrize("scenario", ["credentialed", "match-timeout"])
+def test_cde_match_answers_the_contract_s_body_and_the_observed_array_alike(scenario):
+    contract = CRAFTED[f"scenarios/cadsr/{scenario}/cde-match.json"]
+    observed = CRAFTED[f"scenarios/cadsr/{scenario}/cde-match-array.json"]
+
+    assert isinstance(contract["request"]["body"], dict)
+    assert observed["request"] == contract["request"] | {"body": [contract["request"]["body"]]}
+    assert observed["response"] == contract["response"]
 
 
 @pytest.mark.parametrize(("fixture", "source", "answer", "body"), CONTRACT_ANSWERS)

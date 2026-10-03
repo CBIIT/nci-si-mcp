@@ -637,11 +637,25 @@ def cadsr_credentialed(recorded: Recorded) -> Documents:
             _cadsr_json("/NCILovAPI/1.0/api/getContextNames", headers=authorized),
             response={"status": 200, "body": contexts},
         ),
-        f"{scenario}/cde-match.json": crafted(
+        **_cde_match_forms(
+            f"{scenario}/cde-match",
             "OP-M01, A9.3: CDE Match to its 2.0 contract, which refuses an anonymous caller "
-            "since 3 October 2026 at the latest (401, recorded/cadsr/cde-match-refused.json)",
-            _cde_match_request(),
-            response={"status": 200, "body": _cde_match(recorded)},
+            "since 3 October 2026 at the latest (401, recorded/cadsr/cde-match-refused*.json)",
+            {"status": 200, "body": _cde_match(recorded)},
+        ),
+    }
+
+
+def _cde_match_forms(stem: str, requirement: str, response: dict[str, Any]) -> Documents:
+    """One answer to both forms of CDE Match's body: the contract's apiinput object, and the
+    array the service answered on 10 September; which it takes is asked in #42."""
+
+    contract = _cde_match_request()
+    observed = contract | {"body": [contract["body"]]}
+    return {
+        f"{stem}.json": crafted(requirement, contract, response=response),
+        f"{stem}-array.json": crafted(
+            f"{requirement}; the array the call of 10 September sent", observed, response=response
         ),
     }
 
@@ -681,10 +695,10 @@ def cadsr_match_timeout(recorded: Recorded) -> Documents:
         f"{scenario}/vm-match.json": crafted(
             requirement, source["request"], response=source["response"] | late
         ),
-        f"{scenario}/cde-match.json": crafted(
+        **_cde_match_forms(
+            f"{scenario}/cde-match",
             requirement,
-            _cde_match_request(),
-            response={"status": 200, "body": _cde_match(recorded)} | late,
+            {"status": 200, "body": _cde_match(recorded)} | late,
         ),
     }
 
