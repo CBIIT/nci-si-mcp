@@ -560,6 +560,51 @@ def license_restricted(recorded: Recorded) -> Documents:
     return documents
 
 
+# The field EVS is asked to carry a licensed terminology's licence text in, on each concept of
+# every answer (#42): today the text is only in the terminology listing (metadata.licenseText).
+LICENCE_FIELD = "licenseText"
+
+
+def license_attributed(recorded: Recorded) -> Documents:
+    """The licensed concept and its child as EVS would serve them if it gave the licence text
+    with the content, as asked in #42: every concept of every answer, links included, carries
+    the listing's text in a field of its own. Shaped exactly as the ask, and nothing else."""
+
+    requirement = (
+        f"A7.3, X-19: the licence text given with the content, in `{LICENCE_FIELD}` on each "
+        "concept, as asked of EVS (#42)"
+    )
+    (row,) = [
+        row
+        for row in recorded("recorded/evs/terminologies.json")["response"]["body"]
+        if (row["terminology"], row["version"]) == ("mdr", LICENSED_CONCEPT["version"])
+    ]
+    text = row["metadata"]["licenseText"]
+    forms = {"granted": (f"{LICENSED_ROOT}/10000000", LICENSED_CONCEPT)} | LICENSED_PATHS
+    documents: Documents = {
+        "scenarios/license/attributed/settings.json": {"NCI_SI_EVS_LICENSE_KEY": LICENCE_KEY},
+    }
+    for name, (path, body) in forms.items():
+        documents[f"scenarios/license/attributed/{name}.json"] = crafted(
+            requirement,
+            _licensed(path),
+            response={"status": 200, "body": _with_licence(body, text)},
+        )
+    return documents
+
+
+def _with_licence(value: Any, text: str) -> Any:
+    """`value` with the licence text on each concept in it, a concept being an object with a
+    code."""
+
+    if isinstance(value, list):
+        return [_with_licence(each, text) for each in value]
+    if not isinstance(value, dict):
+        return value
+    fields = {key: _with_licence(each, text) for key, each in value.items()}
+    return fields | ({LICENCE_FIELD: text} if "code" in value else {})
+
+
 def _licensed(path: str) -> dict[str, Any]:
     """A request for licensed content, made with the licence key."""
 
@@ -926,6 +971,7 @@ SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     upstream_unavailable,
     upstream_rate_limited,
     license_restricted,
+    license_attributed,
     cadsr_with_registry_release,
     cadsr_credentialed,
     cadsr_match_timeout,

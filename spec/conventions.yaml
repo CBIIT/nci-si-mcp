@@ -81,11 +81,12 @@ A7:
   rules:
     A7.1: Terminology and context identifiers come from the platform's metadata at build or start-up, never hard-coded or guessed.
     A7.2: A tool lists the terminologies, contexts or classification schemes available, with identifiers and current releases.
-    A7.3: Results from a terminology with licence conditions carry its attribution.
+    A7.3: Where the platform gives licence text with a result, the item carries it unchanged; the module adds none of its own.
     A7.4: A credentialed operation degrades explicitly when the credential is absent and is never presented as public.
-    A7.5: A credential or licence key reaches only the platform request that needs it, and appears in no log, error message or result.
+    A7.5: A credential or licence key is sent only to the platform that issued it (the EVS licence key to EVS, the caDSR credential to caDSR) and appears in no log, error message or result.
   why:
     A7.1: A public EVS MCP server sends the terminology key loinc where EVS expects lnc, so every LOINC call answers 404, and its own tests assert the wrong value.
+    A7.3: The module is a thin interface (A9.1, A9.5) and holds no stricter standard than the platform it serves. Licence text the platform does not send with the content is the platform's to send, and its absence is shown, not compensated.
 A8:
   title: Content status and retired identifiers
   rules:

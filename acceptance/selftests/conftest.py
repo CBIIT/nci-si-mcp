@@ -38,6 +38,9 @@ COMPLIANT_SERVER = Path(__file__).parent / "compliant_server.py"
 VERSION = {"surface": "evs", "method": "GET", "path": "/api/v1/version"}
 LICENCE_KEY = "selftest-licence-key"
 CURRENT = {"status": 200, "body": {"version": "26.09d"}}
+# MedDRA's licence text, in the listing and, under license/attributed, with the content; longer
+# than the cut the alters-attribution defect makes.
+LICENCE_TEXT = "MedDRA is licensed for NCI work; any other use needs a subscription."
 # The answers to the compliant server's requests: EVS's version, which names the release it
 # serves, in each scenario the suite uses; and the licensed concept, only with the key. The
 # terminology listing is read by the suite itself (X-17), never asked.
@@ -52,7 +55,7 @@ ANSWERS = {
                 {
                     "terminology": "mdr",
                     "version": "29_0",
-                    "metadata": {"licenseText": "MedDRA is licensed to its subscribers."},
+                    "metadata": {"licenseText": LICENCE_TEXT},
                 },
             ],
         },
@@ -68,7 +71,7 @@ ANSWERS = {
     "scenarios/upstream/rate-limited/version.json": {
         "responses": [{"status": 429, "headers": {"Retry-After": "1"}, "body": {}}, CURRENT]
     },
-    "scenarios/license/restricted/concept.json": {
+    "scenarios/license/restricted/granted.json": {
         "request": VERSION
         | {
             "path": "/api/v1/concept/mdr_29_0/10000000",
@@ -83,6 +86,22 @@ ANSWERS = {
             "headers": {"X-EVSRESTAPI-License-Key": LICENCE_KEY},
         },
         "response": {"status": 200, "body": {}},
+    },
+    "scenarios/license/attributed/granted.json": {
+        "request": VERSION
+        | {
+            "path": "/api/v1/concept/mdr_29_0/10000000",
+            "headers": {"X-EVSRESTAPI-License-Key": LICENCE_KEY},
+        },
+        "response": {"status": 200, "body": {"licenseText": LICENCE_TEXT}},
+    },
+    "scenarios/license/attributed/search.json": {
+        "request": VERSION
+        | {
+            "path": "/api/v1/concept/mdr_29_0/search",
+            "headers": {"X-EVSRESTAPI-License-Key": LICENCE_KEY},
+        },
+        "response": {"status": 200, "body": {"concepts": [{"licenseText": LICENCE_TEXT}]}},
     },
     "scenarios/license/restricted/refused.json": {
         "request": VERSION | {"path": "/api/v1/concept/mdr_29_0/10000000"},
@@ -107,8 +126,9 @@ def compliant(pytester, monkeypatch):
     (fixtures / "manifest.yaml").write_text(manifest, encoding="utf-8")
     for path, answer in ANSWERS.items():
         _fixture(fixtures / path, answer)
-    settings = fixtures / "scenarios" / "license" / "restricted" / "settings.json"
-    settings.write_text(json.dumps({"NCI_SI_EVS_LICENSE_KEY": LICENCE_KEY}), encoding="utf-8")
+    for scenario in ("restricted", "attributed"):
+        settings = fixtures / "scenarios" / "license" / scenario / "settings.json"
+        settings.write_text(json.dumps({"NCI_SI_EVS_LICENSE_KEY": LICENCE_KEY}), encoding="utf-8")
     tests = pytester.mkdir("tests")
     for name in ("conftest.py", "test_protocol.py", "test_crosscutting.py", "calls.yaml"):
         (tests / name).write_text((SUITE / name).read_text(encoding="utf-8"), encoding="utf-8")

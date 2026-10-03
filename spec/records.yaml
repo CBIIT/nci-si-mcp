@@ -52,8 +52,8 @@ provenance:
       of: A1.5
     attribution:
       content: >-
-        The licence text of the item's terminology, where the platform's listing of that
-        terminology carries one (EVS: metadata.licenseText)
+        The licence text the platform's answer gave with the item, unchanged: present exactly
+        where that answer carried licence text for it
       optional: true
       of: A7.3
     upstream:
@@ -218,8 +218,7 @@ mapping:
     A map the platform carries on a concept, from it to another terminology, as
     get_concept_mappings returns it: the platform's map unchanged, in the platform's order.
     Its provenance names the release of the concept it was read from; the target's own version
-    is the map's. A licensed target's attribution is an open question: the platform names the
-    target by a label that matches no terminology of its listing (#42).
+    is the map's.
   fields:
     targetCode:
       content: The target's code, as the platform gives it
