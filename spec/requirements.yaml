@@ -124,6 +124,9 @@ X-20:
 X-21:
   statement: A caDSR content call without registryRelease names the registry form of the release with neither identifier nor date; with a registry release caDSR does not publish, it is release_not_available, never answered unpinned; with one caDSR publishes, the release is asked for and named in provenance with its date.
   basis: [A3.8, A3.4, provenance]
+X-22:
+  statement: A call that leaves out a release the tool requires is an invalid request; the server never chooses the release for it.
+  basis: [A3.1, A2.5]
 
 # EVS tools.
 resolve_release-1:
@@ -276,21 +279,38 @@ list_contexts-1:
 
 # Cross-domain tools.
 find_data_elements_for_concept-1:
-  statement: The data elements are those the surface named in provenance answers, with expandDescendants over the concept's descendants too, bounded and reported; with includePermissibleValues the permissible values whose value meaning stands for the concept are returned as well, capability_unavailable on a surface without the reverse lookup, never an empty list; where served from the Shared SI Service, both graphs' release identities are recorded; a release given is checked against the NCIt graph's, release_mismatch on a difference and release_not_available on a surface that cannot name it.
-  basis: [find_data_elements_for_concept, data_element_use, value_use, A3.4, A3.7, A5.4, M3.2]
-  planned: "#55"
+  statement: The data elements are those the surface named in provenance answers for the concept and, with expandDescendants, its descendants too, answered where the release the call requires can be verified.
+  basis: [find_data_elements_for_concept, data_element_use, A3.7]
+find_data_elements_for_concept-2:
+  statement: With includePermissibleValues the permissible values whose value meaning stands for the concept (or a descendant) are returned as well.
+  basis: [find_data_elements_for_concept, value_use]
+find_data_elements_for_concept-3:
+  statement: An answer of the Shared SI Service names both graphs' identities and dates, the NCIt release in release and the registry state in registry.
+  basis: [find_data_elements_for_concept, provenance, A1.5, A3.7]
+find_data_elements_for_concept-4:
+  statement: The release, which the call requires, is checked against the NCIt graph's, release_mismatch on a difference and release_not_available on a surface that cannot name it; a terminology other than ncit is an invalid request.
+  basis: [find_data_elements_for_concept, A3.4, A3.7]
+find_data_elements_for_concept-5:
+  statement: Data elements beyond the tool's maximum are left out, with the truncation record saying how many at least.
+  basis: [find_data_elements_for_concept, truncation, A5.4]
 get_concept_for_permissible_value-1:
-  statement: A data element and value resolve to the concept its value meaning stands for, as the concept record of the release the call pins (release is required), its provenance naming both content states; by permissibleValueId it is capability_unavailable (OP-C10), never not_found or empty.
-  basis: [get_concept_for_permissible_value, provenance, A1.5, M1.2]
-  planned: "#55"
+  statement: A data element and value resolve to the concept its value meaning stands for, as the concept record of the release the call pins (release is required), its provenance naming both content states.
+  basis: [get_concept_for_permissible_value, provenance, A1.5]
+get_concept_for_permissible_value-2:
+  statement: By permissibleValueId the tool is capability_unavailable (OP-C10), never not_found or empty.
+  basis: [get_concept_for_permissible_value, M1.2, A9.3]
 resolve_stored_value-1:
-  statement: A GDC value resolves through the mapset named in provenance and evidence, confidence asserted; a commons without a value-level binding returns no stored value, evidence saying so with its coverage and confidence none, never the preferred term as if stored.
+  statement: A GDC value resolves through the mapset named in each stored value's source and in evidence, confidence asserted, the release the mapset reports matching the one the call requires (release_mismatch otherwise).
   basis: [resolve_stored_value, stored_value]
-  planned: "#55"
+resolve_stored_value-2:
+  statement: Another commons' value resolves through the CRDC crosswalk, each stored value naming its data element.
+  basis: [resolve_stored_value, stored_value]
+resolve_stored_value-3:
+  statement: A commons without a value-level binding returns no stored value, evidence saying so with its coverage and confidence none, never the preferred term as if stored.
+  basis: [resolve_stored_value]
 get_release_alignment-1:
   statement: Every dataset's release and date are returned with intervalDays, the largest interval in days between any two of their dates, and a warning naming maxIntervalDays exactly when intervalDays exceeds it; ttlMs 0.
-  basis: [get_release_alignment, A3.7, M2.2]
-  planned: "#55"
+  basis: [get_release_alignment, dataset_release, A3.7, M2.2]
 
 # Workflow tools.
 ground_value-1:

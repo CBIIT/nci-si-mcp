@@ -2,14 +2,27 @@
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, Any
 
-from nci_si_acceptance.spec import parameters
+from nci_si_acceptance.spec import REQUIRED_TOOLS
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
     from nci_si_acceptance.tools import Result
+
+
+# The caDSR export folder's listing, and the export whose date is the registry's state.
+EXPORT_LISTING = "recorded/cadsr-ftp/cde-xml-listing.json"
+EXPORT = "releasedCDEsXML-OD.zip"
+
+
+def export_date(listing: str) -> str:
+    """The date the export folder's listing gives the export, ISO-8601."""
+
+    (dated,) = re.findall(rf">{re.escape(EXPORT)}</a>\s+(\d{{4}}-\d{{2}}-\d{{2}})", listing)
+    return dated
 
 
 def error_code(result: Result) -> str | None:
@@ -48,12 +61,13 @@ def release_of(item: Any) -> tuple[Any, Any]:
 
 
 def pinned_release(name: str, pinned: dict[str, str]) -> tuple[str, str | None]:
-    """The release a call's items name: the fixture set's, for a tool that takes a release; for
-    a caDSR call, which pins no registry release, the registry alone (X-21)."""
+    """The release a call's items name: for a caDSR call, which pins no registry release, the
+    registry alone (X-21); for any other, the fixture set's, which a cross-domain item names in
+    release beside the registry state (provenance)."""
 
-    if "release" in parameters(name)[0]:
-        return pinned["terminology"], pinned["release"]
-    return "cadsr", None
+    if REQUIRED_TOOLS[name] == "cadsr":
+        return "cadsr", None
+    return pinned["terminology"], pinned["release"]
 
 
 def identity(item: Any) -> Any:

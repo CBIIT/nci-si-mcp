@@ -27,6 +27,7 @@ from nci_si_acceptance.record import (
     FIXTURES,
     RECORDED,
     RELEASE_FIELDS,
+    bound,
     reported_releases,
     write,
 )
@@ -141,11 +142,17 @@ def _with_release(payload: Any, release: str) -> Any:
     if not isinstance(payload, dict):
         return payload
     return {
-        key: release
-        if key in RELEASE_FIELDS and value == RELEASE
+        key: _released(value, release)
+        if key in RELEASE_FIELDS and bound(value) == RELEASE
         else _with_release(value, release)
         for key, value in payload.items()
     }
+
+
+def _released(value: Any, release: str) -> Any:
+    """A release field's value naming `release`, a SPARQL binding kept a binding."""
+
+    return value | {"value": release} if isinstance(value, dict) else release
 
 
 def mismatched(recorded: Recorded) -> list[str]:

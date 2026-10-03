@@ -428,7 +428,7 @@ MASKED = [
 @pytest.mark.requirement("X-15")
 @pytest.mark.parametrize("name", MASKED)
 def test_a_failure_every_surface_masks_as_an_answer_is_an_upstream_error(
-    tools, upstream, recorded, name
+    tools, upstream, recorded, pinned, name
 ):
     for surface in ("ssis", "cadsr"):
         masked = recorded(f"scenarios/upstream/masked-error/{surface}.json")["response"]
@@ -436,7 +436,7 @@ def test_a_failure_every_surface_masks_as_an_answer_is_an_upstream_error(
     refused = recorded("scenarios/ssis/query-rejected/sparql.json")["response"]
     assert (refused["status"], refused["body"].startswith("<!DOCTYPE HTML")) == (403, True)
 
-    result = tools.call(name, MASKED_CALLS[name])
+    result = tools.call(name, MASKED_CALLS[name] | pinned)
 
     assert error_code(result) == "upstream_unavailable", result.content
     # The error comes from the masked answers: the server asked at least one surface.
@@ -736,6 +736,15 @@ BOUNDED = [
 @pytest.mark.parametrize("value", [0, -1])
 def test_a_bounded_argument_below_one_is_an_invalid_request(tools, pinned, name, argument, value):
     result = _call(tools, pinned, name, CALLS[name]["arguments"] | {argument: value})
+
+    assert error_code(result) == "invalid_request", result.content
+
+
+@pytest.mark.requirement("X-22")
+@pytest.mark.parametrize("name", PINNED)
+def test_a_call_without_its_required_release_is_an_invalid_request(tools, pinned, name):
+    unpinned = {key: value for key, value in pinned.items() if key != "release"}
+    result = _call(tools, unpinned, name)
 
     assert error_code(result) == "invalid_request", result.content
 

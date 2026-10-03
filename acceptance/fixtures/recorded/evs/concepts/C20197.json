@@ -1,0 +1,1334 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C20197",
+  "params": {
+   "include": [
+    "summary,parents,children,roles,associations,maps,history"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C20197",
+   "name": "Male",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Male",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "caDSR"
+    },
+    {
+     "name": "M",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CDISC",
+     "code": "SDTM-SEXPOP"
+    },
+    {
+     "name": "M",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CDISC",
+     "code": "SDTM-SEX"
+    },
+    {
+     "name": "MALE",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CDISC",
+     "code": "SDTM-SEXABRTH"
+    },
+    {
+     "name": "Male",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CDISC"
+    },
+    {
+     "name": "MALE",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTDC"
+    },
+    {
+     "name": "Male",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "DIPG/DMG"
+    },
+    {
+     "name": "M",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "FDA",
+     "subSource": "ICSR"
+    },
+    {
+     "name": "MALE",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "FDA",
+     "subSource": "SPL"
+    },
+    {
+     "name": "Male",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "FDA",
+     "subSource": "ICSR-CVM"
+    },
+    {
+     "name": "male",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "GDC"
+    },
+    {
+     "name": "Human, Male",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "M",
+     "termType": "AB",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Male",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Male",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NICHD"
+    },
+    {
+     "name": "Male",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    },
+    {
+     "name": "Male",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "OORO",
+     "subSource": "PC"
+    },
+    {
+     "name": "Male",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "HL"
+    },
+    {
+     "name": "Male",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "EWS"
+    },
+    {
+     "name": "Male",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "AML"
+    },
+    {
+     "name": "Male",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "ALL"
+    },
+    {
+     "name": "Male",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "OS"
+    },
+    {
+     "name": "Male",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "PCDC",
+     "subSource": "GCT"
+    },
+    {
+     "name": "Male",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "SeroNet"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A person who belongs to the sex that normally produces sperm. The term is used to indicate biological sex distinctions, cultural gender role distinctions, or both. [The NCI Thesaurus contains biomedical terminologies that NCI does not own or control. This concept contains gender-related content that does not comply with Executive Order 14168.]",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "CDISC"
+    },
+    {
+     "definition": "An individual who belongs to the sex that normally produces sperm.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CDISC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTDC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "DIPG/DMG"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "FDA"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "GDC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "NICHD"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "OORO"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "PCDC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "SeroNet"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Male"
+    },
+    {
+     "code": "P375",
+     "type": "Maps_To",
+     "value": "male"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Organism Attribute"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C0086582"
+    }
+   ],
+   "children": [
+    {
+     "code": "C54011",
+     "name": "Castrated Male",
+     "leaf": true
+    },
+    {
+     "code": "C46112",
+     "name": "Male Phenotype",
+     "leaf": true
+    },
+    {
+     "code": "C46107",
+     "name": "Male, Self-Report",
+     "leaf": true
+    },
+    {
+     "code": "C86032",
+     "name": "XX Male",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C171083",
+     "name": "Organism Characteristic"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C178115",
+     "relatedName": "ALL Authorized Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C178122",
+     "relatedName": "ALL Demographics Table"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C174019",
+     "relatedName": "AML Authorized Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C173230",
+     "relatedName": "AML Demographics Table"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C209287",
+     "relatedName": "CDISC SDTM Sex Assigned At Birth Response Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C66731",
+     "relatedName": "CDISC SDTM Sex of Individual Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C66732",
+     "relatedName": "CDISC SDTM Sex of Study Group Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C66830",
+     "relatedName": "CDISC SDTM Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C77526",
+     "relatedName": "CDISC SEND Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C61410",
+     "relatedName": "Clinical Data Interchange Standards Consortium Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C183061",
+     "relatedName": "CRF1 Registration Table"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C173073",
+     "relatedName": "CTDC Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C174237",
+     "relatedName": "EWS Authorized Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C174243",
+     "relatedName": "EWS Demographics Table"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C177622",
+     "relatedName": "Family Cancer History Relative Sex Question"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C54447",
+     "relatedName": "FDA Individual Case Safety Report Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C54452",
+     "relatedName": "FDA Structured Product Labeling Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177383",
+     "relatedName": "GCT Authorized Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177390",
+     "relatedName": "GCT Demographics Table"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C157711",
+     "relatedName": "GDC Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177537",
+     "relatedName": "GDC Value Terminology"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C17357",
+     "relatedName": "Gender"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C186341",
+     "relatedName": "HL Authorized Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C186313",
+     "relatedName": "HL Demographics Table"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C19752",
+     "relatedName": "National Health Interview Survey"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C89506",
+     "relatedName": "Newborn Screening Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C90259",
+     "relatedName": "NICHD Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C88088",
+     "relatedName": "Observation ICSR Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C192234",
+     "relatedName": "Operational Ontology for Radiation Oncology Prostate Cancer Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C179478",
+     "relatedName": "OS Authorized Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C179533",
+     "relatedName": "OS Demographics Table"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C179027",
+     "relatedName": "SeroNet Authorized Values"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C189083",
+     "relatedName": "SeroNet Study Descriptors"
+    },
+    {
+     "code": "A35",
+     "type": "Is_PCDC_ALL_Authorized_Value_For_Variable",
+     "relatedCode": "C28421",
+     "relatedName": "Sex"
+    },
+    {
+     "code": "A24",
+     "type": "Is_PCDC_AML_Authorized_Value_For_Variable",
+     "relatedCode": "C28421",
+     "relatedName": "Sex"
+    },
+    {
+     "code": "A28",
+     "type": "Is_PCDC_EWS_Authorized_Value_For_Variable",
+     "relatedCode": "C28421",
+     "relatedName": "Sex"
+    },
+    {
+     "code": "A33",
+     "type": "Is_PCDC_GCT_Authorized_Value_For_Variable",
+     "relatedCode": "C28421",
+     "relatedName": "Sex"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C113350",
+     "relatedName": "SPL Sex Terminology"
+    }
+   ],
+   "history": [
+    {
+     "code": "C20197",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2003-09-29"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2003-10-31"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2004-08-02"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2004-11-01"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2005-03-16"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2005-05-27"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2005-12-01"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2006-01-03"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2006-02-24"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2006-03-31"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2006-04-28"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2006-06-30"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2007-01-26"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2007-02-23"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2007-03-30"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2008-11-14"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2009-06-01"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2009-10-05"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2010-02-09"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2010-06-01"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2010-08-09"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2010-08-16"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2010-08-23"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2010-08-30"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2010-09-07"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2010-09-13"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2010-09-20"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2010-09-27"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2010-11-01"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2010-12-06"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-01-24"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-02-07"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-02-14"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-02-22"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-02-28"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-03-07"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-03-14"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-03-21"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-03-28"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-04-04"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-04-11"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-04-18"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-04-25"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-05-02"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-05-09"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-05-16"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-05-23"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-05-31"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-06-06"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-06-13"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-06-20"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2011-06-27"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2012-03-12"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2012-06-11"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2012-09-17"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2012-10-01"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2012-10-09"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2012-10-15"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2012-10-22"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2012-10-31"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2012-11-05"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2012-11-13"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2012-11-19"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2012-11-26"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2012-12-03"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2012-12-10"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2012-12-17"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2012-12-28"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-01-07"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-01-14"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-01-23"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-02-04"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-02-11"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-02-19"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-02-25"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-03-04"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-03-11"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-03-18"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-03-25"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-04-01"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-04-08"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-04-15"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-04-22"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-04-29"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-05-06"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-05-13"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-05-20"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-05-28"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-06-03"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-06-10"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-06-17"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-06-24"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-07-01"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-07-08"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-09-30"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-10-21"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-10-28"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-11-04"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-11-12"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-11-18"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-11-25"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-12-02"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-12-11"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-12-16"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-12-23"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2013-12-30"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2014-01-06"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2014-01-13"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2014-01-22"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2014-01-27"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2014-11-17"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2015-05-18"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2015-07-13"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2015-08-12"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2016-10-17"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2016-12-19"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2017-12-26"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2018-11-26"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2019-03-25"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2019-05-28"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2019-09-30"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2019-10-28"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2020-01-27"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2020-02-24"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2020-03-30"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2020-04-27"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2020-06-29"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2020-07-27"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2020-08-31"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2020-09-29"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2020-10-26"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2020-11-30"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2020-12-28"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2021-02-22"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2021-03-29"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2021-06-28"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2021-10-25"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2022-02-28"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2022-03-28"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2022-04-25"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2022-08-29"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2022-10-31"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2022-11-28"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2023-02-27"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2023-09-25"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2024-08-26"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2024-08-26"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2024-09-30"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2025-02-24"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2025-09-29"
+    },
+    {
+     "code": "C20197",
+     "action": "modify",
+     "date": "2026-04-27"
+    }
+   ],
+   "maps": [
+    {
+     "type": "Has Synonym",
+     "targetName": "male",
+     "targetTermType": "PT",
+     "targetCode": "gender",
+     "targetTerminology": "GDC"
+    },
+    {
+     "type": "Has Synonym",
+     "targetName": "male",
+     "targetTermType": "PT",
+     "targetCode": "relationship_gender",
+     "targetTerminology": "GDC"
+    }
+   ]
+  }
+ }
+}

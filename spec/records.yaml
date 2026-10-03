@@ -38,7 +38,9 @@ provenance:
       content: The call's correlation identifier
       of: M7.1
     graphs:
-      content: "For items served by the Shared SI Service: the identifier and date of each graph touched"
+      content: >-
+        For items served by the Shared SI Service: each graph touched, { graph, version?, date }:
+        its IRI, its owl:versionInfo where it has one, and its dc:date, ISO-8601
       of: A1.5
     registry:
       content: >-

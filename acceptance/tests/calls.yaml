@@ -107,3 +107,24 @@ list_contexts:
   paged:
     - arguments: {limit: 5}
       changed: [{limit: 6}]
+# The cross-domain tools. The fixture set's release is added, so the Shared SI Service answers
+# find_data_elements_for_concept (a release can be verified only against its NCIt graph): there
+# is no pinned form, only the graph's identity to compare with (unpinned); and the GDC mapset,
+# served unpinned, reports the release resolve_stored_value compares (unpinned).
+find_data_elements_for_concept:
+  arguments: {conceptCode: C17357}   # Gender: 17 data elements in the caDSR graph
+  unpinned: true
+  empty: {conceptCode: C116977}
+  truncating:   # Disease or Disorder's descendants: more than the maximum
+    arguments: {conceptCode: C2991, expandDescendants: true, limit: 1000}
+    bound: results
+    limit: 1000
+  paged:
+    - arguments: {limit: 5}
+      changed: [{limit: 6}, {expandDescendants: true}, {includePermissibleValues: true}]
+get_concept_for_permissible_value: {arguments: {dataElementId: "2200604", value: Male}}
+resolve_stored_value:
+  arguments: {conceptCode: C4817, commons: GDC}
+  unpinned: true
+  empty: {conceptCode: C116977, commons: GDC}
+get_release_alignment: {arguments: {}}
