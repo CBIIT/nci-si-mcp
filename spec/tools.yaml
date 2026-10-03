@@ -16,6 +16,9 @@
 # `requests` is the most upstream requests one call of the tool makes, retries included (A5.2,
 # A5.3); reaching it truncates the result with bound `requests`. No argument sets it.
 #
+# `computed: true` marks a tool whose result is computed from caller-supplied values: ttlMs 0
+# and cacheScope private (M2.2, M2.3).
+#
 # `lists` gives the most elements an input list takes in one call; a longer list is an
 # invalid request, since dropping a caller's input would answer another question (A5.2).
 #
@@ -190,6 +193,7 @@ match_data_elements:
   values: {filters: [context, workflowStatus, registrationStatus, classificationScheme, valueDomainType]}
   bounds: {matchLimit: {default: 10, maximum: 100}}
   lists: {entities: 10}
+  computed: true
   summary: >-
     Data elements matched to described entities, scored and rule-attributed, at most
     matchLimit for each entity; the contract's default is 10, and the maximum of 100 is this
@@ -205,6 +209,7 @@ match_value_meanings:
   values: {strictness: [restricted, unrestricted]}
   defaults: {strictness: restricted}
   lists: {values: 10}
+  computed: true
   summary: >-
     Value meanings and concepts matched to values, each rule-attributed with its crosswalk;
     strictness is vmMatch's matchType, terminologyScope its evsTerminologyCodes. At most 10
@@ -292,4 +297,5 @@ harmonize_data_dictionary:
   group: workflow
   inputs: "(columns[{ name, description?, sampleValues[]? }], registryRelease, filters?)"
   returns: "{ columns[{ matches[{ dataElement, score, rule }], permissibleValueAlignment }], unmatched[], provenance }"
+  computed: true
   summary: A data dictionary's columns matched to data elements, with permissible-value alignment.

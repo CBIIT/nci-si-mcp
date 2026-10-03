@@ -1,0 +1,22 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "cadsr",
+  "method": "GET",
+  "path": "/NCIFormAPI.v2_0:NciFormApiRad/Form/99999999",
+  "headers": {
+   "Accept": "application/json"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "form": null,
+   "apiResponse": {
+    "type": "E",
+    "message": "No data found for input criteria."
+   }
+  }
+ }
+}

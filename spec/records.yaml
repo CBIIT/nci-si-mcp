@@ -50,8 +50,9 @@ provenance:
       content: >-
         The fields the platform supplied about the item's origin, under its names and with its
         values; at least: from EVS REST the item's terminology and version; from EVS FHIR the
-        value set's url and version; from the Shared SI Service the identity and date of each
-        graph
+        value set's url and version; from caDSR the item's public id and version, as each API
+        names them (publicId, the Form API's publicID, the CRDC list's CDE Public ID and Version,
+        vmMatch's itemId); from the Shared SI Service the identity and date of each graph
       of: A4.3
 traversal:
   title: The provenance record of an item reached by traversal

@@ -354,6 +354,16 @@ record:
       path: /NCIAPI/1.0/api/DataElement/2200604/permissibleValues
       status: 404
     - <<: *cadsr
+      fixture: recorded/cadsr/question-text-sex-of-a-person.json
+      rationale: >-
+        A data element by its preferred question text, header fields only; the platform
+        matches the text as contained, and this one names 2200604 alone.
+      path: /NCIAPI/1.0/api/DataElements/ReferenceDocument?documentText=Sex of a Person&documentType=Preferred Question Text&headerOnly=true
+    - <<: *cadsr
+      fixture: recorded/cadsr/question-text-date-of-birth.json
+      rationale: A question text 18 data elements have, as the platform matches it.
+      path: /NCIAPI/1.0/api/DataElements/ReferenceDocument?documentText=Date of birth&documentType=Preferred Question Text&headerOnly=true
+    - <<: *cadsr
       fixture: recorded/cadsr/data-element-2200604-html.json
       rationale: >-
         The same request without Accept: HTTP 200 with HTML. The fixture naming Accept
@@ -405,6 +415,21 @@ record:
         the only form, since no released one could be found anonymously: Form/query takes
         a public or protocol id only, and the caDSR portal (OneData) needs a login.
       path: /NCIFormAPI.v2_0:NciFormApiRad/Form/5406471
+    - <<: *cadsr
+      fixture: recorded/cadsr/form-unknown.json
+      operation: OP-C12
+      rationale: >-
+        An unknown form id: HTTP 200 with form null and apiResponse type E, "No data found for
+        input criteria." (X-15, not_found).
+      path: /NCIFormAPI.v2_0:NciFormApiRad/Form/99999999
+    - <<: *cadsr
+      fixture: recorded/cadsr/permissible-value-9192925.json
+      operation: OP-C10
+      rationale: >-
+        A permissible value by the id caDSR REST publishes for it (9192925, "Unknown" of
+        2200604): the inventory's path answers 404.
+      path: /NCIAPI/1.0/api/permissibleValues/9192925
+      status: 404
     - <<: *cadsr
       fixture: recorded/cadsr/vm-match-male.json
       operation: OP-M02

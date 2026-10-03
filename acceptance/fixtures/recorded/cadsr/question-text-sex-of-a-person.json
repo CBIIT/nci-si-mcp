@@ -1,0 +1,55 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "cadsr",
+  "method": "GET",
+  "path": "/NCIAPI/1.0/api/DataElements/ReferenceDocument",
+  "params": {
+   "documentText": [
+    "Sex of a Person"
+   ],
+   "documentType": [
+    "Preferred Question Text"
+   ],
+   "headerOnly": [
+    "true"
+   ]
+  },
+  "headers": {
+   "Accept": "application/json"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "DataElements": [
+    {
+     "publicId": "2200604",
+     "version": "4",
+     "longName": "Person Sex Text Type",
+     "shortName": "PRSN_SEX_TX_TP",
+     "definition": "Text designations that identify sex.  ",
+     "context": "NCIP",
+     "origin": "NCISTD: NCI CRF Harmonization and Standards Initiative",
+     "workflowStatus": "RELEASED",
+     "registrationStatus": "Standard",
+     "latestVersionIndicator": "Yes",
+     "beginDate": "2010-05-07",
+     "endDate": null,
+     "changeDescription": "3/1/22 jk Designated, added CDS alt name and CSI. 1/21/20 jk removed from MCL Biospecimen CSI.  1/29/19 jk MCL CSI and  AQT added.  7/17/18 jk revised MCL Core CSI mapping. 05/25/2016 wz added NWU CS/CSI.5/18/16 jk moved from EDRN to MCL context CSI.   Replaces v2.0 with a Value Domain that has shortened permissible values of 'Male' and 'Female'. 4/4/2012 dmr: two values that were erroneously added perhaps during a model load were removed (Female Gender and Male Gender) without a version change, since these two values were not part of the vetted value set.",
+     "administrativeNotes": "2025.8.13 Alt Name added per NHLBI ticket CADSR0005317. ak; 8/5/2025: Added ALT names per cadsr0005291.wz;4/25/25 Added 2 AQTs for DCP. sl;\r\n9/14/23 Added CCDI alts and CSI. mr",
+     "unresolvedIssues": null,
+     "deletedIndicator": "No",
+     "createdBy": "KUMMEROA",
+     "dateCreated": "2025-03-25",
+     "modifiedBy": "TYRRELLM",
+     "dateModified": "2026-08-25"
+    }
+   ],
+   "apiResponse": {
+    "type": "S"
+   }
+  }
+ }
+}

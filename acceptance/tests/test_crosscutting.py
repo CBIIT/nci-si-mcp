@@ -91,22 +91,44 @@ def _provenance(item):
 
 
 def _release(item):
-    """The terminology and release an item's provenance names."""
+    """The terminology or registry and the release an item's provenance names."""
 
     release = _provenance(item).get("release") or {}
-    return release.get("terminology"), release.get("identifier")
+    return release.get("terminology", release.get("registry")), release.get("identifier")
+
+
+def _pinned_release(name, pinned):
+    """The release a call's items name: the fixture set's, for a tool that takes a release; for
+    a caDSR call, which pins no registry release, the registry alone (X-21)."""
+
+    if "release" in parameters(name)[0]:
+        return pinned["terminology"], pinned["release"]
+    return "cadsr", None
 
 
 def _identity(item):
     """An item by what it is: a concept by terminology and code, an edge by its ends and its
-    relationship's code."""
+    relationship's code, a caDSR item by its public id and version (a code map by its data
+    element's), a context by its name."""
 
     if not isinstance(item, dict):
         return item
     if "sourceCode" in item:
         relationship = (item.get("provenance") or {}).get("relationship") or {}
         return item.get("sourceCode"), item.get("targetCode"), relationship.get("code")
+    if "code" not in item and "terminology" not in item:
+        return _registry_identity(item)
     return item.get("terminology"), item.get("code")
+
+
+def _registry_identity(item):
+    """A caDSR item by its public id and version, a code map by its data element's, a context
+    by its name."""
+
+    owner = item.get("dataElement") if isinstance(item.get("dataElement"), dict) else item
+    if "publicId" in owner:
+        return owner.get("publicId"), owner.get("version")
+    return item.get("name")
 
 
 def _wrong(provenance, names):
@@ -230,6 +252,49 @@ def test_a_release_pinned_result_may_be_cached(tools, pinned, name):
     assert result.meta.get("cacheScope") == "public"
 
 
+# The caDSR calls: each takes a registry release, and none gives one (X-21).
+REGISTRY = [name for name in CALLS if "registryRelease" in parameters(name)[0]]
+UNPINNED_REGISTRY = {"registry": "cadsr"}
+# A registry release caDSR does not publish: it publishes none (registry-releases.json: 404).
+UNPUBLISHED = "2026.07.02"
+# M2.2: governed content no release pins is cached briefly, at most this long.
+SHORT_TTL = 3_600_000
+NOT_FOUND = 404
+
+
+@pytest.mark.requirement("X-21")
+@pytest.mark.parametrize("name", _per_tool(REGISTRY))
+def test_a_cadsr_item_without_a_registry_release_names_the_registry_alone(tools, pinned, name):
+    releases = [_provenance(item).get("release") for item in _items(tools, pinned, name)]
+
+    assert releases == [UNPINNED_REGISTRY] * len(releases)
+
+
+@pytest.mark.requirement("X-21")
+@pytest.mark.parametrize("name", _per_tool(REGISTRY))
+def test_a_registry_release_cadsr_does_not_publish_fails_closed(tools, pinned, recorded, name):
+    assert recorded("recorded/cadsr/registry-releases.json")["response"]["status"] == NOT_FOUND
+
+    result = _call(tools, pinned, name, CALLS[name]["arguments"] | {"registryRelease": UNPUBLISHED})
+
+    assert error_code(result) == "release_not_available", result.content
+
+
+@pytest.mark.requirement("X-13")
+@pytest.mark.parametrize("name", _per_tool(REGISTRY))
+def test_a_cadsr_result_is_cached_as_what_it_holds_says(tools, pinned, name):
+    result = _call(tools, pinned, name)
+
+    assert not result.is_error, result.content
+    ttl, scope = result.meta.get("ttlMs"), result.meta.get("cacheScope")
+    if TOOLS[name].get("computed"):
+        assert (ttl, scope) == (0, "private")
+    else:
+        assert isinstance(ttl, int)
+        assert 0 < ttl <= SHORT_TTL
+        assert scope == "public"
+
+
 def _schema_errors(tools, result):
     """How the result departs from the outputSchema its tool declares; no schema is one way."""
 
@@ -349,11 +414,9 @@ def test_a_query_that_matches_nothing_is_an_empty_result_with_provenance(tools, 
     # With no item to carry it, the result carries the provenance itself.
     provenance = _provenance(result.content)
     assert _wrong(provenance, CARRIED) == []
-    release = provenance["release"]
-    assert (release.get("terminology"), release.get("identifier")) == (
-        pinned["terminology"],
-        pinned["release"],
-    )
+    assert _release(result.content) == _pinned_release(name, pinned)
+    if name in REGISTRY:
+        assert provenance["release"] == UNPINNED_REGISTRY
 
 
 @pytest.mark.requirement("X-8")
@@ -436,9 +499,12 @@ def test_a_cursor_continues_with_the_next_items_of_the_same_release(
     assert after, "the cursor's page is empty"
     assert [item for item in after if item in before] == []
     releases = {_release(item) for item in items_of(name, second.content)}
-    assert releases == {(pinned["terminology"], pinned["release"])}
-    other = _call(tools, pinned | {"release": _other_release(recorded, pinned)}, name, continued)
-    assert error_code(other) == "invalid_request", other.content
+    assert releases == {_pinned_release(name, pinned)}
+    if "release" in parameters(name)[0]:
+        other = _call(
+            tools, pinned | {"release": _other_release(recorded, pinned)}, name, continued
+        )
+        assert error_code(other) == "invalid_request", other.content
 
 
 def _first_page(tools, pinned, name, entry, extra=None):
