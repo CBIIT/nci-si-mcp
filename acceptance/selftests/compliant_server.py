@@ -73,10 +73,11 @@ requirements, for the harness's own tests.
 `unpinned-mismatch` is no defect for a tool without a pinned form upstream: it answers an
 unknown release with release_mismatch, as such a tool can only verify an unpinned answer (X-2).
 
-A call asks EVS for `/api/v1/version`, or for the concept of a licensed terminology with the
-licence key, unless the same call was answered before: the server caches by call, as A9.4
-allows. An answer that is not content is an error record: 404 release_not_available, another
-version than the release asked for release_mismatch, a timeout timeout, anything else
+A call asks EVS for `/api/v1/version`, or for the concept of a licensed terminology (or its
+search, for a call that names no code) with the licence key, unless the same call was
+answered before: the server caches by call, as A9.4 allows. An answer that is not content
+is an error record: 404 release_not_available, another version than the release asked for
+release_mismatch, a timeout timeout, anything else
 upstream_unavailable; a 429 is waited out once. Content has items where the tool's `items`
 say: the concept asked about and, at depth 1 for a traversal tool, one it reaches. What the
 suite's calls (tests/calls.yaml) say of EVS's answers shapes it: their `upstream` fields go
@@ -112,6 +113,8 @@ EVS = os.environ["NCI_SI_EVS_BASE_URL"]
 TIMEOUT = float(os.environ.get("NCI_SI_TIMEOUT_SECONDS", "10"))
 LICENCE_KEY = os.environ.get("NCI_SI_EVS_LICENSE_KEY")
 LICENSED = {"mdr"}
+# The licensed placeholder concept and its child (license/restricted).
+LICENSED_CODES = ["10000000", "10000001"]
 # What an upstream request that got no HTTP answer counts as.
 CLOSED, TIMED_OUT = 0, -1
 # How an unknown release is reported: by a tool without a pinned form, as a mismatch (X-2).
@@ -150,15 +153,20 @@ def _request(arguments: dict, correlation: str) -> tuple[str, dict[str, str]]:
         return "/api/v1/version", headers
     if LICENCE_KEY and DEFECT != "keyless":
         headers["X-EVSRESTAPI-License-Key"] = LICENCE_KEY
+    _leak(headers)
+    # The concept a call names, the first of the codes it names, or else the search.
+    code = arguments.get("code") or next(iter(arguments.get("codes", [])), "search")
+    return f"/api/v1/concept/{terminology}_{arguments.get('release')}/{code}", headers
+
+
+def _leak(headers: dict[str, str]) -> None:
+    """The request headers, licence key included, written where the defect says (X-12)."""
+
     if DEFECT == "logs-key":
         sys.stderr.write(f"asking with {headers}\n")
         sys.stderr.flush()
     if DEFECT == "files-key":
         (Path(os.environ["NCI_SI_DATA_DIR"]) / "requests.txt").write_text(str(headers))
-    return (
-        f"/api/v1/concept/{terminology}_{arguments.get('release')}/{arguments.get('code')}",
-        headers,
-    )
 
 
 def _asked(arguments: dict, correlation: str) -> tuple[int, dict]:
@@ -365,9 +373,7 @@ def _items(name: str, provenance: dict, codes: tuple[str, str] = ("C4817", "C326
     code = f"NCIT:{code}" if DEFECT == "prefixed-code" else code
     items = [{"code": code, "terminology": "ncit", "provenance": provenance}]
     if TOOLS[name].get("traversal"):
-        how = {"relationship": {"code": "R101"}, "direction": "outward", "polarity": "positive"}
-        if DEFECT == "no-polarity":
-            del how["polarity"]
+        how = _how()
         items[0]["provenance"] = provenance | {"depth": 0}
         depth = 0 if DEFECT == "nothing-reached" else 1
         items.append(
@@ -398,7 +404,7 @@ def _content(name: str, arguments: dict, correlation: str) -> object:
     if DEFECT == "invalid-result":
         return {"error": "not an error record"}
     provenance = _provenance(name, arguments, correlation)
-    items = [] if _matches_nothing(name, arguments) else _page(name, arguments, provenance)
+    items = _items_of_call(name, arguments, provenance)
     if DEFECT == "list-result":
         return items
     content = _shaped(name, items)
@@ -406,6 +412,34 @@ def _content(name: str, arguments: dict, correlation: str) -> object:
     if not items and DEFECT != "empty-without-provenance":
         content["provenance"] = provenance
     return content | _truncation(name, arguments) | _next_cursor(name, arguments, items)
+
+
+def _items_of_call(name: str, arguments: dict, provenance: dict) -> list[dict]:
+    if _matches_nothing(name, arguments):
+        return []
+    if arguments.get("terminology") in LICENSED:
+        return _licensed_items(name, arguments, provenance)
+    return _page(name, arguments, provenance)
+
+
+def _licensed_items(name: str, arguments: dict, provenance: dict) -> list[dict]:
+    """The licensed concepts a call asks for: its code or codes, both placeholders for a search;
+    a traversal reaches the child of 10000000 (license/restricted)."""
+
+    if TOOLS[name].get("traversal"):
+        reached = provenance | {"depth": 1} | _how()
+        return [{"code": "10000001", "terminology": "mdr", "provenance": reached}]
+    codes = [arguments["code"]] if "code" in arguments else arguments.get("codes", LICENSED_CODES)
+    return [{"code": code, "terminology": "mdr", "provenance": provenance} for code in codes]
+
+
+def _how() -> dict:
+    """How an item reached by traversal was reached."""
+
+    how = {"relationship": {"code": "R101"}, "direction": "outward", "polarity": "positive"}
+    if DEFECT == "no-polarity":
+        del how["polarity"]
+    return how
 
 
 def _page(name: str, arguments: dict, provenance: dict) -> list[dict]:

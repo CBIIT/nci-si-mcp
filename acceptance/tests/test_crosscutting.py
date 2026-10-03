@@ -740,15 +740,43 @@ def test_a_bounded_argument_below_one_is_an_invalid_request(tools, pinned, name,
     assert error_code(result) == "invalid_request", result.content
 
 
-def _attribution(result):
+# The licensed concept as each tool that returns concept items asks for it, and the licensed
+# concepts its items are: the concept, its one child, or both (license/restricted). A
+# hierarchy holds the concepts reached, the child.
+CHILD = "10000001"
+LICENSED_CALLS = {
+    "get_concept": ({"code": LICENSED["code"]}, {LICENSED["code"]}),
+    "get_concepts": ({"codes": [LICENSED["code"], CHILD]}, {LICENSED["code"], CHILD}),
+    "search_concepts": (
+        {"query": "placeholder licensed", "mode": "lexical"},
+        {LICENSED["code"], CHILD},
+    ),
+    "get_concept_hierarchy": ({"code": LICENSED["code"], "direction": "child"}, {CHILD}),
+}
+ATTRIBUTED = [
+    pytest.param(
+        name, id=name, marks=[pytest.mark.tool(name), pytest.mark.scenario("license/restricted")]
+    )
+    for name in LICENSED_CALLS
+]
+
+
+def _successful_items(name, result):
     assert not result.is_error, result.content
-    return _provenance(result.content).get("attribution")
+    found = items_of(name, result.content)
+    assert found, f"no item where {TOOLS[name]['items']} say: {result.content!r:.300}"
+    return found
 
 
-@pytest.mark.scenario("license/restricted")
-@pytest.mark.tool("get_concept")
+def _attributions(items):
+    """The attribution of each item."""
+
+    return {_provenance(item).get("attribution") for item in items}
+
+
 @pytest.mark.requirement("X-19")
-def test_an_item_of_a_licensed_terminology_carries_its_licence_text(tools, pinned, recorded):
+@pytest.mark.parametrize("name", ATTRIBUTED)
+def test_an_item_of_a_licensed_terminology_carries_its_licence_text(tools, pinned, recorded, name):
     rows = recorded("recorded/evs/terminologies.json")["response"]["body"]
     licence = {
         (row["terminology"], row["version"]): row.get("metadata", {}).get("licenseText")
@@ -758,8 +786,12 @@ def test_an_item_of_a_licensed_terminology_carries_its_licence_text(tools, pinne
     # MedDRA's row carries licence text and NCIt's none, or the cases would show nothing.
     assert text
     assert licence[(pinned["terminology"], pinned["release"])] is None
+    release = {key: LICENSED[key] for key in ("terminology", "release")}
+    arguments, codes = LICENSED_CALLS[name]
 
-    licensed = tools.call("get_concept", LICENSED)
-    plain = tools.call("get_concept", {**pinned, "code": "C4817"})
+    licensed = _successful_items(name, tools.call(name, release | arguments))
+    plain = _successful_items(name, _call(tools, pinned, name))
 
-    assert (_attribution(licensed), _attribution(plain)) == (text, None)
+    # The items are the licensed concepts, each with the text: none is left without it.
+    assert {item.get("code") for item in licensed} == codes
+    assert (_attributions(licensed), _attributions(plain)) == ({text}, {None})

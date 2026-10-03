@@ -1,0 +1,25 @@
+{
+ "kind": "crafted",
+ "requirement": "E-7, A7.5: the licence key sent from configuration",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/mdr_29_0/10000000/children",
+  "headers": {
+   "X-EVSRESTAPI-License-Key": "acceptance-licence-key"
+  },
+  "ignored": {
+   "*": "placeholder content answers every projection alike"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": [
+   {
+    "code": "10000001",
+    "name": "Placeholder licensed child",
+    "leaf": true
+   }
+  ]
+ }
+}

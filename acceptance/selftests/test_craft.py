@@ -21,7 +21,7 @@ from nci_si_acceptance.craft import (
     mismatched,
 )
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
-from nci_si_acceptance.record import DISCOVERY, FIXTURES, reported_releases
+from nci_si_acceptance.record import DISCOVERY, FIXTURES, plan, reported_releases
 from nci_si_acceptance.register import EVS_SURFACES
 
 CRAFTED = craft(FIXTURES)
@@ -274,24 +274,62 @@ def test_rate_limited_asks_to_wait_then_answers_as_recorded():
     assert answer == recorded["response"]
 
 
-def fetch(url, headers=None):
+def _licensed_answer(running, path, headers=None):
+    """Status and parsed body of one EVS request to the fixture server."""
+
+    request = Request(running.base_url("evs") + path, headers=headers or {})  # noqa: S310
     try:
-        with urlopen(Request(url, headers=headers or {}), timeout=10) as response:  # noqa: S310
-            return response.status
+        with urlopen(request, timeout=10) as response:  # noqa: S310 - the local fixture server
+            return response.status, json.loads(response.read())
     except HTTPError as error:
-        return error.code
+        return error.code, None
 
 
-def test_the_licence_key_of_the_scenarios_settings_is_what_grants_the_licensed_answer():
+def _codes(body):
+    """The concept codes an EVS answer names: a concept, a list, or a search's concepts."""
+
+    concepts = body.get("concepts", [body]) if isinstance(body, dict) else body
+    return {concept["code"] for concept in concepts}
+
+
+# Each form the licensed tools ask for, and the licensed concepts its answer names.
+ROOT = "/api/v1/concept/mdr_29_0"
+LICENSED_FORMS = {
+    f"{ROOT}/10000000?include=summary": {"10000000"},
+    f"{ROOT}/10000001?include=minimal": {"10000001"},
+    f"{ROOT}?list=10000001,10000000&include=minimal": {"10000000", "10000001"},
+    f"{ROOT}/search?term=placeholder%20licensed&type=contains&include=minimal": {
+        "10000000",
+        "10000001",
+    },
+    f"{ROOT}/10000000/children": {"10000001"},
+    f"{ROOT}/10000000/descendants?maxLevel=1": {"10000001"},
+    f"{ROOT}/10000001/children": set(),
+    f"{ROOT}/10000001/descendants?maxLevel=1": set(),
+}
+
+
+@pytest.mark.parametrize(("path", "codes"), LICENSED_FORMS.items())
+def test_the_licence_key_of_the_scenarios_settings_is_what_grants_the_licensed_answer(path, codes):
     settings = CRAFTED["scenarios/license/restricted/settings.json"]
     with FixtureServer(load_fixtures(FIXTURES)) as running:
         running.activate("license/restricted")
-        url = running.base_url("evs") + "/api/v1/concept/mdr_29_0/10000000?include=summary"
-        granted = fetch(url, {"X-EVSRESTAPI-License-Key": settings["NCI_SI_EVS_LICENSE_KEY"]})
-        refused = fetch(url)
+        key = {"X-EVSRESTAPI-License-Key": settings["NCI_SI_EVS_LICENSE_KEY"]}
+        granted, body = _licensed_answer(running, path, key)
+        refused, _ = _licensed_answer(running, path)
 
     assert settings["NCI_SI_EVS_LICENSE_KEY"] == LICENCE_KEY
     assert (granted, refused) == (200, 403)
+    assert _codes(body) == codes
+
+
+def test_a_licensed_descendant_carries_its_level_as_evs_gives_it():
+    with FixtureServer(load_fixtures(FIXTURES)) as running:
+        running.activate("license/restricted")
+        key = {"X-EVSRESTAPI-License-Key": LICENCE_KEY}
+        _, body = _licensed_answer(running, f"{ROOT}/10000000/descendants?maxLevel=1", key)
+
+    assert [(item["code"], item["level"]) for item in body] == [("10000001", 1)]
 
 
 JSON = {"Accept": "application/json"}
@@ -412,6 +450,10 @@ def test_the_recorded_scenarios_are_not_crafted(name):
 def test_the_command_writes_what_craft_makes(tmp_path, capsys):
     for directory in ("recorded", "crafted"):
         shutil.copytree(FIXTURES / directory, tmp_path / directory)
+    # The scenario fixtures recorded live, which some crafted ones are made from.
+    for file in (each.file for each in plan(MANIFEST) if each.file.startswith("scenarios/")):
+        (tmp_path / file).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(FIXTURES / file, tmp_path / file)
 
     assert main(["--fixtures", str(tmp_path)]) == 0
 

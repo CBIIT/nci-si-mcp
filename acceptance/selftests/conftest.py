@@ -50,6 +50,14 @@ ANSWERS = {
         },
         "response": {"status": 200, "body": {}},
     },
+    "scenarios/license/restricted/search.json": {
+        "request": VERSION
+        | {
+            "path": "/api/v1/concept/mdr_29_0/search",
+            "headers": {"X-EVSRESTAPI-License-Key": LICENCE_KEY},
+        },
+        "response": {"status": 200, "body": {}},
+    },
     "scenarios/license/restricted/refused.json": {
         "request": VERSION | {"path": "/api/v1/concept/mdr_29_0/10000000"},
         "response": {"status": 403, "body": {}},

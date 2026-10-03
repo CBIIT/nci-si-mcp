@@ -1,0 +1,22 @@
+{
+ "kind": "crafted",
+ "requirement": "A7.5: EVS refuses every request for mdr without the licence key",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/mdr_29_0",
+  "ignored": {
+   "*": "Verified 2 October 2026: EVS refuses every request for mdr without the licence key (403), whatever the path or parameters"
+  }
+ },
+ "response": {
+  "status": 403,
+  "body": {
+   "timestamp": 1790935889915,
+   "status": 403,
+   "error": "Forbidden",
+   "message": "API calls for terminology='mdr' require an X-EVSRESTAPI-License-Key header, visit https://github.com/NCIEVS/evsrestapi-client-SDK/blob/main/doc/LICENSE.md for more information.",
+   "path": "/api/v1/concept/mdr_29_0/10000000"
+  }
+ }
+}
