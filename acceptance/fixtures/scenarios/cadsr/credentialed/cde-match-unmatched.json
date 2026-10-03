@@ -11,7 +11,8 @@
    "Authorization": "Basic YWNjZXB0YW5jZTpjcmVkZW50aWFs"
   },
   "body": {
-   "entity": "Freezer Shelf Label"
+   "entity": "Freezer Shelf Label",
+   "entityUserTip": "The shelf of the freezer a specimen is stored on"
   }
  },
  "response": {

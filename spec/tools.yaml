@@ -363,8 +363,8 @@ ground_value:
     For a concept: the data elements that use it, the permissible values that stand for it,
     and, with commons, the stored values a commons uses for it, each asked by the concept, under
     one provenance envelope naming both content states (release and registry). Without commons
-    there is no storedValues. A text is resolved by lexical search to its first result, the
-    concept chosen named in the result. Without registryRelease the registry is unpinned, as for
+    there is no storedValues. A text is resolved as search_concepts resolves it with its
+    defaults (lexical, limit 10), to its first result, the concept chosen named in the result. Without registryRelease the registry is unpinned, as for
     every caDSR tool (X-21). A hop holds at most find_data_elements_for_concept's maximum
     (1,000), its bound `results`; each hop's truncation is carried (perHop), and since each hop
     is asked by the concept, one hop's bound limits no other.
@@ -383,7 +383,8 @@ expand_cohort:
     The codes a cohort query should use: the concept itself and its descendants to maxDepth.
     A code an exclusion role of the concept asked about asserts is withheld from codes and
     listed in excluded with its assertion, unless includeNegative keeps it in codes (still
-    listed); a descendant's own exclusion roles are its own, not the cohort's. The result equals
+    listed), one excluded record per exclusion assertion; a descendant's own exclusion roles are
+    its own, not the cohort's. maxNodes counts the codes, the concept included. The result equals
     composing get_concept_hierarchy (child, depth maxDepth) and get_concept_neighborhood
     (depth 1).
 harmonize_data_dictionary:
@@ -395,7 +396,7 @@ harmonize_data_dictionary:
   computed: true
   lists: {columns: 10}
   summary: >-
-    A data dictionary's columns matched to data elements, one match call per column (its name,
-    and its description as the entity's userTip), and each column's sample values aligned to
+    A data dictionary's columns matched to data elements, one match call per column (its name
+    as the entity, its description as entityUserTip), and each column's sample values aligned to
     value meanings (vmMatch); unmatched names the columns without a match; every match names
     one registry state.

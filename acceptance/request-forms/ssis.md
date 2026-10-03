@@ -452,6 +452,10 @@ Every payload that reports the pinned release names 26.08e instead, the unpinned
 
 Every upstream request, whatever its surface and path, gets a closed connection, then 503, then no answer within the timeout. Crafted, 7 fixtures, for A2.5, A5.3: bounded retries, counted, then a structured error.
 
+### `release/graph-behind`
+
+The Shared SI Service's NCIt graph names another release; EVS serves the one pinned. Crafted, 1 fixture, for A3.4: the content served names another release than the one requested.
+
 ### `upstream/masked-error`
 
 Every request to the Shared SI façade and to the caDSR API is answered with HTTP 200 and an apiResponse of type E, the failure each sends inside a success. Crafted, 2 fixtures, for X-15: an error envelope in an HTTP 200 is an upstream error.

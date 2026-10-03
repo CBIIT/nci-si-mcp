@@ -78,6 +78,12 @@ scenarios:
     then no answer within the timeout
   upstream/rate-limited: 429 with `Retry-After` on the release query, then the answer
   license/restricted: 403 without the licence key; invented content with it
+  release/graph-behind: >-
+    The Shared SI Service's NCIt graph names another release; EVS serves the one pinned
+  release/concept-behind: EVS serves C4817 of another release; the NCIt graph names the one pinned
+  search/first-not-named: >-
+    The lexical search for "ewing sarcoma" with Disease or Disorder (C2991) put first, an
+    invented order
   license/attributed: >-
     The invented licensed content of license/restricted, each concept carrying the
     terminology's licence text as EVS is asked to send it (#42)

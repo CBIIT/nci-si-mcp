@@ -1,0 +1,1621 @@
+{
+ "kind": "crafted",
+ "requirement": "A3.4: the content served names another release than the one requested",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C4817",
+  "params": {
+   "include": [
+    "full"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C4817",
+   "name": "Ewing Sarcoma",
+   "terminology": "ncit",
+   "version": "26.08e",
+   "conceptStatus": "DEFAULT",
+   "leaf": false,
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Ewing Sarcoma",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "Cellosaurus"
+    },
+    {
+     "name": "Ewing Sarcoma",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CPTAC"
+    },
+    {
+     "name": "Ewing Sarcoma",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTRP"
+    },
+    {
+     "name": "Ewing Sarcoma",
+     "termType": "DN",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTRP"
+    },
+    {
+     "name": "Ewing Sarcoma",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "GDC"
+    },
+    {
+     "name": "Ewing sarcoma",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "GDC"
+    },
+    {
+     "name": "Ewing tumor",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "GDC"
+    },
+    {
+     "name": "Ewing sarcoma",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "HemOnc",
+     "code": "597"
+    },
+    {
+     "name": "Ewing sarcoma",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI-GLOSS",
+     "code": "CDR0000046031"
+    },
+    {
+     "name": "ES",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Ewing Sarcoma",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Ewing's Sarcoma",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Ewing's Tumor",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Ewing Sarcoma",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NICHD"
+    },
+    {
+     "name": "Ewing Sarcoma",
+     "type": "Display_Name",
+     "typeCode": "P107"
+    },
+    {
+     "name": "Ewing Sarcoma",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "A malignant neoplasm of the bone, or the soft tissue adjacent to bone, that is comprised of primitive neuroectodermal cells.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "NICHD"
+    },
+    {
+     "definition": "A small round cell tumor that lacks morphologic, immunohistochemical, and electron microscopic evidence of neuroectodermal differentiation. It represents one of the two ends of the spectrum called Ewing sarcoma/peripheral neuroectodermal tumor. It affects mostly males under age 20, and it can occur in soft tissue or bone. Pain and the presence of a mass are the most common clinical symptoms.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    },
+    {
+     "definition": "A type of cancer that forms in bone or soft tissue.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "NCI-GLOSS"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "Cellosaurus"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CPTAC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTRP"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "GDC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "HemOnc"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "MedDRA"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "NICHD"
+    },
+    {
+     "code": "P334",
+     "type": "ICD-O-3_Code",
+     "value": "9260/3"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Ewing_s_Sarcoma"
+    },
+    {
+     "type": "Logical_Definition",
+     "value": "true"
+    },
+    {
+     "code": "P375",
+     "type": "Maps_To",
+     "value": "9260/3"
+    },
+    {
+     "code": "P375",
+     "type": "Maps_To",
+     "value": "Ewing Sarcoma"
+    },
+    {
+     "code": "P375",
+     "type": "Maps_To",
+     "value": "Ewing sarcoma"
+    },
+    {
+     "code": "P375",
+     "type": "Maps_To",
+     "value": "Ewing tumor"
+    },
+    {
+     "code": "P375",
+     "type": "Maps_To",
+     "value": "Ewing's sarcoma"
+    },
+    {
+     "code": "P363",
+     "type": "Neoplastic_Status",
+     "value": "Malignant"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Neoplastic Process"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C0553580"
+    }
+   ],
+   "children": [
+    {
+     "code": "C174456",
+     "name": "Atypical Ewing Sarcoma",
+     "leaf": true
+    },
+    {
+     "code": "C4835",
+     "name": "Bone Ewing Sarcoma",
+     "leaf": false
+    },
+    {
+     "code": "C189002",
+     "name": "Childhood Ewing Sarcoma",
+     "leaf": false
+    },
+    {
+     "code": "C7135",
+     "name": "Extraskeletal Ewing Sarcoma",
+     "leaf": false
+    },
+    {
+     "code": "C202904",
+     "name": "Head and Neck Ewing Sarcoma",
+     "leaf": false
+    },
+    {
+     "code": "C7806",
+     "name": "Localized Ewing Sarcoma",
+     "leaf": false
+    },
+    {
+     "code": "C7807",
+     "name": "Metastatic Ewing Sarcoma",
+     "leaf": false
+    },
+    {
+     "code": "C7808",
+     "name": "Recurrent Ewing Sarcoma",
+     "leaf": false
+    },
+    {
+     "code": "C142853",
+     "name": "Refractory Ewing Sarcoma",
+     "leaf": false
+    },
+    {
+     "code": "C132849",
+     "name": "Unresectable Ewing Sarcoma",
+     "leaf": true
+    }
+   ],
+   "parents": [
+    {
+     "code": "C27291",
+     "name": "Ewing Sarcoma/Peripheral Primitive Neuroectodermal Tumor",
+     "defining": true
+    },
+    {
+     "code": "C9118",
+     "name": "Sarcoma",
+     "defining": true
+    }
+   ],
+   "associations": [
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C165258",
+     "relatedName": "Cellosaurus Disease Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C138188",
+     "relatedName": "Clinical Trials Search-Application Programming Interface Disease Category Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C158520",
+     "relatedName": "CPTAC Codelists Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C156966",
+     "relatedName": "CPTAC Neoplasms Codelist"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C156952",
+     "relatedName": "CPTAC Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C118168",
+     "relatedName": "CTRP Disease Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C116977",
+     "relatedName": "CTRP Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C138190",
+     "relatedName": "CTS-API Disease Main Type Terminology"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C178243",
+     "relatedName": "Family Cancer History Relative Primary Diagnosis Question"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C157711",
+     "relatedName": "GDC Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177537",
+     "relatedName": "GDC Value Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C227412",
+     "relatedName": "HemOnc Conditions"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C176985",
+     "relatedName": "Histology ICD-O Morphology Code"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C177621",
+     "relatedName": "ICD-O-3 Morphology Term Diagnosis Question"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C168658",
+     "relatedName": "Mapped ICDO3.1 Morphology PT Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C168657",
+     "relatedName": "Mapped ICDO3.1 Morphology Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C168655",
+     "relatedName": "Mapped ICDO3.1 Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C168662",
+     "relatedName": "Mapped ICDO3.2 Morphology PT Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C168661",
+     "relatedName": "Mapped ICDO3.2 Morphology Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C168656",
+     "relatedName": "Mapped ICDO3.2 Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C126659",
+     "relatedName": "NCIt Neoplasm Core Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C90259",
+     "relatedName": "NICHD Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C189762",
+     "relatedName": "Pediatric Adverse Events Terminology Mapped to MedDRA"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C118464",
+     "relatedName": "Pediatric Adverse Events Terminology"
+    },
+    {
+     "code": "A14",
+     "type": "Neoplasm_Has_Special_Category",
+     "relatedCode": "C9292",
+     "relatedName": "Solid Neoplasm"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C177615",
+     "relatedName": "TCGA BCR Tumor Code Name"
+    }
+   ],
+   "inverseAssociations": [
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C178243",
+     "relatedName": "Family Cancer History Relative Primary Diagnosis Question"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C176985",
+     "relatedName": "Histology ICD-O Morphology Code"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C177621",
+     "relatedName": "ICD-O-3 Morphology Term Diagnosis Question"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C177615",
+     "relatedName": "TCGA BCR Tumor Code Name"
+    }
+   ],
+   "roles": [
+    {
+     "code": "R116",
+     "type": "Disease_May_Have_Associated_Disease",
+     "relatedCode": "C2869",
+     "relatedName": "Anemia"
+    },
+    {
+     "code": "R142",
+     "type": "Disease_Excludes_Finding",
+     "relatedCode": "C36122",
+     "relatedName": "Benign Cellular Infiltrate"
+    },
+    {
+     "code": "R141",
+     "type": "Disease_Excludes_Cytogenetic_Abnormality",
+     "relatedCode": "C165668",
+     "relatedName": "CIC Gene Rearrangement"
+    },
+    {
+     "code": "R100",
+     "type": "Disease_Has_Associated_Anatomic_Site",
+     "relatedCode": "C12964",
+     "relatedName": "Connective and Soft Tissue"
+    },
+    {
+     "code": "R101",
+     "type": "Disease_Has_Primary_Anatomic_Site",
+     "relatedCode": "C12964",
+     "relatedName": "Connective and Soft Tissue"
+    },
+    {
+     "code": "R104",
+     "type": "Disease_Has_Normal_Cell_Origin",
+     "relatedCode": "C13054",
+     "relatedName": "Embryonic Cell"
+    },
+    {
+     "code": "R103",
+     "type": "Disease_Has_Normal_Tissue_Origin",
+     "relatedCode": "C12950",
+     "relatedName": "Embryonic Tissue"
+    },
+    {
+     "code": "R138",
+     "type": "Disease_Excludes_Normal_Cell_Origin",
+     "relatedCode": "C12578",
+     "relatedName": "Epithelial Cell"
+    },
+    {
+     "code": "R137",
+     "type": "Disease_Excludes_Normal_Tissue_Origin",
+     "relatedCode": "C45714",
+     "relatedName": "Epithelial Tissue"
+    },
+    {
+     "code": "R107",
+     "type": "Disease_Has_Cytogenetic_Abnormality",
+     "relatedCode": "C165667",
+     "relatedName": "EWSR1 Gene Rearrangement"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C18322",
+     "relatedName": "EWSR1 Gene"
+    },
+    {
+     "code": "R89",
+     "type": "Disease_May_Have_Molecular_Abnormality",
+     "relatedCode": "C37229",
+     "relatedName": "EWSR1-ERG Fusion Protein Expression"
+    },
+    {
+     "code": "R89",
+     "type": "Disease_May_Have_Molecular_Abnormality",
+     "relatedCode": "C37230",
+     "relatedName": "EWSR1-ETV1 Fusion Protein Expression"
+    },
+    {
+     "code": "R89",
+     "type": "Disease_May_Have_Molecular_Abnormality",
+     "relatedCode": "C37231",
+     "relatedName": "EWSR1-ETV4 Fusion Protein Expression"
+    },
+    {
+     "code": "R89",
+     "type": "Disease_May_Have_Molecular_Abnormality",
+     "relatedCode": "C37250",
+     "relatedName": "EWSR1-FEV Fusion Protein Expression"
+    },
+    {
+     "code": "R89",
+     "type": "Disease_May_Have_Molecular_Abnormality",
+     "relatedCode": "C37224",
+     "relatedName": "EWSR1-FLI1 Fusion Protein Expression"
+    },
+    {
+     "code": "R140",
+     "type": "Disease_Excludes_Molecular_Abnormality",
+     "relatedCode": "C178457",
+     "relatedName": "EWSR1-NFATC2 Fusion Protein Expression"
+    },
+    {
+     "code": "R140",
+     "type": "Disease_Excludes_Molecular_Abnormality",
+     "relatedCode": "C37252",
+     "relatedName": "EWSR1-PATZ1 Fusion Protein Expression"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C99211",
+     "relatedName": "EWSR1/ERG Fusion Gene"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C99259",
+     "relatedName": "EWSR1/ETV1 Fusion Gene"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C99262",
+     "relatedName": "EWSR1/ETV4 Fusion Gene"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C99226",
+     "relatedName": "EWSR1/FEV Fusion Gene"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C99202",
+     "relatedName": "EWSR1/FLI1 Fusion Gene"
+    },
+    {
+     "code": "R115",
+     "type": "Disease_May_Have_Finding",
+     "relatedCode": "C3038",
+     "relatedName": "Fever"
+    },
+    {
+     "code": "R89",
+     "type": "Disease_May_Have_Molecular_Abnormality",
+     "relatedCode": "C45455",
+     "relatedName": "FUS-ERG Fusion Protein Expression"
+    },
+    {
+     "code": "R140",
+     "type": "Disease_Excludes_Molecular_Abnormality",
+     "relatedCode": "C178458",
+     "relatedName": "FUS-NFATC2 Fusion Protein Expression"
+    },
+    {
+     "code": "R176",
+     "type": "Disease_Mapped_To_Gene",
+     "relatedCode": "C99281",
+     "relatedName": "FUS/ERG Fusion Gene"
+    },
+    {
+     "code": "R137",
+     "type": "Disease_Excludes_Normal_Tissue_Origin",
+     "relatedCode": "C54105",
+     "relatedName": "Germinal Layer"
+    },
+    {
+     "code": "R115",
+     "type": "Disease_May_Have_Finding",
+     "relatedCode": "C35380",
+     "relatedName": "Hemorrhagic Change"
+    },
+    {
+     "code": "R115",
+     "type": "Disease_May_Have_Finding",
+     "relatedCode": "C35942",
+     "relatedName": "Homer Wright Rosette Formation"
+    },
+    {
+     "code": "R142",
+     "type": "Disease_Excludes_Finding",
+     "relatedCode": "C36105",
+     "relatedName": "Indolent Clinical Course"
+    },
+    {
+     "code": "R142",
+     "type": "Disease_Excludes_Finding",
+     "relatedCode": "C53665",
+     "relatedName": "Intermediate Filaments Present"
+    },
+    {
+     "code": "R142",
+     "type": "Disease_Excludes_Finding",
+     "relatedCode": "C53667",
+     "relatedName": "Intracytoplasmic Eosinophilic Inclusion"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C12917",
+     "relatedName": "Malignant Cell"
+    },
+    {
+     "code": "R108",
+     "type": "Disease_Has_Finding",
+     "relatedCode": "C36115",
+     "relatedName": "Malignant Cellular Infiltrate"
+    },
+    {
+     "code": "R139",
+     "type": "Disease_Excludes_Abnormal_Cell",
+     "relatedCode": "C36779",
+     "relatedName": "Malignant Epithelial Cell"
+    },
+    {
+     "code": "R113",
+     "type": "Disease_May_Have_Abnormal_Cell",
+     "relatedCode": "C53487",
+     "relatedName": "Malignant Small Round Cell"
+    },
+    {
+     "code": "R115",
+     "type": "Disease_May_Have_Finding",
+     "relatedCode": "C36184",
+     "relatedName": "Necrosis"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C12922",
+     "relatedName": "Neoplastic Cell"
+    },
+    {
+     "code": "R103",
+     "type": "Disease_Has_Normal_Tissue_Origin",
+     "relatedCode": "C34222",
+     "relatedName": "Neural Crest"
+    },
+    {
+     "code": "R142",
+     "type": "Disease_Excludes_Finding",
+     "relatedCode": "C53978",
+     "relatedName": "Neuroectodermal Differentiation",
+     "group": "Disease, Disorder or Finding"
+    },
+    {
+     "code": "R105",
+     "type": "Disease_Has_Abnormal_Cell",
+     "relatedCode": "C53980",
+     "relatedName": "Primitive Round to Oval Cell"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C27214",
+     "relatedName": "t(11;22)(q24;q12)"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C36616",
+     "relatedName": "t(16;21)(p11;q22)"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C36369",
+     "relatedName": "t(17;22)(q21;q12)"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C37251",
+     "relatedName": "t(1;22)(p36.1;q12)"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C36367",
+     "relatedName": "t(21;22)(q22;q12)"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C37249",
+     "relatedName": "t(2;22)(q33;q12)"
+    },
+    {
+     "code": "R114",
+     "type": "Disease_May_Have_Cytogenetic_Abnormality",
+     "relatedCode": "C36368",
+     "relatedName": "t(7;22)(p22;q12)"
+    }
+   ],
+   "inverseRoles": [
+    {
+     "code": "R48",
+     "type": "Gene_Product_Malfunction_Associated_With_Disease",
+     "relatedCode": "C21513",
+     "relatedName": "G Antigen Family D Member 3"
+    },
+    {
+     "code": "R116",
+     "type": "Disease_May_Have_Associated_Disease",
+     "relatedCode": "C8495",
+     "relatedName": "Hereditary Retinoblastoma"
+    }
+   ],
+   "history": [
+    {
+     "code": "C4817",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2003-10-31"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2006-02-24"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2006-03-31"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2006-12-01"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2007-03-30"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2007-05-25"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2007-07-27"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2009-04-06"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2010-01-11"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2011-01-24"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2012-11-19"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2013-07-01"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2014-03-05"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2014-08-04"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2014-08-18"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2014-09-22"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2014-10-27"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2014-11-03"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2014-11-10"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2014-11-17"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2014-11-24"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2014-12-01"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2014-12-08"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2014-12-15"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2014-12-22"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2014-12-29"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-01-05"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-01-12"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-01-20"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-01-26"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-02-02"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-02-09"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-02-17"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-02-23"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-03-02"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-03-09"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-03-16"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-03-23"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-03-30"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-04-06"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-04-13"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-04-20"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-04-27"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-05-04"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-05-11"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-05-18"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-05-26"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-06-01"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-06-08"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-06-15"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-06-22"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-06-29"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-07-06"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-07-13"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-08-12"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-08-24"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-08-31"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-09-08"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-09-14"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-09-21"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-09-28"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-10-05"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-10-13"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-10-19"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-10-26"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-11-02"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-11-09"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-11-16"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-11-23"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-11-30"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-12-07"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-12-14"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-12-21"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2015-12-28"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-01-04"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-01-11"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-01-19"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-01-29"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-04-18"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-04-25"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-05-09"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-05-16"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-05-23"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-05-31"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-06-06"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-06-13"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-06-17"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-06-27"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-07-05"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-07-11"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-07-18"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-07-25"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-08-01"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-08-08"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-08-15"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-08-22"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-08-29"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-09-06"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-09-12"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-09-20"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-09-26"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-10-03"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-10-11"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-10-17"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-10-24"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-10-31"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-11-07"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-11-14"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-11-21"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-11-28"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-12-05"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-12-12"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-12-19"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2016-12-27"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2017-01-03"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2017-01-09"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2017-01-17"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2017-01-23"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2017-09-26"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2018-02-26"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2018-07-30"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2018-09-24"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2018-11-26"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2018-12-31"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2019-03-25"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2019-05-28"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2019-09-30"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2019-10-28"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2019-11-25"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2020-01-27"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2020-02-24"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2020-03-30"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2020-04-27"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2020-08-31"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2020-09-29"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2021-02-22"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2021-03-29"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2022-09-26"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2023-02-27"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2023-12-26"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2025-03-31"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2026-05-26"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2026-06-29"
+    },
+    {
+     "code": "C4817",
+     "action": "modify",
+     "date": "2026-09-28"
+    }
+   ],
+   "maps": [
+    {
+     "type": "Related To",
+     "targetName": "9260/3",
+     "targetTermType": "PT",
+     "targetCode": "morphology",
+     "targetTerminology": "GDC"
+    },
+    {
+     "type": "Related To",
+     "targetName": "Ewing sarcoma",
+     "targetTermType": "PT",
+     "targetCode": "9260/3",
+     "targetTerminology": "ICDO3",
+     "targetTerminologyVersion": "3.1"
+    },
+    {
+     "type": "Related To",
+     "targetName": "Ewing sarcoma",
+     "targetTermType": "PT",
+     "targetCode": "9364/3",
+     "targetTerminology": "ICDO3",
+     "targetTerminologyVersion": "3.2"
+    },
+    {
+     "type": "Has Synonym",
+     "targetName": "Ewing sarcoma",
+     "targetTermType": "PT",
+     "targetCode": "primary_diagnosis",
+     "targetTerminology": "GDC"
+    },
+    {
+     "type": "Has Synonym",
+     "targetName": "Ewing Sarcoma",
+     "targetTermType": "PT",
+     "targetCode": "relationship_primary_diagnosis",
+     "targetTerminology": "GDC"
+    },
+    {
+     "type": "Has Synonym",
+     "targetName": "Ewing sarcoma",
+     "targetTermType": "PT",
+     "targetCode": "tumor_code",
+     "targetTerminology": "GDC"
+    },
+    {
+     "type": "Has Synonym",
+     "targetName": "Ewing tumor",
+     "targetTermType": "PT",
+     "targetCode": "primary_diagnosis",
+     "targetTerminology": "GDC"
+    },
+    {
+     "type": "Has Synonym",
+     "targetName": "Ewing's sarcoma",
+     "targetTermType": "LLT",
+     "targetCode": "10015560",
+     "targetTerminology": "MedDRA",
+     "targetTerminologyVersion": "18.1"
+    }
+   ]
+  }
+ }
+}

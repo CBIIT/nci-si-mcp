@@ -316,14 +316,14 @@ ground_value-2:
   statement: The data elements, the permissible values and, with commons, the stored values are those the surfaces answer for the concept, each hop asked by the concept; without commons there is no storedValues.
   basis: [ground_value, data_element_use, value_use, stored_value, A2.6]
 ground_value-3:
-  statement: A text resolves through lexical search to its first result, the concept the result names.
+  statement: A text resolves as search_concepts resolves it with its defaults, to its first result, never to a better-named one, the concept the result names.
   basis: [ground_value, search_concepts]
 ground_value-4:
   statement: A hop that reaches its bound reports it in perHop, and occurred is true; since each hop is asked by the concept, the other hops are complete.
   basis: [ground_value, truncation, A5.4]
 expand_cohort-1:
-  statement: The codes are the concept itself and its descendants to maxDepth, less the codes an exclusion role of the concept asserts, which are listed in excluded with their assertion; with includeNegative they stay in codes and are still listed; the result equals composing get_concept_hierarchy and get_concept_neighborhood.
+  statement: The codes are the concept itself and its descendants to maxDepth, less the codes an exclusion role of the concept asserts, each assertion listed in excluded; with includeNegative they stay in codes and are still listed; maxNodes counts the codes, the concept included; the result equals composing get_concept_hierarchy and get_concept_neighborhood.
   basis: [expand_cohort, A5.6]
 harmonize_data_dictionary-1:
-  statement: One upstream match call per column, batched where the upstream allows; unmatched columns listed; one registry state across all matches; without registryRelease the registry is unpinned, as X-21 reads it.
+  statement: One upstream match call per column, its description as the entity's user tip; unmatched columns listed by name; each sample value aligned to the value meanings vmMatch gives; one registry state across all matches; without registryRelease the registry is unpinned, as X-21 reads it.
   basis: [harmonize_data_dictionary, data_element_match]

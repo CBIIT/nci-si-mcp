@@ -188,6 +188,44 @@ def release_mismatch(recorded: Recorded) -> Documents:
     return documents
 
 
+def release_one_surface_behind(recorded: Recorded) -> Documents:
+    """Another release on one surface only, as release/mismatch has it: the Shared SI
+    Service's graph identities (release/graph-behind), or EVS's C4817 (release/concept-behind).
+    A tool that rests on both checks each, which only one surface behind at a time shows
+    (ground_value-1)."""
+
+    behind = release_mismatch(recorded)
+    sides = {
+        "graph-behind": lambda name: "graph-identities" in name,
+        "concept-behind": lambda name: name.endswith(f"{CONCEPTS}/C4817.json"),
+    }
+    return {
+        name.replace("release/mismatch", f"release/{scenario}"): document
+        for scenario, chosen in sides.items()
+        for name, document in behind.items()
+        if chosen(name)
+    }
+
+
+def search_first_not_named(recorded: Recorded) -> Documents:
+    """The lexical search for "ewing sarcoma" with Disease or Disorder (C2991) put first, a
+    concept not named like the text: invented order, so that a tool taking the first result
+    differs from one taking the best name match (ground_value-3)."""
+
+    source = recorded("recorded/evs/search-contains.json")
+    body = source["response"]["body"]
+    concept = recorded(f"recorded/evs/{CONCEPTS}/C2991.json")["response"]["body"]
+    first = {key: concept[key] for key in body["concepts"][0] if key in concept}
+    return {
+        "scenarios/search/first-not-named/search-contains.json": crafted(
+            "ground_value-3: a search whose first result is not the concept named like the text",
+            source["request"],
+            response=source["response"]
+            | {"body": body | {"concepts": [first, *body["concepts"][:-1]]}},
+        )
+    }
+
+
 WEEKLY_RELEASE = "26.10a"
 
 
@@ -707,6 +745,9 @@ MATCHED_ENTITIES = {
     # A data dictionary column no data element matches (harmonize_data_dictionary's unmatched).
     "Freezer Shelf Label": (),
 }
+# The user tip an entity is asked with (the contract's entityUserTip): harmonize_data_dictionary
+# sends a column's description as it (tests/calls.yaml).
+USER_TIPS = {"Freezer Shelf Label": "The shelf of the freezer a specimen is stored on"}
 # Invented, as no answer can be recorded without credentials: the scores and the rule, marked so.
 SCORES = (0.97, 0.83)
 RULE = "Crafted: long name"
@@ -827,7 +868,8 @@ def _cde_match_request(entity: str = "Patient Gender") -> dict[str, Any]:
             "Content-Type": "application/json",
             "Authorization": CADSR_AUTHORIZATION,
         },
-        "body": {"entity": entity},
+        "body": {"entity": entity}
+        | ({"entityUserTip": USER_TIPS[entity]} if entity in USER_TIPS else {}),
     }
 
 
@@ -991,6 +1033,8 @@ SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     upstream_rate_limited,
     license_restricted,
     license_attributed,
+    release_one_surface_behind,
+    search_first_not_named,
     cadsr_with_registry_release,
     cadsr_credentialed,
     cadsr_match_timeout,

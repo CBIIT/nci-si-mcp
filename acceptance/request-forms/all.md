@@ -640,6 +640,18 @@ Every upstream request, whatever its surface and path, gets a closed connection,
 |---|---|---|---|---|
 | A7.5 | `GET evs /api/v1/concept/mdr_29_0/10000000?include=summary` | 403; every parameter ignored | EVS refuses mdr without the X-EVSRESTAPI-License-Key header (403). | `scenarios/license/restricted/refused.json` |
 
+### `release/graph-behind`
+
+The Shared SI Service's NCIt graph names another release; EVS serves the one pinned. Crafted, 1 fixture, for A3.4: the content served names another release than the one requested.
+
+### `release/concept-behind`
+
+EVS serves C4817 of another release; the NCIt graph names the one pinned. Crafted, 1 fixture, for A3.4: the content served names another release than the one requested.
+
+### `search/first-not-named`
+
+The lexical search for "ewing sarcoma" with Disease or Disorder (C2991) put first, an invented order. Crafted, 1 fixture, for ground_value-3: a search whose first result is not the concept named like the text.
+
 ### `license/attributed`
 
 The invented licensed content of license/restricted, each concept carrying the terminology's licence text as EVS is asked to send it (#42). Crafted, 8 fixtures, for A7.3, X-19: the licence text given with the content, in `licenseText` on each concept, as asked of EVS (#42).
