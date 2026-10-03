@@ -170,7 +170,8 @@ get_data_element:
   summary: >-
     One data element, at its latest version or the version given, with the sections include
     selects; without include, the record's own fields. questionText finds it by its preferred
-    question text, an invalid request naming the candidates where several have it; longName is capability_unavailable until the platform serves that lookup
+    question text, an invalid request naming the candidates where several have it and not_found
+    where none has; longName is capability_unavailable until the platform serves that lookup
     (OP-C02).
 search_data_elements:
   group: cadsr

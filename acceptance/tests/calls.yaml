@@ -14,7 +14,8 @@
 # its provenance passes through unchanged (X-8); `$terminology` and `$release` stand for the
 # fixture set's pin. `empty` gives arguments, in place of the call's, that legitimately match
 # nothing (X-4). `truncating` gives arguments, added to the call's, under which the result
-# exceeds a bound, and the bound the truncation record must name (X-10); a limit that a
+# exceeds a bound, the bound the truncation record must name, and its `limit` where no argument
+# sets it, as the platform's own cap (X-10); a limit that a
 # cursor or an offset continues pages instead, and is not one (M6.1, X-17). `paged` lists
 # calls, each with arguments added to the call's under which the result is larger than the
 # page asked for, so that it carries a cursor to the next page (X-17); `changed` lists
@@ -87,3 +88,21 @@ get_code_map:
   paged:
     - arguments: {limit: 40}
       changed: [{limit: 41}, {targetContext: GDC}, {dataElementId: "88"}]
+# Crafted: no keyword search exists today, and the crafted answer of its form is the
+# contract's cap of 1,000 data elements (crafted/OP-C03/search-over-cap.json).
+search_data_elements:
+  arguments: {query: patient}
+  truncating: {arguments: {}, bound: upstream_cap, limit: 1000}   # the contract's cap
+  paged:
+    - arguments: {}
+      changed: [{limit: 11}, {query: gender}]
+# Crafted to the contracts the APIs publish, which refuse an anonymous caller.
+match_data_elements:
+  arguments: {entities: [{name: Patient Gender}]}
+  scenario: cadsr/credentialed
+list_contexts:
+  arguments: {}
+  scenario: cadsr/credentialed
+  paged:
+    - arguments: {limit: 5}
+      changed: [{limit: 6}]

@@ -33,6 +33,7 @@ and an unknown data element both come back as HTTP 200, with `apiResponse` sayin
 | OP-C07 | `GET cadsr /NCIAPI/1.0/api/DataElement/2200604/permissibleValues` with `Accept: application/json` | 404 | recorded | The inventory's path for a data element's permissible values answers 404; they come inside the data element. | `recorded/cadsr/permissible-values.json` |
 | OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElements/ReferenceDocument?documentText=Sex of a Person&documentType=Preferred Question Text&headerOnly=true` with `Accept: application/json` | 200 | recorded | A data element by its preferred question text, header fields only; the platform matches the text as contained, and this one names 2200604 alone. | `recorded/cadsr/question-text-sex-of-a-person.json` |
 | OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElements/ReferenceDocument?documentText=Date of birth&documentType=Preferred Question Text&headerOnly=true` with `Accept: application/json` | 200 | recorded | A question text 18 data elements have, as the platform matches it. | `recorded/cadsr/question-text-date-of-birth.json` |
+| OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElements/ReferenceDocument?documentText=qqxyzzyqq&documentType=Preferred Question Text&headerOnly=true` with `Accept: application/json` | 200 | recorded | A question text no data element has, which the platform answers with an empty list. | `recorded/cadsr/question-text-unmatched.json` |
 | OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElement/2200604` with no header | 200 | recorded | The same request without Accept: HTTP 200 with HTML. The fixture naming Accept answers a request that carries it; this one any other (M3.2, X-15). | `recorded/cadsr/data-element-2200604-html.json` |
 | OP-C06 | `GET cadsr /NCIAPI/1.0/api/DataElements/getCRDCList` with `Accept: application/json` | 200 | recorded | The CRDC crosswalk, unparameterised. | `recorded/cadsr/crdc-list.json` |
 | OP-C09 | `GET cadsr /NCIAPI/1.0/api/DataElements/Concept?conceptCode=C17357&headerOnly=true` with `Accept: application/json` | 200 | recorded | Data elements by concept code, header fields only: the contract caps every query at 1,000 results, "To bring back all results, utilize the headerOnly field". | `recorded/cadsr/concept-c17357.json` |
@@ -59,9 +60,13 @@ answers the ordinary forms above.
 
 Every EVS request, whatever its path, gets a closed connection, then 503, then no answer within the timeout. Crafted, 5 fixtures, for A2.5, A5.3: bounded retries, counted, then a structured error.
 
+### `upstream/rate-limited`
+
+429 with `Retry-After` on the release query, then the answer. Crafted, 2 fixtures, for E-7, P-1: back-off honoured and counted.
+
 ### `cadsr/with-registry-release`
 
-caDSR publishes a registry release: /registry/releases names one, and a data element asked with it is answered with the release echoed (C-1). Crafted, 2 fixtures, for C-1: a published registry release, named in every answer and accepted on every content call.
+caDSR publishes a registry release: /registry/releases names one, and a data element asked with it is answered with the release echoed (C-1). Crafted, 3 fixtures, for C-1: a published registry release, named in every answer and accepted on every content call.
 
 ### `cadsr/credentialed`
 
@@ -69,7 +74,7 @@ The server holds caDSR credentials: contexts and CDE Match answer to the contrac
 
 ### `cadsr/match-timeout`
 
-vmMatch answers later than the match timeout the scenario sets. Crafted, 1 fixture, for A2.5: matching slower than its declared timeout is a timeout error.
+vmMatch answers later than the match timeout the scenario sets. Crafted, 2 fixtures, for A2.5: matching slower than its declared timeout is a timeout error.
 
 ### `cadsr/html-for-json`
 

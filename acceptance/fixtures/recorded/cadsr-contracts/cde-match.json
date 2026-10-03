@@ -1,0 +1,324 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "cadsr-contracts",
+  "method": "GET",
+  "path": "/pub.swagger:getSwaggerJsonDoc",
+  "params": {
+   "radName": [
+    "NCIAPI.v2_0.cdeMatch.api:cdeMatch_rad"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "swagger": "2.0",
+   "info": {
+    "description": "API for calling the CDE Match.\r\n\r\nSwagger JSON: [swagger.json](https://cadsrapi.cancer.gov/invoke/pub.swagger:getSwaggerJsonDoc?radName=NCIAPI.v2_0.cdeMatch.api:cdeMatch_rad)",
+    "version": "2.0",
+    "title": "cde Match with performance improvements"
+   },
+   "host": "cadsrapi.cancer.gov",
+   "basePath": "/rad/NCIAPI.v2_0.cdeMatch.api:cdeMatch_rad",
+   "schemes": [
+    "https"
+   ],
+   "consumes": [
+    "application/json"
+   ],
+   "produces": [
+    "application/json"
+   ],
+   "security": [
+    {
+     "Basic Auth": []
+    }
+   ],
+   "paths": {
+    "/cdeMatch": {
+     "post": {
+      "operationId": "cdeMatch_POST_1",
+      "parameters": [
+       {
+        "in": "body",
+        "name": "dataInput",
+        "description": "Data to search on.",
+        "required": true,
+        "schema": {
+         "$ref": "#/definitions/apiinput"
+        }
+       },
+       {
+        "name": "matchLimit",
+        "in": "header",
+        "description": "Optional: Maximum number of matches returned. Default is 10.",
+        "required": false,
+        "type": "integer"
+       },
+       {
+        "name": "registrationStatus",
+        "in": "header",
+        "description": "Optional: Registration status.  i.e. RELEASED",
+        "required": false,
+        "type": "string"
+       },
+       {
+        "name": "workflowStatus",
+        "in": "header",
+        "description": "Optional: Workflow Status. i.e. RELEASED",
+        "required": false,
+        "type": "string"
+       },
+       {
+        "name": "contexts",
+        "in": "header",
+        "description": "Optional: Context Name.",
+        "required": false,
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "collectionFormat": "csv"
+       },
+       {
+        "name": "classificationSchemePublicId",
+        "in": "header",
+        "description": "Optional: Classification Scheme Public Id.",
+        "required": false,
+        "type": "integer"
+       },
+       {
+        "name": "classificationSchemeVersion",
+        "in": "header",
+        "description": "Optional: Classification Scheme Version.  This is required if you are specifing the Classifiation Scheme Public Id.",
+        "required": false,
+        "type": "number"
+       },
+       {
+        "name": "valueDomainType",
+        "in": "header",
+        "description": "Optional:  Value domain type.  If a value domain type is not selected all types will be evaluated.",
+        "required": false,
+        "type": "string"
+       }
+      ],
+      "responses": {
+       "200": {
+        "description": "OK",
+        "schema": {
+         "$ref": "#/definitions/cdeMatch_POST_response"
+        }
+       },
+       "401": {
+        "description": "Access Denied"
+       }
+      }
+     }
+    }
+   },
+   "securityDefinitions": {
+    "Basic Auth": {
+     "description": "",
+     "type": "basic"
+    }
+   },
+   "definitions": {
+    "apiinput": {
+     "type": "object",
+     "required": [
+      "entity"
+     ],
+     "properties": {
+      "entity": {
+       "type": "string",
+       "description": "Entity Name"
+      },
+      "entityUserTip": {
+       "type": "string",
+       "description": "Optional: Entity User Tip"
+      },
+      "pvvmData": {
+       "type": "array",
+       "items": {
+        "$ref": "#/definitions/pvvmData"
+       }
+      }
+     },
+     "description": "Data to search on."
+    },
+    "odeResults": {
+     "type": "object",
+     "required": [
+      "entity",
+      "numberOfMatches",
+      "numberofPVs",
+      "sequenceNumber"
+     ],
+     "properties": {
+      "sequenceNumber": {
+       "type": "integer",
+       "description": "Sequence Number"
+      },
+      "entity": {
+       "type": "string",
+       "description": "Entity Name"
+      },
+      "numberOfMatches": {
+       "type": "integer",
+       "description": "number of Matches"
+      },
+      "numberofPVs": {
+       "type": "integer",
+       "description": "Number of PVs used"
+      },
+      "lastRunType": {
+       "type": "string",
+       "description": "Run Type"
+      },
+      "matches": {
+       "type": "array",
+       "items": {
+        "$ref": "#/definitions/odeMatch"
+       }
+      }
+     }
+    },
+    "apiResponse": {
+     "type": "object",
+     "required": [
+      "type"
+     ],
+     "properties": {
+      "type": {
+       "type": "string",
+       "description": "S Success, E Error, W Warning, I Info, A Abort"
+      },
+      "message": {
+       "type": "string",
+       "description": "Message text"
+      },
+      "service": {
+       "type": "string",
+       "description": "service that errorred"
+      },
+      "time": {
+       "type": "string",
+       "description": "Date and time of error"
+      },
+      "ssnid": {
+       "type": "string",
+       "description": "session id"
+      },
+      "callStack": {
+       "type": "array",
+       "items": {
+        "$ref": "#/definitions/callstackItem"
+       }
+      }
+     }
+    },
+    "cdeMatch_POST_response": {
+     "type": "object",
+     "required": [
+      "apiResponse",
+      "matchResults"
+     ],
+     "properties": {
+      "apiResponse": {
+       "$ref": "#/definitions/apiResponse"
+      },
+      "matchResults": {
+       "$ref": "#/definitions/odeResults"
+      }
+     }
+    },
+    "pvvmData": {
+     "type": "object",
+     "properties": {
+      "name": {
+       "type": "string",
+       "description": "Optional: permissible Value or Value Meaning"
+      },
+      "userTip": {
+       "type": "string",
+       "description": "Optional: permissible Value or Value Meaning User Tip"
+      }
+     }
+    },
+    "odeMatch": {
+     "type": "object",
+     "properties": {
+      "ruleId": {
+       "type": "integer",
+       "format": "int32"
+      },
+      "ruleDescription": {
+       "type": "string",
+       "description": "rule Description"
+      },
+      "score": {
+       "type": "number"
+      },
+      "publicId": {
+       "type": "string",
+       "description": "CDE Public Id"
+      },
+      "version": {
+       "type": "string",
+       "description": "CDE Version"
+      },
+      "numberOfPVsInSource": {
+       "type": "number",
+       "description": "Number of PVs in Source"
+      },
+      "numberOfPVsInCDE": {
+       "type": "number",
+       "description": "Number of PV's in the CDE"
+      },
+      "numberOfPVsMatch": {
+       "type": "number",
+       "description": "Number of PV's that match"
+      },
+      "matchedText": {
+       "type": "string"
+      },
+      "longName": {
+       "type": "string"
+      },
+      "context": {
+       "type": "string"
+      },
+      "workflowStatus": {
+       "type": "string"
+      },
+      "registrationStatus": {
+       "type": "string"
+      },
+      "usedBy": {
+       "type": "string"
+      }
+     },
+     "description": "CDE Match information"
+    },
+    "callstackItem": {
+     "type": "object",
+     "required": [
+      "flowStep",
+      "service"
+     ],
+     "properties": {
+      "service": {
+       "type": "string"
+      },
+      "flowStep": {
+       "type": "string"
+      }
+     },
+     "description": "call stack. To be used by support."
+    }
+   }
+  }
+ }
+}

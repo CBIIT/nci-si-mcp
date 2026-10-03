@@ -10,6 +10,7 @@ from urllib.request import Request, urlopen
 
 import pytest
 import yaml
+from jsonschema import Draft4Validator
 
 from nci_si_acceptance.craft import (
     EXCLUSION_ROLES,
@@ -329,18 +330,26 @@ def test_the_cadsr_credential_of_the_settings_is_what_opens_contexts_and_cde_mat
     credential = CRAFTED["scenarios/cadsr/credentialed/settings.json"]["NCI_SI_CADSR_CREDENTIAL"]
     basic = {"Authorization": "Basic " + base64.b64encode(credential.encode()).decode()}
     sent = {"Content-Type": "application/json"}
-    match = [{"entity": "Patient Gender"}]
+    # The contract's body, one apiinput object; the recorded refusal keeps the array the call
+    # of 10 September sent.
+    match, refused_match = {"entity": "Patient Gender"}, [{"entity": "Patient Gender"}]
     with FixtureServer(load_fixtures(FIXTURES)) as running:
         running.activate("cadsr/credentialed")
         granted = [
             ask(running, CONTEXTS, JSON | basic),
             ask(running, CDE_MATCH, JSON | sent | basic, match),
         ]
-        refused = [ask(running, CONTEXTS, JSON), ask(running, CDE_MATCH, JSON | sent, match)]
+        refused = [
+            ask(running, CONTEXTS, JSON),
+            ask(running, CDE_MATCH, JSON | sent, refused_match),
+        ]
 
     assert [status for status, _ in granted + refused] == [200, 200, 401, 401]
     assert "NCIP" in granted[0][1]["contextNames"]
-    assert [m["publicId"] for m in granted[1][1]["matchResults"]["matches"]] == ["2200604"]
+    assert [m["publicId"] for m in granted[1][1]["matchResults"]["matches"]] == [
+        "2200604",
+        "2180389",
+    ]
 
 
 def test_with_registry_release_publishes_one_and_echoes_it_where_the_api_answers_404(upstream):
@@ -410,3 +419,51 @@ def test_the_command_writes_what_craft_makes(tmp_path, capsys):
         json.loads(written.read_text(encoding="utf-8"))
         == CRAFTED["scenarios/release/two-latest/latest.json"]
     )
+
+
+# The crafted answers of the APIs that refuse an anonymous caller, each with the recorded
+# contract it follows and the definitions of its answer and of its request body.
+CONTRACT_ANSWERS = [
+    (
+        "scenarios/cadsr/credentialed/cde-match.json",
+        "recorded/cadsr-contracts/cde-match.json",
+        "cdeMatch_POST_response",
+        "apiinput",
+    ),
+    (
+        "scenarios/cadsr/match-timeout/cde-match.json",
+        "recorded/cadsr-contracts/cde-match.json",
+        "cdeMatch_POST_response",
+        "apiinput",
+    ),
+    (
+        "scenarios/cadsr/credentialed/context-names.json",
+        "recorded/cadsr-contracts/lists-of-values.json",
+        "getContextNames_GET_response",
+        None,
+    ),
+]
+
+
+def _violations(contract, definition, value):
+    """How `value` departs from the contract's definition, swagger 2.0 being JSON Schema
+    draft 4 in this respect."""
+
+    schema = {"$ref": f"#/definitions/{definition}", "definitions": contract["definitions"]}
+    return [error.message for error in Draft4Validator(schema).iter_errors(value)]
+
+
+@pytest.mark.parametrize(("fixture", "source", "answer", "body"), CONTRACT_ANSWERS)
+def test_a_crafted_credentialed_answer_follows_its_published_contract(
+    fixture, source, answer, body
+):
+    contract = json.loads((FIXTURES / source).read_text(encoding="utf-8"))["response"]["body"]
+    request, response = CRAFTED[fixture]["request"], CRAFTED[fixture]["response"]
+    operations = {
+        (method.upper(), path) for path, methods in contract["paths"].items() for method in methods
+    }
+
+    assert [(m, p) for m, p in operations if m == request["method"] and request["path"].endswith(p)]
+    assert _violations(contract, answer, response["body"]) == []
+    if body:
+        assert _violations(contract, body, request["body"]) == []

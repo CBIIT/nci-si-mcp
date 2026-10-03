@@ -58,8 +58,12 @@ caDSR's own behaviour is in the ordinary fixtures, with no scenario of its own:
 - **Failures inside HTTP 200.** An unknown data element and a refusal of the arguments come
   back as HTTP 200, with `apiResponse` saying so (X-15).
 - **Credentials.** The lists-of-values API and CDE Match refuse an anonymous caller (401,
-  recorded); `cadsr/credentialed` answers to their contracts for a server that holds
-  `NCI_SI_CADSR_CREDENTIAL`.
+  recorded). Until NCI issues credentials (owner's decision, 3 October 2026),
+  `cadsr/credentialed` answers for a server that holds `NCI_SI_CADSR_CREDENTIAL` with answers
+  crafted from the published contracts, recorded under `recorded/cadsr-contracts/`: their values
+  are the recorded content's, and a self-test holds each to its contract's definitions. Their
+  tests report PASS (fixture only); with credentials the recorder records the answers instead,
+  taking the credential from the operator's environment and writing it into no fixture.
 
 The register of request forms, generated from the manifest, is written for the service teams, in
 a view for the EVS team, one for the caDSR team and one for both:

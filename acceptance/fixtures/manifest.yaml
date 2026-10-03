@@ -40,6 +40,8 @@ surfaces:
   # (/NCIFormAPI.v2_0:NciFormApiRad) and the two match services.
   cadsr: https://cadsrapi.cancer.gov/rad
   cadsr-ftp: https://cadsr.nci.nih.gov/ftp/caDSR_Downloads
+  # The published contracts of the caDSR APIs, which the crafted credentialed answers follow.
+  cadsr-contracts: https://cadsrapi.cancer.gov/invoke
 
 # What each scenario provokes, in the order the register lists
 # them (register.py). Whether a scenario is recorded or crafted is read from its fixtures.
@@ -364,6 +366,10 @@ record:
       rationale: A question text 18 data elements have, as the platform matches it.
       path: /NCIAPI/1.0/api/DataElements/ReferenceDocument?documentText=Date of birth&documentType=Preferred Question Text&headerOnly=true
     - <<: *cadsr
+      fixture: recorded/cadsr/question-text-unmatched.json
+      rationale: A question text no data element has, which the platform answers with an empty list.
+      path: /NCIAPI/1.0/api/DataElements/ReferenceDocument?documentText=qqxyzzyqq&documentType=Preferred Question Text&headerOnly=true
+    - <<: *cadsr
       fixture: recorded/cadsr/data-element-2200604-html.json
       rationale: >-
         The same request without Accept: HTTP 200 with HTML. The fixture naming Accept
@@ -464,6 +470,22 @@ record:
         cadsr/with-registry-release crafts one.
       path: /NCIAPI/1.0/api/registry/releases
       status: 404
+    # The published contracts of the APIs that refuse an anonymous caller: the crafted
+    # answers of cadsr/credentialed follow them, and a self-test holds them to these schemas.
+    - fixture: recorded/cadsr-contracts/cde-match.json
+      operation: OP-M01
+      rationale: >-
+        The CDE Match 2.0 contract (swagger 2.0, path /cdeMatch, 7 definitions), read
+        anonymously; its body is one apiinput object.
+      surface: cadsr-contracts
+      path: /pub.swagger:getSwaggerJsonDoc?radName=NCIAPI.v2_0.cdeMatch.api:cdeMatch_rad
+    - fixture: recorded/cadsr-contracts/lists-of-values.json
+      operation: OP-C13
+      rationale: >-
+        The lists-of-values 1.0 contract (swagger 2.0, getContextNames among 5 paths, 9
+        definitions), read anonymously.
+      surface: cadsr-contracts
+      path: /pub.swagger:getSwaggerJsonDoc?radName=NCILovAPI.v1_0:LovRad
     # The bulk export, whose date is the registry's only content state (A3.8.2): the folder
     # listing and its README, never the 122 MB archive.
     - fixture: recorded/cadsr-ftp/cde-xml-listing.json

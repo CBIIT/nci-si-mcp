@@ -168,7 +168,7 @@ Every EVS request, whatever its path, gets a closed connection, then 503, then n
 
 ### `upstream/rate-limited`
 
-429 with `Retry-After` on the release query, then the answer. Crafted, 1 fixture, for E-7, P-1: back-off honoured and counted.
+429 with `Retry-After` on the release query, then the answer. Crafted, 2 fixtures, for E-7, P-1: back-off honoured and counted.
 
 ### `license/restricted`
 

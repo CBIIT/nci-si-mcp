@@ -1,3 +1,4 @@
 {
- "NCI_SI_MATCH_TIMEOUT_SECONDS": "1"
+ "NCI_SI_MATCH_TIMEOUT_SECONDS": "1",
+ "NCI_SI_CADSR_CREDENTIAL": "acceptance:credential"
 }

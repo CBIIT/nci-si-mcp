@@ -110,7 +110,6 @@ X-15:
 X-16:
   statement: After a 429 with Retry-After, the module waits at least that long before it asks again, and makes no request to that endpoint in between.
   basis: [A6.5, A5.3]
-  planned: "#54"
 X-17:
   statement: A page smaller than the result carries nextCursor; following it returns the next items, repeats none of the page before, and keeps the release the first page was pinned to. Presented with any argument that differs from the first call's as applied, release and limit among them, the cursor is an invalid request; an optional argument the first call left out may be given as its default.
   basis: [M6.1, M2.4]
@@ -127,7 +126,6 @@ X-20:
 X-21:
   statement: A caDSR content call without registryRelease names the registry form of the release with neither identifier nor date; with a registry release caDSR does not publish, it is release_not_available, never answered unpinned; with one caDSR publishes, the release is asked for and named in provenance with its date.
   basis: [A3.8, A3.4, provenance]
-  planned: "#54"
 
 # EVS tools.
 resolve_release-1:
@@ -246,19 +244,15 @@ list_terminologies-1:
 resolve_registry_release-1:
   statement: Without a registry release upstream, published is false, generatedAt is the export's date as the export folder gives it and sourceDistribution the file it dates, with no identifier; with one, published is true and the release is returned; ttlMs 0.
   basis: [resolve_registry_release, registry_release, A3.8, M2.2]
-  planned: "#54"
 get_data_element-1:
   statement: Each include returns its section, and without include the record's own fields alone; the data element's own version and statuses are surfaced; a version given returns that version.
   basis: [get_data_element, data_element, A3.8.3]
-  planned: "#54"
 get_data_element-2:
-  statement: questionText finds the data element whose preferred question text it is, and where several have it, the call is an invalid request naming their public ids; longName is capability_unavailable until the platform serves that lookup (OP-C02), never an empty result.
+  statement: questionText finds the data element whose preferred question text it is; where several have it, the call is an invalid request naming their public ids, and where none has it, not_found; longName is capability_unavailable until the platform serves that lookup (OP-C02), never an empty result.
   basis: [get_data_element, M1.2, A9.3]
-  planned: "#54"
 search_data_elements-1:
   statement: A lexical search the platform answers with its cap of 1,000 results reports truncation with bound upstream_cap, limit 1000, omitted at least 1 and exact false; totalKnown only where the platform counts; semantic and hybrid are capability_unavailable until the platform serves them (OP-C04).
   basis: [search_data_elements, truncation, A5.4, M1.2, M6.1]
-  planned: "#54"
 search_data_elements-2:
   statement: Filters by context, workflow status, registration status and value-domain type apply. The platform's search form names no parameter for them yet (OP-C03), a platform dependency (A9.3).
   basis: [search_data_elements, A9.3]
@@ -266,27 +260,21 @@ search_data_elements-2:
 match_data_elements-1:
   statement: Matches are scored and rule-attributed, at most matchLimit for an entity; modelVariant and similarityThreshold are refused as an invalid request, never ignored; more entities than the tool's maximum is an invalid request; a platform slower than the match timeout is a timeout error, never an empty result.
   basis: [match_data_elements, data_element_match, A5.2, A2.5]
-  planned: "#54"
 match_value_meanings-1:
   statement: "As match_data_elements, for value meanings and concepts: each match rule-attributed, scored where the platform scores (vmMatch does not), naming the item's type and the code system of its concept, with its crosswalk, none where the platform says NA."
   basis: [match_value_meanings, value_meaning_match, A5.2, A2.5]
-  planned: "#54"
 get_form-1:
   statement: A form retrieved by public id returns its modules and questions, and its status unchanged, a retired one included; a keyword is an invalid request stating that the platform needs an identifier.
   basis: [get_form, form, A8.1]
-  planned: "#54"
 get_permissible_value-1:
   statement: Retrieval by permissible value id is capability_unavailable until the platform serves it (OP-C10, A9.3), never not_found or empty; the id the tool takes is the one caDSR REST publishes.
   basis: [get_permissible_value, permissible_value, M1.2, A9.3]
-  planned: "#54"
 get_code_map-1:
   statement: The crosswalk is returned per data element, with the contexts and commons that use it and its coverage; a data element without value-level binding says so rather than returning no values; a source system other than CRDC is an invalid request.
   basis: [get_code_map, code_map]
-  planned: "#54"
 list_contexts-1:
   statement: Contexts come from the registry's context names, the name its identifier; list_classification_schemes is capability_unavailable until the platform lists schemes (OP-C13), and a data element's classification schemes come as objects with their nested items.
   basis: [list_contexts, list_classification_schemes, context, classification_scheme, A7.2]
-  planned: "#54"
 
 # Cross-domain tools.
 find_data_elements_for_concept-1:
