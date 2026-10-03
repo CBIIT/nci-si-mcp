@@ -9,9 +9,11 @@
    "Accept": "application/json",
    "Content-Type": "application/json"
   },
-  "body": {
-   "entity": "Patient Gender"
-  }
+  "body": [
+   {
+    "entity": "Patient Gender"
+   }
+  ]
  },
  "response": {
   "status": 401,
@@ -26,7 +28,7 @@
     "$errorType": "com.wm.app.b2b.server.AccessException",
     "$service": "NCIAPI.v2_0.cdeMatch.api:cdeMatch",
     "$user": "Default",
-    "$time": "Sat Oct 03 02:11:56 EDT 2026",
+    "$time": "Sat Oct 03 03:18:50 EDT 2026",
     "$details": null,
     "$errorMsgId": "ISS.0084.9004"
    }

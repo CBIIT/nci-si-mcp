@@ -12,7 +12,6 @@ import pytest
 import yaml
 
 from nci_si_acceptance.craft import (
-    CADSR_CAP,
     EXCLUSION_ROLES,
     LICENCE_KEY,
     Recorded,
@@ -30,6 +29,8 @@ MANIFEST = yaml.safe_load((FIXTURES / "manifest.yaml").read_text(encoding="utf-8
 MAX_NODES, MAX_DEPTH = 1000, 4
 PINNED, MISMATCHED_RELEASE = "26.09d", "26.08e"
 CONCEPT = "/api/v1/concept/ncit_26.09d"
+# caDSR's cap, stated here, not imported: "The maximum number of results per query is 1000."
+CONTRACT_CAP = 1000
 
 
 @pytest.fixture(scope="module")
@@ -242,6 +243,15 @@ def test_starvation_has_many_roles_few_associations_and_every_target_recorded():
 
 def test_unavailable_closes_then_fails_then_outlasts_the_servers_timeout():
     settings = CRAFTED["scenarios/upstream/unavailable/settings.json"]
+    fixtures = {f: doc for f, doc in scenario("upstream/unavailable").items() if "request" in doc}
+    covered = {(doc["request"]["surface"], doc["request"]["method"]) for doc in fixtures.values()}
+    assert covered == {
+        ("evs", "GET"),
+        ("evs-fhir", "GET"),
+        ("cadsr", "GET"),
+        ("cadsr", "POST"),
+        ("cadsr-ftp", "GET"),
+    }
     for file, doc in scenario("upstream/unavailable").items():
         if file.endswith("settings.json"):
             continue
@@ -319,7 +329,7 @@ def test_the_cadsr_credential_of_the_settings_is_what_opens_contexts_and_cde_mat
     credential = CRAFTED["scenarios/cadsr/credentialed/settings.json"]["NCI_SI_CADSR_CREDENTIAL"]
     basic = {"Authorization": "Basic " + base64.b64encode(credential.encode()).decode()}
     sent = {"Content-Type": "application/json"}
-    match = {"entity": "Patient Gender"}
+    match = [{"entity": "Patient Gender"}]
     with FixtureServer(load_fixtures(FIXTURES)) as running:
         running.activate("cadsr/credentialed")
         granted = [
@@ -346,11 +356,24 @@ def test_with_registry_release_publishes_one_and_echoes_it_where_the_api_answers
     assert pinned[1] == recorded | {"registryRelease": release}
 
 
+def test_every_crafted_cadsr_form_asks_for_json_as_the_contracts_prescribe():
+    forms = [
+        doc["request"]
+        for doc in CRAFTED.values()
+        if doc.get("request", {}).get("surface") == "cadsr" and doc["request"]["path"] != "*"
+    ]
+
+    assert forms
+    assert [
+        form["path"] for form in forms if form["headers"].get("Accept") != "application/json"
+    ] == []
+
+
 def test_over_cap_answers_the_contract_s_cap_of_distinct_elements_whatever_the_page_size():
     document = CRAFTED["crafted/OP-C03/search-over-cap.json"]
     elements = document["response"]["body"]["DataElements"]
 
-    assert len({element["publicId"] for element in elements}) == len(elements) == CADSR_CAP
+    assert len({element["publicId"] for element in elements}) == len(elements) == CONTRACT_CAP
     assert "pageSize" in document["request"]["ignored"]
 
 
@@ -361,6 +384,9 @@ def test_match_timeout_answers_as_recorded_but_later_than_the_setting():
         (FIXTURES / "recorded/cadsr/vm-match-male.json").read_text(encoding="utf-8")
     )
 
+    request = CRAFTED["scenarios/cadsr/match-timeout/vm-match.json"]["request"]
+
+    assert request == recorded["request"]
     assert answer["delay_seconds"] > int(settings["NCI_SI_MATCH_TIMEOUT_SECONDS"])
     assert {k: v for k, v in answer.items() if k != "delay_seconds"} == recorded["response"]
 

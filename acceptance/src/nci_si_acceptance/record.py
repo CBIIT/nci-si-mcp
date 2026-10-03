@@ -137,6 +137,14 @@ def plan(manifest: dict[str, Any]) -> list[Planned]:
 
 
 def _document(planned: Planned, status: int, body: Any, today: str) -> dict[str, Any]:
+    document = {"kind": "recorded", "recorded_on": today, "request": request_of(planned)}
+    document["response"] = {"status": status, "body": body}
+    return document
+
+
+def request_of(planned: Planned) -> dict[str, Any]:
+    """The request a planned recording's fixture holds, as the fixture server matches it."""
+
     request: dict[str, Any] = {
         "surface": planned.surface,
         "method": planned.method,
@@ -148,10 +156,7 @@ def _document(planned: Planned, status: int, body: Any, today: str) -> dict[str,
         "body": planned.body,
         "ignored": planned.ignored,
     }
-    request |= {key: value for key, value in optional.items() if value}
-    document = {"kind": "recorded", "recorded_on": today, "request": request}
-    document["response"] = {"status": status, "body": body}
-    return document
+    return request | {key: value for key, value in optional.items() if value}
 
 
 class Recorder:

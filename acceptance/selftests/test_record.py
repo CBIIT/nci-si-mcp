@@ -1,6 +1,7 @@
 """The recorder writes the fixture set the manifest describes, or nothing when it does not hold."""
 
 import json
+from unittest import mock
 
 import pytest
 import yaml
@@ -465,3 +466,15 @@ def test_the_live_fetch_sends_the_method_headers_and_body_it_is_given(tmp_path):
 
         assert answer == (200, {"matched": True})
         assert "Accept" not in running.log()[0]["headers"]
+
+
+def test_the_live_fetch_keeps_a_colon_in_a_path_as_it_is():
+    # caDSR's form API lives at a path with a colon, and answers 404 to it encoded (%3A).
+    path = "/NCIFormAPI.v2_0:NciFormApiRad/Form/5406471"
+    with (
+        mock.patch.object(record, "urlopen", side_effect=OSError("stopped")) as opened,
+        pytest.raises(OSError, match="stopped"),
+    ):
+        live_fetch({"cadsr": "https://cadsr.example/rad"})("cadsr", path, {})
+
+    assert opened.call_args.args[0].full_url == f"https://cadsr.example/rad{path}"

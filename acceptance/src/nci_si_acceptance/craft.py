@@ -525,6 +525,7 @@ def cadsr_with_registry_release(recorded: Recorded) -> Documents:
         "C-1: a published registry release, named in every answer and accepted on every "
         "content call"
     )
+    # generatedAt is the export's Last-Modified (recorded/cadsr-ftp/cde-xml-listing.json).
     releases = {
         "registryReleases": [
             {"identifier": REGISTRY_RELEASE, "generatedAt": "2026-07-02T02:19:40Z", "latest": True}

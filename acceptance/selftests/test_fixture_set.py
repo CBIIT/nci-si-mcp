@@ -7,7 +7,7 @@ import yaml
 
 from nci_si_acceptance.craft import craft
 from nci_si_acceptance.fixture_server import load_fixtures
-from nci_si_acceptance.record import FIXTURES, plan, stale
+from nci_si_acceptance.record import FIXTURES, plan, request_of, stale
 
 MANIFEST = yaml.safe_load((FIXTURES / "manifest.yaml").read_text(encoding="utf-8"))
 DOCUMENTS = {
@@ -29,6 +29,14 @@ def test_the_recorded_set_is_exactly_what_the_manifest_records():
 
     assert [each.file for each in planned if each.file not in DOCUMENTS] == []
     assert stale(FIXTURES, MANIFEST) == []
+    # Each recording holds the request its entry makes, headers and body included, and the
+    # status its entry expects.
+    assert [
+        each.file
+        for each in planned
+        if (DOCUMENTS[each.file]["request"], DOCUMENTS[each.file]["response"]["status"])
+        != (request_of(each), each.status)
+    ] == []
 
 
 CRAFTED = craft(FIXTURES)

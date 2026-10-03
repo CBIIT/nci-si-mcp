@@ -143,10 +143,7 @@ def test_the_specification_names_every_setting_the_suite_gives_a_server_and_when
     given = {*HARNESS_VARIABLES, *CREDENTIAL_VARIABLES, INDEX_CODES_VARIABLE, *scenarios}
 
     assert set(rows) == given
-    # Each scenario that sets one is named in its row, so that a server's team can read it.
-    assert [
-        (setting, name)
-        for setting, names in scenarios.items()
-        for name in names
-        if f"`{name}`" not in rows[setting]
-    ] == []
+    # A row names exactly the scenarios that set its setting, so that a server's team can read
+    # when each is set.
+    named = {setting: set(re.findall(r"`(\w+/[\w-]+)`", when)) for setting, when in rows.items()}
+    assert named == {setting: set(scenarios.get(setting, [])) for setting in rows}

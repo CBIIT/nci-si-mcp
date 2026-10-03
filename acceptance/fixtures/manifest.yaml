@@ -321,8 +321,8 @@ record:
       operation: OP-C01
       rationale: >-
         A data element, its latest version; its permissible values are in
-        ValueDomain.PermissibleValues, the only form of OP-C07 today. The inventory's form is
-        /DataElement?publicId=&version=&registryRelease=.
+        ValueDomain.PermissibleValues, the only form of OP-C07 today (its own path answers
+        404). The inventory's form is /DataElement?publicId=&version=&registryRelease=.
       surface: cadsr
       path: /NCIAPI/1.0/api/DataElement/2200604
       headers: {Accept: application/json}
@@ -336,6 +336,20 @@ record:
         An unknown public id: HTTP 200 with DataElement null and apiResponse type I, "No data
         returned for the input criteria" (X-15, not_found).
       path: /NCIAPI/1.0/api/DataElement/99999999
+    - <<: *cadsr
+      fixture: recorded/cadsr/data-element-refused.json
+      rationale: >-
+        A public id that is no number: HTTP 200 with DataElement null and apiResponse type E,
+        "Parameter 'publicId' must be a number." (X-15, invalid_request).
+      path: /NCIAPI/1.0/api/DataElement/notanumber
+    - <<: *cadsr
+      fixture: recorded/cadsr/permissible-values.json
+      operation: OP-C07
+      rationale: >-
+        The inventory's path for a data element's permissible values answers 404; they come
+        inside the data element.
+      path: /NCIAPI/1.0/api/DataElement/2200604/permissibleValues
+      status: 404
     - <<: *cadsr
       fixture: recorded/cadsr/data-element-2200604-html.json
       rationale: >-
@@ -362,10 +376,11 @@ record:
       headers: {}
     - <<: *cadsr
       fixture: recorded/cadsr/classification-3685569.json
-      operation: OP-C13
+      operation: C-11
       rationale: >-
-        The data elements of one classification scheme, header fields only; no list of
-        schemes exists. The scheme is named by classificationSchemePublicId (publicId
+        The data elements of one classification scheme, header fields only. OP-C13, the list
+        of schemes, has no REST form: schemes come only nested in a data element and as this
+        filter (C-11). The scheme is named by classificationSchemePublicId (publicId
         answers an empty list). 3685569 (Newborn Examination, NICHD) holds 40, 2200604
         among them; 2008601, another of 2200604's schemes, answered 4 MB in 149 s.
       path: /NCIAPI/1.0/api/DataElements/Classification?classificationSchemePublicId=3685569&classificationSchemeVersion=1&headerOnly=true
@@ -408,13 +423,16 @@ record:
       method: POST
       path: /NCIAPI.v2_0.cdeMatch.api:cdeMatch_rad/cdeMatch
       headers: {Accept: application/json, Content-Type: application/json}
-      body: {entity: Patient Gender}
+      # An array of entities, as the inventory says and the call of 10 September sent; the
+      # contract's schema names one object, which the API refuses alike (401).
+      body: [{entity: Patient Gender}]
       status: 401
     - <<: *cadsr
       fixture: recorded/cadsr/registry-releases.json
       operation: OP-C08
       rationale: >-
-        No registry release is published: the path the inventory names answers 404 (C-1).
+        No registry release is published: the path the inventory names (/registry/releases,
+        placed here under the data element API) answers 404 (C-1).
         cadsr/with-registry-release crafts one.
       path: /NCIAPI/1.0/api/registry/releases
       status: 404
@@ -423,8 +441,9 @@ record:
     - fixture: recorded/cadsr-ftp/cde-xml-listing.json
       operation: A3.8.2
       rationale: >-
-        The folder of the XML export, which dates releasedCDEsXML-OD.zip; its README says it
-        is updated daily, and the archive was last modified on 2 July 2026.
+        The folder of the XML export, which dates releasedCDEsXML-OD.zip 2026-07-01 22:19 in
+        the server's time (Last-Modified: Thu, 02 Jul 2026 02:19:40 GMT); its README says it is
+        updated daily. The inventory's timestamped xml_cde_YYYYMMDDHHMM.zip names are gone.
       surface: cadsr-ftp
       path: /CDE/XML/
       headers: {}

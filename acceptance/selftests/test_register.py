@@ -37,6 +37,7 @@ def test_each_team_sees_its_own_surfaces_and_the_combined_view_all():
     # The EVS release fallback is the EVS team's; caDSR's want of a release, the caDSR team's.
     assert "## Operations without a pinned form upstream" not in VIEWS["cadsr.md"]
     assert "## caDSR: no registry release" not in VIEWS["evs.md"]
+    assert all("## caDSR: no registry release" in VIEWS[view] for view in ("cadsr.md", "all.md"))
     assert all(
         entry["path"].split("?")[0] in VIEWS["all.md"] for entry in MANIFEST["record"]["requests"]
     )

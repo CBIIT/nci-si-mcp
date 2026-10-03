@@ -10,9 +10,11 @@
    "Content-Type": "application/json",
    "Authorization": "Basic YWNjZXB0YW5jZTpjcmVkZW50aWFs"
   },
-  "body": {
-   "entity": "Patient Gender"
-  }
+  "body": [
+   {
+    "entity": "Patient Gender"
+   }
+  ]
  },
  "response": {
   "status": 200,
