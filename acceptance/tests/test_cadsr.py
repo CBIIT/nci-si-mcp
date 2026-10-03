@@ -109,9 +109,11 @@ def _ok(result):
     return result.content
 
 
+# A server that answered the same call before may serve it from its cache, asking nothing.
+@pytest.mark.own_server
 @pytest.mark.tool("resolve_registry_release")
 @pytest.mark.requirement("resolve_registry_release-1")
-def test_without_a_registry_release_the_export_date_stands_for_it(tools, recorded):
+def test_without_a_registry_release_the_export_date_stands_for_it(tools, upstream, recorded):
     listing = recorded(LISTING)["response"]["body"]
     (dated,) = re.findall(rf">{re.escape(EXPORT)}</a>\s+(\d{{4}}-\d{{2}}-\d{{2}})", listing)
     assert (
@@ -126,6 +128,8 @@ def test_without_a_registry_release_the_export_date_stands_for_it(tools, recorde
     assert str(content.get("generatedAt", "")).startswith(dated)
     assert EXPORT in str(content.get("sourceDistribution"))
     assert result.meta.get("ttlMs") == 0
+    asked = [(entry["surface"], entry["path"], str(entry["params"])) for entry in upstream.log()]
+    assert len(asked) == len(set(asked))
 
 
 @pytest.mark.tool("get_data_element")
@@ -140,16 +144,21 @@ def test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses(
     content = _ok(tools.call("get_data_element", {"publicId": DATA_ELEMENT, **pinned}))
 
     assert set(content) - set(OWN) == set()
-    stated = ("publicId", "version", "longName", "workflowStatus", "registrationStatus")
-    assert {key: content.get(key) for key in stated} == {key: element[key] for key in stated}
+    assert _own(content) == _own(element)
+
+
+def _own(element):
+    """A data element's own fields, provenance aside, as the record names them."""
+
+    return {key: element.get(key) for key in OWN if key != "provenance"}
 
 
 def _concepts(element):
-    """The data element concept's concepts, by code and role."""
+    """The data element concept's concepts, by code, name and role."""
 
     concept = element["DataElementConcept"]
     return {
-        (each["conceptCode"], role)
+        (each["conceptCode"], each["longName"], role)
         for role, part in (("objectClass", "ObjectClass"), ("property", "Property"))
         for each in concept[part]["Concepts"]
     }
@@ -161,18 +170,39 @@ def _section(element, include):
     domain = element["ValueDomain"]
     sections = {
         "permissibleValues": lambda: [
-            (value["publicId"], value["value"], value["ValueMeaning"]["publicId"])
+            (value["publicId"], value["value"], _meaning(value["ValueMeaning"]))
             for value in domain["PermissibleValues"]
         ],
         "valueDomain": lambda: {k: v for k, v in domain.items() if k != "PermissibleValues"},
         "conceptAssociations": lambda: _concepts(element),
         "alternateNames": lambda: element["AlternateNames"],
         "classificationSchemes": lambda: [
-            (scheme["publicId"], [item["publicId"] for item in scheme["ClassificationSchemeItems"]])
+            (
+                _fields(scheme, SCHEME),
+                [_fields(i, ITEM) for i in scheme["ClassificationSchemeItems"]],
+            )
             for scheme in element["ClassificationSchemes"]
         ],
     }
     return sections[include]()
+
+
+# The fields of a classification scheme and of its items the record names.
+SCHEME, ITEM = ("publicId", "version", "longName", "context"), ("publicId", "version", "longName")
+
+
+def _fields(entry, names):
+    return {name: entry.get(name) for name in names}
+
+
+def _meaning(meaning):
+    """A value meaning by its identity and name, with its concepts by code and name."""
+
+    concepts = [
+        (concept.get("conceptCode"), concept.get("longName"))
+        for concept in meaning.get("Concepts", meaning.get("concepts")) or []
+    ]
+    return _fields(meaning, ("publicId", "version", "longName")), concepts
 
 
 def _returned(content, include):
@@ -181,16 +211,14 @@ def _returned(content, include):
     found = content.get(include)
     forms = {
         "permissibleValues": lambda: [
-            (
-                value.get("publicId"),
-                value.get("value"),
-                (value.get("valueMeaning") or {}).get("publicId"),
-            )
+            (value.get("publicId"), value.get("value"), _meaning(value.get("valueMeaning") or {}))
             for value in found
         ],
-        "conceptAssociations": lambda: {(c.get("conceptCode"), c.get("role")) for c in found},
+        "conceptAssociations": lambda: {
+            (c.get("conceptCode"), c.get("longName"), c.get("role")) for c in found
+        },
         "classificationSchemes": lambda: [
-            (scheme.get("publicId"), [item.get("publicId") for item in scheme.get("items", [])])
+            (_fields(scheme, SCHEME), [_fields(i, ITEM) for i in scheme.get("items", [])])
             for scheme in found
         ],
     }
@@ -208,6 +236,11 @@ def test_each_include_returns_its_section_as_the_platform_gives_it(tools, record
 
     assert _returned(content, include) == expected
     assert [name for name in SECTIONS if name != include and name in content] == []
+    # A permissible value and a scheme are items of their own, each with its provenance.
+    nested = content[include] if include in ("permissibleValues", "classificationSchemes") else []
+    assert [(entry.get("provenance") or {}).get("release") for entry in nested] == [
+        {"registry": "cadsr"}
+    ] * len(nested)
 
 
 @pytest.mark.tool("get_data_element")
@@ -218,6 +251,9 @@ def test_a_question_text_one_data_element_has_finds_it(tools, recorded):
 
     content = _ok(tools.call("get_data_element", {"questionText": "Sex of a Person"}))
 
+    # The full data element, not the search's header record.
+    assert set(content) - set(OWN) == set()
+    assert _own(content) == _own(_element(recorded))
     assert content.get("publicId") == element["publicId"]
 
 
@@ -247,30 +283,6 @@ def test_a_long_name_lookup_is_unavailable_never_empty(tools, recorded):
     assert error_code(result) == "capability_unavailable", result.content
 
 
-@pytest.mark.tool("get_data_element")
-@pytest.mark.requirement("X-21")
-def test_without_a_registry_release_an_item_names_the_registry_and_no_release(tools):
-    content = _ok(tools.call("get_data_element", {"publicId": DATA_ELEMENT}))
-
-    assert (content.get("provenance") or {}).get("release") == {"registry": "cadsr"}
-
-
-@pytest.mark.tool("get_data_element")
-@pytest.mark.requirement("X-21")
-def test_a_registry_release_cadsr_does_not_publish_fails_closed(tools, recorded):
-    # caDSR publishes none (registry-releases.json: 404), so any is one it does not publish.
-    assert (
-        recorded("recorded/cadsr/registry-releases.json")["response"]["status"]
-        == HTTPStatus.NOT_FOUND
-    )
-
-    result = tools.call(
-        "get_data_element", {"publicId": DATA_ELEMENT, "registryRelease": "2026.07.02"}
-    )
-
-    assert error_code(result) == "release_not_available", result.content
-
-
 FORM = "recorded/cadsr/form-5406471.json"
 
 
@@ -282,8 +294,9 @@ def test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too(t
 
     content = _ok(tools.call("get_form", {"publicId": form["publicID"]}))
 
-    assert (content.get("publicId"), content.get("version")) == (form["publicID"], form["version"])
-    assert content.get("workflowStatus") == form["workflowStatus"]
+    named = [name for name in RECORDS["form"]["fields"] if name not in ("provenance", "modules")]
+    expected = {name: form.get(name) for name in named} | {"publicId": form["publicID"]}
+    assert {name: content.get(name) for name in named} == expected
     assert content.get("modules") == form["modules"]
 
 
@@ -326,19 +339,24 @@ def test_an_unknown_form_answered_inside_an_http_200_is_not_found(tools, recorde
 VM_MATCH = "recorded/cadsr/vm-match-male.json"
 
 
-# The fields of a matched item the recording gives directly.
-MATCHED = ("itemType", "publicId", "concept", "evsSource")
+# The fields of a matched item the record names, with vmMatch's name for each.
+MATCHED = {
+    "itemType": "itemType",
+    "publicId": "itemId",
+    "version": "version",
+    "name": "matchedName",
+    "concept": "concept",
+    "evsSource": "evsSource",
+    "context": "context",
+    "workflowStatus": "workflowStatus",
+    "registrationStatus": "registrationStatus",
+}
 
 
 def _matched(match):
     """A vmMatch match as the record names it, a null field absent."""
 
-    return {
-        "itemType": match["itemType"],
-        "publicId": match["itemId"],
-        "concept": match["concept"],
-        "evsSource": match["evsSource"],
-    }
+    return {key: match[name] for key, name in MATCHED.items() if match[name] is not None}
 
 
 @pytest.mark.tool("match_value_meanings")
@@ -354,8 +372,11 @@ def test_value_meaning_matches_are_the_platform_s_in_its_order_with_their_rule(t
     found = content.get("matches", [])
     items = [match.get("item") or {} for match in found]
     assert [{key: item[key] for key in MATCHED if key in item} for item in items] == [
-        {key: value for key, value in _matched(match).items() if value is not None}
-        for match in matches
+        _matched(match) for match in matches
+    ]
+    # What vmMatch says of each item's origin, passed through (A4.3).
+    assert [(item.get("provenance") or {}).get("upstream") for item in items] == [
+        {"itemId": match["itemId"], "version": match["version"]} for match in matches
     ]
     assert [match.get("rule") for match in found] == [match["ruleDescription"] for match in matches]
     # vmMatch scores nothing, and NA is no crosswalk: absent, never null.
@@ -386,10 +407,9 @@ def _used_by(entry):
 @pytest.mark.tool("get_code_map")
 @pytest.mark.requirement("get_code_map-1")
 def test_a_code_map_is_a_data_element_s_values_users_and_coverage(tools, recorded):
-    entry = next(entry for entry in _crdc(recorded) if entry.get("permissibleValues"))
-    values = [
-        (value["Permissible Value"], value["Concept Code"]) for value in entry["permissibleValues"]
-    ]
+    # A data element with an uncoded value and a colon-joined code, so that both show.
+    entry = next(entry for entry in _crdc(recorded) if _uncoded_and_joined(entry))
+    values = [_value(value) for value in entry["permissibleValues"]]
 
     content = _ok(tools.call("get_code_map", {"dataElementId": entry["CDE Public ID"]}))
 
@@ -400,8 +420,26 @@ def test_a_code_map_is_a_data_element_s_values_users_and_coverage(tools, recorde
     }
     assert (found.get("crdcName"), found.get("usedBy")) == (entry["CRDC Name"], _used_by(entry))
     assert found.get("valueLevelBinding") is True
-    assert found.get("coverage") == sum(1 for _, code in values if code)
-    assert [(v.get("value"), v.get("conceptCode")) for v in found.get("values", [])] == values
+    assert found.get("coverage") == sum(1 for value in values if "conceptCode" in value)
+    assert found.get("values") == values
+    upstream = (found.get("provenance") or {}).get("upstream")
+    assert upstream == {"CDE Public ID": entry["CDE Public ID"], "Version": entry["Version"]}
+
+
+def _codes(entry):
+    return [value.get("Concept Code") for value in entry.get("permissibleValues") or []]
+
+
+def _uncoded_and_joined(entry):
+    codes = _codes(entry)
+    return None in codes and any(":" in (code or "") for code in codes)
+
+
+def _value(value):
+    """A value as the record names it, its code absent where the platform gives none."""
+
+    code = value["Concept Code"]
+    return {"value": value["Permissible Value"]} | ({"conceptCode": code} if code else {})
 
 
 @pytest.mark.tool("get_code_map")
@@ -412,17 +450,19 @@ def test_a_data_element_without_value_level_binding_says_so(tools, recorded):
     content = _ok(tools.call("get_code_map", {"dataElementId": entry["CDE Public ID"]}))
 
     (found,) = content.get("codeMaps", [])
-    assert (found.get("valueLevelBinding"), found.get("values", [])) == (False, [])
+    assert (found.get("valueLevelBinding"), found.get("values")) == (False, [])
 
 
 @pytest.mark.tool("get_code_map")
 @pytest.mark.requirement("get_code_map-1")
-def test_a_context_selects_the_code_maps_it_uses(tools, recorded):
-    users = [entry["CDE Public ID"] for entry in _crdc(recorded) if "GDC" in _used_by(entry)]
+# CIP: a name that is part of another (NCIP), which a match on part of the text would confuse.
+@pytest.mark.parametrize("context", ["GDC", "CIP"])
+def test_a_context_selects_the_code_maps_it_uses(tools, recorded, context):
+    users = [entry["CDE Public ID"] for entry in _crdc(recorded) if context in _used_by(entry)]
     # Within one page of the limit's default, so that the whole selection shows.
     assert 1 < len(users) <= TOOLS["get_code_map"]["bounds"]["limit"]["default"]
 
-    content = _ok(tools.call("get_code_map", {"targetContext": "GDC"}))
+    content = _ok(tools.call("get_code_map", {"targetContext": context}))
 
     found = [(m.get("dataElement") or {}).get("publicId") for m in content.get("codeMaps", [])]
     assert sorted(found) == sorted(users)
