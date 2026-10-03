@@ -82,14 +82,14 @@ def test_the_items_of_a_result_are_where_the_tool_says(tool, result, items):
         # An alternative of several parameters, in braces.
         (
             "get_concept_for_permissible_value",
-            {"permissibleValueId", "dataElementId", "value"},
+            {"permissibleValueId", "dataElementId", "value", "release"},
             set(),
         ),
         # A list of objects is one parameter; its fields are not.
         (
             "harmonize_data_dictionary",
             {"columns", "registryRelease", "filters"},
-            {"columns", "registryRelease"},
+            {"columns"},
         ),
         ("list_terminologies", set(), set()),
     ],

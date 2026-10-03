@@ -266,42 +266,85 @@ list_classification_schemes:
 find_data_elements_for_concept:
   group: cross-domain
   inputs: (conceptCode, terminology?, release?, expandDescendants?, includePermissibleValues?, limit?, cursor?)
-  returns: "{ dataElements[], truncation, nextCursor? }"
+  returns: "{ dataElements[data_element_use], permissibleValues[value_use]?, truncation, nextCursor? }"
+  items: ["dataElements[]", "permissibleValues[]"]
+  values: {terminology: [ncit]}
+  defaults: {expandDescendants: false, includePermissibleValues: false}
   bounds: {limit: {default: 100, maximum: 1000}}
-  summary: The data elements and permissible values that use a concept, optionally across its descendants.
+  summary: >-
+    The data elements that use a concept, as an object class, property or permissible value
+    concept, optionally across its descendants; with includePermissibleValues, also the
+    permissible values whose value meaning stands for it (the reverse lookup,
+    capability_unavailable on a surface that has none, OP-S04). A release given is checked
+    against the NCIt graph's: release_mismatch on a difference, release_not_available on a
+    surface that cannot name the NCIt release it used.
 get_concept_for_permissible_value:
   group: cross-domain
-  inputs: "(permissibleValueId | { dataElementId, value })"
-  returns: concept
-  summary: The concept a permissible value stands for.
+  inputs: "(permissibleValueId | { dataElementId, value }, release?)"
+  returns: "concept, with permissibleValue { dataElement { publicId, version }, value }"
+  items: ["."]
+  summary: >-
+    The concept a permissible value stands for, named by its data element and value, as the
+    concept record of the release pinned (or, with none given, the current monthly release),
+    its provenance naming both content states (release and registry). By permissibleValueId,
+    capability_unavailable until the platform retrieves a value by it (OP-C10).
 resolve_stored_value:
   group: cross-domain
   inputs: (conceptCode, commons, dataElementId?)
-  returns: "{ storedValues[], confidence, evidence }"
-  summary: The literal a data commons stores for a concept.
+  returns: "{ storedValues[stored_value], confidence, evidence }"
+  items: ["storedValues[]"]
+  summary: >-
+    The literal a data commons stores for a concept: for GDC through the EVS mapset
+    NCIt_Maps_To_GDC, for the other commons through the CRDC crosswalk. confidence is asserted
+    when a published source names the value and none otherwise; evidence names each source
+    consulted ({ mapset, version } or { crosswalk, dataElement }), whether the commons binds
+    values to concepts, and its coverage. A commons without a value-level binding (PDC, IDC)
+    returns no stored value with evidence saying so, never the preferred term as if stored.
 get_release_alignment:
   group: cross-domain
   inputs: (maxIntervalDays?)
-  returns: "{ datasets[{ name, version, date }], intervalDays, warning? }"
+  returns: "{ datasets[dataset_release], intervalDays, warning? }"
+  items: ["datasets[]"]
   defaults: {maxIntervalDays: 31}
   summary: >-
-    The release of every dataset a cross-domain answer touches; intervalDays, the largest interval
-    in days between any two of their dates; and a warning naming maxIntervalDays when intervalDays
-    exceeds it.
+    The release of every dataset a cross-domain answer rests on (NCIt, the Shared SI NCIt and
+    caDSR graphs, the caDSR export), each date ISO-8601; intervalDays, the largest interval in
+    days between any two of their dates; and a warning naming maxIntervalDays when
+    intervalDays exceeds it.
 
 ground_value:
   group: workflow
-  inputs: (conceptCode | text, commons?, release, registryRelease)
-  returns: "{ concept, dataElements[], permissibleValues[], storedValues[], provenance, truncation }"
-  summary: Concept to data element to permissible value to stored value, under one provenance envelope naming both content states.
+  inputs: (conceptCode | text, commons?, release, registryRelease?)
+  returns: "{ concept, dataElements[data_element_use], permissibleValues[value_use], storedValues[stored_value], provenance, truncation }"
+  items: ["concept", "dataElements[]", "permissibleValues[]", "storedValues[]"]
+  summary: >-
+    Concept to data element to permissible value to stored value, under one provenance
+    envelope naming both content states (release and registry). A text is resolved by lexical
+    search, the concept chosen named in the result. Without registryRelease the registry is
+    unpinned, as for every caDSR tool (X-21). Each hop's truncation is carried (perHop).
 expand_cohort:
   group: workflow
   inputs: (conceptCode, release, maxDepth?, includeNegative?, maxNodes?)
-  returns: "{ codes[], excluded[], edges[], truncation, provenance }"
-  summary: The codes a cohort query should use, exclusion assertions withheld and listed.
+  returns: "{ codes[], excluded[excluded_code], edges[edge], truncation, provenance }"
+  items: ["edges[]", "excluded[]"]
+  traversal: true
+  defaults: {includeNegative: false}
+  bounds:
+    maxDepth: {default: 2, maximum: 4}
+    maxNodes: {default: 200, maximum: 1000}
+  summary: >-
+    The codes a cohort query should use: the concept and its descendants to maxDepth. A code
+    an exclusion role asserts is withheld from codes and listed in excluded with its
+    assertion, unless includeNegative keeps it in codes (still listed). The result equals
+    composing get_concept_hierarchy and get_concept_neighborhood.
 harmonize_data_dictionary:
   group: workflow
-  inputs: "(columns[{ name, description?, sampleValues[]? }], registryRelease, filters?)"
-  returns: "{ columns[{ matches[{ dataElement, score, rule }], permissibleValueAlignment }], unmatched[], provenance }"
+  inputs: "(columns[{ name, description?, sampleValues[]? }], registryRelease?, filters?)"
+  returns: "{ columns[{ name, matches[data_element_match], permissibleValueAlignment[value_meaning_match] }], unmatched[], provenance }"
+  items: ["columns[].matches[].dataElement"]
   computed: true
-  summary: A data dictionary's columns matched to data elements, with permissible-value alignment.
+  lists: {columns: 10}
+  summary: >-
+    A data dictionary's columns matched to data elements, one match call per column, and each
+    column's sample values aligned to value meanings; unmatched lists the columns without a
+    match; every match names one registry state.

@@ -276,16 +276,16 @@ list_contexts-1:
 
 # Cross-domain tools.
 find_data_elements_for_concept-1:
-  statement: The batch form is used where available; descendant expansion is bounded and reported; where served from the Shared SI Service, both graphs' release identities are recorded; a masked upstream failure is an error.
-  basis: [find_data_elements_for_concept, A3.7, A5.4, M3.2]
+  statement: The data elements are those the surface named in provenance answers, with expandDescendants over the concept's descendants too, bounded and reported; with includePermissibleValues the permissible values whose value meaning stands for the concept are returned as well, capability_unavailable on a surface without the reverse lookup, never an empty list; where served from the Shared SI Service, both graphs' release identities are recorded; a release given is checked against the NCIt graph's, release_mismatch on a difference and release_not_available on a surface that cannot name it.
+  basis: [find_data_elements_for_concept, data_element_use, value_use, A3.4, A3.7, A5.4, M3.2]
   planned: "#55"
 get_concept_for_permissible_value-1:
-  statement: Resolves to a concept with both release identities.
-  basis: [get_concept_for_permissible_value]
+  statement: A data element and value resolve to the concept its value meaning stands for, as the concept record of the release pinned, its provenance naming both content states; by permissibleValueId it is capability_unavailable (OP-C10), never not_found or empty.
+  basis: [get_concept_for_permissible_value, provenance, A1.5, M1.2]
   planned: "#55"
 resolve_stored_value-1:
-  statement: A GDC value resolves through the mapset named in provenance; a node without a mapping reports no mapping with its coverage, never the preferred term as if stored.
-  basis: [resolve_stored_value]
+  statement: A GDC value resolves through the mapset named in provenance and evidence, confidence asserted; a commons without a value-level binding returns no stored value, evidence saying so with its coverage and confidence none, never the preferred term as if stored.
+  basis: [resolve_stored_value, stored_value]
   planned: "#55"
 get_release_alignment-1:
   statement: Every dataset's release and date are returned with intervalDays, the largest interval in days between any two of their dates, and a warning naming maxIntervalDays exactly when intervalDays exceeds it; ttlMs 0.
@@ -294,14 +294,14 @@ get_release_alignment-1:
 
 # Workflow tools.
 ground_value-1:
-  statement: One provenance envelope names both content states and fails closed if either cannot be named; each hop's truncation is carried through.
-  basis: [ground_value]
+  statement: One provenance envelope names both content states and fails closed if either cannot be named; without registryRelease the registry is unpinned, as X-21 reads it; a text resolves through lexical search to the concept the result names; each hop's truncation is carried through.
+  basis: [ground_value, provenance, truncation, A3.8]
   planned: "#55"
 expand_cohort-1:
   statement: Exclusion codes are withheld from codes and listed in excluded by default; the result equals composing the fine-grained tools.
   basis: [expand_cohort, A5.6]
   planned: "#55"
 harmonize_data_dictionary-1:
-  statement: One upstream match call per column, batched where the upstream allows; unmatched columns listed; one registry release across all matches.
-  basis: [harmonize_data_dictionary]
+  statement: One upstream match call per column, batched where the upstream allows; unmatched columns listed; one registry state across all matches; without registryRelease the registry is unpinned, as X-21 reads it.
+  basis: [harmonize_data_dictionary, data_element_match]
   planned: "#55"

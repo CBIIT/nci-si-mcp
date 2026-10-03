@@ -297,9 +297,9 @@ Ten tools, signatures in the specification (group `cadsr`). Specific behaviours:
 
 ### 6.2 Tools (`seam/tools.py`)
 
-- `find_data_elements_for_concept` → SPARQL join with optional subsumption expansion (bounded, per `Budget`); falls back to caDSR REST `/DataElements/Concept` with its timeout when SSIS is unavailable; both release identities recorded.
-- `get_concept_for_permissible_value` → reverse SPARQL lookup.
-- `resolve_stored_value` → GDC via `NCIt_Maps_To_GDC` (mapset and FHIR ConceptMap agree; the mapset is named in provenance); other commons via `getCRDCList`; `no mapping` with a coverage statement otherwise. Never returns the preferred term as a stored value.
+- `find_data_elements_for_concept` → SPARQL join with optional subsumption expansion (bounded, per `Budget`); falls back to caDSR REST `/DataElements/Concept` with its timeout when SSIS is unavailable, except where a release is given (REST cannot name the NCIt release: `release_not_available`) or `includePermissibleValues` asks for the reverse lookup (REST has none: `capability_unavailable`); both release identities recorded (`provenance.release` and `provenance.registry`).
+- `get_concept_for_permissible_value` → SPARQL lookup of a data element's value; the concept record of the pinned release from EVS; by `permissibleValueId` `capability_unavailable` (OP-C10).
+- `resolve_stored_value` → GDC via `NCIt_Maps_To_GDC` (mapset and FHIR ConceptMap agree; the mapset is named in provenance); other commons via `getCRDCList`; `confidence` asserted or none, `evidence` naming each source; no stored value with a coverage statement otherwise. Never returns the preferred term as a stored value.
 - `get_release_alignment(maxIntervalDays = 31)` → NCIt release, caDSR export date, SI graph dates, `intervalDays`, and a warning naming the threshold when `intervalDays` exceeds it; `ttlMs` 0.
 
 ---
@@ -308,7 +308,7 @@ Ten tools, signatures in the specification (group `cadsr`). Specific behaviours:
 
 Three composites (the specification's group `workflow`), implemented as orchestrations of the registry's own tools with one `Budget` and one `ReleaseContext` across the chain:
 
-- `ground_value` — fails closed if either content state cannot be named; truncation from each hop carried through.
+- `ground_value` — fails closed if either content state cannot be named; `registryRelease` optional (unpinned when absent); truncation from each hop carried through (`perHop`).
 - `expand_cohort` — `codes[]` and `excluded[]`; asserted equal to composing `get_concept_neighborhood` + `get_concepts`.
 - `harmonize_data_dictionary` — one match call per column, batched where the upstream allows; shared registry state.
 
