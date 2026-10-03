@@ -212,7 +212,7 @@ Every returned item carries one, beside its identifier and status, which are fie
 
 | Field | Content | Rule |
 |---|---|---|
-| `release` | The release in effect, in one of two forms; the terminology form `{ terminology, identifier, date }`: the terminology and the release the call pinned; the registry form `{ registry, identifier?, date? }`: registry is cadsr; identifier and date are the registry release's, present only where caDSR publishes one (A3.8.1). Content the API serves without one names neither: it is newer than the export (2200604 modified 2026-08-25, the export of 2026-07-01), so the export's date would mislabel it, and its retrievedAt and the item's own version identify it (A3.8.2) | A3.3 |
+| `release` | The release in effect, in one of two forms; the terminology form `{ terminology, identifier, date }`: the terminology and the release the call pinned; the registry form `{ registry, identifier?, date? }`: registry is cadsr; identifier and date are the registry release's, present only where caDSR publishes one (A3.8.1). Content the API serves without one names neither: it is newer than the export (2200604 modified 2026-08-25, the export of 2026-07-01), so the export's date would mislabel it; the item's own version and dateModified identify it, with retrievedAt beside them (A3.8.2) | A3.3 |
 | `source` | The surface that supplied the item: one of `evs_rest`, `evs_fhir`, `evs_index`, `cadsr_rest`, `ssis_facade`, `ssis_sparql` | A4.1 |
 | `servedBy` | Where the answer came from: one of `live`, `cache`, `index`, `fixture` | A4.1 |
 | `retrievedAt` | When it was retrieved, ISO-8601 | A4.1 |
@@ -381,6 +381,8 @@ A data element as a caDSR tool returns it: these fields, the platform's own, and
 | `context` | The context that owns it | A3.8.3 |
 | `workflowStatus` | The platform's workflow status, unchanged (RELEASED, RETIRED ARCHIVED, ...) | A3.8.3 |
 | `registrationStatus` | The platform's registration status, unchanged (Standard, Application, ...) | A3.8.3 |
+| `dateCreated` | When the platform created it, its own value unchanged | A3.8.2 |
+| `dateModified` | When the platform last modified it, its own value unchanged | A3.8.2 |
 | `provenance` | The provenance record, its release in the registry form | A4.4 |
 | `permissibleValues` | The permissible value records of its value domain, when include selects them (optional) | get_data_element |
 | `valueDomain` | The platform's value domain fields, unchanged but for its permissible values, which permissibleValues holds, when include selects it (optional) | get_data_element |
@@ -455,6 +457,8 @@ A form as get_form returns it, its status the platform's own (A8.1).
 | `context` | The context that owns it | A3.8.3 |
 | `workflowStatus` | The platform's workflow status, unchanged (RETIRED ARCHIVED is surfaced, not hidden) | A8.1 |
 | `registrationStatus` | The platform's registration status, unchanged | A3.8.3 |
+| `dateCreated` | When the platform created it, its own value unchanged | A3.8.2 |
+| `dateModified` | When the platform last modified it, its own value unchanged | A3.8.2 |
 | `provenance` | The provenance record, its release in the registry form | A4.4 |
 | `modules` | Its modules in the platform's order, each with its questions, the platform's entries unchanged; absent when includeModules is false (optional) | get_form |
 

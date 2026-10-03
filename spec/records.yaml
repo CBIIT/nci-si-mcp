@@ -17,8 +17,8 @@ provenance:
           { registry, identifier?, date? }: registry is cadsr; identifier and date are the
           registry release's, present only where caDSR publishes one (A3.8.1). Content the API
           serves without one names neither: it is newer than the export (2200604 modified
-          2026-08-25, the export of 2026-07-01), so the export's date would mislabel it, and its
-          retrievedAt and the item's own version identify it (A3.8.2)
+          2026-08-25, the export of 2026-07-01), so the export's date would mislabel it; the
+          item's own version and dateModified identify it, with retrievedAt beside them (A3.8.2)
       of: A3.3
     source:
       content: The surface that supplied the item
@@ -390,6 +390,12 @@ data_element:
     registrationStatus:
       content: The platform's registration status, unchanged (Standard, Application, ...)
       of: A3.8.3
+    dateCreated:
+      content: When the platform created it, its own value unchanged
+      of: A3.8.2
+    dateModified:
+      content: When the platform last modified it, its own value unchanged
+      of: A3.8.2
     provenance:
       content: The provenance record, its release in the registry form
       of: A4.4
@@ -538,6 +544,12 @@ form:
     registrationStatus:
       content: The platform's registration status, unchanged
       of: A3.8.3
+    dateCreated:
+      content: When the platform created it, its own value unchanged
+      of: A3.8.2
+    dateModified:
+      content: When the platform last modified it, its own value unchanged
+      of: A3.8.2
     provenance:
       content: The provenance record, its release in the registry form
       of: A4.4
