@@ -3,9 +3,12 @@
     pdm run acceptance-record [--fixtures DIR]
 
 Every request the manifest lists under `record.requests` is made live, without a licence
-key, and becomes a
-recorded fixture, dated today; each concept under `record.concepts` is recorded once,
-at the include it is listed under, in `recorded/evs/concepts/`. Each entry under
+key or credentials, and becomes a recorded fixture, dated today. A request is a GET with
+`Accept: application/json` unless its entry gives a `method`, a JSON `body` and the
+`headers` to send: those it gives are sent alone and are part of the fixture, so that the
+fixture server answers only a request that carries them. Each concept under
+`record.concepts` is recorded once, at the include it is listed under, in
+`recorded/evs/concepts/`. Each entry under
 `record.derived` becomes a crafted fixture for the request form a requirement prescribes
 where EVS does not answer it yet, carrying the answer of a recording.
 Nothing is written unless all of this holds:
@@ -46,7 +49,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
 
 type Params = dict[str, list[str]]
-type Fetch = Callable[[str, str, Params], tuple[int, Any]]
+type Fetch = Callable[..., tuple[int, Any]]
 
 FIXTURES = Path(__file__).parents[2] / "fixtures"
 RECORDED = "recorded"
@@ -85,6 +88,17 @@ class Planned:
     # Parameters the service is shown to ignore, with the evidence (fixture_server.py).
     ignored: dict[str, str] = field(default_factory=dict)
     status: int = HTTPStatus.OK
+    method: str = "GET"
+    # The headers sent and recorded; None sends Accept: application/json and records none.
+    headers: dict[str, str] | None = None
+    body: Any = None
+
+    def sent(self) -> dict[str, Any]:
+        """The method, headers and body to send, where the request is not a plain GET."""
+
+        if self.method == "GET" and self.headers is None and self.body is None:
+            return {}
+        return {"method": self.method, "headers": self.headers, "body": self.body}
 
 
 def _split(target: str) -> tuple[str, Params]:
@@ -103,6 +117,9 @@ def plan(manifest: dict[str, Any]) -> list[Planned]:
             *_split(entry["path"]),
             entry.get("ignored", {}),
             entry.get("status", HTTPStatus.OK),
+            entry.get("method", "GET"),
+            entry.get("headers"),
+            entry.get("body"),
         )
         for entry in record.get("requests", [])
     ]
@@ -120,11 +137,18 @@ def plan(manifest: dict[str, Any]) -> list[Planned]:
 
 
 def _document(planned: Planned, status: int, body: Any, today: str) -> dict[str, Any]:
-    request: dict[str, Any] = {"surface": planned.surface, "method": "GET", "path": planned.path}
-    if planned.params:
-        request["params"] = planned.params
-    if planned.ignored:
-        request["ignored"] = planned.ignored
+    request: dict[str, Any] = {
+        "surface": planned.surface,
+        "method": planned.method,
+        "path": planned.path,
+    }
+    optional = {
+        "params": planned.params,
+        "headers": planned.headers,
+        "body": planned.body,
+        "ignored": planned.ignored,
+    }
+    request |= {key: value for key, value in optional.items() if value}
     document = {"kind": "recorded", "recorded_on": today, "request": request}
     document["response"] = {"status": status, "body": body}
     return document
@@ -149,11 +173,14 @@ class Recorder:
             raise RecordingError(self.problems)
         return documents | derived
 
-    def _fetch(self, label: str, surface: str, path: str, params: Params) -> tuple[int, Any] | None:
-        """The live answer, or None with the failure among the problems."""
+    def _fetch(
+        self, label: str, surface: str, path: str, params: Params, **sent: Any
+    ) -> tuple[int, Any] | None:
+        """The live answer, or None with the failure among the problems; `sent` is the
+        method, headers and body of a request that is not a plain GET."""
 
         try:
-            return self.fetch(surface, path, params)
+            return self.fetch(surface, path, params, **sent)
         except OSError as error:
             self.problems.append(f"{label}: {error}")
             return None
@@ -177,7 +204,9 @@ class Recorder:
         return self.manifest["evs"]["release"].rpartition("_")[2]
 
     def _one(self, planned: Planned) -> dict[str, Any] | None:
-        answer = self._fetch(planned.file, planned.surface, planned.path, planned.params)
+        answer = self._fetch(
+            planned.file, planned.surface, planned.path, planned.params, **planned.sent()
+        )
         if answer is None:
             return None
         status, body = answer
@@ -344,10 +373,20 @@ def write(root: Path, documents: dict[str, dict[str, Any]]) -> None:
 def live_fetch(bases: dict[str, str]) -> Fetch:
     """A fetch from the live services at the manifest's base URLs."""
 
-    def fetch(surface: str, path: str, params: Params) -> tuple[int, Any]:
+    def fetch(
+        surface: str,
+        path: str,
+        params: Params,
+        method: str = "GET",
+        headers: dict[str, str] | None = None,
+        body: Any = None,
+    ) -> tuple[int, Any]:
         query = f"?{urlencode(params, doseq=True)}" if params else ""
-        url = bases[surface] + quote(path, safe="/$") + query
-        request = Request(url, headers={"Accept": "application/json"})  # noqa: S310 - https from the manifest
+        # caDSR's API paths hold colons (NCIFormAPI.v2_0:NciFormApiRad).
+        url = bases[surface] + quote(path, safe="/$:") + query
+        sent = {"Accept": "application/json"} if headers is None else dict(headers)
+        data = None if body is None else json.dumps(body).encode()
+        request = Request(url, data=data, headers=sent, method=method)  # noqa: S310 - https from the manifest
         try:
             with urlopen(request, timeout=TIMEOUT_SECONDS) as response:  # noqa: S310
                 return response.status, _parse(response.read())

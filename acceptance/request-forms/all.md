@@ -29,6 +29,16 @@ content state of its own, named in provenance and not presented as release-verif
 | OP-E25 | — | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C4817&fromRecord=0&pageSize=10` | 26.09d |
 | OP-F05 | `GET evs-fhir /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492&system-version=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl\|26.09d` | `GET evs-fhir /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492` | 26.09d |
 
+## caDSR: no registry release, and JSON only when asked for
+
+caDSR publishes no registry release (C-1, A3.8.1): every caDSR form below is served without one,
+the path the inventory names for it (OP-C08) answers 404, and the export's date is the registry's
+only content state (A3.8.2). The forms the inventory names with `registryRelease` are crafted in
+`cadsr/with-registry-release`. Every caDSR request names `Accept: application/json`, which the
+contracts prescribe (M3.2): without it the API answers HTTP 200 with HTML, recorded for two paths,
+and the fixture naming the most headers a request carries answers it. A refusal of the arguments
+and an unknown data element both come back as HTTP 200, with `apiResponse` saying so (X-15).
+
 ## Requests
 
 | Operation | Request | Expected | Made | Rationale | Fixture |
@@ -61,6 +71,21 @@ content state of its own, named in provenance and not presented as release-verif
 | OP-E25 | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C4817&fromRecord=0&pageSize=10` | 200 | recorded | GDC maps found by an NCIt code. | `recorded/evs/mapset-gdc-maps-code.json` |
 | OP-F05 | `GET evs-fhir /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492` | 200; ignores activeOnly, count, offset | recorded | The unpinned expansion: system-version answers 400 today; count, offset and activeOnly are ignored. | `recorded/evs-fhir/expand-c85492.json` |
 | OP-F05 | `GET evs-fhir /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492&system-version=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl\|26.09d` | 200; ignores activeOnly, count, offset | crafted for OP-F05: $expand pinned by system-version. EVS answered "Input parameter 'system-version' is not supported" (400) on 2 October 2026 | $expand pinned by system-version, as the operation inventory prescribes (OP-F05), carrying the unpinned answer. | `crafted/OP-F05/expand-c85492.json` |
+| OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElement/2200604` with `Accept: application/json` | 200 | recorded | A data element, its latest version; its permissible values are in ValueDomain.PermissibleValues, the only form of OP-C07 today. The inventory's form is /DataElement?publicId=&version=&registryRelease=. | `recorded/cadsr/data-element-2200604.json` |
+| OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElement/2200604?version=1` with `Accept: application/json` | 200 | recorded | The same data element at version 1, which carries other names. | `recorded/cadsr/data-element-2200604-version-1.json` |
+| OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElement/99999999` with `Accept: application/json` | 200 | recorded | An unknown public id: HTTP 200 with DataElement null and apiResponse type I, "No data returned for the input criteria" (X-15, not_found). | `recorded/cadsr/data-element-unknown.json` |
+| OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElement/2200604` with no header | 200 | recorded | The same request without Accept: HTTP 200 with HTML. The fixture naming Accept answers a request that carries it; this one any other (M3.2, X-15). | `recorded/cadsr/data-element-2200604-html.json` |
+| OP-C06 | `GET cadsr /NCIAPI/1.0/api/DataElements/getCRDCList` with `Accept: application/json` | 200 | recorded | The CRDC crosswalk, unparameterised. | `recorded/cadsr/crdc-list.json` |
+| OP-C09 | `GET cadsr /NCIAPI/1.0/api/DataElements/Concept?conceptCode=C17357&headerOnly=true` with `Accept: application/json` | 200 | recorded | Data elements by concept code, header fields only: the contract caps every query at 1,000 results, "To bring back all results, utilize the headerOnly field". | `recorded/cadsr/concept-c17357.json` |
+| OP-C09 | `GET cadsr /NCIAPI/1.0/api/DataElements/Concept?conceptCode=C17357&headerOnly=true` with no header | 200 | recorded | The same request without Accept, answered with HTML (M3.2, X-15). | `recorded/cadsr/concept-c17357-html.json` |
+| OP-C13 | `GET cadsr /NCIAPI/1.0/api/DataElements/Classification?classificationSchemePublicId=3685569&classificationSchemeVersion=1&headerOnly=true` with `Accept: application/json` | 200 | recorded | The data elements of one classification scheme, header fields only; no list of schemes exists. The scheme is named by classificationSchemePublicId (publicId answers an empty list). 3685569 (Newborn Examination, NICHD) holds 40, 2200604 among them; 2008601, another of 2200604's schemes, answered 4 MB in 149 s. | `recorded/cadsr/classification-3685569.json` |
+| OP-C13 | `GET cadsr /NCILovAPI/1.0/api/getContextNames` with `Accept: application/json` | 401 | recorded | The context list on the lists-of-values API refuses an anonymous caller (401); cadsr/credentialed holds the answer to the contract. | `recorded/cadsr/context-names-refused.json` |
+| OP-C12 | `GET cadsr /NCIFormAPI.v2_0:NciFormApiRad/Form/5406471` with `Accept: application/json` | 200 | recorded | A form by public id on the Form 2.0 API, the contract's own example; the Form 1.0 API refuses the same form anonymously (401). The form is RETIRED ARCHIVED (context ONC, retired 8 April 2025), so it serves get_form's status surfaced (A8.1); it is the only form, since no released one could be found anonymously: Form/query takes a public or protocol id only, and the caDSR portal (OneData) needs a login. | `recorded/cadsr/form-5406471.json` |
+| OP-M02 | `POST cadsr /vmMatch/v1/vmMatch` with `Accept: application/json`, `Content-Type: application/json`, `matchType: Restricted`, `function: match`, body `[{"name": "Male"}]` | 200 | recorded | Value meanings matched to one value, restricted; answered anonymously. | `recorded/cadsr/vm-match-male.json` |
+| OP-M01 | `POST cadsr /NCIAPI.v2_0.cdeMatch.api:cdeMatch_rad/cdeMatch` with `Accept: application/json`, `Content-Type: application/json`, body `{"entity": "Patient Gender"}` | 401 | recorded | CDE Match refuses an anonymous caller (401) since 3 October 2026 at the latest; it answered one on 10 September. cadsr/credentialed holds the answer to the contract. | `recorded/cadsr/cde-match-refused.json` |
+| OP-C08 | `GET cadsr /NCIAPI/1.0/api/registry/releases` with `Accept: application/json` | 404 | recorded | No registry release is published: the path the inventory names answers 404 (C-1). cadsr/with-registry-release crafts one. | `recorded/cadsr/registry-releases.json` |
+| A3.8.2 | `GET cadsr-ftp /CDE/XML/` with no header | 200 | recorded | The folder of the XML export, which dates releasedCDEsXML-OD.zip; its README says it is updated daily, and the archive was last modified on 2 July 2026. | `recorded/cadsr-ftp/cde-xml-listing.json` |
+| A3.8.2 | `GET cadsr-ftp /CDE/XML/README` with no header | 200 | recorded | What the export holds and how often it is updated. | `recorded/cadsr-ftp/cde-xml-readme.json` |
 
 ## Concept requests answered by rule
 
@@ -164,7 +189,7 @@ The role catalogue lacks R135, a code of the exclusion set. Crafted, 1 fixture, 
 
 ### `upstream/unavailable`
 
-Every EVS request, whatever its path, gets a closed connection, then 503, then no answer within the timeout. Crafted, 2 fixtures, for A2.5, A5.3: bounded retries, counted, then a structured error.
+Every EVS request, whatever its path, gets a closed connection, then 503, then no answer within the timeout. Crafted, 5 fixtures, for A2.5, A5.3: bounded retries, counted, then a structured error.
 
 ### `upstream/rate-limited`
 
@@ -177,3 +202,15 @@ Every EVS request, whatever its path, gets a closed connection, then 503, then n
 | Operation | Request | Expected | Rationale | Fixture |
 |---|---|---|---|---|
 | A7.5 | `GET evs /api/v1/concept/mdr_29_0/10000000?include=summary` | 403; every parameter ignored | EVS refuses mdr without the X-EVSRESTAPI-License-Key header (403). | `scenarios/license/restricted/refused.json` |
+
+### `cadsr/with-registry-release`
+
+caDSR publishes a registry release: /registry/releases names one, and a data element asked with it is answered with the release echoed (C-1). Crafted, 2 fixtures, for C-1: a published registry release, named in every answer and accepted on every content call.
+
+### `cadsr/credentialed`
+
+The server holds caDSR credentials: contexts and CDE Match answer to the contracts, where the API refuses an anonymous caller (401). Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract, which refuses an anonymous caller since 3 October 2026 at the latest (401, recorded/cadsr/cde-match-refused.json). Crafted, 1 fixture, for OP-C13, A9.3: the context list to the lists-of-values contract, which refuses an anonymous caller (401, recorded/cadsr/context-names-refused.json).
+
+### `cadsr/match-timeout`
+
+vmMatch answers later than the match timeout the scenario sets. Crafted, 1 fixture, for A2.5: matching slower than its declared timeout is a timeout error.

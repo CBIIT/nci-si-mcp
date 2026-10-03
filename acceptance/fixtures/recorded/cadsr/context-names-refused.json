@@ -1,0 +1,31 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "cadsr",
+  "method": "GET",
+  "path": "/NCILovAPI/1.0/api/getContextNames",
+  "headers": {
+   "Accept": "application/json"
+  }
+ },
+ "response": {
+  "status": 401,
+  "body": {
+   "$error": "[ISS.0084.9004] Access Denied",
+   "$errorType": "com.wm.app.b2b.server.AccessException",
+   "$errorDump": "com.wm.app.b2b.server.AccessException: [ISS.0084.9004] Access Denied\n\tat com.wm.app.b2b.server.ACLManager.process(ACLManager.java:274)\n\tat com.wm.app.b2b.server.invoke.DispatchProcessor.process(DispatchProcessor.java:33)\n\tat com.wm.app.b2b.server.AuditLogManager.process(AuditLogManager.java:401)\n\tat com.wm.app.b2b.server.invoke.InvokeManager.invoke(InvokeManager.java:634)\n\tat com.wm.app.b2b.server.invoke.InvokeManager.invoke(InvokeManager.java:435)\n\tat com.wm.app.b2b.server.invoke.InvokeManager.invoke(InvokeManager.java:393)\n\tat com.wm.app.b2b.server.HTTPInvokeHandler._process(HTTPInvokeHandler.java:301)\n\tat com.wm.app.b2b.server.RESTHandlerV2.process(RESTHandlerV2.java:146)\n\tat com.wm.app.b2b.server.RADHandler.process(RADHandler.java:81)\n\tat com.softwareag.is.rest.RestHandlerFactory.process(RestHandlerFactory.java:44)\n\tat com.wm.app.b2b.server.HTTPDispatch.handleRequest(HTTPDispatch.java:203)\n\tat com.wm.app.b2b.server.Dispatch.run(Dispatch.java:404)\n\tat com.wm.util.pool.PooledThread.run(PooledThread.java:127)\n\tat java.base/java.lang.Thread.run(Thread.java:829)\n",
+   "$errorInfo": {
+    "$errorDump": "com.wm.app.b2b.server.AccessException: [ISS.0084.9004] Access Denied\n\tat com.wm.app.b2b.server.ACLManager.process(ACLManager.java:274)\n\tat com.wm.app.b2b.server.invoke.DispatchProcessor.process(DispatchProcessor.java:33)\n\tat com.wm.app.b2b.server.AuditLogManager.process(AuditLogManager.java:401)\n\tat com.wm.app.b2b.server.invoke.InvokeManager.invoke(InvokeManager.java:634)\n\tat com.wm.app.b2b.server.invoke.InvokeManager.invoke(InvokeManager.java:435)\n\tat com.wm.app.b2b.server.invoke.InvokeManager.invoke(InvokeManager.java:393)\n\tat com.wm.app.b2b.server.HTTPInvokeHandler._process(HTTPInvokeHandler.java:301)\n\tat com.wm.app.b2b.server.RESTHandlerV2.process(RESTHandlerV2.java:146)\n\tat com.wm.app.b2b.server.RADHandler.process(RADHandler.java:81)\n\tat com.softwareag.is.rest.RestHandlerFactory.process(RestHandlerFactory.java:44)\n\tat com.wm.app.b2b.server.HTTPDispatch.handleRequest(HTTPDispatch.java:203)\n\tat com.wm.app.b2b.server.Dispatch.run(Dispatch.java:404)\n\tat com.wm.util.pool.PooledThread.run(PooledThread.java:127)\n\tat java.base/java.lang.Thread.run(Thread.java:829)\n",
+    "$error": "[ISS.0084.9004] Access Denied",
+    "$localizedError": "[ISS.0084.9004] Access Denied",
+    "$errorType": "com.wm.app.b2b.server.AccessException",
+    "$service": "NCILovAPI.v1_0.services:getContextNames",
+    "$user": "Default",
+    "$time": "Sat Oct 03 02:11:40 EDT 2026",
+    "$details": null,
+    "$errorMsgId": "ISS.0084.9004"
+   }
+  }
+ }
+}

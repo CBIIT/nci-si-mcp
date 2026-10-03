@@ -7,10 +7,11 @@ service does not produce on demand (and which requirement it stands in for).
 
 - `manifest.yaml`: the pinned release (NCIt `ncit_26.09d`), the concept rules, what each
   scenario provokes, and every request `pdm run acceptance-record` records, with its operation and rationale.
-- `recorded/<surface>/`: captured from the live service by `acceptance-record`; concepts in
-  `recorded/evs/concepts/`.
-- `crafted/<requirement>/`: the form a requirement prescribes where EVS does not answer it yet,
-  carrying a recording's answer (`acceptance-record`, the manifest's `derived`).
+- `recorded/<surface>/`: captured from the live service by `acceptance-record` (EVS and its FHIR
+  surface, the caDSR APIs and the caDSR export folder); concepts in `recorded/evs/concepts/`.
+- `crafted/<requirement>/`: the form a requirement prescribes where the service does not answer
+  it yet, carrying a recording's answer (`acceptance-record`, the manifest's `derived`), or
+  crafted outright (`acceptance-craft`: caDSR's capped keyword search).
 - `scenarios/<group>/<name>/`: the fixtures of one scenario, which answer before the ordinary
   ones while a test selects it (`@pytest.mark.scenario("<group>/<name>")`). A `settings.json`
   there holds the `NCI_SI_*` settings the scenario's server process starts with.
@@ -35,14 +36,30 @@ release; and no file under `recorded/`, and no derived fixture, is left over. Th
 the tests: a test that needs another upstream answer adds its request to the manifest and
 re-records. Re-pinning the release is a re-recording under change control. The fixture set is
 versioned on its own: a re-recording or a re-pinning makes a new fixture-set version,
-independent of the suite's.
+independent of the suite's. A full re-recording takes about three and a half minutes: caDSR
+is slow (a concept query 24 s, the CRDC list 29 s), and the set leaves out what is slower still
+(a classification scheme of 2008601's size took 149 s, a context query passed 180 s).
 
 ## Request forms
 
 The fixture set constrains the form of an upstream request only where the specification
 prescribes it: the release-pinned path, the batch endpoint in place of one request per concept,
-the one-row release query, `Accept: application/json`, and the licence key. Elsewhere it answers
-any form a fixture records.
+the one-row release query, `Accept: application/json`, the licence key and the caDSR
+credentials. Elsewhere it answers any form a fixture records.
+
+caDSR's own behaviour is in the ordinary fixtures, with no scenario of its own:
+
+- **JSON only when asked for.** Every caDSR request names `Accept: application/json`, which the
+  contracts prescribe (M3.2). Without it the API answers HTTP 200 with HTML: two paths are
+  recorded both ways, and the fixture naming the most headers a request carries answers it, so
+  a server that leaves the header out gets HTML, as from the live API.
+- **No registry release.** The path the inventory names for it answers 404 (C-1);
+  `cadsr/with-registry-release` crafts one.
+- **Failures inside HTTP 200.** An unknown data element and a refusal of the arguments come
+  back as HTTP 200, with `apiResponse` saying so (X-15).
+- **Credentials.** The lists-of-values API and CDE Match refuse an anonymous caller (401,
+  recorded); `cadsr/credentialed` answers to their contracts for a server that holds
+  `NCI_SI_CADSR_CREDENTIAL`.
 
 The register of request forms, generated from the manifest, is written for the service teams, in
 a view for the EVS team, one for the caDSR team and one for both:
@@ -76,5 +93,10 @@ the loader refuses one, since it would answer before a scenario's recording.
 The recorded content is as the EVS REST API (`api-evsrest.nci.nih.gov`) serves it publicly,
 without a licence key, retrieved on 2 October 2026 from NCI Thesaurus™ release 26.09d, which NCI
 releases under the Creative Commons Attribution 4.0 International licence
-([terms of use](https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/ThesaurusTermsofUse.htm)). The code of
+([terms of use](https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/ThesaurusTermsofUse.htm)). The caDSR
+content is as the caDSR APIs (`cadsrapi.cancer.gov`) and the export folder
+(`cadsr.nci.nih.gov/ftp/caDSR_Downloads`) serve it without credentials, retrieved on
+3 October 2026. Neither names terms of its own, so NCI's
+[reuse policy](https://www.cancer.gov/policies/copyright-reuse) applies: text in NCI products
+is free of copyright unless otherwise indicated, with NCI credited as the source. The code of
 the suite is under the Apache License 2.0.

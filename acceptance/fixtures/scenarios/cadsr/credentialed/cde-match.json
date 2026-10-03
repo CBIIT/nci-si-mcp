@@ -1,0 +1,48 @@
+{
+ "kind": "crafted",
+ "requirement": "OP-M01, A9.3: CDE Match to its 2.0 contract, which refuses an anonymous caller since 3 October 2026 at the latest (401, recorded/cadsr/cde-match-refused.json)",
+ "request": {
+  "surface": "cadsr",
+  "method": "POST",
+  "path": "/NCIAPI.v2_0.cdeMatch.api:cdeMatch_rad/cdeMatch",
+  "headers": {
+   "Accept": "application/json",
+   "Content-Type": "application/json",
+   "Authorization": "Basic YWNjZXB0YW5jZTpjcmVkZW50aWFs"
+  },
+  "body": {
+   "entity": "Patient Gender"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "apiResponse": {
+    "type": "S"
+   },
+   "matchResults": {
+    "sequenceNumber": 1,
+    "entity": "Patient Gender",
+    "numberOfMatches": 1,
+    "numberofPVs": 0,
+    "lastRunType": "Crafted",
+    "matches": [
+     {
+      "ruleDescription": "Crafted: long name",
+      "score": 1.0,
+      "publicId": "2200604",
+      "version": "4",
+      "numberOfPVsInSource": 0,
+      "numberOfPVsInCDE": 3,
+      "numberofPVsMatch": 0,
+      "matchedText": "Person Sex Text Type",
+      "longName": "Person Sex Text Type",
+      "context": "NCIP",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Standard"
+     }
+    ]
+   }
+  }
+ }
+}

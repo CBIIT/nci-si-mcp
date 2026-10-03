@@ -58,9 +58,9 @@ class Upstream:
     def __init__(self, answers):
         self.answers, self.calls = answers, []
 
-    def __call__(self, surface, path, params):
+    def __call__(self, surface, path, params, **sent):
         query = "&".join(f"{name}={','.join(values)}" for name, values in sorted(params.items()))
-        self.calls.append((surface, path, query))
+        self.calls.append((surface, path, query, *([sent] if sent else [])))
         return self.answers[surface, path, query]
 
 
@@ -96,6 +96,41 @@ def test_each_request_becomes_a_dated_recorded_fixture_as_served():
     concept = documents["recorded/evs/concepts/C1.json"]
     assert concept["request"]["params"] == {"include": ["full"]}
     assert concept["response"]["body"] == C1
+
+
+MATCH = {
+    "fixture": "recorded/cadsr/match.json",
+    "surface": "cadsr",
+    "method": "POST",
+    "path": "/vmMatch/v1/vmMatch",
+    "headers": {"Accept": "application/json", "matchType": "Restricted"},
+    "body": [{"name": "Male"}],
+}
+HTML = {"fixture": "recorded/cadsr/page.json", "surface": "cadsr", "path": "/page", "headers": {}}
+
+
+def test_a_request_s_method_headers_and_body_are_sent_as_given_and_kept_in_its_fixture():
+    section = manifest(requests=[MATCH, HTML])
+    answers = upstream(
+        {
+            ("cadsr", "/vmMatch/v1/vmMatch", ""): (200, {"matchResults": []}),
+            ("cadsr", "/page", ""): (200, "<BODY>"),
+        }
+    )
+
+    documents = Recorder(section, answers, "2026-10-03").record(plan(section))
+
+    sent = {call[1]: call[3] for call in answers.calls if call[0] == "cadsr"}
+    assert sent == {
+        "/vmMatch/v1/vmMatch": {k: MATCH[k] for k in ("method", "headers", "body")},
+        "/page": {"method": "GET", "headers": {}, "body": None},
+    }
+    assert documents["recorded/cadsr/match.json"]["request"] == {
+        key: MATCH[key] for key in ("surface", "method", "path", "headers", "body")
+    }
+    # No header named, none recorded: the fixture answers a request that names none.
+    assert "headers" not in documents["recorded/cadsr/page.json"]["request"]
+    assert documents["recorded/cadsr/page.json"]["response"]["body"] == "<BODY>"
 
 
 def test_a_derived_fixture_is_the_prescribed_request_with_a_recordings_answer():
@@ -400,3 +435,33 @@ def test_the_live_fetch_returns_status_and_parsed_body_errors_included(tmp_path)
             for name in entry["headers"]
             if name.lower() == "x-evsrestapi-license-key"
         ] == []
+
+
+def test_the_live_fetch_sends_the_method_headers_and_body_it_is_given(tmp_path):
+    fixture = {
+        "kind": "crafted",
+        "requirement": "self-test",
+        "request": {
+            "surface": "cadsr",
+            "method": "POST",
+            "path": "/vmMatch/v1/vmMatch",
+            "headers": {"matchType": "Restricted"},
+            "body": [{"name": "Male"}],
+        },
+        "response": {"status": 200, "body": {"matched": True}},
+    }
+    (tmp_path / "match.json").write_text(json.dumps(fixture), encoding="utf-8")
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        fetch = live_fetch({"cadsr": running.base_url("cadsr")})
+
+        answer = fetch(
+            "cadsr",
+            "/vmMatch/v1/vmMatch",
+            {},
+            "POST",
+            {"matchType": "Restricted"},
+            [{"name": "Male"}],
+        )
+
+        assert answer == (200, {"matched": True})
+        assert "Accept" not in running.log()[0]["headers"]

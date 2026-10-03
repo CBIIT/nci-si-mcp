@@ -44,6 +44,8 @@ MODE_VARIABLE = "NCI_SI_ACCEPTANCE_MODE"
 SERVER_VARIABLE = "NCI_SI_ACCEPTANCE_SERVER"
 PROFILE_VARIABLE = "NCI_SI_ACCEPTANCE_PROFILE"
 PREPARE_VARIABLE = "NCI_SI_ACCEPTANCE_PREPARE"
+# The file of concept codes the prepare command indexes, which the suite names to it.
+INDEX_CODES_VARIABLE = "NCI_SI_ACCEPTANCE_INDEX_CODES"
 DEFAULT_SERVER = "nci-si-mcp serve"
 # How long the harness waits for any one answer of the server, startup included.
 READ_TIMEOUT_SECONDS = 60

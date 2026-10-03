@@ -25,7 +25,12 @@ from typing import TYPE_CHECKING, Any
 import pytest
 import yaml
 
-from nci_si_acceptance.client import Target, open_session, server_environment
+from nci_si_acceptance.client import (
+    INDEX_CODES_VARIABLE,
+    Target,
+    open_session,
+    server_environment,
+)
 from nci_si_acceptance.fixture_server import MANIFEST, FixtureServer, load_fixtures
 from nci_si_acceptance.report import COLLECTOR, write_report
 from nci_si_acceptance.suite import (
@@ -48,7 +53,6 @@ pytest_plugins = ["nci_si_acceptance.report"]
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 TARGET = pytest.StashKey[Target]()
-INDEX_CODES_VARIABLE = "NCI_SI_ACCEPTANCE_INDEX_CODES"
 
 
 def pytest_configure(config: pytest.Config) -> None:

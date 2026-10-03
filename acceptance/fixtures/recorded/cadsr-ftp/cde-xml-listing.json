@@ -1,0 +1,13 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "cadsr-ftp",
+  "method": "GET",
+  "path": "/CDE/XML/"
+ },
+ "response": {
+  "status": 200,
+  "body": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">\n<html>\n <head>\n  <title>Index of /ftp/caDSR_Downloads/CDE/XML</title>\n <script src=\"https://assets.adobedtm.com/6a4249cd0a2c/785de09de161/launch-70d67a6a40a8.min.js\" async></script></head>\n <body>\n<h1>Index of /ftp/caDSR_Downloads/CDE/XML</h1>\n<pre>      <a href=\"?C=N;O=A\">Name</a>                      <a href=\"?C=M;O=A\">Last modified</a>      <a href=\"?C=S;O=A\">Size</a>  <a href=\"?C=D;O=A\">Description</a><hr>      <a href=\"/ftp/caDSR_Downloads/CDE/\">Parent Directory</a>                               -   \n      <a href=\"releasedCDEsXML-OD.zip\">releasedCDEsXML-OD.zip</a>    2026-07-01 22:19  116M  \n      <a href=\"README\">README</a>                    2024-01-22 12:01  395   \n<hr></pre>\n</body></html>\n"
+ }
+}

@@ -15,6 +15,7 @@ Synthetic concepts use codes from C99000000 up, which NCIt does not use.
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import sys
 from pathlib import Path
@@ -49,6 +50,24 @@ MISLEADING_POSITIVE_ROLES = frozenset({"R108", "R116"})
 FANOUT, CHAIN = 1001, 5
 STARVED_ROLES, STARVED_ASSOCIATIONS = 300, 2
 LICENCE_KEY = "acceptance-licence-key"
+# The surfaces and methods upstream/unavailable answers.
+OUTAGE = (
+    ("evs", "GET"),
+    ("evs-fhir", "GET"),
+    ("cadsr", "GET"),
+    ("cadsr", "POST"),
+    ("cadsr-ftp", "GET"),
+)
+# caDSR credentials as NCI_SI_CADSR_CREDENTIAL holds them, user:password, sent as HTTP Basic.
+CADSR_CREDENTIAL = "acceptance:credential"
+CADSR_AUTHORIZATION = "Basic " + base64.b64encode(CADSR_CREDENTIAL.encode()).decode()
+# The registry release cadsr/with-registry-release publishes; caDSR publishes none (C-1).
+REGISTRY_RELEASE = "2026.07.02"
+# The record cap of every caDSR list query, by contract: "The maximum number of results per
+# query is 1000."
+CADSR_CAP = 1000
+# Synthetic data elements of the over-cap answer use public ids from 99000000 up.
+SYNTHETIC_PUBLIC_ID = 99000000
 # The positions, in the recorded expansion, of the members valueset/inactive-members marks
 # inactive: early, so that a short page shows them.
 INACTIVE_MEMBERS = (1, 3)
@@ -358,7 +377,7 @@ def _hub(code: str, name: str, role_targets: list, associated: list) -> dict[str
 
 
 def upstream_unavailable(_: Recorded) -> Documents:
-    """Every request to either EVS surface, whatever its path: a refused connection (as near
+    """Every request to an EVS or caDSR surface, whatever its path: a refused connection (as near
     as a fixture can: closed), then 503, then no answer at all, the connection held past the
     server's timeout and closed, the last repeating."""
 
@@ -371,14 +390,16 @@ def upstream_unavailable(_: Recorded) -> Documents:
     documents: Documents = {
         "scenarios/upstream/unavailable/settings.json": {"NCI_SI_TIMEOUT_SECONDS": "1"}
     }
-    for surface in ("evs", "evs-fhir"):
+    # caDSR's match services are asked with POST.
+    for surface, method in OUTAGE:
         request = {
             "surface": surface,
-            "method": "GET",
+            "method": method,
             "path": EVERY_PATH,
             "ignored": {"*": "crafted: an unavailable service answers no request at all"},
         }
-        documents[f"scenarios/upstream/unavailable/{surface}.json"] = crafted(
+        name = surface if method == "GET" else f"{surface}-{method.lower()}"
+        documents[f"scenarios/upstream/unavailable/{name}.json"] = crafted(
             requirement, request, responses=responses
         )
     return documents
@@ -488,6 +509,166 @@ def license_restricted(_: Recorded) -> Documents:
     }
 
 
+def _cadsr_json(path: str, **request: Any) -> dict[str, Any]:
+    """A caDSR request as the contracts prescribe it: JSON asked for explicitly (M3.2)."""
+
+    headers = {"Accept": "application/json"} | request.pop("headers", {})
+    return {"surface": "cadsr", "method": "GET", "path": path, "headers": headers} | request
+
+
+def cadsr_with_registry_release(recorded: Recorded) -> Documents:
+    """A registry release published at the path the inventory names (OP-C08), and a data
+    element asked with it in the inventory's form (OP-C01), the release echoed in the answer.
+    The ordinary layer holds the API as it is: that path answers 404."""
+
+    requirement = (
+        "C-1: a published registry release, named in every answer and accepted on every "
+        "content call"
+    )
+    releases = {
+        "registryReleases": [
+            {"identifier": REGISTRY_RELEASE, "generatedAt": "2026-07-02T02:19:40Z", "latest": True}
+        ]
+    }
+    element = recorded("recorded/cadsr/data-element-2200604.json")["response"]
+    pinned = {"publicId": ["2200604"], "registryRelease": [REGISTRY_RELEASE]}
+    scenario = "scenarios/cadsr/with-registry-release"
+    return {
+        f"{scenario}/registry-releases.json": crafted(
+            requirement,
+            _cadsr_json("/NCIAPI/1.0/api/registry/releases"),
+            response={"status": 200, "body": releases},
+        ),
+        f"{scenario}/data-element-2200604.json": crafted(
+            requirement,
+            _cadsr_json("/NCIAPI/1.0/api/DataElement", params=pinned),
+            response=element | {"body": element["body"] | {"registryRelease": REGISTRY_RELEASE}},
+        ),
+    }
+
+
+def _contexts(recorded: Recorded) -> list[str]:
+    """The context names the recorded data elements carry, at any depth."""
+
+    def names(value: Any) -> set[str]:
+        if isinstance(value, list):
+            return set().union(*map(names, value))
+        if not isinstance(value, dict):
+            return set()
+        own = {value["context"]} if isinstance(value.get("context"), str) else set()
+        return own.union(*map(names, value.values()))
+
+    files = ("data-element-2200604.json", "classification-3685569.json")
+    return sorted(set().union(*(names(recorded(f"recorded/cadsr/{f}")) for f in files)))
+
+
+def _cde_match(recorded: Recorded) -> dict[str, Any]:
+    """CDE Match's answer, to its 2.0 contract, matching 2200604 to "Patient Gender"."""
+
+    element = recorded("recorded/cadsr/data-element-2200604.json")["response"]["body"]
+    element = element["DataElement"]
+    values = element["ValueDomain"]["PermissibleValues"]
+    match = {
+        "ruleDescription": "Crafted: long name",
+        "score": 1.0,
+        "publicId": element["publicId"],
+        "version": element["version"],
+        "numberOfPVsInSource": 0,
+        "numberOfPVsInCDE": len(values),
+        "numberofPVsMatch": 0,
+        "matchedText": element["longName"],
+        "longName": element["longName"],
+        "context": element["context"],
+        "workflowStatus": element["workflowStatus"],
+        "registrationStatus": element["registrationStatus"],
+    }
+    results = {
+        "sequenceNumber": 1,
+        "entity": "Patient Gender",
+        "numberOfMatches": 1,
+        "numberofPVs": 0,
+        "lastRunType": "Crafted",
+        "matches": [match],
+    }
+    return {"apiResponse": {"type": "S"}, "matchResults": results}
+
+
+def cadsr_credentialed(recorded: Recorded) -> Documents:
+    """With caDSR credentials from configuration, the context list and CDE Match answer to
+    their contracts; without them, the API's refusals (recorded, 401) answer. Invented
+    content, as no credentials are available to record with: the context names are those
+    the recorded data elements carry, the match is 2200604."""
+
+    authorized = {"Authorization": CADSR_AUTHORIZATION}
+    contexts = {"apiResponse": {"type": "S"}, "contextNames": _contexts(recorded)}
+    refused = recorded("recorded/cadsr/cde-match-refused.json")["request"]
+    match = refused | {"headers": refused["headers"] | authorized}
+    scenario = "scenarios/cadsr/credentialed"
+    return {
+        f"{scenario}/settings.json": {"NCI_SI_CADSR_CREDENTIAL": CADSR_CREDENTIAL},
+        f"{scenario}/context-names.json": crafted(
+            "OP-C13, A9.3: the context list to the lists-of-values contract, which refuses "
+            "an anonymous caller (401, recorded/cadsr/context-names-refused.json)",
+            _cadsr_json("/NCILovAPI/1.0/api/getContextNames", headers=authorized),
+            response={"status": 200, "body": contexts},
+        ),
+        f"{scenario}/cde-match.json": crafted(
+            "OP-M01, A9.3: CDE Match to its 2.0 contract, which refuses an anonymous caller "
+            "since 3 October 2026 at the latest (401, recorded/cadsr/cde-match-refused.json)",
+            match,
+            response={"status": 200, "body": _cde_match(recorded)},
+        ),
+    }
+
+
+def cadsr_match_timeout(recorded: Recorded) -> Documents:
+    """vmMatch answers, but later than the match timeout the scenario sets: the server
+    reports a timeout, never an empty match (the caDSR SOW's declared timeout)."""
+
+    source = recorded("recorded/cadsr/vm-match-male.json")
+    scenario = "scenarios/cadsr/match-timeout"
+    return {
+        f"{scenario}/settings.json": {"NCI_SI_MATCH_TIMEOUT_SECONDS": "1"},
+        f"{scenario}/vm-match.json": crafted(
+            "A2.5: matching slower than its declared timeout is a timeout error",
+            source["request"],
+            response=source["response"] | {"delay_seconds": 3},
+        ),
+    }
+
+
+def cadsr_over_cap(_: Recorded) -> Documents:
+    """A keyword search, in the inventory's form (OP-C03), answered with as many data
+    elements as the contract's cap allows and no sign that more exist: the server reports
+    the result truncated at the cap (C-3). Synthetic content, since no keyword search exists
+    today and a capped answer of real elements runs to megabytes."""
+
+    elements = [
+        {
+            "publicId": str(SYNTHETIC_PUBLIC_ID + number),
+            "version": "1",
+            "longName": f"Synthetic data element {number}",
+            "context": "TEST",
+            "workflowStatus": "RELEASED",
+            "registrationStatus": "Standard",
+        }
+        for number in range(CADSR_CAP)
+    ]
+    request = _cadsr_json(
+        "/NCIAPI/1.0/api/DataElement/search",
+        params={"keyword": ["patient"]},
+        ignored={"pageSize": "crafted: the cap answers 1,000 whatever page size is asked"},
+    )
+    body = {"status": None, "message": None, "numRecords": None, "DataElements": elements}
+    return {
+        "crafted/OP-C03/search-over-cap.json": crafted(
+            'C-3: "The maximum number of results per query is 1000", with no pagination',
+            request,
+            response={"status": 200, "body": body},
+        )
+    }
+
+
 SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     release_mismatch,
     release_two_latest,
@@ -501,6 +682,10 @@ SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     upstream_unavailable,
     upstream_rate_limited,
     license_restricted,
+    cadsr_with_registry_release,
+    cadsr_credentialed,
+    cadsr_match_timeout,
+    cadsr_over_cap,
 )
 
 

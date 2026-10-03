@@ -1,0 +1,27 @@
+{
+ "kind": "crafted",
+ "requirement": "A2.5, A5.3: bounded retries, counted, then a structured error",
+ "request": {
+  "surface": "cadsr",
+  "method": "GET",
+  "path": "*",
+  "ignored": {
+   "*": "crafted: an unavailable service answers no request at all"
+  }
+ },
+ "responses": [
+  {
+   "fault": "close"
+  },
+  {
+   "status": 503,
+   "body": {
+    "message": "Service Unavailable"
+   }
+  },
+  {
+   "fault": "close",
+   "delay_seconds": 3
+  }
+ ]
+}

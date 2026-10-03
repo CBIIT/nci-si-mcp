@@ -338,6 +338,8 @@ Settings after the change. `NCI_SI_EVS_BASE_URL`, `NCI_SI_TIMEOUT_SECONDS`, `NCI
 | `NCI_SI_DATA_DIR` | `.nci-si-mcp/` | |
 | `NCI_SI_TIMEOUT_SECONDS`, `NCI_SI_MATCH_TIMEOUT_SECONDS` | 30, 45 | |
 
+The settings the acceptance suite gives a server under test, and their formats, are specified in the specification's §4 (`spec/acceptance.md`): `NCI_SI_CADSR_CREDENTIAL` is `user:password`, sent as HTTP Basic.
+
 ---
 
 ## 9. Acceptance suite (`acceptance/`)
