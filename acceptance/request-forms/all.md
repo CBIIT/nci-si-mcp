@@ -40,6 +40,10 @@ contracts prescribe (M3.2): without it the API answers HTTP 200 with HTML, recor
 and the fixture naming the most headers a request carries answers it. A refusal of the arguments
 and an unknown data element both come back as HTTP 200, with `apiResponse` saying so (X-15).
 
+harmonize_data_dictionary's form is prescribed: each column goes to CDE Match as one entity, its
+name and its description as `userTip`, and its sample values go to vmMatch only. CDE Match is
+matched on its whole body, so a form left to each server would leave its answers unanswerable.
+
 ## Shared SI: graph identities, and the query text
 
 The Shared SI Service names no release (S-1, S-2): the NCIt and caDSR graphs each carry an
@@ -71,6 +75,7 @@ missing argument with HTTP 200 (X-15).
 | OP-E08 | `GET evs /api/v1/concept/go_2026-07-26/search?term=obsolete&type=contains&include=minimal,highlights&fromRecord=0&pageSize=10` | 200 | recorded | A lexical search of GO, whose listing names a retired status ("true") that is no concept status: searched by default, it is answered; retired only is refused (search_concepts-7). | `recorded/evs/search-go-obsolete.json` |
 | OP-E08 | `GET evs /api/v1/concept/ncit_26.09d/search?term=qqxyzzyqq&type=contains&include=minimal,highlights&fromRecord=0&pageSize=10` | 200 | recorded | A search matching nothing: empty is not an error. | `recorded/evs/search-no-match.json` |
 | OP-E13 | `GET evs /api/v1/concept/ncit_26.09d/C4817/pathsToRoot?include=minimal` | 200 | recorded | The paths from the concept to the root of the hierarchy. | `recorded/evs/paths-to-root.json` |
+| OP-E12 | `GET evs /api/v1/concept/ncit_26.09d/C4817/descendants?maxLevel=2` | 200 | recorded | The descendants of C4817 to two levels (27), each with its level: the route a cohort or hierarchy to depth 2 may take in place of a children walk (expand_cohort's default maxDepth). | `recorded/evs/descendants-c4817-level-2.json` |
 | OP-E21 | `GET evs /api/v1/history/ncit_26.09d/C4817/replacements` | 200 | recorded | An active code's replacements, one code. | `recorded/evs/replacement-active.json` |
 | OP-E21 | `GET evs /api/v1/history/ncit_26.09d/C13111/replacements` | 200 | recorded | A retired code the platform names no replacement for: action retire, no replacementCode. | `recorded/evs/replacement-retired.json` |
 | OP-E21 | `GET evs /api/v1/history/ncit_26.09d/replacements?list=C4817` | 200 | recorded | The ?list= batch form, which fails the whole batch on one unknown code. | `recorded/evs/replacements-active.json` |
@@ -124,6 +129,10 @@ missing argument with HTTP 200 (X-15).
 | OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The permissible values whose value meaning stands for Male (C20197), each with its data element and concept: the reverse lookup no façade operation offers. | `recorded/ssis-sparql/values-c20197.json` |
 | OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The permissible values that stand for Gender (C17357): find_data_elements_for_concept with includePermissibleValues. | `recorded/ssis-sparql/values-c17357.json` |
 | OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The same over C17357 and its descendants, each value naming its concept (A5.4). | `recorded/ssis-sparql/values-c17357-descendants.json` |
+| OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The data elements that use Ewing Sarcoma (C4817): ground_value's data element hop. | `recorded/ssis-sparql/data-elements-c4817.json` |
+| OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The permissible values that stand for Ewing Sarcoma (C4817): ground_value's value hop. | `recorded/ssis-sparql/values-c4817.json` |
+| OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The data elements that use Disease or Disorder (C2991), 1,001 rows: ground_value's data element hop reaches its bound. | `recorded/ssis-sparql/data-elements-c2991.json` |
+| OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The permissible values that stand for Disease or Disorder (C2991), 461 rows: ground_value's value hop, complete while the data element hop is cut. | `recorded/ssis-sparql/values-c2991.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 403 | recorded | The inspection layer's refusal of a query it does not pass: HTTP 403 with an HTML body. ssis/query-rejected serves it to every query. | `recorded/ssis-sparql/query-refused.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, `Content-Type: application/sparql-query`, body as written (below) | 403 | recorded | The identity query as a direct POST (application/sparql-query, SPARQL 1.1 protocol): refused with HTTP 403 and an HTML body, so a server that asks this way gets no answer. | `recorded/ssis-sparql/graph-identities-direct.json` |
 
@@ -369,6 +378,114 @@ ORDER BY ?id ?version ?value ?concept
 LIMIT 1001
 ```
 
+### `recorded/ssis-sparql/data-elements-c4817.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT ?id ?version (MIN(?label) AS ?name)
+WHERE {
+  VALUES ?concept { ncit:C4817 }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+    ?node ?role ?concept .
+    { VALUES ?part { mdr:Object_Class mdr:Property } ?element ?part ?node . }
+    UNION
+    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }
+    ?element cadsr:publicId ?id ;
+      mdr:version ?version ;
+      rdfs:label ?label .
+  }
+}
+GROUP BY ?id ?version
+ORDER BY ?id ?version
+LIMIT 1001
+```
+
+### `recorded/ssis-sparql/values-c4817.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT DISTINCT ?id ?version ?value ?concept
+WHERE {
+  VALUES ?concept { ncit:C4817 }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+    ?node ?role ?concept .
+    ?pv cadsr:has_concept ?node ;
+      mdr:value ?value .
+    ?element mdr:permitted_value ?pv ;
+      cadsr:publicId ?id ;
+      mdr:version ?version .
+  }
+}
+ORDER BY ?id ?version ?value ?concept
+LIMIT 1001
+```
+
+### `recorded/ssis-sparql/data-elements-c2991.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT ?id ?version (MIN(?label) AS ?name)
+WHERE {
+  VALUES ?concept { ncit:C2991 }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+    ?node ?role ?concept .
+    { VALUES ?part { mdr:Object_Class mdr:Property } ?element ?part ?node . }
+    UNION
+    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }
+    ?element cadsr:publicId ?id ;
+      mdr:version ?version ;
+      rdfs:label ?label .
+  }
+}
+GROUP BY ?id ?version
+ORDER BY ?id ?version
+LIMIT 1001
+```
+
+### `recorded/ssis-sparql/values-c2991.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT DISTINCT ?id ?version ?value ?concept
+WHERE {
+  VALUES ?concept { ncit:C2991 }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+    ?node ?role ?concept .
+    ?pv cadsr:has_concept ?node ;
+      mdr:value ?value .
+    ?element mdr:permitted_value ?pv ;
+      cadsr:publicId ?id ;
+      mdr:version ?version .
+  }
+}
+ORDER BY ?id ?version ?value ?concept
+LIMIT 1001
+```
+
 ### `recorded/ssis-sparql/query-refused.json`: `query`
 
 ```sparql
@@ -494,7 +611,7 @@ One root has 1,001 children, and a chain runs deeper than depth 4 from its first
 
 ### `traversal/exclusions`
 
-Exclusion roles are named like positive ones, and two the other way. Crafted, 2 fixtures, for A5.6, A5.7, E-4: polarity by relationship code, not by name.
+Exclusion roles are named like positive ones, and two the other way. Crafted, 2 fixtures, for A5.6, A5.7, E-4: polarity by relationship code, not by name; and expand_cohort-1: an R135 role from C4817 to its first child, invented to show a cohort withholding a code, since C4817's real exclusion roles point outside its subtree.
 
 ### `traversal/starvation`
 
@@ -524,6 +641,18 @@ Every upstream request, whatever its surface and path, gets a closed connection,
 |---|---|---|---|---|
 | A7.5 | `GET evs /api/v1/concept/mdr_29_0/10000000?include=summary` | 403; every parameter ignored | EVS refuses mdr without the X-EVSRESTAPI-License-Key header (403). | `scenarios/license/restricted/refused.json` |
 
+### `release/graph-behind`
+
+The Shared SI Service's NCIt graph names another release; EVS serves the one pinned. Crafted, 1 fixture, for A3.4: the content served names another release than the one requested.
+
+### `release/concept-behind`
+
+EVS serves C4817 of another release; the NCIt graph names the one pinned. Crafted, 1 fixture, for A3.4: the content served names another release than the one requested.
+
+### `search/first-not-named`
+
+The lexical search for "ewing sarcoma" with Disease or Disorder (C2991) put first, an invented order. Crafted, 1 fixture, for ground_value-3: a search whose first result is not the concept named like the text.
+
 ### `license/attributed`
 
 The invented licensed content of license/restricted, each concept carrying the terminology's licence text as EVS is asked to send it (#42). Crafted, 8 fixtures, for A7.3, X-19: the licence text given with the content, in `licenseText` on each concept, as asked of EVS (#42).
@@ -534,7 +663,7 @@ caDSR publishes a registry release: /registry/releases names one, and a data ele
 
 ### `cadsr/credentialed`
 
-The server holds caDSR credentials: contexts and CDE Match answer to the contracts, where the API refuses an anonymous caller (401). Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract, which refuses an anonymous caller since 3 October 2026 at the latest (401, recorded/cadsr/cde-match-refused*.json); the array the call of 10 September sent. Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract for a second entity; the array the call of 10 September sent. Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract for a second entity. Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract, which refuses an anonymous caller since 3 October 2026 at the latest (401, recorded/cadsr/cde-match-refused*.json). Crafted, 1 fixture, for OP-C13, A9.3: the context list to the lists-of-values contract, which refuses an anonymous caller (401, recorded/cadsr/context-names-refused.json).
+The server holds caDSR credentials: contexts and CDE Match answer to the contracts, where the API refuses an anonymous caller (401). Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract, which refuses an anonymous caller since 3 October 2026 at the latest (401, recorded/cadsr/cde-match-refused*.json); the array the call of 10 September sent. Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract for a second entity; the array the call of 10 September sent. Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract for a second entity. Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract for an entity no data element matches; the array the call of 10 September sent. Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract for an entity no data element matches. Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract, which refuses an anonymous caller since 3 October 2026 at the latest (401, recorded/cadsr/cde-match-refused*.json). Crafted, 1 fixture, for OP-C13, A9.3: the context list to the lists-of-values contract, which refuses an anonymous caller (401, recorded/cadsr/context-names-refused.json).
 
 ### `cadsr/match-timeout`
 

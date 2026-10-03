@@ -51,58 +51,45 @@ P-12:
 X-1:
   statement: The release in every returned item's provenance equals the release requested.
   basis: [A3.1, A3.3]
-  planned: "#55"
 X-2:
   statement: A request for a release the platform does not serve fails closed, with the requested-release-not-available error, or, where the platform offers no release-pinned form of the operation (A3.2), the mismatch error; and no content.
   basis: [A3.4, A3.5]
-  planned: "#55"
 X-3:
   statement: Content the upstream serves from another release than the one requested fails closed, with the mismatch error.
   basis: [A3.4]
-  planned: "#55"
 X-4:
   statement: A query that legitimately matches nothing returns an empty result with provenance and no nextCursor, not an error.
   basis: [A2.5, A2.6, M3.2, provenance]
-  planned: "#55"
 X-5:
   statement: An upstream failure (a refused or closed connection, a server error, no answer in time) is an upstream error or a timeout, never an empty success.
   basis: [A2.5, M3.2]
-  planned: "#55"
 X-6:
   statement: structuredContent validates against the tool's declared outputSchema, for successes and errors alike.
   basis: [M3.1]
-  planned: "#55"
 X-7:
   statement: Every item carries release, source surface, retrieval time and servedBy, and, where reached by traversal, depth, relationship, direction and polarity.
   basis: [A4.1, A4.2, A4.4, provenance, traversal]
-  planned: "#55"
 X-8:
   statement: Fields the upstream supplied appear unchanged in provenance; none is dropped or renamed.
   basis: [A4.3, provenance]
-  planned: "#55"
 X-9:
   statement: A code is returned bare, with its terminology in a separate field; never with an embedded prefix or as a URI.
   basis: [A1.2, A1.3]
-  planned: "#55"
 X-10:
   statement: With a caller limit smaller than the result, truncation is reported with the bound reached and the magnitude omitted.
   basis: [A5.1, A5.4, truncation]
-  planned: "#55"
 X-11:
   statement: Within one tool call, no upstream request is made again with identical parameters, except to retry one that failed.
   basis: [A5.8]
-  planned: "#55"
 X-12:
   statement: The licence key and the caDSR credential reach the upstream request and appear in no log, error message or result.
   basis: [A7.5]
 X-13:
   statement: Every result carries in its _meta the ttlMs and cacheScope M2.2 and M2.3 give what it holds.
   basis: [M2.2, M2.3, M2.5]
-  planned: "#55"
 X-14:
   statement: Every result is a JSON object, its lists of items named fields of it.
   basis: [M3.3]
-  planned: "#55"
 X-15:
   statement: An upstream failure masked as a successful response (an error envelope in an HTTP 200, HTML where JSON was asked for) is an upstream error, never parsed as content.
   basis: [A2.5, M3.2]
@@ -323,14 +310,20 @@ get_release_alignment-1:
 
 # Workflow tools.
 ground_value-1:
-  statement: One provenance envelope names both content states and fails closed if either cannot be named; without registryRelease the registry is unpinned, as X-21 reads it; a text resolves through lexical search to the concept the result names; each hop's truncation is carried through.
-  basis: [ground_value, provenance, truncation, A3.8]
-  planned: "#55"
+  statement: One provenance envelope names both content states, the release asked for and the registry, unpinned without registryRelease as X-21 reads it; content of another NCIt release fails closed with the mismatch error.
+  basis: [ground_value, provenance, A3.8, A3.4]
+ground_value-2:
+  statement: The data elements, the permissible values and, with commons, the stored values are those the surfaces answer for the concept, each hop asked by the concept; without commons there is no storedValues.
+  basis: [ground_value, data_element_use, value_use, stored_value, A2.6]
+ground_value-3:
+  statement: A text resolves as search_concepts resolves it with its defaults, to its first result, never to a better-named one, the concept the result names.
+  basis: [ground_value, search_concepts]
+ground_value-4:
+  statement: A hop that reaches its bound reports it in perHop, and occurred is true; since each hop is asked by the concept, the other hops are complete.
+  basis: [ground_value, truncation, A5.4]
 expand_cohort-1:
-  statement: Exclusion codes are withheld from codes and listed in excluded by default; the result equals composing the fine-grained tools.
+  statement: The codes are the concept itself and its descendants to maxDepth, less the codes an exclusion role of the concept asserts, each assertion listed in excluded; with includeNegative they stay in codes and are still listed; maxNodes counts the codes, the concept included; the result equals composing get_concept_hierarchy and get_concept_neighborhood.
   basis: [expand_cohort, A5.6]
-  planned: "#55"
 harmonize_data_dictionary-1:
-  statement: One upstream match call per column, batched where the upstream allows; unmatched columns listed; one registry state across all matches; without registryRelease the registry is unpinned, as X-21 reads it.
+  statement: One upstream match call per column, its description as the entity's user tip; unmatched columns listed by name; each sample value aligned to the value meanings vmMatch gives; one registry state across all matches; without registryRelease the registry is unpinned, as X-21 reads it.
   basis: [harmonize_data_dictionary, data_element_match]
-  planned: "#55"

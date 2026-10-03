@@ -1,0 +1,538 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "ssis-sparql",
+  "method": "POST",
+  "path": "/sparql",
+  "headers": {
+   "Accept": "application/sparql-results+json"
+  },
+  "form": {
+   "query": "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX owl: <http://www.w3.org/2002/07/owl#>\nPREFIX dc: <http://purl.org/dc/elements/1.1/>\nPREFIX mdr: <http://www.iso.org/11179/MDR#>\nPREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>\nPREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>\nSELECT ?id ?version (MIN(?label) AS ?name)\nWHERE {\n  VALUES ?concept { ncit:C4817 }\n  GRAPH <http://cbiit.nci.nih.gov/caDSR> {\n    VALUES ?role { cadsr:main_concept cadsr:minor_concept }\n    ?node ?role ?concept .\n    { VALUES ?part { mdr:Object_Class mdr:Property } ?element ?part ?node . }\n    UNION\n    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }\n    ?element cadsr:publicId ?id ;\n      mdr:version ?version ;\n      rdfs:label ?label .\n  }\n}\nGROUP BY ?id ?version\nORDER BY ?id ?version\nLIMIT 1001"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "head": {
+    "link": [],
+    "vars": [
+     "id",
+     "version",
+     "name"
+    ]
+   },
+   "results": {
+    "distinct": false,
+    "ordered": true,
+    "bindings": [
+     {
+      "id": {
+       "type": "literal",
+       "value": "13606049"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Diagnosis Disease ICD-O-3 Morphology Code"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "13606067"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Diagnosis Disease ICD-O-3 Morphology Label Text"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14235270"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Medical History Domain Neoplasm CNS Integrated Diagnosis WHO Classification of Tumors"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15744285"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Gene Fusion Outcome Category"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "16607972"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Diagnosis Pediatric Oncology Grouping Category"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2195089"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Cancer Diagnosis Cancer Type ICD9 Text Name"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2946347"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Disease Present Name"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3081932"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Cancer Diagnosis Malignant Neoplasm Diagnosis Name"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3081934"
+      },
+      "version": {
+       "type": "literal",
+       "value": "3"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Neoplasm Histologic Type Name"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3211626"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Diagnosis Type"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3247899"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Biospecimen Diagnosis Name"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3251818"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Biospecimen Diagnosis Modifier Name"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3320071"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Minor Component Malignant Neoplasm Intratumoral Heterogeneity Histology Name"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3457764"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "First Degree Relative Cancer Diagnosis Name"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3577921"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Clinical Study Protocol Children's Oncology Group Stratification Factors Children's Oncology Group Stratification Factors Type"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3834326"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Cause of Death Reason Cancer Type ICD9 Name"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3838107"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Family History Cancer Histology Name"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4122411"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prior Or Synchronous Malignant Neoplasm Histologic Diagnosis Name"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4214615"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Biospecimen Primary Histology Name"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4900695"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Primary Diagnosis Disease Group Classification Category"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4927914"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Neoplasm Ewing Sarcoma Stage Type"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4927975"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Ewing Sarcoma Cytogenetics Translocation Type"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4927991"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Ewing Sarcoma Cytogenetics Translocation Diagnosis Specify"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4928016"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Ewing Sarcoma CD99 Gene Expression Status"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5098971"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Primary Diagnosis Disease or Disorder Group Type"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5936362"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Malignant Neoplasm Diagnosis Histology Name"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5983086"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Pancreatic Disease Increased Risk Prior Clinical History Name"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5984832"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Ewing Sarcoma Targeted Therapy Type"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6062599"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Ewing Sarcoma Translocation Analysis Performed Indicator"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6063522"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Ewing Sarcoma Translocation Identified Indicator"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6161032"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "ICD-O Primary Disease Diagnosis Type"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6785267"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Individual Cancer History Malignant Neoplasm CPTAC Codelist Name"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7003002"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Primary Diagnosis Disease Group"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7008676"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Neoplasm Histologic Type Name"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7055162"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "ICD-9 CM/PCS Cause of Death Reason Name"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7981849"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Eligibility Confirmation Children's Oncology Group Stratification Factors Type"
+      }
+     }
+    ]
+   }
+  }
+ }
+}

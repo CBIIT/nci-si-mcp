@@ -1,0 +1,557 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "ssis-sparql",
+  "method": "POST",
+  "path": "/sparql",
+  "headers": {
+   "Accept": "application/sparql-results+json"
+  },
+  "form": {
+   "query": "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX owl: <http://www.w3.org/2002/07/owl#>\nPREFIX dc: <http://purl.org/dc/elements/1.1/>\nPREFIX mdr: <http://www.iso.org/11179/MDR#>\nPREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>\nPREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>\nSELECT DISTINCT ?id ?version ?value ?concept\nWHERE {\n  VALUES ?concept { ncit:C4817 }\n  GRAPH <http://cbiit.nci.nih.gov/caDSR> {\n    VALUES ?role { cadsr:main_concept cadsr:minor_concept }\n    ?node ?role ?concept .\n    ?pv cadsr:has_concept ?node ;\n      mdr:value ?value .\n    ?element mdr:permitted_value ?pv ;\n      cadsr:publicId ?id ;\n      mdr:version ?version .\n  }\n}\nORDER BY ?id ?version ?value ?concept\nLIMIT 1001"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "head": {
+    "link": [],
+    "vars": [
+     "id",
+     "version",
+     "value",
+     "concept"
+    ]
+   },
+   "results": {
+    "distinct": false,
+    "ordered": true,
+    "bindings": [
+     {
+      "id": {
+       "type": "literal",
+       "value": "13606049"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "9364/3"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "13606067"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ewing Sarcoma"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14235270"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ewing sarcoma"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15744285"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ewing Sarcoma"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "16607972"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ewings Sarcoma"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2195089"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Sarcoma-Ewings"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2946347"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ewing Sarcoma"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3081932"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ewing sarcoma"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3081934"
+      },
+      "version": {
+       "type": "literal",
+       "value": "3"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ewing sarcoma"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3211626"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ewing Sarcoma"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3247899"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Sarcoma / Ewing's"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3251818"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Sarcoma / Ewing's"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3320071"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ewing sarcoma"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3457764"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ewing sarcoma"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3577921"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "ADVL1321 Stratum 2"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3834326"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Sarcoma-Ewings"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3838107"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ewing sarcoma"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4122411"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ewing sarcoma"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4214615"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ewing Sarcoma"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4900695"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ewing"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5098971"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ewing Sarcoma"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5936362"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ewing sarcoma"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5983086"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Sarcoma / Ewing's"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6161032"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ewing sarcoma"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6785267"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ewing Sarcoma"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7003002"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "EWING SARCOMA"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7008676"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ewing sarcoma"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7055162"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Sarcoma-Ewings"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7981849"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "ADVL1321 Stratum 2"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817"
+      }
+     }
+    ]
+   }
+  }
+ }
+}

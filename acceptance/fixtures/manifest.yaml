@@ -78,6 +78,12 @@ scenarios:
     then no answer within the timeout
   upstream/rate-limited: 429 with `Retry-After` on the release query, then the answer
   license/restricted: 403 without the licence key; invented content with it
+  release/graph-behind: >-
+    The Shared SI Service's NCIt graph names another release; EVS serves the one pinned
+  release/concept-behind: EVS serves C4817 of another release; the NCIt graph names the one pinned
+  search/first-not-named: >-
+    The lexical search for "ewing sarcoma" with Disease or Disorder (C2991) put first, an
+    invented order
   license/attributed: >-
     The invented licensed content of license/restricted, each concept carrying the
     terminology's licence text as EVS is asked to send it (#42)
@@ -184,6 +190,14 @@ record:
       rationale: The paths from the concept to the root of the hierarchy.
       surface: evs
       path: /api/v1/concept/ncit_26.09d/C4817/pathsToRoot?include=minimal
+    - fixture: recorded/evs/descendants-c4817-level-2.json
+      operation: OP-E12
+      rationale: >-
+        The descendants of C4817 to two levels (27), each with its level: the route a cohort
+        or hierarchy to depth 2 may take in place of a children walk (expand_cohort's default
+        maxDepth).
+      surface: evs
+      path: /api/v1/concept/ncit_26.09d/C4817/descendants?maxLevel=2
     # An active code's replacements (OP-E21, and the ?list= batch form); the retired
     # code is in scenarios/retired/with-replacement.
     - fixture: recorded/evs/replacement-active.json
@@ -860,6 +874,120 @@ record:
           ORDER BY ?id ?version ?value ?concept
           LIMIT 1001
     - <<: *sparql
+      fixture: recorded/ssis-sparql/data-elements-c4817.json
+      rationale: >-
+        The data elements that use Ewing Sarcoma (C4817): ground_value's data element hop.
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT ?id ?version (MIN(?label) AS ?name)
+          WHERE {
+            VALUES ?concept { ncit:C4817 }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+              ?node ?role ?concept .
+              { VALUES ?part { mdr:Object_Class mdr:Property } ?element ?part ?node . }
+              UNION
+              { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }
+              ?element cadsr:publicId ?id ;
+                mdr:version ?version ;
+                rdfs:label ?label .
+            }
+          }
+          GROUP BY ?id ?version
+          ORDER BY ?id ?version
+          LIMIT 1001
+    - <<: *sparql
+      fixture: recorded/ssis-sparql/values-c4817.json
+      operation: OP-S04
+      rationale: >-
+        The permissible values that stand for Ewing Sarcoma (C4817): ground_value's value hop.
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT DISTINCT ?id ?version ?value ?concept
+          WHERE {
+            VALUES ?concept { ncit:C4817 }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+              ?node ?role ?concept .
+              ?pv cadsr:has_concept ?node ;
+                mdr:value ?value .
+              ?element mdr:permitted_value ?pv ;
+                cadsr:publicId ?id ;
+                mdr:version ?version .
+            }
+          }
+          ORDER BY ?id ?version ?value ?concept
+          LIMIT 1001
+    - <<: *sparql
+      fixture: recorded/ssis-sparql/data-elements-c2991.json
+      rationale: >-
+        The data elements that use Disease or Disorder (C2991), 1,001 rows: ground_value's data element hop reaches its bound.
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT ?id ?version (MIN(?label) AS ?name)
+          WHERE {
+            VALUES ?concept { ncit:C2991 }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+              ?node ?role ?concept .
+              { VALUES ?part { mdr:Object_Class mdr:Property } ?element ?part ?node . }
+              UNION
+              { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }
+              ?element cadsr:publicId ?id ;
+                mdr:version ?version ;
+                rdfs:label ?label .
+            }
+          }
+          GROUP BY ?id ?version
+          ORDER BY ?id ?version
+          LIMIT 1001
+    - <<: *sparql
+      fixture: recorded/ssis-sparql/values-c2991.json
+      operation: OP-S04
+      rationale: >-
+        The permissible values that stand for Disease or Disorder (C2991), 461 rows: ground_value's value hop, complete while the data element hop is cut.
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT DISTINCT ?id ?version ?value ?concept
+          WHERE {
+            VALUES ?concept { ncit:C2991 }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+              ?node ?role ?concept .
+              ?pv cadsr:has_concept ?node ;
+                mdr:value ?value .
+              ?element mdr:permitted_value ?pv ;
+                cadsr:publicId ?id ;
+                mdr:version ?version .
+            }
+          }
+          ORDER BY ?id ?version ?value ?concept
+          LIMIT 1001
+    - <<: *sparql
       fixture: recorded/ssis-sparql/query-refused.json
       rationale: >-
         The inspection layer's refusal of a query it does not pass: HTTP 403 with an HTML
@@ -924,7 +1052,8 @@ record:
   concepts:
     # Ewing sarcoma and the batch of the Platform API Specification's E-5 example.
     full: [C4817, C17049, C41259,
-           C13111]   # retired with no replacement (resolve_retired_code-1), any projection
+           C13111,   # retired with no replacement (resolve_retired_code-1), any projection
+           C2991]    # ground_value's truncated hop: a server may ask its concept at any level
     # The depth-1 neighbourhood of C4817 over every relation, and the concepts its role
     # targets name as theirs (depth 2 over roles, get_concept_neighborhood-3). Without the
     # inverse lists, which run to megabytes for the subset and cell concepts among them.
@@ -946,7 +1075,7 @@ record:
 
     # The concepts on C4817's paths to the root that no other list records: a traversal reads
     # the nodes it reaches for their status (the node record, get_concept_hierarchy-2).
-    minimal: [C2991, C3262, C3263, C3264, C3810, C7057, C7062, C9305, C27551, C27574]
+    minimal: [C3262, C3263, C3264, C3810, C7057, C7062, C9305, C27551, C27574]
 
   # Real projections and batches the composed answers are checked against.
   samples:

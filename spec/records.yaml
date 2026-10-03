@@ -641,6 +641,9 @@ value_use:
         The bare code of the concept its value meaning stands for: the concept asked about or,
         with expandDescendants, a descendant
       of: A1.2
+    conceptTerminology:
+      content: The terminology of that concept, beside its code
+      of: A1.2
     provenance:
       content: The provenance record, as for the data element use record
       of: A1.5
@@ -687,8 +690,8 @@ dataset_release:
 excluded_code:
   title: The excluded code record
   about: >-
-    A code expand_cohort withholds from its codes, because an exclusion role asserts it, listed
-    with the assertion that excludes it.
+    An exclusion assertion of the concept expand_cohort is asked about, one record each: the
+    code it names, withheld from the cohort's codes unless includeNegative, with the assertion.
   fields:
     code:
       content: The bare code

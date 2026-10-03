@@ -15,7 +15,15 @@ from itertools import combinations
 
 import pytest
 
-from nci_si_acceptance.results import EXPORT_LISTING, error_code, export_date
+from nci_si_acceptance.results import (
+    EXPORT_LISTING,
+    bare_code,
+    element_ids,
+    error_code,
+    export_date,
+    sparql_rows,
+    value_ids,
+)
 from nci_si_acceptance.spec import TOOLS, defaults
 
 FIND = "find_data_elements_for_concept"
@@ -36,34 +44,11 @@ def _ok(result):
 
 
 def _rows(recorded, name):
-    """The rows of a recorded SPARQL answer, each variable by its value."""
-
-    bindings = recorded(f"{SPARQL}/{name}.json")["response"]["body"]["results"]["bindings"]
-    return [{key: value["value"] for key, value in row.items()} for row in bindings]
-
-
-def _code(iri):
-    return iri.rpartition("#")[2]
+    return sparql_rows(recorded(f"{SPARQL}/{name}.json"))
 
 
 def _sources(items):
     return {(item.get("provenance") or {}).get("source") for item in items}
-
-
-def _elements(content):
-    return {(use["dataElement"]["publicId"], use["dataElement"]["version"]) for use in content}
-
-
-def _values(content):
-    return {
-        (
-            use["dataElement"]["publicId"],
-            use["dataElement"]["version"],
-            use["value"],
-            use["conceptCode"],
-        )
-        for use in content
-    }
 
 
 def _find(tools, pinned, **arguments):
@@ -85,7 +70,7 @@ def test_the_data_elements_are_the_concept_s_and_with_expansion_its_descendants_
 
     # The release is verified against the NCIt graph, so the Shared SI Service answers.
     assert _sources(content["dataElements"]) == {"ssis_sparql"}
-    assert _elements(content["dataElements"]) == expected
+    assert element_ids(content["dataElements"]) == expected
     assert "permissibleValues" not in content
 
 
@@ -98,14 +83,14 @@ def test_with_the_flag_the_permissible_values_that_stand_for_the_concept_come_to
     tools, pinned, recorded, expand, recording
 ):
     expected = {
-        (row["id"], row["version"], row["value"], _code(row["concept"]))
+        (row["id"], row["version"], row["value"], bare_code(row["concept"]))
         for row in _rows(recorded, recording)
     }
 
     content = _ok(_find(tools, pinned, expandDescendants=expand, includePermissibleValues=True))
 
     assert _sources(content["permissibleValues"]) == {"ssis_sparql"}
-    assert _values(content["permissibleValues"]) == expected
+    assert value_ids(content["permissibleValues"]) == expected
 
 
 def _iso(text):
@@ -211,7 +196,7 @@ def _value_concept(recorded, source):
         (row,) = [
             row for row in rows if row["value"] == VALUE and row["role"].endswith("main_concept")
         ]
-        return _code(row["concept"]), row["version"]
+        return bare_code(row["concept"]), row["version"]
     element = recorded(CADSR_ELEMENT)["response"]["body"]["DataElement"]
     (code,) = _primary_concepts(element)
     return code, element["version"]

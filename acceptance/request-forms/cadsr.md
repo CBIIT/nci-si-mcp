@@ -22,6 +22,10 @@ contracts prescribe (M3.2): without it the API answers HTTP 200 with HTML, recor
 and the fixture naming the most headers a request carries answers it. A refusal of the arguments
 and an unknown data element both come back as HTTP 200, with `apiResponse` saying so (X-15).
 
+harmonize_data_dictionary's form is prescribed: each column goes to CDE Match as one entity, its
+name and its description as `userTip`, and its sample values go to vmMatch only. CDE Match is
+matched on its whole body, so a form left to each server would leave its answers unanswerable.
+
 ## Requests
 
 | Operation | Request | Expected | Made | Rationale | Fixture |
@@ -71,7 +75,7 @@ caDSR publishes a registry release: /registry/releases names one, and a data ele
 
 ### `cadsr/credentialed`
 
-The server holds caDSR credentials: contexts and CDE Match answer to the contracts, where the API refuses an anonymous caller (401). Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract, which refuses an anonymous caller since 3 October 2026 at the latest (401, recorded/cadsr/cde-match-refused*.json); the array the call of 10 September sent. Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract for a second entity; the array the call of 10 September sent. Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract for a second entity. Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract, which refuses an anonymous caller since 3 October 2026 at the latest (401, recorded/cadsr/cde-match-refused*.json). Crafted, 1 fixture, for OP-C13, A9.3: the context list to the lists-of-values contract, which refuses an anonymous caller (401, recorded/cadsr/context-names-refused.json).
+The server holds caDSR credentials: contexts and CDE Match answer to the contracts, where the API refuses an anonymous caller (401). Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract, which refuses an anonymous caller since 3 October 2026 at the latest (401, recorded/cadsr/cde-match-refused*.json); the array the call of 10 September sent. Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract for a second entity; the array the call of 10 September sent. Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract for a second entity. Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract for an entity no data element matches; the array the call of 10 September sent. Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract for an entity no data element matches. Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract, which refuses an anonymous caller since 3 October 2026 at the latest (401, recorded/cadsr/cde-match-refused*.json). Crafted, 1 fixture, for OP-C13, A9.3: the context list to the lists-of-values contract, which refuses an anonymous caller (401, recorded/cadsr/context-names-refused.json).
 
 ### `cadsr/match-timeout`
 

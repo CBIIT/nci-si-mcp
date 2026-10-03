@@ -235,9 +235,17 @@ NOT_FOUND = 404
 @pytest.mark.requirement("X-21")
 @pytest.mark.parametrize("name", _per_tool(REGISTRY))
 def test_a_cadsr_item_without_a_registry_release_names_the_registry_alone(tools, pinned, name):
-    releases = [_provenance(item).get("release") for item in _items(tools, pinned, name)]
+    provenances = [_provenance(item) for item in _items(tools, pinned, name)]
+    # An item of a tool that also takes the NCIt release names the registry beside it (A1.5),
+    # where it rests on caDSR content; a caDSR tool's items name it as their release.
+    states = (
+        [provenance["registry"] for provenance in provenances if "registry" in provenance]
+        if name in PINNED_TOOLS
+        else [provenance.get("release") for provenance in provenances]
+    )
 
-    assert releases == [UNPINNED_REGISTRY] * len(releases)
+    assert states
+    assert states == [UNPINNED_REGISTRY] * len(states)
 
 
 @pytest.mark.requirement("X-21")

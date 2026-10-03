@@ -50,6 +50,7 @@ content state of its own, named in provenance and not presented as release-verif
 | OP-E08 | `GET evs /api/v1/concept/go_2026-07-26/search?term=obsolete&type=contains&include=minimal,highlights&fromRecord=0&pageSize=10` | 200 | recorded | A lexical search of GO, whose listing names a retired status ("true") that is no concept status: searched by default, it is answered; retired only is refused (search_concepts-7). | `recorded/evs/search-go-obsolete.json` |
 | OP-E08 | `GET evs /api/v1/concept/ncit_26.09d/search?term=qqxyzzyqq&type=contains&include=minimal,highlights&fromRecord=0&pageSize=10` | 200 | recorded | A search matching nothing: empty is not an error. | `recorded/evs/search-no-match.json` |
 | OP-E13 | `GET evs /api/v1/concept/ncit_26.09d/C4817/pathsToRoot?include=minimal` | 200 | recorded | The paths from the concept to the root of the hierarchy. | `recorded/evs/paths-to-root.json` |
+| OP-E12 | `GET evs /api/v1/concept/ncit_26.09d/C4817/descendants?maxLevel=2` | 200 | recorded | The descendants of C4817 to two levels (27), each with its level: the route a cohort or hierarchy to depth 2 may take in place of a children walk (expand_cohort's default maxDepth). | `recorded/evs/descendants-c4817-level-2.json` |
 | OP-E21 | `GET evs /api/v1/history/ncit_26.09d/C4817/replacements` | 200 | recorded | An active code's replacements, one code. | `recorded/evs/replacement-active.json` |
 | OP-E21 | `GET evs /api/v1/history/ncit_26.09d/C13111/replacements` | 200 | recorded | A retired code the platform names no replacement for: action retire, no replacementCode. | `recorded/evs/replacement-retired.json` |
 | OP-E21 | `GET evs /api/v1/history/ncit_26.09d/replacements?list=C4817` | 200 | recorded | The ?list= batch form, which fails the whole batch on one unknown code. | `recorded/evs/replacements-active.json` |
@@ -151,7 +152,7 @@ One root has 1,001 children, and a chain runs deeper than depth 4 from its first
 
 ### `traversal/exclusions`
 
-Exclusion roles are named like positive ones, and two the other way. Crafted, 2 fixtures, for A5.6, A5.7, E-4: polarity by relationship code, not by name.
+Exclusion roles are named like positive ones, and two the other way. Crafted, 2 fixtures, for A5.6, A5.7, E-4: polarity by relationship code, not by name; and expand_cohort-1: an R135 role from C4817 to its first child, invented to show a cohort withholding a code, since C4817's real exclusion roles point outside its subtree.
 
 ### `traversal/starvation`
 
@@ -180,6 +181,14 @@ Every upstream request, whatever its surface and path, gets a closed connection,
 | Operation | Request | Expected | Rationale | Fixture |
 |---|---|---|---|---|
 | A7.5 | `GET evs /api/v1/concept/mdr_29_0/10000000?include=summary` | 403; every parameter ignored | EVS refuses mdr without the X-EVSRESTAPI-License-Key header (403). | `scenarios/license/restricted/refused.json` |
+
+### `release/concept-behind`
+
+EVS serves C4817 of another release; the NCIt graph names the one pinned. Crafted, 1 fixture, for A3.4: the content served names another release than the one requested.
+
+### `search/first-not-named`
+
+The lexical search for "ewing sarcoma" with Disease or Disorder (C2991) put first, an invented order. Crafted, 1 fixture, for ground_value-3: a search whose first result is not the concept named like the text.
 
 ### `license/attributed`
 

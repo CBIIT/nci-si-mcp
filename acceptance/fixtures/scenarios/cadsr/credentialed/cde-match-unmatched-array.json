@@ -1,0 +1,36 @@
+{
+ "kind": "crafted",
+ "requirement": "OP-M01, A9.3: CDE Match to its 2.0 contract for an entity no data element matches; the array the call of 10 September sent",
+ "request": {
+  "surface": "cadsr",
+  "method": "POST",
+  "path": "/NCIAPI.v2_0.cdeMatch.api:cdeMatch_rad/cdeMatch",
+  "headers": {
+   "Accept": "application/json",
+   "Content-Type": "application/json",
+   "Authorization": "Basic YWNjZXB0YW5jZTpjcmVkZW50aWFs"
+  },
+  "body": [
+   {
+    "entity": "Freezer Shelf Label",
+    "entityUserTip": "The shelf of the freezer a specimen is stored on"
+   }
+  ]
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "apiResponse": {
+    "type": "S"
+   },
+   "matchResults": {
+    "sequenceNumber": 1,
+    "entity": "Freezer Shelf Label",
+    "numberOfMatches": 0,
+    "numberofPVs": 0,
+    "lastRunType": "Crafted",
+    "matches": []
+   }
+  }
+ }
+}

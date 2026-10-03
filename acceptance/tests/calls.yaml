@@ -128,3 +128,19 @@ resolve_stored_value:
   unpinned: true
   empty: {conceptCode: C116977, commons: GDC}
 get_release_alignment: {arguments: {}}
+# The workflow tools. ground_value's hops are asked by the concept: its EVS record, pinned, and the
+# Shared SI Service's data elements and values, verified against the NCIt graph's identity
+# (unpinned). expand_cohort composes the traversal tools' requests.
+ground_value:
+  arguments: {conceptCode: C4817}   # 36 data elements, 29 permissible values (the recordings)
+  unpinned: true
+expand_cohort:
+  arguments: {conceptCode: C4817}   # 10 children
+  unversioned: true
+  truncating: {arguments: {maxNodes: 2}, bound: nodes}
+harmonize_data_dictionary:
+  arguments:
+    columns:
+      - {name: Patient Gender, sampleValues: [Male]}
+      - {name: Freezer Shelf Label, description: The shelf of the freezer a specimen is stored on}
+  scenario: cadsr/credentialed

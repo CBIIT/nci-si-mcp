@@ -1,6 +1,6 @@
 {
  "kind": "crafted",
- "requirement": "A5.6, A5.7, E-4: polarity by relationship code, not by name; and expand_cohort-1: an R135 role from C4817 to its first child, invented to show a cohort withholding a code, since C4817's real exclusion roles point outside its subtree",
+ "requirement": "A3.4: the content served names another release than the one requested",
  "request": {
   "surface": "evs",
   "method": "GET",
@@ -17,7 +17,7 @@
    "code": "C4817",
    "name": "Ewing Sarcoma",
    "terminology": "ncit",
-   "version": "26.09d",
+   "version": "26.08e",
    "conceptStatus": "DEFAULT",
    "leaf": false,
    "active": true,
@@ -495,19 +495,19 @@
    "roles": [
     {
      "code": "R116",
-     "type": "Disease_May_Have_Associated_Disease_Excludes_None",
+     "type": "Disease_May_Have_Associated_Disease",
      "relatedCode": "C2869",
      "relatedName": "Anemia"
     },
     {
      "code": "R142",
-     "type": "Disease_Without_Finding",
+     "type": "Disease_Excludes_Finding",
      "relatedCode": "C36122",
      "relatedName": "Benign Cellular Infiltrate"
     },
     {
      "code": "R141",
-     "type": "Disease_Without_Cytogenetic_Abnormality",
+     "type": "Disease_Excludes_Cytogenetic_Abnormality",
      "relatedCode": "C165668",
      "relatedName": "CIC Gene Rearrangement"
     },
@@ -537,13 +537,13 @@
     },
     {
      "code": "R138",
-     "type": "Disease_Without_Normal_Cell_Origin",
+     "type": "Disease_Excludes_Normal_Cell_Origin",
      "relatedCode": "C12578",
      "relatedName": "Epithelial Cell"
     },
     {
      "code": "R137",
-     "type": "Disease_Without_Normal_Tissue_Origin",
+     "type": "Disease_Excludes_Normal_Tissue_Origin",
      "relatedCode": "C45714",
      "relatedName": "Epithelial Tissue"
     },
@@ -591,13 +591,13 @@
     },
     {
      "code": "R140",
-     "type": "Disease_Without_Molecular_Abnormality",
+     "type": "Disease_Excludes_Molecular_Abnormality",
      "relatedCode": "C178457",
      "relatedName": "EWSR1-NFATC2 Fusion Protein Expression"
     },
     {
      "code": "R140",
-     "type": "Disease_Without_Molecular_Abnormality",
+     "type": "Disease_Excludes_Molecular_Abnormality",
      "relatedCode": "C37252",
      "relatedName": "EWSR1-PATZ1 Fusion Protein Expression"
     },
@@ -645,7 +645,7 @@
     },
     {
      "code": "R140",
-     "type": "Disease_Without_Molecular_Abnormality",
+     "type": "Disease_Excludes_Molecular_Abnormality",
      "relatedCode": "C178458",
      "relatedName": "FUS-NFATC2 Fusion Protein Expression"
     },
@@ -657,7 +657,7 @@
     },
     {
      "code": "R137",
-     "type": "Disease_Without_Normal_Tissue_Origin",
+     "type": "Disease_Excludes_Normal_Tissue_Origin",
      "relatedCode": "C54105",
      "relatedName": "Germinal Layer"
     },
@@ -675,19 +675,19 @@
     },
     {
      "code": "R142",
-     "type": "Disease_Without_Finding",
+     "type": "Disease_Excludes_Finding",
      "relatedCode": "C36105",
      "relatedName": "Indolent Clinical Course"
     },
     {
      "code": "R142",
-     "type": "Disease_Without_Finding",
+     "type": "Disease_Excludes_Finding",
      "relatedCode": "C53665",
      "relatedName": "Intermediate Filaments Present"
     },
     {
      "code": "R142",
-     "type": "Disease_Without_Finding",
+     "type": "Disease_Excludes_Finding",
      "relatedCode": "C53667",
      "relatedName": "Intracytoplasmic Eosinophilic Inclusion"
     },
@@ -699,13 +699,13 @@
     },
     {
      "code": "R108",
-     "type": "Disease_Has_Finding_Excludes_None",
+     "type": "Disease_Has_Finding",
      "relatedCode": "C36115",
      "relatedName": "Malignant Cellular Infiltrate"
     },
     {
      "code": "R139",
-     "type": "Disease_Without_Abnormal_Cell",
+     "type": "Disease_Excludes_Abnormal_Cell",
      "relatedCode": "C36779",
      "relatedName": "Malignant Epithelial Cell"
     },
@@ -735,7 +735,7 @@
     },
     {
      "code": "R142",
-     "type": "Disease_Without_Finding",
+     "type": "Disease_Excludes_Finding",
      "relatedCode": "C53978",
      "relatedName": "Neuroectodermal Differentiation",
      "group": "Disease, Disorder or Finding"
@@ -787,24 +787,6 @@
      "type": "Disease_May_Have_Cytogenetic_Abnormality",
      "relatedCode": "C36368",
      "relatedName": "t(7;22)(p22;q12)"
-    },
-    {
-     "code": "R135",
-     "type": "Disease_Without_Primary_Anatomic_Site",
-     "relatedCode": "C2869",
-     "relatedName": "Anemia"
-    },
-    {
-     "code": "R136",
-     "type": "Disease_Without_Metastatic_Anatomic_Site",
-     "relatedCode": "C2869",
-     "relatedName": "Anemia"
-    },
-    {
-     "code": "R135",
-     "type": "Disease_Without_Primary_Anatomic_Site",
-     "relatedCode": "C174456",
-     "relatedName": "Atypical Ewing Sarcoma"
     }
    ],
    "inverseRoles": [

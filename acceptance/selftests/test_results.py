@@ -7,12 +7,16 @@ import pytest
 from nci_si_acceptance.record import FIXTURES
 from nci_si_acceptance.results import (
     EXPORT_LISTING,
+    bare_code,
+    element_ids,
     error_code,
     export_date,
     identity,
     pinned_release,
     release_of,
     requests_naming,
+    sparql_rows,
+    value_ids,
 )
 from nci_si_acceptance.tools import Result
 
@@ -111,3 +115,20 @@ def test_the_export_date_is_the_one_the_folder_listing_gives_the_export():
     assert export_date(listing["response"]["body"]) == "2026-07-01"
     with pytest.raises(ValueError, match="unpack"):
         export_date("<a>README</a> 2026-07-01")
+
+
+def test_a_recorded_sparql_answer_reads_as_rows_of_values_and_bare_codes():
+    rows = sparql_rows(
+        json.loads((FIXTURES / "recorded/ssis-sparql/values-c4817.json").read_text())
+    )
+
+    # The recording's first row (values-c4817.json), each variable by its value.
+    assert set(rows[0]) == {"id", "version", "value", "concept"}
+    assert {bare_code(row["concept"]) for row in rows} == {"C4817"}
+
+
+def test_uses_are_named_by_their_data_element_and_value():
+    use = {"dataElement": {"publicId": "2200604", "version": "4"}, "value": "Male"}
+
+    assert element_ids([use]) == {("2200604", "4")}
+    assert value_ids([use | {"conceptCode": "C20197"}]) == {("2200604", "4", "Male", "C20197")}

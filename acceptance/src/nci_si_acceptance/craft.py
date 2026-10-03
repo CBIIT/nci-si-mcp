@@ -188,6 +188,44 @@ def release_mismatch(recorded: Recorded) -> Documents:
     return documents
 
 
+def release_one_surface_behind(recorded: Recorded) -> Documents:
+    """Another release on one surface only, as release/mismatch has it: the Shared SI
+    Service's graph identities (release/graph-behind), or EVS's C4817 (release/concept-behind).
+    A tool that rests on both checks each, which only one surface behind at a time shows
+    (ground_value-1)."""
+
+    behind = release_mismatch(recorded)
+    sides = {
+        "graph-behind": lambda name: "graph-identities" in name,
+        "concept-behind": lambda name: name.endswith(f"{CONCEPTS}/C4817.json"),
+    }
+    return {
+        name.replace("release/mismatch", f"release/{scenario}"): document
+        for scenario, chosen in sides.items()
+        for name, document in behind.items()
+        if chosen(name)
+    }
+
+
+def search_first_not_named(recorded: Recorded) -> Documents:
+    """The lexical search for "ewing sarcoma" with Disease or Disorder (C2991) put first, a
+    concept not named like the text: invented order, so that a tool taking the first result
+    differs from one taking the best name match (ground_value-3)."""
+
+    source = recorded("recorded/evs/search-contains.json")
+    body = source["response"]["body"]
+    concept = recorded(f"recorded/evs/{CONCEPTS}/C2991.json")["response"]["body"]
+    first = {key: concept[key] for key in body["concepts"][0] if key in concept}
+    return {
+        "scenarios/search/first-not-named/search-contains.json": crafted(
+            "ground_value-3: a search whose first result is not the concept named like the text",
+            source["request"],
+            response=source["response"]
+            | {"body": body | {"concepts": [first, *body["concepts"][:-1]]}},
+        )
+    }
+
+
 WEEKLY_RELEASE = "26.10a"
 
 
@@ -299,15 +337,26 @@ def traversal_exclusions(recorded: Recorded) -> Documents:
     """The exclusion roles named as positive ones, and two positive roles named as
     exclusions, in C4817 and the catalogue alike: only polarity by code is right. C4817 gains a
     role of each exclusion code it lacks, to its first role's target, so that every code of the
-    set is shown."""
+    set is shown, and one to its first child, so that a cohort withholds a code it would hold
+    (expand_cohort-1)."""
 
-    requirement = "A5.6, A5.7, E-4: polarity by relationship code, not by name"
+    requirement = (
+        "A5.6, A5.7, E-4: polarity by relationship code, not by name; and expand_cohort-1: "
+        "an R135 role from C4817 to its first child, invented to show a cohort withholding a "
+        "code, since C4817's real exclusion roles point outside its subtree"
+    )
     roles = recorded("recorded/evs/roles.json")
     named = {role["code"]: role["name"] for role in roles["response"]["body"]}
     source = recorded(f"recorded/evs/{CONCEPTS}/C4817.json")["response"]["body"]
-    first = source["roles"][0]
+    first, child = source["roles"][0], source["children"][0]
     lacking = sorted(EXCLUSION_ROLES - {role["code"] for role in source["roles"]})
     added = [first | {"code": code, "type": named[code]} for code in lacking]
+    excluding = min(EXCLUSION_ROLES)
+    added.append(
+        first
+        | {"code": excluding, "type": named[excluding]}
+        | {"relatedCode": child["code"], "relatedName": child["name"]}
+    )
     body = source | {
         "roles": [
             role | {"type": _misleading(role["code"], role["type"])}
@@ -693,7 +742,12 @@ MATCHED_ENTITIES = {
         "recorded/cadsr/concept-c17357.json",
     ),
     "Transplant Donor Gender": ("recorded/cadsr/concept-c17357.json",),
+    # A data dictionary column no data element matches (harmonize_data_dictionary's unmatched).
+    "Freezer Shelf Label": (),
 }
+# The user tip an entity is asked with (the contract's entityUserTip): harmonize_data_dictionary
+# sends a column's description as it (tests/calls.yaml).
+USER_TIPS = {"Freezer Shelf Label": "The shelf of the freezer a specimen is stored on"}
 # Invented, as no answer can be recorded without credentials: the scores and the rule, marked so.
 SCORES = (0.97, 0.83)
 RULE = "Crafted: long name"
@@ -775,6 +829,12 @@ def cadsr_credentialed(recorded: Recorded) -> Documents:
             {"status": 200, "body": _cde_match(recorded, "Transplant Donor Gender")},
             "Transplant Donor Gender",
         ),
+        **_cde_match_forms(
+            f"{scenario}/cde-match-unmatched",
+            "OP-M01, A9.3: CDE Match to its 2.0 contract for an entity no data element matches",
+            {"status": 200, "body": _cde_match(recorded, "Freezer Shelf Label")},
+            "Freezer Shelf Label",
+        ),
     }
 
 
@@ -808,7 +868,8 @@ def _cde_match_request(entity: str = "Patient Gender") -> dict[str, Any]:
             "Content-Type": "application/json",
             "Authorization": CADSR_AUTHORIZATION,
         },
-        "body": {"entity": entity},
+        "body": {"entity": entity}
+        | ({"entityUserTip": USER_TIPS[entity]} if entity in USER_TIPS else {}),
     }
 
 
@@ -972,6 +1033,8 @@ SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     upstream_rate_limited,
     license_restricted,
     license_attributed,
+    release_one_surface_behind,
+    search_first_not_named,
     cadsr_with_registry_release,
     cadsr_credentialed,
     cadsr_match_timeout,
