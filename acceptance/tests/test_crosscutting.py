@@ -849,23 +849,51 @@ def test_an_item_the_platform_gave_no_licence_text_with_carries_none(tools, pinn
 HOSTILE_FORMS = ["{}/../../x", "{}?include=full", "{}#x", "{}> }} UNION {{ ?s ?p ?o }}", "../"]
 
 
-def _pinned_call(name, pinned):
-    """The tool's call in calls.yaml with the fixture set's pin where the tool takes one."""
+# Identifier arguments with a stated form that no call in calls.yaml gives, each in a call built
+# from one there: a data element's version (its upstream answer's), a data element of the code
+# map (its paged call's), and a permissible value id (the one test_cadsr.py asks for), which is
+# capability_unavailable when well-formed, so its form is checked first.
+FORMED = {
+    ("get_data_element", "version"): CALLS["get_data_element"]["arguments"]
+    | {"version": CALLS["get_data_element"]["upstream"]["version"]},
+    ("get_code_map", "dataElementId"): next(
+        change
+        for change in CALLS["get_code_map"]["paged"][0]["changed"]
+        if "dataElementId" in change
+    ),
+    ("get_permissible_value", "permissibleValueId"): {"permissibleValueId": "9192925"},
+}
+
+
+def _pinned_call(name, pinned, argument=None):
+    """The tool's call in calls.yaml, or the one FORMED builds for `argument`, with the fixture
+    set's pin where the tool takes one."""
 
     taken = parameters(name)[0]
-    return {key: value for key, value in pinned.items() if key in taken} | CALLS[name]["arguments"]
+    call = FORMED.get((name, argument)) or CALLS[name]["arguments"]
+    return {key: value for key, value in pinned.items() if key in taken} | call
 
 
-def _identifiers():
-    """Each hostile form of each identifier argument with a stated form that a call gives (the
-    pin's terminology and release included)."""
+def _formed_arguments():
+    """Each identifier argument with a stated form that a call gives (the pin's terminology and
+    release included), or that FORMED adds, with the marks of its call."""
 
     pin = {"terminology", "release"}
-    return [
-        pytest.param(name, argument, form, id=f"{name}-{argument}-{index}", marks=_marks(name, {}))
+    given = [
+        (name, argument, _marks(name, {}))
         for name in CALLS
         for argument in TOOLS[name].get("patterns", {})
         if argument in CALLS[name]["arguments"] or argument in pin
+    ]
+    return given + [(name, argument, [pytest.mark.tool(name)]) for name, argument in FORMED]
+
+
+def _identifiers():
+    """Each hostile form of each of those arguments."""
+
+    return [
+        pytest.param(name, argument, form, id=f"{name}-{argument}-{index}", marks=marks)
+        for name, argument, marks in _formed_arguments()
         for index, form in enumerate(HOSTILE_FORMS)
     ]
 
@@ -891,7 +919,7 @@ def _strings(entry):
 def test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it(
     tools, upstream, pinned, name, argument, form
 ):
-    arguments = _pinned_call(name, pinned)
+    arguments = _pinned_call(name, pinned, argument)
     given = arguments[argument]
     valid = given[0] if isinstance(given, list) else given
     hostile = form.format(valid)
