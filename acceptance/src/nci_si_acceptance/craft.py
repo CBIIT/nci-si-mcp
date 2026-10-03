@@ -498,15 +498,15 @@ LICENSED_CHILD = LICENSED_CONCEPT | {
 }
 LICENSED_ROOT = "/api/v1/concept/mdr_29_0"
 # The forms besides the concept itself that the licensed tools ask for (X-19), with their
-# answers: the child, a batch (both concepts, whatever is listed: the placeholder set is
-# two concepts), a search, and each concept's children and descendants, so that a walk down
+# answers: the child, a batch and a search (both concepts, whatever is asked: the placeholder
+# set is two concepts), and each concept's children and descendants, so that a walk down
 # from the concept reaches the child whichever form it uses.
 LICENSED_PATHS = {
     "child": (f"{LICENSED_ROOT}/10000001", LICENSED_CHILD),
     "batch": (LICENSED_ROOT, [LICENSED_CONCEPT, LICENSED_CHILD]),
     "search": (
         f"{LICENSED_ROOT}/search",
-        {"total": 1, "timeTaken": 1, "concepts": [LICENSED_CONCEPT]},
+        {"total": 2, "timeTaken": 1, "concepts": [LICENSED_CONCEPT, LICENSED_CHILD]},
     ),
     "children": (f"{LICENSED_ROOT}/10000000/children", LICENSED_CONCEPT["children"]),
     "descendants": (

@@ -113,6 +113,8 @@ EVS = os.environ["NCI_SI_EVS_BASE_URL"]
 TIMEOUT = float(os.environ.get("NCI_SI_TIMEOUT_SECONDS", "10"))
 LICENCE_KEY = os.environ.get("NCI_SI_EVS_LICENSE_KEY")
 LICENSED = {"mdr"}
+# The licensed placeholder concept and its child (license/restricted).
+LICENSED_CODES = ["10000000", "10000001"]
 # What an upstream request that got no HTTP answer counts as.
 CLOSED, TIMED_OUT = 0, -1
 # How an unknown release is reported: by a tool without a pinned form, as a mismatch (X-2).
@@ -371,9 +373,7 @@ def _items(name: str, provenance: dict, codes: tuple[str, str] = ("C4817", "C326
     code = f"NCIT:{code}" if DEFECT == "prefixed-code" else code
     items = [{"code": code, "terminology": "ncit", "provenance": provenance}]
     if TOOLS[name].get("traversal"):
-        how = {"relationship": {"code": "R101"}, "direction": "outward", "polarity": "positive"}
-        if DEFECT == "no-polarity":
-            del how["polarity"]
+        how = _how()
         items[0]["provenance"] = provenance | {"depth": 0}
         depth = 0 if DEFECT == "nothing-reached" else 1
         items.append(
@@ -404,7 +404,7 @@ def _content(name: str, arguments: dict, correlation: str) -> object:
     if DEFECT == "invalid-result":
         return {"error": "not an error record"}
     provenance = _provenance(name, arguments, correlation)
-    items = [] if _matches_nothing(name, arguments) else _page(name, arguments, provenance)
+    items = _items_of_call(name, arguments, provenance)
     if DEFECT == "list-result":
         return items
     content = _shaped(name, items)
@@ -412,6 +412,34 @@ def _content(name: str, arguments: dict, correlation: str) -> object:
     if not items and DEFECT != "empty-without-provenance":
         content["provenance"] = provenance
     return content | _truncation(name, arguments) | _next_cursor(name, arguments, items)
+
+
+def _items_of_call(name: str, arguments: dict, provenance: dict) -> list[dict]:
+    if _matches_nothing(name, arguments):
+        return []
+    if arguments.get("terminology") in LICENSED:
+        return _licensed_items(name, arguments, provenance)
+    return _page(name, arguments, provenance)
+
+
+def _licensed_items(name: str, arguments: dict, provenance: dict) -> list[dict]:
+    """The licensed concepts a call asks for: its code or codes, both placeholders for a search;
+    a traversal reaches the child of 10000000 (license/restricted)."""
+
+    if TOOLS[name].get("traversal"):
+        reached = provenance | {"depth": 1} | _how()
+        return [{"code": "10000001", "terminology": "mdr", "provenance": reached}]
+    codes = [arguments["code"]] if "code" in arguments else arguments.get("codes", LICENSED_CODES)
+    return [{"code": code, "terminology": "mdr", "provenance": provenance} for code in codes]
+
+
+def _how() -> dict:
+    """How an item reached by traversal was reached."""
+
+    how = {"relationship": {"code": "R101"}, "direction": "outward", "polarity": "positive"}
+    if DEFECT == "no-polarity":
+        del how["polarity"]
+    return how
 
 
 def _page(name: str, arguments: dict, provenance: dict) -> list[dict]:
