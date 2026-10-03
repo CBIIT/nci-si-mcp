@@ -1,11 +1,37 @@
 """What the self-tests that run the suite against compliant_server.py share: a copy of the
-suite and its fixture set, and the outcome of each test of a run."""
+suite and its fixture set, and the outcome of each test of a run. And the sharding by which CI
+runs the self-tests in several jobs at once."""
 
 import json
+import os
 import sys
 from pathlib import Path
 
 import pytest
+
+# "i/n": run the i-th of n shards of the self-tests (CI's selftest jobs).
+SHARD_VARIABLE = "SELFTEST_SHARD"
+
+
+def shard(nodeids: list[str], spec: str) -> set[str]:
+    """The node ids of shard `spec`, "i/n": every n-th in order from the i-th, so that the n
+    shards share the tests out evenly, a parametrized test's cases over all of them, and
+    together hold each test once."""
+
+    index, count = (int(part) for part in spec.split("/"))
+    if not 1 <= index <= count:
+        raise ValueError(f"{SHARD_VARIABLE}={spec}: the shard is one of 1 to {count}")
+    return set(sorted(nodeids)[index - 1 :: count])
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    spec = os.environ.get(SHARD_VARIABLE)
+    if not spec:
+        return
+    kept = shard([item.nodeid for item in items], spec)
+    config.hook.pytest_deselected(items=[item for item in items if item.nodeid not in kept])
+    items[:] = [item for item in items if item.nodeid in kept]
+
 
 SUITE = Path(__file__).parent.parent / "tests"
 COMPLIANT_SERVER = Path(__file__).parent / "compliant_server.py"
