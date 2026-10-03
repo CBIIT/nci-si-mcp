@@ -35,7 +35,13 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
 SUITE = Path(__file__).parent.parent / "tests"
 COMPLIANT_SERVER = Path(__file__).parent / "compliant_server.py"
-VERSION = {"surface": "evs", "method": "GET", "path": "/api/v1/version"}
+# Any parameters: the compliant server sends a call's free text as parameters (A7.7).
+VERSION = {
+    "surface": "evs",
+    "method": "GET",
+    "path": "/api/v1/version",
+    "ignored": {"*": "the compliant server's free text"},
+}
 LICENCE_KEY = "selftest-licence-key"
 CURRENT = {"status": 200, "body": {"version": "26.09d"}}
 # MedDRA's licence text in the listing, and the text given with the content under

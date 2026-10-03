@@ -127,6 +127,12 @@ X-21:
 X-22:
   statement: A call that leaves out a release the tool requires is an invalid request; the server never chooses the release for it.
   basis: [A3.1, A2.5]
+X-23:
+  statement: An identifier that does not match the form its tool states (patterns), a release among them, is an invalid request, and no upstream request carries it; a code of a terminology without a stated form reaches the platform as one encoded path segment. A release of that form the platform does not serve stays release_not_available (X-2).
+  basis: [A7.6, A2.5]
+X-24:
+  statement: Free text reaches the platform as one parameter value or body field equal to what the caller gave, never split into parameters, cut at a fragment, or written into a path or a query text.
+  basis: [A7.7]
 
 # EVS tools.
 resolve_release-1:

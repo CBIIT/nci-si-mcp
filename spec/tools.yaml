@@ -22,6 +22,12 @@
 # `lists` gives the most elements an input list takes in one call; a longer list is an
 # invalid request, since dropping a caller's input would answer another question (A5.2).
 #
+# `patterns` gives the published form of each identifier argument that goes into an upstream
+# path or query text (A7.6), as a regular expression the whole value matches; a mapping by
+# terminology where only some terminologies publish one (NCIt codes). An identifier of another
+# terminology is sent as one encoded path segment. `free_text` names the arguments that are
+# free text (A7.7); `entities[].name` is the name of each element of `entities`.
+#
 # `not_offered` names what the platform has and the tool does not expose: argument values
 # under the argument's name, and platform features under a name of their own (`evs_type`,
 # EVS search types no mode maps to). No description or schema shows one as a value (P-11).
@@ -36,12 +42,17 @@
 resolve_release:
   group: evs
   inputs: (terminology, channel?)
+  patterns: {terminology: &terminology "^[a-z][a-z0-9_]*$"}
   returns: "{ terminology, channel, version, date, alternatives[] }"
   items: ["."]
   summary: Which release of a terminology is current, by channel (without one, the channel configured, A3.6.2); called explicitly, and its answer is passed to every later call.
 get_concept:
   group: evs
   inputs: (terminology, release, code, include[]?)
+  patterns:
+    terminology: *terminology
+    release: &release "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    code: &code {ncit: &ncit_code "^C[1-9][0-9]*$"}
   returns: concept
   items: ["."]
   values: {include: [synonyms, definitions, properties, semanticType]}
@@ -50,6 +61,7 @@ get_concept:
 get_concepts:
   group: evs
   inputs: (terminology, release, codes[], include[]?)
+  patterns: {terminology: *terminology, release: *release, codes: *code}
   returns: "{ concepts[], missing[] }"
   items: ["concepts[]"]
   values: {include: [synonyms, definitions, properties, semanticType]}
@@ -57,6 +69,8 @@ get_concepts:
 search_concepts:
   group: evs
   inputs: (terminology, release, query, mode?, limit?, cursor?, retired?)
+  patterns: {terminology: *terminology, release: *release}
+  free_text: [query]
   returns: "{ results[{ concept, score?, matchedOn? }], nextCursor?, totalKnown? }"
   items: ["results[].concept"]
   values: {mode: [lexical, typeahead, semantic, hybrid], retired: [include, only]}
@@ -75,6 +89,7 @@ search_concepts:
 get_concept_hierarchy:
   group: evs
   inputs: (terminology, release, code, direction, depth?, limit?, cursor?)
+  patterns: {terminology: *terminology, release: *release, code: *code}
   returns: "{ nodes[], paths[]?, truncation, nextCursor? }"
   items: ["nodes[]"]
   traversal: true
@@ -90,6 +105,7 @@ get_concept_hierarchy:
 expand_value_set:
   group: evs
   inputs: (terminology, release, valueSet | code, count?, offset?, activeOnly?)
+  patterns: {terminology: *terminology, release: *release, code: *code}
   returns: "{ members[], total, truncation }"
   items: ["members[]"]
   summary: >-
@@ -99,6 +115,7 @@ expand_value_set:
 get_concept_neighborhood:
   group: evs
   inputs: (terminology, release, code, depth?, kinds[]?, maxNodes?, maxEdges?, budgetPerKind?, includeNegative?)
+  patterns: {terminology: *terminology, release: *release, code: *code}
   returns: "{ nodes[], edges[], truncation }"
   items: ["nodes[]", "edges[]"]
   traversal: true
@@ -119,12 +136,14 @@ get_concept_neighborhood:
 get_concept_subsets:
   group: evs
   inputs: (terminology, release, code)
+  patterns: {terminology: *terminology, release: *release, code: *code}
   returns: "{ subsets[] }"
   items: ["subsets[]"]
   summary: The subsets a concept belongs to.
 get_concept_mappings:
   group: evs
   inputs: (terminology, release, code, targetTerminology?)
+  patterns: {terminology: *terminology, release: *release, code: *code}
   returns: "{ mappings[] }"
   items: ["mappings[]"]
   summary: >-
@@ -135,6 +154,7 @@ get_concept_mappings:
 resolve_retired_code:
   group: evs
   inputs: (terminology, release, code)
+  patterns: {terminology: *terminology, release: *release, code: *code}
   returns: "{ code, terminology, active, status?, replacements[] }"
   items: [".", "replacements[]"]
   summary: >-
@@ -144,6 +164,7 @@ resolve_retired_code:
 list_relationships:
   group: evs
   inputs: (terminology, release)
+  patterns: {terminology: *terminology, release: *release}
   returns: "{ relationships[] }"
   items: ["relationships[]"]
   summary: The relationship catalogue of a release, polarity marked by code.
@@ -164,6 +185,8 @@ resolve_registry_release:
 get_data_element:
   group: cadsr
   inputs: (publicId | longName | questionText, version?, include[]?, registryRelease?)
+  patterns: {publicId: &registry_id "^[1-9][0-9]*$", version: &registry_version "^[0-9]+([.][0-9]+)?$"}
+  free_text: [longName, questionText]
   returns: data_element
   items: ["."]
   values: {include: [permissibleValues, valueDomain, conceptAssociations, alternateNames, classificationSchemes]}
@@ -176,6 +199,7 @@ get_data_element:
 search_data_elements:
   group: cadsr
   inputs: (query, mode?, filters?, limit?, cursor?, registryRelease?)
+  free_text: [query]
   returns: "{ results[{ dataElement, score?, matchedOn? }], nextCursor?, totalKnown?, truncation }"
   items: ["results[].dataElement"]
   values: {mode: [lexical, semantic, hybrid], filters: [context, workflowStatus, registrationStatus, valueDomainType]}
@@ -189,6 +213,7 @@ search_data_elements:
 match_data_elements:
   group: cadsr
   inputs: "(entities[{ name, userTip?, permissibleValues[]? }], matchLimit?, modelVariant?, similarityThreshold?, filters?, registryRelease?)"
+  free_text: ["entities[].name", "entities[].userTip", "entities[].permissibleValues[]"]
   returns: "{ matches[data_element_match] }"
   items: ["matches[].dataElement"]
   values: {filters: [context, workflowStatus, registrationStatus, classificationScheme, valueDomainType]}
@@ -205,6 +230,7 @@ match_data_elements:
 match_value_meanings:
   group: cadsr
   inputs: (values[], strictness?, terminologyScope?, registryRelease?)
+  free_text: ["values[]"]
   returns: "{ matches[value_meaning_match] }"
   items: ["matches[].item"]
   values: {strictness: [restricted, unrestricted]}
@@ -219,6 +245,8 @@ match_value_meanings:
 get_form:
   group: cadsr
   inputs: (publicId? | keyword?, version?, includeModules?, registryRelease?)
+  patterns: {publicId: *registry_id, version: *registry_version}
+  free_text: [keyword]
   returns: form
   items: ["."]
   defaults: {includeModules: true}
@@ -229,6 +257,7 @@ get_form:
 get_permissible_value:
   group: cadsr
   inputs: (permissibleValueId, registryRelease?)
+  patterns: {permissibleValueId: *registry_id}
   returns: permissible_value
   items: ["."]
   summary: >-
@@ -237,6 +266,7 @@ get_permissible_value:
 get_code_map:
   group: cadsr
   inputs: (sourceSystem?, targetContext?, dataElementId?, limit?, cursor?, registryRelease?)
+  patterns: {dataElementId: *registry_id}
   returns: "{ codeMaps[code_map], nextCursor? }"
   items: ["codeMaps[]"]
   values: {sourceSystem: [CRDC]}
@@ -266,6 +296,7 @@ list_classification_schemes:
 find_data_elements_for_concept:
   group: cross-domain
   inputs: (conceptCode, terminology?, release, expandDescendants?, includePermissibleValues?, limit?, cursor?)
+  patterns: {release: *release, conceptCode: *ncit_code}
   returns: "{ dataElements[data_element_use], permissibleValues[value_use]?, truncation, nextCursor? }"
   items: ["dataElements[]", "permissibleValues[]"]
   values: {terminology: [ncit]}
@@ -281,6 +312,8 @@ find_data_elements_for_concept:
 get_concept_for_permissible_value:
   group: cross-domain
   inputs: "(permissibleValueId | { dataElementId, value }, release)"
+  patterns: {release: *release, dataElementId: *registry_id, permissibleValueId: *registry_id}
+  free_text: [value]
   returns: "concept, with permissibleValue { dataElement { publicId, version }, value }"
   items: ["."]
   summary: >-
@@ -291,6 +324,7 @@ get_concept_for_permissible_value:
 resolve_stored_value:
   group: cross-domain
   inputs: (conceptCode, commons, release, dataElementId?)
+  patterns: {release: *release, conceptCode: *ncit_code, dataElementId: *registry_id}
   returns: "{ storedValues[stored_value], confidence, evidence }"
   items: ["storedValues[]"]
   summary: >-
@@ -318,6 +352,8 @@ get_release_alignment:
 ground_value:
   group: workflow
   inputs: (conceptCode | text, commons?, release, registryRelease?)
+  patterns: {release: *release, conceptCode: *ncit_code}
+  free_text: [text]
   returns: "{ concept, dataElements[data_element_use], permissibleValues[value_use], storedValues[stored_value], provenance, truncation }"
   items: ["concept", "dataElements[]", "permissibleValues[]", "storedValues[]"]
   summary: >-
@@ -328,6 +364,7 @@ ground_value:
 expand_cohort:
   group: workflow
   inputs: (conceptCode, release, maxDepth?, includeNegative?, maxNodes?)
+  patterns: {release: *release, conceptCode: *ncit_code}
   returns: "{ codes[], excluded[excluded_code], edges[edge], truncation, provenance }"
   items: ["edges[]", "excluded[]"]
   traversal: true
@@ -343,6 +380,7 @@ expand_cohort:
 harmonize_data_dictionary:
   group: workflow
   inputs: "(columns[{ name, description?, sampleValues[]? }], registryRelease?, filters?)"
+  free_text: ["columns[].name", "columns[].description", "columns[].sampleValues[]"]
   returns: "{ columns[{ name, matches[data_element_match], permissibleValueAlignment[value_meaning_match] }], unmatched[], provenance }"
   items: ["columns[].matches[].dataElement"]
   computed: true

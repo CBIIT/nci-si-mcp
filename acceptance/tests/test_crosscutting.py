@@ -7,6 +7,7 @@ import re
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import parse_qs, unquote, unquote_plus
 
 import pytest
 import yaml
@@ -15,7 +16,14 @@ from jsonschema import Draft202012Validator
 from nci_si_acceptance.client import CREDENTIAL_VARIABLES
 from nci_si_acceptance.craft import LICENCE_FIELD
 from nci_si_acceptance.results import error_code, identity, pinned_release, release_of
-from nci_si_acceptance.spec import RECORDS, TOOLS, defaults, items_of, parameters
+from nci_si_acceptance.spec import (
+    RECORDS,
+    TOOLS,
+    alternatives,
+    defaults,
+    items_of,
+    parameters,
+)
 
 CALLS = yaml.safe_load((Path(__file__).parent / "calls.yaml").read_text(encoding="utf-8"))
 FIELDS = RECORDS["provenance"]["fields"] | RECORDS["traversal"]["fields"]
@@ -834,3 +842,168 @@ def test_no_item_carries_licence_text_the_platform_did_not_give_with_it(tools, r
 @pytest.mark.parametrize("name", PINNED)
 def test_an_item_the_platform_gave_no_licence_text_with_carries_none(tools, pinned, name):
     assert _attributed(_items(tools, pinned, name)) == []
+
+
+# Hostile forms of a well-formed identifier (X-23): a path climb, a query of its own, a fragment,
+# a SPARQL clause, and a bare climb. Each is off any form tools.yaml states.
+HOSTILE_FORMS = ["{}/../../x", "{}?include=full", "{}#x", "{}> }} UNION {{ ?s ?p ?o }}", "../"]
+
+
+def _pinned_call(name, pinned):
+    """The tool's call in calls.yaml with the fixture set's pin where the tool takes one."""
+
+    taken = parameters(name)[0]
+    return {key: value for key, value in pinned.items() if key in taken} | CALLS[name]["arguments"]
+
+
+def _identifiers():
+    """Each hostile form of each identifier argument with a stated form that a call gives (the
+    pin's terminology and release included)."""
+
+    pin = {"terminology", "release"}
+    return [
+        pytest.param(name, argument, form, id=f"{name}-{argument}-{index}", marks=_marks(name, {}))
+        for name in CALLS
+        for argument in TOOLS[name].get("patterns", {})
+        if argument in CALLS[name]["arguments"] or argument in pin
+        for index, form in enumerate(HOSTILE_FORMS)
+    ]
+
+
+def _form(name, argument, arguments):
+    """The form `argument` takes in this call: by the call's terminology where the form is."""
+
+    form = TOOLS[name]["patterns"][argument]
+    return form.get(arguments.get("terminology")) if isinstance(form, dict) else form
+
+
+def _strings(entry):
+    """Everything a logged upstream request says, decoded: its path, parameters and body."""
+
+    body = entry["body"] or ""
+    params = [value for values in entry["params"].values() for value in values]
+    return [entry["path"], unquote(entry["raw"]), *params, body, unquote_plus(body)]
+
+
+@pytest.mark.unmatched_upstream
+@pytest.mark.requirement("X-23")
+@pytest.mark.parametrize(("name", "argument", "form"), _identifiers())
+def test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it(
+    tools, upstream, pinned, name, argument, form
+):
+    arguments = _pinned_call(name, pinned)
+    given = arguments[argument]
+    valid = given[0] if isinstance(given, list) else given
+    hostile = form.format(valid)
+    pattern = _form(name, argument, arguments)
+    # The call's own value has the form and the hostile one does not, or the case shows nothing.
+    assert (bool(re.fullmatch(pattern, valid)), re.fullmatch(pattern, hostile)) == (True, None)
+
+    result = tools.call(
+        name, arguments | {argument: [hostile] if isinstance(given, list) else hostile}
+    )
+
+    assert error_code(result) == "invalid_request", result.content
+    carrying = [
+        entry for entry in upstream.log() if any(hostile in each for each in _strings(entry))
+    ]
+    assert carrying == []
+
+
+# A code with a slash, which a path would read as two segments.
+SLASHED = "8001/3"
+
+
+@pytest.mark.unmatched_upstream
+@pytest.mark.requirement("X-23")
+@pytest.mark.tool("get_concept")
+def test_a_code_of_a_terminology_without_a_stated_form_goes_upstream_as_one_segment(
+    tools, upstream, recorded
+):
+    rows = recorded("recorded/evs/terminologies.json")["response"]["body"]
+    formed = TOOLS["get_concept"]["patterns"]["code"]
+    row = min(
+        (row for row in rows if row["terminology"] not in formed),
+        key=lambda row: row["terminology"],
+    )
+    arguments = {"terminology": row["terminology"], "release": row["version"], "code": SLASHED}
+
+    tools.call("get_concept", arguments)
+
+    raws = [entry["raw"] for entry in upstream.log()]
+    encoded = [raw for raw in raws if re.search(r"/8001%2[Ff]3(?:[/?]|$)", raw)]
+    assert (bool(encoded), [raw for raw in raws if f"/{SLASHED}" in raw]) == (True, []), raws
+
+
+# Free text that would change a request if it were not sent as one encoded value (X-24): a
+# parameter, a fragment, a path climb and quotes. Every value that holds its climb must be it.
+HOSTILE_TEXT = "a&mode=x #b /../c \"d' e"
+MARKER = "/../c"
+
+
+def _texts():
+    return [
+        pytest.param(name, path, id=f"{name}-{path}", marks=_marks(name, {}))
+        for name in CALLS
+        for path in TOOLS[name].get("free_text", [])
+    ]
+
+
+def _with_text(arguments, path, text):
+    """`arguments` with `text` at `path`: a parameter (`query`), the one element of a list
+    parameter (`values[]`), or a field of a list parameter's one element (`entities[].name`,
+    `entities[].permissibleValues[]`)."""
+
+    root, listed, field = path.partition("[]")
+    if not listed:
+        return arguments | {root: text}
+    field = field.removeprefix(".")
+    if not field:
+        return arguments | {root: [text]}
+    name = field.removesuffix("[]")
+    element = (arguments.get(root) or [{}])[0]
+    return arguments | {root: [element | {name: [text] if field.endswith("[]") else text}]}
+
+
+def _values(entry):
+    """The values a logged upstream request carries: its path, each parameter value, and each
+    field of its body (a form's or a JSON document's), or the body as sent."""
+
+    params = [value for values in entry["params"].values() for value in values]
+    return [entry["path"], *params, *_body_values(entry)]
+
+
+def _body_values(entry):
+    body = entry["body"] or ""
+    kind = {key.lower(): value for key, value in entry["headers"].items()}.get("content-type", "")
+    if "form" in kind:
+        return [value for values in parse_qs(body).values() for value in values]
+    try:
+        return list(_json_strings(json.loads(body)))
+    except ValueError:
+        return [body]
+
+
+def _json_strings(value):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict | list):
+        for each in value.values() if isinstance(value, dict) else value:
+            yield from _json_strings(each)
+
+
+@pytest.mark.unmatched_upstream
+@pytest.mark.requirement("X-24")
+@pytest.mark.parametrize(("name", "path"), _texts())
+def test_free_text_reaches_the_platform_as_one_value_equal_to_it(
+    tools, upstream, pinned, name, path
+):
+    left_out = alternatives(name, path.partition("[")[0])
+    arguments = {
+        key: value for key, value in _pinned_call(name, pinned).items() if key not in left_out
+    }
+
+    tools.call(name, _with_text(arguments, path, HOSTILE_TEXT))
+
+    holding = {value for entry in upstream.log() for value in _values(entry) if MARKER in value}
+    assert holding == {HOSTILE_TEXT}

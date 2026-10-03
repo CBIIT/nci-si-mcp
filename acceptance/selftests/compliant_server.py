@@ -68,6 +68,10 @@ requirements, for the harness's own tests.
     empty-with-cursor a query that matches nothing answered with nextCursor          (X-4)
     raised-to-one     a bounded argument below one served as one                    (X-18)
     release-defaulted a call without its required release served all the same        (X-22)
+    unchecked-identifiers an identifier off its stated form served as given          (X-23)
+    checks-after-asking an identifier off its form refused only after a request carried it (X-23)
+    unencoded-code    a code put into the path as it is, a slash in it included     (X-23)
+    unencoded-text    free text put into the query string as it is, but for spaces  (X-24)
     joins-listing     a licensed item with the listing's licence text, given or not (X-19)
     attribution-everywhere every item with the listing's licence text, NCIt's included (X-19)
     drops-attribution the licence text EVS gives with an item left out             (X-19)
@@ -97,6 +101,7 @@ text EVS's answer gives with the concept asked for, and none of its own.
 
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -104,6 +109,7 @@ import urllib.request
 from datetime import UTC, datetime
 from http import HTTPStatus
 from pathlib import Path
+from urllib.parse import quote, urlencode
 
 import anyio
 import mcp_types as types
@@ -151,20 +157,43 @@ def _ask(path: str, headers: dict[str, str]) -> tuple[int, dict, dict]:
         return (TIMED_OUT if isinstance(reason, TimeoutError) else CLOSED), {}, {}
 
 
-def _request(arguments: dict, correlation: str) -> tuple[str, dict[str, str]]:
-    """The path a call asks EVS for, and its headers: the licence key with every request for
-    licensed content, the only requests this server sends EVS's content paths."""
+def _request(name: str, arguments: dict, correlation: str) -> tuple[str, dict[str, str]]:
+    """The path a call asks EVS for, its free text as parameters (A7.7), and its headers: for
+    NCIt the release query; for another terminology the concept, its code one encoded segment
+    (A7.6), with the licence key where the terminology is licensed."""
 
     headers = {} if DEFECT == "no-correlation" else {"X-Correlation-ID": correlation}
     terminology = arguments.get("terminology")
-    if terminology not in LICENSED:
-        return "/api/v1/version", headers
+    texts = _texts(name, arguments)
+    if terminology in (None, "ncit"):
+        return "/api/v1/version" + texts, headers
+    if terminology in LICENSED:
+        _licensed_headers(headers)
+    # The concept a call names, the first of the codes it names, or else the search.
+    code = arguments.get("code") or next(iter(arguments.get("codes", [])), "search")
+    segment = code if DEFECT == "unencoded-code" else quote(code, safe="")
+    return f"/api/v1/concept/{terminology}_{arguments.get('release')}/{segment}{texts}", headers
+
+
+def _licensed_headers(headers: dict[str, str]) -> None:
     if LICENCE_KEY and DEFECT != "keyless":
         headers["X-EVSRESTAPI-License-Key"] = LICENCE_KEY
     _leak(headers)
-    # The concept a call names, the first of the codes it names, or else the search.
-    code = arguments.get("code") or next(iter(arguments.get("codes", [])), "search")
-    return f"/api/v1/concept/{terminology}_{arguments.get('release')}/{code}", headers
+
+
+def _texts(name: str, arguments: dict) -> str:
+    """The call's free-text arguments as a query string, each one encoded value."""
+
+    texts = {
+        key: arguments[key]
+        for key in TOOLS[name].get("free_text", [])
+        if isinstance(arguments.get(key), str)
+    }
+    if not texts:
+        return ""
+    if DEFECT == "unencoded-text":
+        return "?" + "&".join(f"{key}={text.replace(' ', '%20')}" for key, text in texts.items())
+    return "?" + urlencode(texts)
 
 
 def _leak(headers: dict[str, str]) -> None:
@@ -177,10 +206,10 @@ def _leak(headers: dict[str, str]) -> None:
         (Path(os.environ["NCI_SI_DATA_DIR"]) / "requests.txt").write_text(str(headers))
 
 
-def _asked(arguments: dict, correlation: str) -> tuple[int, dict]:
+def _asked(name: str, arguments: dict, correlation: str) -> tuple[int, dict]:
     """EVS's answer to a call, after one wait and retry on 429 (A6.5)."""
 
-    path, headers = _request(arguments, correlation)
+    path, headers = _request(name, arguments, correlation)
     status, body, answer_headers = _ask(path, headers)
     if status == HTTPStatus.TOO_MANY_REQUESTS and DEFECT != "gives-up":
         time.sleep(0 if DEFECT == "no-backoff" else float(answer_headers.get("Retry-After", 0)))
@@ -568,9 +597,31 @@ def _refusal(name: str, arguments: dict, correlation: str) -> dict | None:
         _cursor_refused(name, arguments)
         or _below_one(name, arguments)
         or _unpinned(name, arguments)
+        or _malformed(name, arguments)
     ):
         return _error("invalid_request", HTTPStatus.BAD_REQUEST, {}, correlation)
     return None
+
+
+def _malformed(name: str, arguments: dict) -> bool:
+    """Whether an identifier is off the form its tool states (A7.6)."""
+
+    if DEFECT == "unchecked-identifiers":
+        return False
+    forms = TOOLS[name].get("patterns", {}).items()
+    off = [key for key, form in forms if not _formed(form, arguments, key)]
+    if off and DEFECT == "checks-after-asking":
+        _ask("/api/v1/version?" + urlencode({"probe": json.dumps(arguments)}), {})
+    return bool(off)
+
+
+def _formed(form: str | dict, arguments: dict, key: str) -> bool:
+    """Whether the argument has its form: by the call's terminology where the form is."""
+
+    pattern = form.get(arguments.get("terminology")) if isinstance(form, dict) else form
+    given = arguments.get(key)
+    values = given if isinstance(given, list) else [given]
+    return pattern is None or given is None or all(re.fullmatch(pattern, str(v)) for v in values)
 
 
 def _unpinned(name: str, arguments: dict) -> bool:
@@ -592,7 +643,7 @@ def _answer(name: str, arguments: dict, correlation: str) -> tuple[object, bool]
     if refusal := _refusal(name, arguments, correlation):
         return refusal, True
     if call not in answered and DEFECT != "asks-nothing":
-        status, body = _asked(arguments, correlation)
+        status, body = _asked(name, arguments, correlation)
         if code := _failure(status, body, arguments):
             if code == SWALLOWED.get(DEFECT):
                 return {}, False

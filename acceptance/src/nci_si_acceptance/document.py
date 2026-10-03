@@ -101,10 +101,28 @@ def _limits(tool: dict[str, Any]) -> str:
         f" `{argument}`: at most {count} a call."
         for argument, count in tool.get("lists", {}).items()
     )
-    return limits + "".join(
+    limits += "".join(
         f" Not offered, `{key}`: {', '.join(values)}."
         for key, values in tool.get("not_offered", {}).items()
     )
+    return limits + _forms(tool)
+
+
+def _forms(tool: dict[str, Any]) -> str:
+    """The forms a tool's identifier arguments take, and its free-text arguments (A7.6, A7.7)."""
+
+    forms = "".join(
+        f" `{argument}` form{_by_terminology(form)}."
+        for argument, form in tool.get("patterns", {}).items()
+    )
+    texts = tool.get("free_text", [])
+    return forms + (f" Free text: {', '.join(f'`{path}`' for path in texts)}." if texts else "")
+
+
+def _by_terminology(form: str | dict[str, str]) -> str:
+    if isinstance(form, str):
+        return f" `{form}`"
+    return "".join(f" for {terminology} `{pattern}`" for terminology, pattern in form.items())
 
 
 def _tool_row(name: str, tool: dict[str, Any]) -> str:

@@ -686,6 +686,9 @@ class FixtureServer:
         surface, _, rest = unquote(url.path).removeprefix("/").partition("/")
         path, params = f"/{rest}", parse_qs(url.query, keep_blank_values=True)
         entry = {"surface": surface, "method": method, "path": path, "params": params}
+        # The path and query as sent, undecoded: an encoded / and a literal one match alike,
+        # and only this tells them apart (A7.6).
+        entry["raw"] = "/" + target.removeprefix("/").partition("/")[2]
         entry["received_at"] = time.monotonic()
         with self._lock:
             where = (surface, method.upper(), path)

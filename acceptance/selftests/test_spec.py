@@ -14,6 +14,7 @@ from nci_si_acceptance.spec import (
     REQUIRED_TOOLS,
     SPEC,
     TOOLS,
+    alternatives,
     defaults,
     items_of,
     parameters,
@@ -173,8 +174,25 @@ def _returned_fields(tool):
 def test_what_a_tool_states_of_its_arguments_and_items_names_what_it_takes_and_returns(tool):
     entry, (names, _) = TOOLS[tool], parameters(tool)
     stated = {*entry.get("defaults", {}), *entry.get("bounds", {}), *entry.get("values", {})}
+    stated |= {*entry.get("patterns", {})}
+    # A free-text path names a parameter, and within a list's elements a field of them.
+    texts = {path.partition("[")[0] for path in entry.get("free_text", [])}
     steps = {step.removesuffix("[]") for path in entry.get("items", []) for step in path.split(".")}
 
-    assert stated - names == set()
+    assert (stated | texts) - names == set()
     assert set(entry.get("lists", {})) - _list_inputs(tool) == set()
     assert steps - {""} - _returned_fields(tool) == set()
+
+
+@pytest.mark.parametrize(
+    ("tool", "name", "others"),
+    [
+        ("get_data_element", "longName", {"publicId", "questionText"}),
+        # value is given together with dataElementId, in place of permissibleValueId.
+        ("get_concept_for_permissible_value", "value", {"permissibleValueId"}),
+        ("get_concept_for_permissible_value", "permissibleValueId", {"dataElementId", "value"}),
+        ("search_concepts", "query", set()),
+    ],
+)
+def test_the_alternatives_of_a_parameter_are_those_given_in_its_place(tool, name, others):
+    assert alternatives(tool, name) == others

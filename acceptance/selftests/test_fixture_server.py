@@ -101,6 +101,16 @@ def test_query_parameters_match_decoded_and_in_any_order(server):
     assert server.log()[0]["params"] == {"include": ["summary"], "list": ["C1,C2"]}
 
 
+def test_the_log_keeps_the_request_as_sent_beside_its_decoded_path(server):
+    fetch(server.base_url("evs") + "/api/v1/concept/icd10cm_2026/8001%2F3?term=a%26b")
+    fetch(server.base_url("evs") + "/api/v1/concept/icd10cm_2026/8001/3")
+
+    encoded, literal = server.log()
+    assert encoded["path"] == literal["path"] == "/api/v1/concept/icd10cm_2026/8001/3"
+    assert encoded["raw"] == "/api/v1/concept/icd10cm_2026/8001%2F3?term=a%26b"
+    assert literal["raw"] == "/api/v1/concept/icd10cm_2026/8001/3"
+
+
 def test_a_blank_parameter_is_part_of_the_request(server):
     status, _, _ = fetch(server.base_url("evs") + "/api/v1/version?q=")
 
