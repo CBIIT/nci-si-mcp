@@ -159,11 +159,12 @@ def _cohort_parts(tools, pinned):
 def test_the_cohort_is_the_concept_and_its_descendants_less_its_own_exclusions(
     tools, pinned, negative
 ):
+    # The tool asked about first: a server without it shows NOT IMPLEMENTED, whatever the
+    # tools it is compared with return.
+    content = _ok(tools.call(COHORT, pinned | {"conceptCode": EWING, "includeNegative": negative}))
     descendants, exclusions = _cohort_parts(tools, pinned)
     # The scenario's concept excludes one of its own descendants, so withholding shows.
     assert descendants & set(exclusions)
-
-    content = _ok(tools.call(COHORT, pinned | {"conceptCode": EWING, "includeNegative": negative}))
 
     members = {EWING} | descendants
     assert set(content["codes"]) == (members if negative else members - set(exclusions))
