@@ -4,7 +4,7 @@
  "request": {
   "surface": "evs",
   "method": "GET",
-  "path": "/api/v1/concept/mdr_29_0/10000000",
+  "path": "/api/v1/concept/mdr_29_0/10000001",
   "headers": {
    "X-EVSRESTAPI-License-Key": "acceptance-licence-key"
   },
@@ -15,18 +15,19 @@
  "response": {
   "status": 200,
   "body": {
-   "code": "10000000",
-   "name": "Placeholder licensed term",
+   "code": "10000001",
+   "name": "Placeholder licensed child",
    "terminology": "mdr",
    "version": "29_0",
    "conceptStatus": "DEFAULT",
-   "leaf": false,
+   "leaf": true,
    "active": true,
-   "children": [
+   "children": [],
+   "parents": [
     {
-     "code": "10000001",
-     "name": "Placeholder licensed child",
-     "leaf": true
+     "code": "10000000",
+     "name": "Placeholder licensed term",
+     "leaf": false
     }
    ]
   }

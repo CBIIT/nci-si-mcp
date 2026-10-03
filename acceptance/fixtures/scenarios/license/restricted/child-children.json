@@ -4,7 +4,7 @@
  "request": {
   "surface": "evs",
   "method": "GET",
-  "path": "/api/v1/concept/mdr_29_0/10000000/descendants",
+  "path": "/api/v1/concept/mdr_29_0/10000001/children",
   "headers": {
    "X-EVSRESTAPI-License-Key": "acceptance-licence-key"
   },
@@ -14,13 +14,6 @@
  },
  "response": {
   "status": 200,
-  "body": [
-   {
-    "code": "10000001",
-    "name": "Placeholder licensed child",
-    "leaf": true,
-    "level": 1
-   }
-  ]
+  "body": []
  }
 }

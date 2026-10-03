@@ -740,8 +740,8 @@ def test_a_bounded_argument_below_one_is_an_invalid_request(tools, pinned, name,
     assert error_code(result) == "invalid_request", result.content
 
 
-# The licensed concept as each tool that returns concept items asks for it; the concept is a
-# leaf, so the hierarchy holds it alone.
+# The licensed concept as each tool that returns concept items asks for it; the hierarchy
+# holds the concept's one child, licensed too (license/restricted).
 LICENSED_CALLS = {
     "get_concept": {"code": LICENSED["code"]},
     "get_concepts": {"codes": [LICENSED["code"]]},

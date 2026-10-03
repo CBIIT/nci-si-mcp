@@ -485,27 +485,43 @@ LICENSED_CONCEPT = {
     "terminology": "mdr",
     "version": "29_0",
     "conceptStatus": "DEFAULT",
-    "leaf": True,
+    "leaf": False,
     "active": True,
+    "children": [{"code": "10000001", "name": "Placeholder licensed child", "leaf": True}],
 }
-
-
+LICENSED_CHILD = LICENSED_CONCEPT | {
+    "code": "10000001",
+    "name": "Placeholder licensed child",
+    "leaf": True,
+    "children": [],
+    "parents": [{"code": "10000000", "name": "Placeholder licensed term", "leaf": False}],
+}
+LICENSED_ROOT = "/api/v1/concept/mdr_29_0"
 # The forms besides the concept itself that the licensed tools ask for (X-19), with their
-# answers: a batch, a search, and the leaf's children and descendants.
+# answers: the child, a batch (both concepts, whatever is listed: the placeholder set is
+# two concepts), a search, and each concept's children and descendants, so that a walk down
+# from the concept reaches the child whichever form it uses.
 LICENSED_PATHS = {
-    "batch": ("/api/v1/concept/mdr_29_0", [LICENSED_CONCEPT]),
+    "child": (f"{LICENSED_ROOT}/10000001", LICENSED_CHILD),
+    "batch": (LICENSED_ROOT, [LICENSED_CONCEPT, LICENSED_CHILD]),
     "search": (
-        "/api/v1/concept/mdr_29_0/search",
+        f"{LICENSED_ROOT}/search",
         {"total": 1, "timeTaken": 1, "concepts": [LICENSED_CONCEPT]},
     ),
-    "children": ("/api/v1/concept/mdr_29_0/10000000/children", []),
-    "descendants": ("/api/v1/concept/mdr_29_0/10000000/descendants", []),
+    "children": (f"{LICENSED_ROOT}/10000000/children", LICENSED_CONCEPT["children"]),
+    "descendants": (
+        f"{LICENSED_ROOT}/10000000/descendants",
+        [link | {"level": 1} for link in LICENSED_CONCEPT["children"]],
+    ),
+    "child-children": (f"{LICENSED_ROOT}/10000001/children", []),
+    "child-descendants": (f"{LICENSED_ROOT}/10000001/descendants", []),
 }
 
 
 def license_restricted(recorded: Recorded) -> Documents:
-    """With the licence key from configuration, a licensed concept is served, in every form a
-    tool asks for it; without it, EVS's refusal (recorded by record.py) answers."""
+    """With the licence key from configuration, a licensed concept and its child are served,
+    in every form a tool asks for them; without it, EVS's refusal (recorded by record.py)
+    answers."""
 
     requirement = "E-7, A7.5: the licence key sent from configuration"
     refusal = recorded("scenarios/license/restricted/refused.json")
@@ -517,7 +533,7 @@ def license_restricted(recorded: Recorded) -> Documents:
         },
         "scenarios/license/restricted/granted.json": crafted(
             requirement,
-            _licensed("/api/v1/concept/mdr_29_0/10000000"),
+            _licensed(f"{LICENSED_ROOT}/10000000"),
             response={"status": 200, "body": LICENSED_CONCEPT},
         ),
     }

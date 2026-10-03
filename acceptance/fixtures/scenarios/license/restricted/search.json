@@ -24,8 +24,15 @@
      "terminology": "mdr",
      "version": "29_0",
      "conceptStatus": "DEFAULT",
-     "leaf": true,
-     "active": true
+     "leaf": false,
+     "active": true,
+     "children": [
+      {
+       "code": "10000001",
+       "name": "Placeholder licensed child",
+       "leaf": true
+      }
+     ]
     }
    ]
   }

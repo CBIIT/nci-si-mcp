@@ -98,8 +98,8 @@ def test_a_scenario_states_what_it_provokes_and_a_shared_rationale_once():
 
 def test_a_crafted_scenario_names_its_requirement_and_counts_its_fixtures():
     assert section(VIEWS["evs.md"], "### `license/restricted`")[1] == (
-        "403 without the licence key; invented content with it. Recorded. Crafted, 4 fixtures, for"
-        " A7.5: EVS refuses every request for mdr without the licence key. Crafted, 5 fixtures,"
+        "403 without the licence key; invented content with it. Recorded. Crafted, 7 fixtures, for"
+        " A7.5: EVS refuses every request for mdr without the licence key. Crafted, 8 fixtures,"
         " for E-7, A7.5: the licence key sent from configuration."
     )
     assert section(VIEWS["evs.md"], "### `traversal/starvation`")[1] == (
