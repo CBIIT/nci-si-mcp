@@ -19,6 +19,9 @@ FIXTURE_ONLY = "fixture mode only"
 UNMATCHED_UPSTREAM = "unmatched_upstream"
 # A test marked so needs what the operator's prepare command produced (the interim index).
 PREPARED = "prepared"
+# A test marked so runs on a server of its own started without it, as a server finds itself
+# before its operator has prepared anything.
+UNPREPARED = "unprepared"
 NOT_PREPARED = "NOT RUN: no prepare command (NCI_SI_ACCEPTANCE_PREPARE)"
 
 

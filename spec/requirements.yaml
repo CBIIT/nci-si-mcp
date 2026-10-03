@@ -162,25 +162,23 @@ search_concepts-2:
   statement: typeahead returns the platform's prefix matches in the platform's order, with neither matchedOn nor score, since the platform gives neither.
   basis: [search_concepts, search_result, A9.2]
 search_concepts-3:
-  statement: semantic and hybrid return results from the interim index, each with a score and the field matched, and the index's release in provenance.
-  basis: [search_concepts, search_result, M4.1]
-  planned: "#53"
+  statement: semantic and hybrid return concepts of the interim index, each with a score, in descending order of score, matchedOn naming the field matched (name, synonym or definition), and provenance naming the index's release, with source evs_index and servedBy index; a query equal to a concept's preferred name returns that concept on the first page. The suite does not judge score values, the order beyond that, or which other concepts semantic search returns.
+  basis: [search_concepts, search_result, provenance, M4.1]
 search_concepts-4:
   statement: A mode the server cannot serve for the terminology asked is an invalid request, never an empty result.
   basis: [search_concepts, A2.5]
-  planned: "#53"
 search_concepts-5:
-  statement: An index built for another release than the one asked for fails closed.
+  statement: semantic and hybrid for a release other than the index's fail closed with release_mismatch, never with results of the index's release.
   basis: [search_concepts, M4.1, A3.4]
-  planned: "#53"
 search_concepts-6:
   statement: "Retired concepts are returned unless the caller asks for them alone (retired only), as the platform returns them; with only, every result is retired, by the retired status the terminology's listing names among its concept statuses; any other retired value, exclude included, is an invalid request. A8.3 is met in part, since a caller cannot ask for retired concepts to be left out, a platform dependency (A9.3) whose question is in #42."
   basis: [search_concepts, A8.3, A9.1, A9.3, A2.5]
-  planned: "#53"
 search_concepts-7:
   statement: retired only is an invalid request for a terminology whose listing names no retired status, or names one that is not among its concept statuses, as a mode the terminology cannot be searched in is (search_concepts-4); on 2 October 2026 that is every listed terminology but NCIt.
   basis: [search_concepts, A2.5, A9.5]
-  planned: "#53"
+search_concepts-8:
+  statement: Without an index, semantic and hybrid are capability_unavailable, never an empty result. The terminology is served but its index is not there yet, unlike a mode the terminology is never searched in (search_concepts-4).
+  basis: [search_concepts, M1.2, A2.5]
 get_concept_hierarchy-1:
   statement: A depth above the maximum is applied as the maximum; no node is deeper, and a hierarchy that continues below it is reported as truncation by depth, with the depth applied as the limit.
   basis: [get_concept_hierarchy, node, A5.2, A5.4]

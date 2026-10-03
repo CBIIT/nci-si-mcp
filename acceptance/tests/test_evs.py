@@ -6,11 +6,14 @@ read there is named beside it, with the fixture file that holds it.
 
 import json
 import re
+from pathlib import Path
 
 import pytest
+import yaml
 
 from nci_si_acceptance.results import error_code, requests_naming
 from nci_si_acceptance.spec import RECORDS, TOOLS, items_of
+from nci_si_acceptance.suite import index_set
 
 # Recorded in full: recorded/evs/concepts/C4817.json.
 CONCEPT = "C4817"
@@ -394,6 +397,140 @@ def test_retired_only_where_the_listing_names_no_retired_status_is_invalid(tools
     )
 
     assert error_code(result) == "invalid_request", result.content
+
+
+# The interim index: what the operator's prepare command builds from the index set (the
+# acceptance README), every concept the fixture set records with its summary.
+INDEX_SET = frozenset(
+    index_set(yaml.safe_load((Path(__file__).parent.parent / "fixtures/manifest.yaml").read_text()))
+)
+INDEX_MODES = ["semantic", "hybrid"]
+FIELDS = {"name", "synonym", "definition"}
+# Recorded at full, retired, in the index set.
+RETIRED_INDEXED = "recorded/evs/concepts/C13111.json"
+
+
+def _index_search(tools, pin, query, mode, **arguments):
+    return tools.call(
+        "search_concepts", {**pin, "query": query, "mode": mode, "limit": 10, **arguments}
+    )
+
+
+def _index_results(result):
+    assert not result.is_error, result.content
+    results = result.content.get("results", [])
+    assert results, "no result"
+    return results
+
+
+def _index_violations(results, pinned):
+    """What results of the index say against search_concepts-3, by code and check."""
+
+    release = {"terminology": pinned["terminology"], "identifier": pinned["release"]}
+    return [
+        ((entry.get("concept") or {}).get("code"), check)
+        for entry in results
+        for check, held in _index_checks(entry, release).items()
+        if not held
+    ]
+
+
+def _index_checks(entry, release):
+    """A result of the index: its concept in the index set, a number for its score, a field for
+    its matchedOn, and provenance naming the index's release, source and service."""
+
+    concept = entry.get("concept") or {}
+    provenance = concept.get("provenance") or {}
+    named = {key: (provenance.get("release") or {}).get(key) for key in release}
+    return {
+        "outside the index set": concept.get("code") in INDEX_SET,
+        "score": isinstance(entry.get("score"), (int, float)),
+        "matchedOn": entry.get("matchedOn") in FIELDS,
+        "release": named == release,
+        "source": provenance.get("source") == "evs_index",
+        "servedBy": provenance.get("servedBy") == "index",
+    }
+
+
+@pytest.mark.prepared
+@pytest.mark.tool("search_concepts")
+@pytest.mark.requirement("search_concepts-3")
+@pytest.mark.parametrize("mode", INDEX_MODES)
+def test_index_search_returns_scored_indexed_concepts_and_the_named_one_first_page(
+    tools, pinned, recorded, mode
+):
+    name = recorded(CURRENT)["response"]["body"]["name"]
+    assert CONCEPT in INDEX_SET
+
+    results = _index_results(_index_search(tools, pinned, name, mode))
+
+    assert _index_violations(results, pinned) == []
+    scores = [entry["score"] for entry in results]
+    assert scores == sorted(scores, reverse=True)
+    # A query equal to a concept's preferred name: that concept on the first page.
+    assert CONCEPT in [(entry.get("concept") or {}).get("code") for entry in results]
+
+
+@pytest.mark.tool("search_concepts")
+@pytest.mark.requirement("search_concepts-4")
+@pytest.mark.parametrize("mode", INDEX_MODES)
+def test_an_index_mode_for_a_terminology_without_an_index_is_invalid(tools, recorded, mode):
+    # GO: the index is NCIt's alone.
+    row = _listed(recorded, "go")
+    pin = {"terminology": row["terminology"], "release": row["version"]}
+
+    result = _index_search(tools, pin, "obsolete", mode)
+
+    assert error_code(result) == "invalid_request", result.content
+
+
+@pytest.mark.prepared
+@pytest.mark.tool("search_concepts")
+@pytest.mark.requirement("search_concepts-5")
+@pytest.mark.parametrize("mode", INDEX_MODES)
+def test_an_index_search_for_another_release_fails_closed(tools, pinned, recorded, mode):
+    rows = recorded(LISTING)["response"]["body"]
+    other = next(
+        row["version"]
+        for row in rows
+        if row["terminology"] == pinned["terminology"] and row["version"] != pinned["release"]
+    )
+    name = recorded(CURRENT)["response"]["body"]["name"]
+
+    result = _index_search(tools, pinned | {"release": other}, name, mode)
+
+    assert error_code(result) == "release_mismatch", result.content
+
+
+@pytest.mark.prepared
+@pytest.mark.tool("search_concepts")
+@pytest.mark.requirement("search_concepts-6")
+@pytest.mark.parametrize("mode", INDEX_MODES)
+def test_index_search_returns_retired_concepts_with_the_others_or_alone(
+    tools, pinned, recorded, mode
+):
+    body = recorded(RETIRED_INDEXED)["response"]["body"]
+    retired = _selectable(_listed(recorded, pinned["terminology"], pinned["release"]))
+    assert body["code"] in INDEX_SET and body["active"] is False
+
+    included = _states(_index_search(tools, pinned, body["name"], mode))
+    alone = _states(_index_search(tools, pinned, body["name"], mode, retired="only"))
+
+    assert (body["code"], False, body["conceptStatus"]) in included
+    assert (body["code"], False, body["conceptStatus"]) in alone
+    assert {(active, status) for _, active, status in alone} == {(False, retired)}
+
+
+@pytest.mark.unprepared
+@pytest.mark.tool("search_concepts")
+@pytest.mark.requirement("search_concepts-8")
+@pytest.mark.parametrize("mode", INDEX_MODES)
+def test_an_index_mode_without_an_index_is_unavailable(tools, pinned, recorded, mode):
+    name = recorded(CURRENT)["response"]["body"]["name"]
+
+    result = _index_search(tools, pinned, name, mode)
+
+    assert error_code(result) == "capability_unavailable", result.content
 
 
 # Value set C85492 (CDISC SDTM Method Terminology), recorded whole: FHIR $expand ignores count,

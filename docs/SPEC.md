@@ -230,6 +230,7 @@ Remaining, around `Budget`:
 
 The interim index (M4.1), built from `index.py` / `embeddings.py` / `retrieval.py` / `evaluation.py`:
 
+- **Per field**: the preferred name, each synonym and each definition are indexed as texts of their own, so that a search names the field it matched (`matchedOn`) and a query equal to a preferred name scores that name highest under any model (search_concepts-3). Today the index embeds one concatenated text per concept, and the -3 tests fail until #28 rebuilds it.
 - **Per-release tables**, keyed `(release, code)`, plus a `manifests` table carrying release, embedding provider, model, dimension, build timestamp, evaluation-set version and score, and `active` flag. Today the index holds exactly one release (schema 4), and indexing another release replaces it in place.
 - **Atomic activation and rollback**: a build writes under a new manifest; activation flips `active` in one transaction; rollback flips it back. `search_concepts` reads only the active manifest's release and refuses with `release_mismatch` if it differs from the requested release.
 - **Full NCIt build** from the batch endpoint in pages of 1,000 (the enforced `pageSize` maximum), release-pinned; the current `index-sample` stays as a developer command.
