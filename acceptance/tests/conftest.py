@@ -172,7 +172,8 @@ def _tools(
             startup = _startup_requests(upstream)
             if not (unmatched := unmatched_requests(startup)):
                 toolmap = load_toolmap(FIXTURES / "baseline_toolmap.yaml")
-                yield Tools(session, toolmap, Process(log, data, tuple(startup)))
+                counted = (lambda: len(upstream.log())) if upstream else None
+                yield Tools(session, toolmap, Process(log, data, tuple(startup)), counted)
                 return
     finally:
         # The server's standard error, shown with a failing test's other output.

@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from nci_si_acceptance.spec import TOOLS
 from nci_si_acceptance.tools import NOT_IMPLEMENTED, Tools, load_toolmap, translate
 
 TOOLMAP = {
@@ -205,3 +206,27 @@ def test_a_rule_that_is_not_null_a_name_or_name_list_and_values_is_refused(tmp_p
 
     with pytest.raises(ValueError, match="get_concept_neighborhood has a rule for kinds that is"):
         load_toolmap(path)
+
+
+class Counted(Session):
+    """A session whose every call makes `made` upstream requests, as the harness counts them."""
+
+    def __init__(self, names, result, made):
+        super().__init__(names, result)
+        self.made, self.requests = made, 0
+
+    def call_tool(self, name, arguments, meta=None):
+        self.requests += self.made
+        return super().call_tool(name, arguments, meta)
+
+
+def test_a_call_over_its_tool_s_request_bound_fails_the_test_and_one_within_passes():
+    bound = TOOLS["get_concept_neighborhood"]["requests"]
+    over = Counted(["get_concept_neighborhood"], answer(structured={"nodes": []}), bound + 1)
+    within = Counted(["get_concept_neighborhood"], answer(structured={"nodes": []}), bound)
+
+    with pytest.raises(pytest.fail.Exception, match=f"{bound + 1} upstream requests"):
+        Tools(over, {}, requests=lambda: over.requests).call("get_concept_neighborhood")
+    result = Tools(within, {}, requests=lambda: within.requests).call("get_concept_neighborhood")
+
+    assert result.content == {"nodes": []}

@@ -34,7 +34,10 @@ from typing import TYPE_CHECKING, Any
 import pytest
 import yaml
 
+from nci_si_acceptance.spec import TOOLS
+
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
 
     from mcp import types
@@ -174,10 +177,18 @@ def _content(result: types.CallToolResult) -> Any:
 class Tools:
     """The required tools of one server session."""
 
-    def __init__(self, session: Session, toolmap: ToolMap, process: Process | None = None) -> None:
+    def __init__(
+        self,
+        session: Session,
+        toolmap: ToolMap,
+        process: Process | None = None,
+        requests: Callable[[], int] | None = None,
+    ) -> None:
         self._session = session
         self._toolmap = toolmap
         self.process = process
+        # How many upstream requests the server has made so far, where the harness can tell.
+        self._requests = requests
         self.listing = session.list_tools()
         self.available = {tool.name: tool for tool in self.listing.tools}
 
@@ -191,6 +202,17 @@ class Tools:
         """A fresh tools/list of the same session."""
 
         return self._session.list_tools()
+
+    def _check_requests(self, name: str, before: int) -> None:
+        """Fail the test when a call made more upstream requests than its tool's stated bound,
+        retries included (A5.3)."""
+
+        bound = TOOLS.get(name, {}).get("requests")
+        if bound is None or self._requests is None:
+            return
+        made = self._requests() - before
+        if made > bound:
+            pytest.fail(f"{name} made {made} upstream requests, more than its bound of {bound}")
 
     def implemented_as(self, name: str) -> str | None:
         """The tool that answers for `name`: itself, its stand-in, or none."""
@@ -218,7 +240,9 @@ class Tools:
                 arguments = translate(arguments, self._toolmap[name])
             except Unsupported as unsupported:
                 pytest.skip(f"{NOT_IMPLEMENTED}: {name} with {unsupported} (stand-in {tool})")
+        before = self._requests() if self._requests else 0
         result = self._session.call_tool(tool, arguments, meta)
+        self._check_requests(name, before)
         return Result(
             tool, bool(result.is_error), _content(result), result.meta or {}, _texts(result)
         )

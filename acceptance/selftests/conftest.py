@@ -23,6 +23,11 @@ ANSWERS = {
             "body": [
                 {"terminology": "ncit", "version": "26.09d"},
                 {"terminology": "ncit", "version": "26.08e"},
+                {
+                    "terminology": "mdr",
+                    "version": "29_0",
+                    "metadata": {"licenseText": "MedDRA is licensed to its subscribers."},
+                },
             ],
         },
     },
@@ -63,7 +68,9 @@ def compliant(pytester, monkeypatch):
     """The suite's tests against the compliant server, with fixtures for its requests."""
 
     fixtures = pytester.mkdir("fixtures")
-    (fixtures / "manifest.yaml").write_text("evs:\n  release: ncit_26.09d\n", encoding="utf-8")
+    # The prepare step indexes nothing here: no tool of the stub searches an index.
+    manifest = "evs:\n  release: ncit_26.09d\nrecord:\n  concepts: {}\n"
+    (fixtures / "manifest.yaml").write_text(manifest, encoding="utf-8")
     for path, answer in ANSWERS.items():
         _fixture(fixtures / path, answer)
     settings = fixtures / "scenarios" / "license" / "restricted" / "settings.json"
@@ -74,6 +81,7 @@ def compliant(pytester, monkeypatch):
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_MODE", "fixture")
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_SERVER", f"{sys.executable} {COMPLIANT_SERVER}")
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_PROFILE", "evs")
+    monkeypatch.setenv("NCI_SI_ACCEPTANCE_PREPARE", "true")
     monkeypatch.delenv("COMPLIANT_SERVER_DEFECT", raising=False)
     return pytester
 

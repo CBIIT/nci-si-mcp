@@ -79,6 +79,23 @@ def _bound(bound: dict[str, Any]) -> str:
     return f"{default}at most {bound['maximum']}"
 
 
+def _limits(tool: dict[str, Any]) -> str:
+    """What bounds a tool's call: its bounded arguments, stated defaults, request bound and
+    what it does not offer."""
+
+    limits = "".join(
+        f" `{argument}`: {_bound(bound)}." for argument, bound in tool.get("bounds", {}).items()
+    )
+    limits += "".join(
+        f" `{argument}`: default {value}." for argument, value in tool.get("defaults", {}).items()
+    )
+    limits += f" At most {tool['requests']} upstream requests a call." if "requests" in tool else ""
+    return limits + "".join(
+        f" Not offered, `{key}`: {', '.join(values)}."
+        for key, values in tool.get("not_offered", {}).items()
+    )
+
+
 def _tool_row(name: str, tool: dict[str, Any]) -> str:
     values = "".join(
         f" `{argument}`: {', '.join(choices)}."
@@ -88,13 +105,7 @@ def _tool_row(name: str, tool: dict[str, Any]) -> str:
     items = (
         f" Items: {', '.join(f'`{path}`' for path in tool['items'])}." if "items" in tool else ""
     )
-    bounds = "".join(
-        f" `{argument}`: {_bound(bound)}." for argument, bound in tool.get("bounds", {}).items()
-    )
-    bounds += "".join(
-        f" `{argument}`: default {value}." for argument, value in tool.get("defaults", {}).items()
-    )
-    return f"| `{name}` | `{signature}` | {_cell(tool['summary'])}{values}{bounds}{items} |"
+    return f"| `{name}` | `{signature}` | {_cell(tool['summary'])}{values}{_limits(tool)}{items} |"
 
 
 def _tools() -> list[str]:

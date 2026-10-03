@@ -748,16 +748,12 @@ LISTS = {"role": "roles", "association": "associations"}
 @pytest.mark.parametrize("hub", HUBS, ids=["roles", "associations"])
 @pytest.mark.parametrize("kinds", [list(LISTS), list(LISTS)[::-1]], ids=["in-order", "reversed"])
 def test_a_kind_that_reaches_its_budget_starves_no_other(tools, pinned, recorded, hub, kinds):
-    body = recorded(hub)["response"]["body"]
-    sizes = {kind: len(body[key]) for kind, key in LISTS.items()}
+    code, sizes, large = _hub(recorded, hub)
     # Fewer nodes than the large kind has, room enough for the small one.
-    budget = max(sizes.values()) // 2
+    budget = sizes[large] // 2
     assert min(sizes.values()) < budget // len(LISTS)
-    large = max(sizes, key=sizes.__getitem__)
 
-    result = _traverse(
-        tools, pinned, NEIGHBORHOOD, body["code"], depth=1, kinds=kinds, maxNodes=budget
-    )
+    result = _traverse(tools, pinned, NEIGHBORHOOD, code, depth=1, kinds=kinds, maxNodes=budget)
 
     assert len(result.content.get("nodes", [])) <= budget
     kinds_found = {_relationship(edge).get("kind") for edge in result.content.get("edges", [])}
@@ -766,6 +762,71 @@ def test_a_kind_that_reaches_its_budget_starves_no_other(tools, pinned, recorded
     assert truncation.get("occurred") is True
     per_kind = truncation.get("perKind") or {}
     assert {kind for kind, record in per_kind.items() if record.get("occurred")} == {large}
+
+
+def _hub(recorded, hub):
+    """A starvation hub's code, the size of each kind it has, and its larger kind."""
+
+    body = recorded(hub)["response"]["body"]
+    sizes = {kind: len(body[key]) for kind, key in LISTS.items()}
+    return body["code"], sizes, max(sizes, key=sizes.__getitem__)
+
+
+@pytest.mark.scenario("traversal/starvation")
+@pytest.mark.tool(NEIGHBORHOOD)
+@pytest.mark.requirement("get_concept_neighborhood-6")
+@pytest.mark.parametrize("hub", HUBS, ids=["roles", "associations"])
+def test_budget_per_kind_bounds_the_nodes_each_kind_adds(tools, pinned, recorded, hub):
+    code, sizes, large = _hub(recorded, hub)
+    # Below the large kind's size, room enough for the small one.
+    budget = sizes[large] // 2
+    assert min(sizes.values()) <= budget
+
+    result = _traverse(
+        tools,
+        pinned,
+        NEIGHBORHOOD,
+        code,
+        depth=1,
+        kinds=list(LISTS),
+        budgetPerKind=budget,
+        maxNodes=_maximum(NEIGHBORHOOD, "maxNodes"),
+        maxEdges=_maximum(NEIGHBORHOOD, "maxEdges"),
+    )
+
+    targets = {kind: set() for kind in LISTS}
+    for edge in result.content.get("edges", []):
+        targets.setdefault(_relationship(edge).get("kind"), set()).add(edge.get("targetCode"))
+    assert [kind for kind in LISTS if not targets[kind]] == []
+    # The hubs' kinds share targets: those only the large kind reaches are the nodes it added.
+    small = set().union(*(found for kind, found in targets.items() if kind != large))
+    assert len(targets[large] - small) <= budget
+    per_kind = (result.content.get("truncation") or {}).get("perKind") or {}
+    assert {kind for kind, record in per_kind.items() if record.get("occurred")} == {large}
+
+
+TRAVERSALS = [
+    pytest.param(name, arguments, id=name, marks=pytest.mark.tool(name))
+    for name, arguments in [(NEIGHBORHOOD, {"depth": 1}), (HIERARCHY, {"direction": "child"})]
+]
+
+
+@pytest.mark.scenario("upstream/unavailable")
+@pytest.mark.requirement("get_concept_neighborhood-5")
+@pytest.mark.parametrize(("name", "arguments"), TRAVERSALS)
+def test_the_attempts_a_failed_call_reports_are_the_requests_it_made(
+    tools, upstream, pinned, name, arguments
+):
+    before = len(upstream.log())
+
+    result = tools.call(name, {**pinned, "code": CONCEPT, **arguments})
+
+    made = len(upstream.log()) - before
+    assert error_code(result) in {"upstream_unavailable", "timeout"}, result.content
+    details = result.content["error"].get("details") or {}
+    # A failure that made no request would show nothing of how retries are counted.
+    assert made
+    assert details.get("attempts") == made
 
 
 def _negative(code, terminology="ncit"):

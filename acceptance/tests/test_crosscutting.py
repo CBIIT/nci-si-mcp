@@ -398,10 +398,34 @@ def test_a_bound_reached_is_reported_with_how_much_was_left_out(tools, pinned, n
     assert isinstance(record.get("exact"), bool)
 
 
+def _paged(entry_filter=lambda entry: True):
+    """Each paged call, by tool and position: one case each, marked for its tool and, where the
+    call searches the interim index, as needing the prepare step."""
+
+    return [
+        (name, index, entry)
+        for name in PAGED
+        for index, entry in enumerate(CALLS[name]["paged"])
+        if entry_filter(entry)
+    ]
+
+
+def _marks(name, entry):
+    return [pytest.mark.tool(name), *([pytest.mark.prepared] if entry.get("prepared") else [])]
+
+
+PAGES = [
+    pytest.param(name, entry, id=f"{name}-{index}", marks=_marks(name, entry))
+    for name, index, entry in _paged()
+]
+
+
 @pytest.mark.requirement("X-17")
-@pytest.mark.parametrize("name", _per_tool(PAGED))
-def test_a_cursor_continues_with_the_next_items_of_the_same_release(tools, pinned, recorded, name):
-    arguments, first = _first_page(tools, pinned, name)
+@pytest.mark.parametrize(("name", "entry"), PAGES)
+def test_a_cursor_continues_with_the_next_items_of_the_same_release(
+    tools, pinned, recorded, name, entry
+):
+    arguments, first = _first_page(tools, pinned, name, entry)
 
     continued = arguments | {"cursor": first.content["nextCursor"]}
     second = _call(tools, pinned, name, continued)
@@ -417,11 +441,11 @@ def test_a_cursor_continues_with_the_next_items_of_the_same_release(tools, pinne
     assert error_code(other) == "invalid_request", other.content
 
 
-def _first_page(tools, pinned, name, extra=None):
+def _first_page(tools, pinned, name, entry, extra=None):
     """A paged call's arguments, with `extra` added, and its first page, which carries a
     cursor."""
 
-    arguments = CALLS[name]["arguments"] | CALLS[name]["paged"]["arguments"] | (extra or {})
+    arguments = CALLS[name]["arguments"] | entry["arguments"] | (extra or {})
     first = _call(tools, pinned, name, arguments)
     assert not first.is_error, first.content
     cursor = first.content.get("nextCursor")
@@ -430,16 +454,18 @@ def _first_page(tools, pinned, name, extra=None):
 
 
 CHANGED = [
-    pytest.param(name, change, id=f"{name}-{next(iter(change))}", marks=pytest.mark.tool(name))
-    for name in PAGED
-    for change in CALLS[name]["paged"].get("changed", [])
+    pytest.param(
+        name, entry, change, id=f"{name}-{index}-{next(iter(change))}", marks=_marks(name, entry)
+    )
+    for name, index, entry in _paged()
+    for change in entry.get("changed", [])
 ]
 
 
 @pytest.mark.requirement("X-17")
-@pytest.mark.parametrize(("name", "change"), CHANGED)
-def test_a_cursor_with_another_argument_is_an_invalid_request(tools, pinned, name, change):
-    arguments, first = _first_page(tools, pinned, name)
+@pytest.mark.parametrize(("name", "entry", "change"), CHANGED)
+def test_a_cursor_with_another_argument_is_an_invalid_request(tools, pinned, name, entry, change):
+    arguments, first = _first_page(tools, pinned, name, entry)
 
     result = _call(
         tools, pinned, name, arguments | change | {"cursor": first.content["nextCursor"]}
@@ -462,9 +488,11 @@ def _pages(name, *results):
 
 
 @pytest.mark.requirement("X-17")
-@pytest.mark.parametrize("name", _per_tool(PAGED))
-def test_a_cursor_with_a_left_out_argument_given_as_its_default_continues(tools, pinned, name):
-    arguments, first = _first_page(tools, pinned, name)
+@pytest.mark.parametrize(("name", "entry"), PAGES)
+def test_a_cursor_with_a_left_out_argument_given_as_its_default_continues(
+    tools, pinned, name, entry
+):
+    arguments, first = _first_page(tools, pinned, name, entry)
     given = _left_out(name, arguments)
     # The first call leaves out an argument with a stated default, or the case shows nothing.
     assert given
@@ -478,11 +506,11 @@ def test_a_cursor_with_a_left_out_argument_given_as_its_default_continues(tools,
 
 
 @pytest.mark.requirement("X-17")
-@pytest.mark.parametrize("name", _per_tool(PAGED))
-def test_a_cursor_with_a_given_default_left_out_continues(tools, pinned, name):
-    given = _left_out(name, CALLS[name]["arguments"] | CALLS[name]["paged"]["arguments"])
+@pytest.mark.parametrize(("name", "entry"), PAGES)
+def test_a_cursor_with_a_given_default_left_out_continues(tools, pinned, name, entry):
+    given = _left_out(name, CALLS[name]["arguments"] | entry["arguments"])
     assert given
-    arguments, explicit = _first_page(tools, pinned, name, given)
+    arguments, explicit = _first_page(tools, pinned, name, entry, given)
     cursor = {"cursor": explicit.content["nextCursor"]}
     without = {key: value for key, value in arguments.items() if key not in given}
 
@@ -496,19 +524,19 @@ def test_a_cursor_with_a_given_default_left_out_continues(tools, pinned, name):
 # The paged calls' arguments that differ from their stated default: left out at the cursor,
 # each applies as its default, so the cursor is presented with another argument.
 NON_DEFAULT = [
-    pytest.param(name, key, id=f"{name}-{key}", marks=pytest.mark.tool(name))
-    for name in PAGED
-    for key, value in (CALLS[name]["arguments"] | CALLS[name]["paged"]["arguments"]).items()
+    pytest.param(name, entry, key, id=f"{name}-{index}-{key}", marks=_marks(name, entry))
+    for name, index, entry in _paged()
+    for key, value in (CALLS[name]["arguments"] | entry["arguments"]).items()
     if key in defaults(name) and defaults(name)[key] != value
 ]
 
 
 @pytest.mark.requirement("X-17")
-@pytest.mark.parametrize(("name", "key"), NON_DEFAULT)
+@pytest.mark.parametrize(("name", "entry", "key"), NON_DEFAULT)
 def test_a_cursor_without_an_argument_the_first_call_gave_is_an_invalid_request(
-    tools, pinned, name, key
+    tools, pinned, name, entry, key
 ):
-    arguments, first = _first_page(tools, pinned, name)
+    arguments, first = _first_page(tools, pinned, name, entry)
     presented = {k: v for k, v in arguments.items() if k != key}
 
     result = _call(tools, pinned, name, presented | {"cursor": first.content["nextCursor"]})
@@ -570,3 +598,43 @@ def _other_release(recorded, pinned):
         for row in listing
         if row["terminology"] == pinned["terminology"] and row["version"] != pinned["release"]
     )
+
+
+BOUNDED = [
+    pytest.param(name, argument, id=f"{name}-{argument}", marks=pytest.mark.tool(name))
+    for name in CALLS
+    for argument in TOOLS[name].get("bounds", {})
+]
+
+
+@pytest.mark.requirement("X-18")
+@pytest.mark.parametrize(("name", "argument"), BOUNDED)
+def test_a_bounded_argument_below_one_is_an_invalid_request(tools, pinned, name, argument):
+    result = _call(tools, pinned, name, CALLS[name]["arguments"] | {argument: 0})
+
+    assert error_code(result) == "invalid_request", result.content
+
+
+def _attribution(result):
+    assert not result.is_error, result.content
+    return _provenance(result.content).get("attribution")
+
+
+@pytest.mark.scenario("license/restricted")
+@pytest.mark.tool("get_concept")
+@pytest.mark.requirement("X-19")
+def test_an_item_of_a_licensed_terminology_carries_its_licence_text(tools, pinned, recorded):
+    rows = recorded("recorded/evs/terminologies.json")["response"]["body"]
+    licence = {
+        (row["terminology"], row["version"]): row.get("metadata", {}).get("licenseText")
+        for row in rows
+    }
+    text = licence[(LICENSED["terminology"], LICENSED["release"])]
+    # MedDRA's row carries licence text and NCIt's none, or the cases would show nothing.
+    assert text
+    assert licence[(pinned["terminology"], pinned["release"])] is None
+
+    licensed = tools.call("get_concept", LICENSED)
+    plain = tools.call("get_concept", {**pinned, "code": "C4817"})
+
+    assert (_attribution(licensed), _attribution(plain)) == (text, None)

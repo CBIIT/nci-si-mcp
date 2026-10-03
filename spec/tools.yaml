@@ -13,6 +13,13 @@
 # bounds has its default there. A call that leaves an optional argument out is the call that
 # gives it as its default (M6.1).
 #
+# `requests` is the most upstream requests one call of the tool makes, retries included (A5.2,
+# A5.3); reaching it truncates the result with bound `requests`. No argument sets it.
+#
+# `not_offered` names what the platform has and the tool does not expose: argument values
+# under the argument's name, and platform features under a name of their own (`evs_type`,
+# EVS search types no mode maps to). No description or schema shows one as a value (P-11).
+#
 # `bounds` gives the default and the maximum of each argument that bounds a result (A5.1,
 # A5.2). A value above the maximum is applied as the maximum; where content was dropped, the
 # truncation record's limit is the value applied. So the input schema states no maximum that
@@ -32,6 +39,7 @@ get_concept:
   returns: concept
   items: ["."]
   values: {include: [synonyms, definitions, properties, semanticType]}
+  not_offered: {include: [descendants]}
   summary: One concept with the detail selected.
 get_concepts:
   group: evs
@@ -48,6 +56,7 @@ search_concepts:
   values: {mode: [lexical, typeahead, semantic, hybrid], retired: [include, only]}
   bounds: {limit: {default: 10, maximum: 1000}}
   defaults: {mode: lexical, retired: include}
+  not_offered: {retired: [exclude], evs_type: [match, phrase, AND, OR, fuzzy]}
   summary: >-
     Ranked search of a terminology; semantic and hybrid from the interim NCIt index (M4.1).
     Retired concepts are returned with the others (retired include, the default, as the
@@ -65,6 +74,7 @@ get_concept_hierarchy:
   traversal: true
   values: {direction: [parent, child, pathsToRoot]}
   bounds: {depth: {default: 1, maximum: 4}, limit: {default: 200, maximum: 1000}}
+  requests: 200
   summary: >-
     A concept's parents, children or paths to the root, bounded. nodes holds the concepts
     reached, not the one asked about, and limit is a page that the cursor continues.
@@ -92,6 +102,7 @@ get_concept_neighborhood:
     maxNodes: {default: 200, maximum: 1000}
     maxEdges: {default: 1000, maximum: 5000}
     budgetPerKind: {maximum: 1000}
+  requests: 200
   summary: >-
     Bounded traversal across roles and associations with a budget per kind; nodes holds the
     concept asked about at depth 0 and those reached, and maxNodes counts them all. Given,

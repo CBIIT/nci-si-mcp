@@ -99,6 +99,59 @@ def test_no_description_holds_placeholder_or_debug_text(server):
     assert unfinished == {}
 
 
+def _not_offered(name):
+    """What spec/tools.yaml says the platform has and the tool `name` does not expose."""
+
+    return {value for values in TOOLS[name].get("not_offered", {}).values() for value in values}
+
+
+def _schema_values(schema) -> list:
+    """Every value a schema offers, at any depth: its enums, consts, defaults and examples."""
+
+    if isinstance(schema, list):
+        return [value for item in schema for value in _schema_values(item)]
+    if not isinstance(schema, dict):
+        return []
+    own = [*schema.get("enum", []), *schema.get("examples", [])]
+    own += [schema[key] for key in ("const", "default") if key in schema]
+    return own + _schema_values(list(schema.values()))
+
+
+def _shown_as_value(value, texts):
+    """Whether a text names `value` as a value, quoted or in backticks; a sentence that says
+    the value is not offered, unquoted, does not."""
+
+    quoted = re.compile(rf"[`'\"]{re.escape(value)}[`'\"]")
+    return any(quoted.search(text) for text in texts)
+
+
+def _shown(name, tool):
+    """The values `name` does not offer that its implementation `tool` shows as offered."""
+
+    texts = [tool.description or "", *_descriptions([tool.input_schema, tool.output_schema])]
+    values = _schema_values(tool.input_schema)
+    return [
+        (name, value)
+        for value in sorted(_not_offered(name))
+        if value in values or _shown_as_value(value, texts)
+    ]
+
+
+@pytest.mark.gate
+@pytest.mark.live_capable
+@pytest.mark.requirement("P-11")
+def test_no_description_or_schema_shows_what_the_tool_does_not_offer(server):
+    implemented = {
+        name: server.available.get(server.implemented_as(name) or "")
+        for name in TOOLS
+        if _not_offered(name)
+    }
+
+    shown = [found for name, tool in implemented.items() if tool for found in _shown(name, tool)]
+
+    assert shown == []
+
+
 @pytest.mark.gate
 @pytest.mark.live_capable
 @pytest.mark.requirement("P-4")
