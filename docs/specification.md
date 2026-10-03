@@ -165,7 +165,7 @@ Binding on every tool.
 | Id | Convention |
 |---|---|
 | M2.1 | tools/list, resources/list, resources/read and server/discover carry ttlMs and cacheScope. |
-| M2.2 | A result's ttlMs follows what it holds: release-pinned content 86,400,000 (long); governed content that no release pins (caDSR content while caDSR publishes no registry release) a short positive ttlMs, at most 3,600,000; a result computed from caller-supplied values (the tools marked computed in tools.yaml) 0; resolve_release, resolve_registry_release and get_release_alignment 0. tools/list is long and public. |
+| M2.2 | A result's ttlMs follows what it holds: release-pinned content 86,400,000 (long); governed content that no release pins (caDSR content while caDSR publishes no registry release) a short positive ttlMs, at most 3,600,000; a result computed from caller-supplied values (the tools marked computed in tools.yaml) 0; resolve_release, resolve_registry_release and get_release_alignment 0; a result that joins content of two states (a cross-domain or workflow result resting on release-pinned NCIt and on caDSR content) the shorter of their ttlMs. tools/list is long and public. |
 | M2.3 | cacheScope is public for governed content, the resolve tools included, and private for results computed from caller-supplied values. |
 | M2.4 | A cursor pins the release it was issued against; presented after that release is superseded, it is a structured error. |
 | M2.5 | A tool result carries ttlMs and cacheScope in its _meta. |
@@ -219,6 +219,7 @@ Every returned item carries one, beside its identifier and status, which are fie
 | `sourceUri` | The upstream URL that produced the item | A4.1 |
 | `correlationId` | The call's correlation identifier | M7.1 |
 | `graphs` | For items served by the Shared SI Service: the identifier and date of each graph touched | A1.5 |
+| `registry` | The registry state, { registry, identifier?, date? } as the registry form of release gives it, beside release in its terminology form: present exactly where an item of a cross-domain or workflow tool rests on caDSR content, so that the item names both content states (optional) | A1.5 |
 | `attribution` | The licence text of the item's terminology, where the platform's listing of that terminology carries one (EVS: metadata.licenseText) (optional) | A7.3 |
 | `upstream` | The fields the platform supplied about the item's origin, under its names and with its values; at least: from EVS REST the item's terminology and version; from EVS FHIR the value set's url and version; from caDSR the item's public id and version, as each API names them (publicId, the Form API's publicID, the CRDC list's CDE Public ID and Version, vmMatch's itemId); from the Shared SI Service the identity and date of each graph | A4.3 |
 
@@ -477,6 +478,59 @@ The values one data element of the CRDC crosswalk binds to concepts, with the co
 | `values` | Its values, each { value, conceptCode? }, as the platform gives them: conceptCode colon-joined where it names several (C15388:C20821), absent where it names none | A9.1 |
 | `provenance` | The provenance record, its release in the registry form | A4.4 |
 
+### The data element use record
+
+A data element that uses a concept, as find_data_elements_for_concept returns it: as an object class, property or permissible value concept, main or minor, of the concept or, with expandDescendants, of a descendant. The surface its provenance names answered it; the surfaces answer from their own content (the Shared SI graph is an export, the caDSR API is live), so their answers differ, and neither says by which route the concept is used.
+
+| Field | Content | Rule |
+|---|---|---|
+| `dataElement` | { publicId, version, longName } of the data element | A1.2 |
+| `provenance` | The provenance record: release in the terminology form, the NCIt release the surface used where it names one; registry; graphs where the Shared SI Service served it | A1.5 |
+
+### The permissible value use record
+
+A permissible value whose value meaning stands for a concept, as the reverse lookup of find_data_elements_for_concept and ground_value return it. Permissible values have no identifier in the Shared SI projection (blank nodes, S-3), so it is named by its data element and its value.
+
+| Field | Content | Rule |
+|---|---|---|
+| `dataElement` | { publicId, version } of the data element whose value domain holds it | A1.2 |
+| `value` | The value, as the platform gives it | A9.1 |
+| `conceptCode` | The bare code of the concept its value meaning stands for: the concept asked about or, with expandDescendants, a descendant | A1.2 |
+| `provenance` | The provenance record, as for the data element use record | A1.5 |
+
+### The stored value record
+
+A literal a data commons stores for a concept, as resolve_stored_value returns it.
+
+| Field | Content | Rule |
+|---|---|---|
+| `value` | The literal, as its source gives it (GDC through the mapset, the map's targetName) | A9.1 |
+| `field` | The commons' property it is stored under, as its source gives it (GDC through the mapset, the map's targetCode, such as primary_diagnosis) | A9.1 |
+| `source` | The published source that asserts it: { mapset, version } for an EVS mapset, or { crosswalk, dataElement { publicId, version } } for the CRDC crosswalk | resolve_stored_value |
+| `provenance` | The provenance record | A4.1 |
+
+### The dataset release record
+
+One dataset a cross-domain answer rests on, as get_release_alignment returns it.
+
+| Field | Content | Rule |
+|---|---|---|
+| `name` | The dataset: one of `ncit`, `ssis_ncit_graph`, `ssis_cadsr_graph`, `cadsr_export` | A3.7.1 |
+| `version` | Its release identifier (26.09d), absent where it has none (optional) | A3.8.1 |
+| `date` | Its date, ISO-8601, normalised from the form its source gives (the NCIt graph's "September 28, 2026", the caDSR graph's "2026-07-01", the export's listing) | A3.7.1 |
+| `provenance` | The provenance record | A4.1 |
+
+### The excluded code record
+
+A code expand_cohort withholds from its codes, because an exclusion role asserts it, listed with the assertion that excludes it.
+
+| Field | Content | Rule |
+|---|---|---|
+| `code` | The bare code | A1.2 |
+| `terminology` | Its terminology | A1.2 |
+| `edge` | The edge record of the exclusion assertion | edge |
+| `provenance` | The traversal record of the code, as the edge reaching it has it | A4.2 |
+
 ### The truncation record
 
 The truncation field of a result whose tool bounds it. When nothing was truncated it holds occurred false and no other field. When a bound was reached it holds occurred, bound, limit, reached, omitted and exact, and perKind as well where a traversal spans several relationship kinds. A page that a cursor or an offset continues is not a truncation (M6.1).
@@ -490,6 +544,7 @@ The truncation field of a result whose tool bounds it. When nothing was truncate
 | `omitted` | How much was left out, always a number (optional) | A5.4 |
 | `exact` | False when omitted is a lower bound or an estimate (optional) | A5.4 |
 | `perKind` | For a traversal over several relationship kinds: a map from each kind to its own truncation record; occurred is true when any kind's budget was reached (optional) | A5.5 |
+| `perHop` | For a workflow: a map from each hop (dataElements, permissibleValues, storedValues) to its own truncation record; occurred is true when any hop's bound was reached (optional) | ground_value |
 
 ### The error record
 
@@ -540,18 +595,18 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 
 | Tool | Inputs → result | What it does |
 |---|---|---|
-| `find_data_elements_for_concept` | `(conceptCode, terminology?, release?, expandDescendants?, includePermissibleValues?, limit?, cursor?) → { dataElements[], truncation, nextCursor? }` | The data elements and permissible values that use a concept, optionally across its descendants. `limit`: default 100, at most 1000. |
-| `get_concept_for_permissible_value` | `(permissibleValueId \| { dataElementId, value }) → concept` | The concept a permissible value stands for. |
-| `resolve_stored_value` | `(conceptCode, commons, dataElementId?) → { storedValues[], confidence, evidence }` | The literal a data commons stores for a concept. |
-| `get_release_alignment` | `(maxIntervalDays?) → { datasets[{ name, version, date }], intervalDays, warning? }` | The release of every dataset a cross-domain answer touches; intervalDays, the largest interval in days between any two of their dates; and a warning naming maxIntervalDays when intervalDays exceeds it. `maxIntervalDays`: default 31. |
+| `find_data_elements_for_concept` | `(conceptCode, terminology?, release?, expandDescendants?, includePermissibleValues?, limit?, cursor?) → { dataElements[data_element_use], permissibleValues[value_use]?, truncation, nextCursor? }` | The data elements that use a concept, as an object class, property or permissible value concept, optionally across its descendants; with includePermissibleValues, also the permissible values whose value meaning stands for it (the reverse lookup, capability_unavailable on a surface that has none, OP-S04). A release given is checked against the NCIt graph's: release_mismatch on a difference, release_not_available on a surface that cannot name the NCIt release it used. `terminology`: ncit. `limit`: default 100, at most 1000. `expandDescendants`: default False. `includePermissibleValues`: default False. Items: `dataElements[]`, `permissibleValues[]`. |
+| `get_concept_for_permissible_value` | `(permissibleValueId \| { dataElementId, value }, release) → concept, with permissibleValue { dataElement { publicId, version }, value }` | The concept a permissible value stands for, named by its data element and value, as the concept record of the release pinned, its provenance naming both content states (release and registry); a caller learns the release from resolve_release, as for every EVS tool. By permissibleValueId, capability_unavailable until the platform retrieves a value by it (OP-C10). Items: `.`. |
+| `resolve_stored_value` | `(conceptCode, commons, dataElementId?) → { storedValues[stored_value], confidence, evidence }` | The literal a data commons stores for a concept: for GDC through the EVS mapset NCIt_Maps_To_GDC, for the other commons through the CRDC crosswalk. confidence is asserted when a published source names the value and none otherwise; evidence names each source consulted ({ mapset, version } or { crosswalk, dataElement }), whether the commons binds values to concepts, and its coverage. A commons without a value-level binding (PDC, IDC) returns no stored value with evidence saying so, never the preferred term as if stored. Items: `storedValues[]`. |
+| `get_release_alignment` | `(maxIntervalDays?) → { datasets[dataset_release], intervalDays, warning? }` | The release of every dataset a cross-domain answer rests on (NCIt, the Shared SI NCIt and caDSR graphs, the caDSR export), each date ISO-8601; intervalDays, the largest interval in days between any two of their dates; and a warning naming maxIntervalDays when intervalDays exceeds it. `maxIntervalDays`: default 31. Items: `datasets[]`. |
 
 ### Workflow tools
 
 | Tool | Inputs → result | What it does |
 |---|---|---|
-| `ground_value` | `(conceptCode \| text, commons?, release, registryRelease) → { concept, dataElements[], permissibleValues[], storedValues[], provenance, truncation }` | Concept to data element to permissible value to stored value, under one provenance envelope naming both content states. |
-| `expand_cohort` | `(conceptCode, release, maxDepth?, includeNegative?, maxNodes?) → { codes[], excluded[], edges[], truncation, provenance }` | The codes a cohort query should use, exclusion assertions withheld and listed. |
-| `harmonize_data_dictionary` | `(columns[{ name, description?, sampleValues[]? }], registryRelease, filters?) → { columns[{ matches[{ dataElement, score, rule }], permissibleValueAlignment }], unmatched[], provenance }` | A data dictionary's columns matched to data elements, with permissible-value alignment. Computed from caller-supplied values: ttlMs 0, private. |
+| `ground_value` | `(conceptCode \| text, commons?, release, registryRelease?) → { concept, dataElements[data_element_use], permissibleValues[value_use], storedValues[stored_value], provenance, truncation }` | Concept to data element to permissible value to stored value, under one provenance envelope naming both content states (release and registry). A text is resolved by lexical search, the concept chosen named in the result. Without registryRelease the registry is unpinned, as for every caDSR tool (X-21). Each hop's truncation is carried (perHop). Items: `concept`, `dataElements[]`, `permissibleValues[]`, `storedValues[]`. |
+| `expand_cohort` | `(conceptCode, release, maxDepth?, includeNegative?, maxNodes?) → { codes[], excluded[excluded_code], edges[edge], truncation, provenance }` | The codes a cohort query should use: the concept and its descendants to maxDepth. A code an exclusion role asserts is withheld from codes and listed in excluded with its assertion, unless includeNegative keeps it in codes (still listed). The result equals composing get_concept_hierarchy and get_concept_neighborhood. `maxDepth`: default 2, at most 4. `maxNodes`: default 200, at most 1000. `includeNegative`: default False. Items: `edges[]`, `excluded[]`. |
+| `harmonize_data_dictionary` | `(columns[{ name, description?, sampleValues[]? }], registryRelease?, filters?) → { columns[{ name, matches[data_element_match], permissibleValueAlignment[value_meaning_match] }], unmatched[], provenance }` | A data dictionary's columns matched to data elements, one match call per column, and each column's sample values aligned to value meanings; unmatched lists the columns without a match; every match names one registry state. Computed from caller-supplied values: ttlMs 0, private. `columns`: at most 10 a call. Items: `columns[].matches[].dataElement`. |
 
 ## 3. Requirements
 
@@ -660,18 +715,18 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 
 | Id | Requirement | Basis | Tests | Status |
 |---|---|---|---|---|
-| find_data_elements_for_concept-1 | The batch form is used where available; descendant expansion is bounded and reported; where served from the Shared SI Service, both graphs' release identities are recorded; a masked upstream failure is an error. | find_data_elements_for_concept, A3.7, A5.4, M3.2 | — | planned #55 |
-| get_concept_for_permissible_value-1 | Resolves to a concept with both release identities. | get_concept_for_permissible_value | — | planned #55 |
-| resolve_stored_value-1 | A GDC value resolves through the mapset named in provenance; a node without a mapping reports no mapping with its coverage, never the preferred term as if stored. | resolve_stored_value | — | planned #55 |
+| find_data_elements_for_concept-1 | The data elements are those the surface named in provenance answers, with expandDescendants over the concept's descendants too, bounded and reported; with includePermissibleValues the permissible values whose value meaning stands for the concept are returned as well, capability_unavailable on a surface without the reverse lookup, never an empty list; where served from the Shared SI Service, both graphs' release identities are recorded; a release given is checked against the NCIt graph's, release_mismatch on a difference and release_not_available on a surface that cannot name it. | find_data_elements_for_concept, data_element_use, value_use, A3.4, A3.7, A5.4, M3.2 | — | planned #55 |
+| get_concept_for_permissible_value-1 | A data element and value resolve to the concept its value meaning stands for, as the concept record of the release the call pins (release is required), its provenance naming both content states; by permissibleValueId it is capability_unavailable (OP-C10), never not_found or empty. | get_concept_for_permissible_value, provenance, A1.5, M1.2 | — | planned #55 |
+| resolve_stored_value-1 | A GDC value resolves through the mapset named in provenance and evidence, confidence asserted; a commons without a value-level binding returns no stored value, evidence saying so with its coverage and confidence none, never the preferred term as if stored. | resolve_stored_value, stored_value | — | planned #55 |
 | get_release_alignment-1 | Every dataset's release and date are returned with intervalDays, the largest interval in days between any two of their dates, and a warning naming maxIntervalDays exactly when intervalDays exceeds it; ttlMs 0. | get_release_alignment, A3.7, M2.2 | — | planned #55 |
 
 ### Workflow tools
 
 | Id | Requirement | Basis | Tests | Status |
 |---|---|---|---|---|
-| ground_value-1 | One provenance envelope names both content states and fails closed if either cannot be named; each hop's truncation is carried through. | ground_value | — | planned #55 |
+| ground_value-1 | One provenance envelope names both content states and fails closed if either cannot be named; without registryRelease the registry is unpinned, as X-21 reads it; a text resolves through lexical search to the concept the result names; each hop's truncation is carried through. | ground_value, provenance, truncation, A3.8 | — | planned #55 |
 | expand_cohort-1 | Exclusion codes are withheld from codes and listed in excluded by default; the result equals composing the fine-grained tools. | expand_cohort, A5.6 | — | planned #55 |
-| harmonize_data_dictionary-1 | One upstream match call per column, batched where the upstream allows; unmatched columns listed; one registry release across all matches. | harmonize_data_dictionary | — | planned #55 |
+| harmonize_data_dictionary-1 | One upstream match call per column, batched where the upstream allows; unmatched columns listed; one registry state across all matches; without registryRelease the registry is unpinned, as X-21 reads it. | harmonize_data_dictionary, data_element_match | — | planned #55 |
 
 ## 4. Acceptance
 

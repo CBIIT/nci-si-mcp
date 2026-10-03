@@ -40,6 +40,14 @@ provenance:
     graphs:
       content: "For items served by the Shared SI Service: the identifier and date of each graph touched"
       of: A1.5
+    registry:
+      content: >-
+        The registry state, { registry, identifier?, date? } as the registry form of release
+        gives it, beside release in its terminology form: present exactly where an item of a
+        cross-domain or workflow tool rests on caDSR content, so that the item names both
+        content states
+      optional: true
+      of: A1.5
     attribution:
       content: >-
         The licence text of the item's terminology, where the platform's listing of that
@@ -596,6 +604,103 @@ code_map:
     provenance:
       content: The provenance record, its release in the registry form
       of: A4.4
+data_element_use:
+  title: The data element use record
+  about: >-
+    A data element that uses a concept, as find_data_elements_for_concept returns it: as an
+    object class, property or permissible value concept, main or minor, of the concept or, with
+    expandDescendants, of a descendant. The surface its provenance names answered it; the
+    surfaces answer from their own content (the Shared SI graph is an export, the caDSR API is
+    live), so their answers differ, and neither says by which route the concept is used.
+  fields:
+    dataElement:
+      content: "{ publicId, version, longName } of the data element"
+      of: A1.2
+    provenance:
+      content: >-
+        The provenance record: release in the terminology form, the NCIt release the surface
+        used where it names one; registry; graphs where the Shared SI Service served it
+      of: A1.5
+value_use:
+  title: The permissible value use record
+  about: >-
+    A permissible value whose value meaning stands for a concept, as the reverse lookup of
+    find_data_elements_for_concept and ground_value return it. Permissible values have no
+    identifier in the Shared SI projection (blank nodes, S-3), so it is named by its data
+    element and its value.
+  fields:
+    dataElement:
+      content: "{ publicId, version } of the data element whose value domain holds it"
+      of: A1.2
+    value:
+      content: The value, as the platform gives it
+      of: A9.1
+    conceptCode:
+      content: >-
+        The bare code of the concept its value meaning stands for: the concept asked about or,
+        with expandDescendants, a descendant
+      of: A1.2
+    provenance:
+      content: The provenance record, as for the data element use record
+      of: A1.5
+stored_value:
+  title: The stored value record
+  about: A literal a data commons stores for a concept, as resolve_stored_value returns it.
+  fields:
+    value:
+      content: The literal, as its source gives it (GDC through the mapset, the map's targetName)
+      of: A9.1
+    field:
+      content: >-
+        The commons' property it is stored under, as its source gives it (GDC through the
+        mapset, the map's targetCode, such as primary_diagnosis)
+      of: A9.1
+    source:
+      content: >-
+        The published source that asserts it: { mapset, version } for an EVS mapset, or
+        { crosswalk, dataElement { publicId, version } } for the CRDC crosswalk
+      of: resolve_stored_value
+    provenance:
+      content: The provenance record
+      of: A4.1
+dataset_release:
+  title: The dataset release record
+  about: One dataset a cross-domain answer rests on, as get_release_alignment returns it.
+  fields:
+    name:
+      content: The dataset
+      values: [ncit, ssis_ncit_graph, ssis_cadsr_graph, cadsr_export]
+      of: A3.7.1
+    version:
+      content: Its release identifier (26.09d), absent where it has none
+      optional: true
+      of: A3.8.1
+    date:
+      content: >-
+        Its date, ISO-8601, normalised from the form its source gives (the NCIt graph's
+        "September 28, 2026", the caDSR graph's "2026-07-01", the export's listing)
+      of: A3.7.1
+    provenance:
+      content: The provenance record
+      of: A4.1
+excluded_code:
+  title: The excluded code record
+  about: >-
+    A code expand_cohort withholds from its codes, because an exclusion role asserts it, listed
+    with the assertion that excludes it.
+  fields:
+    code:
+      content: The bare code
+      of: A1.2
+    terminology:
+      content: Its terminology
+      of: A1.2
+    edge:
+      content: The edge record of the exclusion assertion
+      of: edge
+    provenance:
+      content: The traversal record of the code, as the edge reaching it has it
+      of: A4.2
 truncation:
   title: The truncation record
   about: >-
@@ -634,6 +739,12 @@ truncation:
         truncation record; occurred is true when any kind's budget was reached
       optional: true
       of: A5.5
+    perHop:
+      content: >-
+        For a workflow: a map from each hop (dataElements, permissibleValues, storedValues) to
+        its own truncation record; occurred is true when any hop's bound was reached
+      optional: true
+      of: ground_value
 error:
   title: The error record
   about: >-
