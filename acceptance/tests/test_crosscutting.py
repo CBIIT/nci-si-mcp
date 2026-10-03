@@ -91,22 +91,44 @@ def _provenance(item):
 
 
 def _release(item):
-    """The terminology and release an item's provenance names."""
+    """The terminology or registry and the release an item's provenance names."""
 
     release = _provenance(item).get("release") or {}
-    return release.get("terminology"), release.get("identifier")
+    return release.get("terminology", release.get("registry")), release.get("identifier")
+
+
+def _pinned_release(name, pinned):
+    """The release a call's items name: the fixture set's, for a tool that takes a release; for
+    a caDSR call, which pins no registry release, the registry alone (X-21)."""
+
+    if "release" in parameters(name)[0]:
+        return pinned["terminology"], pinned["release"]
+    return "cadsr", None
 
 
 def _identity(item):
     """An item by what it is: a concept by terminology and code, an edge by its ends and its
-    relationship's code."""
+    relationship's code, a caDSR item by its public id and version (a code map by its data
+    element's), a context by its name."""
 
     if not isinstance(item, dict):
         return item
     if "sourceCode" in item:
         relationship = (item.get("provenance") or {}).get("relationship") or {}
         return item.get("sourceCode"), item.get("targetCode"), relationship.get("code")
+    if "code" not in item and "terminology" not in item:
+        return _registry_identity(item)
     return item.get("terminology"), item.get("code")
+
+
+def _registry_identity(item):
+    """A caDSR item by its public id and version, a code map by its data element's, a context
+    by its name."""
+
+    owner = item.get("dataElement") if isinstance(item.get("dataElement"), dict) else item
+    if "publicId" in owner:
+        return owner.get("publicId"), owner.get("version")
+    return item.get("name")
 
 
 def _wrong(provenance, names):
@@ -349,11 +371,7 @@ def test_a_query_that_matches_nothing_is_an_empty_result_with_provenance(tools, 
     # With no item to carry it, the result carries the provenance itself.
     provenance = _provenance(result.content)
     assert _wrong(provenance, CARRIED) == []
-    release = provenance["release"]
-    assert (release.get("terminology"), release.get("identifier")) == (
-        pinned["terminology"],
-        pinned["release"],
-    )
+    assert _release(result.content) == _pinned_release(name, pinned)
 
 
 @pytest.mark.requirement("X-8")
@@ -436,9 +454,12 @@ def test_a_cursor_continues_with_the_next_items_of_the_same_release(
     assert after, "the cursor's page is empty"
     assert [item for item in after if item in before] == []
     releases = {_release(item) for item in items_of(name, second.content)}
-    assert releases == {(pinned["terminology"], pinned["release"])}
-    other = _call(tools, pinned | {"release": _other_release(recorded, pinned)}, name, continued)
-    assert error_code(other) == "invalid_request", other.content
+    assert releases == {_pinned_release(name, pinned)}
+    if "release" in parameters(name)[0]:
+        other = _call(
+            tools, pinned | {"release": _other_release(recorded, pinned)}, name, continued
+        )
+        assert error_code(other) == "invalid_request", other.content
 
 
 def _first_page(tools, pinned, name, entry, extra=None):

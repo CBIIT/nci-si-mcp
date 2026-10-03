@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 import yaml
 
+from nci_si_acceptance.spec import TOOLS, profile_tools
+
 pytest_plugins = ["pytester"]
 
 SUITE = Path(__file__).parent.parent / "tests"
@@ -78,10 +80,26 @@ DEFECTS = [
 ]
 
 
-def test_every_cross_cutting_test_passes_against_a_server_that_meets_them(outcomes):
-    passed = outcomes(CROSS_CUTTING)
+# The compliant server serves the evs profile: a case of a tool of another group is NOT
+# IMPLEMENTED there, and shows nothing of the test.
+OTHER_GROUPS = set(TOOLS) - profile_tools("evs")
 
-    assert set(passed.values()) == {"passed"}
+
+def _served(found):
+    """The outcomes of the cases of tools the compliant server serves: a case's id names its
+    tool among its dash-separated parts (`get_code_map`, `-1-get_code_map-limit`)."""
+
+    def other(case):
+        return OTHER_GROUPS & set(case.partition("[")[2].rstrip("]").split("-"))
+
+    return {case: outcome for case, outcome in found.items() if not other(case)}
+
+
+def test_every_cross_cutting_test_passes_against_a_server_that_meets_them(outcomes):
+    passed = _served(outcomes(CROSS_CUTTING))
+
+    assert passed
+    assert {case: outcome for case, outcome in passed.items() if outcome != "passed"} == {}
     assert {name.partition("[")[0] for name in passed} == {test for _, test in DEFECTS}
 
 
@@ -92,7 +110,7 @@ def test_only_a_call_without_a_pinned_form_may_answer_an_unknown_release_with_th
     unpinned = {name for name, call in calls.items() if call.get("unpinned")}
     monkeypatch.setenv("COMPLIANT_SERVER_DEFECT", "unpinned-mismatch")
 
-    found = outcomes(CROSS_CUTTING, "-k", UNKNOWN_RELEASE)
+    found = _served(outcomes(CROSS_CUTTING, "-k", UNKNOWN_RELEASE))
 
     passed = {
         case.partition("[")[2].rstrip("]") for case, outcome in found.items() if outcome == "passed"
@@ -106,7 +124,7 @@ def test_only_a_call_without_a_pinned_form_may_answer_an_unknown_release_with_th
 def test_each_cross_cutting_test_fails_on_its_own_defect(outcomes, monkeypatch, defect, test):
     monkeypatch.setenv("COMPLIANT_SERVER_DEFECT", defect)
 
-    failing = outcomes(CROSS_CUTTING, "-k", test)
+    failing = _served(outcomes(CROSS_CUTTING, "-k", test))
 
     assert failing
     assert set(failing.values()) == {"failed"}

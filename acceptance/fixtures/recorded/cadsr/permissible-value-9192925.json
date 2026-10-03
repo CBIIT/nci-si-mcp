@@ -1,0 +1,16 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "cadsr",
+  "method": "GET",
+  "path": "/NCIAPI/1.0/api/permissibleValues/9192925",
+  "headers": {
+   "Accept": "application/json"
+  }
+ },
+ "response": {
+  "status": 404,
+  "body": ""
+ }
+}

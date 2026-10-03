@@ -71,3 +71,19 @@ get_concept_mappings:
 resolve_retired_code: {arguments: {code: C4817}}   # active: its concept names the release
 list_relationships: {arguments: {}}
 list_terminologies: {arguments: {}}
+
+# caDSR. No call pins a registry release (X-21), so none takes the fixture set's terminology and
+# release; `upstream` is what caDSR says of the item's origin, under its names (A4.3).
+get_data_element:
+  arguments: {publicId: "2200604"}
+  upstream: {publicId: "2200604", version: "4"}
+get_form:
+  arguments: {publicId: "5406471"}
+  upstream: {publicID: "5406471", version: "1.0"}
+match_value_meanings: {arguments: {values: [Male]}}
+get_code_map:
+  arguments: {}   # the CRDC list's 105 data elements against the limit's default of 100
+  empty: {targetContext: No such commons}
+  paged:
+    - arguments: {limit: 40}
+      changed: [{limit: 41}, {targetContext: GDC}, {dataElementId: "88"}]
