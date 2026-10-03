@@ -6,7 +6,7 @@ install and run the server is in [QUICKSTART.md](QUICKSTART.md); how it is built
 
 ## Set up
 
-You need Python 3.13 or newer and [PDM](https://pdm-project.org).
+You need Python 3.14 or newer and [PDM](https://pdm-project.org).
 
 ```bash
 pdm install                    # .venv from pdm.lock, with the test and lint tools
