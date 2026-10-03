@@ -28,6 +28,7 @@ ANSWERS = {
     },
     "crafted/version.json": {"response": CURRENT},
     "scenarios/retired/with-replacement/version.json": {"response": CURRENT},
+    "scenarios/traversal/deep-fanout/version.json": {"response": CURRENT},
     "scenarios/release/unknown/version.json": {"response": {"status": 404, "body": {}}},
     "scenarios/release/mismatch/version.json": {
         "response": {"status": 200, "body": {"version": "26.08e"}}

@@ -20,6 +20,8 @@
 # so that it carries a cursor to the next page (X-17); `changed` lists arguments, each of
 # which, given with the cursor in place of the first call's, alters the result. The defaults
 # a cursor's arguments are compared with are the specification's (spec/tools.yaml).
+# `defaulted` lists further calls, each with its scenario, whose result a wrong default would
+# change where the call's own cannot: a stated default below what the result holds (X-20).
 #
 # A limit a call gives is the page size of the recordings; a server's own default could ask
 # for another, which no fixture answers.
@@ -41,6 +43,8 @@ search_concepts:
 get_concept_hierarchy:
   arguments: {code: C4817, direction: parent}
   unversioned: true
+  defaulted:   # 1,001 children against the limit's default of 200
+    - {scenario: traversal/deep-fanout, arguments: {code: C99000000, direction: child}}
   paged:   # C4817 has 10 children
     arguments: {direction: child, limit: 5}
     changed: [{depth: 2}, {limit: 6}, {direction: parent}, {code: C9118}]
@@ -51,7 +55,11 @@ expand_value_set:
 get_concept_neighborhood:
   arguments: {code: C4817, depth: 1}
   unversioned: true
-  truncating: {arguments: {maxNodes: 2}, bound: nodes}   # C4817 has 97 neighbours at depth 1
+  truncating: {arguments: {maxNodes: 2}, bound: nodes}   # C4817: 93 assertions, 88 concepts
+  defaulted:
+    # 1,001 children against maxNodes' default of 200; a chain deeper than depth's default of 2.
+    - {scenario: traversal/deep-fanout, arguments: {code: C99000000, kinds: [child]}}
+    - {scenario: traversal/deep-fanout, arguments: {code: C99000001, kinds: [child]}}
 get_concept_subsets: {arguments: {code: C4817}}
 get_concept_mappings:
   arguments: {code: C4817}

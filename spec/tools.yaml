@@ -46,7 +46,8 @@ search_concepts:
   returns: "{ results[{ concept, score?, matchedOn? }], nextCursor?, totalKnown? }"
   items: ["results[].concept"]
   values: {mode: [lexical, typeahead, semantic, hybrid], retired: [include, only]}
-  defaults: {retired: include}
+  bounds: {limit: {default: 10, maximum: 1000}}
+  defaults: {mode: lexical, retired: include}
   summary: >-
     Ranked search of a terminology; semantic and hybrid from the interim NCIt index (M4.1).
     Retired concepts are returned with the others (retired include, the default, as the
