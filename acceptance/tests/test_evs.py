@@ -410,10 +410,13 @@ FIELDS = {"name", "synonym", "definition"}
 RETIRED_INDEXED = "recorded/evs/concepts/C13111.json"
 
 
+# The page the index searches ask for.
+INDEX_LIMIT = 10
+
+
 def _index_search(tools, pin, query, mode, **arguments):
-    return tools.call(
-        "search_concepts", {**pin, "query": query, "mode": mode, "limit": 10, **arguments}
-    )
+    search = {"query": query, "mode": mode, "limit": INDEX_LIMIT}
+    return tools.call("search_concepts", {**pin, **search, **arguments})
 
 
 def _index_results(result):
@@ -465,16 +468,25 @@ def test_index_search_returns_scored_indexed_concepts_and_the_named_one_first_pa
     results = _index_results(_index_search(tools, pinned, name, mode))
 
     assert _index_violations(results, pinned) == []
+    assert len(results) <= INDEX_LIMIT
     scores = [entry["score"] for entry in results]
     assert scores == sorted(scores, reverse=True)
-    # A query equal to a concept's preferred name: that concept on the first page.
-    assert CONCEPT in [(entry.get("concept") or {}).get("code") for entry in results]
+    # A query equal to a concept's preferred name: that concept on the first page, matched on
+    # its name.
+    matched = {
+        (entry.get("concept") or {}).get("code"): entry.get("matchedOn") for entry in results
+    }
+    assert matched.get(CONCEPT) == "name"
 
 
 @pytest.mark.tool("search_concepts")
 @pytest.mark.requirement("search_concepts-4")
 @pytest.mark.parametrize("mode", INDEX_MODES)
-def test_an_index_mode_for_a_terminology_without_an_index_is_invalid(tools, recorded, mode):
+# On a server without an index too: the terminology decides before the index does (-8).
+@pytest.mark.parametrize(
+    "index", ["as-prepared", pytest.param("none", marks=pytest.mark.unprepared)]
+)
+def test_an_index_mode_for_a_terminology_without_an_index_is_invalid(tools, recorded, mode, index):
     # GO: the index is NCIt's alone.
     row = _listed(recorded, "go")
     pin = {"terminology": row["terminology"], "release": row["version"]}
@@ -516,9 +528,21 @@ def test_index_search_returns_retired_concepts_with_the_others_or_alone(
     included = _states(_index_search(tools, pinned, body["name"], mode))
     alone = _states(_index_search(tools, pinned, body["name"], mode, retired="only"))
 
+    assert [code for code, _, _ in included + alone if code not in INDEX_SET] == []
     assert (body["code"], False, body["conceptStatus"]) in included
     assert (body["code"], False, body["conceptStatus"]) in alone
     assert {(active, status) for _, active, status in alone} == {(False, retired)}
+
+
+@pytest.mark.prepared
+@pytest.mark.tool("search_concepts")
+@pytest.mark.requirement("search_concepts-6")
+@pytest.mark.parametrize("mode", INDEX_MODES)
+@pytest.mark.parametrize("value", ["exclude", "ONLY", ""])
+def test_a_retired_value_outside_the_two_is_invalid_in_index_modes(tools, pinned, mode, value):
+    result = _index_search(tools, pinned, "Ewing Sarcoma", mode, retired=value)
+
+    assert error_code(result) == "invalid_request", result.content
 
 
 @pytest.mark.unprepared
