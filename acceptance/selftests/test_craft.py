@@ -10,6 +10,7 @@ from urllib.request import Request, urlopen
 
 import pytest
 import yaml
+from jsonschema import Draft4Validator
 
 from nci_si_acceptance.craft import (
     EXCLUSION_ROLES,
@@ -329,18 +330,26 @@ def test_the_cadsr_credential_of_the_settings_is_what_opens_contexts_and_cde_mat
     credential = CRAFTED["scenarios/cadsr/credentialed/settings.json"]["NCI_SI_CADSR_CREDENTIAL"]
     basic = {"Authorization": "Basic " + base64.b64encode(credential.encode()).decode()}
     sent = {"Content-Type": "application/json"}
-    match = [{"entity": "Patient Gender"}]
+    # Both forms of the body: the contract's apiinput object and the array of 10 September.
+    forms = [{"entity": "Patient Gender"}, [{"entity": "Patient Gender"}]]
     with FixtureServer(load_fixtures(FIXTURES)) as running:
         running.activate("cadsr/credentialed")
         granted = [
             ask(running, CONTEXTS, JSON | basic),
-            ask(running, CDE_MATCH, JSON | sent | basic, match),
+            *[ask(running, CDE_MATCH, JSON | sent | basic, form) for form in forms],
         ]
-        refused = [ask(running, CONTEXTS, JSON), ask(running, CDE_MATCH, JSON | sent, match)]
+        refused = [
+            ask(running, CONTEXTS, JSON),
+            *[ask(running, CDE_MATCH, JSON | sent, form) for form in forms],
+        ]
 
-    assert [status for status, _ in granted + refused] == [200, 200, 401, 401]
+    assert [status for status, _ in granted + refused] == [200, 200, 200, 401, 401, 401]
+    assert granted[1][1] == granted[2][1]
     assert "NCIP" in granted[0][1]["contextNames"]
-    assert [m["publicId"] for m in granted[1][1]["matchResults"]["matches"]] == ["2200604"]
+    assert [m["publicId"] for m in granted[1][1]["matchResults"]["matches"]] == [
+        "2200604",
+        "2180389",
+    ]
 
 
 def test_with_registry_release_publishes_one_and_echoes_it_where_the_api_answers_404(upstream):
@@ -410,3 +419,101 @@ def test_the_command_writes_what_craft_makes(tmp_path, capsys):
         json.loads(written.read_text(encoding="utf-8"))
         == CRAFTED["scenarios/release/two-latest/latest.json"]
     )
+
+
+# The crafted answers of the APIs that refuse an anonymous caller, each with the recorded
+# contract it follows and the definitions of its answer and of its request body.
+CONTRACT_ANSWERS = [
+    (
+        "scenarios/cadsr/credentialed/cde-match.json",
+        "recorded/cadsr-contracts/cde-match.json",
+        "cdeMatch_POST_response",
+        "apiinput",
+    ),
+    (
+        "scenarios/cadsr/match-timeout/cde-match.json",
+        "recorded/cadsr-contracts/cde-match.json",
+        "cdeMatch_POST_response",
+        "apiinput",
+    ),
+    (
+        "scenarios/cadsr/credentialed/context-names.json",
+        "recorded/cadsr-contracts/lists-of-values.json",
+        "getContextNames_GET_response",
+        None,
+    ),
+]
+
+
+def _closed(schema):
+    """A definition with every object closed to the properties it names, so that a field the
+    contract does not name, a misspelt one among them, shows."""
+
+    if isinstance(schema, list):
+        return [_closed(each) for each in schema]
+    if not isinstance(schema, dict):
+        return schema
+    closed = {key: _closed(value) for key, value in schema.items()}
+    return closed | ({"additionalProperties": False} if "properties" in schema else {})
+
+
+def _violations(contract, definition, value):
+    """How `value` departs from the contract's definition, swagger 2.0 being JSON Schema
+    draft 4 in this respect, with no field the definition does not name."""
+
+    definitions = _closed(contract["definitions"])
+    schema = {"$ref": f"#/definitions/{definition}", "definitions": definitions}
+    return [error.message for error in Draft4Validator(schema).iter_errors(value)]
+
+
+def _basic_auth(contract):
+    """Whether the contract requires HTTP basic authentication of every operation."""
+
+    schemes = contract.get("securityDefinitions", {})
+    required = {name for each in contract.get("security", []) for name in each}
+    return any(schemes[name].get("type") == "basic" for name in required)
+
+
+def _operations(contract):
+    """Each operation of a contract, by method and its path under the cadsr surface (the
+    basePath less /rad), with the definition its answer takes and the bodies it consumes."""
+
+    base = contract["basePath"].removeprefix("/rad")
+    return {
+        (method.upper(), base + path): (
+            operation["responses"]["200"]["schema"]["$ref"],
+            operation.get("consumes", contract.get("consumes")),
+        )
+        for path, methods in contract["paths"].items()
+        for method, operation in methods.items()
+    }
+
+
+@pytest.mark.parametrize("scenario", ["credentialed", "match-timeout"])
+def test_cde_match_answers_the_contract_s_body_and_the_observed_array_alike(scenario):
+    contract = CRAFTED[f"scenarios/cadsr/{scenario}/cde-match.json"]
+    observed = CRAFTED[f"scenarios/cadsr/{scenario}/cde-match-array.json"]
+
+    assert isinstance(contract["request"]["body"], dict)
+    assert observed["request"] == contract["request"] | {"body": [contract["request"]["body"]]}
+    assert observed["response"] == contract["response"]
+
+
+@pytest.mark.parametrize(("fixture", "source", "answer", "body"), CONTRACT_ANSWERS)
+def test_a_crafted_credentialed_answer_follows_its_published_contract(
+    fixture, source, answer, body
+):
+    contract = json.loads((FIXTURES / source).read_text(encoding="utf-8"))["response"]["body"]
+    request, response = CRAFTED[fixture]["request"], CRAFTED[fixture]["response"]
+
+    # The contract's operation, at its base path, whose answer is the definition named here.
+    takes, consumes = _operations(contract)[request["method"], request["path"]]
+    assert takes == f"#/definitions/{answer}"
+    # A contract that requires basic authentication is answered only with its header.
+    if _basic_auth(contract):
+        assert request["headers"].get("Authorization", "").startswith("Basic ")
+    # A body is sent as the operation consumes it.
+    assert "body" not in request or request["headers"].get("Content-Type") in (consumes or [])
+    assert _violations(contract, answer, response["body"]) == []
+    if body:
+        assert _violations(contract, body, request["body"]) == []

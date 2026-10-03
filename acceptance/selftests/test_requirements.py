@@ -11,7 +11,7 @@ import yaml
 
 from nci_si_acceptance.document import DOCUMENT, GROUPS, render
 from nci_si_acceptance.requirements import citations, load_requirements, never_runs, problems
-from nci_si_acceptance.spec import REQUIRED_TOOLS, is_basis
+from nci_si_acceptance.spec import REQUIRED_TOOLS, TOOLS, is_basis
 
 pytest_plugins = ["pytester"]
 
@@ -170,6 +170,11 @@ def test_the_specification_document_is_what_spec_renders(pytester, monkeypatch):
     )
     assert "`entities`: at most 10 a call." in on_disk
     assert "`values`: at most 10 a call." in on_disk
+    computed = "Computed from caller-supplied values: ttlMs 0, private."
+    rows = [line for line in on_disk.splitlines() if computed in line]
+    assert sorted(row.split("`")[1] for row in rows) == sorted(
+        name for name, tool in TOOLS.items() if tool.get("computed")
+    )
     assert (
         "`tests/test_protocol.py::test_tools_list_names_the_tools_of_the_profile_and_no_other`"
         in on_disk

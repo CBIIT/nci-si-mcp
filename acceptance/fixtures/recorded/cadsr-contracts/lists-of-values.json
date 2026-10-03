@@ -1,0 +1,342 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "cadsr-contracts",
+  "method": "GET",
+  "path": "/pub.swagger:getSwaggerJsonDoc",
+  "params": {
+   "radName": [
+    "NCILovAPI.v1_0:LovRad"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "swagger": "2.0",
+   "info": {
+    "description": "API for caDSR LOV objects\r\n\r\nSwagger JSON: [swagger.json](https://cadsrapi.cancer.gov/invoke/pub.swagger:getSwaggerJsonDoc?radName=NCILovAPI.v1_0:LovRad)",
+    "version": "1.0",
+    "title": "NCI LOV"
+   },
+   "host": "cadsrapi.cancer.gov",
+   "basePath": "/rad/NCILovAPI/1.0/api",
+   "schemes": [
+    "https"
+   ],
+   "consumes": [
+    "application/json"
+   ],
+   "produces": [
+    "application/json"
+   ],
+   "security": [
+    {
+     "Basic Auth": []
+    }
+   ],
+   "paths": {
+    "/getAdminItemTypes": {
+     "get": {
+      "operationId": "getAdminItemTypes_GET_1",
+      "parameters": [],
+      "responses": {
+       "200": {
+        "description": "OK",
+        "schema": {
+         "$ref": "#/definitions/getAdminItemTypes_GET_response"
+        }
+       },
+       "401": {
+        "description": "Access Denied"
+       }
+      }
+     }
+    },
+    "/getWorkflowStatusList": {
+     "get": {
+      "operationId": "getWorkflowStatusList_GET_2",
+      "parameters": [
+       {
+        "name": "adminItemTypeName",
+        "in": "query",
+        "description": "Administered Item Type Name.  Can be retrieved by calling getAdminItemTypes first.",
+        "required": true,
+        "type": "string"
+       }
+      ],
+      "responses": {
+       "200": {
+        "description": "OK",
+        "schema": {
+         "$ref": "#/definitions/getWorkflowStatusList_GET_response"
+        }
+       },
+       "401": {
+        "description": "Access Denied"
+       }
+      }
+     }
+    },
+    "/validateWorkflowStatus": {
+     "get": {
+      "operationId": "validateWorkflowStatus_GET_3",
+      "parameters": [
+       {
+        "name": "adminItemTypeName",
+        "in": "query",
+        "description": "Administered Item Type Name.  Can be retrieved by calling getAdminItemTypes first.",
+        "required": true,
+        "type": "string"
+       },
+       {
+        "name": "workflowID",
+        "in": "query",
+        "description": "Internal status ID.",
+        "required": false,
+        "type": "string"
+       },
+       {
+        "name": "workflowName",
+        "in": "query",
+        "description": "Workflow status name",
+        "required": false,
+        "type": "string"
+       }
+      ],
+      "responses": {
+       "200": {
+        "description": "OK",
+        "schema": {
+         "$ref": "#/definitions/validateWorkflowStatus_GET_response"
+        }
+       },
+       "401": {
+        "description": "Access Denied"
+       }
+      }
+     }
+    },
+    "/getContextNames": {
+     "get": {
+      "operationId": "getContextNames_GET_4",
+      "parameters": [],
+      "responses": {
+       "200": {
+        "description": "OK",
+        "schema": {
+         "$ref": "#/definitions/getContextNames_GET_response"
+        }
+       },
+       "401": {
+        "description": "Access Denied"
+       }
+      }
+     }
+    },
+    "/getRegistrationStatusList": {
+     "get": {
+      "operationId": "getRegistrationStatusList_GET_5",
+      "parameters": [],
+      "responses": {
+       "200": {
+        "description": "OK",
+        "schema": {
+         "$ref": "#/definitions/getRegistrationStatusList_GET_response"
+        }
+       },
+       "401": {
+        "description": "Access Denied"
+       }
+      }
+     }
+    }
+   },
+   "securityDefinitions": {
+    "Basic Auth": {
+     "description": "Bearer",
+     "type": "basic"
+    }
+   },
+   "definitions": {
+    "getAdminItemTypes_GET_response": {
+     "type": "object",
+     "required": [
+      "adminItemTypes",
+      "apiResponse"
+     ],
+     "properties": {
+      "adminItemTypes": {
+       "type": "array",
+       "items": {
+        "$ref": "#/definitions/adminItemType"
+       }
+      },
+      "apiResponse": {
+       "$ref": "#/definitions/apiResponse"
+      }
+     }
+    },
+    "getRegistrationStatusList_GET_response": {
+     "type": "object",
+     "required": [
+      "apiResponse"
+     ],
+     "properties": {
+      "registrationStatusList": {
+       "type": "array",
+       "items": {
+        "$ref": "#/definitions/Workflow"
+       }
+      },
+      "apiResponse": {
+       "$ref": "#/definitions/apiResponse"
+      }
+     }
+    },
+    "apiResponse": {
+     "type": "object",
+     "required": [
+      "type"
+     ],
+     "properties": {
+      "type": {
+       "type": "string",
+       "description": "S Success, E Error, W Warning, I Info, A Abort"
+      },
+      "message": {
+       "type": "string",
+       "description": "Message text"
+      },
+      "service": {
+       "type": "string",
+       "description": "service that errorred"
+      },
+      "time": {
+       "type": "string",
+       "description": "Date and time of error"
+      },
+      "ssnid": {
+       "type": "string",
+       "description": "session id"
+      },
+      "callStack": {
+       "type": "array",
+       "items": {
+        "$ref": "#/definitions/callstackItem"
+       }
+      }
+     }
+    },
+    "adminItemType": {
+     "type": "object",
+     "required": [
+      "adminItemTypeID",
+      "adminItemTypeName"
+     ],
+     "properties": {
+      "adminItemTypeID": {
+       "type": "string",
+       "description": "Administered Item ID"
+      },
+      "adminItemTypeName": {
+       "type": "string",
+       "description": "Administered Item Description/Name"
+      }
+     },
+     "description": "List of Administered Item Types"
+    },
+    "getContextNames_GET_response": {
+     "type": "object",
+     "required": [
+      "apiResponse"
+     ],
+     "properties": {
+      "apiResponse": {
+       "$ref": "#/definitions/apiResponse"
+      },
+      "contextNames": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      }
+     }
+    },
+    "getWorkflowStatusList_GET_response": {
+     "type": "object",
+     "required": [
+      "apiResponse"
+     ],
+     "properties": {
+      "workflowList": {
+       "type": "array",
+       "items": {
+        "$ref": "#/definitions/Workflow"
+       }
+      },
+      "apiResponse": {
+       "$ref": "#/definitions/apiResponse"
+      }
+     }
+    },
+    "validateWorkflowStatus_GET_response": {
+     "type": "object",
+     "required": [
+      "apiResponse",
+      "isValid"
+     ],
+     "properties": {
+      "isValid": {
+       "type": "string",
+       "description": "Is the workflow status valid"
+      },
+      "apiResponse": {
+       "$ref": "#/definitions/apiResponse"
+      }
+     }
+    },
+    "Workflow": {
+     "type": "object",
+     "required": [
+      "description",
+      "name",
+      "statusID"
+     ],
+     "properties": {
+      "statusID": {
+       "type": "string",
+       "description": "Internal ID for the given status"
+      },
+      "name": {
+       "type": "string",
+       "description": "Status name"
+      },
+      "description": {
+       "type": "string",
+       "description": "Status description"
+      }
+     },
+     "description": "List of Workflow information for DataElements Only."
+    },
+    "callstackItem": {
+     "type": "object",
+     "required": [
+      "flowStep",
+      "service"
+     ],
+     "properties": {
+      "service": {
+       "type": "string"
+      },
+      "flowStep": {
+       "type": "string"
+      }
+     },
+     "description": "call stack. To be used by support."
+    }
+   }
+  }
+ }
+}

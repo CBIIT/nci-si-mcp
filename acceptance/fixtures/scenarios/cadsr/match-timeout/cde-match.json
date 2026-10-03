@@ -1,6 +1,6 @@
 {
  "kind": "crafted",
- "requirement": "OP-M01, A9.3: CDE Match to its 2.0 contract, which refuses an anonymous caller since 3 October 2026 at the latest (401, recorded/cadsr/cde-match-refused*.json)",
+ "requirement": "A2.5: matching slower than its declared timeout is a timeout error",
  "request": {
   "surface": "cadsr",
   "method": "POST",
@@ -56,6 +56,7 @@
      }
     ]
    }
-  }
+  },
+  "delay_seconds": 3
  }
 }

@@ -11,7 +11,7 @@ from http import HTTPStatus
 
 import pytest
 
-from nci_si_acceptance.results import error_code
+from nci_si_acceptance.results import error_code, requests_naming
 from nci_si_acceptance.spec import RECORDS, TOOLS
 
 # Recorded both ways: recorded/cadsr/data-element-2200604.json answers a request that names
@@ -518,3 +518,285 @@ def test_a_capability_the_platform_lacks_is_unavailable_never_empty(tools, name,
     result = tools.call(name, arguments)
 
     assert error_code(result) == "capability_unavailable", result.content
+
+
+@pytest.mark.tool("get_data_element")
+@pytest.mark.requirement("get_data_element-2")
+def test_a_question_text_no_data_element_has_is_not_found(tools, recorded):
+    found = recorded("recorded/cadsr/question-text-unmatched.json")["response"]["body"]
+    assert found["DataElements"] == []
+
+    result = tools.call("get_data_element", {"questionText": "qqxyzzyqq"})
+
+    assert error_code(result) == "not_found", result.content
+
+
+# Crafted (PASS fixture only): no keyword search exists today, and the crafted answer of the
+# inventory's form holds the contract's cap of 1,000 data elements.
+OVER_CAP = "crafted/OP-C03/search-over-cap.json"
+
+
+@pytest.mark.tool("search_data_elements")
+@pytest.mark.requirement("search_data_elements-1")
+def test_a_search_s_page_is_the_limit_given(tools, recorded):
+    capped = len(recorded(OVER_CAP)["response"]["body"]["DataElements"])
+    limit = 25
+    assert limit < capped
+
+    content = _ok(tools.call("search_data_elements", {"query": "patient", "limit": limit}))
+
+    assert len(content.get("results", [])) == limit
+
+
+@pytest.mark.tool("search_data_elements")
+@pytest.mark.requirement("search_data_elements-1")
+def test_a_search_the_platform_caps_reports_the_cap_and_no_total(tools, recorded):
+    capped = len(recorded(OVER_CAP)["response"]["body"]["DataElements"])
+
+    content = _ok(tools.call("search_data_elements", {"query": "patient"}))
+
+    truncation = content.get("truncation") or {}
+    assert (truncation.get("occurred"), truncation.get("bound")) == (True, "upstream_cap")
+    assert (truncation.get("limit"), truncation.get("exact")) == (capped, False)
+    assert truncation.get("omitted", 0) >= 1
+    assert truncation.get("reached") == capped
+    assert "totalKnown" not in content
+    assert (
+        len(content.get("results", []))
+        == TOOLS["search_data_elements"]["bounds"]["limit"]["default"]
+    )
+
+
+# Crafted to the published contracts (PASS fixture only until credentials let the recorder
+# replace them): CDE Match and the context list refuse an anonymous caller.
+CREDENTIALED = "scenarios/cadsr/credentialed"
+
+
+@pytest.mark.scenario("cadsr/credentialed")
+@pytest.mark.tool("match_data_elements")
+@pytest.mark.requirement("match_data_elements-1")
+def test_data_element_matches_are_scored_and_rule_attributed_as_the_platform_says(tools, recorded):
+    answer = recorded(f"{CREDENTIALED}/cde-match.json")["response"]["body"]["matchResults"]
+
+    content = _ok(tools.call("match_data_elements", {"entities": [{"name": answer["entity"]}]}))
+
+    found = [
+        (
+            m.get("entity"),
+            m.get("score"),
+            m.get("rule"),
+            m.get("matchedText"),
+            (m.get("dataElement") or {}).get("publicId"),
+        )
+        for m in content.get("matches", [])
+    ]
+    assert found == [
+        (answer["entity"], m["score"], m["ruleDescription"], m["matchedText"], m["publicId"])
+        for m in answer["matches"]
+    ]
+
+
+@pytest.mark.scenario("cadsr/credentialed")
+@pytest.mark.tool("match_data_elements")
+@pytest.mark.requirement("match_data_elements-1")
+def test_each_entity_s_matches_are_named_for_it_in_the_order_given(tools, recorded):
+    answers = [
+        recorded(f"{CREDENTIALED}/{file}")["response"]["body"]["matchResults"]
+        for file in ("cde-match.json", "cde-match-donor.json")
+    ]
+    entities = [{"name": answer["entity"]} for answer in answers]
+
+    content = _ok(tools.call("match_data_elements", {"entities": entities}))
+
+    found = [
+        (m.get("entity"), (m.get("dataElement") or {}).get("publicId"))
+        for m in content.get("matches", [])
+    ]
+    assert found == [(a["entity"], m["publicId"]) for a in answers for m in a["matches"]]
+
+
+@pytest.mark.scenario("cadsr/credentialed")
+@pytest.mark.tool("match_data_elements")
+@pytest.mark.requirement("match_data_elements-1")
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        {"modelVariant": "default"},
+        {"similarityThreshold": 0.5},
+        {
+            "entities": [{"name": "Patient Gender"}]
+            * (TOOLS["match_data_elements"]["lists"]["entities"] + 1)
+        },
+    ],
+    ids=["model-variant", "similarity-threshold", "too-many-entities"],
+)
+def test_what_the_platform_does_not_take_is_an_invalid_request_never_ignored(tools, arguments):
+    call = {"entities": [{"name": "Patient Gender"}]} | arguments
+
+    result = tools.call("match_data_elements", call)
+
+    assert error_code(result) == "invalid_request", result.content
+
+
+@pytest.mark.scenario("cadsr/credentialed")
+@pytest.mark.tool("match_data_elements")
+@pytest.mark.requirement("match_data_elements-1")
+def test_at_most_match_limit_matches_come_for_an_entity(tools, recorded):
+    answer = recorded(f"{CREDENTIALED}/cde-match.json")["response"]["body"]["matchResults"]
+    assert len(answer["matches"]) > 1
+
+    content = _ok(
+        tools.call(
+            "match_data_elements", {"entities": [{"name": answer["entity"]}], "matchLimit": 1}
+        )
+    )
+
+    found = [(m.get("dataElement") or {}).get("publicId") for m in content.get("matches", [])]
+    assert found == [answer["matches"][0]["publicId"]]
+
+
+TIMEOUTS = [
+    pytest.param(
+        name,
+        arguments,
+        id=name,
+        marks=[pytest.mark.tool(name), pytest.mark.requirement(f"{name}-1")],
+    )
+    for name, arguments in [
+        ("match_data_elements", {"entities": [{"name": "Patient Gender"}]}),
+        ("match_value_meanings", {"values": ["Male"]}),
+    ]
+]
+
+
+@pytest.mark.scenario("cadsr/match-timeout")
+@pytest.mark.parametrize(("name", "arguments"), TIMEOUTS)
+def test_matching_slower_than_the_match_timeout_is_a_timeout(tools, recorded, name, arguments):
+    settings = recorded("scenarios/cadsr/match-timeout/settings.json")
+    delays = {
+        recorded(f"scenarios/cadsr/match-timeout/{file}")["response"]["delay_seconds"]
+        for file in ("vm-match.json", "cde-match.json")
+    }
+    assert min(delays) > float(settings["NCI_SI_MATCH_TIMEOUT_SECONDS"])
+
+    result = tools.call(name, arguments)
+
+    assert error_code(result) == "timeout", result.content
+
+
+@pytest.mark.tool("match_value_meanings")
+@pytest.mark.requirement("match_value_meanings-1")
+def test_a_match_with_no_concept_has_none_never_null(tools, recorded):
+    crafted = recorded("crafted/OP-M02/vm-match-no-concept.json")
+    (value,) = crafted["request"]["body"]
+    (match,) = crafted["response"]["body"]["matchResults"][0]["matches"]
+    assert (match["concept"], match["evsSource"]) == (None, None)
+
+    content = _ok(tools.call("match_value_meanings", {"values": [value["name"]]}))
+
+    (found,) = content.get("matches", [])
+    item = found.get("item") or {}
+    assert item.get("publicId") == match["itemId"]
+    assert [key for key in ("concept", "evsSource") if key in item] == []
+
+
+@pytest.mark.scenario("cadsr/credentialed")
+@pytest.mark.tool("list_contexts")
+@pytest.mark.requirement("list_contexts-1")
+def test_the_contexts_are_the_registry_s_context_names(tools, recorded):
+    names = recorded(f"{CREDENTIALED}/context-names.json")["response"]["body"]["contextNames"]
+    assert len(names) <= TOOLS["list_contexts"]["bounds"]["limit"]["default"]
+
+    content = _ok(tools.call("list_contexts", {}))
+
+    contexts = content.get("contexts", [])
+    assert [context.get("name") for context in contexts] == names
+    assert [(c.get("provenance") or {}).get("release") for c in contexts] == [
+        {"registry": "cadsr"}
+    ] * len(names)
+
+
+# Crafted (PASS fixture only): caDSR publishes no registry release today.
+PUBLISHED = "scenarios/cadsr/with-registry-release/registry-releases.json"
+
+
+def _published(recorded):
+    (release,) = [
+        r for r in recorded(PUBLISHED)["response"]["body"]["registryReleases"] if r["latest"]
+    ]
+    return release
+
+
+@pytest.mark.scenario("cadsr/with-registry-release")
+@pytest.mark.tool("resolve_registry_release")
+@pytest.mark.requirement("resolve_registry_release-1")
+def test_a_published_registry_release_is_returned(tools, recorded):
+    release = _published(recorded)
+
+    result = tools.call("resolve_registry_release", {})
+
+    content = _ok(result)
+    assert (content.get("published"), content.get("identifier")) == (True, release["identifier"])
+    assert content.get("generatedAt") == release["generatedAt"]
+    assert result.meta.get("ttlMs") == 0
+
+
+@pytest.mark.scenario("cadsr/with-registry-release")
+@pytest.mark.tool("get_data_element")
+@pytest.mark.requirement("X-21")
+def test_a_published_registry_release_is_asked_for_and_named_with_its_date(
+    tools, upstream, recorded
+):
+    release = _published(recorded)
+
+    content = _ok(
+        tools.call(
+            "get_data_element", {"publicId": DATA_ELEMENT, "registryRelease": release["identifier"]}
+        )
+    )
+
+    named = (content.get("provenance") or {}).get("release") or {}
+    assert (named.get("registry"), named.get("identifier")) == ("cadsr", release["identifier"])
+    assert str(named.get("date", "")).startswith(release["generatedAt"][:10])
+    # Asked for, not only named: a content request carried the release.
+    content_requests = [e for e in upstream.log() if "registry/releases" not in e["path"]]
+    assert requests_naming(content_requests, [release["identifier"]])
+
+
+@pytest.mark.scenario("cadsr/with-registry-release")
+@pytest.mark.tool("get_data_element")
+@pytest.mark.requirement("X-21")
+def test_a_registry_release_cadsr_does_not_list_fails_closed_where_it_lists_some(tools, recorded):
+    listed = [r["identifier"] for r in recorded(PUBLISHED)["response"]["body"]["registryReleases"]]
+    unlisted = "2026.06.01"
+    assert unlisted not in listed
+
+    result = tools.call("get_data_element", {"publicId": DATA_ELEMENT, "registryRelease": unlisted})
+
+    assert error_code(result) == "release_not_available", result.content
+
+
+@pytest.mark.scenario("cadsr/with-registry-release")
+@pytest.mark.tool("get_code_map")
+@pytest.mark.requirement("X-17")
+@pytest.mark.parametrize(
+    "pinned_first", [True, False], ids=["pinned-then-not", "unpinned-then-pinned"]
+)
+def test_a_cursor_keeps_the_registry_release_it_was_issued_with(
+    tools, upstream, recorded, pinned_first
+):
+    pin = {"registryRelease": _published(recorded)["identifier"]}
+    first_arguments = {"limit": 40} | (pin if pinned_first else {})
+    first = _ok(tools.call("get_code_map", first_arguments))
+    asked = requests_naming(
+        [e for e in upstream.log() if "registry/releases" not in e["path"]],
+        [pin["registryRelease"]],
+    )
+    assert bool(asked) is pinned_first
+    cursor = first.get("nextCursor")
+    assert cursor, "no nextCursor"
+
+    presented = {"limit": 40, "cursor": cursor} | ({} if pinned_first else pin)
+    result = tools.call("get_code_map", presented)
+
+    assert error_code(result) == "invalid_request", result.content

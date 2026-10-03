@@ -1,0 +1,53 @@
+{
+ "kind": "crafted",
+ "requirement": "value_meaning_match: concept and evsSource absent where the platform gives none",
+ "request": {
+  "surface": "cadsr",
+  "method": "POST",
+  "path": "/vmMatch/v1/vmMatch",
+  "headers": {
+   "Accept": "application/json",
+   "Content-Type": "application/json",
+   "matchType": "Restricted",
+   "function": "match"
+  },
+  "body": [
+   {
+    "name": "Male, no concept"
+   }
+  ]
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "matchResults": [
+    {
+     "name": "Male, no concept",
+     "numberOfMatches": "1",
+     "matches": [
+      {
+       "ruleDescription": "1. VM Exact Match",
+       "importedVMName": "Male, no concept",
+       "itemType": "ValueMeaning",
+       "itemId": "2561834",
+       "version": "1",
+       "concept": null,
+       "matchedName": "MALE",
+       "evsSource": null,
+       "matchedDefinition": "An individual who belongs to the sex that normally produces sperm.",
+       "context": "NCIP",
+       "workflowStatus": "RELEASED",
+       "registrationStatus": "Application",
+       "userComment": null,
+       "matchDescriptionText": null,
+       "matchType": null,
+       "crosswalkCode": "NA",
+       "crosswalkDescription": null,
+       "permissibleValueName": null
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

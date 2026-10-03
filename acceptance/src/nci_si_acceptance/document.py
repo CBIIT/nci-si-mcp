@@ -94,6 +94,9 @@ def _limits(tool: dict[str, Any]) -> str:
         f" `{argument}`: default {value}." for argument, value in tool.get("defaults", {}).items()
     )
     limits += f" At most {tool['requests']} upstream requests a call." if "requests" in tool else ""
+    limits += (
+        " Computed from caller-supplied values: ttlMs 0, private." if tool.get("computed") else ""
+    )
     limits += "".join(
         f" `{argument}`: at most {count} a call."
         for argument, count in tool.get("lists", {}).items()

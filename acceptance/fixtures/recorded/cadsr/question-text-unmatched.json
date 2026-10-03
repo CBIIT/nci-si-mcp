@@ -1,0 +1,32 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "cadsr",
+  "method": "GET",
+  "path": "/NCIAPI/1.0/api/DataElements/ReferenceDocument",
+  "params": {
+   "documentText": [
+    "qqxyzzyqq"
+   ],
+   "documentType": [
+    "Preferred Question Text"
+   ],
+   "headerOnly": [
+    "true"
+   ]
+  },
+  "headers": {
+   "Accept": "application/json"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "DataElements": [],
+   "apiResponse": {
+    "type": "S"
+   }
+  }
+ }
+}

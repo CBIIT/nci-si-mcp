@@ -33,6 +33,7 @@ and an unknown data element both come back as HTTP 200, with `apiResponse` sayin
 | OP-C07 | `GET cadsr /NCIAPI/1.0/api/DataElement/2200604/permissibleValues` with `Accept: application/json` | 404 | recorded | The inventory's path for a data element's permissible values answers 404; they come inside the data element. | `recorded/cadsr/permissible-values.json` |
 | OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElements/ReferenceDocument?documentText=Sex of a Person&documentType=Preferred Question Text&headerOnly=true` with `Accept: application/json` | 200 | recorded | A data element by its preferred question text, header fields only; the platform matches the text as contained, and this one names 2200604 alone. | `recorded/cadsr/question-text-sex-of-a-person.json` |
 | OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElements/ReferenceDocument?documentText=Date of birth&documentType=Preferred Question Text&headerOnly=true` with `Accept: application/json` | 200 | recorded | A question text 18 data elements have, as the platform matches it. | `recorded/cadsr/question-text-date-of-birth.json` |
+| OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElements/ReferenceDocument?documentText=qqxyzzyqq&documentType=Preferred Question Text&headerOnly=true` with `Accept: application/json` | 200 | recorded | A question text no data element has, which the platform answers with an empty list. | `recorded/cadsr/question-text-unmatched.json` |
 | OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElement/2200604` with no header | 200 | recorded | The same request without Accept: HTTP 200 with HTML. The fixture naming Accept answers a request that carries it; this one any other (M3.2, X-15). | `recorded/cadsr/data-element-2200604-html.json` |
 | OP-C06 | `GET cadsr /NCIAPI/1.0/api/DataElements/getCRDCList` with `Accept: application/json` | 200 | recorded | The CRDC crosswalk, unparameterised. | `recorded/cadsr/crdc-list.json` |
 | OP-C09 | `GET cadsr /NCIAPI/1.0/api/DataElements/Concept?conceptCode=C17357&headerOnly=true` with `Accept: application/json` | 200 | recorded | Data elements by concept code, header fields only: the contract caps every query at 1,000 results, "To bring back all results, utilize the headerOnly field". | `recorded/cadsr/concept-c17357.json` |
@@ -44,6 +45,7 @@ and an unknown data element both come back as HTTP 200, with `apiResponse` sayin
 | OP-C10 | `GET cadsr /NCIAPI/1.0/api/permissibleValues/9192925` with `Accept: application/json` | 404 | recorded | A permissible value by the id caDSR REST publishes for it (9192925, "Unknown" of 2200604): the inventory's path answers 404. | `recorded/cadsr/permissible-value-9192925.json` |
 | OP-M02 | `POST cadsr /vmMatch/v1/vmMatch` with `Accept: application/json`, `Content-Type: application/json`, `matchType: Restricted`, `function: match`, body `[{"name": "Male"}]` | 200 | recorded | Value meanings matched to one value, restricted; answered anonymously. | `recorded/cadsr/vm-match-male.json` |
 | OP-M01 | `POST cadsr /NCIAPI.v2_0.cdeMatch.api:cdeMatch_rad/cdeMatch` with `Accept: application/json`, `Content-Type: application/json`, body `[{"entity": "Patient Gender"}]` | 401 | recorded | CDE Match refuses an anonymous caller (401) since 3 October 2026 at the latest; it answered one on 10 September. cadsr/credentialed holds the answer to the contract. | `recorded/cadsr/cde-match-refused.json` |
+| OP-M01 | `POST cadsr /NCIAPI.v2_0.cdeMatch.api:cdeMatch_rad/cdeMatch` with `Accept: application/json`, `Content-Type: application/json`, body `{"entity": "Patient Gender"}` | 401 | recorded | CDE Match asked with the contract's body, one apiinput object, refused alike (401). Which form the service takes, the contract's object or the array it answered on 10 September, is asked in #42; the fixtures answer both. | `recorded/cadsr/cde-match-refused-object.json` |
 | OP-C08 | `GET cadsr /NCIAPI/1.0/api/registry/releases` with `Accept: application/json` | 404 | recorded | No registry release is published: the path the inventory names (/registry/releases, placed here under the data element API) answers 404 (C-1). cadsr/with-registry-release crafts one. | `recorded/cadsr/registry-releases.json` |
 | A3.8.2 | `GET cadsr-ftp /CDE/XML/` with no header | 200 | recorded | The folder of the XML export, which dates releasedCDEsXML-OD.zip 2026-07-01 22:19 in the server's time (Last-Modified: Thu, 02 Jul 2026 02:19:40 GMT); its README says it is updated daily. The inventory's timestamped xml_cde_YYYYMMDDHHMM.zip names are gone. | `recorded/cadsr-ftp/cde-xml-listing.json` |
 | A3.8.2 | `GET cadsr-ftp /CDE/XML/README` with no header | 200 | recorded | What the export holds and how often it is updated. | `recorded/cadsr-ftp/cde-xml-readme.json` |
@@ -59,17 +61,21 @@ answers the ordinary forms above.
 
 Every EVS request, whatever its path, gets a closed connection, then 503, then no answer within the timeout. Crafted, 5 fixtures, for A2.5, A5.3: bounded retries, counted, then a structured error.
 
+### `upstream/rate-limited`
+
+429 with `Retry-After` on the release query, then the answer. Crafted, 2 fixtures, for E-7, P-1: back-off honoured and counted.
+
 ### `cadsr/with-registry-release`
 
-caDSR publishes a registry release: /registry/releases names one, and a data element asked with it is answered with the release echoed (C-1). Crafted, 2 fixtures, for C-1: a published registry release, named in every answer and accepted on every content call.
+caDSR publishes a registry release: /registry/releases names one, and a data element asked with it is answered with the release echoed (C-1). Crafted, 3 fixtures, for C-1: a published registry release, named in every answer and accepted on every content call.
 
 ### `cadsr/credentialed`
 
-The server holds caDSR credentials: contexts and CDE Match answer to the contracts, where the API refuses an anonymous caller (401). Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract, which refuses an anonymous caller since 3 October 2026 at the latest (401, recorded/cadsr/cde-match-refused.json). Crafted, 1 fixture, for OP-C13, A9.3: the context list to the lists-of-values contract, which refuses an anonymous caller (401, recorded/cadsr/context-names-refused.json).
+The server holds caDSR credentials: contexts and CDE Match answer to the contracts, where the API refuses an anonymous caller (401). Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract, which refuses an anonymous caller since 3 October 2026 at the latest (401, recorded/cadsr/cde-match-refused*.json); the array the call of 10 September sent. Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract for a second entity; the array the call of 10 September sent. Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract for a second entity. Crafted, 1 fixture, for OP-M01, A9.3: CDE Match to its 2.0 contract, which refuses an anonymous caller since 3 October 2026 at the latest (401, recorded/cadsr/cde-match-refused*.json). Crafted, 1 fixture, for OP-C13, A9.3: the context list to the lists-of-values contract, which refuses an anonymous caller (401, recorded/cadsr/context-names-refused.json).
 
 ### `cadsr/match-timeout`
 
-vmMatch answers later than the match timeout the scenario sets. Crafted, 1 fixture, for A2.5: matching slower than its declared timeout is a timeout error.
+vmMatch answers later than the match timeout the scenario sets. Crafted, 1 fixture, for A2.5: matching slower than its declared timeout is a timeout error; the array the call of 10 September sent. Crafted, 2 fixtures, for A2.5: matching slower than its declared timeout is a timeout error.
 
 ### `cadsr/html-for-json`
 

@@ -33,7 +33,7 @@ from nci_si_acceptance.record import (
 from nci_si_acceptance.spec import RECORDS
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable, Iterable, Iterator
 
 type Documents = dict[str, dict[str, Any]]
 
@@ -66,6 +66,8 @@ REGISTRY_RELEASE = "2026.07.02"
 # The record cap of every caDSR list query, by contract: "The maximum number of results per
 # query is 1000."
 CADSR_CAP = 1000
+# The keyword the crafted empty search answers.
+NO_MATCH = "qqxyzzyqq"
 # Synthetic data elements of the over-cap answer use public ids from 99000000 up.
 SYNTHETIC_PUBLIC_ID = 99000000
 # The positions, in the recorded expansion, of the members valueset/inactive-members marks
@@ -457,20 +459,25 @@ def valueset_inactive_members(recorded: Recorded) -> Documents:
 
 
 def upstream_rate_limited(recorded: Recorded) -> Documents:
-    """429 with Retry-After on the release query, then the recorded answer."""
+    """429 with Retry-After on EVS's release query and on caDSR's data element 2200604,
+    then the recorded answer."""
 
-    source = recorded("recorded/evs/release-monthly.json")
     limited = {
         "status": 429,
         "headers": {"Retry-After": "1"},
         "body": {"message": "Too Many Requests"},
     }
+    sources = {
+        "release.json": recorded("recorded/evs/release-monthly.json"),
+        "data-element.json": recorded("recorded/cadsr/data-element-2200604.json"),
+    }
     return {
-        "scenarios/upstream/rate-limited/release.json": crafted(
+        f"scenarios/upstream/rate-limited/{name}": crafted(
             "E-7, P-1: back-off honoured and counted",
             source["request"],
             responses=[limited, source["response"]],
         )
+        for name, source in sources.items()
     }
 
 
@@ -525,16 +532,23 @@ def cadsr_with_registry_release(recorded: Recorded) -> Documents:
         "C-1: a published registry release, named in every answer and accepted on every "
         "content call"
     )
-    # generatedAt is the export's Last-Modified (recorded/cadsr-ftp/cde-xml-listing.json).
+    # generatedAt as the export folder dates the export (recorded/cadsr-ftp/cde-xml-listing.json),
+    # in the server's time, which the listing does not name.
     releases = {
         "registryReleases": [
-            {"identifier": REGISTRY_RELEASE, "generatedAt": "2026-07-02T02:19:40Z", "latest": True}
+            {"identifier": REGISTRY_RELEASE, "generatedAt": "2026-07-01T22:19", "latest": True}
         ]
     }
     element = recorded("recorded/cadsr/data-element-2200604.json")["response"]
     pinned = {"publicId": ["2200604"], "registryRelease": [REGISTRY_RELEASE]}
+    crosswalk = recorded("recorded/cadsr/crdc-list.json")
     scenario = "scenarios/cadsr/with-registry-release"
     return {
+        f"{scenario}/crdc-list.json": crafted(
+            requirement,
+            crosswalk["request"] | {"params": {"registryRelease": [REGISTRY_RELEASE]}},
+            response=crosswalk["response"],
+        ),
         f"{scenario}/registry-releases.json": crafted(
             requirement,
             _cadsr_json("/NCIAPI/1.0/api/registry/releases"),
@@ -551,47 +565,83 @@ def cadsr_with_registry_release(recorded: Recorded) -> Documents:
 def _contexts(recorded: Recorded) -> list[str]:
     """The context names the recorded data elements carry, at any depth."""
 
-    def names(value: Any) -> set[str]:
-        if isinstance(value, list):
-            return set().union(*map(names, value))
-        if not isinstance(value, dict):
-            return set()
-        own = {value["context"]} if isinstance(value.get("context"), str) else set()
-        return own.union(*map(names, value.values()))
-
+    # In the order the recordings name them, each once: an order of the platform's own, which
+    # a server that sorts the list would not keep.
     files = ("data-element-2200604.json", "classification-3685569.json")
-    return sorted(set().union(*(names(recorded(f"recorded/cadsr/{f}")) for f in files)))
+    found = [name for f in files for name in _context_names(recorded(f"recorded/cadsr/{f}"))]
+    return list(dict.fromkeys(found))
 
 
-def _cde_match(recorded: Recorded) -> dict[str, Any]:
-    """CDE Match's answer, to its 2.0 contract, matching 2200604 to "Patient Gender"."""
+def _context_names(value: Any) -> Iterator[str]:
+    """The context names a recording carries, at any depth, in its order."""
 
-    element = recorded("recorded/cadsr/data-element-2200604.json")["response"]["body"]
-    element = element["DataElement"]
-    values = element["ValueDomain"]["PermissibleValues"]
+    if isinstance(value, dict):
+        if isinstance(value.get("context"), str):
+            yield value["context"]
+        value = list(value.values())
+    if isinstance(value, list):
+        for each in value:
+            yield from _context_names(each)
+
+
+# The entities the crafted CDE Match answers are for, each with the recorded data elements it
+# matches: 2200604 itself, and from the concept search (header fields only) 2180389.
+MATCHED_ENTITIES = {
+    "Patient Gender": (
+        "recorded/cadsr/data-element-2200604.json",
+        "recorded/cadsr/concept-c17357.json",
+    ),
+    "Transplant Donor Gender": ("recorded/cadsr/concept-c17357.json",),
+}
+# Invented, as no answer can be recorded without credentials: the scores and the rule, marked so.
+SCORES = (0.97, 0.83)
+RULE = "Crafted: long name"
+
+
+def _matched_element(recorded: Recorded, file: str) -> dict[str, Any]:
+    body = recorded(file)["response"]["body"]
+    return body["DataElement"] if "DataElement" in body else body["DataElements"][0]
+
+
+def _cde_match(recorded: Recorded, entity: str = "Patient Gender") -> dict[str, Any]:
+    """CDE Match's answer to its 2.0 contract (cdeMatch_POST_response: apiResponse, and
+    matchResults an odeResults with odeMatch matches) for one entity, the matched data
+    elements' fields read from the recordings; the contract gives no example."""
+
+    elements = [_matched_element(recorded, file) for file in MATCHED_ENTITIES[entity]]
+    matches = [_ode_match(element, score) for element, score in zip(elements, SCORES, strict=False)]
+    results = {
+        "sequenceNumber": 1,
+        "entity": entity,
+        "numberOfMatches": len(matches),
+        # The entity names no permissible values, so none is matched.
+        "numberofPVs": 0,
+        "lastRunType": "Crafted",
+        "matches": matches,
+    }
+    return {"apiResponse": {"type": "S"}, "matchResults": results}
+
+
+def _ode_match(element: dict[str, Any], score: float) -> dict[str, Any]:
+    """An odeMatch of the CDE Match 2.0 contract, its fields read from a recorded data element;
+    its count of permissible values only where the recording holds them."""
+
+    values = (element.get("ValueDomain") or {}).get("PermissibleValues")
     match = {
-        "ruleDescription": "Crafted: long name",
-        "score": 1.0,
+        "ruleDescription": RULE,
+        "score": score,
         "publicId": element["publicId"],
         "version": element["version"],
         "numberOfPVsInSource": 0,
-        "numberOfPVsInCDE": len(values),
-        "numberofPVsMatch": 0,
-        "matchedText": element["longName"],
+        "numberOfPVsMatch": 0,
+        # What matched, as recorded: the short name, which differs from the long name.
+        "matchedText": element["shortName"],
         "longName": element["longName"],
         "context": element["context"],
         "workflowStatus": element["workflowStatus"],
         "registrationStatus": element["registrationStatus"],
     }
-    results = {
-        "sequenceNumber": 1,
-        "entity": "Patient Gender",
-        "numberOfMatches": 1,
-        "numberofPVs": 0,
-        "lastRunType": "Crafted",
-        "matches": [match],
-    }
-    return {"apiResponse": {"type": "S"}, "matchResults": results}
+    return match | ({"numberOfPVsInCDE": len(values)} if values is not None else {})
 
 
 def cadsr_credentialed(recorded: Recorded) -> Documents:
@@ -601,9 +651,8 @@ def cadsr_credentialed(recorded: Recorded) -> Documents:
     the recorded data elements carry, the match is 2200604."""
 
     authorized = {"Authorization": CADSR_AUTHORIZATION}
+    # getContextNames_GET_response: apiResponse and contextNames, an array of strings.
     contexts = {"apiResponse": {"type": "S"}, "contextNames": _contexts(recorded)}
-    refused = recorded("recorded/cadsr/cde-match-refused.json")["request"]
-    match = refused | {"headers": refused["headers"] | authorized}
     scenario = "scenarios/cadsr/credentialed"
     return {
         f"{scenario}/settings.json": {"NCI_SI_CADSR_CREDENTIAL": CADSR_CREDENTIAL},
@@ -613,28 +662,102 @@ def cadsr_credentialed(recorded: Recorded) -> Documents:
             _cadsr_json("/NCILovAPI/1.0/api/getContextNames", headers=authorized),
             response={"status": 200, "body": contexts},
         ),
-        f"{scenario}/cde-match.json": crafted(
+        **_cde_match_forms(
+            f"{scenario}/cde-match",
             "OP-M01, A9.3: CDE Match to its 2.0 contract, which refuses an anonymous caller "
-            "since 3 October 2026 at the latest (401, recorded/cadsr/cde-match-refused.json)",
-            match,
-            response={"status": 200, "body": _cde_match(recorded)},
+            "since 3 October 2026 at the latest (401, recorded/cadsr/cde-match-refused*.json)",
+            {"status": 200, "body": _cde_match(recorded)},
+        ),
+        **_cde_match_forms(
+            f"{scenario}/cde-match-donor",
+            "OP-M01, A9.3: CDE Match to its 2.0 contract for a second entity",
+            {"status": 200, "body": _cde_match(recorded, "Transplant Donor Gender")},
+            "Transplant Donor Gender",
         ),
     }
 
 
-def cadsr_match_timeout(recorded: Recorded) -> Documents:
-    """vmMatch answers, but later than the match timeout the scenario sets: the server
-    reports a timeout, never an empty match (the caDSR SOW's declared timeout)."""
+def _cde_match_forms(
+    stem: str, requirement: str, response: dict[str, Any], entity: str = "Patient Gender"
+) -> Documents:
+    """One answer to both forms of CDE Match's body: the contract's apiinput object, and the
+    array the service answered on 10 September; which it takes is asked in #42."""
 
+    contract = _cde_match_request(entity)
+    observed = contract | {"body": [contract["body"]]}
+    return {
+        f"{stem}.json": crafted(requirement, contract, response=response),
+        f"{stem}-array.json": crafted(
+            f"{requirement}; the array the call of 10 September sent", observed, response=response
+        ),
+    }
+
+
+def _cde_match_request(entity: str = "Patient Gender") -> dict[str, Any]:
+    """CDE Match asked as its 2.0 contract says, with the scenario's credentials: POST
+    /cdeMatch, its body dataInput one apiinput object (the call of 10 September sent an
+    array, which recorded/cadsr/cde-match-refused.json keeps)."""
+
+    return {
+        "surface": "cadsr",
+        "method": "POST",
+        "path": "/NCIAPI.v2_0.cdeMatch.api:cdeMatch_rad/cdeMatch",
+        "headers": {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Authorization": CADSR_AUTHORIZATION,
+        },
+        "body": {"entity": entity},
+    }
+
+
+def cadsr_match_timeout(recorded: Recorded) -> Documents:
+    """vmMatch and CDE Match answer, but later than the match timeout the scenario sets: the
+    server reports a timeout, never an empty match (the caDSR SOW's declared timeout). CDE
+    Match needs credentials, so the scenario holds them too."""
+
+    requirement = "A2.5: matching slower than its declared timeout is a timeout error"
     source = recorded("recorded/cadsr/vm-match-male.json")
     scenario = "scenarios/cadsr/match-timeout"
+    late = {"delay_seconds": 3}
     return {
-        f"{scenario}/settings.json": {"NCI_SI_MATCH_TIMEOUT_SECONDS": "1"},
+        f"{scenario}/settings.json": {
+            "NCI_SI_MATCH_TIMEOUT_SECONDS": "1",
+            "NCI_SI_CADSR_CREDENTIAL": CADSR_CREDENTIAL,
+        },
         f"{scenario}/vm-match.json": crafted(
-            "A2.5: matching slower than its declared timeout is a timeout error",
-            source["request"],
-            response=source["response"] | {"delay_seconds": 3},
+            requirement, source["request"], response=source["response"] | late
         ),
+        **_cde_match_forms(
+            f"{scenario}/cde-match",
+            requirement,
+            {"status": 200, "body": _cde_match(recorded)} | late,
+        ),
+    }
+
+
+# The value of the vmMatch answer with no concept: no live value yielded one (Not Applicable,
+# "Other, specify"; Unknown answered 504 after 10.6 s on 3 October 2026).
+NO_CONCEPT = "Male, no concept"
+
+
+def cadsr_match_without_a_concept(recorded: Recorded) -> Documents:
+    """A vmMatch match that names no concept and no code system: the item has neither,
+    absent rather than null. The recorded value meaning "Male", its concept made null."""
+
+    source = recorded("recorded/cadsr/vm-match-male.json")
+    (answer,) = source["response"]["body"]["matchResults"]
+    match = next(m for m in answer["matches"] if m["itemType"] == "ValueMeaning")
+    blank = match | {"concept": None, "evsSource": None, "importedVMName": NO_CONCEPT}
+    body = {
+        "matchResults": [answer | {"name": NO_CONCEPT, "numberOfMatches": "1", "matches": [blank]}]
+    }
+    return {
+        "crafted/OP-M02/vm-match-no-concept.json": crafted(
+            "value_meaning_match: concept and evsSource absent where the platform gives none",
+            source["request"] | {"body": [{"name": NO_CONCEPT}]},
+            response=source["response"] | {"body": body},
+        )
     }
 
 
@@ -674,12 +797,18 @@ def cadsr_over_cap(_: Recorded) -> Documents:
         ignored={"pageSize": "crafted: the cap answers 1,000 whatever page size is asked"},
     )
     body = {"status": None, "message": None, "numRecords": None, "DataElements": elements}
+    nothing = request | {"params": {"keyword": [NO_MATCH]}}
     return {
+        "crafted/OP-C03/search-no-match.json": crafted(
+            "X-4: a keyword search matching nothing is an empty result",
+            nothing,
+            response={"status": 200, "body": body | {"DataElements": []}},
+        ),
         "crafted/OP-C03/search-over-cap.json": crafted(
             'C-3: "The maximum number of results per query is 1000", with no pagination',
             request,
             response={"status": 200, "body": body},
-        )
+        ),
     }
 
 
@@ -701,6 +830,7 @@ SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     cadsr_match_timeout,
     cadsr_over_cap,
     cadsr_html_for_json,
+    cadsr_match_without_a_concept,
 )
 
 

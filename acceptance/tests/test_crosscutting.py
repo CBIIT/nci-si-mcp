@@ -1,6 +1,7 @@
 """Cross-cutting tests (the X requirements of spec/requirements.yaml), each against every
 content-returning tool whose call is in calls.yaml."""
 
+import base64
 import json
 import re
 from collections import Counter
@@ -12,7 +13,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 from nci_si_acceptance.client import CREDENTIAL_VARIABLES
-from nci_si_acceptance.results import error_code
+from nci_si_acceptance.results import error_code, identity, pinned_release, release_of
 from nci_si_acceptance.spec import RECORDS, TOOLS, defaults, items_of, parameters
 
 CALLS = yaml.safe_load((Path(__file__).parent / "calls.yaml").read_text(encoding="utf-8"))
@@ -90,47 +91,6 @@ def _provenance(item):
     return item.get("provenance") or {} if isinstance(item, dict) else {}
 
 
-def _release(item):
-    """The terminology or registry and the release an item's provenance names."""
-
-    release = _provenance(item).get("release") or {}
-    return release.get("terminology", release.get("registry")), release.get("identifier")
-
-
-def _pinned_release(name, pinned):
-    """The release a call's items name: the fixture set's, for a tool that takes a release; for
-    a caDSR call, which pins no registry release, the registry alone (X-21)."""
-
-    if "release" in parameters(name)[0]:
-        return pinned["terminology"], pinned["release"]
-    return "cadsr", None
-
-
-def _identity(item):
-    """An item by what it is: a concept by terminology and code, an edge by its ends and its
-    relationship's code, a caDSR item by its public id and version (a code map by its data
-    element's), a context by its name."""
-
-    if not isinstance(item, dict):
-        return item
-    if "sourceCode" in item:
-        relationship = (item.get("provenance") or {}).get("relationship") or {}
-        return item.get("sourceCode"), item.get("targetCode"), relationship.get("code")
-    if "code" not in item and "terminology" not in item:
-        return _registry_identity(item)
-    return item.get("terminology"), item.get("code")
-
-
-def _registry_identity(item):
-    """A caDSR item by its public id and version, a code map by its data element's, a context
-    by its name."""
-
-    owner = item.get("dataElement") if isinstance(item.get("dataElement"), dict) else item
-    if "publicId" in owner:
-        return owner.get("publicId"), owner.get("version")
-    return item.get("name")
-
-
 def _wrong(provenance, names):
     """The fields among `names` that are missing, or hold a value outside their closed set."""
 
@@ -176,7 +136,7 @@ def _timestamp(value):
 def test_every_item_carries_the_release_requested(tools, pinned, name):
     found = _items(tools, pinned, name)
 
-    assert {_release(item) for item in found} == {(pinned["terminology"], pinned["release"])}
+    assert {release_of(item) for item in found} == {(pinned["terminology"], pinned["release"])}
 
 
 @pytest.mark.requirement("X-6")
@@ -386,18 +346,68 @@ def test_an_error_carries_no_licence_key(tools, upstream):
     assert _carrying(keys, *_outputs(refused), tools.process.written()) == []
 
 
-@pytest.mark.scenario("upstream/rate-limited")
-@pytest.mark.tool("resolve_release")
-@pytest.mark.requirement("X-16")
-def test_a_rate_limited_request_is_asked_once_more_after_the_wait(tools, upstream, pinned):
-    (limited,) = upstream.fixtures.scenarios["upstream/rate-limited"].values()
-    wait = float(limited.responses[0].headers["Retry-After"])
+def _basic(credential):
+    """The Authorization header a caDSR credential, user:password, is sent as."""
 
-    result = tools.call("resolve_release", {"terminology": pinned["terminology"]})
+    return "Basic " + base64.b64encode(credential.encode()).decode()
+
+
+@pytest.mark.requirement("X-12")
+@pytest.mark.parametrize("name", _per_tool(["match_data_elements"], "cadsr/credentialed"))
+def test_the_cadsr_credential_reaches_the_platform_and_nothing_the_server_returns_or_logs(
+    tools, upstream, pinned, name
+):
+    settings = upstream.fixtures.settings_of(("cadsr/credentialed",))
+    credential = settings["NCI_SI_CADSR_CREDENTIAL"]
+
+    granted = _call(tools, pinned, name)
+
+    # Only a request that carries the credential is answered.
+    assert not granted.is_error, granted.content
+    sent = {_header(entry, "authorization") for entry in upstream.log()} - {None}
+    assert sent == {_basic(credential)}
+    secrets = {credential, _basic(credential), _basic(credential).removeprefix("Basic ")}
+    assert _carrying(secrets, *_outputs(granted), tools.process.written()) == []
+
+
+def _header(entry, name):
+    return {key.lower(): value for key, value in entry["headers"].items()}.get(name)
+
+
+# A call of each surface the rate-limited scenario answers with 429: EVS's release query and
+# caDSR's data element.
+RATE_LIMITED_CALLS = {"resolve_release": {}, "get_data_element": {"publicId": "2200604"}}
+RATE_LIMITED = [
+    pytest.param(
+        name, id=name, marks=[pytest.mark.tool(name), pytest.mark.scenario("upstream/rate-limited")]
+    )
+    for name in RATE_LIMITED_CALLS
+]
+
+
+def _reached(upstream, scenario, log):
+    """The one fixture of `scenario` that the requests in `log` reached."""
+
+    reached = {entry["fixture"] for entry in log}
+    (fixture,) = [
+        each for each in upstream.fixtures.scenarios[scenario].values() if each.name in reached
+    ]
+    return fixture
+
+
+@pytest.mark.requirement("X-16")
+@pytest.mark.parametrize("name", RATE_LIMITED)
+def test_a_rate_limited_request_is_asked_once_more_after_the_wait(tools, upstream, pinned, name):
+    taken = parameters(name)[0]
+    terminology = {key: value for key, value in pinned.items() if key in taken - {"release"}}
+
+    result = tools.call(name, terminology | RATE_LIMITED_CALLS[name])
 
     assert not result.is_error, result.content
     # A server may resolve the release while it starts.
     log = [*tools.process.startup, *upstream.log()]
+    limited = _reached(upstream, "upstream/rate-limited", log)
+    wait = float(limited.responses[0].headers["Retry-After"])
     asked = [entry["received_at"] for entry in log if entry["fixture"] == limited.name]
     assert len(asked) == len(limited.responses)
     assert asked[1] - asked[0] >= wait
@@ -414,7 +424,7 @@ def test_a_query_that_matches_nothing_is_an_empty_result_with_provenance(tools, 
     # With no item to carry it, the result carries the provenance itself.
     provenance = _provenance(result.content)
     assert _wrong(provenance, CARRIED) == []
-    assert _release(result.content) == _pinned_release(name, pinned)
+    assert release_of(result.content) == pinned_release(name, pinned)
     if name in REGISTRY:
         assert provenance["release"] == UNPINNED_REGISTRY
 
@@ -451,7 +461,8 @@ def test_a_bound_reached_is_reported_with_how_much_was_left_out(tools, pinned, n
 
     assert not result.is_error, result.content
     record = result.content.get("truncation") or {} if isinstance(result.content, dict) else {}
-    (limit,) = truncating["arguments"].values()
+    # The bound's value: the one argument that sets it, or, for the platform's own cap, as given.
+    (limit,) = [truncating["limit"]] if "limit" in truncating else truncating["arguments"].values()
     assert record.get("occurred") is True, record
     assert record.get("bound") == truncating["bound"]
     assert record.get("limit") == limit
@@ -474,7 +485,12 @@ def _paged(entry_filter=lambda entry: True):
 
 
 def _marks(name, entry):
-    return [pytest.mark.tool(name), *([pytest.mark.prepared] if entry.get("prepared") else [])]
+    """A paged case's marks: its tool, the scenario its call needs, and the prepare step where
+    the call searches the interim index."""
+
+    prepared = [pytest.mark.prepared] if entry.get("prepared") else []
+    scenarios = [pytest.mark.scenario(each) for each in _scenarios(name)]
+    return [pytest.mark.tool(name), *scenarios, *prepared]
 
 
 PAGES = [
@@ -494,12 +510,12 @@ def test_a_cursor_continues_with_the_next_items_of_the_same_release(
     second = _call(tools, pinned, name, continued)
 
     assert not second.is_error, second.content
-    before = {_identity(item) for item in items_of(name, first.content)}
-    after = [_identity(item) for item in items_of(name, second.content)]
+    before = {identity(item) for item in items_of(name, first.content)}
+    after = [identity(item) for item in items_of(name, second.content)]
     assert after, "the cursor's page is empty"
     assert [item for item in after if item in before] == []
-    releases = {_release(item) for item in items_of(name, second.content)}
-    assert releases == {_pinned_release(name, pinned)}
+    releases = {release_of(item) for item in items_of(name, second.content)}
+    assert releases == {pinned_release(name, pinned)}
     if "release" in parameters(name)[0]:
         other = _call(
             tools, pinned | {"release": _other_release(recorded, pinned)}, name, continued
@@ -550,11 +566,20 @@ def _pages(name, *results):
     """Each result's items by identity, every result asserted a success."""
 
     assert [result.content for result in results if result.is_error] == []
-    return [[_identity(item) for item in items_of(name, result.content)] for result in results]
+    return [[identity(item) for item in items_of(name, result.content)] for result in results]
+
+
+# The paged calls that leave out an argument with a stated default, which the cursor's
+# comparison of defaults needs (M6.1).
+DEFAULTED_PAGES = [
+    page
+    for page in PAGES
+    if _left_out(page.values[0], CALLS[page.values[0]]["arguments"] | page.values[1]["arguments"])
+]
 
 
 @pytest.mark.requirement("X-17")
-@pytest.mark.parametrize(("name", "entry"), PAGES)
+@pytest.mark.parametrize(("name", "entry"), DEFAULTED_PAGES)
 def test_a_cursor_with_a_left_out_argument_given_as_its_default_continues(
     tools, pinned, name, entry
 ):
@@ -572,7 +597,7 @@ def test_a_cursor_with_a_left_out_argument_given_as_its_default_continues(
 
 
 @pytest.mark.requirement("X-17")
-@pytest.mark.parametrize(("name", "entry"), PAGES)
+@pytest.mark.parametrize(("name", "entry"), DEFAULTED_PAGES)
 def test_a_cursor_with_a_given_default_left_out_continues(tools, pinned, name, entry):
     given = _left_out(name, CALLS[name]["arguments"] | entry["arguments"])
     assert given
@@ -638,7 +663,7 @@ def _outcome(name, result):
     """A successful result's items by identity, and its truncation where the tool reports one."""
 
     assert not result.is_error, result.content
-    items = [_identity(item) for item in items_of(name, result.content)]
+    items = [identity(item) for item in items_of(name, result.content)]
     return items, result.content.get("truncation")
 
 
@@ -667,7 +692,7 @@ def _other_release(recorded, pinned):
 
 
 BOUNDED = [
-    pytest.param(name, argument, id=f"{name}-{argument}", marks=pytest.mark.tool(name))
+    pytest.param(name, argument, id=f"{name}-{argument}", marks=_marks(name, {}))
     for name in CALLS
     for argument in TOOLS[name].get("bounds", {})
 ]

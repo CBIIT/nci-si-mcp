@@ -1,6 +1,6 @@
 {
  "kind": "crafted",
- "requirement": "OP-M01, A9.3: CDE Match to its 2.0 contract, which refuses an anonymous caller since 3 October 2026 at the latest (401, recorded/cadsr/cde-match-refused*.json)",
+ "requirement": "OP-M01, A9.3: CDE Match to its 2.0 contract for a second entity; the array the call of 10 September sent",
  "request": {
   "surface": "cadsr",
   "method": "POST",
@@ -10,9 +10,11 @@
    "Content-Type": "application/json",
    "Authorization": "Basic YWNjZXB0YW5jZTpjcmVkZW50aWFs"
   },
-  "body": {
-   "entity": "Patient Gender"
-  }
+  "body": [
+   {
+    "entity": "Transplant Donor Gender"
+   }
+  ]
  },
  "response": {
   "status": 200,
@@ -22,28 +24,14 @@
    },
    "matchResults": {
     "sequenceNumber": 1,
-    "entity": "Patient Gender",
-    "numberOfMatches": 2,
+    "entity": "Transplant Donor Gender",
+    "numberOfMatches": 1,
     "numberofPVs": 0,
     "lastRunType": "Crafted",
     "matches": [
      {
       "ruleDescription": "Crafted: long name",
       "score": 0.97,
-      "publicId": "2200604",
-      "version": "4",
-      "numberOfPVsInSource": 0,
-      "numberOfPVsMatch": 0,
-      "matchedText": "PRSN_SEX_TX_TP",
-      "longName": "Person Sex Text Type",
-      "context": "NCIP",
-      "workflowStatus": "RELEASED",
-      "registrationStatus": "Standard",
-      "numberOfPVsInCDE": 3
-     },
-     {
-      "ruleDescription": "Crafted: long name",
-      "score": 0.83,
       "publicId": "2180389",
       "version": "1",
       "numberOfPVsInSource": 0,
