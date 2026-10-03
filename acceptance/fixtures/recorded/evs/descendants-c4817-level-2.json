@@ -1,0 +1,181 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C4817/descendants",
+  "params": {
+   "maxLevel": [
+    "2"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": [
+   {
+    "code": "C213627",
+    "name": "Adamantinoma-Like Ewing Sarcoma",
+    "level": 2,
+    "leaf": false
+   },
+   {
+    "code": "C174456",
+    "name": "Atypical Ewing Sarcoma",
+    "level": 1,
+    "leaf": true
+   },
+   {
+    "code": "C4835",
+    "name": "Bone Ewing Sarcoma",
+    "level": 1,
+    "leaf": false
+   },
+   {
+    "code": "C186611",
+    "name": "Central Nervous System Ewing Sarcoma",
+    "level": 2,
+    "leaf": true
+   },
+   {
+    "code": "C189002",
+    "name": "Childhood Ewing Sarcoma",
+    "level": 1,
+    "leaf": false
+   },
+   {
+    "code": "C7135",
+    "name": "Extraskeletal Ewing Sarcoma",
+    "level": 1,
+    "leaf": false
+   },
+   {
+    "code": "C202904",
+    "name": "Head and Neck Ewing Sarcoma",
+    "level": 1,
+    "leaf": false
+   },
+   {
+    "code": "C159208",
+    "name": "Kidney Ewing Sarcoma",
+    "level": 2,
+    "leaf": false
+   },
+   {
+    "code": "C6623",
+    "name": "Localized Bone Ewing Sarcoma",
+    "level": 2,
+    "leaf": true
+   },
+   {
+    "code": "C7806",
+    "name": "Localized Ewing Sarcoma",
+    "level": 1,
+    "leaf": false
+   },
+   {
+    "code": "C8802",
+    "name": "Localized Extraskeletal Ewing Sarcoma",
+    "level": 2,
+    "leaf": true
+   },
+   {
+    "code": "C164080",
+    "name": "Locally Advanced Ewing Sarcoma",
+    "level": 2,
+    "leaf": true
+   },
+   {
+    "code": "C213633",
+    "name": "Lung Ewing Sarcoma",
+    "level": 2,
+    "leaf": true
+   },
+   {
+    "code": "C6621",
+    "name": "Metastatic Bone Ewing Sarcoma",
+    "level": 2,
+    "leaf": true
+   },
+   {
+    "code": "C7807",
+    "name": "Metastatic Ewing Sarcoma",
+    "level": 1,
+    "leaf": false
+   },
+   {
+    "code": "C8801",
+    "name": "Metastatic Extraskeletal Ewing Sarcoma",
+    "level": 2,
+    "leaf": true
+   },
+   {
+    "code": "C223537",
+    "name": "Pancreatic Ewing Sarcoma",
+    "level": 2,
+    "leaf": false
+   },
+   {
+    "code": "C6622",
+    "name": "Recurrent Bone Ewing Sarcoma",
+    "level": 2,
+    "leaf": true
+   },
+   {
+    "code": "C222394",
+    "name": "Recurrent Childhood Ewing Sarcoma",
+    "level": 2,
+    "leaf": true
+   },
+   {
+    "code": "C7808",
+    "name": "Recurrent Ewing Sarcoma",
+    "level": 1,
+    "leaf": false
+   },
+   {
+    "code": "C8803",
+    "name": "Recurrent Extraskeletal Ewing Sarcoma",
+    "level": 2,
+    "leaf": true
+   },
+   {
+    "code": "C222395",
+    "name": "Refractory Childhood Ewing Sarcoma",
+    "level": 2,
+    "leaf": true
+   },
+   {
+    "code": "C142853",
+    "name": "Refractory Ewing Sarcoma",
+    "level": 1,
+    "leaf": false
+   },
+   {
+    "code": "C173175",
+    "name": "Sinonasal Ewing Sarcoma",
+    "level": 2,
+    "leaf": true
+   },
+   {
+    "code": "C172634",
+    "name": "Skin Ewing Sarcoma",
+    "level": 2,
+    "leaf": true
+   },
+   {
+    "code": "C132849",
+    "name": "Unresectable Ewing Sarcoma",
+    "level": 1,
+    "leaf": true
+   },
+   {
+    "code": "C181977",
+    "name": "Vulvar Ewing Sarcoma",
+    "level": 2,
+    "leaf": true
+   }
+  ]
+ }
+}

@@ -190,6 +190,14 @@ record:
       rationale: The paths from the concept to the root of the hierarchy.
       surface: evs
       path: /api/v1/concept/ncit_26.09d/C4817/pathsToRoot?include=minimal
+    - fixture: recorded/evs/descendants-c4817-level-2.json
+      operation: OP-E12
+      rationale: >-
+        The descendants of C4817 to two levels (27), each with its level: the route a cohort
+        or hierarchy to depth 2 may take in place of a children walk (expand_cohort's default
+        maxDepth).
+      surface: evs
+      path: /api/v1/concept/ncit_26.09d/C4817/descendants?maxLevel=2
     # An active code's replacements (OP-E21, and the ?list= batch form); the retired
     # code is in scenarios/retired/with-replacement.
     - fixture: recorded/evs/replacement-active.json
