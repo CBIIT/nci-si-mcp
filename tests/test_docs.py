@@ -3,15 +3,22 @@
 The tools and resources in QUICKSTART.md are compared with the running server in test_server.
 """
 
+import asyncio
+import json
+import logging
 import os
 import re
+import tempfile
 import unittest
 from pathlib import Path
 from typing import get_args
 from unittest.mock import patch
 
+from mcp.client import Client
+
 from nci_si_mcp.config import Settings
 from nci_si_mcp.errors import ErrorCode
+from nci_si_mcp.server import create_mcp
 
 ROOT = Path(__file__).parent.parent
 PACKAGE = ROOT / "src" / "nci_si_mcp"
@@ -36,6 +43,23 @@ def first_column(table):
 
     rows = [row.split("|")[1] for row in table.splitlines() if re.match(r"\|\s*`", row)]
     return {name for row in rows for name in re.findall(r"`([^`]+)`", row)}
+
+
+# Stands in for a result until it is captured from a live run.
+RESULT_PENDING = "<!-- result: to be captured from a live run -->"
+CALL = re.compile(r"^Call:\n\n```json\n(.+)\n```$", flags=re.MULTILINE)
+
+
+def served_arguments():
+    """The arguments each tool of the server takes, by tool."""
+
+    async def run(data_dir):
+        async with Client(create_mcp(Settings(data_dir=data_dir))) as client:
+            tools = (await client.list_tools()).tools
+            return {tool.name: set(tool.input_schema["properties"]) for tool in tools}
+
+    with tempfile.TemporaryDirectory() as directory:
+        return asyncio.run(run(Path(directory)))
 
 
 class DocumentationTest(unittest.TestCase):
@@ -65,6 +89,28 @@ class DocumentationTest(unittest.TestCase):
 
     def test_quickstart_error_table_lists_exactly_the_error_codes(self):
         self.assertEqual(first_column(section(QUICKSTART, "Errors")), set(get_args(ErrorCode)))
+
+    @patch("nci_si_mcp.server.configure_logging")
+    def test_every_usage_example_calls_a_tool_and_arguments_the_server_has(self, _):
+        # Creating a server installs a root log handler; take it out again.
+        root = logging.getLogger()
+        self.addCleanup(setattr, root, "handlers", root.handlers[:])
+        self.addCleanup(root.setLevel, root.level)
+        logging.disable(logging.CRITICAL)
+        self.addCleanup(logging.disable, logging.NOTSET)
+        examples = section(QUICKSTART, "Usage examples").split("\n### ")[1:]
+        served = served_arguments()
+
+        self.assertEqual(len(examples), 3)
+        for example in examples:
+            with self.subTest(example.splitlines()[0]):
+                self.assertIn('User prompt: "', example)
+                # The result is still pending, or captured as a code block.
+                result = example.partition("\nResult:\n\n")[2]
+                self.assertTrue(result.startswith((RESULT_PENDING, "```")), result)
+                call = json.loads(CALL.search(example).group(1))
+                self.assertIn(call["tool"], served)
+                self.assertLessEqual(set(call["arguments"]), served[call["tool"]])
 
     def test_architecture_describes_every_module(self):
         modules = {path.name for path in PACKAGE.glob("*.py")} - {"__init__.py"}

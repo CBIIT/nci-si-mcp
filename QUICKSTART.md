@@ -137,6 +137,54 @@ different embedding settings cannot search it or add to it. To rebuild with new
 settings, delete `nci_si.sqlite3` in the data directory and run `index-sample`
 again.
 
+## Usage examples
+
+Each example gives what a user asks, the call a client makes for it, and the result. The calls
+are exact. The results are captured from a live run and are still to be filled in; the search
+example needs the five sample concepts of the previous section in the index.
+
+### Look up a concept
+
+User prompt: "What is the NCI Thesaurus concept C4817?"
+
+Call:
+
+```json
+{"tool": "ncit_lookup", "arguments": {"code": "C4817"}}
+```
+
+Result:
+
+<!-- result: to be captured from a live run -->
+
+### Search the local index
+
+User prompt: "Which of the indexed concepts are about kinase inhibition?"
+
+Call:
+
+```json
+{"tool": "ncit_search", "arguments": {"query": "kinase inhibition", "mode": "hybrid", "limit": 5}}
+```
+
+Result:
+
+<!-- result: to be captured from a live run -->
+
+### List the subtypes of a concept
+
+User prompt: "Which concepts are the direct subtypes of Neoplasm?"
+
+Call:
+
+```json
+{"tool": "ncit_traverse", "arguments": {"start_codes": ["C3262"], "direction": "out", "max_depth": 1, "edge_types": ["child"]}}
+```
+
+Result:
+
+<!-- result: to be captured from a live run -->
+
 ## MCP Tools
 
 - `ncit_search`: text search over the locally indexed concepts.
