@@ -83,7 +83,7 @@ def test_the_items_of_a_result_are_where_the_tool_says(tool, result, items):
         (
             "get_concept_for_permissible_value",
             {"permissibleValueId", "dataElementId", "value", "release"},
-            set(),
+            {"release"},
         ),
         # A list of objects is one parameter; its fields are not.
         (

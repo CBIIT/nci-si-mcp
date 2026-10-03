@@ -280,7 +280,7 @@ find_data_elements_for_concept-1:
   basis: [find_data_elements_for_concept, data_element_use, value_use, A3.4, A3.7, A5.4, M3.2]
   planned: "#55"
 get_concept_for_permissible_value-1:
-  statement: A data element and value resolve to the concept its value meaning stands for, as the concept record of the release pinned, its provenance naming both content states; by permissibleValueId it is capability_unavailable (OP-C10), never not_found or empty.
+  statement: A data element and value resolve to the concept its value meaning stands for, as the concept record of the release the call pins (release is required), its provenance naming both content states; by permissibleValueId it is capability_unavailable (OP-C10), never not_found or empty.
   basis: [get_concept_for_permissible_value, provenance, A1.5, M1.2]
   planned: "#55"
 resolve_stored_value-1:
