@@ -17,6 +17,7 @@ TRUNCATED = "test_a_bound_reached_is_reported_with_how_much_was_left_out"
 LICENCE_REACHES = "test_the_licence_key_reaches_the_platform_and_nothing_the_server_returns_or_logs"
 BACKOFF = "test_a_rate_limited_request_is_asked_once_more_after_the_wait"
 PAGED = "test_a_cursor_continues_with_the_next_items_of_the_same_release"
+LICENSED_ITEM = "test_an_item_of_a_licensed_terminology_carries_its_licence_text"
 # Each defect of the compliant server, and the cross-cutting test whose every case must fail.
 DEFECTS = [
     ("wrong-release", "test_every_item_carries_the_release_requested"),
@@ -71,6 +72,9 @@ DEFECTS = [
     ),
     ("empty-with-cursor", EMPTY),
     ("wrong-default", "test_a_left_out_argument_is_its_stated_default"),
+    ("raised-to-one", "test_a_bounded_argument_below_one_is_an_invalid_request"),
+    ("no-attribution", LICENSED_ITEM),
+    ("attribution-everywhere", LICENSED_ITEM),
 ]
 
 

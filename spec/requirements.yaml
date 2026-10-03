@@ -43,7 +43,6 @@ P-10:
 P-11:
   statement: No tool description shows an operator, wildcard, filter syntax or parameter value that a tool test shows unsupported.
   basis: [A2.3, A10.3]
-  planned: "#53"
 P-12:
   statement: Each tool takes the parameters the specification names for it, under those names, and requires exactly those not marked optional, so that equivalent operations of the two modules share parameter names.
   basis: [A2.2]
@@ -118,11 +117,10 @@ X-17:
 X-18:
   statement: A value below 1 for an argument with bounds is an invalid request, never raised to 1.
   basis: [A5.1, A2.5]
-  planned: "#53"
 X-19:
   statement: An item of a terminology whose listing row carries licence text carries that text as its attribution.
   basis: [A7.3, provenance]
-  planned: "#53"
+  planned: "#52"
 X-20:
   statement: A call that leaves out an optional argument with a stated default returns what the call that gives the default returns.
   basis: [A5.1, M6.1]
@@ -162,7 +160,7 @@ search_concepts-2:
   statement: typeahead returns the platform's prefix matches in the platform's order, with neither matchedOn nor score, since the platform gives neither.
   basis: [search_concepts, search_result, A9.2]
 search_concepts-3:
-  statement: semantic and hybrid return concepts of the interim index, each with a score, in descending order of score, matchedOn naming the field matched (name, synonym or definition), and provenance naming the index's release, with source evs_index and servedBy index; a query equal to a concept's preferred name returns that concept on the first page. The suite does not judge score values, the order beyond that, or which other concepts semantic search returns.
+  statement: semantic and hybrid return concepts of the interim index, each with a score, in descending order of score, matchedOn naming the field matched (name, synonym or definition), and provenance naming the index's release, with source evs_index and servedBy index; a query equal to a concept's preferred name returns that concept on the first page. They rank every indexed concept of the terminology, with no score threshold, so totalKnown is the size of the index set; the page and the cursor bound what is returned. The suite does not judge score values, the order beyond that, or which other concepts semantic search returns.
   basis: [search_concepts, search_result, provenance, M4.1]
 search_concepts-4:
   statement: A mode the server cannot serve for the terminology asked is an invalid request, never an empty result.
@@ -207,13 +205,11 @@ get_concept_neighborhood-4:
   statement: A node limit above the maximum is applied as the maximum, and the truncation record's limit shows the value applied.
   basis: [get_concept_neighborhood, truncation, A5.2]
 get_concept_neighborhood-5:
-  statement: The outbound request budget counts retries.
-  basis: [get_concept_neighborhood, A5.3]
-  planned: "#53"
+  statement: The outbound request bound counts retries, as the attempts of a failed request report them, and no call makes more requests than the bound. Reaching the bound is shown by no fixture, since batch sizes are each server's own; a server's own tests must show it.
+  basis: [get_concept_neighborhood, get_concept_hierarchy, A5.2, A5.3]
 get_concept_neighborhood-6:
   statement: budgetPerKind, when given, bounds the nodes each kind adds, and a kind that reaches it is named in truncation.perKind.
   basis: [get_concept_neighborhood, truncation, A5.5]
-  planned: "#53"
 get_concept_subsets-1:
   statement: The subsets are the platform's Concept_In_Subset associations of the concept, each by code and name, in the platform's order.
   basis: [get_concept_subsets, subset, A9.1]

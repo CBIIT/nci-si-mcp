@@ -19,6 +19,9 @@ requirements, for the harness's own tests.
     closed-world      openWorldHint false                                           (P-10)
     parameter-renamed get_concept takes conceptCode in place of code                (P-12)
     release-optional  get_concept does not require release                          (P-12)
+    quotes-not-offered a description that assigns a value not offered in backticks (P-11)
+    lists-not-offered an input schema whose enum holds a value not offered          (P-11)
+    patterns-not-offered an input schema whose pattern admits a value not offered   (P-11)
     wrong-release     items name another release than the one requested             (X-1)
     wrong-terminology items name another terminology than the one requested         (X-1)
     invalid-result    a result its outputSchema refuses                             (X-6)
@@ -63,6 +66,9 @@ requirements, for the harness's own tests.
     cursor-inherits   a cursor fills arguments left out from the first call          (X-17)
     wrong-default     a left-out argument with a stated default served otherwise    (X-20)
     empty-with-cursor a query that matches nothing answered with nextCursor          (X-4)
+    raised-to-one     a bounded argument below one served as one                    (X-18)
+    no-attribution    an item of a licensed terminology without its licence text    (X-19)
+    attribution-everywhere every item with licence text, NCIt's included            (X-19)
 
 `unpinned-mismatch` is no defect for a tool without a pinned form upstream: it answers an
 unknown release with release_mismatch, as such a tool can only verify an unpinned answer (X-2).
@@ -78,7 +84,8 @@ into provenance, their `empty` arguments match nothing, their `truncating` argum
 reach a bound, and under their `paged` arguments a first page carries a cursor to a second,
 of other concepts; the cursor carries the arguments it was issued for, as applied (an
 optional argument left out as the default the specification states), and presented with
-others it is refused.
+others it is refused. A bounded argument below one is refused, and an item of a licensed
+terminology carries the licence text the terminology listing gives it.
 """
 
 import json
@@ -192,9 +199,13 @@ def _input_schema(name: str) -> dict:
         names, required = names - {"code"} | {"conceptCode"}, required - {"code"} | {"conceptCode"}
     if DEFECT == "release-optional" and name == "get_concept":
         required -= {"release"}
+    listed = {
+        "lists-not-offered": {"enum": _not_offered(name)},
+        "patterns-not-offered": {"pattern": f"^({'|'.join(_not_offered(name))})$"},
+    }.get(DEFECT, {})
     return {
         "type": "object",
-        "properties": {key: {} for key in names},
+        "properties": {key: dict(listed) for key in names},
         "required": sorted(required),
     }
 
@@ -223,7 +234,15 @@ def _description(name: str) -> str:
     if DEFECT == "placeholder":
         return "TODO"
     when = " Called before." if DEFECT == "redescribed" and reached else ""
-    return f"The {name} tool of EVS.{when}"
+    # What the tool does not offer may be said in words, never shown as a value (P-11).
+    lacking = "".join(f" It does not offer {value}." for value in _not_offered(name))
+    if DEFECT == "quotes-not-offered":
+        lacking = "".join(f" Try `key={value}`." for value in _not_offered(name))
+    return f"The {name} tool of EVS.{when}{lacking}"
+
+
+def _not_offered(name: str) -> list[str]:
+    return [value for values in TOOLS[name].get("not_offered", {}).values() for value in values]
 
 
 def _tool(name: str) -> types.Tool:
@@ -270,7 +289,25 @@ def _provenance(name: str, arguments: dict, correlation: str) -> dict:
     }
     if DEFECT == "no-served-by":
         del provenance["servedBy"]
-    return provenance
+    return provenance | _attribution(terminology)
+
+
+def _attribution(terminology: str | None) -> dict:
+    """The licence text of a licensed terminology's items (X-19)."""
+
+    licensed = terminology in LICENSED and DEFECT != "no-attribution"
+    if licensed or DEFECT == "attribution-everywhere":
+        return {"attribution": _licence_text(LICENSED)}
+    return {}
+
+
+def _licence_text(terminologies: set[str]) -> str:
+    """The licence text the terminology listing gives the first of `terminologies`."""
+
+    _, rows, _ = _ask("/api/v1/metadata/terminologies", {})
+    return next(
+        row["metadata"]["licenseText"] for row in rows if row["terminology"] in terminologies
+    )
 
 
 def _upstream(name: str, arguments: dict) -> dict:
@@ -400,8 +437,8 @@ def _paging(name: str, arguments: dict) -> bool:
     """Whether a call sets the suite's paged arguments, under which a page is smaller than
     the result."""
 
-    paged = CALLS.get(name, {}).get("paged")
-    return paged is not None and all(arguments.get(k) == v for k, v in paged["arguments"].items())
+    paged = CALLS.get(name, {}).get("paged", [])
+    return any(all(arguments.get(k) == v for k, v in entry["arguments"].items()) for entry in paged)
 
 
 def _applied(name: str, arguments: dict) -> dict:
@@ -451,9 +488,15 @@ def _refusal(name: str, arguments: dict, correlation: str) -> dict | None:
 
     if DEFECT == "empty-as-error" and _matches_nothing(name, arguments):
         return _error("not_found", HTTPStatus.NOT_FOUND, {}, correlation)
-    if _cursor_refused(name, arguments):
+    if _cursor_refused(name, arguments) or _below_one(name, arguments):
         return _error("invalid_request", HTTPStatus.BAD_REQUEST, {}, correlation)
     return None
+
+
+def _below_one(name: str, arguments: dict) -> bool:
+    bounded = TOOLS[name].get("bounds", {})
+    below = [key for key in bounded if key in arguments and arguments[key] < 1]
+    return bool(below) and DEFECT != "raised-to-one"
 
 
 def _answer(name: str, arguments: dict, correlation: str) -> tuple[object, bool]:

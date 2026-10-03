@@ -15,6 +15,7 @@ P6_CALLED = "test_tools_list_is_the_same_after_a_call_that_pins_a_terminology_an
 P6_UNAVAILABLE = "test_tools_list_is_the_same_while_the_platform_is_unavailable"
 P7 = "test_a_correlation_identifier_goes_upstream_and_comes_back"
 P10 = "test_every_tool_is_annotated_read_only_idempotent_and_open_world"
+P11 = "test_no_description_or_schema_shows_what_the_tool_does_not_offer"
 P12 = "test_each_tool_takes_the_parameters_the_specification_names"
 # Each defect of the gate server, and the gate test that must fail on it.
 DEFECTS = [
@@ -34,6 +35,9 @@ DEFECTS = [
     ("closed-world", P10),
     ("parameter-renamed", P12),
     ("release-optional", P12),
+    ("quotes-not-offered", P11),
+    ("lists-not-offered", P11),
+    ("patterns-not-offered", P11),
 ]
 
 

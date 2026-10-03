@@ -45,15 +45,21 @@ def _admitting(validators: dict, results: list[dict], admits=all) -> list[str]:
     return [name for name, check in validators.items() if admits(map(check.is_valid, results))]
 
 
+def _under(schema: object, keys: tuple[str, ...]) -> list:
+    """The values a schema holds under any of `keys`, at any depth."""
+
+    if isinstance(schema, list):
+        return [found for value in schema for found in _under(value, keys)]
+    if not isinstance(schema, dict):
+        return []
+    own = [schema[key] for key in keys if key in schema]
+    return own + _under(list(schema.values()), keys)
+
+
 def _descriptions(schema: object) -> list[str]:
     """Every description a schema holds, at any depth."""
 
-    if isinstance(schema, list):
-        return [text for value in schema for text in _descriptions(value)]
-    if not isinstance(schema, dict):
-        return []
-    own, inner = schema.get("description"), _descriptions(list(schema.values()))
-    return [own, *inner] if isinstance(own, str) else inner
+    return [text for text in _under(schema, ("description",)) if isinstance(text, str)]
 
 
 def _listing(result) -> list[dict]:
@@ -97,6 +103,67 @@ def test_no_description_holds_placeholder_or_debug_text(server):
     }
 
     assert unfinished == {}
+
+
+def _not_offered(name):
+    """What spec/tools.yaml says the platform has and the tool `name` does not expose."""
+
+    return {value for values in TOOLS[name].get("not_offered", {}).values() for value in values}
+
+
+def _leaves(value) -> list:
+    """The scalars a value holds, inside lists and objects too."""
+
+    if isinstance(value, list):
+        return [leaf for item in value for leaf in _leaves(item)]
+    if isinstance(value, dict):
+        return _leaves(list(value.values()))
+    return [value]
+
+
+# Where a schema offers values: those it lists, fixes, defaults to or gives as examples.
+OFFERING = ("enum", "const", "default", "examples", "example")
+# Spans of a text that show what they hold as a value: backticks, double and typographic quotes.
+QUOTED = re.compile('`[^`]*`|"[^"]*"|\u201c[^\u201d]*\u201d|\u2018[^\u2019]*\u2019')
+
+
+def _shown_as_value(value, texts, patterns):
+    """Whether a text names `value` as a value: as a word inside a quoted span or a schema
+    pattern, between single quotes, or assigned (retired=exclude); a sentence that says,
+    unquoted, that the value is not offered does not."""
+
+    word = re.compile(rf"\b{re.escape(value)}\b")
+    assigned = re.compile(rf"'{re.escape(value)}'|=\s*{re.escape(value)}\b")
+    spans = [*patterns, *(span for text in texts for span in QUOTED.findall(text))]
+    return any(word.search(span) for span in spans) or any(assigned.search(t) for t in texts)
+
+
+def _shown(name, tool):
+    """The values `name` does not offer that its implementation `tool` shows as offered."""
+
+    texts = [tool.description or "", *_descriptions([tool.input_schema, tool.output_schema])]
+    values = _leaves(_under(tool.input_schema, OFFERING))
+    patterns = [text for text in _under(tool.input_schema, ("pattern",)) if isinstance(text, str)]
+    return [
+        (name, value)
+        for value in sorted(_not_offered(name))
+        if value in values or _shown_as_value(value, texts, patterns)
+    ]
+
+
+@pytest.mark.gate
+@pytest.mark.live_capable
+@pytest.mark.requirement("P-11")
+def test_no_description_or_schema_shows_what_the_tool_does_not_offer(server):
+    implemented = {
+        name: server.available.get(server.implemented_as(name) or "")
+        for name in TOOLS
+        if _not_offered(name)
+    }
+
+    shown = [found for name, tool in implemented.items() if tool for found in _shown(name, tool)]
+
+    assert shown == []
 
 
 @pytest.mark.gate

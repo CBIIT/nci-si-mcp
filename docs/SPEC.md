@@ -224,7 +224,7 @@ Remaining, around `Budget`:
 - `kinds` filter (`parent`, `child`, `role`, `association`, `inverseRole`, `inverseAssociation`) selects edge kinds; `relationshipNames` filters within a kind; neither removes the other. The `is_a_*` pseudo-names go.
 - Every edge carries `TraversalProvenance` with polarity by code (the exclusion set in `spec/records.yaml`). Negative edges and the nodes they reach are returned, marked; with `includeNegative=false` (default) a node only negative edges reach is not followed further.
 - Per-kind rotation; truncation per kind; outbound budget includes retries.
-- Depth, node and edge limits clamped to the maxima of the tools' `bounds` (`spec/tools.yaml`) and reported; outbound requests at most 200 a call.
+- Depth, node and edge limits clamped to the maxima of the tools' `bounds` (`spec/tools.yaml`) and reported; outbound requests, retries included, at most the tool's `requests` there.
 
 ### 4.4 Index (`evs/index/`)
 
