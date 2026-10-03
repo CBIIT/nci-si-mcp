@@ -22,11 +22,13 @@
 # `lists` gives the most elements an input list takes in one call; a longer list is an
 # invalid request, since dropping a caller's input would answer another question (A5.2).
 #
-# `patterns` gives the published form of each identifier argument that goes into an upstream
-# path or query text (A7.6), as a regular expression the whole value matches; a mapping by
-# terminology where only some terminologies publish one (NCIt codes). An identifier of another
-# terminology is sent as one encoded path segment. `free_text` names the arguments that are
-# free text (A7.7); `entities[].name` is the name of each element of `entities`.
+# `patterns` gives the stated form of each identifier argument that goes into an upstream path
+# or query text (A7.6), as a regular expression the whole value matches: a trailing newline is
+# off the form; a mapping by terminology where only some terminologies have one (NCIt codes).
+# An identifier without a stated form is sent as one encoded path segment or parameter value.
+# An input schema may state a form, but an argument off it is answered with the error record,
+# invalid_request, as every invalid request is (A2.5). `free_text` names the free-text arguments
+# that go upstream (A7.7); `entities[].name` is the name of each element of `entities`.
 #
 # `not_offered` names what the platform has and the tool does not expose: argument values
 # under the argument's name, and platform features under a name of their own (`evs_type`,
@@ -105,7 +107,7 @@ get_concept_hierarchy:
 expand_value_set:
   group: evs
   inputs: (terminology, release, valueSet | code, count?, offset?, activeOnly?)
-  patterns: {terminology: *terminology, release: *release, code: *code}
+  patterns: {terminology: *terminology, release: *release, valueSet: *code, code: *code}
   returns: "{ members[], total, truncation }"
   items: ["members[]"]
   summary: >-
@@ -186,7 +188,7 @@ get_data_element:
   group: cadsr
   inputs: (publicId | longName | questionText, version?, include[]?, registryRelease?)
   patterns: {publicId: &registry_id "^[1-9][0-9]*$", version: &registry_version "^[0-9]+([.][0-9]+)?$"}
-  free_text: [longName, questionText]
+  free_text: [questionText]
   returns: data_element
   items: ["."]
   values: {include: [permissibleValues, valueDomain, conceptAssociations, alternateNames, classificationSchemes]}
@@ -246,7 +248,6 @@ get_form:
   group: cadsr
   inputs: (publicId? | keyword?, version?, includeModules?, registryRelease?)
   patterns: {publicId: *registry_id, version: *registry_version}
-  free_text: [keyword]
   returns: form
   items: ["."]
   defaults: {includeModules: true}
@@ -313,7 +314,6 @@ get_concept_for_permissible_value:
   group: cross-domain
   inputs: "(permissibleValueId | { dataElementId, value }, release)"
   patterns: {release: *release, dataElementId: *registry_id, permissibleValueId: *registry_id}
-  free_text: [value]
   returns: "concept, with permissibleValue { dataElement { publicId, version }, value }"
   items: ["."]
   summary: >-

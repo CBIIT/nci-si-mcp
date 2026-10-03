@@ -15,6 +15,7 @@ from jsonschema import Draft202012Validator
 
 from nci_si_acceptance.client import CREDENTIAL_VARIABLES
 from nci_si_acceptance.craft import LICENCE_FIELD
+from nci_si_acceptance.fixture_server import FORM_TYPE
 from nci_si_acceptance.results import error_code, identity, pinned_release, release_of
 from nci_si_acceptance.spec import (
     RECORDS,
@@ -845,8 +846,16 @@ def test_an_item_the_platform_gave_no_licence_text_with_carries_none(tools, pinn
 
 
 # Hostile forms of a well-formed identifier (X-23): a path climb, a query of its own, a fragment,
-# a SPARQL clause, and a bare climb. Each is off any form tools.yaml states.
-HOSTILE_FORMS = ["{}/../../x", "{}?include=full", "{}#x", "{}> }} UNION {{ ?s ?p ?o }}", "../"]
+# a SPARQL clause, a bare climb, and a trailing newline, which a pattern's $ lets through unless
+# the whole value is matched. Each is off any form tools.yaml states.
+HOSTILE_FORMS = [
+    "{}/../../x",
+    "{}?include=full",
+    "{}#x",
+    "{}> }} UNION {{ ?s ?p ?o }}",
+    "../",
+    "{}\n",
+]
 
 
 # Identifier arguments with a stated form that no call in calls.yaml gives, each in a call built
@@ -862,6 +871,18 @@ FORMED = {
         if "dataElementId" in change
     ),
     ("get_permissible_value", "permissibleValueId"): {"permissibleValueId": "9192925"},
+    ("get_form", "version"): CALLS["get_form"]["arguments"]
+    | {"version": CALLS["get_form"]["upstream"]["version"]},
+    ("expand_value_set", "code"): {"code": CALLS["expand_value_set"]["arguments"]["valueSet"]},
+    ("get_concept_for_permissible_value", "permissibleValueId"): {"permissibleValueId": "9192925"},
+    ("resolve_stored_value", "dataElementId"): CALLS["resolve_stored_value"]["arguments"]
+    | {"dataElementId": CALLS["get_concept_for_permissible_value"]["arguments"]["dataElementId"]},
+    # The workflow tools have no call yet: their concept is the one resolve_stored_value asks.
+    **{
+        (name, argument): {"conceptCode": CALLS["resolve_stored_value"]["arguments"]["conceptCode"]}
+        for name in ("ground_value", "expand_cohort")
+        for argument in ("conceptCode", "release")
+    },
 }
 
 
@@ -910,7 +931,8 @@ def _strings(entry):
 
     body = entry["body"] or ""
     params = [value for values in entry["params"].values() for value in values]
-    return [entry["path"], unquote(entry["raw"]), *params, body, unquote_plus(body)]
+    decoded = [entry["path"], unquote(entry["raw"]), *params, body, unquote_plus(body)]
+    return decoded + _body_values(entry)
 
 
 @pytest.mark.unmatched_upstream
@@ -927,8 +949,9 @@ def test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries
     # The call's own value has the form and the hostile one does not, or the case shows nothing.
     assert (bool(re.fullmatch(pattern, valid)), re.fullmatch(pattern, hostile)) == (True, None)
 
+    # A list's hostile element comes after a valid one, so that checking the first is not enough.
     result = tools.call(
-        name, arguments | {argument: [hostile] if isinstance(given, list) else hostile}
+        name, arguments | {argument: [*given, hostile] if isinstance(given, list) else hostile}
     )
 
     assert error_code(result) == "invalid_request", result.content
@@ -959,8 +982,9 @@ def test_a_code_of_a_terminology_without_a_stated_form_goes_upstream_as_one_segm
     tools.call("get_concept", arguments)
 
     raws = [entry["raw"] for entry in upstream.log()]
-    encoded = [raw for raw in raws if re.search(r"/8001%2[Ff]3(?:[/?]|$)", raw)]
-    assert (bool(encoded), [raw for raw in raws if f"/{SLASHED}" in raw]) == (True, []), raws
+    # One encoded path segment or parameter value (A7.6), and nowhere the slash as it is.
+    encoded = [raw for raw in raws if re.search(r"[/=]8001%2[Ff]3(?:[/?&]|$)", raw)]
+    assert (bool(encoded), [raw for raw in raws if SLASHED in raw]) == (True, []), raws
 
 
 # Free text that would change a request if it were not sent as one encoded value (X-24): a
@@ -1004,7 +1028,7 @@ def _values(entry):
 def _body_values(entry):
     body = entry["body"] or ""
     kind = {key.lower(): value for key, value in entry["headers"].items()}.get("content-type", "")
-    if "form" in kind:
+    if kind.partition(";")[0].strip().lower() == FORM_TYPE:
         return [value for values in parse_qs(body).values() for value in values]
     try:
         return list(_json_strings(json.loads(body)))

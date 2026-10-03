@@ -175,8 +175,12 @@ def test_what_a_tool_states_of_its_arguments_and_items_names_what_it_takes_and_r
     entry, (names, _) = TOOLS[tool], parameters(tool)
     stated = {*entry.get("defaults", {}), *entry.get("bounds", {}), *entry.get("values", {})}
     stated |= {*entry.get("patterns", {})}
-    # A free-text path names a parameter, and within a list's elements a field of them.
+    # A free-text path names a parameter, and within a list's elements a field its inputs name.
     texts = {path.partition("[")[0] for path in entry.get("free_text", [])}
+    fields = {
+        path.split(".")[1].removesuffix("[]") for path in entry.get("free_text", []) if "." in path
+    }
+    assert {field for field in fields if not re.search(rf"\b{field}\b", entry["inputs"])} == set()
     steps = {step.removesuffix("[]") for path in entry.get("items", []) for step in path.split(".")}
 
     assert (stated | texts) - names == set()

@@ -81,6 +81,9 @@ DEFECTS = [
     ("release-defaulted", "test_a_call_without_its_required_release_is_an_invalid_request"),
     ("unchecked-identifiers", OFF_FORM),
     ("checks-after-asking", OFF_FORM),
+    ("asks-in-path-then-refuses", OFF_FORM),
+    ("asks-in-form-then-refuses", OFF_FORM),
+    ("text-twice", "test_free_text_reaches_the_platform_as_one_value_equal_to_it"),
     (
         "unencoded-code",
         "test_a_code_of_a_terminology_without_a_stated_form_goes_upstream_as_one_segment",
