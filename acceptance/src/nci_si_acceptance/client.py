@@ -10,6 +10,9 @@ upstream credentials are passed on.
     NCI_SI_ACCEPTANCE_SERVER   the command that starts the server, default "nci-si-mcp serve"
     NCI_SI_ACCEPTANCE_PROFILE  the profile that command serves (M1.5): evs, cadsr or unified
                                (default)
+    NCI_SI_ACCEPTANCE_PREPARE  the operator's prepare command, a shell command line run once
+                               before any test (the acceptance README); without it the tests
+                               that need its result are NOT RUN
 """
 
 from __future__ import annotations
@@ -40,6 +43,7 @@ type Mode = Literal["fixture", "live"]
 MODE_VARIABLE = "NCI_SI_ACCEPTANCE_MODE"
 SERVER_VARIABLE = "NCI_SI_ACCEPTANCE_SERVER"
 PROFILE_VARIABLE = "NCI_SI_ACCEPTANCE_PROFILE"
+PREPARE_VARIABLE = "NCI_SI_ACCEPTANCE_PREPARE"
 DEFAULT_SERVER = "nci-si-mcp serve"
 # How long the harness waits for any one answer of the server, startup included.
 READ_TIMEOUT_SECONDS = 60
@@ -55,6 +59,7 @@ class Target:
     mode: Mode
     command: list[str]
     profile: str = "unified"
+    prepare: str | None = None
 
     @classmethod
     def from_env(cls) -> Target:
@@ -67,7 +72,7 @@ class Target:
         profile = os.environ.get(PROFILE_VARIABLE, "unified")
         if profile not in PROFILES:
             raise ValueError(f"{PROFILE_VARIABLE} must be one of {', '.join(PROFILES)}")
-        return cls(mode, command, profile)
+        return cls(mode, command, profile, os.environ.get(PREPARE_VARIABLE) or None)
 
 
 def _upstream_settings(mode: Mode, fixture_url: str | None) -> dict[str, str]:

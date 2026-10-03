@@ -395,7 +395,7 @@ The map lets the suite call today's tools under the required names, so the tests
 | `get_concept_neighborhood` | `ncit_traverse` | `code` → `start_codes`; `depth` → `max_depth`; `kinds` → `edge_types` (`inverseRole` → `inverse_role`, `inverseAssociation` → `inverse_association`) with `direction: both` fixed; `maxNodes`, `maxEdges` → `max_nodes`, `max_edges`; `budgetPerKind` and `includeNegative: true` unsupported |
 | all others | — | NOT IMPLEMENTED |
 
-`search_concepts` has no stand-in: the prototype cannot search EVS, and its index search needs an index the suite builds only once the operator's prepare step exists. A test that depends on another release than the current one fails against the prototype. An unsupported argument or value is a capability the prototype lacks; a call using it reports NOT IMPLEMENTED rather than a failure. Self-tests check every stand-in, argument and value against the prototype's `tools/list` and make one call through each entry that the prototype must accept.
+`search_concepts` has no stand-in: the prototype cannot search EVS, and its index search is not exposed as the required tool. The operator's prepare step builds the index the semantic and hybrid tests need (acceptance README). A test that depends on another release than the current one fails against the prototype. An unsupported argument or value is a capability the prototype lacks; a call using it reports NOT IMPLEMENTED rather than a failure. Self-tests check every stand-in, argument and value against the prototype's `tools/list` and make one call through each entry that the prototype must accept.
 
 At the furnished commit (after Phase 3) the map is empty. The owner decided (2 October 2026) that the mechanism goes in the change that removes its last entry.
 

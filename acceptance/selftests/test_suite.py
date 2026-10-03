@@ -5,9 +5,13 @@ import pytest
 
 from nci_si_acceptance.suite import (
     LIVE_CAPABLE,
+    NOT_PREPARED,
+    PREPARED,
     UnmatchedUpstream,
+    index_set,
     scenarios_of,
     skip_fixture_only,
+    skip_unprepared,
     unmatched_requests,
 )
 
@@ -77,3 +81,28 @@ def test_requests_without_a_fixture_are_named_one_per_line():
     ]
 
     assert unmatched_requests(log) == ["GET evs /api/v1/x {'a': ['1']}"]
+
+
+def test_without_a_prepare_command_a_test_that_needs_it_is_skipped_as_not_run():
+    needs = Item(getattr(pytest.mark, PREPARED))
+    other = Item()
+
+    skip_unprepared([needs, other])
+
+    assert needs.get_closest_marker("skip").kwargs == {"reason": NOT_PREPARED}
+    assert other.get_closest_marker("skip") is None
+
+
+def test_the_index_set_is_every_concept_recorded_with_its_summary_in_the_manifest_s_order():
+    manifest = {
+        "record": {
+            "concepts": {
+                "full": ["C4817", "C17049"],
+                "minimal": ["C2991"],
+                "parents,summary": ["C3262"],
+                "children": ["C9118"],
+            }
+        }
+    }
+
+    assert index_set(manifest) == ["C4817", "C17049", "C3262"]

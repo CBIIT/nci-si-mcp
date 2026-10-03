@@ -4,11 +4,19 @@ A test that selects scenarios (`@pytest.mark.scenario("release/unknown")`) gets 
 server process of its own, started with the scenarios active and with their
 settings, so that nothing the server keeps between calls outlives them. Requests a
 server makes while it starts must find fixtures too.
+
+The operator's prepare command, where one is given, runs once, before the first test that
+starts a server, in the server's environment, with the codes of the index set listed in the file
+`NCI_SI_ACCEPTANCE_INDEX_CODES` names; every server then starts from a copy of the data
+directory it produced. A prepare command that fails, or whose requests find no fixture,
+ends the run.
 """
 
 from __future__ import annotations
 
 import json
+import shutil
+import subprocess
 import sys
 from contextlib import contextmanager
 from pathlib import Path
@@ -24,8 +32,10 @@ from nci_si_acceptance.suite import (
     OWN_SERVER,
     UNMATCHED_UPSTREAM,
     UnmatchedUpstream,
+    index_set,
     scenarios_of,
     skip_fixture_only,
+    skip_unprepared,
     unmatched_requests,
 )
 from nci_si_acceptance.tools import Process, Tools, load_toolmap
@@ -37,6 +47,7 @@ pytest_plugins = ["nci_si_acceptance.report"]
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 TARGET = pytest.StashKey[Target]()
+INDEX_CODES_VARIABLE = "NCI_SI_ACCEPTANCE_INDEX_CODES"
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -49,6 +60,8 @@ def pytest_configure(config: pytest.Config) -> None:
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     if config.stash[TARGET].mode == "live":
         skip_fixture_only(items)
+    if config.stash[TARGET].prepare is None:
+        skip_unprepared(items)
 
 
 def pytest_sessionfinish(session: pytest.Session) -> None:
@@ -89,15 +102,47 @@ def upstream(target: Target) -> Iterator[FixtureServer | None]:
 
 
 @pytest.fixture(scope="session")
+def prepared(
+    target: Target, upstream: FixtureServer | None, tmp_path_factory: pytest.TempPathFactory
+) -> Path | None:
+    """The data directory the operator's prepare command produced, or None without one."""
+
+    if target.prepare is None:
+        return None
+    data = tmp_path_factory.mktemp("prepared")
+    codes = tmp_path_factory.mktemp("index") / "codes.txt"
+    manifest = yaml.safe_load((FIXTURES / MANIFEST).read_text(encoding="utf-8"))
+    codes.write_text("\n".join(index_set(manifest)) + "\n", encoding="utf-8")
+    url = upstream.url if upstream else None
+    environment = server_environment(target.mode, data, url) | {INDEX_CODES_VARIABLE: str(codes)}
+    if upstream:
+        upstream.reset()
+    # The operator's own command line, as a shell runs it (the acceptance README); its output
+    # is kept for its failure, not charged to the first test that starts a server.
+    ran = subprocess.run(  # noqa: S602
+        target.prepare, shell=True, env=environment, check=False, capture_output=True, text=True
+    )
+    if ran.returncode:
+        said = (ran.stdout + ran.stderr)[-2000:]
+        pytest.exit(
+            f"the prepare command failed with exit status {ran.returncode}:\n{said}", returncode=1
+        )
+    if unmatched := unmatched_requests(_startup_requests(upstream)):
+        pytest.exit(str(UnmatchedUpstream(unmatched, " while preparing")), returncode=1)
+    return data
+
+
+@pytest.fixture(scope="session")
 def server(
     pytestconfig: pytest.Config,
     target: Target,
     upstream: FixtureServer | None,
+    prepared: Path | None,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> Iterator[Tools]:
     """The server under test, shared by every test that selects no scenario."""
 
-    with _tools(target, upstream, tmp_path_factory) as tools:
+    with _tools(target, upstream, tmp_path_factory, prepared) as tools:
         pytestconfig.stash[COLLECTOR].note_tools(tools)
         yield tools
 
@@ -107,12 +152,15 @@ def _tools(
     target: Target,
     upstream: FixtureServer | None,
     tmp_path_factory: pytest.TempPathFactory,
+    prepared: Path | None,
     settings: dict[str, str] | None = None,
 ) -> Iterator[Tools]:
     url = upstream.url if upstream else None
     if upstream:
         upstream.reset()  # what earlier tests left in the log is not this server's
     data = tmp_path_factory.mktemp("data")
+    if prepared is not None:
+        shutil.copytree(prepared, data, dirs_exist_ok=True)
     environment = server_environment(target.mode, data, url)
     log = tmp_path_factory.mktemp("server") / "stderr.log"
     try:
@@ -148,6 +196,7 @@ def tools(
     request: pytest.FixtureRequest,
     target: Target,
     upstream: FixtureServer | None,
+    prepared: Path | None,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> Iterator[Tools]:
     """The required tools of the server under test, for one test.
@@ -164,7 +213,7 @@ def tools(
     upstream.activate(*scenarios)
     settings = upstream.fixtures.settings_of(scenarios)
     try:
-        with _tools(target, upstream, tmp_path_factory, settings) as own:
+        with _tools(target, upstream, tmp_path_factory, prepared, settings) as own:
             request.config.stash[COLLECTOR].note_tools(own)
             yield own
     finally:
