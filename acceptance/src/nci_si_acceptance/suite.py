@@ -17,6 +17,9 @@ OWN_SERVER = "own_server"
 FIXTURE_ONLY = "fixture mode only"
 # A test marked so expects requests without a fixture, and checks them itself.
 UNMATCHED_UPSTREAM = "unmatched_upstream"
+# A test marked so needs what the operator's prepare command produced (the interim index).
+PREPARED = "prepared"
+NOT_PREPARED = "NOT RUN: no prepare command (NCI_SI_ACCEPTANCE_PREPARE)"
 
 
 class UnmatchedUpstream(pytest.fail.Exception):
@@ -44,6 +47,27 @@ def skip_fixture_only(items: Iterable[pytest.Item]) -> None:
     for item in items:
         if item.get_closest_marker(LIVE_CAPABLE) is None or scenarios_of(item):
             item.add_marker(skip)
+
+
+def skip_unprepared(items: Iterable[pytest.Item]) -> None:
+    """What a run without a prepare command does: skip every test that needs its result."""
+
+    skip = pytest.mark.skip(reason=NOT_PREPARED)
+    for item in items:
+        if item.get_closest_marker(PREPARED) is not None:
+            item.add_marker(skip)
+
+
+def index_set(manifest: dict[str, Any]) -> list[str]:
+    """The concepts the prepare command indexes: each the fixture set records at an include
+    that holds its summary, so that an indexer's request for the summary sections finds it."""
+
+    lists = manifest["record"]["concepts"].items()
+    return [code for include, codes in lists if _holds_summary(include) for code in codes]
+
+
+def _holds_summary(include: str) -> bool:
+    return bool({"summary", "full"} & set(include.split(",")))
 
 
 def unmatched_requests(log: Iterable[dict[str, Any]]) -> list[str]:

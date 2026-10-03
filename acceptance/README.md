@@ -53,10 +53,22 @@ re-recording, under change control) or the live service has changed: both are fi
 that passes live and fails against fixtures means the server behaves differently against
 different upstreams: a defect.
 
-A run may begin with one operator-supplied prepare command, run in the server's environment
-against the ordinary fixtures before any test; the server under test starts from what it
-produced (for this server, a small NCIt index built from the recorded concepts). Without it the
-tests that need its result are NOT RUN. It comes with the search tests (#53).
+A run may begin with one operator-supplied prepare command, `NCI_SI_ACCEPTANCE_PREPARE`, a
+shell command line run once before any test in the server's environment, against the
+ordinary fixtures: the same settings the server gets, its upstream base URLs and a fresh
+`NCI_SI_DATA_DIR`. The file `NCI_SI_ACCEPTANCE_INDEX_CODES` names lists the index set, every
+concept the fixture set records at an include that holds its summary. Every server then
+starts from a copy of that data directory. A test marked `prepared` needs it and is NOT RUN
+without the command; a command that fails, or whose requests find no fixture, ends the run.
+For this server it builds the interim NCIt index, in seconds and a few MB with the default
+hashing embedder:
+
+    NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")'
+
+Run it only through the suite: the base URLs it is given name each surface of the fixture
+server (`NCI_SI_EVS_BASE_URL` ends in `/evs`, to which the server adds `/api/v1/…` as it does to
+the production host), and a command pointed at the fixture server's bare address finds no
+fixture.
 
 In fixture mode a test fails when one of its upstream requests found no fixture, and so does a
 server whose requests while it starts found none: the server may treat the refusal as an outage

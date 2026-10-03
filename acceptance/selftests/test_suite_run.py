@@ -6,6 +6,7 @@ per-tool report.
 """
 
 import json
+import shlex
 import sys
 from pathlib import Path
 
@@ -307,3 +308,88 @@ def test_weekly(tools):
         "get_concept_hierarchy": "ncit_traverse",
         "get_concept_neighborhood": "ncit_traverse",
     }
+
+
+# A fixture set's manifest with an index set: the concepts recorded at an include that holds
+# the summary, not those recorded minimal.
+INDEXED = """evs:
+  release: ncit_26.09d
+record:
+  concepts:
+    full: [C4817]
+    summary,parents: [C3262]
+    minimal: [C2991]
+"""
+PREPARED_PROBE = """
+import pytest
+
+@pytest.mark.prepared
+@pytest.mark.tool("resolve_release")
+def test_shared(tools):
+    codes = (tools.process.data / "codes.txt").read_text(encoding="utf-8")
+    assert codes.split() == ["C4817", "C3262"]
+
+@pytest.mark.prepared
+@pytest.mark.own_server
+@pytest.mark.tool("resolve_release")
+def test_own(tools):
+    assert (tools.process.data / "codes.txt").exists()
+"""
+
+
+def prepare(suite, monkeypatch, script):
+    """The prepare command: `script` run by this Python, with the data directory and the
+    index set's file in its environment."""
+
+    (suite.path / "fixtures" / "manifest.yaml").write_text(INDEXED, encoding="utf-8")
+    command = f"{shlex.quote(sys.executable)} -c {shlex.quote(script)}"
+    monkeypatch.setenv("NCI_SI_ACCEPTANCE_PREPARE", command)
+
+
+def test_the_prepare_command_runs_once_and_every_server_starts_from_its_data(suite, monkeypatch):
+    runs = suite.path / "runs.txt"
+    prepare(
+        suite,
+        monkeypatch,
+        "import os, pathlib\n"
+        f"with open({str(runs)!r}, 'a') as runs: runs.write('run\\n')\n"
+        "codes = pathlib.Path(os.environ['NCI_SI_ACCEPTANCE_INDEX_CODES']).read_text()\n"
+        "pathlib.Path(os.environ['NCI_SI_DATA_DIR'], 'codes.txt').write_text(codes)\n",
+    )
+
+    result = run(suite, PREPARED_PROBE)
+
+    result.assert_outcomes(passed=2)
+    assert runs.read_text(encoding="utf-8").splitlines() == ["run"]
+
+
+def test_without_a_prepare_command_a_test_that_needs_it_is_not_run(suite):
+    result = run(suite, PREPARED_PROBE, "-rs")
+
+    result.assert_outcomes(skipped=2)
+    result.stdout.fnmatch_lines(["*NOT RUN: no prepare command*"])
+
+
+@pytest.mark.parametrize(
+    ("script", "said"),
+    [
+        ("raise SystemExit(3)", "*the prepare command failed with exit status 3*"),
+        (
+            "import os, urllib.request\n"
+            "try: urllib.request.urlopen(os.environ['NCI_SI_EVS_BASE_URL'] + '/api/v1/version')\n"
+            "except OSError: pass\n",
+            "*upstream requests without a fixture while preparing*",
+        ),
+    ],
+    ids=["failing", "unanswered"],
+)
+def test_a_prepare_command_that_fails_or_asks_without_a_fixture_ends_the_run(
+    suite, monkeypatch, script, said
+):
+    prepare(suite, monkeypatch, script)
+
+    result = run(suite, PREPARED_PROBE)
+
+    assert result.ret != 0
+    result.assert_outcomes()
+    result.stdout.fnmatch_lines([said])
