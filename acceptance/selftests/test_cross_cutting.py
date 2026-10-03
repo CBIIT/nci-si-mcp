@@ -96,13 +96,16 @@ def _served(found):
     return {case: outcome for case, outcome in found.items() if not other(case)}
 
 
+def _tree():
+    return ast.parse((SUITE / "test_crosscutting.py").read_text(encoding="utf-8"))
+
+
 def _functions():
     """The test functions of the cross-cutting file, read from it."""
 
-    tree = ast.parse((SUITE / "test_crosscutting.py").read_text(encoding="utf-8"))
     return [
         node.name
-        for node in tree.body
+        for node in _tree().body
         if isinstance(node, ast.FunctionDef) and node.name.startswith("test_")
     ]
 
@@ -114,6 +117,19 @@ DEFECTIVE = {test for _, test in DEFECTS}
 def test_every_defect_names_a_cross_cutting_test():
     assert FUNCTIONS
     assert sorted(DEFECTIVE - set(FUNCTIONS)) == []
+
+
+def test_every_cross_cutting_test_is_a_function_of_the_file_and_in_one_chunk():
+    # A test in a class, or an async one, would run in no chunk.
+    named = [
+        node.name
+        for node in ast.walk(_tree())
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+        and node.name.lower().startswith("test")
+    ]
+    chunked = [test for chunk in range(CHUNKS) for test in FUNCTIONS[chunk::CHUNKS]]
+
+    assert sorted(named) == sorted(FUNCTIONS) == sorted(chunked)
 
 
 # The functions in as many nested runs as the self-tests have workers, so that the runs
