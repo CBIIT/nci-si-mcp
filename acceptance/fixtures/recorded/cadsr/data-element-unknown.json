@@ -1,0 +1,22 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "cadsr",
+  "method": "GET",
+  "path": "/NCIAPI/1.0/api/DataElement/99999999",
+  "headers": {
+   "Accept": "application/json"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "DataElement": null,
+   "apiResponse": {
+    "type": "I",
+    "message": "No data returned for the input criteria."
+   }
+  }
+ }
+}

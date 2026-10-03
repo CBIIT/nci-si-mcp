@@ -1,0 +1,13 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "cadsr-ftp",
+  "method": "GET",
+  "path": "/CDE/XML/README"
+ },
+ "response": {
+  "status": 200,
+  "body": "The releasedCDEsXML-OD is a zip that contains X number of XML files of the XML format.  Included in this format\r\nare all the CDE's that are registration_status not like '%RETIRED%' and rep_conte_name not like '%TEST%' and rep_conte_name not like '%TRAINING%'.\r\n\r\nThis file is updated on a daily basis.\r\n\r\nIf you are looking for an older file you can look in the Archive folder for older files.\r\n"
+ }
+}

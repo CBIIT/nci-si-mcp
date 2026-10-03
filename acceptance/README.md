@@ -69,7 +69,8 @@ default hashing embedder:
 Run it only through the suite: the base URLs it is given name each surface of the fixture
 server (`NCI_SI_EVS_BASE_URL` ends in `/evs`, to which the server adds `/api/v1/…` as it does to
 the production host), and a command pointed at the fixture server's bare address finds no
-fixture.
+fixture. Every setting the suite gives a server, and its format, is in the specification's §4
+([`spec/acceptance.md`](../spec/acceptance.md)).
 
 In fixture mode a test fails when one of its upstream requests found no fixture, and so does a
 server whose requests while it starts found none: the server may treat the refusal as an outage

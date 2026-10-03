@@ -1,0 +1,4018 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "cadsr",
+  "method": "GET",
+  "path": "/NCIFormAPI.v2_0:NciFormApiRad/Form/5406471",
+  "headers": {
+   "Accept": "application/json"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "form": {
+    "publicID": "5406471",
+    "version": "1.0",
+    "longName": "Patient Safety Event Report - Hospital: Healthcare Event Reporting Form (HERF) Version 1.2",
+    "context": "ONC",
+    "latestVersionIndicator": "Yes",
+    "type": "CRF",
+    "definition": "The AHRQ Common Formats form for hospital reporting of safety events This content is being reviewed for compliance with Executive Order 14168 which mandates that gender should not be used as a replacement for sex. ",
+    "beginDate": "2016-08-12",
+    "changeNote": null,
+    "deletedIndicator": "No",
+    "endDate": "2025-04-08",
+    "registrationStatus": "Application",
+    "workflowStatus": "RETIRED ARCHIVED",
+    "administrativeNotes": "04.08.25_Retired due to EO Sex_Gender_ghd",
+    "unresolvedIssues": null,
+    "createdBy": "Denise Warzel",
+    "dateCreated": "2016-08-12",
+    "modifiedBy": "Gwen Deen",
+    "dateModified": "2025-04-08",
+    "classificationSchemes": [
+     {
+      "publicId": "4382693",
+      "version": "1",
+      "longName": "AHRQ Common Formats",
+      "context": "AHRQ",
+      "definition": "CDEs in AHRQ Common Formats",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "classificationSchemeItems": [
+       {
+        "publicId": "5406422",
+        "version": "1",
+        "longName": "HERF 1.2",
+        "context": "AHRQ",
+        "typeName": "GROUP_TYPE",
+        "workflowStatus": "RELEASED",
+        "registrationStatus": "Application"
+       }
+      ]
+     }
+    ],
+    "modules": [
+     {
+      "publicID": "5406474",
+      "version": "1.0",
+      "longName": "Healthcare Event Reporting Form",
+      "displayOrder": "0",
+      "maximumModuleRepeat": "0",
+      "contextName": "ONC",
+      "workflowStatus": "DRAFT NEW",
+      "registrationStatus": "Application",
+      "latesetVersionIndicator": "Yes",
+      "createdBy": "DWARZEL",
+      "dateCreated": "2016-08-12",
+      "modifiedBy": "DWARZEL",
+      "dateModified": "2016-08-12",
+      "questions": [
+       {
+        "publicID": "5406475",
+        "version": "1.0",
+        "displayOrder": "0",
+        "defaultValue": null,
+        "isEditable": "Yes",
+        "isMandatory": "No",
+        "questionShortName": "5315074v1.0:5332758v1.0",
+        "questionText": "Event ID",
+        "isDerived": "false",
+        "createdBy": "DWARZEL",
+        "dateCreated": "2016-08-12",
+        "modifiedBy": "DWARZEL",
+        "dateModified": "2016-08-12",
+        "dataElement": {
+         "publicID": "5334265",
+         "version": "1",
+         "longName": "Patient safety event",
+         "shortName": "5315074v1.0:5332758v1.0",
+         "changeNote": "Block Edit to add Device 1.2 CSI. Curated as part of AHRQ Common Format CDE creation.1.15.2017.dmr",
+         "deletedIndicator": "No",
+         "beginDate": "2010-03-31",
+         "endDate": null,
+         "latestVersionIndicator": "Yes",
+         "preferredDefinition": "Uniquely identifies each event report at the provider.",
+         "origin": "AHRQ:AHRQ Common Formats",
+         "workflowStatus": "RELEASED",
+         "registrationStatus": "Application",
+         "createdBy": "REEVESD",
+         "dateCreated": "2016-07-01",
+         "modifiedBy": "DWARZEL",
+         "dateModified": "2017-02-28",
+         "dataElementConcept": {
+          "publicId": "5315074",
+          "version": "1",
+          "longName": "Patient safety event",
+          "shortName": "5315072v1.0",
+          "preferredDefinition": "No Value Exists",
+          "contextName": "ONC",
+          "contextVersion": "1",
+          "definitionSource": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "primaryFlag": null,
+          "beginDate": "2016-06-24",
+          "endDate": null,
+          "changeDescription": "Created to support registration of AHRQ Common Formats CDEs 2016/2017.dmr",
+          "administrativeNotes": null,
+          "unresolvedIssues": null,
+          "deletionIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-24",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10",
+          "latestVersionIndicator": "Yes"
+         },
+         "valueDomain": {
+          "publicID": "5332758",
+          "version": "1",
+          "longName": "Encapsulated Data Text",
+          "preferredName": "5332758v1.0",
+          "preferredDefinition": "A data type comprised of encapsulated data in the form of text._The words of something written.",
+          "context": "ONC",
+          "datatypeName": "HL7EDv3",
+          "minimumLengthNumber": null,
+          "maximumLengthNumber": "200",
+          "lowValueNumber": null,
+          "highValueNumber": null,
+          "decimalPlace": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "latestVersionIndicator": "Yes",
+          "beginDate": "2016-06-29",
+          "endDate": null,
+          "changeNote": null,
+          "deletedIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-29",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10"
+         },
+         "referenceDocuments": [
+          {
+           "name": "Event ID",
+           "type": "Preferred Question Text",
+           "docText": "Event ID",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "PIF|74502-6",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: patient information form (PIF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;94&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "SIR|74501-8",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: summary of initial report (SIR) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;95&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "DEVICE|74725-3",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: device or medical AndOr surgical supply, including health information technology (HIT) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;97&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "MEDICATION|74080-3",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: medication or other substance - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;100&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "HERF|74495-3",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: healthcare event reporting form (HERF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;93&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          }
+         ],
+         "alternateNames": [
+          {
+           "name": "DE2",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          }
+         ]
+        },
+        "instructions": [
+         {
+          "instruction": "This field is collected for local facility and PSO use. This information will not be forwarded to the Network of Patient Safety Databases (NPSD)."
+         }
+        ]
+       },
+       {
+        "publicID": "5406476",
+        "version": "1.0",
+        "displayOrder": "1",
+        "defaultValue": null,
+        "isEditable": "Yes",
+        "isMandatory": "No",
+        "questionShortName": "2013942v1.0:5332931v1.0",
+        "questionText": "Initial Report Date",
+        "isDerived": "false",
+        "createdBy": "DWARZEL",
+        "dateCreated": "2016-08-12",
+        "modifiedBy": "DWARZEL",
+        "dateModified": "2016-10-03",
+        "dataElement": {
+         "publicID": "5334268",
+         "version": "1",
+         "longName": "Date form completed",
+         "shortName": "2013942v1.0:5332931v1.0",
+         "changeNote": "Block Edit to add Device 1.2 CSI. Curated to support AHRQ Common Formats project.2016/2017.dmr",
+         "deletedIndicator": "No",
+         "beginDate": "2010-03-31",
+         "endDate": null,
+         "latestVersionIndicator": "Yes",
+         "preferredDefinition": "Determination of the date of the Summary of Initial Report (SIR) form.",
+         "origin": "AHRQ:AHRQ Common Formats",
+         "workflowStatus": "RELEASED",
+         "registrationStatus": "Application",
+         "createdBy": "REEVESD",
+         "dateCreated": "2016-07-01",
+         "modifiedBy": "DWARZEL",
+         "dateModified": "2017-02-14",
+         "dataElementConcept": {
+          "publicId": "2013942",
+          "version": "1",
+          "longName": "Case Report Form Complete",
+          "shortName": "FORM_COMP",
+          "preferredDefinition": "the completion of data collection for the CRF.",
+          "contextName": "CTEP",
+          "contextVersion": "2.31",
+          "definitionSource": null,
+          "origin": null,
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "primaryFlag": null,
+          "beginDate": "2002-12-20",
+          "endDate": null,
+          "changeDescription": null,
+          "administrativeNotes": null,
+          "unresolvedIssues": null,
+          "deletionIndicator": "No",
+          "createdBy": "MSUPLEY",
+          "dateCreated": "2002-12-20",
+          "modifiedBy": "TYRRELLM",
+          "dateModified": "2026-09-02",
+          "latestVersionIndicator": "Yes"
+         },
+         "valueDomain": {
+          "publicID": "5332931",
+          "version": "1",
+          "longName": "Point in Time Type",
+          "preferredName": "5332931v1.0",
+          "preferredDefinition": "A data type comprised of a date and time value that corresponds with a specific point in the time continuum._Something distinguishable as an identifiable class based on common qualities.",
+          "context": "ONC",
+          "datatypeName": "HL7TSv3",
+          "minimumLengthNumber": null,
+          "maximumLengthNumber": null,
+          "lowValueNumber": null,
+          "highValueNumber": null,
+          "decimalPlace": null,
+          "formatName": "MM/DD/YYYY",
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "latestVersionIndicator": "Yes",
+          "beginDate": "2016-06-29",
+          "endDate": null,
+          "changeNote": "Added display format of mm dd yyyy - DW 08-17-2016",
+          "deletedIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-29",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10"
+         },
+         "referenceDocuments": [
+          {
+           "name": "What is the date of the summa",
+           "type": "Preferred Question Text",
+           "docText": "What is the date of the summary of the initial report?",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "HERF|74495-3",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: healthcare event reporting form (HERF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;93&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "PIF|74502-6",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: patient information form (PIF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;94&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "SIR|74501-8",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: summary of initial report (SIR) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;95&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "DEVICE|74725-3",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: device or medical AndOr surgical supply, including health information technology (HIT) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;97&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "MEDICATION|74080-3",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: medication or other substance - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;100&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "Initial Report Date",
+           "type": "Alternate Question Text",
+           "docText": "Initial Report Date",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "Report Date",
+           "type": "Alternate Question Text",
+           "docText": "AHRQ Alternate question text",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "What is the date of the summary of the initial report?",
+           "type": "Alternate Question Text",
+           "docText": "What is the date of the summary of the initial report?",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          }
+         ],
+         "alternateNames": [
+          {
+           "name": "DE75",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          },
+          {
+           "name": "DE30",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          }
+         ]
+        }
+       },
+       {
+        "publicID": "5498110",
+        "version": "1.0",
+        "displayOrder": "2",
+        "defaultValue": null,
+        "isEditable": "Yes",
+        "isMandatory": "No",
+        "questionShortName": "2013942v1.0:5332931v1.0",
+        "questionText": "Report Date",
+        "isDerived": "false",
+        "createdBy": "DWARZEL",
+        "dateCreated": "2016-10-03",
+        "modifiedBy": "DWARZEL",
+        "dateModified": "2016-10-03",
+        "dataElement": {
+         "publicID": "5334268",
+         "version": "1",
+         "longName": "Date form completed",
+         "shortName": "2013942v1.0:5332931v1.0",
+         "changeNote": "Block Edit to add Device 1.2 CSI. Curated to support AHRQ Common Formats project.2016/2017.dmr",
+         "deletedIndicator": "No",
+         "beginDate": "2010-03-31",
+         "endDate": null,
+         "latestVersionIndicator": "Yes",
+         "preferredDefinition": "Determination of the date of the Summary of Initial Report (SIR) form.",
+         "origin": "AHRQ:AHRQ Common Formats",
+         "workflowStatus": "RELEASED",
+         "registrationStatus": "Application",
+         "createdBy": "REEVESD",
+         "dateCreated": "2016-07-01",
+         "modifiedBy": "DWARZEL",
+         "dateModified": "2017-02-14",
+         "dataElementConcept": {
+          "publicId": "2013942",
+          "version": "1",
+          "longName": "Case Report Form Complete",
+          "shortName": "FORM_COMP",
+          "preferredDefinition": "the completion of data collection for the CRF.",
+          "contextName": "CTEP",
+          "contextVersion": "2.31",
+          "definitionSource": null,
+          "origin": null,
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "primaryFlag": null,
+          "beginDate": "2002-12-20",
+          "endDate": null,
+          "changeDescription": null,
+          "administrativeNotes": null,
+          "unresolvedIssues": null,
+          "deletionIndicator": "No",
+          "createdBy": "MSUPLEY",
+          "dateCreated": "2002-12-20",
+          "modifiedBy": "TYRRELLM",
+          "dateModified": "2026-09-02",
+          "latestVersionIndicator": "Yes"
+         },
+         "valueDomain": {
+          "publicID": "5332931",
+          "version": "1",
+          "longName": "Point in Time Type",
+          "preferredName": "5332931v1.0",
+          "preferredDefinition": "A data type comprised of a date and time value that corresponds with a specific point in the time continuum._Something distinguishable as an identifiable class based on common qualities.",
+          "context": "ONC",
+          "datatypeName": "HL7TSv3",
+          "minimumLengthNumber": null,
+          "maximumLengthNumber": null,
+          "lowValueNumber": null,
+          "highValueNumber": null,
+          "decimalPlace": null,
+          "formatName": "MM/DD/YYYY",
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "latestVersionIndicator": "Yes",
+          "beginDate": "2016-06-29",
+          "endDate": null,
+          "changeNote": "Added display format of mm dd yyyy - DW 08-17-2016",
+          "deletedIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-29",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10"
+         },
+         "referenceDocuments": [
+          {
+           "name": "What is the date of the summa",
+           "type": "Preferred Question Text",
+           "docText": "What is the date of the summary of the initial report?",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "HERF|74495-3",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: healthcare event reporting form (HERF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;93&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "PIF|74502-6",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: patient information form (PIF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;94&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "SIR|74501-8",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: summary of initial report (SIR) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;95&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "DEVICE|74725-3",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: device or medical AndOr surgical supply, including health information technology (HIT) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;97&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "MEDICATION|74080-3",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: medication or other substance - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;100&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "Initial Report Date",
+           "type": "Alternate Question Text",
+           "docText": "Initial Report Date",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "Report Date",
+           "type": "Alternate Question Text",
+           "docText": "AHRQ Alternate question text",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "What is the date of the summary of the initial report?",
+           "type": "Alternate Question Text",
+           "docText": "What is the date of the summary of the initial report?",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          }
+         ],
+         "alternateNames": [
+          {
+           "name": "DE75",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          },
+          {
+           "name": "DE30",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          }
+         ]
+        }
+       },
+       {
+        "publicID": "5406477",
+        "version": "1.0",
+        "displayOrder": "3",
+        "defaultValue": null,
+        "isEditable": "Yes",
+        "isMandatory": "No",
+        "questionShortName": "5301136v1.0:5301151v1.0",
+        "questionText": "What is being reported?",
+        "isDerived": "false",
+        "createdBy": "DWARZEL",
+        "dateCreated": "2016-08-12",
+        "modifiedBy": "DWARZEL",
+        "dateModified": "2016-10-03",
+        "dataElement": {
+         "publicID": "5301153",
+         "version": "1",
+         "longName": "Event",
+         "shortName": "5301136v1.0:5301151v1.0",
+         "changeNote": "Block edit to add Classification Scheme Items. Curated as part of AHRQ Common Format CDE creation.1.15.2017.dmr",
+         "deletedIndicator": "No",
+         "beginDate": "2010-03-31",
+         "endDate": "2025-11-13",
+         "latestVersionIndicator": "Yes",
+         "preferredDefinition": "The patient safety event or unsafe condition that is being reported.",
+         "origin": "AHRQ:AHRQ Common Formats",
+         "workflowStatus": "RETIRED ARCHIVED",
+         "registrationStatus": "Historical",
+         "createdBy": "REEVESD",
+         "dateCreated": "2016-06-21",
+         "modifiedBy": "ZHWENDY",
+         "dateModified": "2025-11-13",
+         "dataElementConcept": {
+          "publicId": "5301136",
+          "version": "1",
+          "longName": "Event",
+          "shortName": "5301134v1.0",
+          "preferredDefinition": "No Value Exists",
+          "contextName": "ONC",
+          "contextVersion": "1",
+          "definitionSource": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "primaryFlag": null,
+          "beginDate": "2016-06-21",
+          "endDate": null,
+          "changeDescription": "Created to support registration of AHRQ Common Formats CDEs 2016/2017.dmr",
+          "administrativeNotes": null,
+          "unresolvedIssues": null,
+          "deletionIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-21",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10",
+          "latestVersionIndicator": "Yes"
+         },
+         "valueDomain": {
+          "publicID": "5301151",
+          "version": "1",
+          "longName": "Event Type",
+          "preferredName": "5301151v1.0",
+          "preferredDefinition": "Something distinguishable as an identifiable class based on common qualities._A short textual account; having provided a short account.",
+          "context": "ONC",
+          "datatypeName": "HL7CDv3",
+          "minimumLengthNumber": "2",
+          "maximumLengthNumber": "2",
+          "lowValueNumber": null,
+          "highValueNumber": null,
+          "decimalPlace": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RETIRED ARCHIVED",
+          "registrationStatus": "Historical",
+          "latestVersionIndicator": "Yes",
+          "beginDate": "2016-06-21",
+          "endDate": "2025-11-13",
+          "changeNote": null,
+          "deletedIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-21",
+          "modifiedBy": "ZHWENDY",
+          "dateModified": "2025-11-13",
+          "permissibleValues": [
+           {
+            "publicID": "8983850",
+            "value": "A6",
+            "valueDescription": "Near Miss",
+            "origin": null,
+            "beginDate": "2016-06-21",
+            "endDate": null,
+            "deletedIndicator": "No",
+            "createdBy": "REEVESD",
+            "dateCreated": "2016-07-29",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-07-29",
+            "valueMeanings": [
+             {
+              "publicID": "5024293",
+              "version": "1",
+              "longName": "Near Miss",
+              "definition": "A patient safety event that did not reach the patient.",
+              "createdBy": "REEVESD",
+              "dateCreated": "2015-09-25",
+              "modifiedBy": "SBR",
+              "dateModified": "2018-01-19",
+              "concepts": [
+               {
+                "longName": "Near Miss",
+                "conceptCode": "LA20346-5",
+                "definition": "A patient safety event that did not reach the patient.",
+                "evsSource": "LOINC_CODE",
+                "primaryIndicator": "Yes",
+                "displayOrder": "0"
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "publicID": "8983852",
+            "value": "A3",
+            "valueDescription": "Incident",
+            "origin": null,
+            "beginDate": "2016-06-21",
+            "endDate": null,
+            "deletedIndicator": "No",
+            "createdBy": "REEVESD",
+            "dateCreated": "2016-07-29",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-07-29",
+            "valueMeanings": [
+             {
+              "publicID": "5024294",
+              "version": "1",
+              "longName": "Incident",
+              "definition": "A patient safety event that reached the patient, whether or not the patient was harmed.",
+              "createdBy": "REEVESD",
+              "dateCreated": "2015-09-25",
+              "modifiedBy": "SBR",
+              "dateModified": "2018-01-19",
+              "concepts": [
+               {
+                "longName": "Incident",
+                "conceptCode": "LA20347-3",
+                "definition": "A patient safety event that reached the patient, whether or not the patient was harmed.",
+                "evsSource": "LOINC_CODE",
+                "primaryIndicator": "Yes",
+                "displayOrder": "0"
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "publicID": "8983853",
+            "value": "A9",
+            "valueDescription": "Unsafe condition",
+            "origin": null,
+            "beginDate": "2016-06-21",
+            "endDate": null,
+            "deletedIndicator": "No",
+            "createdBy": "REEVESD",
+            "dateCreated": "2016-07-29",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-07-29",
+            "valueMeanings": [
+             {
+              "publicID": "5301152",
+              "version": "1",
+              "longName": "Unsafe condition",
+              "definition": "Any circumstance that increases the probability of a patient safety event.",
+              "createdBy": "REEVESD",
+              "dateCreated": "2016-06-21",
+              "modifiedBy": "SBR",
+              "dateModified": "2018-01-19",
+              "concepts": [
+               {
+                "longName": "Unsafe condition",
+                "conceptCode": "LA20314-3",
+                "definition": "Any circumstance that increases the probability of a patient safety event.",
+                "evsSource": "LOINC_CODE",
+                "primaryIndicator": "Yes",
+                "displayOrder": "0"
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         },
+         "referenceDocuments": [
+          {
+           "name": "What is being reported?",
+           "type": "Preferred Question Text",
+           "docText": "What is being reported?",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "HERF|74495-3",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: healthcare event reporting form (HERF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;93&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          }
+         ],
+         "alternateNames": [
+          {
+           "name": "DE3",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          }
+         ]
+        },
+        "validValues": [
+         {
+          "publicId": "5406478",
+          "version": "1",
+          "dipslayOrder": "0",
+          "value": "A3",
+          "meaningText": "Incident",
+          "description": "A patient safety event that reached the patient, whether or not the patient was harmed.",
+          "valueMeaning": {
+           "publicID": "5024294",
+           "version": "1",
+           "longName": "Incident",
+           "definition": "A patient safety event that reached the patient, whether or not the patient was harmed.",
+           "createdBy": "REEVESD",
+           "dateCreated": "2015-09-25",
+           "modifiedBy": "SBR",
+           "dateModified": "2018-01-19",
+           "concepts": [
+            {
+             "longName": "Incident",
+             "conceptCode": "LA20347-3",
+             "definition": "A patient safety event that reached the patient, whether or not the patient was harmed.",
+             "evsSource": "LOINC_CODE",
+             "primaryIndicator": "Yes",
+             "displayOrder": "0"
+            }
+           ]
+          }
+         },
+         {
+          "publicId": "5406479",
+          "version": "1",
+          "dipslayOrder": "1",
+          "value": "A6",
+          "meaningText": "Near Miss",
+          "description": "A patient safety event that did not reach the patient.",
+          "valueMeaning": {
+           "publicID": "5024293",
+           "version": "1",
+           "longName": "Near Miss",
+           "definition": "A patient safety event that did not reach the patient.",
+           "createdBy": "REEVESD",
+           "dateCreated": "2015-09-25",
+           "modifiedBy": "SBR",
+           "dateModified": "2018-01-19",
+           "concepts": [
+            {
+             "longName": "Near Miss",
+             "conceptCode": "LA20346-5",
+             "definition": "A patient safety event that did not reach the patient.",
+             "evsSource": "LOINC_CODE",
+             "primaryIndicator": "Yes",
+             "displayOrder": "0"
+            }
+           ]
+          }
+         },
+         {
+          "publicId": "5406480",
+          "version": "1",
+          "dipslayOrder": "2",
+          "value": "A9",
+          "meaningText": "Unsafe condition",
+          "description": "Any circumstance that increases the probability of a patient safety event.",
+          "valueMeaning": {
+           "publicID": "5301152",
+           "version": "1",
+           "longName": "Unsafe condition",
+           "definition": "Any circumstance that increases the probability of a patient safety event.",
+           "createdBy": "REEVESD",
+           "dateCreated": "2016-06-21",
+           "modifiedBy": "SBR",
+           "dateModified": "2018-01-19",
+           "concepts": [
+            {
+             "longName": "Unsafe condition",
+             "conceptCode": "LA20314-3",
+             "definition": "Any circumstance that increases the probability of a patient safety event.",
+             "evsSource": "LOINC_CODE",
+             "primaryIndicator": "Yes",
+             "displayOrder": "0"
+            }
+           ]
+          }
+         }
+        ]
+       },
+       {
+        "publicID": "5497982",
+        "version": "1.0",
+        "displayOrder": "4",
+        "defaultValue": null,
+        "isEditable": "Yes",
+        "isMandatory": "No",
+        "questionShortName": "5301157v1.0:5332931v1.0",
+        "questionText": "Event discovery date/time",
+        "isDerived": "false",
+        "createdBy": "DWARZEL",
+        "dateCreated": "2016-10-03",
+        "modifiedBy": "DWARZEL",
+        "dateModified": "2016-10-03",
+        "dataElement": {
+         "publicID": "5301158",
+         "version": "1",
+         "longName": "Event discovery date",
+         "shortName": "5301157v1.0:5332931v1.0",
+         "changeNote": "Added classifications and changed Value Domain to TIME. Curated as part of AHRQ Common Format CDE creation.1.15.2017.dmr",
+         "deletedIndicator": "No",
+         "beginDate": "2010-03-31",
+         "endDate": null,
+         "latestVersionIndicator": "Yes",
+         "preferredDefinition": "The month, day, and year the event (incident or near miss) was discovered.",
+         "origin": "AHRQ:AHRQ Common Formats",
+         "workflowStatus": "RELEASED",
+         "registrationStatus": "Application",
+         "createdBy": "REEVESD",
+         "dateCreated": "2016-06-21",
+         "modifiedBy": "DWARZEL",
+         "dateModified": "2017-02-28",
+         "dataElementConcept": {
+          "publicId": "5301157",
+          "version": "1",
+          "longName": "Event discovery date & time",
+          "shortName": "5301155v1.0",
+          "preferredDefinition": "No Value Exists",
+          "contextName": "ONC",
+          "contextVersion": "1",
+          "definitionSource": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "primaryFlag": null,
+          "beginDate": "2016-06-21",
+          "endDate": null,
+          "changeDescription": "Created to support registration of AHRQ Common Formats CDEs 2016/2017.dmr",
+          "administrativeNotes": null,
+          "unresolvedIssues": null,
+          "deletionIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-21",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10",
+          "latestVersionIndicator": "Yes"
+         },
+         "valueDomain": {
+          "publicID": "5332931",
+          "version": "1",
+          "longName": "Point in Time Type",
+          "preferredName": "5332931v1.0",
+          "preferredDefinition": "A data type comprised of a date and time value that corresponds with a specific point in the time continuum._Something distinguishable as an identifiable class based on common qualities.",
+          "context": "ONC",
+          "datatypeName": "HL7TSv3",
+          "minimumLengthNumber": null,
+          "maximumLengthNumber": null,
+          "lowValueNumber": null,
+          "highValueNumber": null,
+          "decimalPlace": null,
+          "formatName": "MM/DD/YYYY",
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "latestVersionIndicator": "Yes",
+          "beginDate": "2016-06-29",
+          "endDate": null,
+          "changeNote": "Added display format of mm dd yyyy - DW 08-17-2016",
+          "deletedIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-29",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10"
+         },
+         "referenceDocuments": [
+          {
+           "name": "Event discovery date",
+           "type": "Preferred Question Text",
+           "docText": "Event discovery date",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "HERF|74495-3",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: healthcare event reporting form (HERF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;93&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          }
+         ],
+         "alternateNames": [
+          {
+           "name": "DE9",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          }
+         ]
+        }
+       },
+       {
+        "publicID": "5406481",
+        "version": "1.0",
+        "displayOrder": "5",
+        "defaultValue": null,
+        "isEditable": "Yes",
+        "isMandatory": "No",
+        "questionShortName": "5316314v1.0:5332758v1.0",
+        "questionText": "Briefly describe the event that occurred or unsafe condition:",
+        "isDerived": "false",
+        "createdBy": "DWARZEL",
+        "dateCreated": "2016-08-12",
+        "modifiedBy": "DWARZEL",
+        "dateModified": "2016-10-03",
+        "dataElement": {
+         "publicID": "5334266",
+         "version": "1",
+         "longName": "Description of patient safety event or unsafe condition",
+         "shortName": "5316314v1.0:5332758v1.0",
+         "changeNote": "Block edit to add Classification Scheme Items. Curated to support AHRQ Common Formats project.2016/2017.dmr",
+         "deletedIndicator": "No",
+         "beginDate": "2010-03-31",
+         "endDate": null,
+         "latestVersionIndicator": "Yes",
+         "preferredDefinition": "Description of the event that occurred or unsafe condition that exists.",
+         "origin": "AHRQ:AHRQ Common Formats",
+         "workflowStatus": "RELEASED",
+         "registrationStatus": "Application",
+         "createdBy": "REEVESD",
+         "dateCreated": "2016-07-01",
+         "modifiedBy": "DWARZEL",
+         "dateModified": "2017-02-14",
+         "dataElementConcept": {
+          "publicId": "5316314",
+          "version": "1",
+          "longName": "Description of patient safety event or unsafe condition",
+          "shortName": "5316312v1.0",
+          "preferredDefinition": "No Value Exists",
+          "contextName": "ONC",
+          "contextVersion": "1",
+          "definitionSource": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "primaryFlag": null,
+          "beginDate": "2016-06-27",
+          "endDate": null,
+          "changeDescription": "Created to support registration of AHRQ Common Formats CDEs 2016/2017.dmr",
+          "administrativeNotes": null,
+          "unresolvedIssues": null,
+          "deletionIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-27",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10",
+          "latestVersionIndicator": "Yes"
+         },
+         "valueDomain": {
+          "publicID": "5332758",
+          "version": "1",
+          "longName": "Encapsulated Data Text",
+          "preferredName": "5332758v1.0",
+          "preferredDefinition": "A data type comprised of encapsulated data in the form of text._The words of something written.",
+          "context": "ONC",
+          "datatypeName": "HL7EDv3",
+          "minimumLengthNumber": null,
+          "maximumLengthNumber": "200",
+          "lowValueNumber": null,
+          "highValueNumber": null,
+          "decimalPlace": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "latestVersionIndicator": "Yes",
+          "beginDate": "2016-06-29",
+          "endDate": null,
+          "changeNote": null,
+          "deletedIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-29",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10"
+         },
+         "referenceDocuments": [
+          {
+           "name": "Briefly describe the event th",
+           "type": "Preferred Question Text",
+           "docText": "Briefly describe the event that occurred or unsafe condition:",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "HERF|74495-3",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: healthcare event reporting form (HERF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;93&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          }
+         ],
+         "alternateNames": [
+          {
+           "name": "DE15",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          }
+         ]
+        },
+        "instructions": [
+         {
+          "instruction": "This field is collected for local facility and PSO use. This information will not be forwarded to the Network of Patient Safety Databases (NPSD)."
+         }
+        ]
+       },
+       {
+        "publicID": "5406482",
+        "version": "1.0",
+        "displayOrder": "6",
+        "defaultValue": null,
+        "isEditable": "Yes",
+        "isMandatory": "No",
+        "questionShortName": "5316334v1.0:5332758v1.0",
+        "questionText": "Briefly describe the location where the event occurred or where the unsafe condition exists:",
+        "isDerived": "false",
+        "createdBy": "DWARZEL",
+        "dateCreated": "2016-08-12",
+        "modifiedBy": "DWARZEL",
+        "dateModified": "2016-10-03",
+        "dataElement": {
+         "publicID": "5334267",
+         "version": "1",
+         "longName": "Location of patient safety event or unsafe condition - Narrative",
+         "shortName": "5316334v1.0:5332758v1.0",
+         "changeNote": "Block edit to add Classification Scheme Items. Curated as part of AHRQ Common Format CDE creation.1.15.2017.dmr",
+         "deletedIndicator": "No",
+         "beginDate": "2010-03-31",
+         "endDate": null,
+         "latestVersionIndicator": "Yes",
+         "preferredDefinition": "Documentation of the location of the incident, near miss or unsafe condition.",
+         "origin": "AHRQ:AHRQ Common Formats",
+         "workflowStatus": "RELEASED",
+         "registrationStatus": "Application",
+         "createdBy": "REEVESD",
+         "dateCreated": "2016-07-01",
+         "modifiedBy": "DWARZEL",
+         "dateModified": "2017-02-28",
+         "dataElementConcept": {
+          "publicId": "5316334",
+          "version": "1",
+          "longName": "Location of patient safety event or unsafe condition",
+          "shortName": "5316332v1.0",
+          "preferredDefinition": "No Value Exists",
+          "contextName": "ONC",
+          "contextVersion": "1",
+          "definitionSource": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "primaryFlag": null,
+          "beginDate": "2016-06-27",
+          "endDate": null,
+          "changeDescription": "Created to support registration of AHRQ Common Formats CDEs 2016/2017.dmr",
+          "administrativeNotes": null,
+          "unresolvedIssues": null,
+          "deletionIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-27",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10",
+          "latestVersionIndicator": "Yes"
+         },
+         "valueDomain": {
+          "publicID": "5332758",
+          "version": "1",
+          "longName": "Encapsulated Data Text",
+          "preferredName": "5332758v1.0",
+          "preferredDefinition": "A data type comprised of encapsulated data in the form of text._The words of something written.",
+          "context": "ONC",
+          "datatypeName": "HL7EDv3",
+          "minimumLengthNumber": null,
+          "maximumLengthNumber": "200",
+          "lowValueNumber": null,
+          "highValueNumber": null,
+          "decimalPlace": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "latestVersionIndicator": "Yes",
+          "beginDate": "2016-06-29",
+          "endDate": null,
+          "changeNote": null,
+          "deletedIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-29",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10"
+         },
+         "referenceDocuments": [
+          {
+           "name": "Briefly describe the location",
+           "type": "Preferred Question Text",
+           "docText": "Briefly describe the location where the event occurred or where the unsafe condition exists:",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "HERF|74495-3",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: healthcare event reporting form (HERF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;93&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          }
+         ],
+         "alternateNames": [
+          {
+           "name": "DE18",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          }
+         ]
+        },
+        "instructions": [
+         {
+          "instruction": "This field is collected for local facility and PSO use. This information will not be forwarded to the Network of Patient Safety Databases (NPSD)."
+         }
+        ]
+       },
+       {
+        "publicID": "5406483",
+        "version": "1.0",
+        "displayOrder": "7",
+        "defaultValue": null,
+        "isEditable": "Yes",
+        "isMandatory": "No",
+        "questionShortName": "5301173v1.0:5301192v1.0",
+        "questionText": "Which of the following categories are associated with the event or unsafe condition?",
+        "isDerived": "false",
+        "createdBy": "DWARZEL",
+        "dateCreated": "2016-08-12",
+        "modifiedBy": "DWARZEL",
+        "dateModified": "2016-10-03",
+        "dataElement": {
+         "publicID": "5302872",
+         "version": "1",
+         "longName": "Categories associated with patient safety event or unsafe condition",
+         "shortName": "5301173v1.0:5301192v1.0",
+         "changeNote": "Block edit to add Classification Scheme Items. Curated to support AHRQ Common Formats project.2016/2017.dmr",
+         "deletedIndicator": "No",
+         "beginDate": "2010-03-31",
+         "endDate": "2025-11-13",
+         "latestVersionIndicator": "Yes",
+         "preferredDefinition": "Documentation of the category of event that was being reported to include an incident, near miss, or unsafe condition.",
+         "origin": "AHRQ:AHRQ Common Formats",
+         "workflowStatus": "RETIRED ARCHIVED",
+         "registrationStatus": "Historical",
+         "createdBy": "REEVESD",
+         "dateCreated": "2016-06-21",
+         "modifiedBy": "ZHWENDY",
+         "dateModified": "2025-11-13",
+         "dataElementConcept": {
+          "publicId": "5301173",
+          "version": "1",
+          "longName": "Categories associated with patient safety event or unsafe condition",
+          "shortName": "5301171v1.0",
+          "preferredDefinition": "No definition exists.",
+          "contextName": "ONC",
+          "contextVersion": "1",
+          "definitionSource": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "primaryFlag": null,
+          "beginDate": "2016-06-21",
+          "endDate": null,
+          "changeDescription": "Created to support registration of AHRQ Common Formats CDEs 2016/2017.dmr",
+          "administrativeNotes": null,
+          "unresolvedIssues": null,
+          "deletionIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-21",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10",
+          "latestVersionIndicator": "Yes"
+         },
+         "valueDomain": {
+          "publicID": "5301192",
+          "version": "1",
+          "longName": "Categories associated with patient safety event Type",
+          "preferredName": "5301192v1.0",
+          "preferredDefinition": "Something distinguishable as an identifiable class based on common qualities.",
+          "context": "ONC",
+          "datatypeName": "HL7CDv3",
+          "minimumLengthNumber": "3",
+          "maximumLengthNumber": "3",
+          "lowValueNumber": null,
+          "highValueNumber": null,
+          "decimalPlace": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RETIRED ARCHIVED",
+          "registrationStatus": "Historical",
+          "latestVersionIndicator": "Yes",
+          "beginDate": "2016-06-21",
+          "endDate": "2025-11-13",
+          "changeNote": null,
+          "deletedIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-21",
+          "modifiedBy": "ZHWENDY",
+          "dateModified": "2025-11-13",
+          "permissibleValues": [
+           {
+            "publicID": "8983507",
+            "value": "A42",
+            "valueDescription": "Blood or Blood Product",
+            "origin": null,
+            "beginDate": "2016-06-21",
+            "endDate": null,
+            "deletedIndicator": "No",
+            "createdBy": "REEVESD",
+            "dateCreated": "2016-07-29",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-07-29",
+            "valueMeanings": [
+             {
+              "publicID": "5024305",
+              "version": "1",
+              "longName": "Blood or Blood Product",
+              "definition": "No definition exists.",
+              "createdBy": "REEVESD",
+              "dateCreated": "2015-09-25",
+              "modifiedBy": "SBR",
+              "dateModified": "2018-01-19",
+              "concepts": [
+               {
+                "longName": "Blood or Blood Product",
+                "conceptCode": "LA20769-8",
+                "definition": "A blood or blood product event or unsafe condition involves the processing and/or administration of blood or a blood product.",
+                "evsSource": "LOINC_CODE",
+                "primaryIndicator": "Yes",
+                "displayOrder": "0"
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "publicID": "8983508",
+            "value": "A44",
+            "valueDescription": "Device or Medical/Surgical Supply",
+            "origin": null,
+            "beginDate": "2016-06-21",
+            "endDate": null,
+            "deletedIndicator": "No",
+            "createdBy": "REEVESD",
+            "dateCreated": "2016-07-29",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-07-29",
+            "valueMeanings": [
+             {
+              "publicID": "5301193",
+              "version": "1",
+              "longName": "Device or Medical/Surgical Supply",
+              "definition": "A device or supply event or unsafe condition involves a defect, failure, or incorrect use of a device. (AHRQ)",
+              "createdBy": "REEVESD",
+              "dateCreated": "2016-06-21",
+              "modifiedBy": "SBR",
+              "dateModified": "2018-01-19",
+              "concepts": [
+               {
+                "longName": "Device or Medical/Surgical Supply",
+                "conceptCode": "LA20770-6",
+                "definition": "A device or supply event or unsafe condition involves a defect, failure, or incorrect use of a device. (AHRQ)",
+                "evsSource": "LOINC_CODE",
+                "primaryIndicator": "Yes",
+                "displayOrder": "0"
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "publicID": "8983509",
+            "value": "A48",
+            "valueDescription": "Fall",
+            "origin": null,
+            "beginDate": "2016-06-21",
+            "endDate": null,
+            "deletedIndicator": "No",
+            "createdBy": "REEVESD",
+            "dateCreated": "2016-07-29",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-07-29",
+            "valueMeanings": [
+             {
+              "publicID": "3123431",
+              "version": "1",
+              "longName": "Fall",
+              "definition": "A finding of sudden movement downward, usually resulting in injury.",
+              "createdBy": "CURTIST",
+              "dateCreated": "2010-07-19",
+              "modifiedBy": "SBR",
+              "dateModified": "2018-01-19",
+              "concepts": [
+               {
+                "longName": "Fall",
+                "conceptCode": "E11687",
+                "definition": "A finding of sudden movement downward, usually resulting in injury.",
+                "evsSource": "CTCAE_CODE",
+                "primaryIndicator": "Yes",
+                "displayOrder": "0"
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "publicID": "8983510",
+            "value": "A51",
+            "valueDescription": "Healthcare-associated Infection",
+            "origin": null,
+            "beginDate": "2016-06-21",
+            "endDate": null,
+            "deletedIndicator": "No",
+            "createdBy": "REEVESD",
+            "dateCreated": "2016-07-29",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-07-29",
+            "valueMeanings": [
+             {
+              "publicID": "5301194",
+              "version": "1",
+              "longName": "Healthcare-associated Infection",
+              "definition": "No definition exists.",
+              "createdBy": "REEVESD",
+              "dateCreated": "2016-06-21",
+              "modifiedBy": "KUMMEROA",
+              "dateModified": "2025-12-15",
+              "concepts": [
+               {
+                "longName": "Healthcare-associated Infection",
+                "conceptCode": "LA20771-4",
+                "definition": "No definition exists.",
+                "evsSource": "LOINC_CODE",
+                "primaryIndicator": "Yes",
+                "displayOrder": "0"
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "publicID": "8983511",
+            "value": "A54",
+            "valueDescription": "Medication or Other Substance",
+            "origin": null,
+            "beginDate": "2016-06-21",
+            "endDate": null,
+            "deletedIndicator": "No",
+            "createdBy": "REEVESD",
+            "dateCreated": "2016-07-29",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-07-29",
+            "valueMeanings": [
+             {
+              "publicID": "5024301",
+              "version": "1",
+              "longName": "Medication or Other Substance",
+              "definition": "A medication or other substance event involves medications, biological products, nutritional products, or medical gases. (AHRQ)",
+              "createdBy": "REEVESD",
+              "dateCreated": "2015-09-25",
+              "modifiedBy": "SBR",
+              "dateModified": "2018-01-19",
+              "concepts": [
+               {
+                "longName": "Medication or Other Substance",
+                "conceptCode": "LA20772-2",
+                "definition": "A medication or other substance event involves medications, biological products, nutritional products, or medical gases. (AHRQ)",
+                "evsSource": "LOINC_CODE",
+                "primaryIndicator": "Yes",
+                "displayOrder": "0"
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "publicID": "8983512",
+            "value": "A57",
+            "valueDescription": "Perinatal",
+            "origin": null,
+            "beginDate": "2016-06-21",
+            "endDate": null,
+            "deletedIndicator": "No",
+            "createdBy": "REEVESD",
+            "dateCreated": "2016-07-29",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-07-29",
+            "valueMeanings": [
+             {
+              "publicID": "5024300",
+              "version": "1",
+              "longName": "Perinatal",
+              "definition": "No definition exists.",
+              "createdBy": "REEVESD",
+              "dateCreated": "2015-09-25",
+              "modifiedBy": "SBR",
+              "dateModified": "2018-01-19",
+              "concepts": [
+               {
+                "longName": "Perinatal",
+                "conceptCode": "LA20773-0",
+                "definition": "A perinatal event involves an adverse outcome occurring to the mother, fetus(es), or neonate(s) during the perinatal period and involves either the birthing process or an intrauterine procedure. (AHRQ)",
+                "evsSource": "LOINC_CODE",
+                "primaryIndicator": "Yes",
+                "displayOrder": "0"
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "publicID": "8983513",
+            "value": "A60",
+            "valueDescription": "Pressure Ulcer",
+            "origin": null,
+            "beginDate": "2016-06-21",
+            "endDate": null,
+            "deletedIndicator": "No",
+            "createdBy": "REEVESD",
+            "dateCreated": "2016-07-29",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-07-29",
+            "valueMeanings": [
+             {
+              "publicID": "5024299",
+              "version": "1",
+              "longName": "Pressure Ulcer",
+              "definition": "Death of tissue due to external pressure. (AHRQ)",
+              "createdBy": "REEVESD",
+              "dateCreated": "2015-09-25",
+              "modifiedBy": "SBR",
+              "dateModified": "2018-01-19",
+              "concepts": [
+               {
+                "longName": "Pressure Ulcer",
+                "conceptCode": "LA19028-2",
+                "definition": "Death of tissue due to external pressure. (AHRQ)",
+                "evsSource": "LOINC_CODE",
+                "primaryIndicator": "Yes",
+                "displayOrder": "0"
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "publicID": "8983514",
+            "value": "A63",
+            "valueDescription": "Surgery or Anesthesia",
+            "origin": null,
+            "beginDate": "2016-06-21",
+            "endDate": null,
+            "deletedIndicator": "No",
+            "createdBy": "REEVESD",
+            "dateCreated": "2016-07-29",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-07-29",
+            "valueMeanings": [
+             {
+              "publicID": "5301195",
+              "version": "1",
+              "longName": "Surgery or Anesthesia",
+              "definition": "A surgical or anesthesia event involves surgery or other invasive procedure (e.g., colonoscopy) or the administration of anesthesia. (AHRQ)",
+              "createdBy": "REEVESD",
+              "dateCreated": "2016-06-21",
+              "modifiedBy": "SBR",
+              "dateModified": "2018-01-19",
+              "concepts": [
+               {
+                "longName": "Surgery or Anesthesia",
+                "conceptCode": "LA20774-8",
+                "definition": "A surgical or anesthesia event involves surgery or other invasive procedure (e.g., colonoscopy) or the administration of anesthesia. (AHRQ)",
+                "evsSource": "LOINC_CODE",
+                "primaryIndicator": "Yes",
+                "displayOrder": "0"
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "publicID": "8983515",
+            "value": "A64",
+            "valueDescription": "Venous Thromboembolism",
+            "origin": null,
+            "beginDate": "2016-06-21",
+            "endDate": null,
+            "deletedIndicator": "No",
+            "createdBy": "REEVESD",
+            "dateCreated": "2016-07-29",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-07-29",
+            "valueMeanings": [
+             {
+              "publicID": "5024297",
+              "version": "1",
+              "longName": "Venous Thromboembolism",
+              "definition": "No Value Exists",
+              "createdBy": "REEVESD",
+              "dateCreated": "2015-09-25",
+              "modifiedBy": "REEVESD",
+              "dateModified": "2017-01-23",
+              "concepts": [
+               {
+                "longName": "Venous Thromboembolism",
+                "conceptCode": "LA20775-5",
+                "definition": "No Value Exists",
+                "evsSource": "LOINC_CODE",
+                "primaryIndicator": "Yes",
+                "displayOrder": "0"
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "publicID": "8983516",
+            "value": "A66",
+            "valueDescription": "Other, please specify",
+            "origin": null,
+            "beginDate": "2016-06-21",
+            "endDate": null,
+            "deletedIndicator": "No",
+            "createdBy": "REEVESD",
+            "dateCreated": "2016-07-29",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-07-29",
+            "valueMeanings": [
+             {
+              "publicID": "5301197",
+              "version": "1",
+              "longName": "Other, please specify",
+              "definition": "No Value Exists",
+              "createdBy": "REEVESD",
+              "dateCreated": "2016-06-21",
+              "modifiedBy": "SBR",
+              "dateModified": "2018-01-19",
+              "concepts": [
+               {
+                "longName": "Other: PLEASE SPECIFY",
+                "conceptCode": "LA20318-4",
+                "definition": "No Value Exists",
+                "evsSource": "LOINC_CODE",
+                "primaryIndicator": "Yes",
+                "displayOrder": "0"
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         },
+         "referenceDocuments": [
+          {
+           "name": "Which of the following catego",
+           "type": "Preferred Question Text",
+           "docText": "Which of the following categories are associated with the event or unsafe condition?",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "HERF|74495-3",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: healthcare event reporting form (HERF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;93&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          }
+         ],
+         "alternateNames": [
+          {
+           "name": "DE21",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          }
+         ]
+        },
+        "instructions": [
+         {
+          "instruction": "Check all that apply: \r\nFor each category selected below, except for OTHER, please complete the corresponding category specific form. All categories include reporting of Incidents. Any category with a plus sign also includes reporting of Near Misses. Any category with an asterisk also includes reporting of Unsafe Conditions."
+         }
+        ],
+        "validValues": [
+         {
+          "publicId": "5428432",
+          "version": "1",
+          "dipslayOrder": "0",
+          "value": "A42",
+          "meaningText": "Blood or Blood Product*+",
+          "description": "No definition exists.",
+          "valueMeaning": {
+           "publicID": "5024305",
+           "version": "1",
+           "longName": "Blood or Blood Product",
+           "definition": "No definition exists.",
+           "createdBy": "REEVESD",
+           "dateCreated": "2015-09-25",
+           "modifiedBy": "SBR",
+           "dateModified": "2018-01-19",
+           "concepts": [
+            {
+             "longName": "Blood or Blood Product",
+             "conceptCode": "LA20769-8",
+             "definition": "A blood or blood product event or unsafe condition involves the processing and/or administration of blood or a blood product.",
+             "evsSource": "LOINC_CODE",
+             "primaryIndicator": "Yes",
+             "displayOrder": "0"
+            }
+           ]
+          }
+         },
+         {
+          "publicId": "5428433",
+          "version": "1",
+          "dipslayOrder": "1",
+          "value": "A44",
+          "meaningText": "Device or Medical/Surgical Supply including Health Information Technology (HIT)*+",
+          "description": "A device or supply event or unsafe condition involves a defect, failure, or incorrect use of a device. (AHRQ)",
+          "valueMeaning": {
+           "publicID": "5301193",
+           "version": "1",
+           "longName": "Device or Medical/Surgical Supply",
+           "definition": "A device or supply event or unsafe condition involves a defect, failure, or incorrect use of a device. (AHRQ)",
+           "createdBy": "REEVESD",
+           "dateCreated": "2016-06-21",
+           "modifiedBy": "SBR",
+           "dateModified": "2018-01-19",
+           "concepts": [
+            {
+             "longName": "Device or Medical/Surgical Supply",
+             "conceptCode": "LA20770-6",
+             "definition": "A device or supply event or unsafe condition involves a defect, failure, or incorrect use of a device. (AHRQ)",
+             "evsSource": "LOINC_CODE",
+             "primaryIndicator": "Yes",
+             "displayOrder": "0"
+            }
+           ]
+          }
+         },
+         {
+          "publicId": "5428434",
+          "version": "1",
+          "dipslayOrder": "2",
+          "value": "A48",
+          "meaningText": "Fall",
+          "description": "A finding of sudden movement downward, usually resulting in injury.",
+          "valueMeaning": {
+           "publicID": "3123431",
+           "version": "1",
+           "longName": "Fall",
+           "definition": "A finding of sudden movement downward, usually resulting in injury.",
+           "createdBy": "CURTIST",
+           "dateCreated": "2010-07-19",
+           "modifiedBy": "SBR",
+           "dateModified": "2018-01-19",
+           "concepts": [
+            {
+             "longName": "Fall",
+             "conceptCode": "E11687",
+             "definition": "A finding of sudden movement downward, usually resulting in injury.",
+             "evsSource": "CTCAE_CODE",
+             "primaryIndicator": "Yes",
+             "displayOrder": "0"
+            }
+           ]
+          }
+         },
+         {
+          "publicId": "5428435",
+          "version": "1",
+          "dipslayOrder": "3",
+          "value": "A51",
+          "meaningText": "Healthcare-associated Infection",
+          "description": "No definition exists.",
+          "valueMeaning": {
+           "publicID": "5301194",
+           "version": "1",
+           "longName": "Healthcare-associated Infection",
+           "definition": "No definition exists.",
+           "createdBy": "REEVESD",
+           "dateCreated": "2016-06-21",
+           "modifiedBy": "KUMMEROA",
+           "dateModified": "2025-12-15",
+           "concepts": [
+            {
+             "longName": "Healthcare-associated Infection",
+             "conceptCode": "LA20771-4",
+             "definition": "No definition exists.",
+             "evsSource": "LOINC_CODE",
+             "primaryIndicator": "Yes",
+             "displayOrder": "0"
+            }
+           ]
+          }
+         },
+         {
+          "publicId": "5428436",
+          "version": "1",
+          "dipslayOrder": "4",
+          "value": "A54",
+          "meaningText": "Medication or Other Substance*+",
+          "description": "A medication or other substance event involves medications, biological products, nutritional products, or medical gases. (AHRQ)",
+          "valueMeaning": {
+           "publicID": "5024301",
+           "version": "1",
+           "longName": "Medication or Other Substance",
+           "definition": "A medication or other substance event involves medications, biological products, nutritional products, or medical gases. (AHRQ)",
+           "createdBy": "REEVESD",
+           "dateCreated": "2015-09-25",
+           "modifiedBy": "SBR",
+           "dateModified": "2018-01-19",
+           "concepts": [
+            {
+             "longName": "Medication or Other Substance",
+             "conceptCode": "LA20772-2",
+             "definition": "A medication or other substance event involves medications, biological products, nutritional products, or medical gases. (AHRQ)",
+             "evsSource": "LOINC_CODE",
+             "primaryIndicator": "Yes",
+             "displayOrder": "0"
+            }
+           ]
+          }
+         },
+         {
+          "publicId": "5428437",
+          "version": "1",
+          "dipslayOrder": "5",
+          "value": "A57",
+          "meaningText": "Perinatal",
+          "description": "No definition exists.",
+          "valueMeaning": {
+           "publicID": "5024300",
+           "version": "1",
+           "longName": "Perinatal",
+           "definition": "No definition exists.",
+           "createdBy": "REEVESD",
+           "dateCreated": "2015-09-25",
+           "modifiedBy": "SBR",
+           "dateModified": "2018-01-19",
+           "concepts": [
+            {
+             "longName": "Perinatal",
+             "conceptCode": "LA20773-0",
+             "definition": "A perinatal event involves an adverse outcome occurring to the mother, fetus(es), or neonate(s) during the perinatal period and involves either the birthing process or an intrauterine procedure. (AHRQ)",
+             "evsSource": "LOINC_CODE",
+             "primaryIndicator": "Yes",
+             "displayOrder": "0"
+            }
+           ]
+          }
+         },
+         {
+          "publicId": "5428438",
+          "version": "1",
+          "dipslayOrder": "6",
+          "value": "A60",
+          "meaningText": "Pressure Ulcer",
+          "description": "Death of tissue due to external pressure. (AHRQ)",
+          "valueMeaning": {
+           "publicID": "5024299",
+           "version": "1",
+           "longName": "Pressure Ulcer",
+           "definition": "Death of tissue due to external pressure. (AHRQ)",
+           "createdBy": "REEVESD",
+           "dateCreated": "2015-09-25",
+           "modifiedBy": "SBR",
+           "dateModified": "2018-01-19",
+           "concepts": [
+            {
+             "longName": "Pressure Ulcer",
+             "conceptCode": "LA19028-2",
+             "definition": "Death of tissue due to external pressure. (AHRQ)",
+             "evsSource": "LOINC_CODE",
+             "primaryIndicator": "Yes",
+             "displayOrder": "0"
+            }
+           ]
+          }
+         },
+         {
+          "publicId": "5428439",
+          "version": "1",
+          "dipslayOrder": "7",
+          "value": "A63",
+          "meaningText": "Surgical or Anesthesia (includes invasive procedure)+",
+          "description": "A surgical or anesthesia event involves surgery or other invasive procedure (e.g., colonoscopy) or the administration of anesthesia. (AHRQ)",
+          "valueMeaning": {
+           "publicID": "5301195",
+           "version": "1",
+           "longName": "Surgery or Anesthesia",
+           "definition": "A surgical or anesthesia event involves surgery or other invasive procedure (e.g., colonoscopy) or the administration of anesthesia. (AHRQ)",
+           "createdBy": "REEVESD",
+           "dateCreated": "2016-06-21",
+           "modifiedBy": "SBR",
+           "dateModified": "2018-01-19",
+           "concepts": [
+            {
+             "longName": "Surgery or Anesthesia",
+             "conceptCode": "LA20774-8",
+             "definition": "A surgical or anesthesia event involves surgery or other invasive procedure (e.g., colonoscopy) or the administration of anesthesia. (AHRQ)",
+             "evsSource": "LOINC_CODE",
+             "primaryIndicator": "Yes",
+             "displayOrder": "0"
+            }
+           ]
+          }
+         },
+         {
+          "publicId": "5428440",
+          "version": "1",
+          "dipslayOrder": "8",
+          "value": "A64",
+          "meaningText": "Venous Thromboembolism",
+          "description": "Venous Thromboembolism",
+          "valueMeaning": {
+           "publicID": "5024297",
+           "version": "1",
+           "longName": "Venous Thromboembolism",
+           "definition": "No Value Exists",
+           "createdBy": "REEVESD",
+           "dateCreated": "2015-09-25",
+           "modifiedBy": "REEVESD",
+           "dateModified": "2017-01-23",
+           "concepts": [
+            {
+             "longName": "Venous Thromboembolism",
+             "conceptCode": "LA20775-5",
+             "definition": "No Value Exists",
+             "evsSource": "LOINC_CODE",
+             "primaryIndicator": "Yes",
+             "displayOrder": "0"
+            }
+           ]
+          }
+         },
+         {
+          "publicId": "5428441",
+          "version": "1",
+          "dipslayOrder": "9",
+          "value": "A66",
+          "meaningText": "Other*+:PLEASE SPECIFY",
+          "description": "No Value Exists",
+          "valueMeaning": {
+           "publicID": "5301197",
+           "version": "1",
+           "longName": "Other, please specify",
+           "definition": "No Value Exists",
+           "createdBy": "REEVESD",
+           "dateCreated": "2016-06-21",
+           "modifiedBy": "SBR",
+           "dateModified": "2018-01-19",
+           "concepts": [
+            {
+             "longName": "Other: PLEASE SPECIFY",
+             "conceptCode": "LA20318-4",
+             "definition": "No Value Exists",
+             "evsSource": "LOINC_CODE",
+             "primaryIndicator": "Yes",
+             "displayOrder": "0"
+            }
+           ]
+          },
+          "triggerActions": [
+           {
+            "triggerActionId": "31460",
+            "source": {
+             "publicID": "5428441",
+             "version": "1",
+             "name": "VALID_VALUE",
+             "Module": "Healthcare Event Reporting Form",
+             "Question": "Which of the following categories are associated with the event or unsafe condition?",
+             " ValidValue": "A66"
+            },
+            "target": {
+             "publicID": "5428442",
+             "version": "1",
+             "name": "QUESTION",
+             "Module": "Healthcare Event Reporting Form",
+             "Question": "Other, specify",
+             " ValidValue": "-"
+            },
+            "deletedIndicator": "No",
+            "createdBy": "DWARZEL",
+            "dateCreated": "2016-08-22",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-08-22",
+            "instructions": {
+             "instruction": "Complete for other category of event or unsafe condition"
+            }
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "publicID": "5428442",
+        "version": "1.0",
+        "displayOrder": "8",
+        "defaultValue": null,
+        "isEditable": "Yes",
+        "isMandatory": "No",
+        "questionShortName": "5302893v1.0:5332758v1.0",
+        "questionText": "Other, specify",
+        "isDerived": "false",
+        "createdBy": "DWARZEL",
+        "dateCreated": "2016-08-22",
+        "modifiedBy": "DWARZEL",
+        "dateModified": "2016-10-03",
+        "dataElement": {
+         "publicID": "5302894",
+         "version": "1",
+         "longName": "Other Categories associated with patient safety event or unsafe condition",
+         "shortName": "5302893v1.0:5332758v1.0",
+         "changeNote": "Curated as part of AHRQ Common Format CDE creation.1.15.2017.dmr",
+         "deletedIndicator": "No",
+         "beginDate": "2016-06-21",
+         "endDate": null,
+         "latestVersionIndicator": "Yes",
+         "preferredDefinition": "Documentation of the category of event that was being reported to include an incident, near miss, or unsafe condition, that is different from existing options.",
+         "origin": "AHRQ:AHRQ Common Formats",
+         "workflowStatus": "RELEASED",
+         "registrationStatus": "Application",
+         "createdBy": "REEVESD",
+         "dateCreated": "2016-06-21",
+         "modifiedBy": "DWARZEL",
+         "dateModified": "2017-02-28",
+         "dataElementConcept": {
+          "publicId": "5302893",
+          "version": "1",
+          "longName": "Other Categories associated with patient safety event or unsafe condition",
+          "shortName": "5302891v1.0",
+          "preferredDefinition": "Different than the one(s) previously specified or mentioned._No definition exists.",
+          "contextName": "ONC",
+          "contextVersion": "1",
+          "definitionSource": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "primaryFlag": null,
+          "beginDate": "2016-06-21",
+          "endDate": null,
+          "changeDescription": "Created to support registration of AHRQ Common Formats CDEs 2016/2017.dmr",
+          "administrativeNotes": null,
+          "unresolvedIssues": null,
+          "deletionIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-21",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10",
+          "latestVersionIndicator": "Yes"
+         },
+         "valueDomain": {
+          "publicID": "5332758",
+          "version": "1",
+          "longName": "Encapsulated Data Text",
+          "preferredName": "5332758v1.0",
+          "preferredDefinition": "A data type comprised of encapsulated data in the form of text._The words of something written.",
+          "context": "ONC",
+          "datatypeName": "HL7EDv3",
+          "minimumLengthNumber": null,
+          "maximumLengthNumber": "200",
+          "lowValueNumber": null,
+          "highValueNumber": null,
+          "decimalPlace": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "latestVersionIndicator": "Yes",
+          "beginDate": "2016-06-29",
+          "endDate": null,
+          "changeNote": null,
+          "deletedIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-29",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10"
+         },
+         "referenceDocuments": [
+          {
+           "name": "Other, specify",
+           "type": "Preferred Question Text",
+           "docText": "Other, specify",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "HERF|74495-3",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: healthcare event reporting form (HERF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;93&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          }
+         ],
+         "alternateNames": [
+          {
+           "name": "DE21",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          }
+         ]
+        },
+        "instructions": [
+         {
+          "instruction": "Complete for other category for event or unsafe condition"
+         }
+        ]
+       }
+      ],
+      "instructions": {
+       "instruction": null
+      }
+     },
+     {
+      "publicID": "5406494",
+      "version": "1.0",
+      "longName": "Patient Information (Complete only if incident):",
+      "displayOrder": "1",
+      "maximumModuleRepeat": "0",
+      "contextName": "ONC",
+      "workflowStatus": "DRAFT NEW",
+      "registrationStatus": "Application",
+      "latesetVersionIndicator": "Yes",
+      "createdBy": "DWARZEL",
+      "dateCreated": "2016-08-12",
+      "modifiedBy": "DWARZEL",
+      "dateModified": "2016-08-12",
+      "questions": [
+       {
+        "publicID": "5406496",
+        "version": "1.0",
+        "displayOrder": "0",
+        "defaultValue": null,
+        "isEditable": "Yes",
+        "isMandatory": "No",
+        "questionShortName": "2013914v1.0:5332932v1.0",
+        "questionText": "Patient's name",
+        "isDerived": "false",
+        "createdBy": "DWARZEL",
+        "dateCreated": "2016-08-12",
+        "modifiedBy": "DWARZEL",
+        "dateModified": "2016-08-12",
+        "dataElement": {
+         "publicID": "5334274",
+         "version": "1",
+         "longName": "Patient name",
+         "shortName": "2013914v1.0:5332932v1.0",
+         "changeNote": "Block edit to add Classification Scheme Items. Curated as part of AHRQ Common Format CDE creation.1.15.2017.dmr",
+         "deletedIndicator": "No",
+         "beginDate": "2010-03-31",
+         "endDate": null,
+         "latestVersionIndicator": "Yes",
+         "preferredDefinition": "Documentation of the patient's first, middle and last name.",
+         "origin": "AHRQ:AHRQ Common Formats",
+         "workflowStatus": "RELEASED",
+         "registrationStatus": "Application",
+         "createdBy": "REEVESD",
+         "dateCreated": "2016-07-01",
+         "modifiedBy": "DWARZEL",
+         "dateModified": "2017-02-28",
+         "dataElementConcept": {
+          "publicId": "2013914",
+          "version": "1",
+          "longName": "Patient Identifier",
+          "shortName": "PT_ID",
+          "preferredDefinition": "a means of specifying a patient on a clinical trial.",
+          "contextName": "CTEP",
+          "contextVersion": "2.31",
+          "definitionSource": null,
+          "origin": null,
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "primaryFlag": null,
+          "beginDate": "2002-12-17",
+          "endDate": null,
+          "changeDescription": null,
+          "administrativeNotes": null,
+          "unresolvedIssues": null,
+          "deletionIndicator": "No",
+          "createdBy": "MSUPLEY",
+          "dateCreated": "2002-12-17",
+          "modifiedBy": "TYRRELLM",
+          "dateModified": "2026-08-25",
+          "latestVersionIndicator": "Yes"
+         },
+         "valueDomain": {
+          "publicID": "5332932",
+          "version": "1",
+          "longName": "Person Name Type",
+          "preferredName": "5332932v1.0",
+          "preferredDefinition": "Data type to capture a word or group of words indicating the identity of a person usually consisting of a first (personal) name and a last (family) name with an optional middle name._Something distinguishable as an identifiable class based on common qualities.",
+          "context": "ONC",
+          "datatypeName": "HL7PNv3",
+          "minimumLengthNumber": null,
+          "maximumLengthNumber": "500",
+          "lowValueNumber": null,
+          "highValueNumber": null,
+          "decimalPlace": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "latestVersionIndicator": "Yes",
+          "beginDate": "2016-06-29",
+          "endDate": null,
+          "changeNote": null,
+          "deletedIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-29",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10"
+         },
+         "referenceDocuments": [
+          {
+           "name": "Patient's name",
+           "type": "Preferred Question Text",
+           "docText": "Patient's name",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "HERF|74495-3|74772-5",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: healthcare event reporting form (HERF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;93&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          }
+         ],
+         "alternateNames": [
+          {
+           "name": "DE46",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          }
+         ]
+        },
+        "instructions": [
+         {
+          "instruction": "This field is collected for local facility and PSO use. This information will not be forwarded to the Network of Patient Safety Databases (NPSD)."
+         }
+        ]
+       },
+       {
+        "publicID": "5406497",
+        "version": "1.0",
+        "displayOrder": "1",
+        "defaultValue": null,
+        "isEditable": "Yes",
+        "isMandatory": "No",
+        "questionShortName": "2200600v3.0:5333311v1.0",
+        "questionText": "Patient's Gender",
+        "isDerived": "false",
+        "createdBy": "DWARZEL",
+        "dateCreated": "2016-08-12",
+        "modifiedBy": "DWARZEL",
+        "dateModified": "2016-08-12",
+        "dataElement": {
+         "publicID": "5334273",
+         "version": "1",
+         "longName": "Patient gender",
+         "shortName": "2200600v3.0:5333311v1.0",
+         "changeNote": "Block edit to add Classification Scheme Items. Curated as part of AHRQ Common Format CDE creation.1.15.2017.dmr",
+         "deletedIndicator": "No",
+         "beginDate": "2012-04-03",
+         "endDate": "2025-04-03",
+         "latestVersionIndicator": "Yes",
+         "preferredDefinition": "The patient's documented gender on arrival at the hospital.  ",
+         "origin": "AHRQ:AHRQ Common Formats",
+         "workflowStatus": "RETIRED ARCHIVED",
+         "registrationStatus": "Retired",
+         "createdBy": "REEVESD",
+         "dateCreated": "2016-07-01",
+         "modifiedBy": "GDEEN",
+         "dateModified": "2025-04-17",
+         "dataElementConcept": {
+          "publicId": "2200600",
+          "version": "3",
+          "longName": "Person Gender",
+          "shortName": "PRSN_GENDER",
+          "preferredDefinition": "A person's gender which is based on the assemblage of properties that distinguish people on the basis of their societal roles.",
+          "contextName": "NCIP",
+          "contextVersion": "1",
+          "definitionSource": null,
+          "origin": "OMB/NCI:Office of Management and Budget/National Cancer Institute",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "primaryFlag": null,
+          "beginDate": "2005-03-06",
+          "endDate": null,
+          "changeDescription": "Update to use the caBIG Property dbw",
+          "administrativeNotes": null,
+          "unresolvedIssues": null,
+          "deletionIndicator": "No",
+          "createdBy": "KLINGERK",
+          "dateCreated": "2005-03-06",
+          "modifiedBy": "TYRRELLM",
+          "dateModified": "2026-08-21",
+          "latestVersionIndicator": "Yes"
+         },
+         "valueDomain": {
+          "publicID": "5333311",
+          "version": "1",
+          "longName": "Patient Gender Type",
+          "preferredName": "5333311v1.0",
+          "preferredDefinition": "Gender is described as the assemblage of properties that distinguish people on the basis of their societal roles._Something distinguishable as an identifiable class based on common qualities.",
+          "context": "ONC",
+          "datatypeName": "HL7CDv3",
+          "minimumLengthNumber": "1",
+          "maximumLengthNumber": "3",
+          "lowValueNumber": null,
+          "highValueNumber": null,
+          "decimalPlace": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RETIRED ARCHIVED",
+          "registrationStatus": "Retired",
+          "latestVersionIndicator": "No",
+          "beginDate": "2016-06-30",
+          "endDate": "2025-04-03",
+          "changeNote": "New version created. ",
+          "deletedIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-30",
+          "modifiedBy": "GDEEN",
+          "dateModified": "2025-04-03",
+          "permissibleValues": [
+           {
+            "publicID": "8983519",
+            "value": "M",
+            "valueDescription": "Male Gender",
+            "origin": null,
+            "beginDate": "2005-07-08",
+            "endDate": null,
+            "deletedIndicator": "No",
+            "createdBy": "REEVESD",
+            "dateCreated": "2016-07-29",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-07-29",
+            "valueMeanings": [
+             {
+              "publicID": "2575550",
+              "version": "1",
+              "longName": "Male",
+              "definition": "An individual who belongs to the sex that normally produces sperm.",
+              "createdBy": "COOPERM",
+              "dateCreated": "2005-07-08",
+              "modifiedBy": "KUMMEROA",
+              "dateModified": "2025-03-26",
+              "concepts": [
+               {
+                "longName": "Male",
+                "conceptCode": "C20197",
+                "definition": "An individual who belongs to the sex that normally produces sperm.",
+                "evsSource": "NCI_CONCEPT_CODE",
+                "primaryIndicator": "Yes",
+                "displayOrder": "0"
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "publicID": "8983520",
+            "value": "F",
+            "valueDescription": "Female Gender",
+            "origin": null,
+            "beginDate": "2005-07-08",
+            "endDate": null,
+            "deletedIndicator": "No",
+            "createdBy": "REEVESD",
+            "dateCreated": "2016-07-29",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-07-29",
+            "valueMeanings": [
+             {
+              "publicID": "2575551",
+              "version": "1",
+              "longName": "Female",
+              "definition": "An individual who belongs to the sex that normally produces ova.",
+              "createdBy": "COOPERM",
+              "dateCreated": "2005-07-08",
+              "modifiedBy": "KUMMEROA",
+              "dateModified": "2025-03-26",
+              "concepts": [
+               {
+                "longName": "Female",
+                "conceptCode": "C16576",
+                "definition": "An individual who belongs to the sex that normally produces ova.",
+                "evsSource": "NCI_CONCEPT_CODE",
+                "primaryIndicator": "Yes",
+                "displayOrder": "0"
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "publicID": "8983521",
+            "value": "UNK",
+            "valueDescription": "Unknown",
+            "origin": null,
+            "beginDate": "2002-02-11",
+            "endDate": null,
+            "deletedIndicator": "No",
+            "createdBy": "REEVESD",
+            "dateCreated": "2016-07-29",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-07-29",
+            "valueMeanings": [
+             {
+              "publicID": "2575365",
+              "version": "1",
+              "longName": "Unknown",
+              "definition": "Not known, not observed, not recorded, or refused.",
+              "createdBy": "SBR",
+              "dateCreated": "2002-02-13",
+              "modifiedBy": "KUMMEROA",
+              "dateModified": "2025-11-21",
+              "concepts": [
+               {
+                "longName": "Unknown",
+                "conceptCode": "C17998",
+                "definition": "Not known, observed, recorded; or reported as unknown by the data contributor.",
+                "evsSource": "NCI_CONCEPT_CODE",
+                "primaryIndicator": "Yes",
+                "displayOrder": "0"
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         },
+         "referenceDocuments": [
+          {
+           "name": "Patient's Gender",
+           "type": "Preferred Question Text",
+           "docText": "Patient's Gender",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "HERF|74495-3|74772-5",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: healthcare event reporting form (HERF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;93&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          }
+         ],
+         "alternateNames": [
+          {
+           "name": "DE42",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          }
+         ]
+        },
+        "validValues": [
+         {
+          "publicId": "5406499",
+          "version": "1",
+          "dipslayOrder": "0",
+          "value": "M",
+          "meaningText": "Male Gender",
+          "description": "An individual who reports belonging to the cultural gender role distinction of male.",
+          "valueMeaning": {
+           "publicID": "2575550",
+           "version": "1",
+           "longName": "Male",
+           "definition": "An individual who belongs to the sex that normally produces sperm.",
+           "createdBy": "COOPERM",
+           "dateCreated": "2005-07-08",
+           "modifiedBy": "KUMMEROA",
+           "dateModified": "2025-03-26",
+           "concepts": [
+            {
+             "longName": "Male",
+             "conceptCode": "C20197",
+             "definition": "An individual who belongs to the sex that normally produces sperm.",
+             "evsSource": "NCI_CONCEPT_CODE",
+             "primaryIndicator": "Yes",
+             "displayOrder": "0"
+            }
+           ]
+          }
+         },
+         {
+          "publicId": "5406498",
+          "version": "1",
+          "dipslayOrder": "1",
+          "value": "F",
+          "meaningText": "Female Gender",
+          "description": "An individual who reports belonging to the cultural gender role distinction of female.",
+          "valueMeaning": {
+           "publicID": "2575551",
+           "version": "1",
+           "longName": "Female",
+           "definition": "An individual who belongs to the sex that normally produces ova.",
+           "createdBy": "COOPERM",
+           "dateCreated": "2005-07-08",
+           "modifiedBy": "KUMMEROA",
+           "dateModified": "2025-03-26",
+           "concepts": [
+            {
+             "longName": "Female",
+             "conceptCode": "C16576",
+             "definition": "An individual who belongs to the sex that normally produces ova.",
+             "evsSource": "NCI_CONCEPT_CODE",
+             "primaryIndicator": "Yes",
+             "displayOrder": "0"
+            }
+           ]
+          }
+         },
+         {
+          "publicId": "5406500",
+          "version": "1",
+          "dipslayOrder": "2",
+          "value": "UNK",
+          "meaningText": "Unknown",
+          "description": "Not known, not observed, not recorded, or refused.",
+          "valueMeaning": {
+           "publicID": "2575365",
+           "version": "1",
+           "longName": "Unknown",
+           "definition": "Not known, not observed, not recorded, or refused.",
+           "createdBy": "SBR",
+           "dateCreated": "2002-02-13",
+           "modifiedBy": "KUMMEROA",
+           "dateModified": "2025-11-21",
+           "concepts": [
+            {
+             "longName": "Unknown",
+             "conceptCode": "C17998",
+             "definition": "Not known, observed, recorded; or reported as unknown by the data contributor.",
+             "evsSource": "NCI_CONCEPT_CODE",
+             "primaryIndicator": "Yes",
+             "displayOrder": "0"
+            }
+           ]
+          }
+         }
+        ]
+       }
+      ],
+      "instructions": {
+       "instruction": "Please complete the patient identifiers below. Additional patient information is captured on the Patient Information Form (PIF). (When reporting a perinatal incident that affected a mother and a neonate, please complete the patient identifiers below for the mother (Q8 to Q11) and the neonate (Q12 to Q15). Please also complete a separate PIF for the neonate involved.) This content is being reviewed for compliance with Executive Order 14168 which mandates that gender should not be used as a replacement for sex. "
+      }
+     },
+     {
+      "publicID": "5406501",
+      "version": "1.0",
+      "longName": "Neonatal Patient Information (Complete only for neonate affected by perinatal incident):",
+      "displayOrder": "2",
+      "maximumModuleRepeat": "0",
+      "contextName": "ONC",
+      "workflowStatus": "DRAFT NEW",
+      "registrationStatus": "Application",
+      "latesetVersionIndicator": "Yes",
+      "createdBy": "DWARZEL",
+      "dateCreated": "2016-08-12",
+      "modifiedBy": "DWARZEL",
+      "dateModified": "2016-08-12",
+      "questions": [
+       {
+        "publicID": "5406502",
+        "version": "1.0",
+        "displayOrder": "0",
+        "defaultValue": null,
+        "isEditable": "Yes",
+        "isMandatory": "No",
+        "questionShortName": "2009983v2.31:5332932v1.0",
+        "questionText": "Neonate's Name",
+        "isDerived": "false",
+        "createdBy": "DWARZEL",
+        "dateCreated": "2016-08-12",
+        "modifiedBy": "DWARZEL",
+        "dateModified": "2016-08-12",
+        "dataElement": {
+         "publicID": "5334269",
+         "version": "1",
+         "longName": "Neonate name",
+         "shortName": "2009983v2.31:5332932v1.0",
+         "changeNote": "Block edit to add Classification Scheme Items. Curated as part of AHRQ Common Format CDE creation.1.15.2017.dmr",
+         "deletedIndicator": "No",
+         "beginDate": "2012-04-03",
+         "endDate": null,
+         "latestVersionIndicator": "Yes",
+         "preferredDefinition": "Documentation of the neonate's first, middle, and last name.",
+         "origin": "AHRQ:AHRQ Common Formats",
+         "workflowStatus": "RELEASED",
+         "registrationStatus": "Application",
+         "createdBy": "REEVESD",
+         "dateCreated": "2016-07-01",
+         "modifiedBy": "DWARZEL",
+         "dateModified": "2017-02-28",
+         "dataElementConcept": {
+          "publicId": "2009983",
+          "version": "2.31",
+          "longName": "Person Identifier",
+          "shortName": "PERSON_ID",
+          "preferredDefinition": "a means of uniquely identifying an individual.",
+          "contextName": "CTEP",
+          "contextVersion": "2.31",
+          "definitionSource": null,
+          "origin": null,
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "primaryFlag": null,
+          "beginDate": "2003-01-06",
+          "endDate": null,
+          "changeDescription": "6/8/2010 released DECs as part of 1940 caLIMS2 CDEs.",
+          "administrativeNotes": null,
+          "unresolvedIssues": null,
+          "deletionIndicator": "No",
+          "createdBy": "SBR",
+          "dateCreated": "2002-02-13",
+          "modifiedBy": "GDEEN",
+          "dateModified": "2026-06-01",
+          "latestVersionIndicator": "Yes"
+         },
+         "valueDomain": {
+          "publicID": "5332932",
+          "version": "1",
+          "longName": "Person Name Type",
+          "preferredName": "5332932v1.0",
+          "preferredDefinition": "Data type to capture a word or group of words indicating the identity of a person usually consisting of a first (personal) name and a last (family) name with an optional middle name._Something distinguishable as an identifiable class based on common qualities.",
+          "context": "ONC",
+          "datatypeName": "HL7PNv3",
+          "minimumLengthNumber": null,
+          "maximumLengthNumber": "500",
+          "lowValueNumber": null,
+          "highValueNumber": null,
+          "decimalPlace": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "latestVersionIndicator": "Yes",
+          "beginDate": "2016-06-29",
+          "endDate": null,
+          "changeNote": null,
+          "deletedIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-29",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10"
+         },
+         "referenceDocuments": [
+          {
+           "name": "Neonate's Name",
+           "type": "Preferred Question Text",
+           "docText": "Neonate's Name",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "HERF|74495-3|74771-7",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: healthcare event reporting form (HERF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;93&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          }
+         ],
+         "alternateNames": [
+          {
+           "name": "DE34",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          }
+         ]
+        },
+        "instructions": [
+         {
+          "instruction": "This field is collected for local facility and PSO use. This information will not be forwarded to the Network of Patient Safety Databases (NPSD)."
+         }
+        ]
+       },
+       {
+        "publicID": "5632437",
+        "version": "1.0",
+        "displayOrder": "1",
+        "defaultValue": null,
+        "isEditable": "Yes",
+        "isMandatory": "No",
+        "questionShortName": "5622069v1.0:5332931v1.0",
+        "questionText": "Neonate's Date of Birth",
+        "isDerived": "false",
+        "createdBy": "DWARZEL",
+        "dateCreated": "2017-01-23",
+        "modifiedBy": "DWARZEL",
+        "dateModified": "2017-01-23",
+        "dataElement": {
+         "publicID": "5628076",
+         "version": "1",
+         "longName": "Neonate birth date",
+         "shortName": "5622069v1.0:5332931v1.0",
+         "changeNote": "Curated as part of AHRQ Common Format CDE creation.1.12.2017.dmr",
+         "deletedIndicator": "No",
+         "beginDate": "2012-04-03",
+         "endDate": null,
+         "latestVersionIndicator": "Yes",
+         "preferredDefinition": "Documentation of the month, day, and year the neonate was born.",
+         "origin": "AHRQ:AHRQ Common Formats",
+         "workflowStatus": "RELEASED",
+         "registrationStatus": "Application",
+         "createdBy": "REEVESD",
+         "dateCreated": "2017-01-13",
+         "modifiedBy": "DWARZEL",
+         "dateModified": "2017-02-28",
+         "dataElementConcept": {
+          "publicId": "5622069",
+          "version": "1",
+          "longName": "Neonate Person Birth",
+          "shortName": "5622065v1.0:2193333v1.0",
+          "preferredDefinition": "An infant during the first month after birth._A human being._The event of being born.",
+          "contextName": "ONC",
+          "contextVersion": "1",
+          "definitionSource": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "primaryFlag": null,
+          "beginDate": "2017-01-10",
+          "endDate": null,
+          "changeDescription": "Curated for AHRQ Common Formats CDEs creation. 1.10.2017.dmr",
+          "administrativeNotes": null,
+          "unresolvedIssues": null,
+          "deletionIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2017-01-10",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10",
+          "latestVersionIndicator": "Yes"
+         },
+         "valueDomain": {
+          "publicID": "5332931",
+          "version": "1",
+          "longName": "Point in Time Type",
+          "preferredName": "5332931v1.0",
+          "preferredDefinition": "A data type comprised of a date and time value that corresponds with a specific point in the time continuum._Something distinguishable as an identifiable class based on common qualities.",
+          "context": "ONC",
+          "datatypeName": "HL7TSv3",
+          "minimumLengthNumber": null,
+          "maximumLengthNumber": null,
+          "lowValueNumber": null,
+          "highValueNumber": null,
+          "decimalPlace": null,
+          "formatName": "MM/DD/YYYY",
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "latestVersionIndicator": "Yes",
+          "beginDate": "2016-06-29",
+          "endDate": null,
+          "changeNote": "Added display format of mm dd yyyy - DW 08-17-2016",
+          "deletedIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-29",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10"
+         },
+         "referenceDocuments": [
+          {
+           "name": "Neonate's Date of Birth",
+           "type": "Preferred Question Text",
+           "docText": "Neonate's Date of Birth",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "HERF|74495-3|74771-7",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: healthcare event reporting form (HERF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId=93&amp;pageName=common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          }
+         ],
+         "alternateNames": [
+          {
+           "name": "DE37",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          }
+         ]
+        }
+       },
+       {
+        "publicID": "5632432",
+        "version": "1.0",
+        "displayOrder": "2",
+        "defaultValue": null,
+        "isEditable": "Yes",
+        "isMandatory": "No",
+        "questionShortName": "5622076v1.0:5332758v1.0",
+        "questionText": "Neonate's Medical Record #",
+        "isDerived": "false",
+        "createdBy": "DWARZEL",
+        "dateCreated": "2017-01-23",
+        "modifiedBy": "DWARZEL",
+        "dateModified": "2017-01-23",
+        "dataElement": {
+         "publicID": "5628106",
+         "version": "1",
+         "longName": "Neonate medical record number",
+         "shortName": "5622076v1.0:5332758v1.0",
+         "changeNote": "Block edit to add Classification Scheme Items. Curated as part of AHRQ Common Format CDE creation.1.15.2017.dmr",
+         "deletedIndicator": "No",
+         "beginDate": "2012-04-03",
+         "endDate": null,
+         "latestVersionIndicator": "Yes",
+         "preferredDefinition": "The medical record number is organization specific. The number is used by the hospital as a systematic documentation of a patient's medical history and care during each hospital stay.",
+         "origin": "AHRQ:AHRQ Common Formats",
+         "workflowStatus": "RELEASED",
+         "registrationStatus": "Application",
+         "createdBy": "REEVESD",
+         "dateCreated": "2017-01-13",
+         "modifiedBy": "DWARZEL",
+         "dateModified": "2017-02-28",
+         "dataElementConcept": {
+          "publicId": "5622076",
+          "version": "1",
+          "longName": "Neonate Participant Medical Record Number",
+          "shortName": "5622074v1.0:2958383v1.0",
+          "preferredDefinition": "An infant during the first month after birth._Someone who takes part in an activity._An identifying number within an institution that is used to reference a subject's medical information.",
+          "contextName": "ONC",
+          "contextVersion": "1",
+          "definitionSource": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "primaryFlag": null,
+          "beginDate": "2017-01-10",
+          "endDate": null,
+          "changeDescription": "Created to support registration of AHRQ Common Formats CDEs 2016/2017.dmr",
+          "administrativeNotes": null,
+          "unresolvedIssues": null,
+          "deletionIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2017-01-10",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10",
+          "latestVersionIndicator": "Yes"
+         },
+         "valueDomain": {
+          "publicID": "5332758",
+          "version": "1",
+          "longName": "Encapsulated Data Text",
+          "preferredName": "5332758v1.0",
+          "preferredDefinition": "A data type comprised of encapsulated data in the form of text._The words of something written.",
+          "context": "ONC",
+          "datatypeName": "HL7EDv3",
+          "minimumLengthNumber": null,
+          "maximumLengthNumber": "200",
+          "lowValueNumber": null,
+          "highValueNumber": null,
+          "decimalPlace": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "latestVersionIndicator": "Yes",
+          "beginDate": "2016-06-29",
+          "endDate": null,
+          "changeNote": null,
+          "deletedIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-29",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10"
+         },
+         "referenceDocuments": [
+          {
+           "name": "Neonate's Medical Record #",
+           "type": "Preferred Question Text",
+           "docText": "Neonate's Medical Record #",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "HERF|74495-3|74771-7",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: healthcare event reporting form (HERF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId=93&amp;pageName=common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          }
+         ],
+         "alternateNames": [
+          {
+           "name": "DE40",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          }
+         ]
+        }
+       },
+       {
+        "publicID": "5632433",
+        "version": "1.0",
+        "displayOrder": "3",
+        "defaultValue": null,
+        "isEditable": "Yes",
+        "isMandatory": "No",
+        "questionShortName": "5622126v1.0:5333311v1.0",
+        "questionText": "Neonate's Gender",
+        "isDerived": "false",
+        "createdBy": "DWARZEL",
+        "dateCreated": "2017-01-23",
+        "modifiedBy": "DWARZEL",
+        "dateModified": "2017-01-23",
+        "dataElement": {
+         "publicID": "5628108",
+         "version": "1",
+         "longName": "Neonate gender",
+         "shortName": "5622126v1.0:5333311v1.0",
+         "changeNote": "New version created. Block edit to add Classification Scheme Items. Curated as part of AHRQ Common Format CDE creation.1.15.2017.dmr",
+         "deletedIndicator": "No",
+         "beginDate": "2012-04-03",
+         "endDate": "2025-04-03",
+         "latestVersionIndicator": "No",
+         "preferredDefinition": "The neonate's documented gender. This content is being reviewed for compliance with Executive Order 14168 which mandates that gender should not be used as a replacement for sex. ",
+         "origin": "AHRQ:AHRQ Common Formats",
+         "workflowStatus": "RETIRED ARCHIVED",
+         "registrationStatus": "Retired",
+         "createdBy": "REEVESD",
+         "dateCreated": "2017-01-13",
+         "modifiedBy": "GDEEN",
+         "dateModified": "2025-04-07",
+         "dataElementConcept": {
+          "publicId": "5622126",
+          "version": "1",
+          "longName": "Neonate Person Gender",
+          "shortName": "5622065v1.0:2388845v1.0",
+          "preferredDefinition": "An infant during the first month after birth._A human being._The assemblage of properties that distinguish people on the basis of the societal roles expected for the two sexes.",
+          "contextName": "NCIP",
+          "contextVersion": "1",
+          "definitionSource": null,
+          "origin": "OMB/NCI:Office of Management and Budget/National Cancer Institute",
+          "workflowStatus": "RETIRED ARCHIVED",
+          "registrationStatus": "Retired",
+          "primaryFlag": null,
+          "beginDate": "2017-01-10",
+          "endDate": "2025-04-03",
+          "changeDescription": "New version created. ",
+          "administrativeNotes": "2025.4.3 Retired per cleanup Executive Order 14168. ak",
+          "unresolvedIssues": null,
+          "deletionIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2017-01-10",
+          "modifiedBy": "KUMMEROA",
+          "dateModified": "2025-04-03",
+          "latestVersionIndicator": "No"
+         },
+         "valueDomain": {
+          "publicID": "5333311",
+          "version": "1",
+          "longName": "Patient Gender Type",
+          "preferredName": "5333311v1.0",
+          "preferredDefinition": "Gender is described as the assemblage of properties that distinguish people on the basis of their societal roles._Something distinguishable as an identifiable class based on common qualities.",
+          "context": "ONC",
+          "datatypeName": "HL7CDv3",
+          "minimumLengthNumber": "1",
+          "maximumLengthNumber": "3",
+          "lowValueNumber": null,
+          "highValueNumber": null,
+          "decimalPlace": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RETIRED ARCHIVED",
+          "registrationStatus": "Retired",
+          "latestVersionIndicator": "No",
+          "beginDate": "2016-06-30",
+          "endDate": "2025-04-03",
+          "changeNote": "New version created. ",
+          "deletedIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-30",
+          "modifiedBy": "GDEEN",
+          "dateModified": "2025-04-03",
+          "permissibleValues": [
+           {
+            "publicID": "8983519",
+            "value": "M",
+            "valueDescription": "Male Gender",
+            "origin": null,
+            "beginDate": "2005-07-08",
+            "endDate": null,
+            "deletedIndicator": "No",
+            "createdBy": "REEVESD",
+            "dateCreated": "2016-07-29",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-07-29",
+            "valueMeanings": [
+             {
+              "publicID": "2575550",
+              "version": "1",
+              "longName": "Male",
+              "definition": "An individual who belongs to the sex that normally produces sperm.",
+              "createdBy": "COOPERM",
+              "dateCreated": "2005-07-08",
+              "modifiedBy": "KUMMEROA",
+              "dateModified": "2025-03-26",
+              "concepts": [
+               {
+                "longName": "Male",
+                "conceptCode": "C20197",
+                "definition": "An individual who belongs to the sex that normally produces sperm.",
+                "evsSource": "NCI_CONCEPT_CODE",
+                "primaryIndicator": "Yes",
+                "displayOrder": "0"
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "publicID": "8983520",
+            "value": "F",
+            "valueDescription": "Female Gender",
+            "origin": null,
+            "beginDate": "2005-07-08",
+            "endDate": null,
+            "deletedIndicator": "No",
+            "createdBy": "REEVESD",
+            "dateCreated": "2016-07-29",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-07-29",
+            "valueMeanings": [
+             {
+              "publicID": "2575551",
+              "version": "1",
+              "longName": "Female",
+              "definition": "An individual who belongs to the sex that normally produces ova.",
+              "createdBy": "COOPERM",
+              "dateCreated": "2005-07-08",
+              "modifiedBy": "KUMMEROA",
+              "dateModified": "2025-03-26",
+              "concepts": [
+               {
+                "longName": "Female",
+                "conceptCode": "C16576",
+                "definition": "An individual who belongs to the sex that normally produces ova.",
+                "evsSource": "NCI_CONCEPT_CODE",
+                "primaryIndicator": "Yes",
+                "displayOrder": "0"
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "publicID": "8983521",
+            "value": "UNK",
+            "valueDescription": "Unknown",
+            "origin": null,
+            "beginDate": "2002-02-11",
+            "endDate": null,
+            "deletedIndicator": "No",
+            "createdBy": "REEVESD",
+            "dateCreated": "2016-07-29",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-07-29",
+            "valueMeanings": [
+             {
+              "publicID": "2575365",
+              "version": "1",
+              "longName": "Unknown",
+              "definition": "Not known, not observed, not recorded, or refused.",
+              "createdBy": "SBR",
+              "dateCreated": "2002-02-13",
+              "modifiedBy": "KUMMEROA",
+              "dateModified": "2025-11-21",
+              "concepts": [
+               {
+                "longName": "Unknown",
+                "conceptCode": "C17998",
+                "definition": "Not known, observed, recorded; or reported as unknown by the data contributor.",
+                "evsSource": "NCI_CONCEPT_CODE",
+                "primaryIndicator": "Yes",
+                "displayOrder": "0"
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         },
+         "referenceDocuments": [
+          {
+           "name": "Neonate's Gender",
+           "type": "Preferred Question Text",
+           "docText": "Neonate's Gender",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "HERF|74495-3|74771-7",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: healthcare event reporting form (HERF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId=93&amp;pageName=common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          }
+         ],
+         "alternateNames": [
+          {
+           "name": "DE43",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          }
+         ]
+        },
+        "validValues": [
+         {
+          "publicId": "5632435",
+          "version": "1",
+          "dipslayOrder": "0",
+          "value": "M",
+          "meaningText": "Male Gender",
+          "description": "An individual who reports belonging to the cultural gender role distinction of male.",
+          "valueMeaning": {
+           "publicID": "2575550",
+           "version": "1",
+           "longName": "Male",
+           "definition": "An individual who belongs to the sex that normally produces sperm.",
+           "createdBy": "COOPERM",
+           "dateCreated": "2005-07-08",
+           "modifiedBy": "KUMMEROA",
+           "dateModified": "2025-03-26",
+           "concepts": [
+            {
+             "longName": "Male",
+             "conceptCode": "C20197",
+             "definition": "An individual who belongs to the sex that normally produces sperm.",
+             "evsSource": "NCI_CONCEPT_CODE",
+             "primaryIndicator": "Yes",
+             "displayOrder": "0"
+            }
+           ]
+          }
+         },
+         {
+          "publicId": "5632434",
+          "version": "1",
+          "dipslayOrder": "1",
+          "value": "F",
+          "meaningText": "Female Gender",
+          "description": "An individual who reports belonging to the cultural gender role distinction of female.",
+          "valueMeaning": {
+           "publicID": "2575551",
+           "version": "1",
+           "longName": "Female",
+           "definition": "An individual who belongs to the sex that normally produces ova.",
+           "createdBy": "COOPERM",
+           "dateCreated": "2005-07-08",
+           "modifiedBy": "KUMMEROA",
+           "dateModified": "2025-03-26",
+           "concepts": [
+            {
+             "longName": "Female",
+             "conceptCode": "C16576",
+             "definition": "An individual who belongs to the sex that normally produces ova.",
+             "evsSource": "NCI_CONCEPT_CODE",
+             "primaryIndicator": "Yes",
+             "displayOrder": "0"
+            }
+           ]
+          }
+         },
+         {
+          "publicId": "5632436",
+          "version": "1",
+          "dipslayOrder": "2",
+          "value": "UNK",
+          "meaningText": "Unknown",
+          "description": "Not known, not observed, not recorded, or refused.",
+          "valueMeaning": {
+           "publicID": "2575365",
+           "version": "1",
+           "longName": "Unknown",
+           "definition": "Not known, not observed, not recorded, or refused.",
+           "createdBy": "SBR",
+           "dateCreated": "2002-02-13",
+           "modifiedBy": "KUMMEROA",
+           "dateModified": "2025-11-21",
+           "concepts": [
+            {
+             "longName": "Unknown",
+             "conceptCode": "C17998",
+             "definition": "Not known, observed, recorded; or reported as unknown by the data contributor.",
+             "evsSource": "NCI_CONCEPT_CODE",
+             "primaryIndicator": "Yes",
+             "displayOrder": "0"
+            }
+           ]
+          }
+         }
+        ]
+       }
+      ],
+      "instructions": {
+       "instruction": " This content is being reviewed for compliance with Executive Order 14168 which mandates that gender should not be used as a replacement for sex. "
+      }
+     },
+     {
+      "publicID": "5406504",
+      "version": "1.0",
+      "longName": "Report and Event Reporter Information",
+      "displayOrder": "3",
+      "maximumModuleRepeat": "0",
+      "contextName": "ONC",
+      "workflowStatus": "DRAFT NEW",
+      "registrationStatus": "Application",
+      "latesetVersionIndicator": "Yes",
+      "createdBy": "DWARZEL",
+      "dateCreated": "2016-08-12",
+      "modifiedBy": "DWARZEL",
+      "dateModified": "2016-08-12",
+      "questions": [
+       {
+        "publicID": "5406511",
+        "version": "1.0",
+        "displayOrder": "0",
+        "defaultValue": null,
+        "isEditable": "Yes",
+        "isMandatory": "No",
+        "questionShortName": "5302904v1.0:5332952v1.0",
+        "questionText": "Anonymous reporter",
+        "isDerived": "false",
+        "createdBy": "DWARZEL",
+        "dateCreated": "2016-08-12",
+        "modifiedBy": "DWARZEL",
+        "dateModified": "2016-08-12",
+        "dataElement": {
+         "publicID": "5302905",
+         "version": "1",
+         "longName": "Anonymous reporter",
+         "shortName": "5302904v1.0:5332952v1.0",
+         "changeNote": "Block edit to add Classification Scheme Items. Curated to support AHRQ Common Formats project.2016/2017.dmr",
+         "deletedIndicator": "No",
+         "beginDate": "2010-03-31",
+         "endDate": "2025-11-13",
+         "latestVersionIndicator": "Yes",
+         "preferredDefinition": "Documentation if the reporter was anonymous.",
+         "origin": "AHRQ:AHRQ Common Formats",
+         "workflowStatus": "RETIRED ARCHIVED",
+         "registrationStatus": "Historical",
+         "createdBy": "REEVESD",
+         "dateCreated": "2016-06-21",
+         "modifiedBy": "ZHWENDY",
+         "dateModified": "2025-11-13",
+         "dataElementConcept": {
+          "publicId": "5302904",
+          "version": "1",
+          "longName": "Anonymous reporter",
+          "shortName": "5302902v1.0",
+          "preferredDefinition": "No Value Exists",
+          "contextName": "ONC",
+          "contextVersion": "1",
+          "definitionSource": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "primaryFlag": null,
+          "beginDate": "2016-06-21",
+          "endDate": null,
+          "changeDescription": "Created to support registration of AHRQ Common Formats CDEs 2016/2017.dmr",
+          "administrativeNotes": null,
+          "unresolvedIssues": null,
+          "deletionIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-21",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10",
+          "latestVersionIndicator": "Yes"
+         },
+         "valueDomain": {
+          "publicID": "5332952",
+          "version": "1",
+          "longName": "Yes No Type",
+          "preferredName": "5332952v1.0",
+          "preferredDefinition": "The non-affirmative response to a question._Something distinguishable as an identifiable class based on common qualities.",
+          "context": "ONC",
+          "datatypeName": "HL7CDv3",
+          "minimumLengthNumber": "3",
+          "maximumLengthNumber": "3",
+          "lowValueNumber": null,
+          "highValueNumber": null,
+          "decimalPlace": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RETIRED ARCHIVED",
+          "registrationStatus": "Historical",
+          "latestVersionIndicator": "Yes",
+          "beginDate": "2016-06-29",
+          "endDate": "2025-11-13",
+          "changeNote": null,
+          "deletedIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-29",
+          "modifiedBy": "ZHWENDY",
+          "dateModified": "2025-11-13",
+          "permissibleValues": [
+           {
+            "publicID": "8983517",
+            "value": "A15",
+            "valueDescription": "Yes",
+            "origin": null,
+            "beginDate": "2016-06-29",
+            "endDate": null,
+            "deletedIndicator": "No",
+            "createdBy": "REEVESD",
+            "dateCreated": "2016-07-29",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-07-29",
+            "valueMeanings": [
+             {
+              "publicID": "3006497",
+              "version": "1",
+              "longName": "Yes",
+              "definition": "The affirmative response to a question.",
+              "createdBy": "CHILLIJ",
+              "dateCreated": "2010-02-04",
+              "modifiedBy": "COOPERM",
+              "dateModified": "2015-04-08",
+              "concepts": [
+               {
+                "longName": "Yes",
+                "conceptCode": "C49488",
+                "definition": "The affirmative response to a question.",
+                "evsSource": "NCI_CONCEPT_CODE",
+                "primaryIndicator": "Yes",
+                "displayOrder": "0"
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "publicID": "8983518",
+            "value": "A18",
+            "valueDescription": "No",
+            "origin": null,
+            "beginDate": "2016-06-29",
+            "endDate": null,
+            "deletedIndicator": "No",
+            "createdBy": "REEVESD",
+            "dateCreated": "2016-07-29",
+            "modifiedBy": "ONEDATA",
+            "dateModified": "2016-07-29",
+            "valueMeanings": [
+             {
+              "publicID": "2559515",
+              "version": "1",
+              "longName": "No",
+              "definition": "The non-affirmative response to a question.",
+              "createdBy": "SBR",
+              "dateCreated": "2002-02-13",
+              "modifiedBy": "JKNABLE",
+              "dateModified": "2026-08-04",
+              "concepts": [
+               {
+                "longName": "No",
+                "conceptCode": "C49487",
+                "definition": "The non-affirmative response to a question.",
+                "evsSource": "NCI_CONCEPT_CODE",
+                "primaryIndicator": "Yes",
+                "displayOrder": "0"
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         },
+         "referenceDocuments": [
+          {
+           "name": "Anonymous reporter",
+           "type": "Preferred Question Text",
+           "docText": "Anonymous reporter",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "HERF|74495-3|74770-9",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: healthcare event reporting form (HERF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;93&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          }
+         ],
+         "alternateNames": [
+          {
+           "name": "DE33",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          }
+         ]
+        },
+        "validValues": [
+         {
+          "publicId": "5406512",
+          "version": "1",
+          "dipslayOrder": "0",
+          "value": "A15",
+          "meaningText": "Yes",
+          "description": "The affirmative response to a question.",
+          "valueMeaning": {
+           "publicID": "3006497",
+           "version": "1",
+           "longName": "Yes",
+           "definition": "The affirmative response to a question.",
+           "createdBy": "CHILLIJ",
+           "dateCreated": "2010-02-04",
+           "modifiedBy": "COOPERM",
+           "dateModified": "2015-04-08",
+           "concepts": [
+            {
+             "longName": "Yes",
+             "conceptCode": "C49488",
+             "definition": "The affirmative response to a question.",
+             "evsSource": "NCI_CONCEPT_CODE",
+             "primaryIndicator": "Yes",
+             "displayOrder": "0"
+            }
+           ]
+          }
+         },
+         {
+          "publicId": "5406513",
+          "version": "1",
+          "dipslayOrder": "1",
+          "value": "A18",
+          "meaningText": "No",
+          "description": "The non-affirmative response to a question.",
+          "valueMeaning": {
+           "publicID": "2559515",
+           "version": "1",
+           "longName": "No",
+           "definition": "The non-affirmative response to a question.",
+           "createdBy": "SBR",
+           "dateCreated": "2002-02-13",
+           "modifiedBy": "JKNABLE",
+           "dateModified": "2026-08-04",
+           "concepts": [
+            {
+             "longName": "No",
+             "conceptCode": "C49487",
+             "definition": "The non-affirmative response to a question.",
+             "evsSource": "NCI_CONCEPT_CODE",
+             "primaryIndicator": "Yes",
+             "displayOrder": "0"
+            }
+           ]
+          }
+         }
+        ]
+       },
+       {
+        "publicID": "5406517",
+        "version": "1.0",
+        "displayOrder": "1",
+        "defaultValue": null,
+        "isEditable": "Yes",
+        "isMandatory": "No",
+        "questionShortName": "2183628v1.0:5332932v1.0",
+        "questionText": "Reporter's Name",
+        "isDerived": "false",
+        "createdBy": "DWARZEL",
+        "dateCreated": "2016-08-12",
+        "modifiedBy": "DWARZEL",
+        "dateModified": "2016-08-12",
+        "dataElement": {
+         "publicID": "5334771",
+         "version": "1",
+         "longName": "Reporter of adverse event or unsafe condition",
+         "shortName": "2183628v1.0:5332932v1.0",
+         "changeNote": "Block edit to add Classification Scheme Items. Curated as part of AHRQ Common Format CDE creation.1.15.2017.dmr",
+         "deletedIndicator": "No",
+         "beginDate": "2010-03-31",
+         "endDate": "2025-09-09",
+         "latestVersionIndicator": "Yes",
+         "preferredDefinition": "Documentation of the name of the person completing the form.",
+         "origin": "AHRQ:AHRQ Common Formats",
+         "workflowStatus": "RETIRED ARCHIVED",
+         "registrationStatus": "Retired",
+         "createdBy": "REEVESD",
+         "dateCreated": "2016-07-03",
+         "modifiedBy": "KUMMEROA",
+         "dateModified": "2025-09-09",
+         "dataElementConcept": {
+          "publicId": "2183628",
+          "version": "1",
+          "longName": "Adverse Event Reporter",
+          "shortName": "AE_REPR",
+          "preferredDefinition": "Name of the individual responsible for the submission of an Adverse Event report to the Institution Review Board (IRB).",
+          "contextName": "CCR",
+          "contextVersion": "1",
+          "definitionSource": null,
+          "origin": null,
+          "workflowStatus": "RETIRED ARCHIVED",
+          "registrationStatus": "Retired",
+          "primaryFlag": null,
+          "beginDate": "2004-05-07",
+          "endDate": "2026-04-02",
+          "changeDescription": null,
+          "administrativeNotes": "2026.4.2 Retired due to associated to only retired content. ak;",
+          "unresolvedIssues": null,
+          "deletionIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2004-05-07",
+          "modifiedBy": "KUMMEROA",
+          "dateModified": "2026-04-02",
+          "latestVersionIndicator": "Yes"
+         },
+         "valueDomain": {
+          "publicID": "5332932",
+          "version": "1",
+          "longName": "Person Name Type",
+          "preferredName": "5332932v1.0",
+          "preferredDefinition": "Data type to capture a word or group of words indicating the identity of a person usually consisting of a first (personal) name and a last (family) name with an optional middle name._Something distinguishable as an identifiable class based on common qualities.",
+          "context": "ONC",
+          "datatypeName": "HL7PNv3",
+          "minimumLengthNumber": null,
+          "maximumLengthNumber": "500",
+          "lowValueNumber": null,
+          "highValueNumber": null,
+          "decimalPlace": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "latestVersionIndicator": "Yes",
+          "beginDate": "2016-06-29",
+          "endDate": null,
+          "changeNote": null,
+          "deletedIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-29",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10"
+         },
+         "referenceDocuments": [
+          {
+           "name": "Reporter's Name",
+           "type": "Preferred Question Text",
+           "docText": "Reporter's Name",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "HERF|74495-3|74770-9",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: healthcare event reporting form (HERF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;93&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          }
+         ],
+         "alternateNames": [
+          {
+           "name": "DE50",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          }
+         ]
+        },
+        "instructions": [
+         {
+          "instruction": "This field is collected for local facility and PSO use. This information will not be forwarded to the Network of Patient Safety Databases (NPSD)."
+         }
+        ]
+       },
+       {
+        "publicID": "5406515",
+        "version": "1.0",
+        "displayOrder": "2",
+        "defaultValue": null,
+        "isEditable": "Yes",
+        "isMandatory": "No",
+        "questionShortName": "5326234v1.0:5333331v1.0",
+        "questionText": "Telephone Number",
+        "isDerived": "false",
+        "createdBy": "DWARZEL",
+        "dateCreated": "2016-08-12",
+        "modifiedBy": "DWARZEL",
+        "dateModified": "2016-08-12",
+        "dataElement": {
+         "publicID": "5334772",
+         "version": "1",
+         "longName": "Reporter phone number",
+         "shortName": "5326234v1.0:5333331v1.0",
+         "changeNote": "Block edit to add Classification Scheme Items. Curated as part of AHRQ Common Format CDE creation.1.15.2017.dmr",
+         "deletedIndicator": "No",
+         "beginDate": "2010-03-31",
+         "endDate": null,
+         "latestVersionIndicator": "Yes",
+         "preferredDefinition": "Documentation of the reporter's work phone number.",
+         "origin": "AHRQ:AHRQ Common Formats",
+         "workflowStatus": "RELEASED",
+         "registrationStatus": "Application",
+         "createdBy": "REEVESD",
+         "dateCreated": "2016-07-03",
+         "modifiedBy": "DWARZEL",
+         "dateModified": "2017-02-28",
+         "dataElementConcept": {
+          "publicId": "5326234",
+          "version": "1",
+          "longName": "Reporter phone number",
+          "shortName": "5326232v1.0",
+          "preferredDefinition": "No Value Exists",
+          "contextName": "ONC",
+          "contextVersion": "1",
+          "definitionSource": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "primaryFlag": null,
+          "beginDate": "2016-06-27",
+          "endDate": null,
+          "changeDescription": "Created to support registration of AHRQ Common Formats CDEs 2016/2017.dmr",
+          "administrativeNotes": null,
+          "unresolvedIssues": null,
+          "deletionIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-27",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10",
+          "latestVersionIndicator": "Yes"
+         },
+         "valueDomain": {
+          "publicID": "5333331",
+          "version": "1",
+          "longName": "Telecommunication Address Type",
+          "preferredName": "5333331v1.0",
+          "preferredDefinition": "The value for a particular telecommunication address used as the contact telecommunication information for a person or organization._A particular category of telecommunication address regarded as having particular characteristics, qualities, type of usage, and defined similarities.",
+          "context": "ONC",
+          "datatypeName": "HL7TELv3",
+          "minimumLengthNumber": null,
+          "maximumLengthNumber": null,
+          "lowValueNumber": null,
+          "highValueNumber": null,
+          "decimalPlace": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "latestVersionIndicator": "Yes",
+          "beginDate": "2016-06-30",
+          "endDate": null,
+          "changeNote": null,
+          "deletedIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-30",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10"
+         },
+         "referenceDocuments": [
+          {
+           "name": "Telephone Number",
+           "type": "Preferred Question Text",
+           "docText": "Telephone Number",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "HERF|74495-3|74770-9",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: healthcare event reporting form (HERF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;93&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          }
+         ],
+         "alternateNames": [
+          {
+           "name": "DE52",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          }
+         ]
+        },
+        "instructions": [
+         {
+          "instruction": "This field is collected for local facility and PSO use. This information will not be forwarded to the Network of Patient Safety Databases (NPSD)."
+         }
+        ]
+       },
+       {
+        "publicID": "5406516",
+        "version": "1.0",
+        "displayOrder": "3",
+        "defaultValue": null,
+        "isEditable": "Yes",
+        "isMandatory": "No",
+        "questionShortName": "5326238v1.0:5333331v1.0",
+        "questionText": "Email Address",
+        "isDerived": "false",
+        "createdBy": "DWARZEL",
+        "dateCreated": "2016-08-12",
+        "modifiedBy": "DWARZEL",
+        "dateModified": "2016-08-12",
+        "dataElement": {
+         "publicID": "5334773",
+         "version": "1",
+         "longName": "Reporter email",
+         "shortName": "5326238v1.0:5333331v1.0",
+         "changeNote": "Block edit to add Classification Scheme Items. Curated as part of AHRQ Common Format CDE creation.1.15.2017.dmr",
+         "deletedIndicator": "No",
+         "beginDate": "2010-03-31",
+         "endDate": null,
+         "latestVersionIndicator": "Yes",
+         "preferredDefinition": "Documentation of the reporter's email address.",
+         "origin": "AHRQ:AHRQ Common Formats",
+         "workflowStatus": "RELEASED",
+         "registrationStatus": "Application",
+         "createdBy": "REEVESD",
+         "dateCreated": "2016-07-03",
+         "modifiedBy": "DWARZEL",
+         "dateModified": "2017-02-28",
+         "dataElementConcept": {
+          "publicId": "5326238",
+          "version": "1",
+          "longName": "Reporter email",
+          "shortName": "5326236v1.0",
+          "preferredDefinition": "No Value Exists",
+          "contextName": "ONC",
+          "contextVersion": "1",
+          "definitionSource": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "primaryFlag": null,
+          "beginDate": "2016-06-27",
+          "endDate": null,
+          "changeDescription": "Created to support registration of AHRQ Common Formats CDEs 2016/2017.dmr",
+          "administrativeNotes": null,
+          "unresolvedIssues": null,
+          "deletionIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-27",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10",
+          "latestVersionIndicator": "Yes"
+         },
+         "valueDomain": {
+          "publicID": "5333331",
+          "version": "1",
+          "longName": "Telecommunication Address Type",
+          "preferredName": "5333331v1.0",
+          "preferredDefinition": "The value for a particular telecommunication address used as the contact telecommunication information for a person or organization._A particular category of telecommunication address regarded as having particular characteristics, qualities, type of usage, and defined similarities.",
+          "context": "ONC",
+          "datatypeName": "HL7TELv3",
+          "minimumLengthNumber": null,
+          "maximumLengthNumber": null,
+          "lowValueNumber": null,
+          "highValueNumber": null,
+          "decimalPlace": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "latestVersionIndicator": "Yes",
+          "beginDate": "2016-06-30",
+          "endDate": null,
+          "changeNote": null,
+          "deletedIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-30",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10"
+         },
+         "referenceDocuments": [
+          {
+           "name": "Email Address",
+           "type": "Preferred Question Text",
+           "docText": "Email Address",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "HERF|74495-3|74770-9",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: healthcare event reporting form (HERF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;93&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          }
+         ],
+         "alternateNames": [
+          {
+           "name": "DE53",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          }
+         ]
+        },
+        "instructions": [
+         {
+          "instruction": "This field is collected for local facility and PSO use. This information will not be forwarded to the Network of Patient Safety Databases (NPSD)."
+         }
+        ]
+       },
+       {
+        "publicID": "5406514",
+        "version": "1.0",
+        "displayOrder": "4",
+        "defaultValue": null,
+        "isEditable": "Yes",
+        "isMandatory": "No",
+        "questionShortName": "5317361v1.0:5332932v1.0",
+        "questionText": "Reporter's Job or Position",
+        "isDerived": "false",
+        "createdBy": "DWARZEL",
+        "dateCreated": "2016-08-12",
+        "modifiedBy": "DWARZEL",
+        "dateModified": "2016-08-12",
+        "dataElement": {
+         "publicID": "5334270",
+         "version": "1",
+         "longName": "Reporter job or position",
+         "shortName": "5317361v1.0:5332932v1.0",
+         "changeNote": "Block edit to add Classification Scheme Items. Curated as part of AHRQ Common Format CDE creation.1.15.2017.dmr",
+         "deletedIndicator": "No",
+         "beginDate": "2010-03-31",
+         "endDate": null,
+         "latestVersionIndicator": "Yes",
+         "preferredDefinition": "Documentation of the reporter's job or position",
+         "origin": "AHRQ:AHRQ Common Formats",
+         "workflowStatus": "RELEASED",
+         "registrationStatus": "Application",
+         "createdBy": "REEVESD",
+         "dateCreated": "2016-07-01",
+         "modifiedBy": "DWARZEL",
+         "dateModified": "2017-02-28",
+         "dataElementConcept": {
+          "publicId": "5317361",
+          "version": "1",
+          "longName": "Reporter job or position",
+          "shortName": "5317359v1.0",
+          "preferredDefinition": "No Value Exists",
+          "contextName": "ONC",
+          "contextVersion": "1",
+          "definitionSource": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "primaryFlag": null,
+          "beginDate": "2016-06-27",
+          "endDate": null,
+          "changeDescription": "Created to support registration of AHRQ Common Formats CDEs 2016/2017.dmr",
+          "administrativeNotes": null,
+          "unresolvedIssues": null,
+          "deletionIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-27",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10",
+          "latestVersionIndicator": "Yes"
+         },
+         "valueDomain": {
+          "publicID": "5332932",
+          "version": "1",
+          "longName": "Person Name Type",
+          "preferredName": "5332932v1.0",
+          "preferredDefinition": "Data type to capture a word or group of words indicating the identity of a person usually consisting of a first (personal) name and a last (family) name with an optional middle name._Something distinguishable as an identifiable class based on common qualities.",
+          "context": "ONC",
+          "datatypeName": "HL7PNv3",
+          "minimumLengthNumber": null,
+          "maximumLengthNumber": "500",
+          "lowValueNumber": null,
+          "highValueNumber": null,
+          "decimalPlace": null,
+          "origin": "AHRQ:AHRQ Common Formats",
+          "workflowStatus": "RELEASED",
+          "registrationStatus": "Application",
+          "latestVersionIndicator": "Yes",
+          "beginDate": "2016-06-29",
+          "endDate": null,
+          "changeNote": null,
+          "deletedIndicator": "No",
+          "createdBy": "REEVESD",
+          "dateCreated": "2016-06-29",
+          "modifiedBy": "REEVESD",
+          "dateModified": "2017-02-10"
+         },
+         "referenceDocuments": [
+          {
+           "name": "Reporter's Job or Position",
+           "type": "Preferred Question Text",
+           "docText": "Reporter's Job or Position",
+           "context": "NCIP",
+           "url": null,
+           "displayOrder": null,
+           "language": "ENGLISH"
+          },
+          {
+           "name": "HERF|74495-3|74770-9",
+           "type": "AHRQ Form",
+           "docText": "AHRQ Healthcare Event Reporting Form|Patient safety event report - hospital: healthcare event reporting form (HERF) - version 1.2 [AHRQ]",
+           "context": "NCIP",
+           "url": "https://www.psoppc.org/psoppc_web/DLMS/downloadDocument?groupId&#61;93&amp;pageName&#61;common%20formats%20version%201.2%20technical%20specifications",
+           "displayOrder": null,
+           "language": "ENGLISH"
+          }
+         ],
+         "alternateNames": [
+          {
+           "name": "DE36",
+           "type": "AHRQ Identifier",
+           "language": "ENGLISH",
+           "contextName": "ONC"
+          }
+         ]
+        },
+        "instructions": [
+         {
+          "instruction": "This field is collected for local facility and PSO use. This information will not be forwarded to the Network of Patient Safety Databases (NPSD)."
+         }
+        ]
+       }
+      ],
+      "instructions": {
+       "instruction": null
+      }
+     }
+    ],
+    "instructions": [
+     {
+      "instruction": "Use this form to report either a patient safety event or unsafe condition. The term event includes both an incident that reached the patient and a near miss (close call) that did not. "
+     },
+     {
+      "instruction": "OMB No. 0935-0143 Exp. Date 10/31/2014\r\nPublic reporting burden for the collection of information is estimated to average 10 minutes per response. An agency may not conduct or sponsor,\r\nand a person is not required to respond to, a collection of information unless it displays a currently valid OMB control number. Send comments\r\nregarding this burden estimate or any other aspect of this collection of information, including suggestions for reducing this burden, to: AHRQ\r\nThank you for completing these questions. \r\nAHRQ Common Formats - Hospital Version 1.2 - April 2012 Healthcare Event Reporting Form (HERF)  Reports Clearance Officer, Attention: PRA, Paperwork Reduction Project (0935-0143), AHRQ, 540 Gaither Road, Room #5036, Rockville, MD\r\n20850."
+     }
+    ]
+   },
+   "apiResponse": {
+    "type": "S"
+   }
+  }
+ }
+}

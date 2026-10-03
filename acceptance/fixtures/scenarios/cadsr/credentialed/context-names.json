@@ -1,0 +1,55 @@
+{
+ "kind": "crafted",
+ "requirement": "OP-C13, A9.3: the context list to the lists-of-values contract, which refuses an anonymous caller (401, recorded/cadsr/context-names-refused.json)",
+ "request": {
+  "surface": "cadsr",
+  "method": "GET",
+  "path": "/NCILovAPI/1.0/api/getContextNames",
+  "headers": {
+   "Accept": "application/json",
+   "Authorization": "Basic YWNjZXB0YW5jZTpjcmVkZW50aWFs"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "apiResponse": {
+    "type": "S"
+   },
+   "contextNames": [
+    "AECC",
+    "Alliance",
+    "CCR",
+    "CCTG",
+    "CITN",
+    "COG",
+    "CRDC",
+    "CTEP",
+    "DCI",
+    "DCP",
+    "ECOG-ACRIN",
+    "GDC",
+    "HTAN",
+    "LCC",
+    "MCL",
+    "NCI Standards",
+    "NCIP",
+    "NHLBI",
+    "NICHD",
+    "NRDS",
+    "NRG",
+    "OCG",
+    "OHSU Knight",
+    "ONC",
+    "PBTC",
+    "PS-CC",
+    "PhenX",
+    "SPOREs",
+    "TEST",
+    "Theradex",
+    "Training",
+    "caCORE"
+   ]
+  }
+ }
+}

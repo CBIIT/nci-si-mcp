@@ -1,10 +1,17 @@
 """The specification read as data: where a result's items are, the parameters each tool takes,
 and the tools of a profile."""
 
+import json
+import re
+
 import pytest
 
+from nci_si_acceptance.client import CREDENTIAL_VARIABLES, INDEX_CODES_VARIABLE
+from nci_si_acceptance.fixture_server import HARNESS_VARIABLES, SCENARIOS, SETTINGS
+from nci_si_acceptance.record import FIXTURES
 from nci_si_acceptance.spec import (
     REQUIRED_TOOLS,
+    SPEC,
     TOOLS,
     defaults,
     items_of,
@@ -110,3 +117,33 @@ def test_a_tool_s_defaults_are_its_stated_defaults_and_its_bounds_defaults(tool)
     assert {name: found[name] for name in bounds if name in found} == {
         name: bound["default"] for name, bound in bounds.items() if "default" in bound
     }
+
+
+def _settings_rows():
+    """Each setting the specification says the suite gives a server, with when it does."""
+
+    rows = (SPEC / "acceptance.md").read_text(encoding="utf-8").splitlines()
+    cells = [row.split(" | ") for row in rows if row.startswith("| `NCI_SI_")]
+    return {name: when for first, when, _ in cells for name in re.findall(r"`(NCI_SI_\w+)`", first)}
+
+
+def _scenario_settings():
+    """Each setting a scenario's settings.json gives its server, with the scenarios that do."""
+
+    found = {}
+    for path in sorted((FIXTURES / SCENARIOS).glob(f"*/*/{SETTINGS}")):
+        name = path.parent.relative_to(FIXTURES / SCENARIOS).as_posix()
+        for setting in json.loads(path.read_text(encoding="utf-8")):
+            found.setdefault(setting, []).append(name)
+    return found
+
+
+def test_the_specification_names_every_setting_the_suite_gives_a_server_and_when():
+    rows, scenarios = _settings_rows(), _scenario_settings()
+    given = {*HARNESS_VARIABLES, *CREDENTIAL_VARIABLES, INDEX_CODES_VARIABLE, *scenarios}
+
+    assert set(rows) == given
+    # A row names exactly the scenarios that set its setting, so that a server's team can read
+    # when each is set.
+    named = {setting: set(re.findall(r"`(\w+/[\w-]+)`", when)) for setting, when in rows.items()}
+    assert named == {setting: set(scenarios.get(setting, [])) for setting in rows}

@@ -25,9 +25,10 @@ from nci_si_acceptance.fixture_server import MANIFEST, SCENARIOS, SETTINGS
 from nci_si_acceptance.record import DISCOVERY, FIXTURES, reported_releases
 
 REGISTER = FIXTURES.parent / "request-forms"
+EVS_SURFACES, CADSR_SURFACES = {"evs", "evs-fhir"}, {"cadsr", "cadsr-ftp"}
 VIEWS = {
-    "evs": ("the EVS team", {"evs", "evs-fhir"}),
-    "cadsr": ("the caDSR team", {"cadsr", "cadsr-ftp"}),
+    "evs": ("the EVS team", EVS_SURFACES),
+    "cadsr": ("the caDSR team", CADSR_SURFACES),
     "all": ("both teams", None),
 }
 FALLBACK_HEADER = (
@@ -68,6 +69,17 @@ ones while a test selects it. A recorded fixture is what the service answers tod
 stands in for a case the service does not produce on demand, under the requirement it names, and
 answers the ordinary forms above.
 """
+CADSR = """\
+## caDSR: no registry release, and JSON only when asked for
+
+caDSR publishes no registry release (C-1, A3.8.1): every caDSR form below is served without one,
+the path the inventory names for it (OP-C08) answers 404, and the export's date is the registry's
+only content state (A3.8.2). The forms the inventory names with `registryRelease` are crafted in
+`cadsr/with-registry-release`. Every caDSR request names `Accept: application/json`, which the
+contracts prescribe (M3.2): without it the API answers HTTP 200 with HTML, recorded for two paths,
+and the fixture naming the most headers a request carries answers it. A refusal of the arguments
+and an unknown data element both come back as HTTP 200, with `apiResponse` saying so (X-15).
+"""
 FALLBACK = """\
 ## Operations without a pinned form upstream
 
@@ -80,9 +92,16 @@ content state of its own, named in provenance and not presented as release-verif
 
 
 def _split_form(entry: dict[str, Any]) -> str:
-    """A request as the manifest writes it, safe in a table cell."""
+    """A request as the manifest writes it, safe in a table cell: its method, surface and
+    path, and the headers and body it is made with where the manifest names them."""
 
-    return _cell(f"`GET {entry['surface']} {entry['path']}`")
+    form = f"`{entry.get('method', 'GET')} {entry['surface']} {entry['path']}`"
+    if "headers" in entry:
+        named = ", ".join(f"`{name}: {value}`" for name, value in entry["headers"].items())
+        form += f" with {named}" if named else " with no header"
+    if "body" in entry:
+        form += f", body `{json.dumps(entry['body'])}`"
+    return _cell(form)
 
 
 def _expected(entry: dict[str, Any]) -> str:
@@ -163,7 +182,7 @@ def _fallback_row(entry: dict[str, Any], pinned: dict[str, Any] | None, root: Pa
 def _unpinned(entry: dict[str, Any], releases: set[str]) -> bool:
     """A recorded request naming no release that is not release discovery."""
 
-    recorded = entry["fixture"].startswith("recorded/")
+    recorded = entry["fixture"].startswith("recorded/") and entry["surface"] in EVS_SURFACES
     named = any(release in entry["path"] for release in releases)
     return recorded and entry["fixture"] not in DISCOVERY and not named
 
@@ -242,6 +261,18 @@ def _scenarios(manifest: dict[str, Any], root: Path, surfaces: set[str] | None) 
     return lines or ["None yet.", ""]
 
 
+def _release_sections(manifest: dict[str, Any], root: Path, surfaces: set[str] | None) -> list[str]:
+    """What a view asks of its team on releases: the EVS operations served unpinned, and
+    caDSR's want of a registry release."""
+
+    lines = []
+    if surfaces is None or surfaces & EVS_SURFACES:
+        lines += [FALLBACK, *_table(FALLBACK_HEADER, _fallback_rows(manifest, root, surfaces))]
+    if surfaces is None or surfaces & CADSR_SURFACES:
+        lines.append(CADSR)
+    return lines
+
+
 def render(root: Path = FIXTURES) -> dict[str, str]:
     """Each view of the register, by file name."""
 
@@ -255,8 +286,7 @@ def render(root: Path = FIXTURES) -> dict[str, str]:
             " do not edit by hand.",
             "",
             INTRODUCTION,
-            FALLBACK,
-            *_table(FALLBACK_HEADER, _fallback_rows(manifest, root, surfaces)),
+            *_release_sections(manifest, root, surfaces),
             "## Requests",
             "",
             *_table(REQUESTS_HEADER, _request_rows(manifest, surfaces)),

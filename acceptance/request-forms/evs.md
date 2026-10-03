@@ -164,7 +164,7 @@ The role catalogue lacks R135, a code of the exclusion set. Crafted, 1 fixture, 
 
 ### `upstream/unavailable`
 
-Every EVS request, whatever its path, gets a closed connection, then 503, then no answer within the timeout. Crafted, 2 fixtures, for A2.5, A5.3: bounded retries, counted, then a structured error.
+Every EVS request, whatever its path, gets a closed connection, then 503, then no answer within the timeout. Crafted, 5 fixtures, for A2.5, A5.3: bounded retries, counted, then a structured error.
 
 ### `upstream/rate-limited`
 

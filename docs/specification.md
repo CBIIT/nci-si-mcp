@@ -577,6 +577,25 @@ every one of its tools is PASS or PASS (fixture only) and the gates pass; INCOMP
 Every report names the suite version, the fixture-set version,
 a digest over the suite, and the tools whose tests have never run against an implementation.
 
+### Settings the suite gives a server
+
+The suite starts each server under test with these settings, and with no other `NCI_SI_*`
+setting of the operator's environment. A server is configured by them: in fixture mode every
+upstream base URL names the fixture server, and a scenario that needs a credential, a short
+timeout or a log level sets it.
+
+| Setting | When the suite sets it | Format |
+|---|---|---|
+| `NCI_SI_UPSTREAM_MODE` | Always | `fixture` or `live` |
+| `NCI_SI_DATA_DIR` | Always | A directory of the server's own, fresh for each server; a copy of the prepare command's where one is given |
+| `NCI_SI_EVS_BASE_URL`, `NCI_SI_EVS_FHIR_BASE_URL`, `NCI_SI_CADSR_BASE_URL`, `NCI_SI_CADSR_FTP_URL`, `NCI_SI_SSIS_FACADE_URL`, `NCI_SI_SSIS_SPARQL_URL` | Fixture mode | A base URL, to which the server adds the platform's own paths as it does to the production one (`…/evs` + `/api/v1/…`; `…/cadsr` + `/NCIAPI/1.0/api/…`) |
+| `NCI_SI_EVS_LICENSE_KEY` | Live mode, from the operator; the `license/restricted` scenario | The key, sent as the `X-EVSRESTAPI-License-Key` header, only with licensed content |
+| `NCI_SI_CADSR_CREDENTIAL` | Live mode, from the operator; the `cadsr/credentialed` scenario | `user:password`, sent as HTTP Basic authentication (`Authorization: Basic` and its base64), as every caDSR contract declares |
+| `NCI_SI_TIMEOUT_SECONDS` | The `upstream/unavailable` scenario | Seconds an upstream request may take |
+| `NCI_SI_MATCH_TIMEOUT_SECONDS` | The `cadsr/match-timeout` scenario | Seconds a caDSR match request may take |
+| `NCI_SI_LOG_LEVEL` | The `license/restricted` scenario | `DEBUG`, so that a secret logged as a detail shows |
+| `NCI_SI_ACCEPTANCE_INDEX_CODES` | The prepare command only | A file of the concept codes to index, one per line |
+
 The Prototype Baseline Assessment reads the outcomes of a run against the furnished prototype:
 a tool that passes is a reuse candidate, one that fails or is INCOMPLETE a hardening candidate,
 and one NOT IMPLEMENTED new development.

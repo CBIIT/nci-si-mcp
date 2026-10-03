@@ -28,9 +28,16 @@ def test_every_form_names_its_operation_and_why_it_has_this_form():
 def test_each_team_sees_its_own_surfaces_and_the_combined_view_all():
     expand = "/ValueSet/$expand"
 
+    match = "/vmMatch/v1/vmMatch"
+
     assert expand in VIEWS["evs.md"]
     assert expand not in VIEWS["cadsr.md"]
-    assert "None yet." in VIEWS["cadsr.md"]
+    assert match in VIEWS["cadsr.md"]
+    assert match not in VIEWS["evs.md"]
+    # The EVS release fallback is the EVS team's; caDSR's want of a release, the caDSR team's.
+    assert "## Operations without a pinned form upstream" not in VIEWS["cadsr.md"]
+    assert "## caDSR: no registry release" not in VIEWS["evs.md"]
+    assert all("## caDSR: no registry release" in VIEWS[view] for view in ("cadsr.md", "all.md"))
     assert all(
         entry["path"].split("?")[0] in VIEWS["all.md"] for entry in MANIFEST["record"]["requests"]
     )
@@ -160,3 +167,16 @@ def test_the_unpinned_list_holds_each_content_form_without_a_release_and_what_it
         f"{expand}?fhir_vs=C85492": "26.09d",
     }
     assert "26.09d" in reported["GET evs /api/v1/mapset?include=minimal"].split(", ")
+
+
+def test_a_form_shows_the_method_headers_and_body_it_is_made_with():
+    rows = [line for line in VIEWS["cadsr.md"].splitlines() if "| OP-M02 |" in line]
+    html = [line for line in VIEWS["cadsr.md"].splitlines() if "data-element-2200604-html" in line]
+
+    assert rows
+    assert rows[0].startswith(
+        "| OP-M02 | `POST cadsr /vmMatch/v1/vmMatch` with `Accept: application/json`, "
+        "`Content-Type: application/json`, `matchType: Restricted`, `function: match`, "
+        'body `[{"name": "Male"}]` |'
+    )
+    assert "`GET cadsr /NCIAPI/1.0/api/DataElement/2200604` with no header |" in html[0]

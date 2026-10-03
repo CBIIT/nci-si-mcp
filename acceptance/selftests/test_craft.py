@@ -1,5 +1,6 @@
 """Each crafted scenario provokes the behaviour it is named for."""
 
+import base64
 import json
 import shutil
 from http import HTTPStatus
@@ -20,6 +21,7 @@ from nci_si_acceptance.craft import (
 )
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
 from nci_si_acceptance.record import DISCOVERY, FIXTURES, reported_releases
+from nci_si_acceptance.register import EVS_SURFACES
 
 CRAFTED = craft(FIXTURES)
 MANIFEST = yaml.safe_load((FIXTURES / "manifest.yaml").read_text(encoding="utf-8"))
@@ -27,6 +29,8 @@ MANIFEST = yaml.safe_load((FIXTURES / "manifest.yaml").read_text(encoding="utf-8
 MAX_NODES, MAX_DEPTH = 1000, 4
 PINNED, MISMATCHED_RELEASE = "26.09d", "26.08e"
 CONCEPT = "/api/v1/concept/ncit_26.09d"
+# caDSR's cap, stated here, not imported: "The maximum number of results per query is 1000."
+CONTRACT_CAP = 1000
 
 
 @pytest.fixture(scope="module")
@@ -130,7 +134,8 @@ def test_the_served_exclusion_trap_reads_the_same_through_every_form(upstream):
 
 
 def ordinary_requests():
-    """Every ordinary request of the manifest, recorded or derived, with its surface."""
+    """Every ordinary EVS request of the manifest, recorded or derived, with its surface:
+    release/mismatch concerns the NCIt release, which no caDSR answer reports."""
 
     record = MANIFEST["record"]
     surfaces = {entry["fixture"]: entry["surface"] for entry in record["requests"]}
@@ -138,7 +143,7 @@ def ordinary_requests():
     return [
         entry
         for entry in [*record["requests"], *derived]
-        if not entry["fixture"].startswith("scenarios/")
+        if not entry["fixture"].startswith("scenarios/") and entry["surface"] in EVS_SURFACES
     ]
 
 
@@ -238,6 +243,15 @@ def test_starvation_has_many_roles_few_associations_and_every_target_recorded():
 
 def test_unavailable_closes_then_fails_then_outlasts_the_servers_timeout():
     settings = CRAFTED["scenarios/upstream/unavailable/settings.json"]
+    fixtures = {f: doc for f, doc in scenario("upstream/unavailable").items() if "request" in doc}
+    covered = {(doc["request"]["surface"], doc["request"]["method"]) for doc in fixtures.values()}
+    assert covered == {
+        ("evs", "GET"),
+        ("evs-fhir", "GET"),
+        ("cadsr", "GET"),
+        ("cadsr", "POST"),
+        ("cadsr-ftp", "GET"),
+    }
     for file, doc in scenario("upstream/unavailable").items():
         if file.endswith("settings.json"):
             continue
@@ -275,6 +289,106 @@ def test_the_licence_key_of_the_scenarios_settings_is_what_grants_the_licensed_a
 
     assert settings["NCI_SI_EVS_LICENSE_KEY"] == LICENCE_KEY
     assert (granted, refused) == (200, 403)
+
+
+JSON = {"Accept": "application/json"}
+DATA_ELEMENT = "/NCIAPI/1.0/api/DataElement"
+CONTEXTS = "/NCILovAPI/1.0/api/getContextNames"
+CDE_MATCH = "/NCIAPI.v2_0.cdeMatch.api:cdeMatch_rad/cdeMatch"
+
+
+def ask(running, path, headers, body=None):
+    """Status and body, parsed where JSON, of one caDSR request to the fixture server."""
+
+    url = running.base_url("cadsr") + quote(path, safe="/?=&:")
+    data = None if body is None else json.dumps(body).encode()
+    request = Request(url, data=data, headers=headers, method="POST" if data else "GET")  # noqa: S310
+    try:
+        with urlopen(request, timeout=10) as response:  # noqa: S310 - the local fixture server
+            raw, status = response.read().decode(), response.status
+    except HTTPError as error:
+        raw, status = error.read().decode(), error.code
+    try:
+        return status, json.loads(raw)
+    except ValueError:
+        return status, raw
+
+
+def test_a_cadsr_request_gets_json_only_when_it_asks_for_it(upstream):
+    upstream.activate()
+
+    asked = ask(upstream, f"{DATA_ELEMENT}/2200604", JSON)
+    plain = ask(upstream, f"{DATA_ELEMENT}/2200604", {})
+
+    assert asked[0] == plain[0] == HTTPStatus.OK
+    assert asked[1]["DataElement"]["publicId"] == "2200604"
+    assert plain[1].startswith("<BODY")
+
+
+def test_the_cadsr_credential_of_the_settings_is_what_opens_contexts_and_cde_match():
+    credential = CRAFTED["scenarios/cadsr/credentialed/settings.json"]["NCI_SI_CADSR_CREDENTIAL"]
+    basic = {"Authorization": "Basic " + base64.b64encode(credential.encode()).decode()}
+    sent = {"Content-Type": "application/json"}
+    match = [{"entity": "Patient Gender"}]
+    with FixtureServer(load_fixtures(FIXTURES)) as running:
+        running.activate("cadsr/credentialed")
+        granted = [
+            ask(running, CONTEXTS, JSON | basic),
+            ask(running, CDE_MATCH, JSON | sent | basic, match),
+        ]
+        refused = [ask(running, CONTEXTS, JSON), ask(running, CDE_MATCH, JSON | sent, match)]
+
+    assert [status for status, _ in granted + refused] == [200, 200, 401, 401]
+    assert "NCIP" in granted[0][1]["contextNames"]
+    assert [m["publicId"] for m in granted[1][1]["matchResults"]["matches"]] == ["2200604"]
+
+
+def test_with_registry_release_publishes_one_and_echoes_it_where_the_api_answers_404(upstream):
+    upstream.activate()
+    absent = ask(upstream, "/NCIAPI/1.0/api/registry/releases", JSON)[0]
+    upstream.activate("cadsr/with-registry-release")
+    status, releases = ask(upstream, "/NCIAPI/1.0/api/registry/releases", JSON)
+    (release,) = [row["identifier"] for row in releases["registryReleases"] if row["latest"]]
+    pinned = ask(upstream, f"{DATA_ELEMENT}?publicId=2200604&registryRelease={release}", JSON)
+    recorded = ask(upstream, f"{DATA_ELEMENT}/2200604", JSON)[1]
+
+    assert (absent, status, pinned[0]) == (404, 200, 200)
+    assert pinned[1] == recorded | {"registryRelease": release}
+
+
+def test_every_crafted_cadsr_form_asks_for_json_as_the_contracts_prescribe():
+    forms = [
+        doc["request"]
+        for doc in CRAFTED.values()
+        if doc.get("request", {}).get("surface") == "cadsr" and doc["request"]["path"] != "*"
+    ]
+
+    assert forms
+    assert [
+        form["path"] for form in forms if form["headers"].get("Accept") != "application/json"
+    ] == []
+
+
+def test_over_cap_answers_the_contract_s_cap_of_distinct_elements_whatever_the_page_size():
+    document = CRAFTED["crafted/OP-C03/search-over-cap.json"]
+    elements = document["response"]["body"]["DataElements"]
+
+    assert len({element["publicId"] for element in elements}) == len(elements) == CONTRACT_CAP
+    assert "pageSize" in document["request"]["ignored"]
+
+
+def test_match_timeout_answers_as_recorded_but_later_than_the_setting():
+    settings = CRAFTED["scenarios/cadsr/match-timeout/settings.json"]
+    answer = CRAFTED["scenarios/cadsr/match-timeout/vm-match.json"]["response"]
+    recorded = json.loads(
+        (FIXTURES / "recorded/cadsr/vm-match-male.json").read_text(encoding="utf-8")
+    )
+
+    request = CRAFTED["scenarios/cadsr/match-timeout/vm-match.json"]["request"]
+
+    assert request == recorded["request"]
+    assert answer["delay_seconds"] > int(settings["NCI_SI_MATCH_TIMEOUT_SECONDS"])
+    assert {k: v for k, v in answer.items() if k != "delay_seconds"} == recorded["response"]
 
 
 @pytest.mark.parametrize(

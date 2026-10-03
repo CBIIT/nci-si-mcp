@@ -1,0 +1,24 @@
+{
+ "kind": "crafted",
+ "requirement": "C-1: a published registry release, named in every answer and accepted on every content call",
+ "request": {
+  "surface": "cadsr",
+  "method": "GET",
+  "path": "/NCIAPI/1.0/api/registry/releases",
+  "headers": {
+   "Accept": "application/json"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "registryReleases": [
+    {
+     "identifier": "2026.07.02",
+     "generatedAt": "2026-07-02T02:19:40Z",
+     "latest": true
+    }
+   ]
+  }
+ }
+}

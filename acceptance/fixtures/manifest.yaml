@@ -35,6 +35,11 @@ evs:
 surfaces:
   evs: https://api-evsrest.nci.nih.gov
   evs-fhir: https://api-evsrest.nci.nih.gov/fhir/r4
+  # caDSR's APIs share one host, each under its own path: the data element API
+  # (/NCIAPI/1.0/api), lists of values (/NCILovAPI/1.0/api), forms
+  # (/NCIFormAPI.v2_0:NciFormApiRad) and the two match services.
+  cadsr: https://cadsrapi.cancer.gov/rad
+  cadsr-ftp: https://cadsr.nci.nih.gov/ftp/caDSR_Downloads
 
 # What each scenario provokes, in the order the register lists
 # them (register.py). Whether a scenario is recorded or crafted is read from its fixtures.
@@ -65,6 +70,13 @@ scenarios:
   upstream/unavailable: Every EVS request, whatever its path, gets a closed connection, then 503, then no answer within the timeout
   upstream/rate-limited: 429 with `Retry-After` on the release query, then the answer
   license/restricted: 403 without the licence key; invented content with it
+  cadsr/with-registry-release: >-
+    caDSR publishes a registry release: /registry/releases names one, and a data element
+    asked with it is answered with the release echoed (C-1)
+  cadsr/credentialed: >-
+    The server holds caDSR credentials: contexts and CDE Match answer to the contracts,
+    where the API refuses an anonymous caller (401)
+  cadsr/match-timeout: vmMatch answers later than the match timeout the scenario sets
 
 record:
   requests:
@@ -297,6 +309,150 @@ record:
         "*": >-
           Verified 2 October 2026: EVS refuses every request for mdr without the licence
           key (403), whatever the path or parameters
+
+    # caDSR, recorded 3 October 2026 without credentials. Every request names
+    # `Accept: application/json`, which the contracts prescribe (M3.2); without it the API
+    # answers HTML with HTTP 200, recorded for two paths. Two kinds of failure come back as
+    # HTTP 200 (X-15): an unknown data element, and a refusal of the arguments. Slow live:
+    # Concept 24 s, getCRDCList 29 s; a classification scheme of 2008601's size took 149 s
+    # and a context query passed 180 s, so the set holds neither.
+    - &cadsr
+      fixture: recorded/cadsr/data-element-2200604.json
+      operation: OP-C01
+      rationale: >-
+        A data element, its latest version; its permissible values are in
+        ValueDomain.PermissibleValues, the only form of OP-C07 today (its own path answers
+        404). The inventory's form is /DataElement?publicId=&version=&registryRelease=.
+      surface: cadsr
+      path: /NCIAPI/1.0/api/DataElement/2200604
+      headers: {Accept: application/json}
+    - <<: *cadsr
+      fixture: recorded/cadsr/data-element-2200604-version-1.json
+      rationale: The same data element at version 1, which carries other names.
+      path: /NCIAPI/1.0/api/DataElement/2200604?version=1
+    - <<: *cadsr
+      fixture: recorded/cadsr/data-element-unknown.json
+      rationale: >-
+        An unknown public id: HTTP 200 with DataElement null and apiResponse type I, "No data
+        returned for the input criteria" (X-15, not_found).
+      path: /NCIAPI/1.0/api/DataElement/99999999
+    - <<: *cadsr
+      fixture: recorded/cadsr/data-element-refused.json
+      rationale: >-
+        A public id that is no number: HTTP 200 with DataElement null and apiResponse type E,
+        "Parameter 'publicId' must be a number." (X-15, invalid_request).
+      path: /NCIAPI/1.0/api/DataElement/notanumber
+    - <<: *cadsr
+      fixture: recorded/cadsr/permissible-values.json
+      operation: OP-C07
+      rationale: >-
+        The inventory's path for a data element's permissible values answers 404; they come
+        inside the data element.
+      path: /NCIAPI/1.0/api/DataElement/2200604/permissibleValues
+      status: 404
+    - <<: *cadsr
+      fixture: recorded/cadsr/data-element-2200604-html.json
+      rationale: >-
+        The same request without Accept: HTTP 200 with HTML. The fixture naming Accept
+        answers a request that carries it; this one any other (M3.2, X-15).
+      headers: {}
+    - <<: *cadsr
+      fixture: recorded/cadsr/crdc-list.json
+      operation: OP-C06
+      rationale: The CRDC crosswalk, unparameterised.
+      path: /NCIAPI/1.0/api/DataElements/getCRDCList
+    - <<: *cadsr
+      fixture: recorded/cadsr/concept-c17357.json
+      operation: OP-C09
+      rationale: >-
+        Data elements by concept code, header fields only: the contract caps every query at
+        1,000 results, "To bring back all results, utilize the headerOnly field".
+      path: /NCIAPI/1.0/api/DataElements/Concept?conceptCode=C17357&headerOnly=true
+    - <<: *cadsr
+      fixture: recorded/cadsr/concept-c17357-html.json
+      operation: OP-C09
+      rationale: The same request without Accept, answered with HTML (M3.2, X-15).
+      path: /NCIAPI/1.0/api/DataElements/Concept?conceptCode=C17357&headerOnly=true
+      headers: {}
+    - <<: *cadsr
+      fixture: recorded/cadsr/classification-3685569.json
+      operation: C-11
+      rationale: >-
+        The data elements of one classification scheme, header fields only. OP-C13, the list
+        of schemes, has no REST form: schemes come only nested in a data element and as this
+        filter (C-11). The scheme is named by classificationSchemePublicId (publicId
+        answers an empty list). 3685569 (Newborn Examination, NICHD) holds 40, 2200604
+        among them; 2008601, another of 2200604's schemes, answered 4 MB in 149 s.
+      path: /NCIAPI/1.0/api/DataElements/Classification?classificationSchemePublicId=3685569&classificationSchemeVersion=1&headerOnly=true
+    - <<: *cadsr
+      fixture: recorded/cadsr/context-names-refused.json
+      operation: OP-C13
+      rationale: >-
+        The context list on the lists-of-values API refuses an anonymous caller (401);
+        cadsr/credentialed holds the answer to the contract.
+      path: /NCILovAPI/1.0/api/getContextNames
+      status: 401
+    - <<: *cadsr
+      fixture: recorded/cadsr/form-5406471.json
+      operation: OP-C12
+      rationale: >-
+        A form by public id on the Form 2.0 API, the contract's own example; the Form 1.0
+        API refuses the same form anonymously (401). The form is RETIRED ARCHIVED (context
+        ONC, retired 8 April 2025), so it serves get_form's status surfaced (A8.1); it is
+        the only form, since no released one could be found anonymously: Form/query takes
+        a public or protocol id only, and the caDSR portal (OneData) needs a login.
+      path: /NCIFormAPI.v2_0:NciFormApiRad/Form/5406471
+    - <<: *cadsr
+      fixture: recorded/cadsr/vm-match-male.json
+      operation: OP-M02
+      rationale: Value meanings matched to one value, restricted; answered anonymously.
+      method: POST
+      path: /vmMatch/v1/vmMatch
+      headers:
+        Accept: application/json
+        Content-Type: application/json
+        matchType: Restricted
+        function: match
+      body: [{name: Male}]
+    - <<: *cadsr
+      fixture: recorded/cadsr/cde-match-refused.json
+      operation: OP-M01
+      rationale: >-
+        CDE Match refuses an anonymous caller (401) since 3 October 2026 at the latest; it
+        answered one on 10 September. cadsr/credentialed holds the answer to the contract.
+      method: POST
+      path: /NCIAPI.v2_0.cdeMatch.api:cdeMatch_rad/cdeMatch
+      headers: {Accept: application/json, Content-Type: application/json}
+      # An array of entities, as the inventory says and the call of 10 September sent; the
+      # contract's schema names one object, which the API refuses alike (401).
+      body: [{entity: Patient Gender}]
+      status: 401
+    - <<: *cadsr
+      fixture: recorded/cadsr/registry-releases.json
+      operation: OP-C08
+      rationale: >-
+        No registry release is published: the path the inventory names (/registry/releases,
+        placed here under the data element API) answers 404 (C-1).
+        cadsr/with-registry-release crafts one.
+      path: /NCIAPI/1.0/api/registry/releases
+      status: 404
+    # The bulk export, whose date is the registry's only content state (A3.8.2): the folder
+    # listing and its README, never the 122 MB archive.
+    - fixture: recorded/cadsr-ftp/cde-xml-listing.json
+      operation: A3.8.2
+      rationale: >-
+        The folder of the XML export, which dates releasedCDEsXML-OD.zip 2026-07-01 22:19 in
+        the server's time (Last-Modified: Thu, 02 Jul 2026 02:19:40 GMT); its README says it is
+        updated daily. The inventory's timestamped xml_cde_YYYYMMDDHHMM.zip names are gone.
+      surface: cadsr-ftp
+      path: /CDE/XML/
+      headers: {}
+    - fixture: recorded/cadsr-ftp/cde-xml-readme.json
+      operation: A3.8.2
+      rationale: What the export holds and how often it is updated.
+      surface: cadsr-ftp
+      path: /CDE/XML/README
+      headers: {}
 
   # Crafted fixtures for the form a requirement prescribes where EVS does not yet answer
   # it, each carrying the answer of a recording: the live run shows
