@@ -120,7 +120,7 @@ missing argument with HTTP 200 (X-15).
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The data elements that use C116977, none: an empty answer (find_data_elements_for_concept, X-4). | `recorded/ssis-sparql/data-elements-c116977.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The same, over C17357 and its descendants in NCIt's hierarchy (A5.4). | `recorded/ssis-sparql/data-elements-c17357-descendants.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The same over Disease or Disorder (C2991) and its descendants: 1,001 rows, so more exist than the tool's maximum (A5.4). | `recorded/ssis-sparql/data-elements-c2991-descendants.json` |
-| OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The concept the permissible value "Male" of 2200604 stands for: C20197 (get_concept_for_permissible_value). | `recorded/ssis-sparql/concept-of-2200604-male.json` |
+| OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The permissible values of data element 2200604 with the concepts their value meanings stand for, asked by its registry id alone: the caller's value never goes into the query text (A7.7), and the server picks it by exact equality (get_concept_for_permissible_value). | `recorded/ssis-sparql/values-of-2200604.json` |
 | OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The permissible values whose value meaning stands for Male (C20197), each with its data element and concept: the reverse lookup no façade operation offers. | `recorded/ssis-sparql/values-c20197.json` |
 | OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The permissible values that stand for Gender (C17357): find_data_elements_for_concept with includePermissibleValues. | `recorded/ssis-sparql/values-c17357.json` |
 | OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The same over C17357 and its descendants, each value naming its concept (A5.4). | `recorded/ssis-sparql/values-c17357-descendants.json` |
@@ -264,7 +264,7 @@ ORDER BY ?id ?version
 LIMIT 1001
 ```
 
-### `recorded/ssis-sparql/concept-of-2200604-male.json`: `query`
+### `recorded/ssis-sparql/values-of-2200604.json`: `query`
 
 ```sparql
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -273,17 +273,20 @@ PREFIX dc: <http://purl.org/dc/elements/1.1/>
 PREFIX mdr: <http://www.iso.org/11179/MDR#>
 PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
 PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
-SELECT ?concept ?role
+SELECT ?version ?value ?concept ?role
 WHERE {
   GRAPH <http://cbiit.nci.nih.gov/caDSR> {
     VALUES ?role { cadsr:main_concept cadsr:minor_concept }
     ?element cadsr:publicId "2200604" ;
+      mdr:version ?version ;
       mdr:permitted_value ?pv .
-    ?pv mdr:value "Male" ;
+    ?pv mdr:value ?value ;
       cadsr:has_concept ?node .
     ?node ?role ?concept .
   }
 }
+ORDER BY ?version ?value ?role ?concept
+LIMIT 1001
 ```
 
 ### `recorded/ssis-sparql/values-c20197.json`: `query`

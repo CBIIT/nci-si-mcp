@@ -195,34 +195,84 @@ def test_descendants_beyond_the_tool_s_maximum_are_truncated_with_how_much_was_l
     assert "nextCursor" not in content
 
 
+# The data element and value the tool is asked about, and the surfaces that can answer: the
+# Shared SI Service's permissible values of the data element, asked by its id, or caDSR REST's
+# data element with its value meanings, the concept record from EVS (caDSR SOW item 6).
+ELEMENT, VALUE = "2200604", "Male"
+CADSR_ELEMENT = f"recorded/cadsr/data-element-{ELEMENT}.json"
+
+
+def _value_concept(recorded, source):
+    """The concept VALUE of ELEMENT stands for, and the data element's version, as the surface
+    a result's provenance names answers them."""
+
+    if source == "ssis_sparql":
+        rows = _rows(recorded, f"values-of-{ELEMENT}")
+        (row,) = [
+            row for row in rows if row["value"] == VALUE and row["role"].endswith("main_concept")
+        ]
+        return _code(row["concept"]), row["version"]
+    element = recorded(CADSR_ELEMENT)["response"]["body"]["DataElement"]
+    (code,) = _primary_concepts(element)
+    return code, element["version"]
+
+
+def _primary_concepts(element):
+    """The primary concepts of the value meaning of VALUE in a caDSR data element."""
+
+    meanings = [
+        value["ValueMeaning"]
+        for value in element["ValueDomain"]["PermissibleValues"]
+        if value["value"] == VALUE
+    ]
+    concepts = [concept for meaning in meanings for concept in meaning["Concepts"]]
+    return [concept["conceptCode"] for concept in concepts if concept["primaryIndicator"] == "Yes"]
+
+
+def _permissible(tools, pinned, value=VALUE):
+    return tools.call(
+        PERMISSIBLE, {"dataElementId": ELEMENT, "value": value, "release": pinned["release"]}
+    )
+
+
 @pytest.mark.tool(PERMISSIBLE)
 @pytest.mark.requirement("get_concept_for_permissible_value-1")
 def test_a_value_resolves_to_the_concept_it_stands_for_naming_both_content_states(
     tools, pinned, recorded
 ):
-    (row,) = _rows(recorded, "concept-of-2200604-male")
-    concept = recorded(f"recorded/evs/concepts/{_code(row['concept'])}.json")["response"]["body"]
-    element = recorded("recorded/cadsr/data-element-2200604.json")["response"]["body"][
-        "DataElement"
-    ]
+    content = _ok(_permissible(tools, pinned))
 
-    content = _ok(
-        tools.call(
-            PERMISSIBLE, {"dataElementId": "2200604", "value": "Male", "release": pinned["release"]}
-        )
-    )
-
-    assert (content["code"], content["name"]) == (concept["code"], concept["name"])
     provenance = content["provenance"]
+    assert provenance["source"] in {"ssis_sparql", "cadsr_rest", "evs_rest"}
+    code, version = _value_concept(recorded, provenance["source"])
+    concept = recorded(f"recorded/evs/concepts/{code}.json")["response"]["body"]
+    assert (content["code"], content["name"]) == (concept["code"], concept["name"])
     assert (provenance["release"]["terminology"], provenance["release"]["identifier"]) == (
         pinned["terminology"],
         pinned["release"],
     )
     assert provenance["registry"] == {"registry": "cadsr"}
     assert content["permissibleValue"] == {
-        "dataElement": {"publicId": "2200604", "version": element["version"]},
-        "value": "Male",
+        "dataElement": {"publicId": ELEMENT, "version": version},
+        "value": VALUE,
     }
+
+
+@pytest.mark.tool(PERMISSIBLE)
+@pytest.mark.requirement("get_concept_for_permissible_value-3")
+@pytest.mark.parametrize("value", [VALUE.lower(), VALUE.upper(), f" {VALUE}", f"{VALUE} "])
+def test_a_value_the_data_element_does_not_have_as_given_is_not_found(
+    tools, pinned, recorded, value
+):
+    # Each surface holds the value only as given, so no surface's answer has this one.
+    rows = _rows(recorded, f"values-of-{ELEMENT}")
+    element = recorded(CADSR_ELEMENT)["response"]["body"]["DataElement"]
+    held = {row["value"] for row in rows} | {
+        each["value"] for each in element["ValueDomain"]["PermissibleValues"]
+    }
+    assert (VALUE in held, value in held) == (True, False)
+
+    assert error_code(_permissible(tools, pinned, value)) == "not_found"
 
 
 @pytest.mark.tool(PERMISSIBLE)

@@ -305,6 +305,9 @@ get_concept_for_permissible_value-1:
 get_concept_for_permissible_value-2:
   statement: By permissibleValueId the tool is capability_unavailable (OP-C10), never not_found or empty.
   basis: [get_concept_for_permissible_value, M1.2, A9.3]
+get_concept_for_permissible_value-3:
+  statement: The value is compared with the data element's permissible values by exact, case-sensitive equality; a value it does not have as given, in another case or with a space around it, is not_found.
+  basis: [get_concept_for_permissible_value, A7.7]
 resolve_stored_value-1:
   statement: A GDC value resolves through the mapset named in each stored value's source and in evidence, confidence asserted, the release the mapset reports matching the one the call requires (release_mismatch otherwise).
   basis: [resolve_stored_value, stored_value]

@@ -319,8 +319,11 @@ get_concept_for_permissible_value:
   summary: >-
     The concept a permissible value stands for, named by its data element and value, as the
     concept record of the release pinned, its provenance naming both content states (release
-    and registry); a caller learns the release from resolve_release, as for every EVS tool. By permissibleValueId,
-    capability_unavailable until the platform retrieves a value by it (OP-C10).
+    and registry); a caller learns the release from resolve_release, as for every EVS tool. The
+    data element is asked for by its id, and the value is compared locally with its permissible
+    values by exact, case-sensitive equality (no trimming, no case-folding), never sent upstream
+    (A7.7); a value it does not have is not_found. By permissibleValueId, capability_unavailable
+    until the platform retrieves a value by it (OP-C10).
 resolve_stored_value:
   group: cross-domain
   inputs: (conceptCode, commons, release, dataElementId?)
