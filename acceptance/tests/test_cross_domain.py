@@ -255,8 +255,10 @@ def test_a_gdc_value_resolves_through_the_mapset_its_source_names(tools, pinned,
     assert {(value["value"], value["field"]) for value in stored} == {
         (each["targetName"], each["targetCode"]) for each in maps
     }
+    evidence = content["evidence"]
     assert [value["source"] for value in stored] == [source] * len(stored)
-    assert (content["confidence"], source in content["evidence"]["sources"]) == ("asserted", True)
+    assert (content["confidence"], source in evidence["sources"]) == ("asserted", True)
+    assert (evidence["valueLevelBinding"], evidence["coverage"]) == (True, len(stored))
 
 
 def _bound(crosswalk, commons, code):
@@ -301,9 +303,12 @@ def test_another_commons_value_resolves_through_the_crdc_crosswalk(tools, pinned
     content = _ok(tools.call(STORED, arguments | {"release": pinned["release"]}))
 
     stored = content["storedValues"]
+    evidence = content["evidence"]
     assert set(map(_crosswalked, stored)) == expected
     assert {value["source"]["crosswalk"] for value in stored} == {"CRDC"}
-    assert content["confidence"] == "asserted"
+    assert all(value["source"] in evidence["sources"] for value in stored)
+    assert (content["confidence"], evidence["valueLevelBinding"]) == ("asserted", True)
+    assert evidence["coverage"] == len(stored)
 
 
 @pytest.mark.tool(STORED)

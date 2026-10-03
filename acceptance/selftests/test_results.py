@@ -1,9 +1,14 @@
 """What the suite's tests read from a result and from the upstream request log."""
 
+import json
+
 import pytest
 
+from nci_si_acceptance.record import FIXTURES
 from nci_si_acceptance.results import (
+    EXPORT_LISTING,
     error_code,
+    export_date,
     identity,
     pinned_release,
     release_of,
@@ -98,3 +103,11 @@ def test_a_call_names_the_release_it_pins_or_for_cadsr_the_registry_alone():
     assert pinned_release("get_data_element", pinned) == ("cadsr", None)
     # A cross-domain tool without a release names the NCIt release its content rests on.
     assert pinned_release("resolve_stored_value", pinned) == ("ncit", "26.09d")
+
+
+def test_the_export_date_is_the_one_the_folder_listing_gives_the_export():
+    listing = json.loads((FIXTURES / EXPORT_LISTING).read_text(encoding="utf-8"))
+    # The listing dates releasedCDEsXML-OD.zip 2026-07-01 22:19 (cde-xml-listing.json).
+    assert export_date(listing["response"]["body"]) == "2026-07-01"
+    with pytest.raises(ValueError, match="unpack"):
+        export_date("<a>README</a> 2026-07-01")

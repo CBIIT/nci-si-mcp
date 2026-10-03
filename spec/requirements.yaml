@@ -124,6 +124,9 @@ X-20:
 X-21:
   statement: A caDSR content call without registryRelease names the registry form of the release with neither identifier nor date; with a registry release caDSR does not publish, it is release_not_available, never answered unpinned; with one caDSR publishes, the release is asked for and named in provenance with its date.
   basis: [A3.8, A3.4, provenance]
+X-22:
+  statement: A call that leaves out a release the tool requires is an invalid request; the server never chooses the release for it.
+  basis: [A3.1, A2.5]
 
 # EVS tools.
 resolve_release-1:

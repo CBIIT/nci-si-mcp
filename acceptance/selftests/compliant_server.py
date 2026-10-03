@@ -67,6 +67,7 @@ requirements, for the harness's own tests.
     wrong-default     a left-out argument with a stated default served otherwise    (X-20)
     empty-with-cursor a query that matches nothing answered with nextCursor          (X-4)
     raised-to-one     a bounded argument below one served as one                    (X-18)
+    release-defaulted a call without its required release served all the same        (X-22)
     no-attribution    an item of a licensed terminology without its licence text    (X-19)
     attribution-everywhere every item with licence text, NCIt's included            (X-19)
 
@@ -522,9 +523,18 @@ def _refusal(name: str, arguments: dict, correlation: str) -> dict | None:
 
     if DEFECT == "empty-as-error" and _matches_nothing(name, arguments):
         return _error("not_found", HTTPStatus.NOT_FOUND, {}, correlation)
-    if _cursor_refused(name, arguments) or _below_one(name, arguments):
+    if (
+        _cursor_refused(name, arguments)
+        or _below_one(name, arguments)
+        or _unpinned(name, arguments)
+    ):
         return _error("invalid_request", HTTPStatus.BAD_REQUEST, {}, correlation)
     return None
+
+
+def _unpinned(name: str, arguments: dict) -> bool:
+    required = parameters(name)[1]
+    return "release" in required - arguments.keys() and DEFECT != "release-defaulted"
 
 
 def _below_one(name: str, arguments: dict) -> bool:

@@ -300,8 +300,9 @@ resolve_stored_value:
     the CRDC crosswalk, which names the registry state. confidence is asserted
     when a published source names the value and none otherwise; evidence names each source
     consulted ({ mapset, version } or { crosswalk, dataElement }), whether the commons binds
-    values to concepts, and its coverage. A commons without a value-level binding (PDC, IDC)
-    returns no stored value with evidence saying so, never the preferred term as if stored.
+    values to concepts (valueLevelBinding), and its coverage: the number of stored values
+    found. A commons without a value-level binding (PDC, IDC) returns no stored value with
+    evidence saying so, never the preferred term as if stored.
 get_release_alignment:
   group: cross-domain
   inputs: (maxIntervalDays?)

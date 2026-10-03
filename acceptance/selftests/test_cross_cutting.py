@@ -76,6 +76,7 @@ DEFECTS = [
     ("empty-with-cursor", EMPTY),
     ("wrong-default", "test_a_left_out_argument_is_its_stated_default"),
     ("raised-to-one", "test_a_bounded_argument_below_one_is_an_invalid_request"),
+    ("release-defaulted", "test_a_call_without_its_required_release_is_an_invalid_request"),
     ("no-attribution", LICENSED_ITEM),
     ("attribution-everywhere", LICENSED_ITEM),
 ]
