@@ -233,6 +233,14 @@ record:
       rationale: GDC maps found by an NCIt code.
       surface: evs
       path: /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C4817&fromRecord=0&pageSize=10
+    - fixture: recorded/evs/mapset-gdc-maps-none.json
+      operation: OP-E25
+      rationale: >-
+        The GDC maps of a concept GDC does not map (C116977), none: an empty answer
+        (resolve_stored_value, X-4).
+      surface: evs
+      path: /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C116977&fromRecord=0&pageSize=10
+    # A value set of 534 members (CDISC SDTM Method Terminology) through FHIR $expand.
     # A value set of 534 members (CDISC SDTM Method Terminology) through FHIR $expand.
     - fixture: recorded/evs-fhir/expand-c85492.json
       operation: OP-F05
@@ -261,6 +269,7 @@ record:
           Verified 2 October 2026: EVS answers 404 "Terminology not found" for an unknown
           release on every content path, whatever the parameters
     - {<<: *unknown, fixture: scenarios/release/unknown/concepts.json, path: "/api/v1/concept/ncit_99.99z?list=C4817&include=summary"}
+    - {<<: *unknown, fixture: scenarios/release/unknown/concept-c20197.json, path: "/api/v1/concept/ncit_99.99z/C20197?include=summary"}
     - {<<: *unknown, fixture: scenarios/release/unknown/parents.json, path: /api/v1/concept/ncit_99.99z/C4817/parents}
     - {<<: *unknown, fixture: scenarios/release/unknown/children.json, path: /api/v1/concept/ncit_99.99z/C4817/children}
     - {<<: *unknown, fixture: scenarios/release/unknown/roles.json, path: /api/v1/concept/ncit_99.99z/C4817/roles}
@@ -580,7 +589,8 @@ record:
     # whitespace collapsed. NCIt's hierarchy is read from Thesaurus.rdf: Thesaurus.owl
     # runs it through anonymous restrictions (7,109 descendants of C2991 by subClassOf*,
     # against 22,854). LIMIT is the tool's maximum + 1, so that the answer shows whether
-    # more exist. A direct POST of the query (application/sparql-query) is refused (403),
+    # more exist; a data element query groups by data element, so that a row is one (some
+    # have two labels; MIN names one). A direct POST of the query (application/sparql-query) is refused (403),
     # and so are SERVICE and Virtuoso's OPTION (TRANSITIVE).
     - &sparql
       fixture: recorded/ssis-sparql/graph-identities.json
@@ -622,7 +632,7 @@ record:
           PREFIX mdr: <http://www.iso.org/11179/MDR#>
           PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
           PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
-          SELECT DISTINCT ?id ?version ?name
+          SELECT ?id ?version (MIN(?label) AS ?name)
           WHERE {
             VALUES ?concept { ncit:C17357 }
             GRAPH <http://cbiit.nci.nih.gov/caDSR> {
@@ -633,9 +643,40 @@ record:
               { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }
               ?element cadsr:publicId ?id ;
                 mdr:version ?version ;
-                rdfs:label ?name .
+                rdfs:label ?label .
             }
           }
+          GROUP BY ?id ?version
+          ORDER BY ?id ?version
+          LIMIT 1001
+    - <<: *sparql
+      fixture: recorded/ssis-sparql/data-elements-c116977.json
+      rationale: >-
+        The data elements that use C116977, none: an empty answer (find_data_elements_for_concept,
+        X-4).
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT ?id ?version (MIN(?label) AS ?name)
+          WHERE {
+            VALUES ?concept { ncit:C116977 }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+              ?node ?role ?concept .
+              { VALUES ?part { mdr:Object_Class mdr:Property } ?element ?part ?node . }
+              UNION
+              { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }
+              ?element cadsr:publicId ?id ;
+                mdr:version ?version ;
+                rdfs:label ?label .
+            }
+          }
+          GROUP BY ?id ?version
           ORDER BY ?id ?version
           LIMIT 1001
     - <<: *sparql
@@ -649,7 +690,7 @@ record:
           PREFIX mdr: <http://www.iso.org/11179/MDR#>
           PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
           PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
-          SELECT DISTINCT ?id ?version ?name
+          SELECT ?id ?version (MIN(?label) AS ?name)
           WHERE {
             GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> {
               ?concept rdfs:subClassOf* ncit:C17357 .
@@ -662,9 +703,10 @@ record:
               { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }
               ?element cadsr:publicId ?id ;
                 mdr:version ?version ;
-                rdfs:label ?name .
+                rdfs:label ?label .
             }
           }
+          GROUP BY ?id ?version
           ORDER BY ?id ?version
           LIMIT 1001
     - <<: *sparql
@@ -680,7 +722,7 @@ record:
           PREFIX mdr: <http://www.iso.org/11179/MDR#>
           PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
           PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
-          SELECT DISTINCT ?id ?version ?name
+          SELECT ?id ?version (MIN(?label) AS ?name)
           WHERE {
             GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> {
               ?concept rdfs:subClassOf* ncit:C2991 .
@@ -693,9 +735,10 @@ record:
               { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }
               ?element cadsr:publicId ?id ;
                 mdr:version ?version ;
-                rdfs:label ?name .
+                rdfs:label ?label .
             }
           }
+          GROUP BY ?id ?version
           ORDER BY ?id ?version
           LIMIT 1001
     - <<: *sparql
@@ -723,11 +766,11 @@ record:
             }
           }
     - <<: *sparql
-      fixture: recorded/ssis-sparql/values-of-c20197.json
+      fixture: recorded/ssis-sparql/values-c20197.json
       operation: OP-S04
       rationale: >-
-        The permissible values that stand for Male (C20197), with their data elements: the
-        reverse lookup no façade operation offers.
+        The permissible values whose value meaning stands for Male (C20197), each with its data
+        element and concept: the reverse lookup no façade operation offers.
       form:
         query: |-
           PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -736,11 +779,12 @@ record:
           PREFIX mdr: <http://www.iso.org/11179/MDR#>
           PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
           PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
-          SELECT ?id ?version ?value
+          SELECT DISTINCT ?id ?version ?value ?concept
           WHERE {
+            VALUES ?concept { ncit:C20197 }
             GRAPH <http://cbiit.nci.nih.gov/caDSR> {
               VALUES ?role { cadsr:main_concept cadsr:minor_concept }
-              ?node ?role ncit:C20197 .
+              ?node ?role ?concept .
               ?pv cadsr:has_concept ?node ;
                 mdr:value ?value .
               ?element mdr:permitted_value ?pv ;
@@ -748,7 +792,65 @@ record:
                 mdr:version ?version .
             }
           }
-          ORDER BY ?id ?version ?value
+          ORDER BY ?id ?version ?value ?concept
+          LIMIT 1001
+    - <<: *sparql
+      fixture: recorded/ssis-sparql/values-c17357.json
+      operation: OP-S04
+      rationale: >-
+        The permissible values that stand for Gender (C17357): find_data_elements_for_concept
+        with includePermissibleValues.
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT DISTINCT ?id ?version ?value ?concept
+          WHERE {
+            VALUES ?concept { ncit:C17357 }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+              ?node ?role ?concept .
+              ?pv cadsr:has_concept ?node ;
+                mdr:value ?value .
+              ?element mdr:permitted_value ?pv ;
+                cadsr:publicId ?id ;
+                mdr:version ?version .
+            }
+          }
+          ORDER BY ?id ?version ?value ?concept
+          LIMIT 1001
+    - <<: *sparql
+      fixture: recorded/ssis-sparql/values-c17357-descendants.json
+      operation: OP-S04
+      rationale: The same over C17357 and its descendants, each value naming its concept (A5.4).
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT DISTINCT ?id ?version ?value ?concept
+          WHERE {
+            GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> {
+              ?concept rdfs:subClassOf* ncit:C17357 .
+            }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+              ?node ?role ?concept .
+              ?pv cadsr:has_concept ?node ;
+                mdr:value ?value .
+              ?element mdr:permitted_value ?pv ;
+                cadsr:publicId ?id ;
+                mdr:version ?version .
+            }
+          }
+          ORDER BY ?id ?version ?value ?concept
           LIMIT 1001
     - <<: *sparql
       fixture: recorded/ssis-sparql/query-refused.json
@@ -832,7 +934,8 @@ record:
        C13204, C13206, C13211, C13212, C13214, C13215, C13217, C13218, C13223, C14225, C18127,
        C18139, C18321, C18326, C19019, C20139, C20737, C21050, C24377, C24378, C28147, C32725,
        C34058, C34228, C38536, C41165, C41168, C91852, C93138, C97482, C97876, C97912, C99238,
-       C99249, C172980, C178487, C178488, C179848, C186676, C186727, C200419]
+       C99249, C172980, C178487, C178488, C179848, C186676, C186727, C200419,
+       C20197]   # Male, the concept a permissible value stands for (get_concept_for_permissible_value)
 
     # The concepts on C4817's paths to the root that no other list records: a traversal reads
     # the nodes it reaches for their status (the node record, get_concept_hierarchy-2).

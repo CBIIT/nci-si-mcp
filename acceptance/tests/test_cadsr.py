@@ -6,12 +6,17 @@ read there is named beside it, with the fixture file that holds it.
 """
 
 import json
-import re
 from http import HTTPStatus
 
 import pytest
 
-from nci_si_acceptance.results import error_code, requests_naming
+from nci_si_acceptance.results import (
+    EXPORT,
+    EXPORT_LISTING,
+    error_code,
+    export_date,
+    requests_naming,
+)
 from nci_si_acceptance.spec import RECORDS, TOOLS
 
 # Recorded both ways: recorded/cadsr/data-element-2200604.json answers a request that names
@@ -91,8 +96,6 @@ def test_a_refusal_inside_an_http_200_is_an_invalid_request(tools, recorded):
 
 # The registry's state. The export folder dates releasedCDEsXML-OD.zip; /registry/releases
 # answers 404 (registry-releases.json).
-LISTING = "recorded/cadsr-ftp/cde-xml-listing.json"
-EXPORT = "releasedCDEsXML-OD.zip"
 ELEMENT = "recorded/cadsr/data-element-2200604.json"
 VERSION_1 = "recorded/cadsr/data-element-2200604-version-1.json"
 # What a data element record holds without include, and the sections include adds.
@@ -114,8 +117,7 @@ def _ok(result):
 @pytest.mark.tool("resolve_registry_release")
 @pytest.mark.requirement("resolve_registry_release-1")
 def test_without_a_registry_release_the_export_date_stands_for_it(tools, upstream, recorded):
-    listing = recorded(LISTING)["response"]["body"]
-    (dated,) = re.findall(rf">{re.escape(EXPORT)}</a>\s+(\d{{4}}-\d{{2}}-\d{{2}})", listing)
+    dated = export_date(recorded(EXPORT_LISTING)["response"]["body"])
     assert (
         recorded("recorded/cadsr/registry-releases.json")["response"]["status"]
         == HTTPStatus.NOT_FOUND

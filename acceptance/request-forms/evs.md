@@ -27,6 +27,7 @@ content state of its own, named in provenance and not presented as release-verif
 | OP-E24 | — | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC` | 26.09d |
 | OP-E25 | — | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=Ewing sarcoma&fromRecord=0&pageSize=10` | 26.09d |
 | OP-E25 | — | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C4817&fromRecord=0&pageSize=10` | 26.09d |
+| OP-E25 | — | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C116977&fromRecord=0&pageSize=10` | none |
 | OP-F05 | `GET evs-fhir /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492&system-version=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl\|26.09d` | `GET evs-fhir /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492` | 26.09d |
 
 ## Requests
@@ -59,6 +60,7 @@ content state of its own, named in provenance and not presented as release-verif
 | OP-E24 | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC` | 200 | recorded | The GDC mapset, versioned by the NCIt release. | `recorded/evs/mapset-gdc.json` |
 | OP-E25 | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=Ewing sarcoma&fromRecord=0&pageSize=10` | 200 | recorded | GDC maps found by a GDC value (resolve_stored_value); term matches as a prefix. | `recorded/evs/mapset-gdc-maps-value.json` |
 | OP-E25 | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C4817&fromRecord=0&pageSize=10` | 200 | recorded | GDC maps found by an NCIt code. | `recorded/evs/mapset-gdc-maps-code.json` |
+| OP-E25 | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C116977&fromRecord=0&pageSize=10` | 200 | recorded | The GDC maps of a concept GDC does not map (C116977), none: an empty answer (resolve_stored_value, X-4). | `recorded/evs/mapset-gdc-maps-none.json` |
 | OP-F05 | `GET evs-fhir /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492` | 200; ignores activeOnly, count, offset | recorded | The unpinned expansion: system-version answers 400 today; count, offset and activeOnly are ignored. | `recorded/evs-fhir/expand-c85492.json` |
 | OP-F05 | `GET evs-fhir /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492&system-version=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl\|26.09d` | 200; ignores activeOnly, count, offset | crafted for OP-F05: $expand pinned by system-version. EVS answered "Input parameter 'system-version' is not supported" (400) on 2 October 2026 | $expand pinned by system-version, as the operation inventory prescribes (OP-F05), carrying the unpinned answer. | `crafted/OP-F05/expand-c85492.json` |
 
@@ -91,6 +93,7 @@ Each request: An unknown release answers 404 on every content path: the server f
 |---|---|---|---|
 | OP-E06 | `GET evs /api/v1/concept/ncit_99.99z/C4817?include=summary` | 404; every parameter ignored | `scenarios/release/unknown/concept.json` |
 | OP-E06 | `GET evs /api/v1/concept/ncit_99.99z?list=C4817&include=summary` | 404; every parameter ignored | `scenarios/release/unknown/concepts.json` |
+| OP-E06 | `GET evs /api/v1/concept/ncit_99.99z/C20197?include=summary` | 404; every parameter ignored | `scenarios/release/unknown/concept-c20197.json` |
 | OP-E06 | `GET evs /api/v1/concept/ncit_99.99z/C4817/parents` | 404; every parameter ignored | `scenarios/release/unknown/parents.json` |
 | OP-E06 | `GET evs /api/v1/concept/ncit_99.99z/C4817/children` | 404; every parameter ignored | `scenarios/release/unknown/children.json` |
 | OP-E06 | `GET evs /api/v1/concept/ncit_99.99z/C4817/roles` | 404; every parameter ignored | `scenarios/release/unknown/roles.json` |
@@ -112,7 +115,7 @@ Each request: An unknown release answers 404 on every content path: the server f
 
 ### `release/mismatch`
 
-Every payload that reports the pinned release names 26.08e instead, the unpinned forms included; release discovery is left as recorded. Crafted, 162 fixtures, for A3.4: the content served names another release than the one requested.
+Every payload that reports the pinned release names 26.08e instead, the unpinned forms included; release discovery is left as recorded. Crafted, 164 fixtures, for A3.4: the content served names another release than the one requested.
 
 ### `release/two-latest`
 

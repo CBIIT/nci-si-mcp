@@ -157,7 +157,10 @@ def test_only_a_call_without_a_pinned_form_may_answer_an_unknown_release_with_th
     outcomes, monkeypatch
 ):
     calls = yaml.safe_load((SUITE / "calls.yaml").read_text(encoding="utf-8"))
-    unpinned = {name for name, call in calls.items() if call.get("unpinned")}
+    # The compliant server serves the evs profile; another group's call shows nothing here.
+    unpinned = {
+        name for name, call in calls.items() if call.get("unpinned") and name not in OTHER_GROUPS
+    }
     monkeypatch.setenv("COMPLIANT_SERVER_DEFECT", "unpinned-mismatch")
 
     found = _served(outcomes(CROSS_CUTTING, "-k", UNKNOWN_RELEASE))

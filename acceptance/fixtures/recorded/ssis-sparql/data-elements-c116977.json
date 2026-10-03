@@ -1,0 +1,33 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "ssis-sparql",
+  "method": "POST",
+  "path": "/sparql",
+  "headers": {
+   "Accept": "application/sparql-results+json"
+  },
+  "form": {
+   "query": "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX owl: <http://www.w3.org/2002/07/owl#>\nPREFIX dc: <http://purl.org/dc/elements/1.1/>\nPREFIX mdr: <http://www.iso.org/11179/MDR#>\nPREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>\nPREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>\nSELECT ?id ?version (MIN(?label) AS ?name)\nWHERE {\n  VALUES ?concept { ncit:C116977 }\n  GRAPH <http://cbiit.nci.nih.gov/caDSR> {\n    VALUES ?role { cadsr:main_concept cadsr:minor_concept }\n    ?node ?role ?concept .\n    { VALUES ?part { mdr:Object_Class mdr:Property } ?element ?part ?node . }\n    UNION\n    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }\n    ?element cadsr:publicId ?id ;\n      mdr:version ?version ;\n      rdfs:label ?label .\n  }\n}\nGROUP BY ?id ?version\nORDER BY ?id ?version\nLIMIT 1001"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "head": {
+    "link": [],
+    "vars": [
+     "id",
+     "version",
+     "name"
+    ]
+   },
+   "results": {
+    "distinct": false,
+    "ordered": true,
+    "bindings": []
+   }
+  }
+ }
+}

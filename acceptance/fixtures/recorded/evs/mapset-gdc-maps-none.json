@@ -1,0 +1,33 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/mapset/NCIt_Maps_To_GDC/maps",
+  "params": {
+   "term": [
+    "C116977"
+   ],
+   "fromRecord": [
+    "0"
+   ],
+   "pageSize": [
+    "10"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "total": 0,
+   "parameters": {
+    "term": "C116977",
+    "type": "contains",
+    "include": "minimal",
+    "fromRecord": 0,
+    "pageSize": 10
+   }
+  }
+ }
+}

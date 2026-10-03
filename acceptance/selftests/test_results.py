@@ -96,3 +96,5 @@ def test_a_call_names_the_release_it_pins_or_for_cadsr_the_registry_alone():
 
     assert pinned_release("get_concept", pinned) == ("ncit", "26.09d")
     assert pinned_release("get_data_element", pinned) == ("cadsr", None)
+    # A cross-domain tool without a release names the NCIt release its content rests on.
+    assert pinned_release("resolve_stored_value", pinned) == ("ncit", "26.09d")

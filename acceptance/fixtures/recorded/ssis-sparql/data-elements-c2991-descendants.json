@@ -9,7 +9,7 @@
    "Accept": "application/sparql-results+json"
   },
   "form": {
-   "query": "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX owl: <http://www.w3.org/2002/07/owl#>\nPREFIX dc: <http://purl.org/dc/elements/1.1/>\nPREFIX mdr: <http://www.iso.org/11179/MDR#>\nPREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>\nPREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>\nSELECT DISTINCT ?id ?version ?name\nWHERE {\n  GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> {\n    ?concept rdfs:subClassOf* ncit:C2991 .\n  }\n  GRAPH <http://cbiit.nci.nih.gov/caDSR> {\n    VALUES ?role { cadsr:main_concept cadsr:minor_concept }\n    ?node ?role ?concept .\n    { VALUES ?part { mdr:Object_Class mdr:Property } ?element ?part ?node . }\n    UNION\n    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }\n    ?element cadsr:publicId ?id ;\n      mdr:version ?version ;\n      rdfs:label ?name .\n  }\n}\nORDER BY ?id ?version\nLIMIT 1001"
+   "query": "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX owl: <http://www.w3.org/2002/07/owl#>\nPREFIX dc: <http://purl.org/dc/elements/1.1/>\nPREFIX mdr: <http://www.iso.org/11179/MDR#>\nPREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>\nPREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>\nSELECT ?id ?version (MIN(?label) AS ?name)\nWHERE {\n  GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> {\n    ?concept rdfs:subClassOf* ncit:C2991 .\n  }\n  GRAPH <http://cbiit.nci.nih.gov/caDSR> {\n    VALUES ?role { cadsr:main_concept cadsr:minor_concept }\n    ?node ?role ?concept .\n    { VALUES ?part { mdr:Object_Class mdr:Property } ?element ?part ?node . }\n    UNION\n    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }\n    ?element cadsr:publicId ?id ;\n      mdr:version ?version ;\n      rdfs:label ?label .\n  }\n}\nGROUP BY ?id ?version\nORDER BY ?id ?version\nLIMIT 1001"
   }
  },
  "response": {
@@ -5452,20 +5452,6 @@
       },
       "version": {
        "type": "literal",
-       "value": "1"
-      },
-      "name": {
-       "type": "literal",
-       "value": "Protocol Deviations Domain COVID-19 Related Protocol Deviation Protocol Deviation Type"
-      }
-     },
-     {
-      "id": {
-       "type": "literal",
-       "value": "13554544"
-      },
-      "version": {
-       "type": "literal",
        "value": "2"
       },
       "name": {
@@ -5476,20 +5462,6 @@
      {
       "id": {
        "type": "literal",
-       "value": "13554544"
-      },
-      "version": {
-       "type": "literal",
-       "value": "2"
-      },
-      "name": {
-       "type": "literal",
-       "value": "Protocol Deviations Domain COVID-19 Related Protocol Deviation Protocol Deviation Type"
-      }
-     },
-     {
-      "id": {
-       "type": "literal",
        "value": "13554547"
       },
       "version": {
@@ -5508,39 +5480,11 @@
       },
       "version": {
        "type": "literal",
-       "value": "1"
-      },
-      "name": {
-       "type": "literal",
-       "value": "Protocol Deviations Domain COVID-19 Related Protocol Deviation Protocol Deviation Reason"
-      }
-     },
-     {
-      "id": {
-       "type": "literal",
-       "value": "13554547"
-      },
-      "version": {
-       "type": "literal",
        "value": "2"
       },
       "name": {
        "type": "literal",
        "value": "Covid-19 Related Deviation Reason"
-      }
-     },
-     {
-      "id": {
-       "type": "literal",
-       "value": "13554547"
-      },
-      "version": {
-       "type": "literal",
-       "value": "2"
-      },
-      "name": {
-       "type": "literal",
-       "value": "Protocol Deviations Domain COVID-19 Related Protocol Deviation Protocol Deviation Reason"
       }
      },
      {
@@ -5592,39 +5536,11 @@
       },
       "version": {
        "type": "literal",
-       "value": "1"
-      },
-      "name": {
-       "type": "literal",
-       "value": "Microbiology Specimen Domain COVID-19 Test Biospecimen Type Microbiology Specimen Type"
-      }
-     },
-     {
-      "id": {
-       "type": "literal",
-       "value": "13569524"
-      },
-      "version": {
-       "type": "literal",
        "value": "2"
       },
       "name": {
        "type": "literal",
        "value": "Covid-19 Test Specimen Type"
-      }
-     },
-     {
-      "id": {
-       "type": "literal",
-       "value": "13569524"
-      },
-      "version": {
-       "type": "literal",
-       "value": "2"
-      },
-      "name": {
-       "type": "literal",
-       "value": "Microbiology Specimen Domain COVID-19 Test Biospecimen Type Microbiology Specimen Type"
       }
      },
      {
@@ -14039,6 +13955,90 @@
       "name": {
        "type": "literal",
        "value": "Medication Pain And/Or Neuropathy Prescription"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15761338"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Chronic Hepatitis B Clinical Trial Eligibility Criteria Yes No Indicator"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15790579"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Disease or Disorder Metastasis Evidence Assessment Performed Indicator"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15846862"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Disease or Disorder Stratification Factors Tumor Suppressor Gene Alteration Status"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15846901"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Disease or Disorder Stratification Factors Timing And/Or Volume Type"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15873471"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Acute Graft Versus Host Disease Upper Gastrointestinal Tract Glucksberg Scale Maximum Grade"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15873472"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Acute Graft Versus Host Disease Lower Gastrointestinal Tract Glucksberg Scale Maximum Grade"
       }
      }
     ]

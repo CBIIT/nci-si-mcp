@@ -1,0 +1,413 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "ssis-sparql",
+  "method": "POST",
+  "path": "/sparql",
+  "headers": {
+   "Accept": "application/sparql-results+json"
+  },
+  "form": {
+   "query": "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX owl: <http://www.w3.org/2002/07/owl#>\nPREFIX dc: <http://purl.org/dc/elements/1.1/>\nPREFIX mdr: <http://www.iso.org/11179/MDR#>\nPREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>\nPREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>\nSELECT DISTINCT ?id ?version ?value ?concept\nWHERE {\n  GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> {\n    ?concept rdfs:subClassOf* ncit:C17357 .\n  }\n  GRAPH <http://cbiit.nci.nih.gov/caDSR> {\n    VALUES ?role { cadsr:main_concept cadsr:minor_concept }\n    ?node ?role ?concept .\n    ?pv cadsr:has_concept ?node ;\n      mdr:value ?value .\n    ?element mdr:permitted_value ?pv ;\n      cadsr:publicId ?id ;\n      mdr:version ?version .\n  }\n}\nORDER BY ?id ?version ?value ?concept\nLIMIT 1001"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "head": {
+    "link": [],
+    "vars": [
+     "id",
+     "version",
+     "value",
+     "concept"
+    ]
+   },
+   "results": {
+    "distinct": false,
+    "ordered": true,
+    "bindings": [
+     {
+      "id": {
+       "type": "literal",
+       "value": "10748236"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Female"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C46110"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "10748236"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Male"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C46109"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "10748236"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Non-Conforming Gender"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C154419"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14665558"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "GQ"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C154419"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14665558"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "MU"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C17357"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14940577"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Gender Variant"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C160941"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14940577"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Genderqueer"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C154419"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14940580"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Two-Spirit"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C180988"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14948174"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Two-spirit"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C180988"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14948210"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Gender variant"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C160941"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14948210"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Genderqueer"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C154419"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15089945"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Two-spirit (a term by and for Indigenous peoples)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C180988"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15089946"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Two-Spirit (a term by and for Indigenous peoples)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C180988"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15157371"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "33791000087105"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C160941"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15157371"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "446131000124102"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C154419"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "16607038"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "GENDER FLUID"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C205470"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "16607038"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "GENDER QUEER"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C154419"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6740221"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Your gender"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C17357"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6774025"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Gender Variant"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C160941"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7033544"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "GENDER VARIANT"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C160941"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7033544"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "NON-BINARY"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C154419"
+      }
+     }
+    ]
+   }
+  }
+ }
+}

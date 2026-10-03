@@ -293,14 +293,22 @@ def _ordered(body: Any, *, batch: bool) -> Any:
 
 
 def reported_releases(payload: Any) -> set[str]:
-    """Every release or version a payload reports for its content, at any depth."""
+    """Every release or version a payload reports for its content, at any depth, a SPARQL
+    result's bound value included."""
 
     if isinstance(payload, list):
         return set().union(*map(reported_releases, payload))
     if not isinstance(payload, dict):
         return set()
-    own = {str(payload[key]) for key in RELEASE_FIELDS if key in payload}
+    own = {str(bound(payload[key])) for key in RELEASE_FIELDS if key in payload}
     return own.union(*map(reported_releases, payload.values()))
+
+
+def bound(value: Any) -> Any:
+    """A value as it reads: a SPARQL result's binding ({ type, value }) by its value."""
+
+    is_binding = isinstance(value, dict) and set(value) >= {"type", "value"}
+    return value["value"] if is_binding else value
 
 
 def _served_release(document: dict[str, Any]) -> str | None:

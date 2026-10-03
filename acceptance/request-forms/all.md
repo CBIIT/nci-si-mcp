@@ -27,6 +27,7 @@ content state of its own, named in provenance and not presented as release-verif
 | OP-E24 | — | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC` | 26.09d |
 | OP-E25 | — | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=Ewing sarcoma&fromRecord=0&pageSize=10` | 26.09d |
 | OP-E25 | — | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C4817&fromRecord=0&pageSize=10` | 26.09d |
+| OP-E25 | — | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C116977&fromRecord=0&pageSize=10` | none |
 | OP-F05 | `GET evs-fhir /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492&system-version=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl\|26.09d` | `GET evs-fhir /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492` | 26.09d |
 
 ## caDSR: no registry release, and JSON only when asked for
@@ -80,6 +81,7 @@ missing argument with HTTP 200 (X-15).
 | OP-E24 | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC` | 200 | recorded | The GDC mapset, versioned by the NCIt release. | `recorded/evs/mapset-gdc.json` |
 | OP-E25 | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=Ewing sarcoma&fromRecord=0&pageSize=10` | 200 | recorded | GDC maps found by a GDC value (resolve_stored_value); term matches as a prefix. | `recorded/evs/mapset-gdc-maps-value.json` |
 | OP-E25 | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C4817&fromRecord=0&pageSize=10` | 200 | recorded | GDC maps found by an NCIt code. | `recorded/evs/mapset-gdc-maps-code.json` |
+| OP-E25 | `GET evs /api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C116977&fromRecord=0&pageSize=10` | 200 | recorded | The GDC maps of a concept GDC does not map (C116977), none: an empty answer (resolve_stored_value, X-4). | `recorded/evs/mapset-gdc-maps-none.json` |
 | OP-F05 | `GET evs-fhir /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492` | 200; ignores activeOnly, count, offset | recorded | The unpinned expansion: system-version answers 400 today; count, offset and activeOnly are ignored. | `recorded/evs-fhir/expand-c85492.json` |
 | OP-F05 | `GET evs-fhir /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492&system-version=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl\|26.09d` | 200; ignores activeOnly, count, offset | crafted for OP-F05: $expand pinned by system-version. EVS answered "Input parameter 'system-version' is not supported" (400) on 2 October 2026 | $expand pinned by system-version, as the operation inventory prescribes (OP-F05), carrying the unpinned answer. | `crafted/OP-F05/expand-c85492.json` |
 | OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElement/2200604` with `Accept: application/json` | 200 | recorded | A data element, its latest version; its permissible values are in ValueDomain.PermissibleValues, the only form of OP-C07 today (its own path answers 404). The inventory's form is /DataElement?publicId=&version=&registryRelease=. | `recorded/cadsr/data-element-2200604.json` |
@@ -115,10 +117,13 @@ missing argument with HTTP 200 (X-15).
 | OP-S02 | `GET ssis /si-api/v1/data_elements/with_specific_object_class?graph_name=http://cbiit.nci.nih.gov/caDSR&resource_name=caDSR&concept_id=C25190` with `Accept: application/json` | 200 | recorded | The data elements whose object class is Person (C25190): exactly 1,000 rows with apiResponse type S, where the caDSR graph holds 2,088. The cap is silent (A5.4), and the same 1,000 came back in another order a few minutes later. | `recorded/ssis/data-elements-of-object-class-c25190.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The release identity of the NCIt and caDSR graphs: owl:versionInfo and dc:date, two untyped dates in two formats ("September 28, 2026" and "2026-07-01"), the stand-in for OP-S03 (A3.7.1). | `recorded/ssis-sparql/graph-identities.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The data elements that use Gender (C17357) as an object class, property or permissible value concept, main or minor (find_data_elements_for_concept). | `recorded/ssis-sparql/data-elements-c17357.json` |
+| OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The data elements that use C116977, none: an empty answer (find_data_elements_for_concept, X-4). | `recorded/ssis-sparql/data-elements-c116977.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The same, over C17357 and its descendants in NCIt's hierarchy (A5.4). | `recorded/ssis-sparql/data-elements-c17357-descendants.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The same over Disease or Disorder (C2991) and its descendants: 1,001 rows, so more exist than the tool's maximum (A5.4). | `recorded/ssis-sparql/data-elements-c2991-descendants.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The concept the permissible value "Male" of 2200604 stands for: C20197 (get_concept_for_permissible_value). | `recorded/ssis-sparql/concept-of-2200604-male.json` |
-| OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The permissible values that stand for Male (C20197), with their data elements: the reverse lookup no façade operation offers. | `recorded/ssis-sparql/values-of-c20197.json` |
+| OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The permissible values whose value meaning stands for Male (C20197), each with its data element and concept: the reverse lookup no façade operation offers. | `recorded/ssis-sparql/values-c20197.json` |
+| OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The permissible values that stand for Gender (C17357): find_data_elements_for_concept with includePermissibleValues. | `recorded/ssis-sparql/values-c17357.json` |
+| OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The same over C17357 and its descendants, each value naming its concept (A5.4). | `recorded/ssis-sparql/values-c17357-descendants.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 403 | recorded | The inspection layer's refusal of a query it does not pass: HTTP 403 with an HTML body. ssis/query-rejected serves it to every query. | `recorded/ssis-sparql/query-refused.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, `Content-Type: application/sparql-query`, body as written (below) | 403 | recorded | The identity query as a direct POST (application/sparql-query, SPARQL 1.1 protocol): refused with HTTP 403 and an HTML body, so a server that asks this way gets no answer. | `recorded/ssis-sparql/graph-identities-direct.json` |
 
@@ -152,7 +157,7 @@ PREFIX dc: <http://purl.org/dc/elements/1.1/>
 PREFIX mdr: <http://www.iso.org/11179/MDR#>
 PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
 PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
-SELECT DISTINCT ?id ?version ?name
+SELECT ?id ?version (MIN(?label) AS ?name)
 WHERE {
   VALUES ?concept { ncit:C17357 }
   GRAPH <http://cbiit.nci.nih.gov/caDSR> {
@@ -163,9 +168,38 @@ WHERE {
     { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }
     ?element cadsr:publicId ?id ;
       mdr:version ?version ;
-      rdfs:label ?name .
+      rdfs:label ?label .
   }
 }
+GROUP BY ?id ?version
+ORDER BY ?id ?version
+LIMIT 1001
+```
+
+### `recorded/ssis-sparql/data-elements-c116977.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT ?id ?version (MIN(?label) AS ?name)
+WHERE {
+  VALUES ?concept { ncit:C116977 }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+    ?node ?role ?concept .
+    { VALUES ?part { mdr:Object_Class mdr:Property } ?element ?part ?node . }
+    UNION
+    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }
+    ?element cadsr:publicId ?id ;
+      mdr:version ?version ;
+      rdfs:label ?label .
+  }
+}
+GROUP BY ?id ?version
 ORDER BY ?id ?version
 LIMIT 1001
 ```
@@ -179,7 +213,7 @@ PREFIX dc: <http://purl.org/dc/elements/1.1/>
 PREFIX mdr: <http://www.iso.org/11179/MDR#>
 PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
 PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
-SELECT DISTINCT ?id ?version ?name
+SELECT ?id ?version (MIN(?label) AS ?name)
 WHERE {
   GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> {
     ?concept rdfs:subClassOf* ncit:C17357 .
@@ -192,9 +226,10 @@ WHERE {
     { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }
     ?element cadsr:publicId ?id ;
       mdr:version ?version ;
-      rdfs:label ?name .
+      rdfs:label ?label .
   }
 }
+GROUP BY ?id ?version
 ORDER BY ?id ?version
 LIMIT 1001
 ```
@@ -208,7 +243,7 @@ PREFIX dc: <http://purl.org/dc/elements/1.1/>
 PREFIX mdr: <http://www.iso.org/11179/MDR#>
 PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
 PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
-SELECT DISTINCT ?id ?version ?name
+SELECT ?id ?version (MIN(?label) AS ?name)
 WHERE {
   GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> {
     ?concept rdfs:subClassOf* ncit:C2991 .
@@ -221,9 +256,10 @@ WHERE {
     { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }
     ?element cadsr:publicId ?id ;
       mdr:version ?version ;
-      rdfs:label ?name .
+      rdfs:label ?label .
   }
 }
+GROUP BY ?id ?version
 ORDER BY ?id ?version
 LIMIT 1001
 ```
@@ -250,7 +286,7 @@ WHERE {
 }
 ```
 
-### `recorded/ssis-sparql/values-of-c20197.json`: `query`
+### `recorded/ssis-sparql/values-c20197.json`: `query`
 
 ```sparql
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -259,11 +295,12 @@ PREFIX dc: <http://purl.org/dc/elements/1.1/>
 PREFIX mdr: <http://www.iso.org/11179/MDR#>
 PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
 PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
-SELECT ?id ?version ?value
+SELECT DISTINCT ?id ?version ?value ?concept
 WHERE {
+  VALUES ?concept { ncit:C20197 }
   GRAPH <http://cbiit.nci.nih.gov/caDSR> {
     VALUES ?role { cadsr:main_concept cadsr:minor_concept }
-    ?node ?role ncit:C20197 .
+    ?node ?role ?concept .
     ?pv cadsr:has_concept ?node ;
       mdr:value ?value .
     ?element mdr:permitted_value ?pv ;
@@ -271,7 +308,61 @@ WHERE {
       mdr:version ?version .
   }
 }
-ORDER BY ?id ?version ?value
+ORDER BY ?id ?version ?value ?concept
+LIMIT 1001
+```
+
+### `recorded/ssis-sparql/values-c17357.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT DISTINCT ?id ?version ?value ?concept
+WHERE {
+  VALUES ?concept { ncit:C17357 }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+    ?node ?role ?concept .
+    ?pv cadsr:has_concept ?node ;
+      mdr:value ?value .
+    ?element mdr:permitted_value ?pv ;
+      cadsr:publicId ?id ;
+      mdr:version ?version .
+  }
+}
+ORDER BY ?id ?version ?value ?concept
+LIMIT 1001
+```
+
+### `recorded/ssis-sparql/values-c17357-descendants.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT DISTINCT ?id ?version ?value ?concept
+WHERE {
+  GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> {
+    ?concept rdfs:subClassOf* ncit:C17357 .
+  }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+    ?node ?role ?concept .
+    ?pv cadsr:has_concept ?node ;
+      mdr:value ?value .
+    ?element mdr:permitted_value ?pv ;
+      cadsr:publicId ?id ;
+      mdr:version ?version .
+  }
+}
+ORDER BY ?id ?version ?value ?concept
 LIMIT 1001
 ```
 
@@ -342,6 +433,7 @@ Each request: An unknown release answers 404 on every content path: the server f
 |---|---|---|---|
 | OP-E06 | `GET evs /api/v1/concept/ncit_99.99z/C4817?include=summary` | 404; every parameter ignored | `scenarios/release/unknown/concept.json` |
 | OP-E06 | `GET evs /api/v1/concept/ncit_99.99z?list=C4817&include=summary` | 404; every parameter ignored | `scenarios/release/unknown/concepts.json` |
+| OP-E06 | `GET evs /api/v1/concept/ncit_99.99z/C20197?include=summary` | 404; every parameter ignored | `scenarios/release/unknown/concept-c20197.json` |
 | OP-E06 | `GET evs /api/v1/concept/ncit_99.99z/C4817/parents` | 404; every parameter ignored | `scenarios/release/unknown/parents.json` |
 | OP-E06 | `GET evs /api/v1/concept/ncit_99.99z/C4817/children` | 404; every parameter ignored | `scenarios/release/unknown/children.json` |
 | OP-E06 | `GET evs /api/v1/concept/ncit_99.99z/C4817/roles` | 404; every parameter ignored | `scenarios/release/unknown/roles.json` |
@@ -363,7 +455,7 @@ Each request: An unknown release answers 404 on every content path: the server f
 
 ### `release/mismatch`
 
-Every payload that reports the pinned release names 26.08e instead, the unpinned forms included; release discovery is left as recorded. Crafted, 162 fixtures, for A3.4: the content served names another release than the one requested.
+Every payload that reports the pinned release names 26.08e instead, the unpinned forms included; release discovery is left as recorded. Crafted, 164 fixtures, for A3.4: the content served names another release than the one requested.
 
 ### `release/two-latest`
 
