@@ -11,8 +11,12 @@ A request is answered by the fixture whose surface, method, path, query paramete
 headers and body match it. Paths and values are compared decoded, the order of
 different parameters does not matter, and repeated values of one parameter keep their
 order. Bodies are compared as parsed JSON where they are JSON, and otherwise as text
-with runs of whitespace collapsed (SPARQL). A fixture without a `body` matches any
-request body. A parameter the live service is shown to ignore may be declared under
+with runs of whitespace collapsed. A form-encoded body (`Content-Type:
+application/x-www-form-urlencoded`, a SPARQL query) is compared field by field, decoded,
+each value with runs of whitespace collapsed; its fixture names it as `form`, each field
+with its text. A body is a form only where its content type says so, as the live service
+reads it. A fixture without a `body` or `form` matches any request
+body. A parameter the live service is shown to ignore may be declared under
 `ignored`, with the evidence; it is then left out of the match, and `"*"` leaves out
 every parameter (an unknown release answers 404 whatever is asked; a fault fixture
 fails whatever is asked), the fixture's `params` then only recording what was asked
@@ -30,6 +34,7 @@ A fixture is a JSON file:
       "requirement": "C-1",               # crafted: the requirement it stands in for
       "request": {"surface": "evs", "method": "GET", "path": "/api/v1/version",
                   "params": {"include": ["summary"]}, "body": "...",
+                  "form": {"query": "SELECT ..."},     # in place of body: a form
                   "headers": {"X-EVSRESTAPI-License-Key": "..."},
                   "ignored": {"count": "the evidence that the service ignores it"}},
       "response": {"status": 200, "headers": {}, "body": {...}}
@@ -119,26 +124,42 @@ SETTINGS = "settings.json"
 MANIFEST = "manifest.yaml"
 CONCEPTS = "concepts"
 RESPONSE_FIELDS = frozenset({"status", "headers", "body", "delay_seconds", "fault"})
+FORM_TYPE = "application/x-www-form-urlencoded"
 _JSON = {"Content-Type": "application/json"}
 
 type Params = dict[str, list[str]]
-type Key = tuple[
-    str, str, str, tuple[tuple[str, tuple[str, ...]], ...], tuple[tuple[str, str], ...], str | None
-]
+type Fields = tuple[tuple[str, tuple[str, ...]], ...]
+type Key = tuple[str, str, str, Fields, tuple[tuple[str, str], ...], str | Fields | None]
 type Fixtures = dict[Key, Fixture]
 type Concepts = dict[tuple[str, str], Recording]
 
 
-def body_key(body: Any) -> str | None:
-    """A body as it is compared: canonical JSON, or text with whitespace collapsed."""
+@dataclass(frozen=True, slots=True)
+class Form:
+    """A form-encoded body, decoded: each field's values."""
+
+    fields: dict[str, list[str]]
+
+
+def _collapsed(text: str) -> str:
+    return " ".join(text.split())
+
+
+def body_key(body: Any) -> str | Fields | None:
+    """A body as it is compared: a form's fields, canonical JSON, or text, with runs of
+    whitespace collapsed in text."""
 
     if body is None:
         return None
+    if isinstance(body, Form):
+        return tuple(
+            sorted((name, tuple(map(_collapsed, values))) for name, values in body.fields.items())
+        )
     if isinstance(body, str):
         try:
             body = json.loads(body)
         except ValueError:
-            return " ".join(body.split())
+            return _collapsed(body)
     return json.dumps(body, sort_keys=True, separators=(",", ":"))
 
 
@@ -224,8 +245,18 @@ def _request_problem(request: Any) -> str | None:
     return (
         _params_problem(request.get("params", {}))
         or _headers_problem(request.get("headers", {}))
+        or _form_problem(request)
         or _ignored_problem(request)
     )
+
+
+def _form_problem(request: dict[str, Any]) -> str | None:
+    form = request.get("form", {})
+    if not isinstance(form, dict) or not all(isinstance(text, str) for text in form.values()):
+        return "a form maps each field to its text"
+    if form and "body" in request:
+        return "a request has a body or a form, not both"
+    return None
 
 
 def _params_problem(params: Any) -> str | None:
@@ -300,12 +331,13 @@ def _read_fixture(path: Path, root: Path) -> tuple[Key, Fixture]:
     if problem := _problem(document):
         raise ValueError(f"{name}: {problem}")
     request = document["request"]
+    form = request.get("form")
     key = request_key(
         request["surface"],
         request["method"],
         request["path"],
         _matched_params(request),
-        request.get("body"),
+        Form({name: [text] for name, text in form.items()}) if form else request.get("body"),
         request.get("headers"),
     )
     responses = tuple(
@@ -589,7 +621,7 @@ class FixtureServer:
             self._served.clear()
 
     def _find(
-        self, path: tuple[str, str, str], params: Params, body: str, headers: dict[str, str]
+        self, path: tuple[str, str, str], params: Params, body: str | Form, headers: dict[str, str]
     ) -> Fixture | None:
         """The fixture for a request: the active scenarios' layers first, then the ordinary
         one; within a layer the most headers matched first, the exact body before any body."""
@@ -616,7 +648,7 @@ class FixtureServer:
         ]
 
     def _next(
-        self, path: tuple[str, str, str], params: Params, body: str, headers: dict[str, str]
+        self, path: tuple[str, str, str], params: Params, body: str | Form, headers: dict[str, str]
     ) -> tuple[str | None, Response | None]:
         """The fixture answering a request and its response in turn."""
 
@@ -659,7 +691,7 @@ class FixtureServer:
             where = (surface, method.upper(), path)
             left_out = _left_out(set(params), self._ignored.get(where, frozenset()))
             matched = {name: values for name, values in params.items() if name not in left_out}
-            fixture, response = self._next(where, matched, body, headers)
+            fixture, response = self._next(where, matched, _decoded(body, headers), headers)
             if fixture is None:
                 fixture, response = self._composed(where, params)
             entry |= {"headers": headers, "body": body, "fixture": fixture}
@@ -668,6 +700,16 @@ class FixtureServer:
             message = {"error": "no fixture answers this request", **entry}
             return Response(HTTPStatus.NOT_IMPLEMENTED, _JSON, message)
         return response
+
+
+def _decoded(body: str, headers: dict[str, str]) -> str | Form:
+    """A request body as it is matched: decoded into its fields where the request says it is a
+    form, as the live service reads it; any other as sent."""
+
+    kind = {name.lower(): value for name, value in headers.items()}.get("content-type", "")
+    if kind.partition(";")[0].strip().lower() != FORM_TYPE:
+        return body
+    return Form(parse_qs(body, keep_blank_values=True))
 
 
 def _handler(server: FixtureServer) -> type[BaseHTTPRequestHandler]:

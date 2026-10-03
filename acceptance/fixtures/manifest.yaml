@@ -42,6 +42,10 @@ surfaces:
   cadsr-ftp: https://cadsr.nci.nih.gov/ftp/caDSR_Downloads
   # The published contracts of the caDSR APIs, which the crafted credentialed answers follow.
   cadsr-contracts: https://cadsrapi.cancer.gov/invoke
+  # The Shared SI Service: its REST façade (/si-api/v1, beside caDSR's APIs) and its SPARQL
+  # endpoint (/sparql).
+  ssis: https://cadsrapi.cancer.gov
+  ssis-sparql: https://shared.semantics.cancer.gov
 
 # What each scenario provokes, in the order the register lists
 # them (register.py). Whether a scenario is recorded or crafted is read from its fixtures.
@@ -69,7 +73,9 @@ scenarios:
     Two members of value set C85492 are marked inactive (FHIR contains.inactive), in both
     forms of its expansion
   relationships/exclusion-missing: The role catalogue lacks R135, a code of the exclusion set
-  upstream/unavailable: Every EVS request, whatever its path, gets a closed connection, then 503, then no answer within the timeout
+  upstream/unavailable: >-
+    Every upstream request, whatever its surface and path, gets a closed connection, then 503,
+    then no answer within the timeout
   upstream/rate-limited: 429 with `Retry-After` on the release query, then the answer
   license/restricted: 403 without the licence key; invented content with it
   cadsr/with-registry-release: >-
@@ -82,6 +88,12 @@ scenarios:
   cadsr/html-for-json: >-
     A data element asked for with Accept: application/json is answered with the HTML caDSR
     sends to a request without it
+  upstream/masked-error: >-
+    Every request to the Shared SI façade and to the caDSR API is answered with HTTP 200 and an
+    apiResponse of type E, the failure each sends inside a success
+  ssis/query-rejected: >-
+    Every SPARQL query is refused by the Shared SI Service's inspection layer: HTTP 403 with an
+    HTML body
 
 record:
   requests:
@@ -515,6 +527,264 @@ record:
       surface: cadsr-ftp
       path: /CDE/XML/README
       headers: {}
+    # The Shared SI Service, recorded 3 October 2026 without credentials: its REST façade
+    # (OP-S02) and its SPARQL endpoint (OP-S01). Each answers the same cross-domain question
+    # from its own content: the caDSR graph is the export of 1 July 2026, the caDSR API is
+    # live, so their answers differ (recorded/cadsr/concept-c17357.json). Permissible values
+    # and concept links are blank nodes, whose labels change with every load: no test
+    # names them.
+    - &ssis
+      fixture: recorded/ssis/graph-names.json
+      operation: OP-S02
+      rationale: >-
+        The graphs the façade names. Neither Thesaurus.owl nor Thesaurus.rdf is among them,
+        though the SPARQL endpoint serves both.
+      surface: ssis
+      path: /si-api/v1/database/graph_names?limit=100
+      headers: {Accept: application/json}
+    - <<: *ssis
+      fixture: recorded/ssis/graph-names-html.json
+      rationale: >-
+        The same request without Accept: HTTP 200 with an HTML table, though the swagger
+        declares JSON. The fixture naming Accept answers a request that carries it; this
+        one any other (M3.2, X-15).
+      headers: {}
+    - <<: *ssis
+      fixture: recorded/ssis/graph-names-without-limit.json
+      rationale: >-
+        Without its required limit: HTTP 200 with apiResponse type E, "Error executing
+        SPARQL query" (X-15). upstream/masked-error serves this answer to well-formed
+        requests.
+      path: /si-api/v1/database/graph_names
+    - <<: *ssis
+      fixture: recorded/ssis/data-elements-of-dec-2226947.json
+      rationale: >-
+        The data elements of one data element concept, Person Sex (2226947, the concept of
+        2200604). The façade's nearest operation to a concept's data elements is keyed by
+        the DEC's public id, not by a concept code.
+      path: /si-api/v1/data_elements/with_concept_id?graph_name=http://cbiit.nci.nih.gov/caDSR&resource_name=caDSR&dec_pub_id=2226947
+    - <<: *ssis
+      fixture: recorded/ssis/data-elements-without-dec.json
+      rationale: >-
+        Without its required dec_pub_id: HTTP 200 with apiResponse type I, "No data found",
+        a missing argument answered as an empty result (X-15).
+      path: /si-api/v1/data_elements/with_concept_id?graph_name=http://cbiit.nci.nih.gov/caDSR&resource_name=caDSR
+    - <<: *ssis
+      fixture: recorded/ssis/data-elements-of-object-class-c25190.json
+      rationale: >-
+        The data elements whose object class is Person (C25190): exactly 1,000 rows with
+        apiResponse type S, where the caDSR graph holds 2,088. The cap is silent (A5.4), and
+        the same 1,000 came back in another order a few minutes later.
+      path: /si-api/v1/data_elements/with_specific_object_class?graph_name=http://cbiit.nci.nih.gov/caDSR&resource_name=caDSR&concept_id=C25190
+    # SPARQL: a form-encoded POST, its query text prescribed and matched with runs of
+    # whitespace collapsed. NCIt's hierarchy is read from Thesaurus.rdf: Thesaurus.owl
+    # runs it through anonymous restrictions (7,109 descendants of C2991 by subClassOf*,
+    # against 22,854). LIMIT is the tool's maximum + 1, so that the answer shows whether
+    # more exist. A direct POST of the query (application/sparql-query) is refused (403),
+    # and so are SERVICE and Virtuoso's OPTION (TRANSITIVE).
+    - &sparql
+      fixture: recorded/ssis-sparql/graph-identities.json
+      operation: OP-S01
+      rationale: >-
+        The release identity of the NCIt and caDSR graphs: owl:versionInfo and dc:date, two
+        untyped dates in two formats ("September 28, 2026" and "2026-07-01"), the stand-in
+        for OP-S03 (A3.7.1).
+      surface: ssis-sparql
+      method: POST
+      path: /sparql
+      headers: {Accept: application/sparql-results+json}
+      form:
+        query: &identity-query |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT ?graph ?version ?date
+          WHERE {
+            VALUES ?graph { <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> <http://cbiit.nci.nih.gov/caDSR> }
+            GRAPH ?graph {
+              ?ontology dc:date ?date .
+              OPTIONAL { ?ontology owl:versionInfo ?version }
+            }
+          }
+    - <<: *sparql
+      fixture: recorded/ssis-sparql/data-elements-c17357.json
+      rationale: >-
+        The data elements that use Gender (C17357) as an object class, property or
+        permissible value concept, main or minor (find_data_elements_for_concept).
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT DISTINCT ?id ?version ?name
+          WHERE {
+            VALUES ?concept { ncit:C17357 }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+              ?node ?role ?concept .
+              { VALUES ?part { mdr:Object_Class mdr:Property } ?element ?part ?node . }
+              UNION
+              { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }
+              ?element cadsr:publicId ?id ;
+                mdr:version ?version ;
+                rdfs:label ?name .
+            }
+          }
+          ORDER BY ?id ?version
+          LIMIT 1001
+    - <<: *sparql
+      fixture: recorded/ssis-sparql/data-elements-c17357-descendants.json
+      rationale: The same, over C17357 and its descendants in NCIt's hierarchy (A5.4).
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT DISTINCT ?id ?version ?name
+          WHERE {
+            GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> {
+              ?concept rdfs:subClassOf* ncit:C17357 .
+            }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+              ?node ?role ?concept .
+              { VALUES ?part { mdr:Object_Class mdr:Property } ?element ?part ?node . }
+              UNION
+              { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }
+              ?element cadsr:publicId ?id ;
+                mdr:version ?version ;
+                rdfs:label ?name .
+            }
+          }
+          ORDER BY ?id ?version
+          LIMIT 1001
+    - <<: *sparql
+      fixture: recorded/ssis-sparql/data-elements-c2991-descendants.json
+      rationale: >-
+        The same over Disease or Disorder (C2991) and its descendants: 1,001 rows, so more
+        exist than the tool's maximum (A5.4).
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT DISTINCT ?id ?version ?name
+          WHERE {
+            GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> {
+              ?concept rdfs:subClassOf* ncit:C2991 .
+            }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+              ?node ?role ?concept .
+              { VALUES ?part { mdr:Object_Class mdr:Property } ?element ?part ?node . }
+              UNION
+              { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }
+              ?element cadsr:publicId ?id ;
+                mdr:version ?version ;
+                rdfs:label ?name .
+            }
+          }
+          ORDER BY ?id ?version
+          LIMIT 1001
+    - <<: *sparql
+      fixture: recorded/ssis-sparql/concept-of-2200604-male.json
+      rationale: >-
+        The concept the permissible value "Male" of 2200604 stands for: C20197
+        (get_concept_for_permissible_value).
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT ?concept ?role
+          WHERE {
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+              ?element cadsr:publicId "2200604" ;
+                mdr:permitted_value ?pv .
+              ?pv mdr:value "Male" ;
+                cadsr:has_concept ?node .
+              ?node ?role ?concept .
+            }
+          }
+    - <<: *sparql
+      fixture: recorded/ssis-sparql/values-of-c20197.json
+      operation: OP-S04
+      rationale: >-
+        The permissible values that stand for Male (C20197), with their data elements: the
+        reverse lookup no façade operation offers.
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT ?id ?version ?value
+          WHERE {
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+              ?node ?role ncit:C20197 .
+              ?pv cadsr:has_concept ?node ;
+                mdr:value ?value .
+              ?element mdr:permitted_value ?pv ;
+                cadsr:publicId ?id ;
+                mdr:version ?version .
+            }
+          }
+          ORDER BY ?id ?version ?value
+          LIMIT 1001
+    - <<: *sparql
+      fixture: recorded/ssis-sparql/query-refused.json
+      rationale: >-
+        The inspection layer's refusal of a query it does not pass: HTTP 403 with an HTML
+        body. ssis/query-rejected serves it to every query.
+      status: 403
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT ?concept
+          WHERE {
+            GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> {
+              ?concept rdfs:subClassOf ?parent
+                OPTION (TRANSITIVE, t_distinct, t_in(?concept), t_out(?parent), t_max(3)) .
+              FILTER (?parent = ncit:C17357)
+            }
+          }
+    - fixture: recorded/ssis-sparql/graph-identities-direct.json
+      operation: OP-S01
+      rationale: >-
+        The identity query as a direct POST (application/sparql-query, SPARQL 1.1 protocol):
+        refused with HTTP 403 and an HTML body, so a server that asks this way gets no answer.
+      surface: ssis-sparql
+      method: POST
+      path: /sparql
+      status: 403
+      headers:
+        Accept: application/sparql-results+json
+        Content-Type: application/sparql-query
+      body: *identity-query
 
   # Crafted fixtures for the form a requirement prescribes where EVS does not yet answer
   # it, each carrying the answer of a recording: the live run shows

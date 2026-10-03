@@ -2,6 +2,7 @@
 
 import json
 from unittest import mock
+from urllib.parse import urlencode
 
 import pytest
 import yaml
@@ -446,7 +447,7 @@ def test_the_live_fetch_sends_the_method_headers_and_body_it_is_given(tmp_path):
             "surface": "cadsr",
             "method": "POST",
             "path": "/vmMatch/v1/vmMatch",
-            "headers": {"matchType": "Restricted"},
+            "headers": {"matchType": "Restricted", "Content-Type": "application/json"},
             "body": [{"name": "Male"}],
         },
         "response": {"status": 200, "body": {"matched": True}},
@@ -460,12 +461,71 @@ def test_the_live_fetch_sends_the_method_headers_and_body_it_is_given(tmp_path):
             "/vmMatch/v1/vmMatch",
             {},
             "POST",
-            {"matchType": "Restricted"},
+            {"matchType": "Restricted", "Content-Type": "application/json"},
             [{"name": "Male"}],
         )
 
         assert answer == (200, {"matched": True})
         assert "Accept" not in running.log()[0]["headers"]
+
+
+QUERY = "SELECT ?s\nWHERE { ?s ?p ?o }"
+SPARQL = {
+    "fixture": "recorded/ssis-sparql/query.json",
+    "surface": "ssis-sparql",
+    "method": "POST",
+    "path": "/sparql",
+    "headers": {"Accept": "application/sparql-results+json"},
+    "form": {"query": QUERY},
+}
+
+
+def test_a_form_is_sent_as_given_and_kept_in_its_fixture():
+    section = manifest(requests=[SPARQL])
+    answers = upstream({("ssis-sparql", "/sparql", ""): (200, {"results": {"bindings": []}})})
+
+    documents = Recorder(section, answers, "2026-10-03").record(plan(section))
+
+    sent = [call[3] for call in answers.calls if call[0] == "ssis-sparql"]
+    assert sent == [{k: SPARQL[k] for k in ("method", "headers", "form")} | {"body": None}]
+    assert documents[SPARQL["fixture"]]["request"] == {
+        key: SPARQL[key] for key in ("surface", "method", "path", "headers", "form")
+    }
+
+
+def test_the_live_fetch_sends_a_form_encoded_that_its_fixture_answers(tmp_path):
+    request = {key: SPARQL[key] for key in ("surface", "method", "path", "headers", "form")}
+    fixture = {"kind": "recorded", "recorded_on": "2026-10-03", "request": request}
+    fixture["response"] = {"status": 200, "body": {"results": {"bindings": []}}}
+    (tmp_path / "query.json").write_text(json.dumps(fixture), encoding="utf-8")
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        fetch = live_fetch({"ssis-sparql": running.base_url("ssis-sparql")})
+
+        answer = fetch("ssis-sparql", "/sparql", {}, "POST", SPARQL["headers"], form=SPARQL["form"])
+
+        assert answer == (200, {"results": {"bindings": []}})
+        (entry,) = running.log()
+        assert entry["headers"]["Content-Type"] == "application/x-www-form-urlencoded"
+        assert entry["body"] == urlencode(SPARQL["form"])
+
+
+def test_the_live_fetch_sends_a_text_body_as_written(tmp_path):
+    headers = {"Content-Type": "application/sparql-query"}
+    request = {"surface": "ssis-sparql", "method": "POST", "path": "/sparql", "headers": headers}
+    fixture = {
+        "kind": "recorded",
+        "recorded_on": "2026-10-03",
+        "request": request | {"body": QUERY},
+    }
+    fixture["response"] = {"status": 403, "body": "<html>Forbidden</html>"}
+    (tmp_path / "direct.json").write_text(json.dumps(fixture), encoding="utf-8")
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        fetch = live_fetch({"ssis-sparql": running.base_url("ssis-sparql")})
+
+        answer = fetch("ssis-sparql", "/sparql", {}, "POST", headers, QUERY)
+
+        assert answer == (403, "<html>Forbidden</html>")
+        assert running.log()[0]["body"] == QUERY
 
 
 def test_the_live_fetch_keeps_a_colon_in_a_path_as_it_is():

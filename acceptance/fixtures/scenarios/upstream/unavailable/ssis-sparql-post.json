@@ -2,7 +2,7 @@
  "kind": "crafted",
  "requirement": "A2.5, A5.3: bounded retries, counted, then a structured error",
  "request": {
-  "surface": "cadsr",
+  "surface": "ssis-sparql",
   "method": "POST",
   "path": "*",
   "ignored": {

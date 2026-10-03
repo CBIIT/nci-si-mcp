@@ -2,8 +2,8 @@
  "kind": "crafted",
  "requirement": "A2.5, A5.3: bounded retries, counted, then a structured error",
  "request": {
-  "surface": "cadsr",
-  "method": "POST",
+  "surface": "ssis",
+  "method": "GET",
   "path": "*",
   "ignored": {
    "*": "crafted: an unavailable service answers nothing"

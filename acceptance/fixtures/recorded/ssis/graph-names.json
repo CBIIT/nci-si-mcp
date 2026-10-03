@@ -1,0 +1,34 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "ssis",
+  "method": "GET",
+  "path": "/si-api/v1/database/graph_names",
+  "params": {
+   "limit": [
+    "100"
+   ]
+  },
+  "headers": {
+   "Accept": "application/json"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "graph": [
+    "http://www.openlinksw.com/schemas/virtrdf#",
+    "http://www.w3.org/ns/ldp#",
+    "http://www.geneontology.org/GO",
+    "http://ncim.nci.nih.gov/NCIMetathesaurus.rdf",
+    "http://ncicb.nci.nih.gov/xml/owl/EVS/ThesaurusInf.rdf",
+    "http://cbiit.nci.nih.gov/caDSR",
+    "http://cbiit.nci.nih.gov/srro"
+   ],
+   "apiResponse": {
+    "type": "S"
+   }
+  }
+ }
+}

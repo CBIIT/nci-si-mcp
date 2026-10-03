@@ -1,0 +1,18 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "ssis",
+  "method": "GET",
+  "path": "/si-api/v1/database/graph_names",
+  "params": {
+   "limit": [
+    "100"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": "<BODY bgcolor=\"#dddddd\">\r\n<TABLE bgcolor=\"#dddddd\" border=\"1\">\n<TR>\n<TD valign=\"top\"><B>graph</B></TD>\n<TD>\n<TABLE>\n<TR>\n<TD>http://www.openlinksw.com/schemas/virtrdf#</TD>\n</TR>\n<TR>\n<TD>http://www.w3.org/ns/ldp#</TD>\n</TR>\n<TR>\n<TD>http://www.geneontology.org/GO</TD>\n</TR>\n<TR>\n<TD>http://ncim.nci.nih.gov/NCIMetathesaurus.rdf</TD>\n</TR>\n<TR>\n<TD>http://ncicb.nci.nih.gov/xml/owl/EVS/ThesaurusInf.rdf</TD>\n</TR>\n<TR>\n<TD>http://cbiit.nci.nih.gov/caDSR</TD>\n</TR>\n<TR>\n<TD>http://cbiit.nci.nih.gov/srro</TD>\n</TR>\n</TABLE>\n</TD>\n</TR>\n<TR>\n<TD valign=\"top\"><B>apiResponse</B></TD>\n<TD><TABLE bgcolor=\"#dddddd\" border=\"1\">\n<TR>\n<TD valign=\"top\"><B>type</B></TD>\n<TD>S</TD>\n</TR>\n</TABLE>\n</TD>\n</TR>\n</TABLE>\n</BODY>\r\n"
+ }
+}

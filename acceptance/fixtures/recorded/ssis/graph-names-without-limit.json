@@ -1,0 +1,31 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "ssis",
+  "method": "GET",
+  "path": "/si-api/v1/database/graph_names",
+  "headers": {
+   "Accept": "application/json"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "graph": [],
+   "apiResponse": {
+    "type": "E",
+    "message": "Error executing SPARQL query: Failed : HTTP error code : 400",
+    "service": "SSISAdvQueries.v1.database_.services:graph_names",
+    "time": "2026/10/03 08:08:37.11",
+    "ssnid": "888b48278062455c93a2128f308566ce",
+    "callStack": [
+     {
+      "service": "SSISAdvQueries.services.utils:executeSparqlQuery",
+      "flowStep": ""
+     }
+    ]
+   }
+  }
+ }
+}

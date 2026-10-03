@@ -2,11 +2,14 @@
 
 import json
 from pathlib import Path
+from urllib.error import HTTPError
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 
 import yaml
 
 from nci_si_acceptance.craft import craft
-from nci_si_acceptance.fixture_server import load_fixtures
+from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
 from nci_si_acceptance.record import FIXTURES, plan, request_of, stale
 
 MANIFEST = yaml.safe_load((FIXTURES / "manifest.yaml").read_text(encoding="utf-8"))
@@ -84,3 +87,35 @@ def test_every_derived_fixture_names_its_requirement_and_answers_as_its_recordin
 
 def test_the_fixture_directory_is_the_packages_own():
     assert Path(__file__).parents[1] / "fixtures" == FIXTURES
+
+
+def _posted(url, entry):
+    """The status of a query request made as a server might: its text on one line, in a form
+    or as the body."""
+
+    if "form" in entry:
+        form = {name: " ".join(text.split()) for name, text in entry["form"].items()}
+        headers = entry["headers"] | {"Content-Type": "application/x-www-form-urlencoded"}
+        data = urlencode(form).encode()
+    else:
+        headers, data = entry["headers"], " ".join(entry["body"].split()).encode()
+    request = Request(url, data=data, headers=headers, method="POST")  # noqa: S310
+    try:
+        with urlopen(request, timeout=10) as response:  # noqa: S310 - the local fixture server
+            return response.status
+    except HTTPError as error:
+        return error.code
+
+
+def test_each_published_query_is_answered_by_its_recording_whatever_its_whitespace():
+    # Asked in a form as prescribed, or posted directly, which the live endpoint refuses.
+    forms = [entry for entry in MANIFEST["record"]["requests"] if entry["surface"] == "ssis-sparql"]
+    with FixtureServer(load_fixtures(FIXTURES)) as running:
+        statuses = [
+            _posted(running.base_url(entry["surface"]) + entry["path"], entry) for entry in forms
+        ]
+        answered = [entry["fixture"] for entry in running.log()]
+
+    assert {"form", "body"} <= {key for entry in forms for key in entry}
+    assert statuses == [entry.get("status", 200) for entry in forms]
+    assert answered == [entry["fixture"] for entry in forms]

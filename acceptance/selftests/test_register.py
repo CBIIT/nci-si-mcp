@@ -180,3 +180,23 @@ def test_a_form_shows_the_method_headers_and_body_it_is_made_with():
         'body `[{"name": "Male"}]` |'
     )
     assert "`GET cadsr /NCIAPI/1.0/api/DataElement/2200604` with no header |" in html[0]
+
+
+def test_the_shared_si_view_publishes_each_query_text_its_request_carries():
+    queries = VIEWS["ssis.md"].partition("## Query texts")[2]
+    # In a form's query field, or as the body of a direct POST.
+    texts = [
+        (entry["fixture"], name, text)
+        for entry in MANIFEST["record"]["requests"]
+        if entry["surface"] == "ssis-sparql"
+        for name, text in (entry.get("form") or {"body": entry["body"]}).items()
+    ]
+
+    assert {name for _, name, _ in texts} == {"query", "body"}
+    assert all(
+        f"### `{fixture}`: `{name}`\n\n```sparql\n{text}\n```" in queries
+        for fixture, name, text in texts
+    )
+    assert "## Shared SI: graph identities, and the query text" in VIEWS["ssis.md"]
+    assert "## Query texts" not in VIEWS["cadsr.md"]
+    assert "/si-api/v1/" not in VIEWS["evs.md"]

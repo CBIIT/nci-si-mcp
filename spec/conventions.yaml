@@ -13,7 +13,7 @@ A1:
     A1.4: Neither module needs the other to be present to work.
     A1.5: Content obtained from the Shared Semantic Infrastructure Service says so in its provenance, with the release identity of both source graphs.
   why:
-    A1.5: The Shared SI Service's NCIt and caDSR graphs are refreshed on independent schedules and were two months apart when last checked, so a result joined across them describes two content states.
+    A1.5: The Shared SI Service's NCIt and caDSR graphs are refreshed on independent schedules and were 89 days apart on 3 October 2026 (NCIt 26.09d of 28 September, the caDSR export of 1 July), so a result joined across them describes two content states.
 A2:
   title: Tool schema conventions
   rules:
@@ -38,7 +38,7 @@ A3:
     A3.6.1: The NCIt release is resolved by tag (monthly), never by the latest flag.
     A3.6.2: Monthly and weekly builds are told apart by tag, and the choice is explicit in configuration.
     A3.6.3: A release with conflicting or duplicate tags fails closed and is reported in a form fit to send upstream.
-    A3.7.1: A query of the Shared SI Service reports the release identity of each graph it touched (owl:versionInfo and dc:date of the NCIt graph, dc:date of the caDSR graph) and the interval between them, and warns rather than fails above a configured threshold.
+    A3.7.1: A query of the Shared SI Service reports the release identity of each graph it touched (owl:versionInfo and dc:date of the NCIt graph, dc:date of the caDSR graph) and the interval between them, and warns rather than fails when the interval exceeds a threshold (get_release_alignment's maxIntervalDays).
     A3.8.1: caDSR publishes no registry release identifier, and none is implied; a data element's version is never presented as the registry's state.
     A3.8.2: Until a registry release identifier exists, the most specific provenance the platform gives (a generation timestamp) is surfaced, and registry-level reproducibility is documented as not achievable.
     A3.8.3: Every data element is returned with its own version and registration status.

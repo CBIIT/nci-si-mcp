@@ -6,7 +6,7 @@ The government furnishes an initial form for every platform operation the tools 
 on: from the published API documentation and what was verified live where the
 operation exists, and a draft naming its requirement where it does not. The manifest
 holds each form with its operation and rationale; this writes the readable register
-from it, one view for the EVS team, one for the caDSR team, and one for both
+from it, one view for each team (EVS, caDSR, the Shared SI Service) and one for all
 (`acceptance/request-forms/`). A self-test fails when the files are not current.
 """
 
@@ -26,10 +26,12 @@ from nci_si_acceptance.record import DISCOVERY, FIXTURES, reported_releases
 
 REGISTER = FIXTURES.parent / "request-forms"
 EVS_SURFACES, CADSR_SURFACES = {"evs", "evs-fhir"}, {"cadsr", "cadsr-ftp"}
+SSIS_SURFACES = {"ssis", "ssis-sparql"}
 VIEWS = {
     "evs": ("the EVS team", EVS_SURFACES),
     "cadsr": ("the caDSR team", CADSR_SURFACES),
-    "all": ("both teams", None),
+    "ssis": ("the Shared SI team", SSIS_SURFACES),
+    "all": ("every team", None),
 }
 FALLBACK_HEADER = (
     "| Operation | Prescribed form (crafted) | Served form (recorded) | Release reported |"
@@ -42,8 +44,8 @@ The upstream requests the acceptance suite's fixtures answer, each with the plat
 serves (its `OP-` id in the programme's operation inventory, or the requirement where the
 operation is missing) and why
 it has this form. They are initial versions, from the published API documentation and live checks
-where the operation exists and a draft where it does not, furnished for the EVS and caDSR teams to
-refine as needed, each change with the approval of the branch chief or a delegate.
+where the operation exists and a draft where it does not, furnished for the EVS, caDSR and Shared SI
+teams to refine as needed, each change with the approval of the branch chief or a delegate.
 
 Two kinds of request are answered whatever their form: EVS concept requests, by rules over one
 recording per concept (below), and requests whose parameters the service is shown to ignore.
@@ -80,6 +82,18 @@ contracts prescribe (M3.2): without it the API answers HTTP 200 with HTML, recor
 and the fixture naming the most headers a request carries answers it. A refusal of the arguments
 and an unknown data element both come back as HTTP 200, with `apiResponse` saying so (X-15).
 """
+SSIS = """\
+## Shared SI: graph identities, and the query text
+
+The Shared SI Service names no release (S-1, S-2): the NCIt and caDSR graphs each carry an
+untyped `dc:date`, in two formats, and only NCIt an `owl:versionInfo`; the identity query below
+reads them (A3.7.1). For the SPARQL endpoint the suite prescribes the query text: each query
+below is matched with runs of whitespace collapsed, sent as a form-encoded POST (a direct POST
+of the query is refused) asking for `application/sparql-results+json`. Its `LIMIT` is the tool's
+maximum + 1, so that the answer shows whether more exist. A team may propose another form here,
+as for every form. The façade answers HTML unless `Accept: application/json` is sent, and a
+missing argument with HTTP 200 (X-15).
+"""
 FALLBACK = """\
 ## Operations without a pinned form upstream
 
@@ -99,9 +113,18 @@ def _split_form(entry: dict[str, Any]) -> str:
     if "headers" in entry:
         named = ", ".join(f"`{name}: {value}`" for name, value in entry["headers"].items())
         form += f" with {named}" if named else " with no header"
-    if "body" in entry:
-        form += f", body `{json.dumps(entry['body'])}`"
-    return _cell(form)
+    return _cell(form + _payload(entry))
+
+
+def _payload(entry: dict[str, Any]) -> str:
+    """What a request carries besides its headers: a JSON body, shown here, or a form's
+    fields or a text body, whose texts the register lists below."""
+
+    if "form" in entry:
+        return f", form {', '.join(f'`{name}`' for name in entry['form'])} (below)"
+    if isinstance(entry.get("body"), str):
+        return ", body as written (below)"
+    return f", body `{json.dumps(entry['body'])}`" if "body" in entry else ""
 
 
 def _expected(entry: dict[str, Any]) -> str:
@@ -261,15 +284,36 @@ def _scenarios(manifest: dict[str, Any], root: Path, surfaces: set[str] | None) 
     return lines or ["None yet.", ""]
 
 
+def _texts(entry: dict[str, Any]) -> dict[str, str]:
+    """The texts a request carries: each field of its form, or its body where that is text."""
+
+    body = entry.get("body")
+    return entry.get("form", {}) | ({"body": body} if isinstance(body, str) else {})
+
+
+def _queries(manifest: dict[str, Any], surfaces: set[str] | None) -> list[str]:
+    """The text of each request that carries one (the SPARQL queries), by fixture."""
+
+    lines = []
+    for entry in manifest["record"].get("requests", []):
+        if not _shown(entry, surfaces):
+            continue
+        for name, text in _texts(entry).items():
+            lines += [f"### `{entry['fixture']}`: `{name}`", "", "```sparql", text, "```", ""]
+    return ["## Query texts", "", *lines] if lines else []
+
+
 def _release_sections(manifest: dict[str, Any], root: Path, surfaces: set[str] | None) -> list[str]:
-    """What a view asks of its team on releases: the EVS operations served unpinned, and
-    caDSR's want of a registry release."""
+    """What a view asks of its team on releases: the EVS operations served unpinned, caDSR's
+    want of a registry release, and the Shared SI graphs' identities."""
 
     lines = []
     if surfaces is None or surfaces & EVS_SURFACES:
         lines += [FALLBACK, *_table(FALLBACK_HEADER, _fallback_rows(manifest, root, surfaces))]
     if surfaces is None or surfaces & CADSR_SURFACES:
         lines.append(CADSR)
+    if surfaces is None or surfaces & SSIS_SURFACES:
+        lines.append(SSIS)
     return lines
 
 
@@ -290,6 +334,7 @@ def render(root: Path = FIXTURES) -> dict[str, str]:
             "## Requests",
             "",
             *_table(REQUESTS_HEADER, _request_rows(manifest, surfaces)),
+            *_queries(manifest, surfaces),
         ]
         if surfaces is None or "evs" in surfaces:
             lines.append(RULES)

@@ -35,7 +35,7 @@ timeout or a log level sets it.
 |---|---|---|
 | `NCI_SI_UPSTREAM_MODE` | Always | `fixture` or `live` |
 | `NCI_SI_DATA_DIR` | Always | A directory of the server's own, fresh for each server; a copy of the prepare command's where one is given |
-| `NCI_SI_EVS_BASE_URL`, `NCI_SI_EVS_FHIR_BASE_URL`, `NCI_SI_CADSR_BASE_URL`, `NCI_SI_CADSR_FTP_URL`, `NCI_SI_SSIS_FACADE_URL`, `NCI_SI_SSIS_SPARQL_URL` | Fixture mode | A base URL, to which the server adds the platform's own paths as it does to the production one (`…/evs` + `/api/v1/…`; `…/cadsr` + `/NCIAPI/1.0/api/…`) |
+| `NCI_SI_EVS_BASE_URL`, `NCI_SI_EVS_FHIR_BASE_URL`, `NCI_SI_CADSR_BASE_URL`, `NCI_SI_CADSR_FTP_URL`, `NCI_SI_SSIS_FACADE_URL`, `NCI_SI_SSIS_SPARQL_URL` | Fixture mode | A base URL, to which the server adds the platform's own paths as it does to the production one (`…/evs` + `/api/v1/…`; `…/cadsr` + `/NCIAPI/1.0/api/…`; `…/ssis` + `/si-api/v1/…`; `…/ssis-sparql` + `/sparql`) |
 | `NCI_SI_EVS_LICENSE_KEY` | Live mode, from the operator; the `license/restricted` scenario | The key, sent as the `X-EVSRESTAPI-License-Key` header, only with licensed content |
 | `NCI_SI_CADSR_CREDENTIAL` | Live mode, from the operator; the `cadsr/credentialed` and `cadsr/match-timeout` scenarios | `user:password`, sent as HTTP Basic authentication (`Authorization: Basic` and its base64), as every caDSR contract declares |
 | `NCI_SI_TIMEOUT_SECONDS` | The `upstream/unavailable` scenario | Seconds an upstream request may take |
@@ -57,7 +57,10 @@ timeout error, the index release in provenance, correlation, and no secret in a 
 Changes to this specification, the suite, the fixture set and the request forms follow a
 versioned change request, an impact assessment and the written approval of the branch chief or
 a delegate, from the furnished tag. The request forms, prompt templates and resource definitions
-are furnished as initial versions for the EVS and caDSR teams to refine through that record.
+are furnished as initial versions for the EVS, caDSR and Shared SI teams to refine through that
+record. For the Shared SI Service's SPARQL endpoint the request form prescribes the query text,
+matched with runs of whitespace collapsed; a team may propose another form through the register,
+as for every form.
 The suite and the fixture set are versioned independently. A contractor may propose a test, but
 may not substitute its own tests for the suite as the basis of acceptance.
 Every suite test cites the requirements it enforces, and at the furnished tag every requirement

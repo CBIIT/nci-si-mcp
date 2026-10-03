@@ -51,13 +51,14 @@ and the tests of each group follow. The
 
 ## Start here
 
-- **The EVS and caDSR teams**: [docs/specification.md](docs/specification.md) specifies the
+- **The EVS, caDSR and Shared SI teams**: [docs/specification.md](docs/specification.md) specifies the
   required tools and their behaviour (rendered from `spec/`); [docs/SPEC.md](docs/SPEC.md) plans
   the work, phase by phase;
   [acceptance/README.md](acceptance/README.md) runs the suite against your server and renders the
   per-tool report; the upstream requests the tools rest on, each with its operation and
   rationale, are listed for [EVS](acceptance/request-forms/evs.md), for
-  [caDSR](acceptance/request-forms/cadsr.md) and for [both](acceptance/request-forms/all.md).
+  [caDSR](acceptance/request-forms/cadsr.md), for the
+  [Shared SI Service](acceptance/request-forms/ssis.md) and for [all](acceptance/request-forms/all.md).
 - **NCI reviewers and the suite's maintainers**: [acceptance/README.md](acceptance/README.md) and
   [acceptance/fixtures/README.md](acceptance/fixtures/README.md), where the fixtures come from.
 - **Working on this repository**: [CONTRIBUTING.md](CONTRIBUTING.md) for the commands, standards

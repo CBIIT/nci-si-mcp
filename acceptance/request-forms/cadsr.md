@@ -6,8 +6,8 @@ The upstream requests the acceptance suite's fixtures answer, each with the plat
 serves (its `OP-` id in the programme's operation inventory, or the requirement where the
 operation is missing) and why
 it has this form. They are initial versions, from the published API documentation and live checks
-where the operation exists and a draft where it does not, furnished for the EVS and caDSR teams to
-refine as needed, each change with the approval of the branch chief or a delegate.
+where the operation exists and a draft where it does not, furnished for the EVS, caDSR and Shared SI
+teams to refine as needed, each change with the approval of the branch chief or a delegate.
 
 Two kinds of request are answered whatever their form: EVS concept requests, by rules over one
 recording per concept (below), and requests whose parameters the service is shown to ignore.
@@ -59,7 +59,7 @@ answers the ordinary forms above.
 
 ### `upstream/unavailable`
 
-Every EVS request, whatever its path, gets a closed connection, then 503, then no answer within the timeout. Crafted, 5 fixtures, for A2.5, A5.3: bounded retries, counted, then a structured error.
+Every upstream request, whatever its surface and path, gets a closed connection, then 503, then no answer within the timeout. Crafted, 7 fixtures, for A2.5, A5.3: bounded retries, counted, then a structured error.
 
 ### `upstream/rate-limited`
 
@@ -80,3 +80,7 @@ vmMatch answers later than the match timeout the scenario sets. Crafted, 1 fixtu
 ### `cadsr/html-for-json`
 
 A data element asked for with Accept: application/json is answered with the HTML caDSR sends to a request without it. Crafted, 1 fixture, for X-15: HTML where JSON was asked for is an upstream error.
+
+### `upstream/masked-error`
+
+Every request to the Shared SI façade and to the caDSR API is answered with HTTP 200 and an apiResponse of type E, the failure each sends inside a success. Crafted, 2 fixtures, for X-15: an error envelope in an HTTP 200 is an upstream error.

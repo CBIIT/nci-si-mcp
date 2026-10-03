@@ -6,7 +6,7 @@
   "method": "GET",
   "path": "*",
   "ignored": {
-   "*": "crafted: an unavailable service answers no request at all"
+   "*": "crafted: an unavailable service answers nothing"
   }
  },
  "responses": [

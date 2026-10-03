@@ -252,6 +252,8 @@ def test_unavailable_closes_then_fails_then_outlasts_the_servers_timeout():
         ("cadsr", "GET"),
         ("cadsr", "POST"),
         ("cadsr-ftp", "GET"),
+        ("ssis", "GET"),
+        ("ssis-sparql", "POST"),
     }
     for file, doc in scenario("upstream/unavailable").items():
         if file.endswith("settings.json"):

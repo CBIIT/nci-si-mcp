@@ -8,7 +8,8 @@ service does not produce on demand (and which requirement it stands in for).
 - `manifest.yaml`: the pinned release (NCIt `ncit_26.09d`), the concept rules, what each
   scenario provokes, and every request `pdm run acceptance-record` records, with its operation and rationale.
 - `recorded/<surface>/`: captured from the live service by `acceptance-record` (EVS and its FHIR
-  surface, the caDSR APIs and the caDSR export folder); concepts in `recorded/evs/concepts/`.
+  surface, the caDSR APIs and the caDSR export folder, the Shared SI façade and SPARQL
+  endpoint); concepts in `recorded/evs/concepts/`.
 - `crafted/<requirement>/`: the form a requirement prescribes where the service does not answer
   it yet, carrying a recording's answer (`acceptance-record`, the manifest's `derived`), or
   crafted outright (`acceptance-craft`: caDSR's capped keyword search).
@@ -44,8 +45,8 @@ is slow (a concept query 24 s, the CRDC list 29 s), and the set leaves out what 
 
 The fixture set constrains the form of an upstream request only where the specification
 prescribes it: the release-pinned path, the batch endpoint in place of one request per concept,
-the one-row release query, `Accept: application/json`, the licence key and the caDSR
-credentials. Elsewhere it answers any form a fixture records.
+the one-row release query, `Accept: application/json`, the licence key, the caDSR
+credentials and the text of a SPARQL query. Elsewhere it answers any form a fixture records.
 
 caDSR's own behaviour is in the ordinary fixtures, with no scenario of its own:
 
@@ -68,8 +69,25 @@ caDSR's own behaviour is in the ordinary fixtures, with no scenario of its own:
   tests report PASS (fixture only); with credentials the recorder records the answers instead,
   taking the credential from the operator's environment and writing it into no fixture.
 
+The Shared SI Service's behaviour is in the ordinary fixtures too:
+
+- **The same question on each surface.** A concept's data elements are recorded from the caDSR
+  API, and from SPARQL over the caDSR graph, the export of 1 July 2026; the answers differ, and
+  a test checks an answer against the surface its provenance names, never one surface against
+  another. The façade has no operation keyed by a concept code.
+- **The query text is the form.** A SPARQL query is a form-encoded POST whose text the register
+  publishes; the fixture server matches it with runs of whitespace collapsed. A body is a form
+  only where its content type says so, as the endpoint reads it, and a direct POST
+  (`application/sparql-query`) gets the 403 the endpoint answered it with, recorded.
+- **Failures inside HTTP 200.** The façade answers a missing argument with apiResponse type E or
+  I, and HTML without `Accept: application/json`, all recorded; `upstream/masked-error` serves
+  the failure to every façade and caDSR request, and `ssis/query-rejected` the inspection
+  layer's HTML 403 to every query (X-15).
+- **Blank nodes.** Permissible values and concept links are blank nodes, whose labels change with
+  each load; a test identifies a data element by public id and version, a value by its text.
+
 The register of request forms, generated from the manifest, is written for the service teams, in
-a view for the EVS team, one for the caDSR team and one for both:
+a view for each team (EVS, caDSR, the Shared SI Service) and one for all:
 [`../request-forms/`](../request-forms/). It opens with the operations without a pinned form
 upstream, with the release each payload reports; then lists every ordinary request with the
 platform operation it serves (its `OP-` id, from `operations.yaml` of the programme's platform

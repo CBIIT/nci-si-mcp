@@ -57,6 +57,8 @@ OUTAGE = (
     ("cadsr", "GET"),
     ("cadsr", "POST"),
     ("cadsr-ftp", "GET"),
+    ("ssis", "GET"),
+    ("ssis-sparql", "POST"),
 )
 # caDSR credentials as NCI_SI_CADSR_CREDENTIAL holds them, user:password, sent as HTTP Basic.
 CADSR_CREDENTIAL = "acceptance:credential"
@@ -379,7 +381,7 @@ def _hub(code: str, name: str, role_targets: list, associated: list) -> dict[str
 
 
 def upstream_unavailable(_: Recorded) -> Documents:
-    """Every request to an EVS or caDSR surface, whatever its path: a refused connection (as near
+    """Every request to an upstream surface, whatever its path: a refused connection (as near
     as a fixture can: closed), then 503, then no answer at all, the connection held past the
     server's timeout and closed, the last repeating."""
 
@@ -392,14 +394,9 @@ def upstream_unavailable(_: Recorded) -> Documents:
     documents: Documents = {
         "scenarios/upstream/unavailable/settings.json": {"NCI_SI_TIMEOUT_SECONDS": "1"}
     }
-    # caDSR's match services are asked with POST.
+    # caDSR's match services and SPARQL are asked with POST.
     for surface, method in OUTAGE:
-        request = {
-            "surface": surface,
-            "method": method,
-            "path": EVERY_PATH,
-            "ignored": {"*": "crafted: an unavailable service answers no request at all"},
-        }
+        request = _every_request(surface, method, "an unavailable service answers nothing")
         name = surface if method == "GET" else f"{surface}-{method.lower()}"
         documents[f"scenarios/upstream/unavailable/{name}.json"] = crafted(
             requirement, request, responses=responses
@@ -774,6 +771,51 @@ def cadsr_html_for_json(recorded: Recorded) -> Documents:
     }
 
 
+def _every_request(surface: str, method: str, why: str) -> dict[str, Any]:
+    """A scenario request that answers every path of a surface and method (fixture_server.py)."""
+
+    return {
+        "surface": surface,
+        "method": method,
+        "path": EVERY_PATH,
+        "ignored": {"*": f"crafted: {why}"},
+    }
+
+
+def upstream_masked_error(recorded: Recorded) -> Documents:
+    """Every request to the Shared SI façade and to the caDSR API answered with the failure
+    each sends inside HTTP 200, apiResponse type E: the façade's to a request without its
+    required limit, caDSR's to a public id that is no number. A server reports an upstream
+    error whichever it asks, never content parsed from the envelope (X-15)."""
+
+    requirement = "X-15: an error envelope in an HTTP 200 is an upstream error"
+    masked = {
+        "ssis": "recorded/ssis/graph-names-without-limit.json",
+        "cadsr": "recorded/cadsr/data-element-refused.json",
+    }
+    return {
+        f"scenarios/upstream/masked-error/{surface}.json": crafted(
+            requirement,
+            _every_request(surface, "GET", "every request is answered with the failure"),
+            response=recorded(file)["response"],
+        )
+        for surface, file in masked.items()
+    }
+
+
+def ssis_query_rejected(recorded: Recorded) -> Documents:
+    """Every SPARQL query refused by the inspection layer in front of the endpoint, with the
+    HTML it sends: a server reports an upstream error, never an empty result (X-15)."""
+
+    refusal = recorded("recorded/ssis-sparql/query-refused.json")["response"]
+    request = _every_request("ssis-sparql", "POST", "the inspection layer refuses every query")
+    return {
+        "scenarios/ssis/query-rejected/sparql.json": crafted(
+            "X-15: HTML where JSON was asked for is an upstream error", request, response=refusal
+        )
+    }
+
+
 def cadsr_over_cap(_: Recorded) -> Documents:
     """A keyword search, in the inventory's form (OP-C03), answered with as many data
     elements as the contract's cap allows and no sign that more exist: the server reports
@@ -831,6 +873,8 @@ SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     cadsr_over_cap,
     cadsr_html_for_json,
     cadsr_match_without_a_concept,
+    upstream_masked_error,
+    ssis_query_rejected,
 )
 
 
