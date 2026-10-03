@@ -37,6 +37,7 @@ DEFECTS = [
     ("release-optional", P12),
     ("quotes-not-offered", P11),
     ("lists-not-offered", P11),
+    ("patterns-not-offered", P11),
 ]
 
 

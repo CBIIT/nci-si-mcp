@@ -609,8 +609,9 @@ BOUNDED = [
 
 @pytest.mark.requirement("X-18")
 @pytest.mark.parametrize(("name", "argument"), BOUNDED)
-def test_a_bounded_argument_below_one_is_an_invalid_request(tools, pinned, name, argument):
-    result = _call(tools, pinned, name, CALLS[name]["arguments"] | {argument: 0})
+@pytest.mark.parametrize("value", [0, -1])
+def test_a_bounded_argument_below_one_is_an_invalid_request(tools, pinned, name, argument, value):
+    result = _call(tools, pinned, name, CALLS[name]["arguments"] | {argument: value})
 
     assert error_code(result) == "invalid_request", result.content
 

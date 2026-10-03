@@ -19,8 +19,9 @@ requirements, for the harness's own tests.
     closed-world      openWorldHint false                                           (P-10)
     parameter-renamed get_concept takes conceptCode in place of code                (P-12)
     release-optional  get_concept does not require release                          (P-12)
-    quotes-not-offered a description that names a value not offered in backticks   (P-11)
+    quotes-not-offered a description that assigns a value not offered in backticks (P-11)
     lists-not-offered an input schema whose enum holds a value not offered          (P-11)
+    patterns-not-offered an input schema whose pattern admits a value not offered   (P-11)
     wrong-release     items name another release than the one requested             (X-1)
     wrong-terminology items name another terminology than the one requested         (X-1)
     invalid-result    a result its outputSchema refuses                             (X-6)
@@ -198,7 +199,10 @@ def _input_schema(name: str) -> dict:
         names, required = names - {"code"} | {"conceptCode"}, required - {"code"} | {"conceptCode"}
     if DEFECT == "release-optional" and name == "get_concept":
         required -= {"release"}
-    listed = {"enum": _not_offered(name)} if DEFECT == "lists-not-offered" else {}
+    listed = {
+        "lists-not-offered": {"enum": _not_offered(name)},
+        "patterns-not-offered": {"pattern": f"^({'|'.join(_not_offered(name))})$"},
+    }.get(DEFECT, {})
     return {
         "type": "object",
         "properties": {key: dict(listed) for key in names},
@@ -231,8 +235,9 @@ def _description(name: str) -> str:
         return "TODO"
     when = " Called before." if DEFECT == "redescribed" and reached else ""
     # What the tool does not offer may be said in words, never shown as a value (P-11).
-    mark = "`" if DEFECT == "quotes-not-offered" else ""
-    lacking = "".join(f" It does not offer {mark}{value}{mark}." for value in _not_offered(name))
+    lacking = "".join(f" It does not offer {value}." for value in _not_offered(name))
+    if DEFECT == "quotes-not-offered":
+        lacking = "".join(f" Try `key={value}`." for value in _not_offered(name))
     return f"The {name} tool of EVS.{when}{lacking}"
 
 

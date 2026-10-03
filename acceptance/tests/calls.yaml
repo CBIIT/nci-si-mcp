@@ -41,9 +41,9 @@ search_concepts:
   paged:
     - arguments: {}
       changed: [{retired: only}, {limit: 5}, {query: ewing}, {mode: typeahead}]
-    - arguments: {mode: semantic}   # the index's 133 concepts against a page of 10
+    - arguments: {mode: semantic}   # every indexed concept ranked (search_concepts-3), a page of 10
       prepared: true
-      changed: [{mode: hybrid}, {query: ewing}, {limit: 5}]
+      changed: [{mode: hybrid}, {retired: only}, {query: ewing}, {limit: 5}]
 get_concept_hierarchy:
   arguments: {code: C4817, direction: parent}
   unversioned: true

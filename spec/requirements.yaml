@@ -120,6 +120,7 @@ X-18:
 X-19:
   statement: An item of a terminology whose listing row carries licence text carries that text as its attribution.
   basis: [A7.3, provenance]
+  planned: "#52"
 X-20:
   statement: A call that leaves out an optional argument with a stated default returns what the call that gives the default returns.
   basis: [A5.1, M6.1]
@@ -159,7 +160,7 @@ search_concepts-2:
   statement: typeahead returns the platform's prefix matches in the platform's order, with neither matchedOn nor score, since the platform gives neither.
   basis: [search_concepts, search_result, A9.2]
 search_concepts-3:
-  statement: semantic and hybrid return concepts of the interim index, each with a score, in descending order of score, matchedOn naming the field matched (name, synonym or definition), and provenance naming the index's release, with source evs_index and servedBy index; a query equal to a concept's preferred name returns that concept on the first page. The suite does not judge score values, the order beyond that, or which other concepts semantic search returns.
+  statement: semantic and hybrid return concepts of the interim index, each with a score, in descending order of score, matchedOn naming the field matched (name, synonym or definition), and provenance naming the index's release, with source evs_index and servedBy index; a query equal to a concept's preferred name returns that concept on the first page. They rank every indexed concept of the terminology, with no score threshold, so totalKnown is the size of the index set; the page and the cursor bound what is returned. The suite does not judge score values, the order beyond that, or which other concepts semantic search returns.
   basis: [search_concepts, search_result, provenance, M4.1]
 search_concepts-4:
   statement: A mode the server cannot serve for the terminology asked is an invalid request, never an empty result.

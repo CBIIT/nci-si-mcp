@@ -465,10 +465,13 @@ def test_index_search_returns_scored_indexed_concepts_and_the_named_one_first_pa
     name = recorded(CURRENT)["response"]["body"]["name"]
     assert CONCEPT in INDEX_SET
 
-    results = _index_results(_index_search(tools, pinned, name, mode))
+    result = _index_search(tools, pinned, name, mode)
 
+    results = _index_results(result)
     assert _index_violations(results, pinned) == []
     assert len(results) <= INDEX_LIMIT
+    # Every indexed concept is ranked; the page bounds what is returned, no score threshold.
+    assert result.content.get("totalKnown") == len(INDEX_SET)
     scores = [entry["score"] for entry in results]
     assert scores == sorted(scores, reverse=True)
     # A query equal to a concept's preferred name: that concept on the first page, matched on
@@ -477,6 +480,28 @@ def test_index_search_returns_scored_indexed_concepts_and_the_named_one_first_pa
         (entry.get("concept") or {}).get("code"): entry.get("matchedOn") for entry in results
     }
     assert matched.get(CONCEPT) == "name"
+
+
+def _indexed_codes(result):
+    return [(entry.get("concept") or {}).get("code") for entry in _index_results(result)]
+
+
+@pytest.mark.prepared
+@pytest.mark.tool("search_concepts")
+@pytest.mark.requirement("X-17", "search_concepts-3")
+@pytest.mark.parametrize("mode", INDEX_MODES)
+def test_an_index_search_s_cursor_continues_with_its_next_ranked_items(
+    tools, pinned, recorded, mode
+):
+    name = recorded(CURRENT)["response"]["body"]["name"]
+    first = _index_search(tools, pinned, name, mode)
+    cursor = first.content.get("nextCursor")
+    assert cursor, "no nextCursor"
+
+    second = _index_search(tools, pinned, name, mode, cursor=cursor)
+    both = _index_search(tools, pinned, name, mode, limit=2 * INDEX_LIMIT)
+
+    assert _indexed_codes(first) + _indexed_codes(second) == _indexed_codes(both)
 
 
 @pytest.mark.tool("search_concepts")
@@ -801,8 +826,13 @@ def test_budget_per_kind_bounds_the_nodes_each_kind_adds(tools, pinned, recorded
     # The hubs' kinds share targets: those only the large kind reaches are the nodes it added.
     small = set().union(*(found for kind, found in targets.items() if kind != large))
     assert len(targets[large] - small) <= budget
-    per_kind = (result.content.get("truncation") or {}).get("perKind") or {}
+    nodes = set(_codes_of(result.content.get("nodes", [])))
+    assert len(nodes - small - {code}) <= budget
+    truncation = result.content.get("truncation") or {}
+    assert truncation.get("occurred") is True
+    per_kind = truncation.get("perKind") or {}
     assert {kind for kind, record in per_kind.items() if record.get("occurred")} == {large}
+    assert (per_kind[large].get("bound"), per_kind[large].get("limit")) == ("kind_budget", budget)
 
 
 TRAVERSALS = [
