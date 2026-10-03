@@ -4,10 +4,10 @@
 
 Every request the manifest lists under `record.requests` is made live, without a licence
 key or credentials, and becomes a recorded fixture, dated today. A request is a GET with
-`Accept: application/json` unless its entry gives a `method`, a JSON `body` or a `form`
-(sent form-encoded: a SPARQL query) and the `headers` to send: those it gives are sent
-alone and are part of the fixture, so that the fixture server answers only a request that
-carries them. Each concept under
+`Accept: application/json` unless its entry gives a `method`, a `body` (JSON, or text sent
+as written) or a `form` (sent form-encoded: a SPARQL query), and the `headers` to send:
+those it gives are sent alone and are part of the fixture, so that the fixture server
+answers only a request that carries them. Each concept under
 `record.concepts` is recorded once, at the include it is listed under, in
 `recorded/evs/concepts/`. Each entry under
 `record.derived` becomes a crafted fixture for the request form a requirement prescribes
@@ -397,7 +397,9 @@ def live_fetch(bases: dict[str, str]) -> Fetch:
         # caDSR's API paths hold colons (NCIFormAPI.v2_0:NciFormApiRad).
         url = bases[surface] + quote(path, safe="/$:") + query
         sent = {"Accept": "application/json"} if headers is None else dict(headers)
-        data = None if body is None else json.dumps(body).encode()
+        # A text body is sent as written (a SPARQL query), any other as JSON.
+        data = body.encode() if isinstance(body, str) else json.dumps(body).encode()
+        data = None if body is None else data
         if form is not None:
             data = urlencode(form).encode()
             sent["Content-Type"] = FORM_TYPE

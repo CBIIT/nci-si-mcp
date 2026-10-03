@@ -113,11 +113,18 @@ def _split_form(entry: dict[str, Any]) -> str:
     if "headers" in entry:
         named = ", ".join(f"`{name}: {value}`" for name, value in entry["headers"].items())
         form += f" with {named}" if named else " with no header"
-    if "body" in entry:
-        form += f", body `{json.dumps(entry['body'])}`"
+    return _cell(form + _payload(entry))
+
+
+def _payload(entry: dict[str, Any]) -> str:
+    """What a request carries besides its headers: a JSON body, shown here, or a form's
+    fields or a text body, whose texts the register lists below."""
+
     if "form" in entry:
-        form += f", form {', '.join(f'`{name}`' for name in entry['form'])} (below)"
-    return _cell(form)
+        return f", form {', '.join(f'`{name}`' for name in entry['form'])} (below)"
+    if isinstance(entry.get("body"), str):
+        return ", body as written (below)"
+    return f", body `{json.dumps(entry['body'])}`" if "body" in entry else ""
 
 
 def _expected(entry: dict[str, Any]) -> str:
@@ -277,14 +284,22 @@ def _scenarios(manifest: dict[str, Any], root: Path, surfaces: set[str] | None) 
     return lines or ["None yet.", ""]
 
 
+def _texts(entry: dict[str, Any]) -> dict[str, str]:
+    """The texts a request carries: each field of its form, or its body where that is text."""
+
+    body = entry.get("body")
+    return entry.get("form", {}) | ({"body": body} if isinstance(body, str) else {})
+
+
 def _queries(manifest: dict[str, Any], surfaces: set[str] | None) -> list[str]:
-    """The text of each form-encoded request (the SPARQL queries), by fixture."""
+    """The text of each request that carries one (the SPARQL queries), by fixture."""
 
     lines = []
     for entry in manifest["record"].get("requests", []):
-        if "form" in entry and _shown(entry, surfaces):
-            for name, text in entry["form"].items():
-                lines += [f"### `{entry['fixture']}`: `{name}`", "", "```sparql", text, "```", ""]
+        if not _shown(entry, surfaces):
+            continue
+        for name, text in _texts(entry).items():
+            lines += [f"### `{entry['fixture']}`: `{name}`", "", "```sparql", text, "```", ""]
     return ["## Query texts", "", *lines] if lines else []
 
 

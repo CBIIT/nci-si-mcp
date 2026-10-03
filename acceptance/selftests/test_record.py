@@ -447,7 +447,7 @@ def test_the_live_fetch_sends_the_method_headers_and_body_it_is_given(tmp_path):
             "surface": "cadsr",
             "method": "POST",
             "path": "/vmMatch/v1/vmMatch",
-            "headers": {"matchType": "Restricted"},
+            "headers": {"matchType": "Restricted", "Content-Type": "application/json"},
             "body": [{"name": "Male"}],
         },
         "response": {"status": 200, "body": {"matched": True}},
@@ -461,7 +461,7 @@ def test_the_live_fetch_sends_the_method_headers_and_body_it_is_given(tmp_path):
             "/vmMatch/v1/vmMatch",
             {},
             "POST",
-            {"matchType": "Restricted"},
+            {"matchType": "Restricted", "Content-Type": "application/json"},
             [{"name": "Male"}],
         )
 
@@ -507,6 +507,25 @@ def test_the_live_fetch_sends_a_form_encoded_that_its_fixture_answers(tmp_path):
         (entry,) = running.log()
         assert entry["headers"]["Content-Type"] == "application/x-www-form-urlencoded"
         assert entry["body"] == urlencode(SPARQL["form"])
+
+
+def test_the_live_fetch_sends_a_text_body_as_written(tmp_path):
+    headers = {"Content-Type": "application/sparql-query"}
+    request = {"surface": "ssis-sparql", "method": "POST", "path": "/sparql", "headers": headers}
+    fixture = {
+        "kind": "recorded",
+        "recorded_on": "2026-10-03",
+        "request": request | {"body": QUERY},
+    }
+    fixture["response"] = {"status": 403, "body": "<html>Forbidden</html>"}
+    (tmp_path / "direct.json").write_text(json.dumps(fixture), encoding="utf-8")
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        fetch = live_fetch({"ssis-sparql": running.base_url("ssis-sparql")})
+
+        answer = fetch("ssis-sparql", "/sparql", {}, "POST", headers, QUERY)
+
+        assert answer == (403, "<html>Forbidden</html>")
+        assert running.log()[0]["body"] == QUERY
 
 
 def test_the_live_fetch_keeps_a_colon_in_a_path_as_it_is():

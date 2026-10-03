@@ -90,11 +90,16 @@ def test_the_fixture_directory_is_the_packages_own():
 
 
 def _posted(url, entry):
-    """The status of a form request made as a server might: its text on one line."""
+    """The status of a query request made as a server might: its text on one line, in a form
+    or as the body."""
 
-    form = {name: " ".join(text.split()) for name, text in entry["form"].items()}
-    headers = entry["headers"] | {"Content-Type": "application/x-www-form-urlencoded"}
-    request = Request(url, data=urlencode(form).encode(), headers=headers, method="POST")  # noqa: S310
+    if "form" in entry:
+        form = {name: " ".join(text.split()) for name, text in entry["form"].items()}
+        headers = entry["headers"] | {"Content-Type": "application/x-www-form-urlencoded"}
+        data = urlencode(form).encode()
+    else:
+        headers, data = entry["headers"], " ".join(entry["body"].split()).encode()
+    request = Request(url, data=data, headers=headers, method="POST")  # noqa: S310
     try:
         with urlopen(request, timeout=10) as response:  # noqa: S310 - the local fixture server
             return response.status
@@ -103,13 +108,14 @@ def _posted(url, entry):
 
 
 def test_each_published_query_is_answered_by_its_recording_whatever_its_whitespace():
-    forms = [entry for entry in MANIFEST["record"]["requests"] if "form" in entry]
+    # Asked in a form as prescribed, or posted directly, which the live endpoint refuses.
+    forms = [entry for entry in MANIFEST["record"]["requests"] if entry["surface"] == "ssis-sparql"]
     with FixtureServer(load_fixtures(FIXTURES)) as running:
         statuses = [
             _posted(running.base_url(entry["surface"]) + entry["path"], entry) for entry in forms
         ]
         answered = [entry["fixture"] for entry in running.log()]
 
-    assert forms
+    assert {"form", "body"} <= {key for entry in forms for key in entry}
     assert statuses == [entry.get("status", 200) for entry in forms]
     assert answered == [entry["fixture"] for entry in forms]

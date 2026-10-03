@@ -573,7 +573,8 @@ record:
       fixture: recorded/ssis/data-elements-of-object-class-c25190.json
       rationale: >-
         The data elements whose object class is Person (C25190): exactly 1,000 rows with
-        apiResponse type S, where the caDSR graph holds 2,088. The cap is silent (A5.4).
+        apiResponse type S, where the caDSR graph holds 2,088. The cap is silent (A5.4), and
+        the same 1,000 came back in another order a few minutes later.
       path: /si-api/v1/data_elements/with_specific_object_class?graph_name=http://cbiit.nci.nih.gov/caDSR&resource_name=caDSR&concept_id=C25190
     # SPARQL: a form-encoded POST, its query text prescribed and matched with runs of
     # whitespace collapsed. NCIt's hierarchy is read from Thesaurus.rdf: Thesaurus.owl
@@ -593,7 +594,7 @@ record:
       path: /sparql
       headers: {Accept: application/sparql-results+json}
       form:
-        query: |-
+        query: &identity-query |-
           PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
           PREFIX owl: <http://www.w3.org/2002/07/owl#>
           PREFIX dc: <http://purl.org/dc/elements/1.1/>
@@ -771,6 +772,19 @@ record:
               FILTER (?parent = ncit:C17357)
             }
           }
+    - fixture: recorded/ssis-sparql/graph-identities-direct.json
+      operation: OP-S01
+      rationale: >-
+        The identity query as a direct POST (application/sparql-query, SPARQL 1.1 protocol):
+        refused with HTTP 403 and an HTML body, so a server that asks this way gets no answer.
+      surface: ssis-sparql
+      method: POST
+      path: /sparql
+      status: 403
+      headers:
+        Accept: application/sparql-results+json
+        Content-Type: application/sparql-query
+      body: *identity-query
 
   # Crafted fixtures for the form a requirement prescribes where EVS does not yet answer
   # it, each carrying the answer of a recording: the live run shows

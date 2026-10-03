@@ -76,7 +76,9 @@ The Shared SI Service's behaviour is in the ordinary fixtures too:
   a test checks an answer against the surface its provenance names, never one surface against
   another. The façade has no operation keyed by a concept code.
 - **The query text is the form.** A SPARQL query is a form-encoded POST whose text the register
-  publishes; the fixture server matches it with runs of whitespace collapsed.
+  publishes; the fixture server matches it with runs of whitespace collapsed. A body is a form
+  only where its content type says so, as the endpoint reads it, and a direct POST
+  (`application/sparql-query`) gets the 403 the endpoint answered it with, recorded.
 - **Failures inside HTTP 200.** The façade answers a missing argument with apiResponse type E or
   I, and HTML without `Accept: application/json`, all recorded; `upstream/masked-error` serves
   the failure to every façade and caDSR request, and `ssis/query-rejected` the inspection

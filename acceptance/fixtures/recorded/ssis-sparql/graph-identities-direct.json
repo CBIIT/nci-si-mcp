@@ -1,0 +1,18 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "ssis-sparql",
+  "method": "POST",
+  "path": "/sparql",
+  "headers": {
+   "Accept": "application/sparql-results+json",
+   "Content-Type": "application/sparql-query"
+  },
+  "body": "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX owl: <http://www.w3.org/2002/07/owl#>\nPREFIX dc: <http://purl.org/dc/elements/1.1/>\nPREFIX mdr: <http://www.iso.org/11179/MDR#>\nPREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>\nPREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>\nSELECT ?graph ?version ?date\nWHERE {\n  VALUES ?graph { <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> <http://cbiit.nci.nih.gov/caDSR> }\n  GRAPH ?graph {\n    ?ontology dc:date ?date .\n    OPTIONAL { ?ontology owl:versionInfo ?version }\n  }\n}"
+ },
+ "response": {
+  "status": 403,
+  "body": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">\n<html><head>\n<title>403 Forbidden</title>\n</head><body>\n<h1>Forbidden</h1>\n<p>You don't have permission to access this resource.</p>\n</body></html>\n"
+ }
+}

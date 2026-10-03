@@ -13,8 +13,9 @@ different parameters does not matter, and repeated values of one parameter keep 
 order. Bodies are compared as parsed JSON where they are JSON, and otherwise as text
 with runs of whitespace collapsed. A form-encoded body (`Content-Type:
 application/x-www-form-urlencoded`, a SPARQL query) is compared field by field, decoded,
-each value with runs of whitespace collapsed, and also as sent; its fixture names it as
-`form`, each field with its text. A fixture without a `body` or `form` matches any request
+each value with runs of whitespace collapsed; its fixture names it as `form`, each field
+with its text. A body is a form only where its content type says so, as the live service
+reads it. A fixture without a `body` or `form` matches any request
 body. A parameter the live service is shown to ignore may be declared under
 `ignored`, with the evidence; it is then left out of the match, and `"*"` leaves out
 every parameter (an unknown release answers 404 whatever is asked; a fault fixture
@@ -130,7 +131,6 @@ type Params = dict[str, list[str]]
 type Fields = tuple[tuple[str, tuple[str, ...]], ...]
 type Key = tuple[str, str, str, Fields, tuple[tuple[str, str], ...], str | Fields | None]
 type Fixtures = dict[Key, Fixture]
-type Bodies = list[str | Form]
 type Concepts = dict[tuple[str, str], Recording]
 
 
@@ -621,18 +621,16 @@ class FixtureServer:
             self._served.clear()
 
     def _find(
-        self, path: tuple[str, str, str], params: Params, bodies: Bodies, headers: dict[str, str]
+        self, path: tuple[str, str, str], params: Params, body: str | Form, headers: dict[str, str]
     ) -> Fixture | None:
         """The fixture for a request: the active scenarios' layers first, then the ordinary
-        one; within a layer the most headers matched first, an exact body (each way the body
-        is read, in turn) before any body."""
+        one; within a layer the most headers matched first, the exact body before any body."""
 
         carried = self._carried(path, headers)
         for layer in self._layers:
             for named in carried:
-                keys = [request_key(*path, params, body, named) for body in bodies]
-                found = [*map(layer.get, keys), layer.get((*keys[0][:5], None))]
-                if fixture := next(filter(None, found), None):
+                key = request_key(*path, params, body, named)
+                if fixture := layer.get(key) or layer.get((*key[:5], None)):
                     return fixture
             if fixture := layer.get(_everywhere(*path[:2])):
                 return fixture
@@ -650,11 +648,11 @@ class FixtureServer:
         ]
 
     def _next(
-        self, path: tuple[str, str, str], params: Params, bodies: Bodies, headers: dict[str, str]
+        self, path: tuple[str, str, str], params: Params, body: str | Form, headers: dict[str, str]
     ) -> tuple[str | None, Response | None]:
         """The fixture answering a request and its response in turn."""
 
-        fixture = self._find(path, params, bodies, headers)
+        fixture = self._find(path, params, body, headers)
         if fixture is None:
             return None, None
         turn = self._served.get(fixture.name, 0)
@@ -693,7 +691,7 @@ class FixtureServer:
             where = (surface, method.upper(), path)
             left_out = _left_out(set(params), self._ignored.get(where, frozenset()))
             matched = {name: values for name, values in params.items() if name not in left_out}
-            fixture, response = self._next(where, matched, _bodies(body, headers), headers)
+            fixture, response = self._next(where, matched, _decoded(body, headers), headers)
             if fixture is None:
                 fixture, response = self._composed(where, params)
             entry |= {"headers": headers, "body": body, "fixture": fixture}
@@ -704,14 +702,14 @@ class FixtureServer:
         return response
 
 
-def _bodies(body: str, headers: dict[str, str]) -> Bodies:
-    """The ways a request body is matched: decoded into its fields where its content type is a
-    form's, then as sent (urllib labels any body it sends a form)."""
+def _decoded(body: str, headers: dict[str, str]) -> str | Form:
+    """A request body as it is matched: decoded into its fields where the request says it is a
+    form, as the live service reads it; any other as sent."""
 
     kind = {name.lower(): value for name, value in headers.items()}.get("content-type", "")
     if kind.partition(";")[0].strip().lower() != FORM_TYPE:
-        return [body]
-    return [Form(parse_qs(body, keep_blank_values=True)), body]
+        return body
+    return Form(parse_qs(body, keep_blank_values=True))
 
 
 def _handler(server: FixtureServer) -> type[BaseHTTPRequestHandler]:

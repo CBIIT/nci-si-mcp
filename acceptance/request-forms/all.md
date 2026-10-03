@@ -112,7 +112,7 @@ missing argument with HTTP 200 (X-15).
 | OP-S02 | `GET ssis /si-api/v1/database/graph_names` with `Accept: application/json` | 200 | recorded | Without its required limit: HTTP 200 with apiResponse type E, "Error executing SPARQL query" (X-15). upstream/masked-error serves this answer to well-formed requests. | `recorded/ssis/graph-names-without-limit.json` |
 | OP-S02 | `GET ssis /si-api/v1/data_elements/with_concept_id?graph_name=http://cbiit.nci.nih.gov/caDSR&resource_name=caDSR&dec_pub_id=2226947` with `Accept: application/json` | 200 | recorded | The data elements of one data element concept, Person Sex (2226947, the concept of 2200604). The façade's nearest operation to a concept's data elements is keyed by the DEC's public id, not by a concept code. | `recorded/ssis/data-elements-of-dec-2226947.json` |
 | OP-S02 | `GET ssis /si-api/v1/data_elements/with_concept_id?graph_name=http://cbiit.nci.nih.gov/caDSR&resource_name=caDSR` with `Accept: application/json` | 200 | recorded | Without its required dec_pub_id: HTTP 200 with apiResponse type I, "No data found", a missing argument answered as an empty result (X-15). | `recorded/ssis/data-elements-without-dec.json` |
-| OP-S02 | `GET ssis /si-api/v1/data_elements/with_specific_object_class?graph_name=http://cbiit.nci.nih.gov/caDSR&resource_name=caDSR&concept_id=C25190` with `Accept: application/json` | 200 | recorded | The data elements whose object class is Person (C25190): exactly 1,000 rows with apiResponse type S, where the caDSR graph holds 2,088. The cap is silent (A5.4). | `recorded/ssis/data-elements-of-object-class-c25190.json` |
+| OP-S02 | `GET ssis /si-api/v1/data_elements/with_specific_object_class?graph_name=http://cbiit.nci.nih.gov/caDSR&resource_name=caDSR&concept_id=C25190` with `Accept: application/json` | 200 | recorded | The data elements whose object class is Person (C25190): exactly 1,000 rows with apiResponse type S, where the caDSR graph holds 2,088. The cap is silent (A5.4), and the same 1,000 came back in another order a few minutes later. | `recorded/ssis/data-elements-of-object-class-c25190.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The release identity of the NCIt and caDSR graphs: owl:versionInfo and dc:date, two untyped dates in two formats ("September 28, 2026" and "2026-07-01"), the stand-in for OP-S03 (A3.7.1). | `recorded/ssis-sparql/graph-identities.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The data elements that use Gender (C17357) as an object class, property or permissible value concept, main or minor (find_data_elements_for_concept). | `recorded/ssis-sparql/data-elements-c17357.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The same, over C17357 and its descendants in NCIt's hierarchy (A5.4). | `recorded/ssis-sparql/data-elements-c17357-descendants.json` |
@@ -120,6 +120,7 @@ missing argument with HTTP 200 (X-15).
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The concept the permissible value "Male" of 2200604 stands for: C20197 (get_concept_for_permissible_value). | `recorded/ssis-sparql/concept-of-2200604-male.json` |
 | OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The permissible values that stand for Male (C20197), with their data elements: the reverse lookup no façade operation offers. | `recorded/ssis-sparql/values-of-c20197.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 403 | recorded | The inspection layer's refusal of a query it does not pass: HTTP 403 with an HTML body. ssis/query-rejected serves it to every query. | `recorded/ssis-sparql/query-refused.json` |
+| OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, `Content-Type: application/sparql-query`, body as written (below) | 403 | recorded | The identity query as a direct POST (application/sparql-query, SPARQL 1.1 protocol): refused with HTTP 403 and an HTML body, so a server that asks this way gets no answer. | `recorded/ssis-sparql/graph-identities-direct.json` |
 
 ## Query texts
 
@@ -289,6 +290,25 @@ WHERE {
     ?concept rdfs:subClassOf ?parent
       OPTION (TRANSITIVE, t_distinct, t_in(?concept), t_out(?parent), t_max(3)) .
     FILTER (?parent = ncit:C17357)
+  }
+}
+```
+
+### `recorded/ssis-sparql/graph-identities-direct.json`: `body`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT ?graph ?version ?date
+WHERE {
+  VALUES ?graph { <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> <http://cbiit.nci.nih.gov/caDSR> }
+  GRAPH ?graph {
+    ?ontology dc:date ?date .
+    OPTIONAL { ?ontology owl:versionInfo ?version }
   }
 }
 ```

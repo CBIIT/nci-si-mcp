@@ -182,16 +182,20 @@ def test_a_form_shows_the_method_headers_and_body_it_is_made_with():
     assert "`GET cadsr /NCIAPI/1.0/api/DataElement/2200604` with no header |" in html[0]
 
 
-def test_the_shared_si_view_publishes_each_query_text_its_form_names():
+def test_the_shared_si_view_publishes_each_query_text_its_request_carries():
     queries = VIEWS["ssis.md"].partition("## Query texts")[2]
-    sparql = [
-        entry for entry in MANIFEST["record"]["requests"] if entry["surface"] == "ssis-sparql"
+    # In a form's query field, or as the body of a direct POST.
+    texts = [
+        (entry["fixture"], name, text)
+        for entry in MANIFEST["record"]["requests"]
+        if entry["surface"] == "ssis-sparql"
+        for name, text in (entry.get("form") or {"body": entry["body"]}).items()
     ]
 
-    assert sparql
+    assert {name for _, name, _ in texts} == {"query", "body"}
     assert all(
-        f"### `{entry['fixture']}`: `query`\n\n```sparql\n{entry['form']['query']}\n```" in queries
-        for entry in sparql
+        f"### `{fixture}`: `{name}`\n\n```sparql\n{text}\n```" in queries
+        for fixture, name, text in texts
     )
     assert "## Shared SI: graph identities, and the query text" in VIEWS["ssis.md"]
     assert "## Query texts" not in VIEWS["cadsr.md"]
