@@ -1,0 +1,5033 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "ssis",
+  "method": "GET",
+  "path": "/si-api/v1/data_elements/with_specific_object_class",
+  "params": {
+   "graph_name": [
+    "http://cbiit.nci.nih.gov/caDSR"
+   ],
+   "resource_name": [
+    "caDSR"
+   ],
+   "concept_id": [
+    "C25190"
+   ]
+  },
+  "headers": {
+   "Accept": "application/json"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "results": [
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE653",
+     "identifier": "653",
+     "preferred_term": "Person Body Surface Area Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE316",
+     "identifier": "316",
+     "preferred_term": "Patient Address Postal Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE316",
+     "identifier": "316",
+     "preferred_term": "Person Address Postal Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2175",
+     "identifier": "2175",
+     "preferred_term": "Responsible Person Phone Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE315",
+     "identifier": "315",
+     "preferred_term": "Patient Address Country Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2176",
+     "identifier": "2176",
+     "preferred_term": "Responsible Person Fax Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE315",
+     "identifier": "315",
+     "preferred_term": "Person Address Country Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE10360304",
+     "identifier": "10360304",
+     "preferred_term": "Person During Past Year Satisfied with Family's Financial Situation Assessment Satisfaction Scale"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2682009",
+     "identifier": "2682009",
+     "preferred_term": "Person Geographic Birth Place Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2690165",
+     "identifier": "2690165",
+     "preferred_term": "Person Family Member Relationship Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2693033",
+     "identifier": "2693033",
+     "preferred_term": "Person Protein DNA Specimen Current Clinical Trial Consent Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2690165",
+     "identifier": "2690165",
+     "preferred_term": "Family Member Relationship Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2789871",
+     "identifier": "2789871",
+     "preferred_term": "Person Clinical Trial Acute Myeloid Leukemia Refractory Disease Stratification Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2798213",
+     "identifier": "2798213",
+     "preferred_term": "Person Race Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2898773",
+     "identifier": "2898773",
+     "preferred_term": "Person Life Sciences Identifier Namespace java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3065875",
+     "identifier": "3065875",
+     "preferred_term": "Person Type 1 Diabetes Related Autoimmune Disease Personal Medical History Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2970274",
+     "identifier": "2970274",
+     "preferred_term": "Person Cotinine Assay Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3111526",
+     "identifier": "3111526",
+     "preferred_term": "Person Race Or Ethnic Group Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3115593",
+     "identifier": "3115593",
+     "preferred_term": "Person Social Security Number Data Validation Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3245767",
+     "identifier": "3245767",
+     "preferred_term": "Person Carcinosarcoma Diagnosis Eligibility Determination Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5617",
+     "identifier": "5617",
+     "preferred_term": "Occupation Stop Date"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE793",
+     "identifier": "793",
+     "preferred_term": "Patient Birth Date"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE793",
+     "identifier": "793",
+     "preferred_term": "Person Birth Date"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4484083",
+     "identifier": "4484083",
+     "preferred_term": "Person Agent QTcB Prolongation Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4158335",
+     "identifier": "4158335",
+     "preferred_term": "Person Malignant Neoplasm Recurrent Disease Disease Progression Diagnosis Malignant Neoplasm Measurable Disease Evaluation Method Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4367992",
+     "identifier": "4367992",
+     "preferred_term": "Person Caregiver Relationship Assessment Duration Year Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4459019",
+     "identifier": "4459019",
+     "preferred_term": "Person Past 6 Months Weight Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4920172",
+     "identifier": "4920172",
+     "preferred_term": "Person Driver License Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4915389",
+     "identifier": "4915389",
+     "preferred_term": "Person Surgical Procedure Injury Eligibility Determination Status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4666971",
+     "identifier": "4666971",
+     "preferred_term": "Person Identifier Center for International Blood and Marrow Transplant Research Number Assignment Reason"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5021298",
+     "identifier": "5021298",
+     "preferred_term": "Person Measured Total Pregnancy Weight Gain Weight Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5258494",
+     "identifier": "5258494",
+     "preferred_term": "Person Clinical Trial Agent Administration Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5946761",
+     "identifier": "5946761",
+     "preferred_term": "Person Plasma Cell Myeloma Diagnosis Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7519052",
+     "identifier": "7519052",
+     "preferred_term": "Person Adverse Event Assessment Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE8081490",
+     "identifier": "8081490",
+     "preferred_term": "Person Prior Platinum Compound Chemotherapy Exposure Eligibility Status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2003304",
+     "identifier": "2003304",
+     "preferred_term": "Person Height Measurement"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2185991",
+     "identifier": "2185991",
+     "preferred_term": "Person Specimen Other Disease or Disorder Future Research Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2539759",
+     "identifier": "2539759",
+     "preferred_term": "Person Created By java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2635193",
+     "identifier": "2635193",
+     "preferred_term": "Person Transplant Conditioning Dose Adjustment Weight Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2693038",
+     "identifier": "2693038",
+     "preferred_term": "Person Urine Collection Consent Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2770790",
+     "identifier": "2770790",
+     "preferred_term": "Patient Person Prostate Carcinoma Clinical Trial Stratification Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2787122",
+     "identifier": "2787122",
+     "preferred_term": "Person Occupation Level java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2954138",
+     "identifier": "2954138",
+     "preferred_term": "Person Home Water Source Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3171797",
+     "identifier": "3171797",
+     "preferred_term": "Drug Abuse Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3160450",
+     "identifier": "3160450",
+     "preferred_term": "Person Breast Feeding Exclusion Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3242650",
+     "identifier": "3242650",
+     "preferred_term": "Person Node Negative Finding Clinical Trial Eligibility Criteria Ind-4"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2238093",
+     "identifier": "2238093",
+     "preferred_term": "Person Email Address java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2674102",
+     "identifier": "2674102",
+     "preferred_term": "Thinking Picture Reminder Person Life Distress Assessment Scale"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2199710",
+     "identifier": "2199710",
+     "preferred_term": "Person's Board Certification Clinical License Specialty Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2199710",
+     "identifier": "2199710",
+     "preferred_term": "Earned Clinical Licenses"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2436200",
+     "identifier": "2436200",
+     "preferred_term": "Person Language Location Use Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2954207",
+     "identifier": "2954207",
+     "preferred_term": "Person Household Dust Contamination Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2950745",
+     "identifier": "2950745",
+     "preferred_term": "Person Eastern Cooperative Oncology Group Active Study Participation Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3278749",
+     "identifier": "3278749",
+     "preferred_term": "Person Height Inch Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3225640",
+     "identifier": "3225640",
+     "preferred_term": "Patient Diagnosis Age Day Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3918112",
+     "identifier": "3918112",
+     "preferred_term": "Person Cancer Screening History Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4475093",
+     "identifier": "4475093",
+     "preferred_term": "Person Parity Pregnancy Outcome Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5041878",
+     "identifier": "5041878",
+     "preferred_term": "Human Papillomavirus Vaccine Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5260834",
+     "identifier": "5260834",
+     "preferred_term": "Person Multiple Myeloma Diagnosis Ind"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5289091",
+     "identifier": "5289091",
+     "preferred_term": "Person Education Level Alliance Highest Education Level Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5716657",
+     "identifier": "5716657",
+     "preferred_term": "Person Dermatologic Disease or Disorder Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6091935",
+     "identifier": "6091935",
+     "preferred_term": "Person Left Arm Circumference Antecubital Fossa To Axilla Volume Measurement"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6053528",
+     "identifier": "6053528",
+     "preferred_term": "Person Target Cohort Protocol Treatment Arm Registration Ind"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6230565",
+     "identifier": "6230565",
+     "preferred_term": "Person Pheochromocytoma Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7658145",
+     "identifier": "7658145",
+     "preferred_term": "Cause of Death Reason CPTAC Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2435393",
+     "identifier": "2435393",
+     "preferred_term": "Person Occupation Task Performance Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2506826",
+     "identifier": "2506826",
+     "preferred_term": "Person Contact Time"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2794268",
+     "identifier": "2794268",
+     "preferred_term": "Person Umbilicus Waist Circumference Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2854160",
+     "identifier": "2854160",
+     "preferred_term": "Person Highest Education Education Level Radiation Therapy Oncology Group Quality of Life Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2936520",
+     "identifier": "2936520",
+     "preferred_term": "Person Dual X-ray Absorptometry Body Composition Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2936262",
+     "identifier": "2936262",
+     "preferred_term": "Person High Cholesterol Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3181626",
+     "identifier": "3181626",
+     "preferred_term": "Person Head Circumference Unit of Measure Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3178386",
+     "identifier": "3178386",
+     "preferred_term": "Primary Death Reason International Classification of Disease, Tenth Revision"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3183072",
+     "identifier": "3183072",
+     "preferred_term": "Person Serious Adverse Event Hemorrhage Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3244873",
+     "identifier": "3244873",
+     "preferred_term": "Person Prior Treatment Regimen Nitrosourea Compound Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3234703",
+     "identifier": "3234703",
+     "preferred_term": "Person Standard Treatment Regimen Options Exclusion Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3335265",
+     "identifier": "3335265",
+     "preferred_term": "Person Prior Bevacizumab Aflibercept Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3304302",
+     "identifier": "3304302",
+     "preferred_term": "Person Prior Therapy Adverse Event Clinical Trial Eligibility Criteria Eligibility Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7369920",
+     "identifier": "7369920",
+     "preferred_term": "Person Torsades De Pointes Personal Medical History Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3771225",
+     "identifier": "3771225",
+     "preferred_term": "Person HLA Typing Second Allele Antigen Value Collected Outcome"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3756002",
+     "identifier": "3756002",
+     "preferred_term": "Person Social Security Number Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4060153",
+     "identifier": "4060153",
+     "preferred_term": "Person Clinical Trial BRCA1 Mutation BRCA2 Mutation Status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4695762",
+     "identifier": "4695762",
+     "preferred_term": "Contact Person Relationship Specify Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5216251",
+     "identifier": "5216251",
+     "preferred_term": "Person Screening Performed Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5326191",
+     "identifier": "5326191",
+     "preferred_term": "Person Neoplasm Or Complete Remission Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6061936",
+     "identifier": "6061936",
+     "preferred_term": "Person Pancreatic Malignant Neoplasm Personal Medical History Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3834326",
+     "identifier": "3834326",
+     "preferred_term": "Cause of Death Reason Cancer Type ICD9 Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4214138",
+     "identifier": "4214138",
+     "preferred_term": "Person First-Line Therapy Metastatic Prostate Neoplasm Survival Prediction Probability Assessment Nomogram Risk Group Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4478636",
+     "identifier": "4478636",
+     "preferred_term": "New Sexual Partners Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4693771",
+     "identifier": "4693771",
+     "preferred_term": "Person Language Preference Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5143651",
+     "identifier": "5143651",
+     "preferred_term": "Person Prior Radiation Therapy Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5126393",
+     "identifier": "5126393",
+     "preferred_term": "Person p53 Mutation Status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5582080",
+     "identifier": "5582080",
+     "preferred_term": "Person Therapeutic Procedure Assignment Clinical Trial Eligibility Criteria Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5695718",
+     "identifier": "5695718",
+     "preferred_term": "Person Eligible Food and Drug Administration Approved Agent Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5622198",
+     "identifier": "5622198",
+     "preferred_term": "Person Receive Bevacizumab Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6602919",
+     "identifier": "6602919",
+     "preferred_term": "Person Therapy-Related Toxicity Clinical Trial Eligibility Criteria Yes No Not Applicable Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6774025",
+     "identifier": "6774025",
+     "preferred_term": "Person Gender Identity Measure Gender Identity Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6759373",
+     "identifier": "6759373",
+     "preferred_term": "Person Histologically Or Cytological Confirmation Thyroid Gland Carcinoma Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE10358392",
+     "identifier": "10358392",
+     "preferred_term": "Person Frequency of Sleeping Problems Due to Dryness of Mouth Assessment Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2001488",
+     "identifier": "2001488",
+     "preferred_term": "Person Specimen Received Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2001961",
+     "identifier": "2001961",
+     "preferred_term": "Person Form Administration Last Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2179590",
+     "identifier": "2179590",
+     "preferred_term": "Person Middle Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2183383",
+     "identifier": "2183383",
+     "preferred_term": "Person Vascular History Ind-3"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2238014",
+     "identifier": "2238014",
+     "preferred_term": "Person First Name java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2429851",
+     "identifier": "2429851",
+     "preferred_term": "Person Thromboembolism Personal Medical History Ind-3"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2443266",
+     "identifier": "2443266",
+     "preferred_term": "Person Living Deceased Sister Count"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2547715",
+     "identifier": "2547715",
+     "preferred_term": "Confirmation Person Analysis Notification Submission Recipient Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2674084",
+     "identifier": "2674084",
+     "preferred_term": "Thinking Reminder Person Life Distress Assessment Scale"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2671108",
+     "identifier": "2671108",
+     "preferred_term": "Dreaming Person Life Distress Assessment Scale"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2728925",
+     "identifier": "2728925",
+     "preferred_term": "Person Current Drug Abuse Agent Other Name Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2794253",
+     "identifier": "2794253",
+     "preferred_term": "Person Arm Span Length Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2793264",
+     "identifier": "2793264",
+     "preferred_term": "Person Maximum Adult Height Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2954143",
+     "identifier": "2954143",
+     "preferred_term": "Person Residence History Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2954201",
+     "identifier": "2954201",
+     "preferred_term": "Person Household Air Contamination Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2961260",
+     "identifier": "2961260",
+     "preferred_term": "Person Smoking Cancer Risk Perception Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3061275",
+     "identifier": "3061275",
+     "preferred_term": "Person Physical Function Subjective Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2184687",
+     "identifier": "2184687",
+     "preferred_term": "Weight in Pounds Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2661003",
+     "identifier": "2661003",
+     "preferred_term": "Clinical Research Associate Person Telephone Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2773002",
+     "identifier": "2773002",
+     "preferred_term": "Person Name Prefix java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2875701",
+     "identifier": "2875701",
+     "preferred_term": "Person Dose Body Weight Unified Code for Units of Measure Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179440",
+     "identifier": "3179440",
+     "preferred_term": "Person QTcB Prolongation Greater Than 500 msec Family Medical History Clinical Trial Eligibility Criteria Ind-3b"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3340443",
+     "identifier": "3340443",
+     "preferred_term": "Person Human Immunodeficiency Virus Additional Concern Result FAHI SubScale Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3321265",
+     "identifier": "3321265",
+     "preferred_term": "Person Conization Hemorrhage Risk Clinical Trial Eligibility Criteria Ind-4"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3316779",
+     "identifier": "3316779",
+     "preferred_term": "Person Rheumatoid Arthritis Inflammatory Disorder Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3955231",
+     "identifier": "3955231",
+     "preferred_term": "Person Collection Ascites Consent Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4552025",
+     "identifier": "4552025",
+     "preferred_term": "Person Radiation Therapy Discontinued Greater Than or Equal To 2 Week Prior Enrollment Yes No Not Applicable Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4474391",
+     "identifier": "4474391",
+     "preferred_term": "Person Radiation Therapy Discontinued Prior Registration Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4770728",
+     "identifier": "4770728",
+     "preferred_term": "Person Ataxia Meet Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5042350",
+     "identifier": "5042350",
+     "preferred_term": "Responsible Person Description Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5207071",
+     "identifier": "5207071",
+     "preferred_term": "Person Maximum Weight Known Unknown Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5915876",
+     "identifier": "5915876",
+     "preferred_term": "Cause of Death Reason International Classification of Disease, Tenth Revision Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6080696",
+     "identifier": "6080696",
+     "preferred_term": "Person Right Arm Antecubital Fossa To Axilla Volume Measurement"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6360524",
+     "identifier": "6360524",
+     "preferred_term": "Oral Health and Dental History Questions Assessment Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7584469",
+     "identifier": "7584469",
+     "preferred_term": "Person Green Vegetable Consumption Temporal Frequency"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7847810",
+     "identifier": "7847810",
+     "preferred_term": "Person Vital Signs Measurement Other Timepoint Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2960970",
+     "identifier": "2960970",
+     "preferred_term": "Person Cumulative Alcohol Exposure Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2951229",
+     "identifier": "2951229",
+     "preferred_term": "Person Clinical Study Treatment Begin Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3007441",
+     "identifier": "3007441",
+     "preferred_term": "Person Current Duration Conception Difficulty Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3057352",
+     "identifier": "3057352",
+     "preferred_term": "Person Neurologic Status Condition Change Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3094884",
+     "identifier": "3094884",
+     "preferred_term": "Person Education Level EducationLevelCode"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3180017",
+     "identifier": "3180017",
+     "preferred_term": "Person Cerebrovascular Accident Transient Ischemic Attack Post Clinical Tial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3240925",
+     "identifier": "3240925",
+     "preferred_term": "Person Therapy-Related Toxicity Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179456",
+     "identifier": "3179456",
+     "preferred_term": "Person Ventricular Arrhythmia Arrhythmia Medication Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3244741",
+     "identifier": "3244741",
+     "preferred_term": "Person No Standard Treatment Regimen Options Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3182770",
+     "identifier": "3182770",
+     "preferred_term": "Person Hyponatremia Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179020",
+     "identifier": "3179020",
+     "preferred_term": "Person Malignant Neoplasm Recurrent Disease Disease Progression Diagnosis Date"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3270437",
+     "identifier": "3270437",
+     "preferred_term": "Person History Abnormal Cancer Screening Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5143717",
+     "identifier": "5143717",
+     "preferred_term": "Person Clinical Or Performed Imaging Evidence Metastatic Neoplasm Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5427655",
+     "identifier": "5427655",
+     "preferred_term": "Person Last Known Alive Disease Status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5633334",
+     "identifier": "5633334",
+     "preferred_term": "Person Receive Inhibition Or Induction Medication Substance Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6782262",
+     "identifier": "6782262",
+     "preferred_term": "Person Histologically Or Cytological Procedure Breast Carcinoma Confirmation Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7474080",
+     "identifier": "7474080",
+     "preferred_term": "Person Duplicate Identifier Center for International Blood and Marrow Transplant Research Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE10358389",
+     "identifier": "10358389",
+     "preferred_term": "Person Dryness of Mouth When Not Eating or Chewing Assessment Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7584535",
+     "identifier": "7584535",
+     "preferred_term": "Person Red Meat Consumption Temporal Frequency"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7553211",
+     "identifier": "7553211",
+     "preferred_term": "Person Current Pregnancy Estimated Date of Delivery Date"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE8046439",
+     "identifier": "8046439",
+     "preferred_term": "Primary Cause of Death Reason Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2199715",
+     "identifier": "2199715",
+     "preferred_term": "Educational Degree Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2217567",
+     "identifier": "2217567",
+     "preferred_term": "Prior Registering Person Identifier Signature Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2668608",
+     "identifier": "2668608",
+     "preferred_term": "Emotion Activity Person Quality of Life Assessment Scale"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2821061",
+     "identifier": "2821061",
+     "preferred_term": "Person Substance of Abuse Begin Age Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2946165",
+     "identifier": "2946165",
+     "preferred_term": "Person Medication Calendar Complete Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2951825",
+     "identifier": "2951825",
+     "preferred_term": "Person Leukemia Disease or Disorder Clinical Trial Participation Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2954080",
+     "identifier": "2954080",
+     "preferred_term": "Person Current Residence Characteristic Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3060845",
+     "identifier": "3060845",
+     "preferred_term": "Person Cardiorespiratory Fitness One Mile Walking Test Estimate Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3160250",
+     "identifier": "3160250",
+     "preferred_term": "Person Germ Cell Tumor Exclusion Criteria Eligibility Ind-3"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3188784",
+     "identifier": "3188784",
+     "preferred_term": "Person Occupation Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3188873",
+     "identifier": "3188873",
+     "preferred_term": "Person Current Enrollment Prior Therapeutic Procedure Other Clinical Study Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3288092",
+     "identifier": "3288092",
+     "preferred_term": "Person No Sphincter Resected Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3206345",
+     "identifier": "3206345",
+     "preferred_term": "Radiation Oncologist Person Identifier Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3278751",
+     "identifier": "3278751",
+     "preferred_term": "Person Weight Pound Current Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3335030",
+     "identifier": "3335030",
+     "preferred_term": "Person Bevacizumab Risk Institutional Review Board Approval Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3325663",
+     "identifier": "3325663",
+     "preferred_term": "Person Hearing Loss Personal Medical History Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3238320",
+     "identifier": "3238320",
+     "preferred_term": "Person Physical Activity Level Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3534936",
+     "identifier": "3534936",
+     "preferred_term": "Person Pancreas Function Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3916370",
+     "identifier": "3916370",
+     "preferred_term": "Person Age Range Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5038572",
+     "identifier": "5038572",
+     "preferred_term": "Person Maximum Weight Unit of Measure Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5305978",
+     "identifier": "5305978",
+     "preferred_term": "Person Furnace Elevated Carbon Monoxide Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5894763",
+     "identifier": "5894763",
+     "preferred_term": "Person Receive Pelvic Radiation Therapy Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7218851",
+     "identifier": "7218851",
+     "preferred_term": "Person Sex Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7601832",
+     "identifier": "7601832",
+     "preferred_term": "Person COVNET Human Study Subject Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7296989",
+     "identifier": "7296989",
+     "preferred_term": "Person History Therapeutic Procedure Separate Malignant Neoplasm Yes No Not Applicable Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE10358388",
+     "identifier": "10358388",
+     "preferred_term": "Person Dryness of Mouth when Eating a Meal Assessment Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7847806",
+     "identifier": "7847806",
+     "preferred_term": "Person Vital Signs Measurement Unit of Measure"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE10156751",
+     "identifier": "10156751",
+     "preferred_term": "Person Occupation Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2200278",
+     "identifier": "2200278",
+     "preferred_term": "Submitted Clinical Data Update System Report Person Email Address Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2493305",
+     "identifier": "2493305",
+     "preferred_term": "Person Ethnic Group Code java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2524144",
+     "identifier": "2524144",
+     "preferred_term": "Central Laboratory Contact Person Email Address Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2518201",
+     "identifier": "2518201",
+     "preferred_term": "Contact Person Email Address Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2668613",
+     "identifier": "2668613",
+     "preferred_term": "Emotion Positive Mood Alteration Person Quality of Life Assessment Scale"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2768656",
+     "identifier": "2768656",
+     "preferred_term": "Person N-Telopeptide Laboratory Procedure Consent ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2793481",
+     "identifier": "2793481",
+     "preferred_term": "Person Waist Circumference Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2795703",
+     "identifier": "2795703",
+     "preferred_term": "Person Mid-Upper Arm Circumference Centimeter Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2793342",
+     "identifier": "2793342",
+     "preferred_term": "Person Measured Birth Weight Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2848700",
+     "identifier": "2848700",
+     "preferred_term": "Person Brain Neoplasm Family Medical History Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2944985",
+     "identifier": "2944985",
+     "preferred_term": "Person Name DICOM Person Full Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3158791",
+     "identifier": "3158791",
+     "preferred_term": "Person Histologic Ovarian Neoplasm Breast Neoplasm Non-Hodgkin Lymphoma Clinical Trial Eligibility Criteria Ind-3"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3181393",
+     "identifier": "3181393",
+     "preferred_term": "Person Risk Surgical Procedure Major Present Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3180088",
+     "identifier": "3180088",
+     "preferred_term": "Person Angioplasty Stent Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3219466",
+     "identifier": "3219466",
+     "preferred_term": "Person Prior Registration Credential Required Clinical Trial Eligibility Criteria Ind-3"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3190397",
+     "identifier": "3190397",
+     "preferred_term": "Person Clinical Study Assignment Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3295822",
+     "identifier": "3295822",
+     "preferred_term": "Person Prostate Carcinoma Risk Factor Clinical Trial Eligibility Criteria Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3294813",
+     "identifier": "3294813",
+     "preferred_term": "Person Deep Vein Thrombosis Personal Medical History Ind-3"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3704954",
+     "identifier": "3704954",
+     "preferred_term": "Person Last Month Poor Mental Health Day Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3820231",
+     "identifier": "3820231",
+     "preferred_term": "Person Birth Country Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4193944",
+     "identifier": "4193944",
+     "preferred_term": "Person Other Dust Exposure Assessment Other Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4379963",
+     "identifier": "4379963",
+     "preferred_term": "Person Suspected Clinical Diagnosis Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5085457",
+     "identifier": "5085457",
+     "preferred_term": "Person High Risk Lesion Present Anatomic Site"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5206991",
+     "identifier": "5206991",
+     "preferred_term": "Person Iron Overload Evidence Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6091415",
+     "identifier": "6091415",
+     "preferred_term": "Person Right Arm Circumference Antecubital Fossa To Axilla Volume Measurement"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE62588",
+     "identifier": "62588",
+     "preferred_term": "Person Address State Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6091944",
+     "identifier": "6091944",
+     "preferred_term": "Person Left Arm Circumference Antecubital Fossa To Wrist Joint Volume Measurement"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6762857",
+     "identifier": "6762857",
+     "preferred_term": "Person Diagnosis Age Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2008262",
+     "identifier": "2008262",
+     "preferred_term": "Physician Person Email Address Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2003956",
+     "identifier": "2003956",
+     "preferred_term": "Central Laboratory Contact Person Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2185992",
+     "identifier": "2185992",
+     "preferred_term": "Person Specimen External Investigator Consent Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2442673",
+     "identifier": "2442673",
+     "preferred_term": "Person Attempt Pregnancy Greater Than 1 Year Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2442673",
+     "identifier": "2442673",
+     "preferred_term": "Person Attempt Pregnancy Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2464437",
+     "identifier": "2464437",
+     "preferred_term": "Person Religion Designation Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2608193",
+     "identifier": "2608193",
+     "preferred_term": "Person Other Employment Status Text java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2668478",
+     "identifier": "2668478",
+     "preferred_term": "Person Academic Degree Suffix Abbreviation Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2767403",
+     "identifier": "2767403",
+     "preferred_term": "Person Residence Ownership Demographics Status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2815107",
+     "identifier": "2815107",
+     "preferred_term": "Person Marital Status Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3060830",
+     "identifier": "3060830",
+     "preferred_term": "Person Walking Pedometer Measurement Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3025116",
+     "identifier": "3025116",
+     "preferred_term": "Person Hispanic or Latino Indicator Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3094885",
+     "identifier": "3094885",
+     "preferred_term": "Person Hispanic or Latino Subgroup Details HispanicSubgroupDetailCode"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3235116",
+     "identifier": "3235116",
+     "preferred_term": "Person Failure Recovered or Resolved Prior Treatment Regimen Exclusion Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3304399",
+     "identifier": "3304399",
+     "preferred_term": "Person Metastatic Unresected Breast Carcinoma Clinical Trials Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3288373",
+     "identifier": "3288373",
+     "preferred_term": "Person Specimen External Investigator Tissue Sample Consent Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3623680",
+     "identifier": "3623680",
+     "preferred_term": "Solid Tumor History Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4379960",
+     "identifier": "4379960",
+     "preferred_term": "Person Surgical Procedure Injury Eligibility Determination Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4841891",
+     "identifier": "4841891",
+     "preferred_term": "Person Highest Education Level Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7572746",
+     "identifier": "7572746",
+     "preferred_term": "Person Vital Signs Measurement Timepoint Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2668596",
+     "identifier": "2668596",
+     "preferred_term": "Anxiety Person Quality of Life Assessment Scale"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2693040",
+     "identifier": "2693040",
+     "preferred_term": "Person Tissue Specimen Submission Consent Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2728937",
+     "identifier": "2728937",
+     "preferred_term": "Person Current Drug Abuse Activity Times Per Week Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2762276",
+     "identifier": "2762276",
+     "preferred_term": "Quality of Life Contact Person E-mail Address Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2944984",
+     "identifier": "2944984",
+     "preferred_term": "Person CaGrid Identifier java.lang.Integer"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2966457",
+     "identifier": "2966457",
+     "preferred_term": "Person Dry Mouth indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3075475",
+     "identifier": "3075475",
+     "preferred_term": "Person Personality Disorder Assessment Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3133957",
+     "identifier": "3133957",
+     "preferred_term": "Person Brain Neoplasm Family Medical History Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3170368",
+     "identifier": "3170368",
+     "preferred_term": "Person No Prior Thoracic Radiation Therapy Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3211740",
+     "identifier": "3211740",
+     "preferred_term": "Person Bone Marrow Liver Spleen Evaluation Status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3241937",
+     "identifier": "3241937",
+     "preferred_term": "Fetus Person Congenital Abnormality Abortion Ind-3"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3245735",
+     "identifier": "3245735",
+     "preferred_term": "Person Cytochrome P450 3A4 Substrate Domain Eligibility Determination Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3234762",
+     "identifier": "3234762",
+     "preferred_term": "Person Prior Biological Therapy Exclusion Criteria Ind-3b"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3340439",
+     "identifier": "3340439",
+     "preferred_term": "Person Human Immunodeficiency Virus Kaposi Sarcoma Assessment Result FAHI SubScale Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3376115",
+     "identifier": "3376115",
+     "preferred_term": "Person Victimization Questionnaire Assessment Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5021302",
+     "identifier": "5021302",
+     "preferred_term": "Person Prenatal Serial Pregnancy Weight Gain Weight Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4648633",
+     "identifier": "4648633",
+     "preferred_term": "Person Prior Biological Therapy Exclusion Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5207199",
+     "identifier": "5207199",
+     "preferred_term": "Person Agent Severe Hypersensitivity Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5226486",
+     "identifier": "5226486",
+     "preferred_term": "Person Lesser Control Human Immunodeficiency Virus Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6660897",
+     "identifier": "6660897",
+     "preferred_term": "Person English Or Spanish Language Literacy Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7365540",
+     "identifier": "7365540",
+     "preferred_term": "Person Health Care Professional Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7557023",
+     "identifier": "7557023",
+     "preferred_term": "Person Employment Other Specify Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2875649",
+     "identifier": "2875649",
+     "preferred_term": "Person Dose Body Weight Integer::0 Decimal Place Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3245239",
+     "identifier": "3245239",
+     "preferred_term": "Person Endometrial Metastatic Malignant Neoplasm Adnexal Mass Eligibility Determination Ind-3b"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3340440",
+     "identifier": "3340440",
+     "preferred_term": "Person Human Immunodeficiency Virus Functional Well-being Result FAHI SubScale Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3787230",
+     "identifier": "3787230",
+     "preferred_term": "Person Healthcare Payer Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5038753",
+     "identifier": "5038753",
+     "preferred_term": "Person Weight Known Unknown Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2005745",
+     "identifier": "2005745",
+     "preferred_term": "Person Off Treatment Time Period Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2001705",
+     "identifier": "2001705",
+     "preferred_term": "Person Pediatric Religion Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2465276",
+     "identifier": "2465276",
+     "preferred_term": "Person Childhood Religion Designation Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2727342",
+     "identifier": "2727342",
+     "preferred_term": "Person CaBIG Identifier java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2755631",
+     "identifier": "2755631",
+     "preferred_term": "American College of Surgeons Oncology Group Person Exclusion Criteria Clinical Trial Eligibility Criteria Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2954172",
+     "identifier": "2954172",
+     "preferred_term": "Person Current Environment Tobacco Smoke Exposure Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2944730",
+     "identifier": "2944730",
+     "preferred_term": "Person Child-Pugh Classification Clinical Trial Eligibility Criteria Child Pugh Classification Eligibility Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2935393",
+     "identifier": "2935393",
+     "preferred_term": "Person Cardiac Valve Problem Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3007696",
+     "identifier": "3007696",
+     "preferred_term": "Person Visual Function Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3094883",
+     "identifier": "3094883",
+     "preferred_term": "Person Age PersonAgeCode"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3075453",
+     "identifier": "3075453",
+     "preferred_term": "Person Schizophrenia Assessment Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3170477",
+     "identifier": "3170477",
+     "preferred_term": "Person Specimen Malignant Neoplasm Future Clinical or Research Activity Consent Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3171628",
+     "identifier": "3171628",
+     "preferred_term": "Person Sex Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179441",
+     "identifier": "3179441",
+     "preferred_term": "Person Concomitant Agent QTcB Prolongation Greater Than 500 msec Torsades De Pointes Increase Risk Clinical Trial Eligibility Criteria Ind-3b"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3234760",
+     "identifier": "3234760",
+     "preferred_term": "Person Prior Mitomycin C Nitrosourea Compound Exclusion Criteria Ind-3b"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3340444",
+     "identifier": "3340444",
+     "preferred_term": "Person Human Immunodeficiency Virus FAHI Total Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3771489",
+     "identifier": "3771489",
+     "preferred_term": "Person National Marrow Donor Program Identifier"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5109157",
+     "identifier": "5109157",
+     "preferred_term": "Person Breast Intervention or Procedure Disease Disorder or Finding Clinical Trial Eligibility Criteria Ind"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4732575",
+     "identifier": "4732575",
+     "preferred_term": "Primary Cause of Death Reason Radiation Sickness Syndrome Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5154232",
+     "identifier": "5154232",
+     "preferred_term": "Person MCL Recurrent Or Refractory Disease Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5227853",
+     "identifier": "5227853",
+     "preferred_term": "Person PAXgene Blood RNA Tube Storage Identifier Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6456311",
+     "identifier": "6456311",
+     "preferred_term": "Person Human Immunodeficiency Virus Receive Combination Antiretroviral Therapy Treatment Regimen Drug Interaction Review Eligibility Criteria Ind"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6819893",
+     "identifier": "6819893",
+     "preferred_term": "Person Radiation Therapy Discontinued Prior Registration Clinical Trial Eligibility Criteria Yes No Not Applicable Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6563331",
+     "identifier": "6563331",
+     "preferred_term": "Person Registration Age Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6004929",
+     "identifier": "6004929",
+     "preferred_term": "Person Recovered or Resolved Prior Treatment Regimen Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7489672",
+     "identifier": "7489672",
+     "preferred_term": "Person Education Stratification Status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2603126",
+     "identifier": "2603126",
+     "preferred_term": "Certification Person Identifier Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2660999",
+     "identifier": "2660999",
+     "preferred_term": "Principal Investigator Person Telephone Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2770016",
+     "identifier": "2770016",
+     "preferred_term": "Person Hypertension Therapeutic Procedure Personal Medical History Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2793347",
+     "identifier": "2793347",
+     "preferred_term": "Person Record Birth Weight Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3076119",
+     "identifier": "3076119",
+     "preferred_term": "Person Restless Leg Syndrome Symptom Assessment Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179032",
+     "identifier": "3179032",
+     "preferred_term": "Person Last Therapeutic Procedure Recovery Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4379970",
+     "identifier": "4379970",
+     "preferred_term": "Person Malignant Neoplasm Measurable Disease Present Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5628108",
+     "identifier": "5628108",
+     "preferred_term": "Neonate Sex"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5775683",
+     "identifier": "5775683",
+     "preferred_term": "Person Responsible Chemotherapy Taken Chemotherapy Responsible Person Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE10358387",
+     "identifier": "10358387",
+     "preferred_term": "Person Difficulty Swallowing Food Due to Dryness of Mouth Assessment Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2001708",
+     "identifier": "2001708",
+     "preferred_term": "Person Birth Country Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2001708",
+     "identifier": "2001708",
+     "preferred_term": "Patient Birth Country Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2539764",
+     "identifier": "2539764",
+     "preferred_term": "Person Position java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2614749",
+     "identifier": "2614749",
+     "preferred_term": "Responsible Person Middle Identifier Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2661011",
+     "identifier": "2661011",
+     "preferred_term": "Principal Investigator Person Fax Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2794238",
+     "identifier": "2794238",
+     "preferred_term": "Person Recumbent Length Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2798784",
+     "identifier": "2798784",
+     "preferred_term": "Person Children's Oncology Group Enrollment Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE10360652",
+     "identifier": "10360652",
+     "preferred_term": "Person Had to Permanently Quit Previous Occupation Because of Cancer Diagnosis and/or Treatment Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2001706",
+     "identifier": "2001706",
+     "preferred_term": "Person Pediatric Religion Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2001706",
+     "identifier": "2001706",
+     "preferred_term": "Religion during childhood Other, specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2199705",
+     "identifier": "2199705",
+     "preferred_term": "Person's Board Certification Clinical Certifications"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2517550",
+     "identifier": "2517550",
+     "preferred_term": "Person Email Address Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2697748",
+     "identifier": "2697748",
+     "preferred_term": "Person National Surgical Adjuvant Breast and Bowel Project Clinical Study Participation Ind-3"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2853736",
+     "identifier": "2853736",
+     "preferred_term": "Person Hypertension Encephalopathy Personal Medical History Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2961250",
+     "identifier": "2961250",
+     "preferred_term": "Person Cancer Screening History Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2954182",
+     "identifier": "2954182",
+     "preferred_term": "Person Sibling Birth Order Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3007491",
+     "identifier": "3007491",
+     "preferred_term": "Person Reproductive History Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3170355",
+     "identifier": "3170355",
+     "preferred_term": "Person Elevated Risk Surgical Procedure Clinical Trial Eligibility Criteria Eligibility Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3249368",
+     "identifier": "3249368",
+     "preferred_term": "Person Treatment Plan Consent Eligibility Determination Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3025121",
+     "identifier": "3025121",
+     "preferred_term": "Person Self-Report Age Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3335348",
+     "identifier": "3335348",
+     "preferred_term": "Person Hypokalemia Hypomagnesemia Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3345086",
+     "identifier": "3345086",
+     "preferred_term": "Person Address State Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3371703",
+     "identifier": "3371703",
+     "preferred_term": "Person Emotional Behavior-Related Disorder Questionnaire Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4193911",
+     "identifier": "4193911",
+     "preferred_term": "Person Respirable Crystalline Silica Exposure Yes No Unknown Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4770779",
+     "identifier": "4770779",
+     "preferred_term": "Person Movement Disorder Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5260278",
+     "identifier": "5260278",
+     "preferred_term": "Person Treatment Planned Type Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5935522",
+     "identifier": "5935522",
+     "preferred_term": "Person Minimal Residual Disease Assessment Clinical Trial Eligibility Criteria Status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6660900",
+     "identifier": "6660900",
+     "preferred_term": "Cause of Death Reason CPTAC Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3773737",
+     "identifier": "3773737",
+     "preferred_term": "Person Vital Signs Temperature Physical Examination Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4170229",
+     "identifier": "4170229",
+     "preferred_term": "Person Catheter Device Implantation Procedure Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4474392",
+     "identifier": "4474392",
+     "preferred_term": "Person Therapeutic Procedure Discontinued Prior Registration Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4917039",
+     "identifier": "4917039",
+     "preferred_term": "Person Home Language Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5123432",
+     "identifier": "5123432",
+     "preferred_term": "Person Medical History Disease or Disorder Clinical Trial Eligibility Criteria Ind"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5154111",
+     "identifier": "5154111",
+     "preferred_term": "Person Discontinue Teatment Or Stable Dose Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5479511",
+     "identifier": "5479511",
+     "preferred_term": "Person Transplantation Intervention or Procedure Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5455494",
+     "identifier": "5455494",
+     "preferred_term": "Person Bradycardia Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7365544",
+     "identifier": "7365544",
+     "preferred_term": "Person Within 14 Day Prior To Symptom Onset Travel Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7591739",
+     "identifier": "7591739",
+     "preferred_term": "Person Birth Country ISO 3166 Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE10358391",
+     "identifier": "10358391",
+     "preferred_term": "Person Frequency of Fluid Intake Required for Oral Comfort When Not Eating Due to Dryness of Mouth Assessment Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2435465",
+     "identifier": "2435465",
+     "preferred_term": "Person Smoking Pipe Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3180261",
+     "identifier": "3180261",
+     "preferred_term": "Person Hemoptysis First Dose Pazopanib Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3288110",
+     "identifier": "3288110",
+     "preferred_term": "Person Stage Evaluation Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3262236",
+     "identifier": "3262236",
+     "preferred_term": "Person Infrared Photocoagulation Therapy Completely Administered Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3528435",
+     "identifier": "3528435",
+     "preferred_term": "Person Infection Requiring Antibiotic Therapy Autologous Stem Cell Rescue Therapeutic Procedure Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3537201",
+     "identifier": "3537201",
+     "preferred_term": "Person Prior Treatment Regimen Hydroxyurea Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3771224",
+     "identifier": "3771224",
+     "preferred_term": "Person HLA Typing Second Allele Antigen Value Collected Yes No Unknown Not Applicable Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4449953",
+     "identifier": "4449953",
+     "preferred_term": "Person Clinical Study Agent Hypersensitivity Exclusion Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4449895",
+     "identifier": "4449895",
+     "preferred_term": "Person Gastrointestinal Absorption Inhibition Exclusion Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4783275",
+     "identifier": "4783275",
+     "preferred_term": "Primary Cause of Death Reason Other Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6014203",
+     "identifier": "6014203",
+     "preferred_term": "Person Breast Intervention or Procedure Outcome Clinical Trial Eligibility Criteria Ind"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE8002585",
+     "identifier": "8002585",
+     "preferred_term": "Person High Suspicious for Malignancy Assessment Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE10358385",
+     "identifier": "10358385",
+     "preferred_term": "Person Difficulty Speaking Due to Dryness of Mouth and Tongue Assessment Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2222677",
+     "identifier": "2222677",
+     "preferred_term": "Person Occupation Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2434980",
+     "identifier": "2434980",
+     "preferred_term": "Person Geographic Birth Place Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2547937",
+     "identifier": "2547937",
+     "preferred_term": "Person Circulating Tumor Cell Specimen Analysis Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2534606",
+     "identifier": "2534606",
+     "preferred_term": "Person Identifier java.lang.Long"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2668458",
+     "identifier": "2668458",
+     "preferred_term": "Person Clinical License Suffix Abbreviation Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2786109",
+     "identifier": "2786109",
+     "preferred_term": "Person Household Year Passive Smoke Exposure Year Count"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2786143",
+     "identifier": "2786143",
+     "preferred_term": "Person Cigarette Week Current Use Smoking History Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2950734",
+     "identifier": "2950734",
+     "preferred_term": "Person Suspected Clinical Diagnosis Clinical Trial Eligibility Criteria Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2956045",
+     "identifier": "2956045",
+     "preferred_term": "Person Plasma Cell Myeloma Stage Grouping Clinical Trial Eligibility Criteria Stage"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3163073",
+     "identifier": "3163073",
+     "preferred_term": "Person Health Status And Outcome Assessment Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3182768",
+     "identifier": "3182768",
+     "preferred_term": "Person Serum Potassium Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3245775",
+     "identifier": "3245775",
+     "preferred_term": "Person Parenchyma Liver Metastasis Eligibility Determination Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3385527",
+     "identifier": "3385527",
+     "preferred_term": "Person Specimen Malignant Neoplasm Research Consent Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3294764",
+     "identifier": "3294764",
+     "preferred_term": "Person Osteoporosis Fracture Personal Medical History Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4261389",
+     "identifier": "4261389",
+     "preferred_term": "Person Neurocognitive Assessment Form Administered Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4193914",
+     "identifier": "4193914",
+     "preferred_term": "Person Mineral Dust Exposure Yes No Unknown Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4828451",
+     "identifier": "4828451",
+     "preferred_term": "Person Diagnosis Age Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5205574",
+     "identifier": "5205574",
+     "preferred_term": "Person Imaging Procedure Contraindicated Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5343711",
+     "identifier": "5343711",
+     "preferred_term": "Person Pathology Review And Confirmation Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6180808",
+     "identifier": "6180808",
+     "preferred_term": "Person Prior Combination Drug Therapy Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7553260",
+     "identifier": "7553260",
+     "preferred_term": "Person Ethnicity Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2603124",
+     "identifier": "2603124",
+     "preferred_term": "Responsible Person Occupation Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2770783",
+     "identifier": "2770783",
+     "preferred_term": "Physician Person Verification Identifier Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2761459",
+     "identifier": "2761459",
+     "preferred_term": "Radiation Oncologist Person E-mail Address Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2779085",
+     "identifier": "2779085",
+     "preferred_term": "Registration Specialist Person Identifier Initials Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2908019",
+     "identifier": "2908019",
+     "preferred_term": "Person Quality of Life Clinical Study Refuse Consent Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2935349",
+     "identifier": "2935349",
+     "preferred_term": "Person Hypertension During Pregnancy Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2966467",
+     "identifier": "2966467",
+     "preferred_term": "Person Fluoride Use Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3019955",
+     "identifier": "3019955",
+     "preferred_term": "Person Biospecimen Angiogenesis Biomarker Research Consent Status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3015030",
+     "identifier": "3015030",
+     "preferred_term": "Person Circulating Tumor Cell Collection Off Treatment Reason"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3192382",
+     "identifier": "3192382",
+     "preferred_term": "Person Malignant Neoplasm Measurable_Disease Detected Finding Present Clinical Trial Eligibility Criteria Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3189705",
+     "identifier": "3189705",
+     "preferred_term": "Person Bone Marrow Specimen Consent Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3245249",
+     "identifier": "3245249",
+     "preferred_term": "Person Endometrial Metastatic Malignant Neoplasm Pelvic Lymph Node Eligibility Determination Ind-3b"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3263643",
+     "identifier": "3263643",
+     "preferred_term": "Person Prior Platinum Compound Chemotherapy Primary Neoplasm Discontinue Clinical Trial Eligibility Criteria Status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3461433",
+     "identifier": "3461433",
+     "preferred_term": "Person Feces Specimen Future Clinical or Research Activity Consent Ind-3"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3679672",
+     "identifier": "3679672",
+     "preferred_term": "Person Cytochrome P450 3A4 Induction Agent Eligibility Determination End Date"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3647034",
+     "identifier": "3647034",
+     "preferred_term": "Person Person Cerebrospinal Fluid Collection Other Disease or Disorder Research Activity Consent Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3809551",
+     "identifier": "3809551",
+     "preferred_term": "Person Age Known Unknown Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3913245",
+     "identifier": "3913245",
+     "preferred_term": "Person Dose Body Weight Unit of Measure Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4152066",
+     "identifier": "4152066",
+     "preferred_term": "Person Malignant Neoplasm Detected Finding Evaluation Method Clinical Trial Eligibility Criteria Yes No Unknown Not Applicable Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4182555",
+     "identifier": "4182555",
+     "preferred_term": "Person Occupation Assessment Yes No Unknown Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4379958",
+     "identifier": "4379958",
+     "preferred_term": "Person Uncontrolled Concurrent Disease or Disorder Exclusion Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5073411",
+     "identifier": "5073411",
+     "preferred_term": "Person Breast Feeding Clinical Trial Eligibility Criteria Yes No Not Applicable Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6719738",
+     "identifier": "6719738",
+     "preferred_term": "Person Exercise Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2006183",
+     "identifier": "2006183",
+     "preferred_term": "Person Address Country Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2006183",
+     "identifier": "2006183",
+     "preferred_term": "Patient Address Country Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2179644",
+     "identifier": "2179644",
+     "preferred_term": "Person Height Unit of Measure Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2179644",
+     "identifier": "2179644",
+     "preferred_term": "Height Unit of Measure Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2182701",
+     "identifier": "2182701",
+     "preferred_term": "Participant Randomization Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2539762",
+     "identifier": "2539762",
+     "preferred_term": "Person Database Identifier java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2668607",
+     "identifier": "2668607",
+     "preferred_term": "Anxiety Acute Distress Person Quality of Life Assessment Scale"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2936257",
+     "identifier": "2936257",
+     "preferred_term": "Person Arrhythmia Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3076108",
+     "identifier": "3076108",
+     "preferred_term": "Person Stroke Symptom Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3025120",
+     "identifier": "3025120",
+     "preferred_term": "Person Race Number Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3534735",
+     "identifier": "3534735",
+     "preferred_term": "Person Spontaneous Abortion Pregnancy Outcome Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3534934",
+     "identifier": "3534934",
+     "preferred_term": "Person Urine Protein Measurement Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3794625",
+     "identifier": "3794625",
+     "preferred_term": "Person Shared Residence Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE10443791",
+     "identifier": "10443791",
+     "preferred_term": "Person Hispanic or Latino Other Specify Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2178058",
+     "identifier": "2178058",
+     "preferred_term": "Person Hormone Receptor Status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2185990",
+     "identifier": "2185990",
+     "preferred_term": "Person Colorectal Specimen Research Consent Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2635192",
+     "identifier": "2635192",
+     "preferred_term": "Person Transplant Conditioning Height Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2693031",
+     "identifier": "2693031",
+     "preferred_term": "Person Pharmacologic Substance Current Clinical Trial Consent Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2794263",
+     "identifier": "2794263",
+     "preferred_term": "Person Body Image Rating Scale Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2860486",
+     "identifier": "2860486",
+     "preferred_term": "Person Metastatic Melanoma Histology Clinical Trial Eligibility Criteria Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2946951",
+     "identifier": "2946951",
+     "preferred_term": "Person Serum Selenium Level Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2935430",
+     "identifier": "2935430",
+     "preferred_term": "Person Pulmonary Embolism Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2944736",
+     "identifier": "2944736",
+     "preferred_term": "Person Intrahepatic Portal Vein Invasion Present Clinical Trial Eligibility Criteria Present Absent Text Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3008667",
+     "identifier": "3008667",
+     "preferred_term": "Person Color Vision Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3076084",
+     "identifier": "3076084",
+     "preferred_term": "Person Parkinson's Disease Assessment Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179435",
+     "identifier": "3179435",
+     "preferred_term": "Person Prior Surgical Procedure Malabsorption Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3178995",
+     "identifier": "3178995",
+     "preferred_term": "Person Malignant Neoplasm Recurrent Disease Disease Progression Clinical Trial Eligibility Criteria Status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3184748",
+     "identifier": "3184748",
+     "preferred_term": "Person Allergic Reaction Bacterial Protein Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3270436",
+     "identifier": "3270436",
+     "preferred_term": "Person History First Cancer Screening Age Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3458588",
+     "identifier": "3458588",
+     "preferred_term": "Person Study Chair Required Notification Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3528709",
+     "identifier": "3528709",
+     "preferred_term": "Person Calculation Corrected Weight Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3506032",
+     "identifier": "3506032",
+     "preferred_term": "Person Registration Reservation Identifier Eligibility Determination Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4770577",
+     "identifier": "4770577",
+     "preferred_term": "Person Body Mass Index Percentile Meet Clinical Trial Eligibility Criteria Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5100351",
+     "identifier": "5100351",
+     "preferred_term": "Person Prior Imaging Clinical Trial Eligibility Criteria Ind"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5021276",
+     "identifier": "5021276",
+     "preferred_term": "Person Suprailiac Skinfold Thickness Body Composition Percentage Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5207134",
+     "identifier": "5207134",
+     "preferred_term": "Person High Risk Seizure Disorder Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6080665",
+     "identifier": "6080665",
+     "preferred_term": "Person Bilateral Arm Volume And Joint Mobility Measurement Performed Ind"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6412696",
+     "identifier": "6412696",
+     "preferred_term": "Person Primary Refractory Disease Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7572830",
+     "identifier": "7572830",
+     "preferred_term": "Person Risk Behavior Activity Other Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE8032482",
+     "identifier": "8032482",
+     "preferred_term": "Person Prior Period Treatment Regimen Hydroxyurea Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3654718",
+     "identifier": "3654718",
+     "preferred_term": "Person Malignant Neoplasm Endocrine Therapy Clinical Trial Eligibility Criteria Yes No Not Applicable Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4512805",
+     "identifier": "4512805",
+     "preferred_term": "Person International Prognostic Factor Study Group Metastatic Germ Cell Tumor Assessment Modified Risk Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4449912",
+     "identifier": "4449912",
+     "preferred_term": "Person Ejection Fraction Lower Limit of Normal Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4266614",
+     "identifier": "4266614",
+     "preferred_term": "Person MGMT Abnormality Verification Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4828691",
+     "identifier": "4828691",
+     "preferred_term": "Person Diagnosis Age Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5242668",
+     "identifier": "5242668",
+     "preferred_term": "Person Primary Study Randomized Clinical Trial Participation Ind"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5456180",
+     "identifier": "5456180",
+     "preferred_term": "Person Receive Systemic Corticosteroid Therapy Prior To Protocol Agent Pharmacologic Substance Administration Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5622186",
+     "identifier": "5622186",
+     "preferred_term": "Person Karnofsky Performance Status Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6148677",
+     "identifier": "6148677",
+     "preferred_term": "Person Clinical Trial Protocol Questionnaire Complete Ind"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7553202",
+     "identifier": "7553202",
+     "preferred_term": "Person Sex at Birth Other Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7658148",
+     "identifier": "7658148",
+     "preferred_term": "Cause of Death Reason Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2001703",
+     "identifier": "2001703",
+     "preferred_term": "Person Highest Education Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2001727",
+     "identifier": "2001727",
+     "preferred_term": "Person First Cancer Diagnosis Age Year Count"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2438181",
+     "identifier": "2438181",
+     "preferred_term": "Person Middle Name java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2238015",
+     "identifier": "2238015",
+     "preferred_term": "Person Last Name java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2435424",
+     "identifier": "2435424",
+     "preferred_term": "Person Occupation Years Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2668601",
+     "identifier": "2668601",
+     "preferred_term": "Relaxation Person Quality of Life Assessment Scale"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2647029",
+     "identifier": "2647029",
+     "preferred_term": "Tissue Donor Person Blood Transfusion Personal Medical History Count"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2787119",
+     "identifier": "2787119",
+     "preferred_term": "Person Latitude Longitude Location java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2821066",
+     "identifier": "2821066",
+     "preferred_term": "Person Substance of Abuse Dependence Assessment Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3158157",
+     "identifier": "3158157",
+     "preferred_term": "Person Breast Radiation Therapy Complete Randomization Ind-3"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3461371",
+     "identifier": "3461371",
+     "preferred_term": "Person IMRT Administration For Pelvis Radiation Therapy Stratification Ind-3"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4661753",
+     "identifier": "4661753",
+     "preferred_term": "Person Medical History Autoimmune Disease Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE10538164",
+     "identifier": "10538164",
+     "preferred_term": "Person Medical Or Family History Prolonged QT Interval Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2003309",
+     "identifier": "2003309",
+     "preferred_term": "Payment Method"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2730331",
+     "identifier": "2730331",
+     "preferred_term": "Person Other Religion Descriptive Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2766253",
+     "identifier": "2766253",
+     "preferred_term": "Person Surgical Procedure Clinical Trial Registration 2 Digit Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2786151",
+     "identifier": "2786151",
+     "preferred_term": "Person Cigarette Smoking Cessation Age Year Count"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2898774",
+     "identifier": "2898774",
+     "preferred_term": "Person Life Sciences Identifier Entity Identifier java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2956248",
+     "identifier": "2956248",
+     "preferred_term": "Person Ideal Body Weight Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3105036",
+     "identifier": "3105036",
+     "preferred_term": "Person Body Mass Index Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179437",
+     "identifier": "3179437",
+     "preferred_term": "Person Malabsorption Syndrome Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3175774",
+     "identifier": "3175774",
+     "preferred_term": "Credential Person Identifier ISO21090.II.v1.0"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3170123",
+     "identifier": "3170123",
+     "preferred_term": "Person No Distant Metastasis Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3915571",
+     "identifier": "3915571",
+     "preferred_term": "Person Height Unit of Measure Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4449897",
+     "identifier": "4449897",
+     "preferred_term": "Person Therapy-Related Toxicity Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4657771",
+     "identifier": "4657771",
+     "preferred_term": "Person Six Minute Walking Test Restriction Reason"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5230651",
+     "identifier": "5230651",
+     "preferred_term": "Person Prior Lenalidomide Therapeutic Procedure Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5256058",
+     "identifier": "5256058",
+     "preferred_term": "Person Radiation Therapy Discontinued Prior Registration Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6092251",
+     "identifier": "6092251",
+     "preferred_term": "Person Right Arm Circumference Wrist Joint Volume Arm Measurement"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE64182",
+     "identifier": "64182",
+     "preferred_term": "Responsible Person Occupation Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6719737",
+     "identifier": "6719737",
+     "preferred_term": "Person Exercise Breathing Distress Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6755091",
+     "identifier": "6755091",
+     "preferred_term": "Person Past 6 Months Monthly Status Money Scale"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7050057",
+     "identifier": "7050057",
+     "preferred_term": "Receiver's name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7296903",
+     "identifier": "7296903",
+     "preferred_term": "Person Prior Treatment Regimen Vinblastine Clinical Trial Eligibility Criteria Yes No Not Applicable Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2183417",
+     "identifier": "2183417",
+     "preferred_term": "Person Surgical Procedure Injury Eligibility Determination Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2668606",
+     "identifier": "2668606",
+     "preferred_term": "Emotion Confidence Person Quality of Life Assessment Scale"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2728921",
+     "identifier": "2728921",
+     "preferred_term": "Person Current Drug Abuse Agent Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2795705",
+     "identifier": "2795705",
+     "preferred_term": "Person Knee Height Centimeter Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2853044",
+     "identifier": "2853044",
+     "preferred_term": "Person Death Date"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2951234",
+     "identifier": "2951234",
+     "preferred_term": "Person Clinical Study Treatment Begin Identifier Clinical Trial Eligibility Criteria Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2935403",
+     "identifier": "2935403",
+     "preferred_term": "Person Angina Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3025117",
+     "identifier": "3025117",
+     "preferred_term": "Person Marital Status Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179035",
+     "identifier": "3179035",
+     "preferred_term": "Person Therapeutic Procedure Discontinued Prior Registration Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3185889",
+     "identifier": "3185889",
+     "preferred_term": "Person Naproxen Hypersensitivity Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3188868",
+     "identifier": "3188868",
+     "preferred_term": "Person Gynecologic Oncology Group Other Clinical Study Randomization Clinical Trial Eligibility Criteria Protocol Treatment Arm Assignment Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3190652",
+     "identifier": "3190652",
+     "preferred_term": "Person Highest Education Level DPBRN Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3288369",
+     "identifier": "3288369",
+     "preferred_term": "Person Specimen External Investigator Blood Sample Consent Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3382689",
+     "identifier": "3382689",
+     "preferred_term": "Person Negation Central Nervous System Penetration ERBB2 Receptor Protein-Tyrosine Kinase Block Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3624938",
+     "identifier": "3624938",
+     "preferred_term": "Person Highest Education Level Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4661751",
+     "identifier": "4661751",
+     "preferred_term": "Person Glucose Intolerance Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4810294",
+     "identifier": "4810294",
+     "preferred_term": "Third Alternative Contact Person E-mail Address Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4920653",
+     "identifier": "4920653",
+     "preferred_term": "Person North American Association of Central Cancer Registries Race Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5654816",
+     "identifier": "5654816",
+     "preferred_term": "Person Negation Serious Uncontrolled Medical Condition Clinical Trial Elgibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5612590",
+     "identifier": "5612590",
+     "preferred_term": "Person Weight Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6148596",
+     "identifier": "6148596",
+     "preferred_term": "Person Medical History Major Problem Other Details Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6091952",
+     "identifier": "6091952",
+     "preferred_term": "Person Right Arm Angle Between Lateral Chest Wall And Humerus Joint Mobility Measurement"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6563017",
+     "identifier": "6563017",
+     "preferred_term": "Person Human Immunodeficiency Virus Highly Active Antiretroviral Therapy Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6662819",
+     "identifier": "6662819",
+     "preferred_term": "Person Alive Biological Relative Parent Count"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7058666",
+     "identifier": "7058666",
+     "preferred_term": "Date of signature"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7218853",
+     "identifier": "7218853",
+     "preferred_term": "Person Sex Other Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2181635",
+     "identifier": "2181635",
+     "preferred_term": "Person Department Address Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2423408",
+     "identifier": "2423408",
+     "preferred_term": "Derived Person Registration Age Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2635194",
+     "identifier": "2635194",
+     "preferred_term": "Person Transplant Conditioning Actual Weight Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2647026",
+     "identifier": "2647026",
+     "preferred_term": "Tissue Donor Person Ethnic Group Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2842649",
+     "identifier": "2842649",
+     "preferred_term": "Person Tissue Microarray Clinical Trial Registration Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2946990",
+     "identifier": "2946990",
+     "preferred_term": "Person Daily Serving Dairy Food Intake Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3005240",
+     "identifier": "3005240",
+     "preferred_term": "Person Plastic Exposure Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3070691",
+     "identifier": "3070691",
+     "preferred_term": "Person Fasting Plasma Glucose Assay Concentration Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179438",
+     "identifier": "3179438",
+     "preferred_term": "Person Concomitant Agent QTcB Prolongation Greater Than 500 msec Torsades De Pointes Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3210380",
+     "identifier": "3210380",
+     "preferred_term": "Person Bone Marrow Liver Spleen Evaluation Ind-3"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3260932",
+     "identifier": "3260932",
+     "preferred_term": "Person Education Level Summary North Central Cancer Treatment Group Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3291803",
+     "identifier": "3291803",
+     "preferred_term": "Primary Cause of Death Reason"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3303074",
+     "identifier": "3303074",
+     "preferred_term": "Person Prior Chemotherapy Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3294812",
+     "identifier": "3294812",
+     "preferred_term": "Person Osteoporosis Fracture Personal Medical History Ind-3"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3600211",
+     "identifier": "3600211",
+     "preferred_term": "Person Ethnicity ISO21090.ST.v1.0"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3771216",
+     "identifier": "3771216",
+     "preferred_term": "Person HLA Typing First Allele Antigen Value Collected Yes No Unknown Not Applicable Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3651857",
+     "identifier": "3651857",
+     "preferred_term": "Person Geographic Birth Place City Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4182471",
+     "identifier": "4182471",
+     "preferred_term": "Person Occupation Assessment Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4182227",
+     "identifier": "4182227",
+     "preferred_term": "Person Occupation Exposure Environmental Tobacco Smoke Yes No Unknown Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4484731",
+     "identifier": "4484731",
+     "preferred_term": "Person Serious Adverse Event Hemorrhage Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4885197",
+     "identifier": "4885197",
+     "preferred_term": "Person Media Use Assessment Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5100690",
+     "identifier": "5100690",
+     "preferred_term": "Person Intervention or Procedure Ability Clinical Trial Eligibility Criteria Ind"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5832506",
+     "identifier": "5832506",
+     "preferred_term": "Person Receive Inhibitor And/Or Inducer Medication Substance Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7992489",
+     "identifier": "7992489",
+     "preferred_term": "Person Diagnosis Age Range"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6609882",
+     "identifier": "6609882",
+     "preferred_term": "Person Paying Medical Bills Over Time Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6739934",
+     "identifier": "6739934",
+     "preferred_term": "Person Residence Housing Type Other Specify Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7572829",
+     "identifier": "7572829",
+     "preferred_term": "Person Risk Behavior Activity Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE10624734",
+     "identifier": "10624734",
+     "preferred_term": "Person ORCID Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE8177924",
+     "identifier": "8177924",
+     "preferred_term": "Person Body Mass Index Weight Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2233838",
+     "identifier": "2233838",
+     "preferred_term": "Patient History GI Perforation Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2493304",
+     "identifier": "2493304",
+     "preferred_term": "Person Race Code java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2670710",
+     "identifier": "2670710",
+     "preferred_term": "Person Shared Residence Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2677944",
+     "identifier": "2677944",
+     "preferred_term": "Person Prior Year Pregnancy Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2693041",
+     "identifier": "2693041",
+     "preferred_term": "Person Laboratory Procedure Current Clinical Trial Consent Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2728911",
+     "identifier": "2728911",
+     "preferred_term": "Person Current Drug Abuse Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2876352",
+     "identifier": "2876352",
+     "preferred_term": "Person Quality of Life Complete Agreement Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2969935",
+     "identifier": "2969935",
+     "preferred_term": "Person Respiratory Symptom Family And Personal Medical History Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2966462",
+     "identifier": "2966462",
+     "preferred_term": "Person Dental Fluorosis Prevalence Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3060755",
+     "identifier": "3060755",
+     "preferred_term": "Person Physical Activity Level Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3015034",
+     "identifier": "3015034",
+     "preferred_term": "Person Circulating Tumor Cell Collection Off Treatment Date"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3163002",
+     "identifier": "3163002",
+     "preferred_term": "Person Acculturation Assessment Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179442",
+     "identifier": "3179442",
+     "preferred_term": "Person Strong Cytochrome P450 3A4 Induction Inhibition Agent Eligibility Determination Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179451",
+     "identifier": "3179451",
+     "preferred_term": "Person New York Heart Association Class II Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3185913",
+     "identifier": "3185913",
+     "preferred_term": "Person Prior Splenectomy Sickle Cell Disease Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3190237",
+     "identifier": "3190237",
+     "preferred_term": "Person Birth Date"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3228244",
+     "identifier": "3228244",
+     "preferred_term": "Person Valvular Heart Disorder Personal Medical History First Date"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3263238",
+     "identifier": "3263238",
+     "preferred_term": "Person Search Employment Opportunities Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3913478",
+     "identifier": "3913478",
+     "preferred_term": "Person Specimen Malignant Neoplasm Research Consent Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2006475",
+     "identifier": "2006475",
+     "preferred_term": "Individual Genealogy Suffix Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2006475",
+     "identifier": "2006475",
+     "preferred_term": "Individual Genealogy Text Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2547697",
+     "identifier": "2547697",
+     "preferred_term": "Laboratory Person Analysis Notification Submitter Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2647148",
+     "identifier": "2647148",
+     "preferred_term": "Person Additional Blood Biospecimen Research Consent Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2617834",
+     "identifier": "2617834",
+     "preferred_term": "Person Estimated Daily Caloric Intake Assessment Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2761460",
+     "identifier": "2761460",
+     "preferred_term": "Radiation Oncologist Person Telephone Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2944784",
+     "identifier": "2944784",
+     "preferred_term": "Person Caffeine Intake Value in Milligram"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2944314",
+     "identifier": "2944314",
+     "preferred_term": "Person Breast Feeding Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3088282",
+     "identifier": "3088282",
+     "preferred_term": "Person Clinical Study Registration Or Treatment Begin Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3262241",
+     "identifier": "3262241",
+     "preferred_term": "Person Infrared Photocoagulation Therapy Negation Administered Reason"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3188872",
+     "identifier": "3188872",
+     "preferred_term": "Person Gynecologic Oncology Group Other Clinical Study Enrollment Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3185884",
+     "identifier": "3185884",
+     "preferred_term": "Person Skin Reaction Antigen Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3289564",
+     "identifier": "3289564",
+     "preferred_term": "Person Clinical Trial Oophorectomy Menopause Stratification Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179436",
+     "identifier": "3179436",
+     "preferred_term": "Person Peptic Ulcer Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3244127",
+     "identifier": "3244127",
+     "preferred_term": "Person ALK Gene Abnormality Verification Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3360021",
+     "identifier": "3360021",
+     "preferred_term": "Person Data Complete Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3811774",
+     "identifier": "3811774",
+     "preferred_term": "HLA Typing Person Donor Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4474281",
+     "identifier": "4474281",
+     "preferred_term": "Person Cardiac Valve Problem Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4695737",
+     "identifier": "4695737",
+     "preferred_term": "Person Residential Telephone Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5334271",
+     "identifier": "5334271",
+     "preferred_term": "Patient birth date"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5235519",
+     "identifier": "5235519",
+     "preferred_term": "Person Tuberculosis Personal Medical History Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5692322",
+     "identifier": "5692322",
+     "preferred_term": "Head Circumference Unit of Measure"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5699888",
+     "identifier": "5699888",
+     "preferred_term": "Person Surgical Procedure Biopsy Injury Prior Therapeutic Procedure Occurrence Or Surgery Intent Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6091413",
+     "identifier": "6091413",
+     "preferred_term": "Person Right Arm Circumference Axilla Volume Measurement"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6468363",
+     "identifier": "6468363",
+     "preferred_term": "Female Breast Feeding Or Pregnancy Status Eligibility Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6733029",
+     "identifier": "6733029",
+     "preferred_term": "Person Hispanic or Latino Origin Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5241794",
+     "identifier": "5241794",
+     "preferred_term": "Person Race White Category Ind"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6430434",
+     "identifier": "6430434",
+     "preferred_term": "Person Endometrial Metastatic Malignant Neoplasm Paraaortic Lymph Node Eligibility Determination Ind-3b"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2004540",
+     "identifier": "2004540",
+     "preferred_term": "Responsible Person Reporting Change Last Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2425574",
+     "identifier": "2425574",
+     "preferred_term": "Application Person User java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2670719",
+     "identifier": "2670719",
+     "preferred_term": "Person Shared Relative Residence Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2795707",
+     "identifier": "2795707",
+     "preferred_term": "Person Arm Span Centimeter Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2786081",
+     "identifier": "2786081",
+     "preferred_term": "Person Current External Household Cigarette Passive Smoke Exposure Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2842625",
+     "identifier": "2842625",
+     "preferred_term": "Person Endometrial Evaluation Normal/ Abnormal Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2966482",
+     "identifier": "2966482",
+     "preferred_term": "Person Mucosa Lesion indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2950086",
+     "identifier": "2950086",
+     "preferred_term": "Person Malignant Neoplasm Clinical Trial Eligibility Criteria Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2944808",
+     "identifier": "2944808",
+     "preferred_term": "Person Daily Dietary Fiber Intake Value in Gram"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2957270",
+     "identifier": "2957270",
+     "preferred_term": "Person Menopause Status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2969940",
+     "identifier": "2969940",
+     "preferred_term": "Person Chest Computed Tomography Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3158824",
+     "identifier": "3158824",
+     "preferred_term": "Person Prior Treatment Regimen Complete Clinical Trial Eligibility Criteria Ind-3b"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3233516",
+     "identifier": "3233516",
+     "preferred_term": "Person Refractory Disease Exclusion Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3192340",
+     "identifier": "3192340",
+     "preferred_term": "Person No Platinum Compound Taxane Compound Chemotherapy Regimen Recurrent Disease Disease Progression Clinical Trial Eligibility Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3235131",
+     "identifier": "3235131",
+     "preferred_term": "Person Clinical Study Agent Hypersensitivity Exclusion Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179021",
+     "identifier": "3179021",
+     "preferred_term": "Person Malignant Neoplasm Measurable Disease Present Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3183649",
+     "identifier": "3183649",
+     "preferred_term": "Person Ejection Fraction Lower Limit of Normal Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3233537",
+     "identifier": "3233537",
+     "preferred_term": "Person Hemolytic Anemia Exclusion Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3183500",
+     "identifier": "3183500",
+     "preferred_term": "Individual Income Range"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3259517",
+     "identifier": "3259517",
+     "preferred_term": "Person Fill Out Form Identity Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3773729",
+     "identifier": "3773729",
+     "preferred_term": "Person Other Name Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4178191",
+     "identifier": "4178191",
+     "preferred_term": "Person Year Before Diagnosis Weight Measurement"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5036920",
+     "identifier": "5036920",
+     "preferred_term": "Person Recovered or Resolved Prior Treatment Regimen Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5204282",
+     "identifier": "5204282",
+     "preferred_term": "Person Prior Adjuvant Therapy Administered Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5254720",
+     "identifier": "5254720",
+     "preferred_term": "Person Death Verification Social Role Other Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5226525",
+     "identifier": "5226525",
+     "preferred_term": "Person Laboratory Procedure BUN Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2006410",
+     "identifier": "2006410",
+     "preferred_term": "Person Body Mass Index Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2179643",
+     "identifier": "2179643",
+     "preferred_term": "Person Height Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2179643",
+     "identifier": "2179643",
+     "preferred_term": "Height Measure"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2179689",
+     "identifier": "2179689",
+     "preferred_term": "Person Weight Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2179689",
+     "identifier": "2179689",
+     "preferred_term": "Weight Measure"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2199956",
+     "identifier": "2199956",
+     "preferred_term": "Person Full Address Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2201713",
+     "identifier": "2201713",
+     "preferred_term": "Person Affiliation Role Text Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2201713",
+     "identifier": "2201713",
+     "preferred_term": "Affiliation Role Association Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2183385",
+     "identifier": "2183385",
+     "preferred_term": "Person Vascular History Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2222323",
+     "identifier": "2222323",
+     "preferred_term": "Derived Person Full Formatted Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2262131",
+     "identifier": "2262131",
+     "preferred_term": "Derived Prinicipal Investigator Person Full Formatted Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2262145",
+     "identifier": "2262145",
+     "preferred_term": "Derived Person Birth Full Formatted Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2648707",
+     "identifier": "2648707",
+     "preferred_term": "Contact Person Last Identifier Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2794243",
+     "identifier": "2794243",
+     "preferred_term": "Person Knee Height Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2946975",
+     "identifier": "2946975",
+     "preferred_term": "Person Past Month Added Sugar Intake Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2970214",
+     "identifier": "2970214",
+     "preferred_term": "Person Respiratory Disease Affected Quality of Life Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3007451",
+     "identifier": "3007451",
+     "preferred_term": "Person Forced Sexual Intercourse Yes No indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3182214",
+     "identifier": "3182214",
+     "preferred_term": "Person Prior Chemotherapy No Radiosensitizing Agent Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179031",
+     "identifier": "3179031",
+     "preferred_term": "Person Interval Last Surgical Procedure Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3234707",
+     "identifier": "3234707",
+     "preferred_term": "Person Prior Thoracic Radiation Therapy Exclusion Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3192347",
+     "identifier": "3192347",
+     "preferred_term": "Person Platinum Compound Chemotherapy Regimen Recurrent Disease Disease Progression Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3264683",
+     "identifier": "3264683",
+     "preferred_term": "Person Breast Feeding History Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3316714",
+     "identifier": "3316714",
+     "preferred_term": "Person Disease-Free Survival Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3601236",
+     "identifier": "3601236",
+     "preferred_term": "Person Sleep Difficulty Assessment Duration"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3854831",
+     "identifier": "3854831",
+     "preferred_term": "Person Target Pulse Rate Pulse Measurement"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4382333",
+     "identifier": "4382333",
+     "preferred_term": "Person Caregiver Participation Assessment Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4915382",
+     "identifier": "4915382",
+     "preferred_term": "Person Control Thyroid Gland Function Clinical Trial Eligibility Criteria Status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4915351",
+     "identifier": "4915351",
+     "preferred_term": "Person Serious Adverse Event Hemorrhage Clinical Trial Eligibility Criteria Status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6148673",
+     "identifier": "6148673",
+     "preferred_term": "Person Correlative Study Specimen Submission And Collection Information Complete Ind"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6091946",
+     "identifier": "6091946",
+     "preferred_term": "Person Left Arm Circumference Wrist Joint Volume Measurement"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6272162",
+     "identifier": "6272162",
+     "preferred_term": "Person Clinical Trial Protocol Questionnaire Complete Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6739939",
+     "identifier": "6739939",
+     "preferred_term": "Person Risk Homeless Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6763046",
+     "identifier": "6763046",
+     "preferred_term": "Person Adherence Study Refuse Participation Other Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE8178314",
+     "identifier": "8178314",
+     "preferred_term": "Person No Response Text Reason"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5096157",
+     "identifier": "5096157",
+     "preferred_term": "Person No Prior Therapy Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5207113",
+     "identifier": "5207113",
+     "preferred_term": "Person Receive Radiation Therapy Bone Marrow Assessment Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5695714",
+     "identifier": "5695714",
+     "preferred_term": "Person Prior Antibody Therapy Require Additional Immunosuppressive Therapy For Adverse Event Management Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6751836",
+     "identifier": "6751836",
+     "preferred_term": "Person Estimate Annual Loss Income Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7366745",
+     "identifier": "7366745",
+     "preferred_term": "Derived Flag Person At Diagnosis Age Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7736623",
+     "identifier": "7736623",
+     "preferred_term": "Derived Diagnosis Age Day Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7574445",
+     "identifier": "7574445",
+     "preferred_term": "Derived Person Address Full Mailing Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7574329",
+     "identifier": "7574329",
+     "preferred_term": "Derived Person Address Full Residence Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2005191",
+     "identifier": "2005191",
+     "preferred_term": "Person Survival Information Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE10151990",
+     "identifier": "10151990",
+     "preferred_term": "Person Sibling Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2435368",
+     "identifier": "2435368",
+     "preferred_term": "Other Occupation Status Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2771402",
+     "identifier": "2771402",
+     "preferred_term": "Person Part Life Sciences Identifier Namespace java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2787120",
+     "identifier": "2787120",
+     "preferred_term": "Person Occupation Title java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2787117",
+     "identifier": "2787117",
+     "preferred_term": "Person Picture java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2786080",
+     "identifier": "2786080",
+     "preferred_term": "Person Current External Household Cigarette Hour Week Passive Smoke Exposure Count"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2865130",
+     "identifier": "2865130",
+     "preferred_term": "Person Healthcare Payer Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2950739",
+     "identifier": "2950739",
+     "preferred_term": "Person Clinical Trial Identifier Participation Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2970285",
+     "identifier": "2970285",
+     "preferred_term": "Person Artery Blood Gas Measurement Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2954148",
+     "identifier": "2954148",
+     "preferred_term": "Person Daily Life Exposure Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3107329",
+     "identifier": "3107329",
+     "preferred_term": "Person Physical Activity Neighborhood Environment Characteristic Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3124171",
+     "identifier": "3124171",
+     "preferred_term": "Parent Person Education Level Education Level Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179439",
+     "identifier": "3179439",
+     "preferred_term": "Person QTcB Prolongation Greater Than 500 msec Clinical Trial Eligibility Criteria Assessments Ind-3b"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3188874",
+     "identifier": "3188874",
+     "preferred_term": "Person Antiemetic Agent Requirement Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3183071",
+     "identifier": "3183071",
+     "preferred_term": "Person Chronic Antiplatelet Therapy Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179029",
+     "identifier": "3179029",
+     "preferred_term": "Person Malignant Neoplasm Measurable Disease Radiation Field Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE10151980",
+     "identifier": "10151980",
+     "preferred_term": "Person Children Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2001487",
+     "identifier": "2001487",
+     "preferred_term": "Person Specimen Submitted Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2196221",
+     "identifier": "2196221",
+     "preferred_term": "Submitted Adverse Event Person Email Address Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2681552",
+     "identifier": "2681552",
+     "preferred_term": "Person Education Level Summary Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2773003",
+     "identifier": "2773003",
+     "preferred_term": "Person Status java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2787123",
+     "identifier": "2787123",
+     "preferred_term": "Person Organizational Unit java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2946961",
+     "identifier": "2946961",
+     "preferred_term": "Person Serum Vitamin D Level Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3067589",
+     "identifier": "3067589",
+     "preferred_term": "Person Diabetes Mellitus Family Medical History Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3249393",
+     "identifier": "3249393",
+     "preferred_term": "Person Prior Therapeutic Procedure Malignant Neoplasm Eligibility Determination Therapy Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3288319",
+     "identifier": "3288319",
+     "preferred_term": "Person Malignant Neoplasm Mesorectal Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3520410",
+     "identifier": "3520410",
+     "preferred_term": "Person Malabsorption Syndrome Gastrointestinal Disorder Stomach/Small Bowel Excision History Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3703369",
+     "identifier": "3703369",
+     "preferred_term": "Person Birth Country Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3702856",
+     "identifier": "3702856",
+     "preferred_term": "Person Gilbert Syndrome Personal Medical History Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4193912",
+     "identifier": "4193912",
+     "preferred_term": "Person Wood Dust Exposure Yes No Unknown Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4722446",
+     "identifier": "4722446",
+     "preferred_term": "Person Breast Feeding Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4478705",
+     "identifier": "4478705",
+     "preferred_term": "Oral Sex Received Count"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5154291",
+     "identifier": "5154291",
+     "preferred_term": "Person Diet And Medication Agreement Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5237339",
+     "identifier": "5237339",
+     "preferred_term": "Person Ventricular Arrhythmia Arrhythmia Medication Clinical Trial Eligibility Criteria Yes No Unknown Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5810660",
+     "identifier": "5810660",
+     "preferred_term": "Person Abnormal Echocardiogram Result Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6080697",
+     "identifier": "6080697",
+     "preferred_term": "Person Right Arm Antecubital Fossa To Wrist Joint Volume Measurement"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7008457",
+     "identifier": "7008457",
+     "preferred_term": "Person Platinum Compound Chemotherapy Sensitivity Therapy Option Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7218831",
+     "identifier": "7218831",
+     "preferred_term": "Person Geographic Birth Place Country Origin Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7847120",
+     "identifier": "7847120",
+     "preferred_term": "Person Psychiatric Disorder Personal Medical History Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3134878",
+     "identifier": "3134878",
+     "preferred_term": "Person Education Level Highest Education Level Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3183060",
+     "identifier": "3183060",
+     "preferred_term": "Person Prior Adjuvant Chemotherapy No Cancer Progression Clinical Trial Eligibility Criteria Ind-4"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3185912",
+     "identifier": "3185912",
+     "preferred_term": "Person Cirrhosis Liver Function Test Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3236003",
+     "identifier": "3236003",
+     "preferred_term": "Person Test Clinical Trial Eligibility Criteria Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3371698",
+     "identifier": "3371698",
+     "preferred_term": "Person Self-Report Human Immunodeficiency Virus Testing Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3421409",
+     "identifier": "3421409",
+     "preferred_term": "Person Malignant Neoplasm Pathology Clinical Trial Eligibility Criteria Ind-3"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4261318",
+     "identifier": "4261318",
+     "preferred_term": "Person Neurocognitive Controlled Oral Word Association Test Assessment Administered Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3919202",
+     "identifier": "3919202",
+     "preferred_term": "Person Refractory Disease Prior Therapy Stratification Reason"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4695738",
+     "identifier": "4695738",
+     "preferred_term": "Person Business Telephone Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5117632",
+     "identifier": "5117632",
+     "preferred_term": "Person Therapeutic Procedure Step Registration Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5123394",
+     "identifier": "5123394",
+     "preferred_term": "Person Planning High Risk Lesion Surgical Procedure Clinical Trial Eligibility Criteria Ind"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5036431",
+     "identifier": "5036431",
+     "preferred_term": "Person Tuberculosis Personal Medical History Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4826261",
+     "identifier": "4826261",
+     "preferred_term": "Person Therapeutic Procedure Administration Clinical Trial Eligibility Criteria Ind"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5363211",
+     "identifier": "5363211",
+     "preferred_term": "Local Pathology Data Input Person Identifier Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5798581",
+     "identifier": "5798581",
+     "preferred_term": "Person Education Level Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6141822",
+     "identifier": "6141822",
+     "preferred_term": "Person Medical Clearance Immunotherapy Administration And Post Surgery Imaging Confirmed Measurable Residual Disease Trial Eligibility Criteria Ind"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6272169",
+     "identifier": "6272169",
+     "preferred_term": "Person Clinical Trial Protocol Questionnaire Additional Report Ind"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7584489",
+     "identifier": "7584489",
+     "preferred_term": "Person Other Kind Potato Food or Food Product Consumption Temporal Frequency"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7604495",
+     "identifier": "7604495",
+     "preferred_term": "Person Other Religion Specify Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2238092",
+     "identifier": "2238092",
+     "preferred_term": "Person Address java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2443273",
+     "identifier": "2443273",
+     "preferred_term": "Person Living Deceased Brother Count"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2674098",
+     "identifier": "2674098",
+     "preferred_term": "Emotion Strong Person Life Distress Assessment Scale"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2693035",
+     "identifier": "2693035",
+     "preferred_term": "Person Lymph Node Biopsy Consent Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2697751",
+     "identifier": "2697751",
+     "preferred_term": "Person National Surgical Adjuvant Breast and Bowel Project Clinical Study Participation Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2773006",
+     "identifier": "2773006",
+     "preferred_term": "Person United States Military Rank Prefix java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2793282",
+     "identifier": "2793282",
+     "preferred_term": "Person Maximum Adult Weight Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2786114",
+     "identifier": "2786114",
+     "preferred_term": "Person Current Household Cigarette Passive Smoke Exposure Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2848698",
+     "identifier": "2848698",
+     "preferred_term": "Person Brain Neoplasm Family Medical History Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3070684",
+     "identifier": "3070684",
+     "preferred_term": "Person Diabetic Retinopathy Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2179591",
+     "identifier": "2179591",
+     "preferred_term": "Person Family/Last Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE10392491",
+     "identifier": "10392491",
+     "preferred_term": "Person Tissue Specimen Consent Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE10360309",
+     "identifier": "10360309",
+     "preferred_term": "Person During Past Year Able to Pay for Daily Food Expenses Scale"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2177997",
+     "identifier": "2177997",
+     "preferred_term": "Person No Malignant Breast Neoplasm Personal Medical History Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2630200",
+     "identifier": "2630200",
+     "preferred_term": "Person Weight Unit of Measure Unified Code for Units of Measure Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2648709",
+     "identifier": "2648709",
+     "preferred_term": "Contact Person Fax Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3192504",
+     "identifier": "3192504",
+     "preferred_term": "Person Abdominal Cavity Fistula Perforation Abscess Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3178988",
+     "identifier": "3178988",
+     "preferred_term": "Person Priority Gynecologic Oncology Group Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3183058",
+     "identifier": "3183058",
+     "preferred_term": "Person Prior Radiation Therapy Breast Head and Neck Skin Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3249476",
+     "identifier": "3249476",
+     "preferred_term": "Person Malignant Neoplasm Histology Confirmed Eligibility Determination Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3812331",
+     "identifier": "3812331",
+     "preferred_term": "Person Middle Distance Antecubital Fossa To Wrist Joint Circumference Measurement"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4478706",
+     "identifier": "4478706",
+     "preferred_term": "Oral Sex Performed Count"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5038752",
+     "identifier": "5038752",
+     "preferred_term": "Person Height Known Unknown Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4891535",
+     "identifier": "4891535",
+     "preferred_term": "Person Gilbert Syndrome Personal Medical History Eligibility Status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5326214",
+     "identifier": "5326214",
+     "preferred_term": "Person Partial Remission Or Current Therapeutic Procedure With Stable Disease Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5584484",
+     "identifier": "5584484",
+     "preferred_term": "Person Progressive Disease Response Assessment in Neuro-Oncology Criteria Therapeutic Procedure Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5720246",
+     "identifier": "5720246",
+     "preferred_term": "Person Future Assessment Conception Difficulty Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6360532",
+     "identifier": "6360532",
+     "preferred_term": "Taste and Smell Questionnaire Assessment Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7847889",
+     "identifier": "7847889",
+     "preferred_term": "Person Address State Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2951937",
+     "identifier": "2951937",
+     "preferred_term": "Person Copy Informed Consent Health Insurance Portability and Accountability Act Submission Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2947019",
+     "identifier": "2947019",
+     "preferred_term": "Person Percentage Energy From Fat Intake Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3007655",
+     "identifier": "3007655",
+     "preferred_term": "Person Eye Disorder Family Medical History Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3076102",
+     "identifier": "3076102",
+     "preferred_term": "Person Clinical Neuropathy Assessment Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3075485",
+     "identifier": "3075485",
+     "preferred_term": "Person Post-Traumatic Stress Disorder Assessment Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3107311",
+     "identifier": "3107311",
+     "preferred_term": "Person Cardiorespiratory Fitness Non-Exercise Test Estimate DataLevel"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3175777",
+     "identifier": "3175777",
+     "preferred_term": "Credential Person Effective Date and Time Range ISO21090.IVL.TS.DATETIME.v1.0"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3211592",
+     "identifier": "3211592",
+     "preferred_term": "Person Data Table java.lang.Integer"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3340438",
+     "identifier": "3340438",
+     "preferred_term": "Person Human Immunodeficiency Virus Emotional Well-being Assessment Result FAHI SubScale Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3534525",
+     "identifier": "3534525",
+     "preferred_term": "Person Infertility Personal Medical History Individuals Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4156053",
+     "identifier": "4156053",
+     "preferred_term": "Person Intake Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3902301",
+     "identifier": "3902301",
+     "preferred_term": "Person Preoperative Endocrine Prognostic Index Pathologic Tumor Stage Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4718126",
+     "identifier": "4718126",
+     "preferred_term": "Person Human Immunodeficiency Virus Physician Clinical Study Approval Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4475089",
+     "identifier": "4475089",
+     "preferred_term": "Person Gravida Pregnancy Outcome Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5207158",
+     "identifier": "5207158",
+     "preferred_term": "Person Receive Radiation Therapy Or Neurologic Resection Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5259767",
+     "identifier": "5259767",
+     "preferred_term": "Person Receive Future Treatment Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5479475",
+     "identifier": "5479475",
+     "preferred_term": "Person Dermatologic Disease or Disorder Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE62587",
+     "identifier": "62587",
+     "preferred_term": "Person Address Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7580441",
+     "identifier": "7580441",
+     "preferred_term": "Person Health Insurance Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2670712",
+     "identifier": "2670712",
+     "preferred_term": "Person Shared Residence Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2668597",
+     "identifier": "2668597",
+     "preferred_term": "Emotion Dissatisfaction Absent Person Quality of Life Assessment Scale"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE10360649",
+     "identifier": "10360649",
+     "preferred_term": "Person During Past Year Have to Borrow Money to Help with Treatment-Related Expenses Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2001145",
+     "identifier": "2001145",
+     "preferred_term": "Person Not Cancer Not Therapy Associated Death Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2772998",
+     "identifier": "2772998",
+     "preferred_term": "Person Certificate java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2770019",
+     "identifier": "2770019",
+     "preferred_term": "Person Diabetes Mellitus Therapeutic Procedure Personal Medical History Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2793476",
+     "identifier": "2793476",
+     "preferred_term": "Person Ilium Crest Waist Circumference Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2848694",
+     "identifier": "2848694",
+     "preferred_term": "Person Brain Neoplasm Family Medical History Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2950729",
+     "identifier": "2950729",
+     "preferred_term": "Person Plasma Cell Disease or Disorder Clinical Trial Participation Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2946927",
+     "identifier": "2946927",
+     "preferred_term": "Person Eating Index Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2956036",
+     "identifier": "2956036",
+     "preferred_term": "Person Symptomatic Plasma Cell Myeloma Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2966477",
+     "identifier": "2966477",
+     "preferred_term": "Person Malocclusion indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3170517",
+     "identifier": "3170517",
+     "preferred_term": "Person Specimen Future Unrelated Clinical or Research Activity Consent Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3183715",
+     "identifier": "3183715",
+     "preferred_term": "Person Prior Thromboembolic event Inherited Coagulation Disorder Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3380302",
+     "identifier": "3380302",
+     "preferred_term": "Person Prior Stereotactic Radiosurgery Excision Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3245729",
+     "identifier": "3245729",
+     "preferred_term": "Person Cytochrome P450 3A4 Inhibition Agent Eligibility Determination Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3534738",
+     "identifier": "3534738",
+     "preferred_term": "Person Preterm Birth Pregnancy Outcome Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4666911",
+     "identifier": "4666911",
+     "preferred_term": "Person Identifier Center for International Blood and Marrow Transplant Research Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5036420",
+     "identifier": "5036420",
+     "preferred_term": "Person HIV Infection Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5096200",
+     "identifier": "5096200",
+     "preferred_term": "Person No Hypersensitivity Or Contraindicated Therapeutic Procedure Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5491307",
+     "identifier": "5491307",
+     "preferred_term": "Person Survey Receive Method Preference Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6739872",
+     "identifier": "6739872",
+     "preferred_term": "Person Residence Housing Type Housing Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6660848",
+     "identifier": "6660848",
+     "preferred_term": "Person Government Health Insurance Specify Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7349987",
+     "identifier": "7349987",
+     "preferred_term": "Person Intravenous Drug Abuse Personal Medical History Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7421333",
+     "identifier": "7421333",
+     "preferred_term": "Person Strong Multidrug Resistance Protein 1 Inhibition Induction Agent Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2970292",
+     "identifier": "2970292",
+     "preferred_term": "Person Hypersensitivity Skin Prick Test Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3340442",
+     "identifier": "3340442",
+     "preferred_term": "Person Human Immunodeficiency Virus Cognitive Function Result FAHI SubScale Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3587207",
+     "identifier": "3587207",
+     "preferred_term": "Human Papillomavirus Vaccine Use Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4476131",
+     "identifier": "4476131",
+     "preferred_term": "Person Pericardial Effusion Personal Medical History Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4367861",
+     "identifier": "4367861",
+     "preferred_term": "Person Household Income Alliance Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4478630",
+     "identifier": "4478630",
+     "preferred_term": "Since Last Visit Person Sex Encounter Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4920580",
+     "identifier": "4920580",
+     "preferred_term": "Person North American Association of Central Cancer Registries Ethnic Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5096162",
+     "identifier": "5096162",
+     "preferred_term": "Person No Disease Progression Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5251139",
+     "identifier": "5251139",
+     "preferred_term": "Person Internet Access And E-mail Address Ind"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5123351",
+     "identifier": "5123351",
+     "preferred_term": "Person Breast Cancer Current Therapeutic Procedure Clinical Trial Eligibility Criteria Ind"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5260819",
+     "identifier": "5260819",
+     "preferred_term": "Person Agent QTcB Prolongation Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6662764",
+     "identifier": "6662764",
+     "preferred_term": "Person Alive Full Sibling Count"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6609399",
+     "identifier": "6609399",
+     "preferred_term": "Person Unable to Pay Medical Bills Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7847814",
+     "identifier": "7847814",
+     "preferred_term": "Person Vital Signs Measurement Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2648715",
+     "identifier": "2648715",
+     "preferred_term": "Contact Person Telephone Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2770972",
+     "identifier": "2770972",
+     "preferred_term": "Person Thromboembolism Personal Medical History Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2956817",
+     "identifier": "2956817",
+     "preferred_term": "Person Ethnicity Group Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2966284",
+     "identifier": "2966284",
+     "preferred_term": "Person Cleft Lip Or Palate Present Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2966642",
+     "identifier": "2966642",
+     "preferred_term": "Person Periodontal Disease Prevalence Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3007107",
+     "identifier": "3007107",
+     "preferred_term": "Person Pregnancy Pregnancy Status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3007076",
+     "identifier": "3007076",
+     "preferred_term": "Person Prior Therapeutic Procedure Malignant Neoplasm Pregnancy Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2270",
+     "identifier": "2270",
+     "preferred_term": "Responsible Person Last Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2220102",
+     "identifier": "2220102",
+     "preferred_term": "Person Social Security Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2727338",
+     "identifier": "2727338",
+     "preferred_term": "Person Uniform Resource Locator java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2787121",
+     "identifier": "2787121",
+     "preferred_term": "Person Research Activity Subject java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2793491",
+     "identifier": "2793491",
+     "preferred_term": "Person Neck Circumference Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2793486",
+     "identifier": "2793486",
+     "preferred_term": "Person Hip Circumference Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2828651",
+     "identifier": "2828651",
+     "preferred_term": "Person Substance Abuse Past Month Frequency"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2970246",
+     "identifier": "2970246",
+     "preferred_term": "Person Immunoglobulin E Measurement Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2954189",
+     "identifier": "2954189",
+     "preferred_term": "Person Daycare Attendance Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3192349",
+     "identifier": "3192349",
+     "preferred_term": "Person Platinum Compound Chemotherapy Regimen Recurrent Disease Disease Progression Evaluation Method Clinical Trial Eligibility Criteria Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179430",
+     "identifier": "3179430",
+     "preferred_term": "Person Lesion Swallowing Deficit Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3245270",
+     "identifier": "3245270",
+     "preferred_term": "Person External Beam Radiation Therapy Plan Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3245251",
+     "identifier": "3245251",
+     "preferred_term": "Person Endometrial Metastatic Malignant Neoplasm Vagina Eligibility Determination Ind-3b"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3232845",
+     "identifier": "3232845",
+     "preferred_term": "Person Prior Platinum Compound Chemotherapy Primary Neoplasm Resistance Process Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3279229",
+     "identifier": "3279229",
+     "preferred_term": "Person Daily Alcohol Consumption Frequency Amount"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3298897",
+     "identifier": "3298897",
+     "preferred_term": "Person Karnofsky Performance Status Clinical Trial Eligibility Criteria Status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3160501",
+     "identifier": "3160501",
+     "preferred_term": "Person PARP1 Gene Inhibition Cyclophosphamide Exclusion Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3158828",
+     "identifier": "3158828",
+     "preferred_term": "Person Prior Treatment Regimen Phase 0 Trial Complete Clinical Trial Eligibility Criteria Ind-3b"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3175776",
+     "identifier": "3175776",
+     "preferred_term": "Credential Person Certificate License Text ISO21090.ST.v1.0"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3234761",
+     "identifier": "3234761",
+     "preferred_term": "Person Prior Immunotherapy Exclusion Criteria Ind-3b"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3185888",
+     "identifier": "3185888",
+     "preferred_term": "Person Penicillin Antibiotic Hypersensitivity Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3380239",
+     "identifier": "3380239",
+     "preferred_term": "Person Hormone Receptor Treatment Plan Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3270433",
+     "identifier": "3270433",
+     "preferred_term": "Person History Cancer Screening Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3717994",
+     "identifier": "3717994",
+     "preferred_term": "Alternative Principal Investigator Person E-mail Address Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3717997",
+     "identifier": "3717997",
+     "preferred_term": "Alternative Principal Investigator Person Telephone Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4382323",
+     "identifier": "4382323",
+     "preferred_term": "Person Caregiver Age Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4329885",
+     "identifier": "4329885",
+     "preferred_term": "Individual Income Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4828673",
+     "identifier": "4828673",
+     "preferred_term": "Person Death Age Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4920671",
+     "identifier": "4920671",
+     "preferred_term": "Person North American Association of Central Cancer Registries Ethnic Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5122931",
+     "identifier": "5122931",
+     "preferred_term": "Person Renal Impairment Clinical Trial Eligibility Criteria Ind"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7572742",
+     "identifier": "7572742",
+     "preferred_term": "Person Vital Signs Measurement DateTime Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3704935",
+     "identifier": "3704935",
+     "preferred_term": "Person Last Month Poor Physical Well-being Day Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3534736",
+     "identifier": "3534736",
+     "preferred_term": "Person Spontaneous Abortion Pregnancy Outcome Week Count"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3812329",
+     "identifier": "3812329",
+     "preferred_term": "Person Middle Distance Antecubital Fossa To Axilla Circumference Measurement"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4321179",
+     "identifier": "4321179",
+     "preferred_term": "Person Exceptional Response Approval Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4812037",
+     "identifier": "4812037",
+     "preferred_term": "Person Sleep Disorder Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5477039",
+     "identifier": "5477039",
+     "preferred_term": "Person Receive Radiation Therapy Prior Protocol Agent Initiation Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5615",
+     "identifier": "5615",
+     "preferred_term": "Occupation status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE58319",
+     "identifier": "58319",
+     "preferred_term": "Person Fax Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6148685",
+     "identifier": "6148685",
+     "preferred_term": "Person Clinical Trial Protocol Questionnaire Complete Date"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6091929",
+     "identifier": "6091929",
+     "preferred_term": "Person Right Arm Circumference Antecubital Fossa To Wrist Joint Volume Measurement"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6106656",
+     "identifier": "6106656",
+     "preferred_term": "Person Passive Smoke Exposure Hour Per Day Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7353021",
+     "identifier": "7353021",
+     "preferred_term": "Person Military Service Performed Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7584464",
+     "identifier": "7584464",
+     "preferred_term": "Person Fruit Consumption Temporal Frequency"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7576462",
+     "identifier": "7576462",
+     "preferred_term": "Person Risk Behavior Activity Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE10140002",
+     "identifier": "10140002",
+     "preferred_term": "Person Race Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2238097",
+     "identifier": "2238097",
+     "preferred_term": "Person Uniform Resource Identifier java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2238016",
+     "identifier": "2238016",
+     "preferred_term": "Person Middle Initials java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2539763",
+     "identifier": "2539763",
+     "preferred_term": "Person Modified By java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2593043",
+     "identifier": "2593043",
+     "preferred_term": "Person Other Premalignant Non-Melanomatous Lesion Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2770020",
+     "identifier": "2770020",
+     "preferred_term": "Person Hyperlipidemia Therapeutic Procedure Personal Medical History ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2828513",
+     "identifier": "2828513",
+     "preferred_term": "Contact Person Location Telephone Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2932107",
+     "identifier": "2932107",
+     "preferred_term": "Person Lung Malignant Neoplasm Histology Clinical Trial Eligibility Criteria Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2954194",
+     "identifier": "2954194",
+     "preferred_term": "Person Breast Feeding History Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2935420",
+     "identifier": "2935420",
+     "preferred_term": "Person Abdominal Aortic Aneurysm Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3007001",
+     "identifier": "3007001",
+     "preferred_term": "National Surgical Adjuvant Breast and Bowel Project Clinical Trial Person Pregnancy Status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3170117",
+     "identifier": "3170117",
+     "preferred_term": "Person Lung Neoplasm Peripheral Involvement Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3170498",
+     "identifier": "3170498",
+     "preferred_term": "Person Specimen Malignant Neoplasm Genetic Future Clinical or Research Activity Consent Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179019",
+     "identifier": "3179019",
+     "preferred_term": "Person Malignant Neoplasm Recurrent Disease Disease Progression Diagnosis Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3181400",
+     "identifier": "3181400",
+     "preferred_term": "Person Medical Research Council Dyspnea Scale Outcome Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3188763",
+     "identifier": "3188763",
+     "preferred_term": "Person Occupation Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3234759",
+     "identifier": "3234759",
+     "preferred_term": "Person Prior Chemotherapy Exclusion Criteria Ind-3b"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3228446",
+     "identifier": "3228446",
+     "preferred_term": "Person Extracranial Disease Controlled Status"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3234726",
+     "identifier": "3234726",
+     "preferred_term": "Person Symptomatic Pulmonary Disease or Disorder Exclusion Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3244123",
+     "identifier": "3244123",
+     "preferred_term": "Person ALK Gene Abnormality Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3600208",
+     "identifier": "3600208",
+     "preferred_term": "Person Identifier ISO21090.ST.v1.0"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2238096",
+     "identifier": "2238096",
+     "preferred_term": "Person Toll-Free Telephone Number java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2435944",
+     "identifier": "2435944",
+     "preferred_term": "Person Communication Method Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2648592",
+     "identifier": "2648592",
+     "preferred_term": "Contact Person First Identifier Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2668490",
+     "identifier": "2668490",
+     "preferred_term": "Person Certification Suffix Abbreviation Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2773000",
+     "identifier": "2773000",
+     "preferred_term": "Person Display Name java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2946166",
+     "identifier": "2946166",
+     "preferred_term": "Person Medication Calendar Complete Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2954167",
+     "identifier": "2954167",
+     "preferred_term": "Person From Hobby Exposure Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3070884",
+     "identifier": "3070884",
+     "preferred_term": "Person Fasting Serum Proinsulin Measurement Value in pmol/l"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3008657",
+     "identifier": "3008657",
+     "preferred_term": "Person Corrective Lens Use Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3137947",
+     "identifier": "3137947",
+     "preferred_term": "Person Diagnosis Age Year Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3142717",
+     "identifier": "3142717",
+     "preferred_term": "Primary Death Reason Other Specify Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3190457",
+     "identifier": "3190457",
+     "preferred_term": "Person Clinical Study Assignment Follow-up Month Duration"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3180089",
+     "identifier": "3180089",
+     "preferred_term": "Person Coronary Artery Bypass Surgery Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3259519",
+     "identifier": "3259519",
+     "preferred_term": "Person Fill Out Form Other Patient Relationship Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3704958",
+     "identifier": "3704958",
+     "preferred_term": "Person Last Month Poor Health Make Inactive Day Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3553413",
+     "identifier": "3553413",
+     "preferred_term": "Person RET Gene Genetic Mutation Abnormality Present Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3793396",
+     "identifier": "3793396",
+     "preferred_term": "Person Caregiver Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4474280",
+     "identifier": "4474280",
+     "preferred_term": "Person Human Immunodeficiency Virus Highly Active Antiretroviral Therapy Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5046774",
+     "identifier": "5046774",
+     "preferred_term": "Person Blood Specimen Future Clinical or Research Activity Consent Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5455614",
+     "identifier": "5455614",
+     "preferred_term": "Person Pulmonary Hypertension Diagnosis Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6730846",
+     "identifier": "6730846",
+     "preferred_term": "Person Education Level Education Level Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6831680",
+     "identifier": "6831680",
+     "preferred_term": "Person Caregiver Relationship Assessment Other Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7315091",
+     "identifier": "7315091",
+     "preferred_term": "Person Prior Exposure Peptide Receptor Radionuclide Therapy Clinical Trial Eligibility Criteria Applicable Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7554950",
+     "identifier": "7554950",
+     "preferred_term": "Person Address City Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4514585",
+     "identifier": "4514585",
+     "preferred_term": "Person Priority Clinical Study Protocol Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4898974",
+     "identifier": "4898974",
+     "preferred_term": "Person Highest Education Level Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6424614",
+     "identifier": "6424614",
+     "preferred_term": "Person Disease or Disorder High Risk Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7681488",
+     "identifier": "7681488",
+     "preferred_term": "Person Chocolate Or Other Type Candy Consumption Food or Food Product Consumption Temporal Frequency"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2179589",
+     "identifier": "2179589",
+     "preferred_term": "Person Given/First Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2183393",
+     "identifier": "2183393",
+     "preferred_term": "Person Blood Collection Labs Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2435398",
+     "identifier": "2435398",
+     "preferred_term": "Person Occupation Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2769109",
+     "identifier": "2769109",
+     "preferred_term": "Primary Cause of Death Reason Assessment Other Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2773004",
+     "identifier": "2773004",
+     "preferred_term": "Person Suffix java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2970280",
+     "identifier": "2970280",
+     "preferred_term": "Person Bronchodilator Response Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3007663",
+     "identifier": "3007663",
+     "preferred_term": "Person Strabismus Family Medical History Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3075447",
+     "identifier": "3075447",
+     "preferred_term": "Person Eating Disorder Assessment Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3019980",
+     "identifier": "3019980",
+     "preferred_term": "Person Diffusion MRI Clinical Study Consent Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3160449",
+     "identifier": "3160449",
+     "preferred_term": "Person Pregnancy Exclusion Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179450",
+     "identifier": "3179450",
+     "preferred_term": "Person Myocardial Infarction Unstable Angina Post Pazopanib Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179053",
+     "identifier": "3179053",
+     "preferred_term": "Person Control Thyroid Gland Function Clinical Trial Eligibility Criteria Ind-3b"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179463",
+     "identifier": "3179463",
+     "preferred_term": "Person Prior Anthracycline Antibiotic Ejection Fraction Lower Limit of Normal Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179036",
+     "identifier": "3179036",
+     "preferred_term": "Person Radiation Therapy Discontinued Prior Registration Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3288083",
+     "identifier": "3288083",
+     "preferred_term": "Person Standard Treatment Regimen Options Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3338477",
+     "identifier": "3338477",
+     "preferred_term": "Person Bevacizumab Risk Institutional Review Board Approval Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3577252",
+     "identifier": "3577252",
+     "preferred_term": "Person Right Mid-Upper Arm Circumference Distance Measurement"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3812326",
+     "identifier": "3812326",
+     "preferred_term": "Person Distance Above Antecubital Fossa Measurement"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3787455",
+     "identifier": "3787455",
+     "preferred_term": "Person Psychiatric Disorder Involuntary Incarceration Personal Medical History Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4193901",
+     "identifier": "4193901",
+     "preferred_term": "Person Diesel Exhaust Particulate Exposure Yes No Unknown Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4182223",
+     "identifier": "4182223",
+     "preferred_term": "Person Childhood Home Environmental Tobacco Smoke Exposure Yes No Unknown Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4367898",
+     "identifier": "4367898",
+     "preferred_term": "Person Caregiver Relationship Assessment Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5226431",
+     "identifier": "5226431",
+     "preferred_term": "Person Concomitant Agent Enhance Glucuronidation Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5431853",
+     "identifier": "5431853",
+     "preferred_term": "Person Military Service Performed Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5577914",
+     "identifier": "5577914",
+     "preferred_term": "Person Asymptomatic Central Nervous System Disease Prior Treatment Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE10360829",
+     "identifier": "10360829",
+     "preferred_term": "Person Family or Friends Had to Permanently Quit Their Job to Help with My Care Needs Because of My Cancer Diagnosis or Treatment Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2200602",
+     "identifier": "2200602",
+     "preferred_term": "Self Reported Person Sex Text Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2425573",
+     "identifier": "2425573",
+     "preferred_term": "Application Person Submitted Time java.util.Date"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2685190",
+     "identifier": "2685190",
+     "preferred_term": "Biopsy Specimen RNALater Collection Consent ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2770785",
+     "identifier": "2770785",
+     "preferred_term": "Medical Oncologist Person Identifier Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2768652",
+     "identifier": "2768652",
+     "preferred_term": "Person Parathyroid Hormone-Like Hormone Laboratory Procedure Consent Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2794248",
+     "identifier": "2794248",
+     "preferred_term": "Person Mid-Upper Arm Circumference Length Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2947016",
+     "identifier": "2947016",
+     "preferred_term": "Person Dietary Supplements Use Frequency Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2960980",
+     "identifier": "2960980",
+     "preferred_term": "Person Pain Relief Medication Use Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3070673",
+     "identifier": "3070673",
+     "preferred_term": "Person Diabetes Personal Medical History Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3170108",
+     "identifier": "3170108",
+     "preferred_term": "Person Thoracic Surgeon Evaluation Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3180257",
+     "identifier": "3180257",
+     "preferred_term": "Person Allergic Reaction Pazopanib Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3246669",
+     "identifier": "3246669",
+     "preferred_term": "Person Tooth Include Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3201400",
+     "identifier": "3201400",
+     "preferred_term": "Person Measured Birth Weight Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3264684",
+     "identifier": "3264684",
+     "preferred_term": "Person Breast Feeding History Month Duration Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3600207",
+     "identifier": "3600207",
+     "preferred_term": "Person Name ISO21090.ST.v1.0"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3534935",
+     "identifier": "3534935",
+     "preferred_term": "Person Elevated Urine Protein Measurement Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3704913",
+     "identifier": "3704913",
+     "preferred_term": "Person Overall Health Assessment Code"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3918134",
+     "identifier": "3918134",
+     "preferred_term": "Person Cancer Screening Plan Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3809532",
+     "identifier": "3809532",
+     "preferred_term": "Person Birth Date Known Unknown Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4270398",
+     "identifier": "4270398",
+     "preferred_term": "Person Greater Body Surface Area Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4476132",
+     "identifier": "4476132",
+     "preferred_term": "Person Pericardial Effusion Personal Medical History End Date"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4484075",
+     "identifier": "4484075",
+     "preferred_term": "Person Child-Pugh Classification Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4617831",
+     "identifier": "4617831",
+     "preferred_term": "Person Prior Platinum Compound Chemotherapy Primary Neoplasm Resistance Process Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5099911",
+     "identifier": "5099911",
+     "preferred_term": "Person Asymptomatic Breast Disease And Breast Cancer Screening Clinical Trial Eligibility Criteria Ind"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7651570",
+     "identifier": "7651570",
+     "preferred_term": "Person Plasma Cell Myeloma Diagnosis Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE10156012",
+     "identifier": "10156012",
+     "preferred_term": "Person Half Sibling Count"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2006510",
+     "identifier": "2006510",
+     "preferred_term": "Person Form Administration Phone Number"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2006184",
+     "identifier": "2006184",
+     "preferred_term": "Responsible Person Signature Date"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2227048",
+     "identifier": "2227048",
+     "preferred_term": "Person Sex Phenotype Text Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2608192",
+     "identifier": "2608192",
+     "preferred_term": "Person Employment Status Code java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2772997",
+     "identifier": "2772997",
+     "preferred_term": "Person Academic Degree java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2771401",
+     "identifier": "2771401",
+     "preferred_term": "Person Part Life Sciences Identifier Organizational Unit java.lang.String"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2838841",
+     "identifier": "2838841",
+     "preferred_term": "Person Diabetes Mellitus Therapeutic Procedure Personal Medical History Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2935318",
+     "identifier": "2935318",
+     "preferred_term": "Person Myocardial Infarction Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2950123",
+     "identifier": "2950123",
+     "preferred_term": "Person Quality Assurance Total-Body Irradiation Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2940320",
+     "identifier": "2940320",
+     "preferred_term": "Person Preoperative Endocrine Prognostic Index Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2966276",
+     "identifier": "2966276",
+     "preferred_term": "Person Breast Or Bottle feeding Pattern Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3007567",
+     "identifier": "3007567",
+     "preferred_term": "Person Eye Drops Use Assessment Description Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2179588",
+     "identifier": "2179588",
+     "preferred_term": "Person Name Prefix Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2002708",
+     "identifier": "2002708",
+     "preferred_term": "Person Birth Country Individual Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2435955",
+     "identifier": "2435955",
+     "preferred_term": "Person Language Preference Rank Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2647025",
+     "identifier": "2647025",
+     "preferred_term": "Tissue Donor Person Age Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2672607",
+     "identifier": "2672607",
+     "preferred_term": "Person Telephone Interview Informed Consent Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2787906",
+     "identifier": "2787906",
+     "preferred_term": "Person Clinical Trial CLL Response Stratification Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2794258",
+     "identifier": "2794258",
+     "preferred_term": "Person Skinfold Thickness Analysis Body Composition Weight Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3180090",
+     "identifier": "3180090",
+     "preferred_term": "Person Artery Thrombosis Prior Registration Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3216241",
+     "identifier": "3216241",
+     "preferred_term": "Person Follicular Lymphoma Staging Two Outcome Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179030",
+     "identifier": "3179030",
+     "preferred_term": "Person Malignant Neoplasm Measurable Disease Radiation Field Clinical Trial Eligibility Criteria Ind-3b"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3210548",
+     "identifier": "3210548",
+     "preferred_term": "Person Education Level Summary Radiation Therapy Oncology Group Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3263237",
+     "identifier": "3263237",
+     "preferred_term": "Person Disability Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3528623",
+     "identifier": "3528623",
+     "preferred_term": "Person Calculation Corrected Body Surface Area Value"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3767134",
+     "identifier": "3767134",
+     "preferred_term": "Person Bowel Obstruction Clinical Trial Eligibility Criteria Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3812330",
+     "identifier": "3812330",
+     "preferred_term": "Person Antecubital Fossa Circumference Measurement"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4174111",
+     "identifier": "4174111",
+     "preferred_term": "Person Prior Platinum Compound Chemotherapy Treatment Regimen Receive Count"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4151645",
+     "identifier": "4151645",
+     "preferred_term": "Person Malignant Neoplasm Recurrent Disease Disease Progression Diagnosis Malignant Neoplasm Recurrent Disease Documented Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4182558",
+     "identifier": "4182558",
+     "preferred_term": "Person Occupation Assessment Year Duration"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3902310",
+     "identifier": "3902310",
+     "preferred_term": "Person Preoperative Endocrine Prognostic Index Ki67 Level Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4367710",
+     "identifier": "4367710",
+     "preferred_term": "Person Religion Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4783273",
+     "identifier": "4783273",
+     "preferred_term": "Primary Cause of Death Reason Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5290197",
+     "identifier": "5290197",
+     "preferred_term": "Person Speak English Language At Home Patient Assessment Scale"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE6290505",
+     "identifier": "6290505",
+     "preferred_term": "Person Thromboembolism Medical History Yes No Unknown Not Applicable Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7553201",
+     "identifier": "7553201",
+     "preferred_term": "Person Sex at Birth Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE8173338",
+     "identifier": "8173338",
+     "preferred_term": "Person No Prior Therapy Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE8146815",
+     "identifier": "8146815",
+     "preferred_term": "Human Papillomavirus Vaccine Use Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2908021",
+     "identifier": "2908021",
+     "preferred_term": "Person Quality of Life Clinical Study Refuse Consent Other Specify"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2966427",
+     "identifier": "2966427",
+     "preferred_term": "Person Sweet Beverage Consumption Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2957822",
+     "identifier": "2957822",
+     "preferred_term": "Person Rheumatologic Disorder Personal Medical History Ind-3"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2966647",
+     "identifier": "2966647",
+     "preferred_term": "Person Professional Dental Care Text"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3171583",
+     "identifier": "3171583",
+     "preferred_term": "Responsible Person Fax Date"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3171724",
+     "identifier": "3171724",
+     "preferred_term": "Person Current Drug Abuse Yes No Unknown Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3182299",
+     "identifier": "3182299",
+     "preferred_term": "Person Clinical Systemic Lupus Erythematosus Assessment Assessment Score"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3179052",
+     "identifier": "3179052",
+     "preferred_term": "Person Creatinine Urine Protein Measurement Clinical Trial Eligibility Criteria Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3304687",
+     "identifier": "3304687",
+     "preferred_term": "Person Sleep Disorder Clinical Trial Eligibility Criteria Eligibility Ind-2"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3563238",
+     "identifier": "3563238",
+     "preferred_term": "Person Cytochrome P450 Family 1 Subfamily A Polypeptide 2 Inhibition Agent Clinical Trial Eligibility Criteria Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4476086",
+     "identifier": "4476086",
+     "preferred_term": "Person Prior Therapy Toxicity Personal Medical History Yes No Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4474274",
+     "identifier": "4474274",
+     "preferred_term": "Person Specimen Use Consent Eligibility Determination Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4657691",
+     "identifier": "4657691",
+     "preferred_term": "Person Six Minute Walking Test Time"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE4783274",
+     "identifier": "4783274",
+     "preferred_term": "Primary Cause of Death Reason"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5455593",
+     "identifier": "5455593",
+     "preferred_term": "Person Gastrointestinal Tract Disease or Disorder Clinical Trial Eligibility Criteria Code Indicator"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5242016",
+     "identifier": "5242016",
+     "preferred_term": "Person Shipping Certification Identifier Individuals Name"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE5154214",
+     "identifier": "5154214",
+     "preferred_term": "Person Recurrent Disease Or Refractory Malignant Neoplasm Clinical Trial Eligibility Criteria Code Indicator"
+    }
+   ],
+   "apiResponse": {
+    "type": "S"
+   }
+  }
+ }
+}

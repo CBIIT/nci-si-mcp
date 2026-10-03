@@ -1,0 +1,22 @@
+{
+ "kind": "crafted",
+ "requirement": "X-15: an error envelope in an HTTP 200 is an upstream error",
+ "request": {
+  "surface": "cadsr",
+  "method": "GET",
+  "path": "*",
+  "ignored": {
+   "*": "crafted: every request is answered with the failure"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "DataElement": null,
+   "apiResponse": {
+    "type": "E",
+    "message": "Parameter 'publicId' must be a number."
+   }
+  }
+ }
+}

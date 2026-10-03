@@ -413,6 +413,39 @@ def test_a_rate_limited_request_is_asked_once_more_after_the_wait(tools, upstrea
     assert asked[1] - asked[0] >= wait
 
 
+# Every surface that answers a concept's data elements fails inside what looks like an answer:
+# the Shared SI façade and the caDSR API with apiResponse type E in an HTTP 200
+# (upstream/masked-error), SPARQL with the inspection layer's HTML 403 (ssis/query-rejected).
+# C17357's data elements are recorded on each surface (fixtures/README.md).
+MASKING = ("upstream/masked-error", "ssis/query-rejected")
+MASKED_CALLS = {"find_data_elements_for_concept": {"conceptCode": "C17357"}}
+MASKED = [
+    pytest.param(name, id=name, marks=[pytest.mark.tool(name), pytest.mark.scenario(*MASKING)])
+    for name in MASKED_CALLS
+]
+
+
+@pytest.mark.requirement("X-15")
+@pytest.mark.parametrize("name", MASKED)
+def test_a_failure_every_surface_masks_as_an_answer_is_an_upstream_error(
+    tools, upstream, recorded, name
+):
+    for surface in ("ssis", "cadsr"):
+        masked = recorded(f"scenarios/upstream/masked-error/{surface}.json")["response"]
+        assert (masked["status"], masked["body"]["apiResponse"]["type"]) == (200, "E")
+    refused = recorded("scenarios/ssis/query-rejected/sparql.json")["response"]
+    assert (refused["status"], refused["body"].startswith("<!DOCTYPE HTML")) == (403, True)
+
+    result = tools.call(name, MASKED_CALLS[name])
+
+    assert error_code(result) == "upstream_unavailable", result.content
+    # The error comes from the masked answers: the server asked at least one surface.
+    masking = {
+        fixture.name for each in MASKING for fixture in upstream.fixtures.scenarios[each].values()
+    }
+    assert masking & {entry["fixture"] for entry in upstream.log()}
+
+
 @pytest.mark.requirement("X-4")
 @pytest.mark.parametrize("name", _per_tool(EMPTY))
 def test_a_query_that_matches_nothing_is_an_empty_result_with_provenance(tools, pinned, name):

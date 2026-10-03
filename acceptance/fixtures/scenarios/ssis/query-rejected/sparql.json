@@ -1,0 +1,16 @@
+{
+ "kind": "crafted",
+ "requirement": "X-15: HTML where JSON was asked for is an upstream error",
+ "request": {
+  "surface": "ssis-sparql",
+  "method": "POST",
+  "path": "*",
+  "ignored": {
+   "*": "crafted: the inspection layer refuses every query"
+  }
+ },
+ "response": {
+  "status": 403,
+  "body": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">\n<html><head>\n<title>403 Forbidden</title>\n</head><body>\n<h1>Forbidden</h1>\n<p>You don't have permission to access this resource.</p>\n<p>Additionally, a 500 Internal Server Error\nerror was encountered while trying to use an ErrorDocument to handle the request.</p>\n</body></html>\n"
+ }
+}

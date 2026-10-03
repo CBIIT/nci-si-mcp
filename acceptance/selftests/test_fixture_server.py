@@ -5,6 +5,7 @@ import time
 from http import HTTPStatus
 from http.client import RemoteDisconnected
 from urllib.error import HTTPError
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 import pytest
@@ -255,6 +256,22 @@ def test_a_fixture_directory_must_exist(tmp_path):
         (
             {"request": {"surface": "evs", "method": "GET", "path": "/x", "params": {"a": "1"}}},
             "params maps each parameter to a list of strings",
+        ),
+        (
+            {"request": {"surface": "s", "method": "POST", "path": "/x", "form": {"q": ["1"]}}},
+            "a form maps each field to its text",
+        ),
+        (
+            {
+                "request": {
+                    "surface": "s",
+                    "method": "POST",
+                    "path": "/x",
+                    "form": {"q": "1"},
+                    "body": "q",
+                }
+            },
+            "a request has a body or a form, not both",
         ),
     ],
 )
@@ -589,9 +606,10 @@ def test_a_fixture_with_a_body_answers_only_that_body_and_one_without_answers_th
     assert statuses == [504, 200]
 
 
-def fetch_post(url, body):
+def fetch_post(url, body, headers=None):
+    request = Request(url, data=body, method="POST", headers=headers or {})  # noqa: S310
     try:
-        with urlopen(Request(url, data=body, method="POST"), timeout=10) as response:  # noqa: S310
+        with urlopen(request, timeout=10) as response:  # noqa: S310
             return response.status
     except HTTPError as error:
         return error.code
@@ -629,6 +647,26 @@ def test_bodies_match_as_json_or_with_whitespace_collapsed(tmp_path, fixture_bod
         status = fetch_post(running.base_url("ssis-sparql") + "/sparql", request_body)
 
     assert status == HTTPStatus.OK
+
+
+FORM = {"Content-Type": "application/x-www-form-urlencoded; charset=utf-8"}
+
+
+def test_a_form_matches_field_by_field_decoded_with_whitespace_collapsed(tmp_path):
+    query = {"query": "SELECT ?s\nWHERE {\n  ?s ?p ?o\n}"}
+    match = {"surface": "ssis-sparql", "method": "POST", "path": "/sparql", "form": query}
+    fixture_file(tmp_path, "query.json", request=match)
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        url = running.base_url("ssis-sparql") + "/sparql"
+        spaced = urlencode({"query": "SELECT  ?s WHERE { ?s ?p ?o }"}).encode()
+        statuses = [
+            fetch_post(url, spaced, FORM),
+            fetch_post(url, urlencode({"query": "SELECT ?o WHERE { ?s ?p ?o }"}).encode(), FORM),
+            # The same bytes are no form without the form's content type.
+            fetch_post(url, spaced, {"Content-Type": "text/plain"}),
+        ]
+
+    assert statuses == [HTTPStatus.OK, HTTPStatus.NOT_IMPLEMENTED, HTTPStatus.NOT_IMPLEMENTED]
 
 
 def test_a_parameter_declared_ignored_is_left_out_of_the_match_and_kept_in_the_log(tmp_path):

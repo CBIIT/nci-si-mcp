@@ -1,0 +1,63 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "ssis",
+  "method": "GET",
+  "path": "/si-api/v1/data_elements/with_concept_id",
+  "params": {
+   "graph_name": [
+    "http://cbiit.nci.nih.gov/caDSR"
+   ],
+   "resource_name": [
+    "caDSR"
+   ],
+   "dec_pub_id": [
+    "2226947"
+   ]
+  },
+  "headers": {
+   "Accept": "application/json"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "results": [
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE3171628",
+     "identifier": "3171628",
+     "preferred_term": "Person Sex Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7218851",
+     "identifier": "7218851",
+     "preferred_term": "Person Sex Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2200602",
+     "identifier": "2200602",
+     "preferred_term": "Self Reported Person Sex Text Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE15157391",
+     "identifier": "15157391",
+     "preferred_term": "Person Sex CDISC SDTM Terminology Category"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE2200604",
+     "identifier": "2200604",
+     "preferred_term": "Person Sex Text Type"
+    },
+    {
+     "entity": "http://cbiit.nci.nih.gov/caDSR#DE7218853",
+     "identifier": "7218853",
+     "preferred_term": "Person Sex Other Specify"
+    }
+   ],
+   "apiResponse": {
+    "type": "S"
+   }
+  }
+ }
+}

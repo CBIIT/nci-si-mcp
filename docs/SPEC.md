@@ -150,7 +150,7 @@ Extend `models.py`'s per-concept fields into one `ProvenanceEnvelope` attached *
 
 **caDSR.** `resolve_registry_state()` returns `{registryIdentifier: null, exportDate, itemVersioning: "per data element"}`, with `exportDate` read from the FTP listing's `Last-Modified` for `releasedCDEsXML-OD.zip`. The module never fabricates a registry identifier (A3.8.1). When a registry identifier appears upstream (C-1), the field becomes required and the same fail-closed path applies; the code path is written now and gated on the field being non-null.
 
-**Shared SI.** Every SSIS call records the identity of each graph it touched, read once per process from the content graphs' `owl:versionInfo` / `dc:date` (two queries, no property paths — the WAF rejects them) and cached with the SSIS release-alignment TTL (§3.6).
+**Shared SI.** Every SSIS call records the identity of each graph it touched, read once per process from the content graphs' `owl:versionInfo` / `dc:date` (one query, the identity query of the request-form register) and cached with the SSIS release-alignment TTL (§3.6).
 
 ### 3.4 HTTP client (`platform/http.py`)
 
@@ -291,16 +291,16 @@ Ten tools, signatures in the specification (group `cadsr`). Specific behaviours:
 
 ### 6.1 Shared SI client (`seam/ssis.py`)
 
-- Façade base `https://cadsrapi.cancer.gov/si-api/v1`, spec at `/SSISAdvQueries/v1/swagger.yaml`. **Every operation declares all parameters required and only `200`/`401` as responses; a missing parameter returns `200` wrapping `apiResponse.type:"E"`.** The client validates required parameters from the spec before calling, and the HTTP client's envelope check catches the rest. `with_concept_id` is keyed by `dec_pub_id`, not concept code, and is used only once a DEC is known.
-- SPARQL at `https://shared.semantics.cancer.gov/sparql`. The WAF rejects property paths and `SERVICE` with HTML `403`; the client avoids property paths, and a `403` with HTML is `upstream_unavailable(reason="query rejected by inspection layer")`, never an empty result.
-- Graph choice is explicit and recorded: `Thesaurus.rdf` for NCIt hierarchy (`Thesaurus.owl` has 24,049 named classes without a named parent and returns empty for `subClassOf*`), `caDSR` for data elements. Both graphs' identities go into `provenance.graphs[]`.
+- Façade base `https://cadsrapi.cancer.gov/si-api/v1`, spec at `/SSISAdvQueries/v1/swagger.yaml`. **Every operation declares all parameters required and only `200`/`401` as responses; a missing parameter returns `200` wrapping `apiResponse.type:"E"` or `"I"` ("No data found"), and every operation answers HTML unless `Accept: application/json` is sent; `with_specific_object_class` stops at 1,000 rows without saying so.** The client validates required parameters from the spec before calling, and the HTTP client's envelope check catches the rest. `with_concept_id` is keyed by `dec_pub_id`, not concept code, and is used only once a DEC is known.
+- SPARQL at `https://shared.semantics.cancer.gov/sparql`, asked with a form-encoded POST (a direct `application/sparql-query` POST is refused) and the query texts the request-form register prescribes. The inspection layer refuses `SERVICE`, Virtuoso's `OPTION (TRANSITIVE)` and some `FILTER regex` patterns with an HTML `403`; property paths pass (3 October 2026). A `403` with HTML is `upstream_unavailable(reason="query rejected by inspection layer")`, never an empty result.
+- Graph choice is explicit and recorded: `Thesaurus.rdf` for NCIt hierarchy (`Thesaurus.owl` runs its hierarchy through anonymous restrictions, so `subClassOf*` misses most of it: 7,109 descendants of C2991 against 22,854 on 26.09d), `caDSR` for data elements. Both graphs' identities go into `provenance.graphs[]`.
 
 ### 6.2 Tools (`seam/tools.py`)
 
 - `find_data_elements_for_concept` → SPARQL join with optional subsumption expansion (bounded, per `Budget`); falls back to caDSR REST `/DataElements/Concept` with its timeout when SSIS is unavailable; both release identities recorded.
 - `get_concept_for_permissible_value` → reverse SPARQL lookup.
 - `resolve_stored_value` → GDC via `NCIt_Maps_To_GDC` (mapset and FHIR ConceptMap agree; the mapset is named in provenance); other commons via `getCRDCList`; `no mapping` with a coverage statement otherwise. Never returns the preferred term as a stored value.
-- `get_release_alignment` → NCIt release, caDSR export date, SI graph dates, interval, warning above a configured threshold; `ttlMs` 0.
+- `get_release_alignment(maxIntervalDays = 31)` → NCIt release, caDSR export date, SI graph dates, `intervalDays`, and a warning naming the threshold when `intervalDays` exceeds it; `ttlMs` 0.
 
 ---
 
@@ -359,9 +359,9 @@ acceptance/
     manifest.yaml           pinned NCIt release (caDSR export date and SI graph dates to come), concept rules, the scenarios, the requests recorded
     recorded/<surface>/…    captured responses with the request that produced them
     crafted/<requirement>/… hand-written responses naming the requirement they stand in for
-    scenarios/…             the sixteen scenario fixtures (the eleven EVS ones so far)
+    scenarios/<group>/<name>/ the fixtures of each scenario the manifest describes
     baseline_toolmap.yaml   required tool → prototype tool + parameter renaming, for the server before Phase 2 (§9.4)
-  request-forms/            the register of request forms: views for the EVS team, the caDSR team, and both
+  request-forms/            the register of request forms: a view for each team (EVS, caDSR, Shared SI) and one for all
   tests/
     test_protocol.py        the P requirements (protocol gates)
     test_crosscutting.py    the X requirements, one case per tool with a call in calls.yaml

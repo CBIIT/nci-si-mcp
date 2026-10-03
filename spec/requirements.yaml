@@ -106,7 +106,6 @@ X-14:
 X-15:
   statement: An upstream failure masked as a successful response (an error envelope in an HTTP 200, HTML where JSON was asked for) is an upstream error, never parsed as content.
   basis: [A2.5, M3.2]
-  planned: "#52"
 X-16:
   statement: After a 429 with Retry-After, the module waits at least that long before it asks again, and makes no request to that endpoint in between.
   basis: [A6.5, A5.3]
@@ -290,7 +289,7 @@ resolve_stored_value-1:
   basis: [resolve_stored_value]
   planned: "#55"
 get_release_alignment-1:
-  statement: Every dataset's release and date are returned with the interval, and a warning above the configured threshold; ttlMs 0.
+  statement: Every dataset's release and date are returned with intervalDays, the largest interval in days between any two of their dates, and a warning naming maxIntervalDays exactly when intervalDays exceeds it; ttlMs 0.
   basis: [get_release_alignment, A3.7, M2.2]
   planned: "#55"
 

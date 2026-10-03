@@ -1,0 +1,734 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "ssis-sparql",
+  "method": "POST",
+  "path": "/sparql",
+  "headers": {
+   "Accept": "application/sparql-results+json"
+  },
+  "form": {
+   "query": "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX owl: <http://www.w3.org/2002/07/owl#>\nPREFIX dc: <http://purl.org/dc/elements/1.1/>\nPREFIX mdr: <http://www.iso.org/11179/MDR#>\nPREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>\nPREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>\nSELECT ?id ?version ?value\nWHERE {\n  GRAPH <http://cbiit.nci.nih.gov/caDSR> {\n    VALUES ?role { cadsr:main_concept cadsr:minor_concept }\n    ?node ?role ncit:C20197 .\n    ?pv cadsr:has_concept ?node ;\n      mdr:value ?value .\n    ?element mdr:permitted_value ?pv ;\n      cadsr:publicId ?id ;\n      mdr:version ?version .\n  }\n}\nORDER BY ?id ?version ?value\nLIMIT 1001"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "head": {
+    "link": [],
+    "vars": [
+     "id",
+     "version",
+     "value"
+    ]
+   },
+   "results": {
+    "distinct": false,
+    "ordered": true,
+    "bindings": [
+     {
+      "id": {
+       "type": "literal",
+       "value": "14665521"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "8507"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14665556"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "M"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14667040"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "M"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14940575"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Male"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14948209"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Man"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15004737"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "M"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15089945"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Man"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15153461"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Male"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15157370"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "M"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15157375"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "male"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15157391"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "M"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732406"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "164823004"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732407"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "1872009"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732407"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "2904007"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732409"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "2904007"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15744300"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Male"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "16018111"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "248153007"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "16087717"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Male"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "16277481"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Male"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "16607038"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "MALE"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2180389"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "male"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2200604"
+      },
+      "version": {
+       "type": "literal",
+       "value": "4"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Male"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2453607"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "1"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2660030"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "M"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2690165"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Male Cousin"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2690165"
+      },
+      "version": {
+       "type": "literal",
+       "value": "3"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Male Cousin"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2793170"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Male Cousin"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3111444"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Male"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3119984"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Male"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3171628"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "male"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4184713"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Male"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5222595"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Alcohol consumption equal to or less than 2 drinks per day for men and 1 drink or less per day for women"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5222595"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Alcohol consumption more than 2 drinks per day for men and more than 1 drink per day for women"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5628108"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "M"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6144638"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "M"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6144639"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "M"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6144640"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "M"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "62"
+      },
+      "version": {
+       "type": "literal",
+       "value": "7"
+      },
+      "value": {
+       "type": "literal",
+       "value": "MALE"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6265622"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Homosexual marriage, male"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6333663"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "M"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6343385"
+      },
+      "version": {
+       "type": "literal",
+       "value": "3"
+      },
+      "value": {
+       "type": "literal",
+       "value": "M"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6365744"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "M"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6816207"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Male"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7033544"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "MALE"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7050283"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Male"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7218851"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Male"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7318765"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "M"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7414652"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "M"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7553201"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "LA2-8"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7572817"
+      },
+      "version": {
+       "type": "literal",
+       "value": "3"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Male"
+      }
+     }
+    ]
+   }
+  }
+ }
+}

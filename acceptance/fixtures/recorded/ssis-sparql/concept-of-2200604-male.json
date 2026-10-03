@@ -1,0 +1,43 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "ssis-sparql",
+  "method": "POST",
+  "path": "/sparql",
+  "headers": {
+   "Accept": "application/sparql-results+json"
+  },
+  "form": {
+   "query": "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX owl: <http://www.w3.org/2002/07/owl#>\nPREFIX dc: <http://purl.org/dc/elements/1.1/>\nPREFIX mdr: <http://www.iso.org/11179/MDR#>\nPREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>\nPREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>\nSELECT ?concept ?role\nWHERE {\n  GRAPH <http://cbiit.nci.nih.gov/caDSR> {\n    VALUES ?role { cadsr:main_concept cadsr:minor_concept }\n    ?element cadsr:publicId \"2200604\" ;\n      mdr:permitted_value ?pv .\n    ?pv mdr:value \"Male\" ;\n      cadsr:has_concept ?node .\n    ?node ?role ?concept .\n  }\n}"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "head": {
+    "link": [],
+    "vars": [
+     "concept",
+     "role"
+    ]
+   },
+   "results": {
+    "distinct": false,
+    "ordered": true,
+    "bindings": [
+     {
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C20197"
+      },
+      "role": {
+       "type": "uri",
+       "value": "http://cbiit.nci.nih.gov/caDSR#main_concept"
+      }
+     }
+    ]
+   }
+  }
+ }
+}

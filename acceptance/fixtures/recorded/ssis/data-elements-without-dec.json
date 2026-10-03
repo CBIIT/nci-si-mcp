@@ -1,0 +1,30 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "ssis",
+  "method": "GET",
+  "path": "/si-api/v1/data_elements/with_concept_id",
+  "params": {
+   "graph_name": [
+    "http://cbiit.nci.nih.gov/caDSR"
+   ],
+   "resource_name": [
+    "caDSR"
+   ]
+  },
+  "headers": {
+   "Accept": "application/json"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "results": [],
+   "apiResponse": {
+    "type": "I",
+    "message": "No data found."
+   }
+  }
+ }
+}

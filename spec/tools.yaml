@@ -267,6 +267,7 @@ find_data_elements_for_concept:
   group: cross-domain
   inputs: (conceptCode, terminology?, release?, expandDescendants?, includePermissibleValues?, limit?, cursor?)
   returns: "{ dataElements[], truncation, nextCursor? }"
+  bounds: {limit: {default: 100, maximum: 1000}}
   summary: The data elements and permissible values that use a concept, optionally across its descendants.
 get_concept_for_permissible_value:
   group: cross-domain
@@ -280,9 +281,13 @@ resolve_stored_value:
   summary: The literal a data commons stores for a concept.
 get_release_alignment:
   group: cross-domain
-  inputs: ()
-  returns: "{ datasets[{ name, version, date }], maxIntervalDays, warning? }"
-  summary: The release of every dataset a cross-domain answer touches, and the interval between them.
+  inputs: (maxIntervalDays?)
+  returns: "{ datasets[{ name, version, date }], intervalDays, warning? }"
+  defaults: {maxIntervalDays: 31}
+  summary: >-
+    The release of every dataset a cross-domain answer touches; intervalDays, the largest interval
+    in days between any two of their dates; and a warning naming maxIntervalDays when intervalDays
+    exceeds it.
 
 ground_value:
   group: workflow

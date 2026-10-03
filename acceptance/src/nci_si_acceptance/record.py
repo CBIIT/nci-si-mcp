@@ -4,9 +4,10 @@
 
 Every request the manifest lists under `record.requests` is made live, without a licence
 key or credentials, and becomes a recorded fixture, dated today. A request is a GET with
-`Accept: application/json` unless its entry gives a `method`, a JSON `body` and the
-`headers` to send: those it gives are sent alone and are part of the fixture, so that the
-fixture server answers only a request that carries them. Each concept under
+`Accept: application/json` unless its entry gives a `method`, a JSON `body` or a `form`
+(sent form-encoded: a SPARQL query) and the `headers` to send: those it gives are sent
+alone and are part of the fixture, so that the fixture server answers only a request that
+carries them. Each concept under
 `record.concepts` is recorded once, at the include it is listed under, in
 `recorded/evs/concepts/`. Each entry under
 `record.derived` becomes a crafted fixture for the request form a requirement prescribes
@@ -43,7 +44,7 @@ from urllib.request import Request, urlopen
 import yaml
 
 from nci_si_acceptance.concepts import ConceptRules, Recording, recording_key
-from nci_si_acceptance.fixture_server import CONCEPTS, MANIFEST
+from nci_si_acceptance.fixture_server import CONCEPTS, FORM_TYPE, MANIFEST
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -92,13 +93,16 @@ class Planned:
     # The headers sent and recorded; None sends Accept: application/json and records none.
     headers: dict[str, str] | None = None
     body: Any = None
+    # A form-encoded body, each field with its text; in place of `body`.
+    form: dict[str, str] | None = None
 
     def sent(self) -> dict[str, Any]:
-        """The method, headers and body to send, where the request is not a plain GET."""
+        """The method, headers and body or form to send, where the request is not a plain GET."""
 
-        if self.method == "GET" and self.headers is None and self.body is None:
-            return {}
-        return {"method": self.method, "headers": self.headers, "body": self.body}
+        sent = {"method": self.method, "headers": self.headers, "body": self.body}
+        if self.form is not None:
+            sent["form"] = self.form
+        return {} if sent == {"method": "GET", "headers": None, "body": None} else sent
 
 
 def _split(target: str) -> tuple[str, Params]:
@@ -120,6 +124,7 @@ def plan(manifest: dict[str, Any]) -> list[Planned]:
             entry.get("method", "GET"),
             entry.get("headers"),
             entry.get("body"),
+            entry.get("form"),
         )
         for entry in record.get("requests", [])
     ]
@@ -154,6 +159,7 @@ def request_of(planned: Planned) -> dict[str, Any]:
         "params": planned.params,
         "headers": planned.headers,
         "body": planned.body,
+        "form": planned.form,
         "ignored": planned.ignored,
     }
     return request | {key: value for key, value in optional.items() if value}
@@ -385,12 +391,16 @@ def live_fetch(bases: dict[str, str]) -> Fetch:
         method: str = "GET",
         headers: dict[str, str] | None = None,
         body: Any = None,
+        form: dict[str, str] | None = None,
     ) -> tuple[int, Any]:
         query = f"?{urlencode(params, doseq=True)}" if params else ""
         # caDSR's API paths hold colons (NCIFormAPI.v2_0:NciFormApiRad).
         url = bases[surface] + quote(path, safe="/$:") + query
         sent = {"Accept": "application/json"} if headers is None else dict(headers)
         data = None if body is None else json.dumps(body).encode()
+        if form is not None:
+            data = urlencode(form).encode()
+            sent["Content-Type"] = FORM_TYPE
         request = Request(url, data=data, headers=sent, method=method)  # noqa: S310 - https from the manifest
         try:
             with urlopen(request, timeout=TIMEOUT_SECONDS) as response:  # noqa: S310
