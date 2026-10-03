@@ -6,7 +6,29 @@ import re
 import pytest
 from jsonschema import Draft202012Validator
 
-from nci_si_acceptance.spec import RECORDS, TOOLS, parameters, profile_tools
+from nci_si_acceptance.client import Target
+from nci_si_acceptance.results import (
+    CARRIED,
+    identity,
+    is_timestamp,
+    provenance_of,
+    release_of,
+    wrong_fields,
+)
+from nci_si_acceptance.spec import (
+    PROMPTS,
+    RECORDS,
+    RESOURCES,
+    TOOLS,
+    items_of,
+    parameters,
+    profile_tools,
+    prompts_of,
+    resource_call,
+    resources_of,
+    tools_named,
+    uri_variables,
+)
 
 # M7.1: where a caller's correlation identifier goes, and the header that carries it upstream.
 CORRELATION = "acceptance-correlation-0001"
@@ -283,3 +305,159 @@ def test_each_tool_takes_the_parameters_the_specification_names(server):
     }
 
     assert differing == {}
+
+
+def _arguments(declared: list[dict]) -> set[tuple[str, bool]]:
+    """The arguments a prompt declares, each as its name and whether it is required."""
+
+    return {(each["name"], each["required"]) for each in declared}
+
+
+@pytest.mark.gate
+@pytest.mark.live_capable
+@pytest.mark.requirement("P-8")
+def test_prompts_list_names_the_prompts_of_the_profile_with_their_arguments(server, target):
+    listed = {
+        prompt.name: {(each.name, bool(each.required)) for each in prompt.arguments or []}
+        for prompt in server.list_prompts().prompts
+    }
+
+    assert listed == {
+        name: _arguments(prompt["arguments"]) for name, prompt in prompts_of(target.profile).items()
+    }
+
+
+def _messages(server, name: str, required: list[str]) -> str:
+    """The text of the messages prompts/get returns for `name`, each required argument given a
+    sample value; a prompt that returns none gives an empty text."""
+
+    messages = server.get_prompt(name, {each: f"sample {each}" for each in required}).messages
+    return " ".join(message.content.text for message in messages if message.content.type == "text")
+
+
+def _listed_required(server) -> dict[str, list[str]]:
+    """The arguments each prompt the server lists requires."""
+
+    return {
+        prompt.name: [each.name for each in prompt.arguments or [] if each.required]
+        for prompt in server.list_prompts().prompts
+    }
+
+
+def _stated_required(profile: str) -> dict[str, list[str]]:
+    """The arguments each prompt the profile should list requires, as the specification states."""
+
+    return {
+        name: [each["name"] for each in prompt["arguments"] if each["required"]]
+        for name, prompt in prompts_of(profile).items()
+    }
+
+
+@pytest.mark.gate
+@pytest.mark.live_capable
+@pytest.mark.requirement("P-8")
+def test_a_prompt_returns_messages_naming_the_tools_it_states_and_only_tools_of_the_profile(
+    server, target
+):
+    # A prompt that is only stated is asked for all the same, and a server that lacks it refuses.
+    asked = _listed_required(server) | _stated_required(target.profile)
+
+    texts = {name: _messages(server, name, required) for name, required in asked.items()}
+
+    assert [name for name, text in texts.items() if not text] == []
+    named = {name: set(tools_named(text)) for name, text in texts.items()}
+    assert {name: found - profile_tools(target.profile) for name, found in named.items()} == {
+        name: set() for name in texts
+    }
+    # A prompt the specification does not furnish is the listing's finding, not this test's.
+    furnished = {name: found for name, found in named.items() if name in PROMPTS}
+    assert furnished == {name: set(PROMPTS[name]["tools"]) for name in furnished}
+
+
+@pytest.mark.gate
+@pytest.mark.live_capable
+@pytest.mark.requirement("P-8")
+def test_resources_and_templates_list_the_uri_templates_of_the_profile(server, target):
+    stated = {uri for resource in resources_of(target.profile).values() for uri in resource["uri"]}
+
+    assert server.listed_resources() == stated
+
+
+# What the recorded fixtures hold of each resource: a concept, a data element and its version 1.
+CONCEPT = "C4817"
+DATA_ELEMENT = "2200604"
+OLDER_VERSION = "1"
+
+
+def _instance(template: str, pinned: dict[str, str]) -> dict[str, str]:
+    """The values that fill `template` with something the fixture set holds."""
+
+    release = pinned["release"]
+    return {
+        "ncit://concept/{release}/{code}": {"release": release, "code": CONCEPT},
+        "ncit://release/{version}": {"version": release},
+        "ncit://index/manifest/{release}": {"release": release},
+        "cadsr://data-element/{publicId}": {"publicId": DATA_ELEMENT},
+        "cadsr://data-element/{publicId}/{version}": {
+            "publicId": DATA_ELEMENT,
+            "version": OLDER_VERSION,
+        },
+    }.get(template, {})
+
+
+def _case(key: str, template: str) -> object:
+    """One read of the profile under test: a resource's template, the case named by the
+    variables it adds where the resource has several; a resource served from the index the
+    prepare step builds needs that step."""
+
+    several = len(RESOURCES[key]["uri"]) > 1
+    name = "-".join([key, *uri_variables(template)]) if several else key
+    marks = [pytest.mark.prepared] if RESOURCES[key].get("prepared") else []
+    return pytest.param(key, template, id=name, marks=marks)
+
+
+READS = [
+    _case(key, template)
+    for key, resource in resources_of(Target.from_env().profile).items()
+    for template in resource["uri"]
+]
+
+
+def _items(tool: str, content: object) -> list:
+    """The items a result of `tool` holds, or the result itself where the tool has none."""
+
+    return items_of(tool, content) or [content]
+
+
+@pytest.mark.gate
+@pytest.mark.requirement("P-9")
+@pytest.mark.parametrize(("key", "template"), READS)
+def test_a_resource_read_equals_its_tool_s_answer_with_provenance_and_the_same_caching(
+    server, pinned, key, template
+):
+    values = _instance(template, pinned)
+    tool, arguments = resource_call(key, template, values)
+
+    read = server.read_resource(template.format_map(values))
+    answer = server.call(tool, arguments)
+
+    assert not answer.is_error, answer.content
+    assert read.mime_types == (RESOURCES[key]["mime"],)
+    assert isinstance(read.content, dict), read.content
+    # M2.5: the hint is a field of the result, and follows what the content holds (M2.2, M2.3),
+    # which is what the tool's answer holds.
+    assert read.carried
+    assert (read.ttl_ms, read.cache_scope) == (
+        answer.meta.get("ttlMs"),
+        answer.meta.get("cacheScope"),
+    )
+    items = _items(tool, read.content)
+    provenances = [provenance_of(item) for item in items]
+    assert provenances
+    assert [wrong_fields(each, CARRIED) for each in provenances] == [[]] * len(provenances)
+    assert all(is_timestamp(each.get("retrievedAt")) for each in provenances)
+    expected = _items(tool, answer.content)
+    assert {identity(item) for item in items} == {identity(item) for item in expected}
+    # A tool whose answer names no release (the registry state's) leaves none to compare.
+    released = {release_of(item) for item in expected} - {(None, None)}
+    assert not released or {release_of(item) for item in items} == released

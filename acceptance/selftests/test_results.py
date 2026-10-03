@@ -6,17 +6,21 @@ import pytest
 
 from nci_si_acceptance.record import FIXTURES
 from nci_si_acceptance.results import (
+    CARRIED,
     EXPORT_LISTING,
     bare_code,
     element_ids,
     error_code,
     export_date,
     identity,
+    is_timestamp,
     pinned_release,
+    provenance_of,
     release_of,
     requests_naming,
     sparql_rows,
     value_ids,
+    wrong_fields,
 )
 from nci_si_acceptance.tools import Result
 
@@ -63,6 +67,10 @@ ELEMENT = {"publicId": "2200604", "version": "4", "longName": "Person Sex Text T
         # EVS items keep their identities.
         ({"terminology": "ncit", "code": "C4817", "name": "Ewing Sarcoma"}, ("ncit", "C4817")),
         ({"terminology": "ncit", "release": "26.09d"}, ("ncit", None)),
+        # A record of a release has a version in place of a code, and the registry's state is
+        # known by whether it publishes a release and its date.
+        ({"terminology": "ncit", "version": "26.09d", "channel": "monthly"}, ("ncit", "26.09d")),
+        ({"published": False, "generatedAt": "2026-07-01"}, (False, None, "2026-07-01")),
         (
             {
                 "sourceCode": "C1",
@@ -132,3 +140,40 @@ def test_uses_are_named_by_their_data_element_and_value():
 
     assert element_ids([use]) == {("2200604", "4")}
     assert value_ids([use | {"conceptCode": "C20197"}]) == {("2200604", "4", "Male", "C20197")}
+
+
+PROVENANCE = {
+    "release": {"terminology": "ncit", "identifier": "26.09d"},
+    "source": "evs_rest",
+    "servedBy": "live",
+    "retrievedAt": "2026-10-04T10:00:00+00:00",
+}
+
+
+def test_a_provenance_record_lacking_a_carried_field_or_holding_one_off_its_set_is_named():
+    assert wrong_fields(PROVENANCE, CARRIED) == []
+    assert wrong_fields(PROVENANCE | {"source": "somewhere"}, CARRIED) == ["source"]
+    assert wrong_fields({k: v for k, v in PROVENANCE.items() if k != "release"}, CARRIED) == [
+        "release"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("item", "provenance"),
+    [({"provenance": PROVENANCE}, PROVENANCE), ({"provenance": None}, {}), ("text", {})],
+)
+def test_an_item_s_provenance_is_its_record_or_none(item, provenance):
+    assert provenance_of(item) == provenance
+
+
+@pytest.mark.parametrize(
+    ("value", "valid"),
+    [
+        ("2026-10-04T10:00:00+00:00", True),
+        ("2026-10-04T10:00:00", False),
+        ("today", False),
+        (None, False),
+    ],
+)
+def test_a_timestamp_is_iso_8601_with_a_time_zone(value, valid):
+    assert is_timestamp(value) is valid

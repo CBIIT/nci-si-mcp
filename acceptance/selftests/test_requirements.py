@@ -11,7 +11,7 @@ import yaml
 
 from nci_si_acceptance.document import DOCUMENT, GROUPS, render
 from nci_si_acceptance.requirements import citations, load_requirements, never_runs, problems
-from nci_si_acceptance.spec import REQUIRED_TOOLS, TOOLS, is_basis
+from nci_si_acceptance.spec import PROMPTS, REQUIRED_TOOLS, RESOURCES, TOOLS, is_basis
 
 pytest_plugins = ["pytester"]
 
@@ -212,6 +212,18 @@ def test_a_tool_row_states_its_identifier_forms_and_free_text():
     assert "`code` form for ncit `^C[1-9][0-9]*$`." in rendered
     assert "`release` form `^[A-Za-z0-9][A-Za-z0-9._-]*$`." in rendered
     assert "Free text: `entities[].name`, `entities[].userTip`" in rendered
+
+
+def test_the_resources_and_prompts_are_rendered_with_their_templates_and_the_decision():
+    rendered = render({})
+
+    assert [uri for each in RESOURCES.values() for uri in each["uri"] if uri not in rendered] == []
+    assert [name for name in PROMPTS if f"#### `{name}`" not in rendered] == []
+    assert "there is no prompt for grounding a value" in rendered
+    assert "Help author the data capture of a protocol from its concepts: {concepts}." in rendered
+    assert (
+        "`get_concept(terminology: ncit, release: {release}, code: {code}, include: [" in rendered
+    )
 
 
 @pytest.mark.parametrize(

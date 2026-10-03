@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from nci_si_acceptance.spec import REQUIRED_TOOLS
+from nci_si_acceptance.spec import RECORDS, REQUIRED_TOOLS
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -49,14 +50,38 @@ def _words(entry: dict[str, Any]) -> set[str]:
     return {word for text in [*entry["path"].split("/"), *values] for word in text.split(",")}
 
 
-def _provenance_of(item: Any) -> dict[str, Any]:
+# The fields of a provenance record, and those every item's carries (X-7).
+PROVENANCE_FIELDS = RECORDS["provenance"]["fields"] | RECORDS["traversal"]["fields"]
+CARRIED = ("release", "source", "retrievedAt", "servedBy")
+
+
+def provenance_of(item: Any) -> dict[str, Any]:
     return (item.get("provenance") or {}) if isinstance(item, dict) else {}
+
+
+def wrong_fields(provenance: dict[str, Any], names: Iterable[str]) -> list[str]:
+    """The fields among `names` that `provenance` lacks or holds outside their closed set."""
+
+    return [name for name in names if not _valid(provenance.get(name), PROVENANCE_FIELDS[name])]
+
+
+def _valid(value: Any, field: dict[str, Any]) -> bool:
+    return value is not None and value in field.get("values", [value])
+
+
+def is_timestamp(value: Any) -> bool:
+    """Whether `value` is an ISO-8601 timestamp with a time zone."""
+
+    try:
+        return datetime.fromisoformat(value).tzinfo is not None
+    except TypeError, ValueError:
+        return False
 
 
 def release_of(item: Any) -> tuple[Any, Any]:
     """The terminology or registry and the release an item's provenance names."""
 
-    release = _provenance_of(item).get("release") or {}
+    release = provenance_of(item).get("release") or {}
     return release.get("terminology", release.get("registry")), release.get("identifier")
 
 
@@ -72,8 +97,9 @@ def pinned_release(name: str, pinned: dict[str, str]) -> tuple[str, str | None]:
 
 def identity(item: Any) -> Any:
     """An item by what it is: a concept by terminology and code, an edge by its ends and its
-    relationship's code, a caDSR item by its public id and version (a code map by its data
-    element's), a context by its name."""
+    relationship's code, a release by its terminology and version, a caDSR item by its public id
+    and version (a code map by its data element's), the registry's state by whether it publishes
+    a release and its date, a context by its name."""
 
     if not isinstance(item, dict):
         return item
@@ -82,13 +108,16 @@ def identity(item: Any) -> Any:
         return item.get("sourceCode"), item.get("targetCode"), relationship.get("code")
     if "code" not in item and "terminology" not in item:
         return _registry_identity(item)
-    return item.get("terminology"), item.get("code")
+    # A record of a release has a version in place of a code.
+    return item.get("terminology"), item.get("code", item.get("version"))
 
 
 def _registry_identity(item: dict[str, Any]) -> Any:
-    """A caDSR item by its public id and version, a code map by its data element's, a context
-    by its name."""
+    """The registry's state, a caDSR item by its public id and version, a code map by its data
+    element's, a context by its name."""
 
+    if "published" in item:
+        return item["published"], item.get("identifier"), item.get("generatedAt")
     element = item.get("dataElement")
     owner: dict[str, Any] = element if isinstance(element, dict) else item
     if "publicId" in owner:

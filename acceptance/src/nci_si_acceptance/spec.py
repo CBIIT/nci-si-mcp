@@ -23,6 +23,9 @@ def _load(name: str) -> dict[str, Any]:
 CONVENTIONS: dict[str, dict[str, Any]] = _load("conventions.yaml")
 TOOLS: dict[str, dict[str, Any]] = _load("tools.yaml")
 RECORDS: dict[str, dict[str, Any]] = _load("records.yaml")
+# The furnished resources and prompt templates (spec/resources.yaml, spec/prompts.yaml).
+RESOURCES: dict[str, dict[str, Any]] = _load("resources.yaml")
+PROMPTS: dict[str, dict[str, Any]] = _load("prompts.yaml")
 # The group of each required tool: evs, cadsr, cross-domain or workflow.
 REQUIRED_TOOLS = {name: tool["group"] for name, tool in TOOLS.items()}
 
@@ -35,6 +38,60 @@ def profile_tools(profile: str) -> set[str]:
     """The required tools a server of `profile` lists."""
 
     return {name for name, group in REQUIRED_TOOLS.items() if profile in (group, "unified")}
+
+
+def prompts_of(profile: str) -> dict[str, dict[str, Any]]:
+    """The prompts a server of `profile` lists: those whose every tool the profile has (M5.1)."""
+
+    tools = profile_tools(profile)
+    return {name: prompt for name, prompt in PROMPTS.items() if set(prompt["tools"]) <= tools}
+
+
+def resources_of(profile: str) -> dict[str, dict[str, Any]]:
+    """The resources a server of `profile` serves: those of its group, unified serving all."""
+
+    return {
+        name: resource
+        for name, resource in RESOURCES.items()
+        if profile in (resource["group"], "unified")
+    }
+
+
+# A word that can be a tool's name: lowercase parts joined by underscores (A2.1).
+WORD = re.compile(r"(?<!\w)[a-z]+(?:_[a-z]+)+(?!\w)")
+
+
+def tools_named(text: str) -> list[str]:
+    """The required tools `text` names, each once, in the order it first names them."""
+
+    return list(dict.fromkeys(word for word in WORD.findall(text) if word in TOOLS))
+
+
+def uri_variables(template: str) -> list[str]:
+    """The variables of a URI template, in order: {release} and {code} of a concept's."""
+
+    return re.findall(r"\{(\w+)\}", template)
+
+
+def resource_call(resource: str, template: str, values: dict[str, str]) -> tuple[str, dict]:
+    """The tool a resource's content equals and its arguments for `template` filled with
+    `values`: an argument whose variable the template lacks is left out."""
+
+    entry, taken = RESOURCES[resource], set(uri_variables(template))
+    arguments = {
+        name: _filled(value, values)
+        for name, value in entry["arguments"].items()
+        if _variables_of(value) <= taken
+    }
+    return entry["tool"], arguments
+
+
+def _variables_of(value: Any) -> set[str]:
+    return set(uri_variables(value)) if isinstance(value, str) else set()
+
+
+def _filled(value: Any, values: dict[str, str]) -> Any:
+    return value.format_map(values) if isinstance(value, str) else value
 
 
 def defaults(tool: str) -> dict[str, Any]:

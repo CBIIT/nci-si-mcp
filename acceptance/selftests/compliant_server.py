@@ -82,6 +82,23 @@ requirements, for the harness's own tests.
     attributes-all-but-last the licence text EVS gives left off the last item         (X-19)
     attributes-ncit   NCIt items with a licence text of the server's own            (X-19)
     sticky-attribution an item EVS gave no text with carries the last text it gave   (X-19)
+    no-prompts        no prompts capability: prompts/list is a method not found      (P-8)
+    prompt-outside-profile a prompt, naming tools the profile lacks, in a profile with none (P-8)
+    prompt-missing    one prompt of the profile not listed                          (P-8)
+    argument-undeclared a prompt whose first argument prompts/list does not declare (P-8)
+    prompt-omits-tool the last tool a prompt states left out of its messages         (P-8)
+    prompt-empty      prompts/get returns no message                                (P-8)
+    no-resources      no resources capability: resources/list is a method not found (P-8)
+    uri-differs       the concept's URI template listed without its release          (P-8)
+    resource-no-ttl   resources/read results without ttlMs and cacheScope           (P-9)
+    resource-no-provenance resource content without its provenance                  (P-9)
+    resource-other-content resource content of another concept than the one read    (P-9)
+    resource-wrong-mime resource content in another MIME type                       (P-9)
+
+`COMPLIANT_SERVER_PROFILE` names the profile the server serves, evs by default: the tools it
+lists, the resources it serves and the prompts it lists (those whose every tool the profile
+has, so none in evs). A resource's content is its tool's answer, called as spec/resources.yaml
+says; a prompt's messages are its template with the arguments filled in.
 
 `unpinned-mismatch` is no defect for a tool without a pinned form upstream: it answers an
 unknown release with release_mismatch, as such a tool can only verify an unpinned answer (X-2).
@@ -120,10 +137,24 @@ import yaml
 from mcp.server.caching import CacheHint
 from mcp.server.lowlevel.server import Server
 from mcp.server.stdio import stdio_server
+from mcp.shared.exceptions import MCPError
 
-from nci_si_acceptance.spec import RECORDS, TOOLS, defaults, parameters, profile_tools
+from nci_si_acceptance.spec import (
+    PROMPTS,
+    RECORDS,
+    RESOURCES,
+    TOOLS,
+    defaults,
+    parameters,
+    profile_tools,
+    prompts_of,
+    resource_call,
+    resources_of,
+    uri_variables,
+)
 
 DEFECT = os.environ.get("COMPLIANT_SERVER_DEFECT", "")
+PROFILE = os.environ.get("COMPLIANT_SERVER_PROFILE", "evs")
 EVS = os.environ["NCI_SI_EVS_BASE_URL"]
 TIMEOUT = float(os.environ.get("NCI_SI_TIMEOUT_SECONDS", "10"))
 LICENCE_KEY = os.environ.get("NCI_SI_EVS_LICENSE_KEY")
@@ -319,7 +350,7 @@ def _tool(name: str) -> types.Tool:
 
 
 def _names() -> list[str]:
-    names = sorted(profile_tools("evs"))
+    names = sorted(profile_tools(PROFILE))
     if DEFECT == "misnamed":
         names.append("ConceptLookup")
     dropped = {
@@ -711,13 +742,173 @@ async def call_tool(_context, params: types.CallToolRequestParams) -> types.Call
     )
 
 
+def _uris() -> list[tuple[str, str]]:
+    """Each resource of the profile with each of its URI templates."""
+
+    return [
+        (key, uri) for key, resource in resources_of(PROFILE).items() for uri in resource["uri"]
+    ]
+
+
+def _advertised(uri: str) -> str:
+    """The template as the server lists it: the concept's without its release, under the
+    uri-differs defect."""
+
+    differing = DEFECT == "uri-differs" and uri.startswith("ncit://concept/")
+    return "ncit://concept/{code}" if differing else uri
+
+
+def _name(key: str, uri: str) -> str:
+    """A resource's name: its key, with the variables of a second template added."""
+
+    return "-".join([key, *uri_variables(uri)]) if len(RESOURCES[key]["uri"]) > 1 else key
+
+
+async def list_resources(_context, _params) -> types.ListResourcesResult:
+    fixed = [
+        types.Resource(name=_name(key, uri), uri=_advertised(uri), mime_type=RESOURCES[key]["mime"])
+        for key, uri in _uris()
+        if not uri_variables(uri)
+    ]
+    return types.ListResourcesResult(resources=fixed)
+
+
+async def list_resource_templates(_context, _params) -> types.ListResourceTemplatesResult:
+    templates = [
+        types.ResourceTemplate(
+            name=_name(key, uri), uri_template=_advertised(uri), mime_type=RESOURCES[key]["mime"]
+        )
+        for key, uri in _uris()
+        if uri_variables(uri)
+    ]
+    return types.ListResourceTemplatesResult(resource_templates=templates)
+
+
+def _matched(uri: str) -> tuple[str, str, dict[str, str]]:
+    """The resource and template a URI is an instance of, with the values of its variables."""
+
+    for key, template in _uris():
+        pattern = re.sub(r"\\\{(\w+)\\\}", r"(?P<\1>[^/]+)", re.escape(template))
+        if found := re.fullmatch(pattern, uri):
+            return key, template, found.groupdict()
+    raise MCPError(types.INVALID_PARAMS, f"no such resource: {uri}")
+
+
+def _renamed(value: object) -> object:
+    """`value` with every code another (the resource-other-content defect)."""
+
+    if isinstance(value, dict):
+        return {k: "C9999" if k == "code" else _renamed(v) for k, v in value.items()}
+    return [_renamed(item) for item in value] if isinstance(value, list) else value
+
+
+def _unproven(value: object) -> object:
+    """`value` without any provenance (the resource-no-provenance defect)."""
+
+    if isinstance(value, dict):
+        return {k: _unproven(v) for k, v in value.items() if k != "provenance"}
+    return [_unproven(item) for item in value] if isinstance(value, list) else value
+
+
+async def read_resource(
+    _context, params: types.ReadResourceRequestParams
+) -> types.ReadResourceResult:
+    key, template, values = _matched(params.uri)
+    tool, arguments = resource_call(key, template, values)
+    content, failed = _answer(tool, arguments, "")
+    if failed:
+        raise MCPError(types.INVALID_PARAMS, json.dumps(content))
+    content = {"resource-other-content": _renamed, "resource-no-provenance": _unproven}.get(
+        DEFECT, lambda each: each
+    )(content)
+    mime = "text/plain" if DEFECT == "resource-wrong-mime" else RESOURCES[key]["mime"]
+    contents = [
+        types.TextResourceContents(uri=params.uri, mime_type=mime, text=json.dumps(content))
+    ]
+    if DEFECT == "resource-no-ttl":
+        return types.ReadResourceResult(contents=contents)
+    return types.ReadResourceResult(
+        contents=contents, ttl_ms=_meta()["ttlMs"], cache_scope=_meta()["cacheScope"]
+    )
+
+
+def _stated_prompts() -> dict[str, dict]:
+    """The prompts the server lists: those of its profile, one too few under prompt-missing,
+    and under prompt-outside-profile one that names tools the profile lacks."""
+
+    prompts = dict(prompts_of(PROFILE))
+    if DEFECT == "prompt-outside-profile":
+        prompts["protocol_authoring"] = PROMPTS["protocol_authoring"]
+    if DEFECT == "prompt-missing":
+        prompts.pop(next(iter(prompts)))
+    return prompts
+
+
+def _declared(prompt: dict) -> list[types.PromptArgument]:
+    arguments = prompt["arguments"][1:] if DEFECT == "argument-undeclared" else prompt["arguments"]
+    return [
+        types.PromptArgument(
+            name=each["name"], description=each["description"], required=each["required"]
+        )
+        for each in arguments
+    ]
+
+
+async def list_prompts(_context, _params) -> types.ListPromptsResult:
+    prompts = [
+        types.Prompt(
+            name=name,
+            title=prompt["title"],
+            description=prompt["adds"],
+            arguments=_declared(prompt),
+        )
+        for name, prompt in _stated_prompts().items()
+    ]
+    return types.ListPromptsResult(prompts=prompts)
+
+
+class _Blank(dict):
+    """The arguments of a prompt: one not given is empty text."""
+
+    def __missing__(self, key: str) -> str:
+        return ""
+
+
+async def get_prompt(_context, params: types.GetPromptRequestParams) -> types.GetPromptResult:
+    prompt = _stated_prompts()[params.name]
+    text = prompt["template"].format_map(_Blank(params.arguments or {}))
+    if DEFECT == "prompt-omits-tool":
+        text = text.replace(prompt["tools"][-1], "the last tool")
+    content = types.TextContent(type="text", text=text)
+    message = types.PromptMessage(role="user", content=content)
+    return types.GetPromptResult(messages=[] if DEFECT == "prompt-empty" else [message])
+
+
+def _handlers() -> dict:
+    """The handlers the server registers; a defect leaves out a capability."""
+
+    handlers = {"on_list_tools": list_tools, "on_call_tool": call_tool}
+    if DEFECT != "no-prompts":
+        handlers |= {"on_list_prompts": list_prompts, "on_get_prompt": get_prompt}
+    if DEFECT != "no-resources":
+        handlers |= {
+            "on_list_resources": list_resources,
+            "on_list_resource_templates": list_resource_templates,
+            "on_read_resource": read_resource,
+        }
+    return handlers
+
+
+LONG = CacheHint(ttl_ms=86_400_000, scope="public")
 SERVER = Server(
     "compliant-server",
     cache_hints={
-        "tools/list": CacheHint(ttl_ms=0 if DEFECT == "no-ttl" else 86_400_000, scope="public")
+        "tools/list": CacheHint(ttl_ms=0 if DEFECT == "no-ttl" else 86_400_000, scope="public"),
+        "prompts/list": LONG,
+        "resources/list": LONG,
+        "resources/templates/list": LONG,
     },
-    on_list_tools=list_tools,
-    on_call_tool=call_tool,
+    **_handlers(),
 )
 
 

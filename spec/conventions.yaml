@@ -157,7 +157,7 @@ M4:
 M5:
   title: Prompts and resources
   rules:
-    M5.1: The furnished prompt templates and resources are listed by prompts/list and resources/list with their arguments, and a prompt names only tools present in the profile.
+    M5.1: "The furnished prompt templates and resources are listed by prompts/list and resources/list with their arguments, and a prompt names only tools present in the profile. A prompt is listed only in a profile that has every tool it names, so the evs and cadsr profiles list none and unified lists all four (spec/prompts.yaml)."
 M6:
   title: Pagination
   rules:

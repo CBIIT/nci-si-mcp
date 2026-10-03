@@ -115,6 +115,21 @@ class Session:
     ) -> types.CallToolResult:
         return self._portal.call(partial(self._client.call_tool, name, arguments, meta=meta))
 
+    def list_prompts(self) -> types.ListPromptsResult:
+        return self._portal.call(self._client.list_prompts)
+
+    def get_prompt(self, name: str, arguments: dict[str, str]) -> types.GetPromptResult:
+        return self._portal.call(partial(self._client.get_prompt, name, arguments))
+
+    def list_resources(self) -> types.ListResourcesResult:
+        return self._portal.call(self._client.list_resources)
+
+    def list_resource_templates(self) -> types.ListResourceTemplatesResult:
+        return self._portal.call(self._client.list_resource_templates)
+
+    def read_resource(self, uri: str) -> types.ReadResourceResult:
+        return self._portal.call(partial(self._client.read_resource, uri))
+
 
 @contextmanager
 def open_session(

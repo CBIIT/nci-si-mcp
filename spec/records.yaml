@@ -749,6 +749,24 @@ truncation:
         its own truncation record; occurred is true when any hop's bound was reached
       optional: true
       of: ground_value
+index_manifest:
+  title: The index manifest record
+  about: >-
+    The manifest of the interim NCIt index (M4.1), as the index-manifest resource returns it:
+    the release the index was built for, which resolve_release learns the index's release from.
+  fields:
+    terminology:
+      content: The terminology indexed, ncit
+      of: M4.1
+    version:
+      content: The release the index holds, in the form resolve_release names it
+      of: M4.1
+    concepts:
+      content: The number of concepts the index holds
+      of: M4.1
+    provenance:
+      content: The provenance record, its source evs_index and servedBy index
+      of: A4.4
 error:
   title: The error record
   about: >-

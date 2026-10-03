@@ -1,6 +1,7 @@
 """The harness starts the server under test against the run mode's upstream."""
 
 import sys
+from pathlib import Path
 
 import pytest
 from mcp.shared.exceptions import MCPError
@@ -15,9 +16,11 @@ from nci_si_acceptance.client import (
     server_environment,
 )
 from nci_si_acceptance.fixture_server import UPSTREAM_VARIABLES, FixtureServer, FixtureSet
+from nci_si_acceptance.spec import PROMPTS
 
 # The furnished server, started from the environment the tests run in.
 BASELINE_SERVER = [sys.executable, "-m", "nci_si_mcp.cli", "serve"]
+COMPLIANT_SERVER = Path(__file__).parent / "compliant_server.py"
 
 
 def test_the_default_target_is_the_installed_server_against_fixtures(monkeypatch):
@@ -110,6 +113,29 @@ def test_every_upstream_request_of_the_server_under_test_is_recorded(tmp_path):
     assert log
     assert {entry["surface"] for entry in log} <= set(UPSTREAM_VARIABLES.values())
     assert all(entry["fixture"] is None for entry in log)
+
+
+def test_a_session_lists_and_gets_prompts_and_lists_and_reads_resources(tmp_path):
+    command = [sys.executable, str(COMPLIANT_SERVER)]
+    with FixtureServer(FixtureSet({}, {})) as upstream:
+        environment = server_environment("fixture", tmp_path, upstream.url)
+        environment |= {"COMPLIANT_SERVER_PROFILE": "unified"}
+        with open_session(command, environment) as session:
+            prompts = session.list_prompts().prompts
+            got = session.get_prompt("crdc_model_alignment", {"field": "f", "commons": "GDC"})
+            resources = session.list_resources().resources
+            templates = session.list_resource_templates().resource_templates
+            # The upstream has no fixture, so the server refuses the read; the refusal arrives.
+            with pytest.raises(MCPError, match="upstream_unavailable"):
+                session.read_resource("cadsr://registry/release")
+
+    assert sorted(prompt.name for prompt in prompts) == sorted(PROMPTS)
+    assert "the commons GDC" in got.messages[0].content.text
+    assert {resource.uri for resource in resources} == {
+        "cadsr://registry/release",
+        "cadsr://crosswalk/crdc",
+    }
+    assert "ncit://concept/{release}/{code}" in {each.uri_template for each in templates}
 
 
 def test_a_server_that_never_answers_ends_the_session_with_a_timeout(monkeypatch, tmp_path):

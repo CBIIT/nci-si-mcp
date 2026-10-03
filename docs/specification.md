@@ -5,8 +5,8 @@ Generated from `spec/` by `pdm run spec-render`; do not edit by hand.
 This is the specification of the required MCP tools and their behavior furnished with the
 Prototype Baseline Package. The Statements of Work frame and bound its scope; within that scope
 it is the source of record for what the tools do. Its source is data: the conventions
-(`spec/conventions.yaml`), the tools (`spec/tools.yaml`) and the requirements
-(`spec/requirements.yaml`). The server implements the tools, and the acceptance suite tests the
+(`spec/conventions.yaml`), the tools (`spec/tools.yaml`), the resources and prompts
+(`spec/resources.yaml`, `spec/prompts.yaml`) and the requirements (`spec/requirements.yaml`). The server implements the tools, and the acceptance suite tests the
 requirements, each test citing the requirements it enforces by id.
 
 ## 1. Conventions
@@ -199,7 +199,7 @@ Binding on every tool.
 
 | Id | Convention |
 |---|---|
-| M5.1 | The furnished prompt templates and resources are listed by prompts/list and resources/list with their arguments, and a prompt names only tools present in the profile. |
+| M5.1 | The furnished prompt templates and resources are listed by prompts/list and resources/list with their arguments, and a prompt names only tools present in the profile. A prompt is listed only in a profile that has every tool it names, so the evs and cadsr profiles list none and unified lists all four (spec/prompts.yaml). |
 
 ### M6 · Pagination
 
@@ -554,6 +554,17 @@ The truncation field of a result whose tool bounds it. When nothing was truncate
 | `perKind` | For a traversal over several relationship kinds: a map from each kind to its own truncation record; occurred is true when any kind's budget was reached (optional) | A5.5 |
 | `perHop` | For a workflow: a map from each hop (dataElements, permissibleValues, storedValues) to its own truncation record; occurred is true when any hop's bound was reached (optional) | ground_value |
 
+### The index manifest record
+
+The manifest of the interim NCIt index (M4.1), as the index-manifest resource returns it: the release the index was built for, which resolve_release learns the index's release from.
+
+| Field | Content | Rule |
+|---|---|---|
+| `terminology` | The terminology indexed, ncit | M4.1 |
+| `version` | The release the index holds, in the form resolve_release names it | M4.1 |
+| `concepts` | The number of concepts the index holds | M4.1 |
+| `provenance` | The provenance record, its source evs_index and servedBy index | A4.4 |
+
 ### The error record
 
 A failed call returns { error } as its structuredContent, with isError set (M3.2); it never resembles an empty result (A2.5).
@@ -616,7 +627,106 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 | `expand_cohort` | `(conceptCode, release, maxDepth?, includeNegative?, maxNodes?) → { codes[], excluded[excluded_code], edges[edge], truncation, provenance }` | The codes a cohort query should use: the concept itself and its descendants to maxDepth. A code an exclusion role of the concept asked about asserts is withheld from codes and listed in excluded with its assertion, unless includeNegative keeps it in codes (still listed), one excluded record per exclusion assertion; a descendant's own exclusion roles are its own, not the cohort's. maxNodes counts the codes, the concept included. The result equals composing get_concept_hierarchy (child, depth maxDepth) and get_concept_neighborhood (depth 1). `maxDepth`: default 2, at most 4. `maxNodes`: default 200, at most 1000. `includeNegative`: default False. `release` form `^[A-Za-z0-9][A-Za-z0-9._-]*$`. `conceptCode` form `^C[1-9][0-9]*$`. Items: `edges[]`, `excluded[]`. |
 | `harmonize_data_dictionary` | `(columns[{ name, description?, sampleValues[]? }], registryRelease?, filters?) → { columns[{ name, matches[data_element_match], permissibleValueAlignment[value_meaning_match] }], unmatched[], provenance }` | A data dictionary's columns matched to data elements, one match call per column (its name as the entity, its description as entityUserTip), and each column's sample values aligned to value meanings (vmMatch); unmatched names the columns without a match; every match names one registry state. Computed from caller-supplied values: ttlMs 0, private. `columns`: at most 10 a call. Free text: `columns[].name`, `columns[].description`, `columns[].sampleValues[]`. Items: `columns[].matches[].dataElement`. |
 
-## 3. Requirements
+## 3. Prompts and resources
+
+### Resources
+
+Listed by resources/list and resources/templates/list (M5.1); each is read with
+resources/read and equals the answer of the tool it names.
+
+| Resource | URI templates | Group | MIME type | Equals | What it is |
+|---|---|---|---|---|---|
+| EVS concept | `ncit://concept/{release}/{code}` | evs | `application/json` | `get_concept(terminology: ncit, release: {release}, code: {code}, include: [synonyms, definitions, properties, semanticType])` | One NCIt concept of the release named, with every section get_concept offers. |
+| EVS release | `ncit://release/{version}` | evs | `application/json` | `resolve_release(terminology: ncit)` | An NCIt release the platform serves, as resolve_release names it: for the current monthly release, resolve_release's answer; for another served release, the same record of that release. `version` names which release. |
+| EVS index manifest | `ncit://index/manifest/{release}` | evs | `application/json` | `resolve_release(terminology: ncit)` | The manifest of the interim NCIt index (M4.1) built for the release named: the record resolve_release learns the index's release from. Its version is the release resolve_release names when the index holds the current monthly release. `release` names which release. |
+| caDSR data element | `cadsr://data-element/{publicId}`<br>`cadsr://data-element/{publicId}/{version}` | cadsr | `application/json` | `get_data_element(publicId: {publicId}, version: {version})` | A data element at its latest version, or at the version named; its own version, never the registry's state (A3.8.1). |
+| caDSR registry release | `cadsr://registry/release` | cadsr | `application/json` | `resolve_registry_release()` | The registry's content state as resolve_registry_release reports it: unpinned, with the export's date, while caDSR publishes no registry release (X-21). |
+| caDSR CRDC crosswalk | `cadsr://crosswalk/crdc` | cadsr | `application/json` | `get_code_map(sourceSystem: CRDC, limit: 1000)` | The CRDC crosswalk, the code maps of get_code_map for sourceSystem CRDC, at its largest page so that the crosswalk (105 data elements today) is one read. |
+
+### Prompts
+
+Furnished by the government, listed by prompts/list (M5.1).
+
+A prompt is listed only in a profile that has every tool it names (M5.1). All four need both
+modules, so the evs and cadsr profiles list none and unified lists all four. Each starts from
+`resolve_release`, so that one release is pinned for the whole sequence, and names its tools in
+the order the caller makes the calls.
+
+There is at most one prompt for each use the Statements of Work name, and only where it adds
+something the tools do not. Decision: there is no prompt for grounding a value, because
+`ground_value` does it in one call and a prompt would only restate the tool.
+
+
+#### `protocol_authoring`: Protocol authoring
+
+The sequence from a protocol's concepts to the forms that capture them, and the choice among candidate data elements.
+
+Arguments: `concepts`.
+Names, in order: `resolve_release`, `find_data_elements_for_concept`, `get_data_element`, `get_form`.
+
+    Help author the data capture of a protocol from its concepts: {concepts}.
+
+    1. Call resolve_release for the terminology ncit and keep the version it returns. Pass it as release to every later call that takes one.
+    2. For each concept, call find_data_elements_for_concept with that release. Set expandDescendants when the protocol speaks of a class of concepts rather than of one.
+    3. Several data elements may capture the same concept. For each candidate, call get_data_element with its publicId and compare its context, workflow status, registration status and permissible values. Choose the one the protocol should reuse, preferring a released, standard and current one, and say why. Keep the candidates you rejected, with their reasons.
+    4. Where a form already collects the chosen data elements, call get_form with its publicId and reuse its question wording and module order.
+
+    Report, for each concept, the data element chosen, the candidates rejected and why, and the release every answer carries.
+
+#### `crdc_model_alignment`: CRDC model alignment
+
+The order of the steps, and reading the alignment of the releases before trusting a join.
+
+Arguments: `field`, `commons`.
+Names, in order: `resolve_release`, `get_code_map`, `resolve_stored_value`, `get_release_alignment`.
+
+    Align the CRDC model field {field} with its data element and with the values the commons {commons} stores for it.
+
+    1. Call resolve_release for the terminology ncit and keep the version it returns. Pass it as release to every later call that takes one.
+    2. Call get_code_map for the field, by dataElementId where the field is a public id, otherwise with targetContext set to the commons. Read valueLevelBinding and coverage, and note each value with its conceptCode.
+    3. For each concept code, call resolve_stored_value with the commons and that release. Read confidence and evidence. A commons without value-level binding returns no stored value: report that, and never give the preferred term as if it were stored.
+    4. Before relying on any join of the NCIt side with the caDSR side, call get_release_alignment. Read intervalDays and the warning: a join across releases that far apart describes two content states, and the answer must say so.
+
+    Report the data element, each value with the literal the commons stores, the confidence of each, and the alignment of the releases.
+
+#### `uscdi_cancer_curation`: USCDI+ Cancer curation
+
+The curation checklist from a USCDI+ Cancer element to NCIt and caDSR.
+
+Arguments: `element`, `values` (optional).
+Names, in order: `resolve_release`, `search_concepts`, `ground_value`, `match_value_meanings`.
+
+    Curate the USCDI+ Cancer element {element} against NCIt and caDSR. Example values, if any: {values}.
+
+    1. Call resolve_release for the terminology ncit and keep the version it returns. Pass it as release to every later call that takes one.
+    2. Call search_concepts with the element's name and read the first results, active concepts before retired ones. Choose the concept that stands for the element, and name the alternatives you rejected.
+    3. Call ground_value with the chosen conceptCode. Read the data elements that use it and the permissible values that stand for it.
+    4. For the example values, call match_value_meanings and compare each value meaning with the permissible values found.
+
+    Checklist for the answer: the concept chosen and why; the status of the concept; the data elements found and their registration status; the values with no match; and the release of every answer.
+
+#### `cross_program_harmonization`: Cross-program harmonization
+
+The comparison across the two programs' results.
+
+Arguments: `first_dictionary`, `second_dictionary`.
+Names, in order: `resolve_release`, `harmonize_data_dictionary`, `find_data_elements_for_concept`.
+
+    Harmonize the data dictionaries of two programs onto shared data elements.
+
+    First program:
+    {first_dictionary}
+
+    Second program:
+    {second_dictionary}
+
+    1. Call resolve_release for the terminology ncit and keep the version it returns. Pass it as release to every later call that takes one.
+    2. Call harmonize_data_dictionary on the columns of the first program, then on those of the second, at most ten columns a call. Keep the columns that matched nothing.
+    3. Compare the two results. Where both programs' columns match the same data element, the columns overlap. Where they match different data elements for the same concept, call find_data_elements_for_concept for that concept and release and say which data element both programs should use.
+
+    Report the overlaps, the divergences with a recommendation, and the columns of each program left unmatched.
+
+## 4. Requirements
 
 ### Protocol gates: once per server, before any tool test
 
@@ -629,8 +739,8 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 | P-5 | tools/list carries a positive ttlMs and cacheScope public. | M2.1, M2.2 | `tests/test_protocol.py::test_tools_list_may_be_cached_and_shared` | tested |
 | P-6 | tools/list is the same after content calls, a release-pinned EVS call among them, and while the platform is unavailable. | M1.2 | `tests/test_protocol.py::test_tools_list_is_the_same_after_a_content_call`, `tests/test_protocol.py::test_tools_list_is_the_same_while_the_platform_is_unavailable` | tested |
 | P-7 | A correlation identifier passed on a call is sent upstream on every platform request the call makes, and returned in the provenance of each item. | A6.2, M7.1 | `tests/test_protocol.py::test_a_correlation_identifier_goes_upstream_and_comes_back` | tested |
-| P-8 | prompts/list and resources/list list the furnished prompts and resources with their arguments, and a prompt names only tools present in the profile. | M5.1 | — | planned #60 |
-| P-9 | resources/read results carry ttlMs, cacheScope and a provenance record. | M2.1, A4.1, M5.1 | — | planned #60 |
+| P-8 | prompts/list lists exactly the prompts of spec/prompts.yaml that the profile under test has every tool of, each with its arguments as stated, and prompts/get returns messages naming exactly the tools the prompt states, all of them tools of the profile; resources/list and resources/templates/list together list exactly the URI templates of spec/resources.yaml that the profile serves. A server without the prompts or resources capability fails. | M5.1 | `tests/test_protocol.py::test_prompts_list_names_the_prompts_of_the_profile_with_their_arguments`, `tests/test_protocol.py::test_a_prompt_returns_messages_naming_the_tools_it_states_and_only_tools_of_the_profile`, `tests/test_protocol.py::test_resources_and_templates_list_the_uri_templates_of_the_profile` | tested |
+| P-9 | resources/read of each resource the profile serves returns JSON content in the resource's MIME type that equals the answer of the tool the resource names, on identity and release, carries a provenance record with the fields X-7 requires, and carries ttlMs and cacheScope as fields of the result, equal to the hint that tool's answer carries. | M2.1, M2.5, A4.1, M5.1 | `tests/test_protocol.py::test_a_resource_read_equals_its_tool_s_answer_with_provenance_and_the_same_caching[concept]`, `tests/test_protocol.py::test_a_resource_read_equals_its_tool_s_answer_with_provenance_and_the_same_caching[release]`, `tests/test_protocol.py::test_a_resource_read_equals_its_tool_s_answer_with_provenance_and_the_same_caching[index_manifest]`, `tests/test_protocol.py::test_a_resource_read_equals_its_tool_s_answer_with_provenance_and_the_same_caching[data_element-publicId]`, `tests/test_protocol.py::test_a_resource_read_equals_its_tool_s_answer_with_provenance_and_the_same_caching[data_element-publicId-version]`, `tests/test_protocol.py::test_a_resource_read_equals_its_tool_s_answer_with_provenance_and_the_same_caching[registry]`, `tests/test_protocol.py::test_a_resource_read_equals_its_tool_s_answer_with_provenance_and_the_same_caching[crosswalk]` | tested |
 | P-10 | Every tool declares readOnlyHint true, destructiveHint false, idempotentHint true and openWorldHint true. | M1.4 | `tests/test_protocol.py::test_every_tool_is_annotated_read_only_idempotent_and_open_world` | tested |
 | P-11 | No tool description shows an operator, wildcard, filter syntax or parameter value that a tool test shows unsupported. | A2.3, A10.3 | `tests/test_protocol.py::test_no_description_or_schema_shows_what_the_tool_does_not_offer` | tested |
 | P-12 | Each tool takes the parameters the specification names for it, under those names, and requires exactly those not marked optional, so that equivalent operations of the two modules share parameter names. | A2.2 | `tests/test_protocol.py::test_each_tool_takes_the_parameters_the_specification_names` | tested |
@@ -750,7 +860,7 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 | expand_cohort-1 | The codes are the concept itself and its descendants to maxDepth, less the codes an exclusion role of the concept asserts, each assertion listed in excluded; with includeNegative they stay in codes and are still listed; maxNodes counts the codes, the concept included; the result equals composing get_concept_hierarchy and get_concept_neighborhood. | expand_cohort, A5.6 | `tests/test_workflow.py::test_the_cohort_is_the_concept_and_its_descendants_less_its_own_exclusions[False]`, `tests/test_workflow.py::test_the_cohort_is_the_concept_and_its_descendants_less_its_own_exclusions[True]`, `tests/test_workflow.py::test_max_nodes_counts_the_codes_the_concept_included` | tested |
 | harmonize_data_dictionary-1 | One upstream match call per column, its description as the entity's user tip; unmatched columns listed by name; each sample value aligned to the value meanings vmMatch gives; one registry state across all matches; without registryRelease the registry is unpinned, as X-21 reads it. | harmonize_data_dictionary, data_element_match | `tests/test_workflow.py::test_each_column_is_matched_once_and_the_unmatched_are_listed`, `tests/test_workflow.py::test_a_column_s_sample_values_align_to_the_value_meanings_vmmatch_gives` | tested |
 
-## 4. Acceptance
+## 5. Acceptance
 
 The acceptance suite (`acceptance/`, [README](../acceptance/README.md)) tests the requirements
 against a server: in fixture mode against the recorded and crafted upstream answers of

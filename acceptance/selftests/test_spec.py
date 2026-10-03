@@ -10,8 +10,11 @@ from nci_si_acceptance.client import CREDENTIAL_VARIABLES, INDEX_CODES_VARIABLE
 from nci_si_acceptance.fixture_server import HARNESS_VARIABLES, SCENARIOS, SETTINGS
 from nci_si_acceptance.record import FIXTURES
 from nci_si_acceptance.spec import (
+    PROFILES,
+    PROMPTS,
     RECORDS,
     REQUIRED_TOOLS,
+    RESOURCES,
     SPEC,
     TOOLS,
     alternatives,
@@ -19,6 +22,11 @@ from nci_si_acceptance.spec import (
     items_of,
     parameters,
     profile_tools,
+    prompts_of,
+    resource_call,
+    resources_of,
+    tools_named,
+    uri_variables,
 )
 
 CONCEPT = {"code": "C4817"}
@@ -200,3 +208,106 @@ def test_what_a_tool_states_of_its_arguments_and_items_names_what_it_takes_and_r
 )
 def test_the_alternatives_of_a_parameter_are_those_given_in_its_place(tool, name, others):
     assert alternatives(tool, name) == others
+
+
+def _variables(value):
+    return uri_variables(value) if isinstance(value, str) else []
+
+
+@pytest.mark.parametrize("key", sorted(RESOURCES))
+def test_a_resource_names_a_tool_of_its_group_and_fills_the_tool_s_parameters(key):
+    resource = RESOURCES[key]
+    names, required = parameters(resource["tool"])
+    arguments = set(resource["arguments"])
+    used = {variable for value in resource["arguments"].values() for variable in _variables(value)}
+    selected = set(resource.get("selects", []))
+    templated = {variable for uri in resource["uri"] for variable in uri_variables(uri)}
+
+    assert REQUIRED_TOOLS[resource["tool"]] == resource["group"]
+    # The arguments are the tool's, and give those it requires.
+    assert arguments <= names
+    assert required <= arguments
+    # Each variable of a template fills an argument or selects the release, not both.
+    assert templated == used | selected
+    assert not used & selected
+    # A record of records.yaml, or the shape of a result as tools.yaml writes it.
+    assert resource["returns"] in RECORDS or resource["returns"].startswith("{")
+
+
+def test_a_uri_template_belongs_to_one_resource_and_a_resource_has_its_mime_type():
+    templates = [uri for resource in RESOURCES.values() for uri in resource["uri"]]
+
+    assert len(templates) == len(set(templates))
+    assert {resource["mime"] for resource in RESOURCES.values()} == {"application/json"}
+
+
+def test_a_profile_serves_the_resources_of_its_group_and_unified_serves_all_six():
+    assert set(resources_of("evs")) == {"concept", "release", "index_manifest"}
+    assert set(resources_of("cadsr")) == {"data_element", "registry", "crosswalk"}
+    assert resources_of("unified") == RESOURCES
+
+
+@pytest.mark.parametrize(
+    ("key", "template", "values", "call"),
+    [
+        (
+            "concept",
+            "ncit://concept/{release}/{code}",
+            {"release": "26.09d", "code": "C4817"},
+            {"terminology": "ncit", "release": "26.09d", "code": "C4817"},
+        ),
+        # The latest version names none; the template that names one passes it on.
+        ("data_element", "cadsr://data-element/{publicId}", {"publicId": "88"}, {"publicId": "88"}),
+        (
+            "data_element",
+            "cadsr://data-element/{publicId}/{version}",
+            {"publicId": "88", "version": "5.1"},
+            {"publicId": "88", "version": "5.1"},
+        ),
+        # A variable that only selects the release is no argument.
+        ("release", "ncit://release/{version}", {"version": "26.09d"}, {"terminology": "ncit"}),
+        ("registry", "cadsr://registry/release", {}, {}),
+    ],
+)
+def test_a_resource_is_read_by_calling_its_tool_with_the_template_filled(
+    key, template, values, call
+):
+    tool, arguments = resource_call(key, template, values)
+
+    assert tool == RESOURCES[key]["tool"]
+    assert {name: value for name, value in arguments.items() if name != "include"} == call
+
+
+@pytest.mark.parametrize("name", sorted(PROMPTS))
+def test_a_prompt_names_its_tools_in_order_and_fills_its_arguments(name):
+    prompt = PROMPTS[name]
+    declared = {each["name"] for each in prompt["arguments"]}
+
+    # The tools its text names, in the order it first names them, starting from the release.
+    assert tools_named(prompt["template"]) == prompt["tools"]
+    assert prompt["tools"][0] == "resolve_release"
+    assert set(prompt["tools"]) <= profile_tools("unified")
+    # A placeholder is a declared argument, and an argument is used. Each argument is plain:
+    # a name, whether it is required, and its description.
+    assert set(uri_variables(prompt["template"])) == declared
+    assert all(set(each) == {"name", "required", "description"} for each in prompt["arguments"])
+    assert any(each["required"] for each in prompt["arguments"])
+
+
+def test_a_prompt_is_listed_only_in_a_profile_with_every_tool_it_names():
+    modules = [prompts_of(profile) for profile in PROFILES if profile != "unified"]
+
+    assert modules == [{}, {}]
+    assert prompts_of("unified") == PROMPTS
+    assert set(PROMPTS) == {
+        "protocol_authoring",
+        "crdc_model_alignment",
+        "uscdi_cancer_curation",
+        "cross_program_harmonization",
+    }
+
+
+def test_the_names_a_text_holds_are_the_required_tools_once_each_in_order():
+    text = "Call get_form, then resolve_release, get_form again, ncit_traverse and plain_words."
+
+    assert tools_named(text) == ["get_form", "resolve_release"]

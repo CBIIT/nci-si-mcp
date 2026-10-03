@@ -1,4 +1,4 @@
-## 4. Acceptance
+## 5. Acceptance
 
 The acceptance suite (`acceptance/`, [README](../acceptance/README.md)) tests the requirements
 against a server: in fixture mode against the recorded and crafted upstream answers of
