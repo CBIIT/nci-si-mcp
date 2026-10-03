@@ -13,6 +13,7 @@ NCI_SI_ACCEPTANCE_SERVER="..." pdm run acceptance    # another server (default: 
 NCI_SI_ACCEPTANCE_PROFILE=evs NCI_SI_ACCEPTANCE_SERVER="..." pdm run acceptance  # a server of one profile (default: unified)
 pdm run python -m nci_si_acceptance.report acceptance/fixture.json --live acceptance/live.json
 pdm run acceptance-selftest                          # the harness's own tests
+SELFTEST_SHARD=1/2 pdm run acceptance-selftest       # one of two shards, as CI runs them
 pdm run acceptance-record                            # re-record fixtures/recorded/ from live
 pdm run acceptance-craft                             # rebuild the crafted scenarios
 pdm run acceptance-register                          # regenerate request-forms/ from the manifest

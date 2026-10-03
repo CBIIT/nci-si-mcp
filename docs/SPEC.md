@@ -367,7 +367,7 @@ acceptance/
     test_crosscutting.py    the X requirements, one case per tool with a call in calls.yaml
     calls.yaml              that call of each content-returning tool, answered by the fixture set
     test_evs.py, test_cadsr.py, test_cross_domain.py, test_workflow.py   each group's tool requirements
-  selftests/                the harness's own tests, run in the unit CI job
+  selftests/                the harness's own tests, run in CI in two shards and their coverage combined
 ```
 
 The root project installs the package editable (dependency group `acceptance`); `pdm run acceptance` runs the suite and `pdm run acceptance-selftest` the harness's own tests.
