@@ -162,6 +162,9 @@ def test_the_specification_document_is_what_spec_renders(pytester, monkeypatch):
     )
     assert "| `details` | An object holding what the caller needs for its next step," in on_disk
     assert "failed upstream request (optional) | A2.5 |" in on_disk
+    # A field's forms, and an input list's maximum, as tools.yaml and records.yaml state them.
+    assert "the registry form `{ registry, date, identifier? }`: registry is cadsr;" in on_disk
+    assert "`entities`: at most 10 a call." in on_disk
     assert (
         "`tests/test_protocol.py::test_tools_list_names_the_tools_of_the_profile_and_no_other`"
         in on_disk

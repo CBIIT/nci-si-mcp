@@ -168,13 +168,7 @@ One client for all surfaces, replacing `EVSClient._get_json` and the per-module 
 
 ### 3.6 Caching hints (`platform/caching.py`)
 
-| Tool class | `ttlMs` | `cacheScope` |
-|---|---|---|
-| `tools/list` | 86,400,000 | public |
-| `resolve_release`, `resolve_registry_release`, `get_release_alignment` | **0** | public |
-| any release-pinned content read | 86,400,000 | public |
-| unpinned read (only the discovery tools qualify) | 0 | public |
-| results computed over caller-supplied content (`match_*`, `harmonize_data_dictionary`, `validate`-style results) | 0 | **private** |
+The values are the specification's M2.2 and M2.3 (`spec/conventions.yaml`): release-pinned content 86,400,000 and public; governed content no release pins (caDSR content while caDSR publishes no registry release) short and positive, at most 3,600,000, public; results computed from caller-supplied values 0 and private; the resolve tools 0 and public; `tools/list` long and public.
 
 A tool result carries both in its `_meta` (M2.5). A cursor encodes the release it was issued against; presenting it after that release is superseded returns `cursor_expired` (M2.4).
 

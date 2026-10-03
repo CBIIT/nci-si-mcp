@@ -43,8 +43,9 @@ CONCEPT = {"code": "C4817"}
         ("search_concepts", {"results": [{"concept": None}]}, []),
         ("get_concepts", "an error, in words", []),
         ("get_concept", None, []),
-        # A tool that declares no items yet.
-        ("get_data_element", {"publicId": "2200604"}, []),
+        ("get_data_element", {"publicId": "2200604"}, [{"publicId": "2200604"}]),
+        # A tool that declares no items: its result is a record of the registry, not an item.
+        ("resolve_registry_release", {"published": False}, []),
     ],
 )
 def test_the_items_of_a_result_are_where_the_tool_says(tool, result, items):
@@ -66,11 +67,15 @@ def test_the_items_of_a_result_are_where_the_tool_says(tool, result, items):
             {"terminology", "release", "valueSet", "code", "count", "offset", "activeOnly"},
             {"terminology", "release"},
         ),
-        ("get_form", {"publicId", "keyword", "version", "includeModules"}, set()),
+        (
+            "get_form",
+            {"publicId", "keyword", "version", "includeModules", "registryRelease"},
+            set(),
+        ),
         # Three ways to name a data element, of which a caller gives one.
         (
             "get_data_element",
-            {"publicId", "version", "longName", "questionText", "include"},
+            {"publicId", "version", "longName", "questionText", "include", "registryRelease"},
             set(),
         ),
         # An alternative of several parameters, in braces.

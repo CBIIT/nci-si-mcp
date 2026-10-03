@@ -16,6 +16,9 @@
 # `requests` is the most upstream requests one call of the tool makes, retries included (A5.2,
 # A5.3); reaching it truncates the result with bound `requests`. No argument sets it.
 #
+# `lists` gives the most elements an input list takes in one call; a longer list is an
+# invalid request, since dropping a caller's input would answer another question (A5.2).
+#
 # `not_offered` names what the platform has and the tool does not expose: argument values
 # under the argument's name, and platform features under a name of their own (`evs_type`,
 # EVS search types no mode maps to). No description or schema shows one as a value (P-11).
@@ -151,55 +154,108 @@ list_terminologies:
 resolve_registry_release:
   group: cadsr
   inputs: ()
-  returns: "{ identifier, generatedAt, sourceDistribution }"
-  summary: The registry's content state; no identifier is invented where caDSR publishes none.
+  returns: registry_release
+  summary: >-
+    The registry's content state: published false and the export's date while caDSR publishes
+    no registry release, never an invented identifier; the release itself where one is.
 get_data_element:
   group: cadsr
-  inputs: (publicId | longName | questionText, version?, include[]?)
-  returns: dataElement
-  values: {include: [permissibleValues, valueDomain, conceptAssociations, alternateNames, provenance]}
-  summary: One data element with the detail selected.
+  inputs: (publicId | longName | questionText, version?, include[]?, registryRelease?)
+  returns: data_element
+  items: ["."]
+  values: {include: [permissibleValues, valueDomain, conceptAssociations, alternateNames, classificationSchemes]}
+  summary: >-
+    One data element, at its latest version or the version given, with the sections include
+    selects; without include, the record's own fields. questionText finds it by its preferred
+    question text; longName is capability_unavailable until the platform serves that lookup
+    (OP-C02).
 search_data_elements:
   group: cadsr
-  inputs: (query, mode?, filters?, limit?, cursor?)
-  returns: "{ results[{ dataElement, score?, matchedOn? }], nextCursor?, totalKnown? }"
+  inputs: (query, mode?, filters?, limit?, cursor?, registryRelease?)
+  returns: "{ results[{ dataElement, score?, matchedOn? }], nextCursor?, totalKnown?, truncation }"
+  items: ["results[].dataElement"]
   values: {mode: [lexical, semantic, hybrid], filters: [context, workflowStatus, registrationStatus, valueDomainType]}
-  summary: Search of data elements, filtered by context, status and value-domain type.
+  bounds: {limit: {default: 10, maximum: 100}}
+  defaults: {mode: lexical}
+  summary: >-
+    Search of data elements, filtered by context, status and value-domain type, a page at a
+    time up to the platform's cap of 1,000 results a query, which truncation reports
+    (upstream_cap). semantic and hybrid are capability_unavailable until the platform serves
+    them (OP-C04).
 match_data_elements:
   group: cadsr
-  inputs: "(entities[{ name, userTip?, permissibleValues[]? }], matchLimit?, modelVariant?, similarityThreshold?, filters?, cursor?)"
-  returns: "{ matches[{ dataElement, score, rule, matchedText }], nextCursor? }"
-  summary: Data elements matched to described entities, keyword and AI-enhanced, scored.
+  inputs: "(entities[{ name, userTip?, permissibleValues[]? }], matchLimit?, modelVariant?, similarityThreshold?, filters?, registryRelease?)"
+  returns: "{ matches[data_element_match] }"
+  items: ["matches[].dataElement"]
+  values: {filters: [context, workflowStatus, registrationStatus, classificationScheme, valueDomainType]}
+  bounds: {matchLimit: {default: 10, maximum: 100}}
+  lists: {entities: 10}
+  summary: >-
+    Data elements matched to described entities, scored and rule-attributed, at most
+    matchLimit for each entity; the contract's default is 10, and the maximum of 100 is this
+    specification's, the contract stating none. modelVariant and similarityThreshold, which the
+    platform does not take, are an invalid request when given. At most 10 entities a call: the
+    contract states no maximum, and one entity took 28.9 s (10 September 2026) against a match
+    timeout of 45 s.
 match_value_meanings:
   group: cadsr
-  inputs: (values[], strictness?, terminologyScope?, cursor?)
-  returns: "{ matches[{ valueMeaning, score, crosswalk[] }], nextCursor? }"
-  summary: Value meanings matched to values, with crosswalk codes.
+  inputs: (values[], strictness?, terminologyScope?, registryRelease?)
+  returns: "{ matches[value_meaning_match] }"
+  items: ["matches[].valueMeaning"]
+  values: {strictness: [restricted, unrestricted]}
+  defaults: {strictness: restricted}
+  lists: {values: 10}
+  summary: >-
+    Value meanings matched to values, each rule-attributed with its crosswalk codes;
+    strictness is vmMatch's matchType, terminologyScope its evsTerminologyCodes. At most 10
+    values a call: the contract states no maximum, and one value took 15.5 s (10 September
+    2026) against a match timeout of 45 s.
 get_form:
   group: cadsr
-  inputs: (publicId? | keyword?, version?, includeModules?)
+  inputs: (publicId? | keyword?, version?, includeModules?, registryRelease?)
   returns: form
-  summary: A form or case report form with its modules and questions.
+  items: ["."]
+  defaults: {includeModules: true}
+  summary: >-
+    A form or case report form by public id, with its modules and questions; a keyword is an
+    invalid request saying the platform needs an identifier (Form/query takes a public or
+    protocol id only).
 get_permissible_value:
   group: cadsr
-  inputs: (permissibleValueId)
-  returns: permissibleValue
-  summary: A permissible value by its identifier.
+  inputs: (permissibleValueId, registryRelease?)
+  returns: permissible_value
+  items: ["."]
+  summary: >-
+    A permissible value by the identifier caDSR REST publishes for it; capability_unavailable
+    until the platform retrieves a value by it (OP-C10).
 get_code_map:
   group: cadsr
-  inputs: (sourceSystem?, targetContext?, dataElementId?, cursor?)
-  returns: "{ codeMaps[], nextCursor? }"
-  summary: Code maps between source code systems and registered value sets, the CRDC crosswalk included.
+  inputs: (sourceSystem?, targetContext?, dataElementId?, limit?, cursor?, registryRelease?)
+  returns: "{ codeMaps[code_map], nextCursor? }"
+  items: ["codeMaps[]"]
+  values: {sourceSystem: [CRDC]}
+  bounds: {limit: {default: 100, maximum: 1000}}
+  defaults: {sourceSystem: CRDC}
+  summary: >-
+    Code maps between source code systems and registered value sets, per data element and
+    commons, from the CRDC crosswalk; targetContext selects a commons, dataElementId a data
+    element.
 list_contexts:
   group: cadsr
-  inputs: (cursor?)
-  returns: "{ contexts[], nextCursor? }"
-  summary: The registry's contexts.
+  inputs: (limit?, cursor?, registryRelease?)
+  returns: "{ contexts[context], nextCursor? }"
+  items: ["contexts[]"]
+  bounds: {limit: {default: 100, maximum: 1000}}
+  summary: The registry's contexts, by name.
 list_classification_schemes:
   group: cadsr
-  inputs: (context?, cursor?)
-  returns: "{ classificationSchemes[], nextCursor? }"
-  summary: Classification schemes as objects with their nested items.
+  inputs: (context?, limit?, cursor?, registryRelease?)
+  returns: "{ classificationSchemes[classification_scheme], nextCursor? }"
+  items: ["classificationSchemes[]"]
+  bounds: {limit: {default: 100, maximum: 1000}}
+  summary: >-
+    Classification schemes as objects with their nested items; capability_unavailable until the
+    platform lists them (OP-C13). A data element's schemes come with get_data_element.
 
 find_data_elements_for_concept:
   group: cross-domain

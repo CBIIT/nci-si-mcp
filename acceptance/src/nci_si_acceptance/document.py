@@ -60,7 +60,11 @@ def _values(field: dict[str, Any]) -> str:
     excluded = "".join(
         f"; exclusion set of {key}: {', '.join(codes)}" for key, codes in sets.items()
     )
-    return listed + excluded + (" (optional)" if field.get("optional") else "")
+    forms = "".join(
+        f"; the {name} form `{text.partition(':')[0]}`: {_cell(text.partition(':')[2])}"
+        for name, text in field.get("forms", {}).items()
+    )
+    return listed + excluded + forms + (" (optional)" if field.get("optional") else "")
 
 
 def _record(record: dict[str, Any]) -> list[str]:
@@ -90,6 +94,10 @@ def _limits(tool: dict[str, Any]) -> str:
         f" `{argument}`: default {value}." for argument, value in tool.get("defaults", {}).items()
     )
     limits += f" At most {tool['requests']} upstream requests a call." if "requests" in tool else ""
+    limits += "".join(
+        f" `{argument}`: at most {count} a call."
+        for argument, count in tool.get("lists", {}).items()
+    )
     return limits + "".join(
         f" Not offered, `{key}`: {', '.join(values)}."
         for key, values in tool.get("not_offered", {}).items()

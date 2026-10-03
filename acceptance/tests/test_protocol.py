@@ -62,6 +62,15 @@ def _descriptions(schema: object) -> list[str]:
     return [text for text in _under(schema, ("description",)) if isinstance(text, str)]
 
 
+def _content_call(profile: str, pinned: dict) -> tuple[str, dict]:
+    """The content call a gate makes on a server of `profile`: a concept of the pinned
+    release, or for a caDSR server, which lists no EVS tool, a data element."""
+
+    if profile == "cadsr":
+        return "get_data_element", {"publicId": "2200604"}
+    return "get_concept", {**pinned, "code": "C4817"}
+
+
 def _listing(result) -> list[dict]:
     return [tool.model_dump(by_alias=True) for tool in result.tools]
 
@@ -189,10 +198,12 @@ def test_tools_list_may_be_cached_and_shared(server):
 
 @pytest.mark.gate
 @pytest.mark.requirement("P-6")
-def test_tools_list_is_the_same_after_a_call_that_pins_a_terminology_and_release(server, pinned):
+def test_tools_list_is_the_same_after_a_call_that_pins_a_terminology_and_release(
+    server, target, pinned
+):
     before = _listing(server.listing)
 
-    pinning = server.call("get_concept", {**pinned, "code": "C4817"})
+    pinning = server.call(*_content_call(target.profile, pinned))
 
     assert not pinning.is_error
     assert _listing(server.list_again()) == before
@@ -201,9 +212,9 @@ def test_tools_list_is_the_same_after_a_call_that_pins_a_terminology_and_release
 @pytest.mark.gate
 @pytest.mark.scenario("upstream/unavailable")
 @pytest.mark.requirement("P-6")
-def test_tools_list_is_the_same_while_the_platform_is_unavailable(server, tools, pinned):
+def test_tools_list_is_the_same_while_the_platform_is_unavailable(server, target, tools, pinned):
     # A server may notice the outage only when a call fails, so one is made first.
-    tools.call("get_concept", {**pinned, "code": "C4817"})
+    tools.call(*_content_call(target.profile, pinned))
 
     assert _listing(tools.list_again()) == _listing(server.listing)
 
@@ -212,8 +223,10 @@ def test_tools_list_is_the_same_while_the_platform_is_unavailable(server, tools,
 # A server that answered the same call before may serve it from its cache, asking nothing.
 @pytest.mark.own_server
 @pytest.mark.requirement("P-7")
-def test_a_correlation_identifier_goes_upstream_and_comes_back(tools, upstream, pinned):
-    result = tools.call("get_concept", {**pinned, "code": "C4817"}, {"correlationId": CORRELATION})
+def test_a_correlation_identifier_goes_upstream_and_comes_back(tools, target, upstream, pinned):
+    name, arguments = _content_call(target.profile, pinned)
+
+    result = tools.call(name, arguments, {"correlationId": CORRELATION})
 
     sent = [
         {name.lower(): value for name, value in entry["headers"].items()}.get(CORRELATION_HEADER)
