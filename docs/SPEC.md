@@ -42,7 +42,7 @@ Remaining:
 
 These hold today and continue to hold:
 
-- The core has no runtime dependencies. `mcp` and `sentence_transformers` are optional extras, imported lazily; nothing at module level in `server.py` imports `mcp`. The supported Python is 3.13 and newer (owner decision of 1 October 2026; it replaces the earlier rule that the core stay importable on Python 3.9).
+- The core has no runtime dependencies. `mcp` and `sentence_transformers` are optional extras, imported lazily; nothing at module level in `server.py` imports `mcp`. The supported Python is 3.14 and newer (owner decision of 3 October 2026, replacing 3.13 and newer of 1 October 2026, which replaced the earlier rule that the core stay importable on Python 3.9).
 - The package version is derived from the git tag at build time and written in no file; `setup.py` is gone.
 - Unit tests are `unittest.TestCase` classes run by pytest, offline, with hand-written doubles, and every change passes the gates in `CONTRIBUTING.md`. The acceptance suite is a separate package with pytest conventions of its own (fixtures, markers, a fixture server), so that the two do not meet.
 - `cadsr.py` must never return fabricated CDE data. That rule survives, restated: **no tool returns content it did not retrieve from a platform or from a fixture that declares itself as such.**

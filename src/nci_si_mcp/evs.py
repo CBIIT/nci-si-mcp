@@ -192,7 +192,7 @@ def _error_detail(exc: HTTPError) -> str:
 
     try:
         body = json.loads(exc.read(4096).decode("utf-8"))
-    except (OSError, ValueError, HTTPException):
+    except OSError, ValueError, HTTPException:
         return ""
     return str(body.get("message") or "") if isinstance(body, dict) else ""
 

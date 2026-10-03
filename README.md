@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/hniedner/nci-si-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/hniedner/nci-si-mcp/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Python 3.13+](https://img.shields.io/badge/python-3.13%2B-blue.svg)](pyproject.toml)
+[![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue.svg)](pyproject.toml)
 
 The government-furnished prototype of the Model Context Protocol (MCP) server for the NCI
 Semantic Infrastructure, and the acceptance suite it and its successors are measured by. Two
@@ -14,7 +14,7 @@ did not retrieve.
 ## Try it
 
 ```bash
-pdm install                  # Python 3.13+ and PDM
+pdm install                  # Python 3.14+ and PDM
 pdm run nci-si-mcp serve     # the server, over MCP stdio
 pdm run acceptance           # the acceptance suite against it, on recorded upstream answers
 ```

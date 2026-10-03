@@ -9,7 +9,7 @@ description = "EVS-first NCI Semantic Infrastructure MCP server prototype"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dependencies = []
 
 [project.optional-dependencies]
@@ -124,7 +124,7 @@ show_missing = true
 exclude_also = ["if __name__ == .__main__.:"]
 
 [tool.ruff]
-target-version = "py313"
+target-version = "py314"
 line-length = 100
 src = ["src", "tests", "scripts", "acceptance/src"]
 
@@ -178,7 +178,7 @@ ignore_names = [
 ]
 
 [tool.basedpyright]
-pythonVersion = "3.13"
+pythonVersion = "3.14"
 typeCheckingMode = "standard"
 # The tests (and the acceptance suite's tests) are left out. They pass wrong types on
 # purpose, and they are not written to type-check: fakes that are not subclasses,

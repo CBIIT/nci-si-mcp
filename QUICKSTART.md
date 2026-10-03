@@ -5,7 +5,7 @@ is, and the status of each tool group, is in [README.md](README.md).
 
 ## Install
 
-The project needs Python 3.13 or newer and is managed with [PDM](https://pdm-project.org).
+The project needs Python 3.14 or newer and is managed with [PDM](https://pdm-project.org).
 
 ```bash
 pdm install

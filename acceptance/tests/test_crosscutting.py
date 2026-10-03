@@ -127,7 +127,7 @@ def _bare(code, terminology):
 def _timestamp(value):
     try:
         return datetime.fromisoformat(value).tzinfo is not None
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return False
 
 
