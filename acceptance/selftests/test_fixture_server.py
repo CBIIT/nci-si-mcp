@@ -678,6 +678,20 @@ def test_a_form_matches_field_by_field_decoded_with_whitespace_collapsed(tmp_pat
     assert statuses == [HTTPStatus.OK, HTTPStatus.NOT_IMPLEMENTED, HTTPStatus.NOT_IMPLEMENTED]
 
 
+def test_a_form_matches_whatever_the_order_of_its_fields_a_blank_one_included(tmp_path):
+    form = {"query": "x", "default-graph-uri": ""}
+    match = {"surface": "ssis-sparql", "method": "POST", "path": "/sparql", "form": form}
+    fixture_file(tmp_path, "query.json", request=match)
+    with FixtureServer(load_fixtures(tmp_path)) as running:
+        url = running.base_url("ssis-sparql") + "/sparql"
+        statuses = [
+            fetch_post(url, b"default-graph-uri=&query=x", FORM),
+            fetch_post(url, b"query=x", FORM),
+        ]
+
+    assert statuses == [HTTPStatus.OK, HTTPStatus.NOT_IMPLEMENTED]
+
+
 def test_a_body_labelled_a_form_is_matched_only_as_a_form(tmp_path):
     match = {"surface": "ssis-sparql", "method": "POST", "path": "/sparql", "body": "q=1"}
     fixture_file(tmp_path, "text.json", request=match)
