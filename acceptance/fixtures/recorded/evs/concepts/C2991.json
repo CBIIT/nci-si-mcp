@@ -1,13 +1,13 @@
 {
  "kind": "recorded",
- "recorded_on": "2026-10-02",
+ "recorded_on": "2026-10-03",
  "request": {
   "surface": "evs",
   "method": "GET",
   "path": "/api/v1/concept/ncit_26.09d/C2991",
   "params": {
    "include": [
-    "minimal"
+    "full"
    ]
   }
  },
@@ -20,7 +20,1441 @@
    "version": "26.09d",
    "conceptStatus": "DEFAULT",
    "leaf": false,
-   "active": true
+   "active": true,
+   "synonyms": [
+    {
+     "name": "Disease or Disorder",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "caDSR"
+    },
+    {
+     "name": "disease",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CDISC-GLOSS"
+    },
+    {
+     "name": "Diagnosis",
+     "termType": "DN",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTDC"
+    },
+    {
+     "name": "disease",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTDC"
+    },
+    {
+     "name": "Disease or Disorder, Non-Neoplastic",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTRP"
+    },
+    {
+     "name": "Other Disease",
+     "termType": "DN",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "CTRP"
+    },
+    {
+     "name": "disease type",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "GDC",
+     "code": "VAR"
+    },
+    {
+     "name": "disease_type",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "GDC",
+     "code": "VAR"
+    },
+    {
+     "name": "disease term",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "ICDC",
+     "subSource": "ICDC"
+    },
+    {
+     "name": "disease_term",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "ICDC",
+     "subSource": "ICDC"
+    },
+    {
+     "name": "condition",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI-GLOSS",
+     "code": "CDR0000651193"
+    },
+    {
+     "name": "disorder",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI-GLOSS",
+     "code": "CDR0000407758"
+    },
+    {
+     "name": "Condition",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Disease",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Disease or Disorder",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Diseases",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Diseases and Disorders",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Disorder",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Disorders",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NCI"
+    },
+    {
+     "name": "Disease",
+     "termType": "SY",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NICHD"
+    },
+    {
+     "name": "Disease or Disorder",
+     "termType": "PT",
+     "type": "FULL_SYN",
+     "typeCode": "P90",
+     "source": "NICHD"
+    },
+    {
+     "name": "Disease or Disorder",
+     "type": "Display_Name",
+     "typeCode": "P107"
+    },
+    {
+     "name": "Disease or Disorder",
+     "type": "Preferred_Name",
+     "typeCode": "P108"
+    }
+   ],
+   "definitions": [
+    {
+     "definition": "Any abnormal condition of the body or mind that causes discomfort, dysfunction, or distress to the affected person. NOTE: The term is often used broadly to include injuries, disabilities, syndromes, symptoms, deviant behaviors, and atypical variations of structure and function. [After NCI Thesaurus] See also diagnosis.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "CDISC-GLOSS"
+    },
+    {
+     "definition": "Any abnormal condition of the body or mind that causes discomfort, dysfunction, or distress to the person affected or those in contact with the person. The term is often used broadly to include injuries, disabilities, syndromes, symptoms, deviant behaviors, and atypical variations of structure and function.",
+     "code": "P97",
+     "type": "DEFINITION",
+     "source": "NCI"
+    },
+    {
+     "definition": "In medicine, a health problem with certain characteristics or symptoms.",
+     "code": "P325",
+     "type": "ALT_DEFINITION",
+     "source": "NCI-GLOSS"
+    }
+   ],
+   "properties": [
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CDISC-GLOSS"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTDC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "CTRP"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "GDC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "ICDC"
+    },
+    {
+     "code": "P322",
+     "type": "Contributing_Source",
+     "value": "NICHD"
+    },
+    {
+     "code": "P366",
+     "type": "Legacy Concept Name",
+     "value": "Diseases_and_Disorders"
+    },
+    {
+     "code": "P106",
+     "type": "Semantic_Type",
+     "value": "Disease or Syndrome"
+    },
+    {
+     "code": "P207",
+     "type": "UMLS_CUI",
+     "value": "C0012634"
+    },
+    {
+     "code": "oboInOwl:hasDbXref",
+     "type": "xRef",
+     "value": "IMDRF:E23"
+    }
+   ],
+   "children": [
+    {
+     "code": "C35470",
+     "name": "Behavioral Disorder",
+     "leaf": false
+    },
+    {
+     "code": "C8278",
+     "name": "Cancer-Related Condition",
+     "leaf": false
+    },
+    {
+     "code": "C27551",
+     "name": "Disorder by Site",
+     "leaf": false
+    },
+    {
+     "code": "C3101",
+     "name": "Genetic Disorder",
+     "leaf": false
+    },
+    {
+     "code": "C3262",
+     "name": "Neoplasm",
+     "leaf": false
+    },
+    {
+     "code": "C53529",
+     "name": "Non-Neoplastic Disorder",
+     "leaf": false
+    },
+    {
+     "code": "C89328",
+     "name": "Pediatric Disorder",
+     "leaf": false
+    },
+    {
+     "code": "C3340",
+     "name": "Polyp",
+     "leaf": false
+    },
+    {
+     "code": "C2893",
+     "name": "Psychiatric Disorder",
+     "leaf": false
+    },
+    {
+     "code": "C26684",
+     "name": "Radiation-Induced Disorder",
+     "leaf": false
+    },
+    {
+     "code": "C4873",
+     "name": "Rare Disorder",
+     "leaf": false
+    },
+    {
+     "code": "C28193",
+     "name": "Syndrome",
+     "leaf": false
+    }
+   ],
+   "parents": [
+    {
+     "code": "C7057",
+     "name": "Disease, Disorder or Finding"
+    }
+   ],
+   "associations": [
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4197",
+     "relatedName": "Acinar Cell Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3784",
+     "relatedName": "Basal Cell Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C7387",
+     "relatedName": "Blood Vessel Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C9343",
+     "relatedName": "Bone Neoplasm"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C67497",
+     "relatedName": "CDISC Glossary Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C61410",
+     "relatedName": "Clinical Data Interchange Standards Consortium Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C138188",
+     "relatedName": "Clinical Trials Search-Application Programming Interface Disease Category Terminology"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4198",
+     "relatedName": "Complex Epithelial Neoplasm"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C173072",
+     "relatedName": "CTDC Property Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C118168",
+     "relatedName": "CTRP Disease Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C175324",
+     "relatedName": "CTRP Portfolio Management Main Type Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C116977",
+     "relatedName": "CTRP Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C138189",
+     "relatedName": "CTS-API Disease Broad Category Terminology"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3709",
+     "relatedName": "Epithelial Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3743",
+     "relatedName": "Fibroepithelial Neoplasm"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C177536",
+     "relatedName": "GDC Property Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C157711",
+     "relatedName": "GDC Terminology"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3708",
+     "relatedName": "Germ Cell Tumor"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3055",
+     "relatedName": "Giant Cell Tumor"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3059",
+     "relatedName": "Glioma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C9357",
+     "relatedName": "Hodgkin Lymphoma"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C166373",
+     "relatedName": "ICDC Property Terminology"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C165451",
+     "relatedName": "ICDC Terminology"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3161",
+     "relatedName": "Leukemia"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4248",
+     "relatedName": "Lipomatous Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3723",
+     "relatedName": "Lymphatic Vessel Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C9360",
+     "relatedName": "Lymphoblastic Lymphoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C7539",
+     "relatedName": "Lymphoid Leukemia"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3208",
+     "relatedName": "Lymphoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C9295",
+     "relatedName": "Mast Cell Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C7056",
+     "relatedName": "Mature B-Cell Non-Hodgkin Lymphoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3468",
+     "relatedName": "Mature T-Cell and NK-Cell Non-Hodgkin Lymphoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3230",
+     "relatedName": "Meningioma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3786",
+     "relatedName": "Mesothelial Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3247",
+     "relatedName": "Myelodysplastic Syndrome"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3172",
+     "relatedName": "Myeloid Leukemia"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4345",
+     "relatedName": "Myeloproliferative Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C214799",
+     "relatedName": "Myomatous Neoplasm"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C99147",
+     "relatedName": "Neonatal Research Network Terminology"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3262",
+     "relatedName": "Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4972",
+     "relatedName": "Nerve Sheath Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3787",
+     "relatedName": "Neuroepithelial Neoplasm"
+    },
+    {
+     "code": "A8",
+     "type": "Concept_In_Subset",
+     "relatedCode": "C90259",
+     "relatedName": "NICHD Terminology"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C48660",
+     "relatedName": "Not Applicable"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C43234",
+     "relatedName": "Not Reported"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3286",
+     "relatedName": "Odontogenic Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C184783",
+     "relatedName": "Personal History of Other Hematologic Disorder"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C184784",
+     "relatedName": "Personal History of Other Leukemia"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4665",
+     "relatedName": "Plasma Cell Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C4463",
+     "relatedName": "Skin Adnexal Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3792",
+     "relatedName": "Squamous Cell Neoplasm"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3411",
+     "relatedName": "Thymoma"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C3422",
+     "relatedName": "Trophoblastic Tumor"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C17998",
+     "relatedName": "Unknown"
+    },
+    {
+     "code": "A31",
+     "type": "Has_GDC_Value",
+     "relatedCode": "C40141",
+     "relatedName": "Wolffian Tumor"
+    }
+   ],
+   "inverseAssociations": [
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C4197",
+     "relatedName": "Acinar Cell Neoplasm"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C3784",
+     "relatedName": "Basal Cell Neoplasm"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C7387",
+     "relatedName": "Blood Vessel Neoplasm"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C9343",
+     "relatedName": "Bone Neoplasm"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C4198",
+     "relatedName": "Complex Epithelial Neoplasm"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C3709",
+     "relatedName": "Epithelial Neoplasm"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C3743",
+     "relatedName": "Fibroepithelial Neoplasm"
+    },
+    {
+     "code": "A1",
+     "type": "Role_Has_Domain",
+     "relatedCode": "C96815",
+     "relatedName": "Gene_Involved_In_Pathogenesis_Of_Disease"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C3708",
+     "relatedName": "Germ Cell Tumor"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C3055",
+     "relatedName": "Giant Cell Tumor"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C3059",
+     "relatedName": "Glioma"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C9357",
+     "relatedName": "Hodgkin Lymphoma"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C3161",
+     "relatedName": "Leukemia"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C4248",
+     "relatedName": "Lipomatous Neoplasm"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C3723",
+     "relatedName": "Lymphatic Vessel Neoplasm"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C9360",
+     "relatedName": "Lymphoblastic Lymphoma"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C7539",
+     "relatedName": "Lymphoid Leukemia"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C3208",
+     "relatedName": "Lymphoma"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C9295",
+     "relatedName": "Mast Cell Neoplasm"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C7056",
+     "relatedName": "Mature B-Cell Non-Hodgkin Lymphoma"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C3468",
+     "relatedName": "Mature T-Cell and NK-Cell Non-Hodgkin Lymphoma"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C3230",
+     "relatedName": "Meningioma"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C3786",
+     "relatedName": "Mesothelial Neoplasm"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C102883",
+     "relatedName": "Miscellaneous Neoplasm"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C3247",
+     "relatedName": "Myelodysplastic Syndrome"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C3172",
+     "relatedName": "Myeloid Leukemia"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C4345",
+     "relatedName": "Myeloproliferative Neoplasm"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C214799",
+     "relatedName": "Myomatous Neoplasm"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C3262",
+     "relatedName": "Neoplasm"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C4972",
+     "relatedName": "Nerve Sheath Neoplasm"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C3787",
+     "relatedName": "Neuroepithelial Neoplasm"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C48660",
+     "relatedName": "Not Applicable"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C43234",
+     "relatedName": "Not Reported"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C3286",
+     "relatedName": "Odontogenic Neoplasm"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C184783",
+     "relatedName": "Personal History of Other Hematologic Disorder"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C184784",
+     "relatedName": "Personal History of Other Leukemia"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C4665",
+     "relatedName": "Plasma Cell Neoplasm"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C4463",
+     "relatedName": "Skin Adnexal Neoplasm"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C3792",
+     "relatedName": "Squamous Cell Neoplasm"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C3411",
+     "relatedName": "Thymoma"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C3422",
+     "relatedName": "Trophoblastic Tumor"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C17998",
+     "relatedName": "Unknown"
+    },
+    {
+     "code": "A32",
+     "type": "Is_Value_For_GDC_Property",
+     "relatedCode": "C40141",
+     "relatedName": "Wolffian Tumor"
+    }
+   ],
+   "history": [
+    {
+     "code": "C2991",
+     "action": "create",
+     "date": "2003-08-12"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2003-10-31"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2003-12-30"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2004-03-30"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2004-05-28"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2004-11-01"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2004-12-30"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2005-04-29"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2005-06-24"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2005-09-09"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2006-01-03"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2006-09-29"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2007-01-26"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2008-02-29"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2009-11-23"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2010-11-01"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2010-11-08"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2010-11-15"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2010-11-22"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2010-11-29"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2010-12-06"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2010-12-13"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2010-12-27"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2011-01-03"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2011-01-10"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2011-01-17"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2011-01-24"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2011-01-31"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2011-06-20"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2011-06-27"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2011-08-08"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2012-02-21"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2012-03-12"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2012-10-01"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2012-10-09"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2012-10-15"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2012-10-22"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2012-10-31"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2012-11-05"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2012-11-13"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2012-11-19"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2012-11-26"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2012-12-03"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2012-12-10"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2012-12-17"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2012-12-28"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-01-07"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-01-14"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-01-23"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-02-04"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-02-11"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-02-19"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-02-25"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-03-04"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-03-11"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-03-18"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-03-25"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-04-01"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-04-08"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-04-15"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-04-22"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-04-29"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-05-06"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-05-13"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-05-20"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-05-28"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-06-03"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-06-10"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-06-17"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-06-24"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-07-01"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2013-07-08"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2014-08-11"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2014-08-25"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2014-11-17"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2015-05-18"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2015-07-13"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2015-08-12"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2016-10-17"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2017-05-23"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2017-07-31"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2017-08-28"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2017-09-26"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2017-12-26"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2018-01-29"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2018-07-30"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2018-08-27"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2018-10-29"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2018-10-29"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2018-12-31"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2019-02-25"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2019-12-30"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2020-03-30"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2020-05-26"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2020-07-27"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2020-08-31"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2020-09-29"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2020-10-26"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2020-12-28"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2021-03-29"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2021-12-27"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2023-11-27"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2025-03-31"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2026-05-26"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2026-06-29"
+    },
+    {
+     "code": "C2991",
+     "action": "modify",
+     "date": "2026-09-28"
+    }
+   ]
   }
  }
 }

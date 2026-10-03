@@ -40,6 +40,10 @@ contracts prescribe (M3.2): without it the API answers HTTP 200 with HTML, recor
 and the fixture naming the most headers a request carries answers it. A refusal of the arguments
 and an unknown data element both come back as HTTP 200, with `apiResponse` saying so (X-15).
 
+harmonize_data_dictionary's form is prescribed: each column goes to CDE Match as one entity, its
+name and its description as `userTip`, and its sample values go to vmMatch only. CDE Match is
+matched on its whole body, so a form left to each server would leave its answers unanswerable.
+
 ## Shared SI: graph identities, and the query text
 
 The Shared SI Service names no release (S-1, S-2): the NCIt and caDSR graphs each carry an
@@ -606,7 +610,7 @@ One root has 1,001 children, and a chain runs deeper than depth 4 from its first
 
 ### `traversal/exclusions`
 
-Exclusion roles are named like positive ones, and two the other way. Crafted, 2 fixtures, for A5.6, A5.7, E-4: polarity by relationship code, not by name.
+Exclusion roles are named like positive ones, and two the other way. Crafted, 2 fixtures, for A5.6, A5.7, E-4: polarity by relationship code, not by name; and expand_cohort-1: an R135 role from C4817 to its first child, invented to show a cohort withholding a code, since C4817's real exclusion roles point outside its subtree.
 
 ### `traversal/starvation`
 

@@ -1038,7 +1038,8 @@ record:
   concepts:
     # Ewing sarcoma and the batch of the Platform API Specification's E-5 example.
     full: [C4817, C17049, C41259,
-           C13111]   # retired with no replacement (resolve_retired_code-1), any projection
+           C13111,   # retired with no replacement (resolve_retired_code-1), any projection
+           C2991]    # ground_value's truncated hop: a server may ask its concept at any level
     # The depth-1 neighbourhood of C4817 over every relation, and the concepts its role
     # targets name as theirs (depth 2 over roles, get_concept_neighborhood-3). Without the
     # inverse lists, which run to megabytes for the subset and cell concepts among them.
@@ -1060,7 +1061,7 @@ record:
 
     # The concepts on C4817's paths to the root that no other list records: a traversal reads
     # the nodes it reaches for their status (the node record, get_concept_hierarchy-2).
-    minimal: [C2991, C3262, C3263, C3264, C3810, C7057, C7062, C9305, C27551, C27574]
+    minimal: [C3262, C3263, C3264, C3810, C7057, C7062, C9305, C27551, C27574]
 
   # Real projections and batches the composed answers are checked against.
   samples:

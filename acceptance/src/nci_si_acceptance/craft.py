@@ -302,7 +302,11 @@ def traversal_exclusions(recorded: Recorded) -> Documents:
     set is shown, and one to its first child, so that a cohort withholds a code it would hold
     (expand_cohort-1)."""
 
-    requirement = "A5.6, A5.7, E-4: polarity by relationship code, not by name"
+    requirement = (
+        "A5.6, A5.7, E-4: polarity by relationship code, not by name; and expand_cohort-1: "
+        "an R135 role from C4817 to its first child, invented to show a cohort withholding a "
+        "code, since C4817's real exclusion roles point outside its subtree"
+    )
     roles = recorded("recorded/evs/roles.json")
     named = {role["code"]: role["name"] for role in roles["response"]["body"]}
     source = recorded(f"recorded/evs/{CONCEPTS}/C4817.json")["response"]["body"]

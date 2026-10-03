@@ -22,6 +22,10 @@ contracts prescribe (M3.2): without it the API answers HTTP 200 with HTML, recor
 and the fixture naming the most headers a request carries answers it. A refusal of the arguments
 and an unknown data element both come back as HTTP 200, with `apiResponse` saying so (X-15).
 
+harmonize_data_dictionary's form is prescribed: each column goes to CDE Match as one entity, its
+name and its description as `userTip`, and its sample values go to vmMatch only. CDE Match is
+matched on its whole body, so a form left to each server would leave its answers unanswerable.
+
 ## Requests
 
 | Operation | Request | Expected | Made | Rationale | Fixture |

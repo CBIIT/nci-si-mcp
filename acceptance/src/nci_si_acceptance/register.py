@@ -81,6 +81,10 @@ only content state (A3.8.2). The forms the inventory names with `registryRelease
 contracts prescribe (M3.2): without it the API answers HTTP 200 with HTML, recorded for two paths,
 and the fixture naming the most headers a request carries answers it. A refusal of the arguments
 and an unknown data element both come back as HTTP 200, with `apiResponse` saying so (X-15).
+
+harmonize_data_dictionary's form is prescribed: each column goes to CDE Match as one entity, its
+name and its description as `userTip`, and its sample values go to vmMatch only. CDE Match is
+matched on its whole body, so a form left to each server would leave its answers unanswerable.
 """
 SSIS = """\
 ## Shared SI: graph identities, and the query text

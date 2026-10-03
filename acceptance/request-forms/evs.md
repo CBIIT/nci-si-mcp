@@ -151,7 +151,7 @@ One root has 1,001 children, and a chain runs deeper than depth 4 from its first
 
 ### `traversal/exclusions`
 
-Exclusion roles are named like positive ones, and two the other way. Crafted, 2 fixtures, for A5.6, A5.7, E-4: polarity by relationship code, not by name.
+Exclusion roles are named like positive ones, and two the other way. Crafted, 2 fixtures, for A5.6, A5.7, E-4: polarity by relationship code, not by name; and expand_cohort-1: an R135 role from C4817 to its first child, invented to show a cohort withholding a code, since C4817's real exclusion roles point outside its subtree.
 
 ### `traversal/starvation`
 
