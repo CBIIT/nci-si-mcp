@@ -3,8 +3,8 @@
 A tool answers from any surface that can (caDSR SOW v1.1 item 6), and the surfaces answer from
 their own content: the Shared SI graph is the caDSR export of 1 July 2026, the caDSR API is
 live. So a test reads the surface the result's provenance names and checks the answer against
-that surface's recording, never one surface against another. A release given can be verified
-only against the Shared SI Service's NCIt graph, so a call that gives one is answered there.
+that surface's recording, never one surface against another. The release a call requires can be
+verified only against the Shared SI Service's NCIt graph, so the Shared SI Service answers.
 
 What a test expects it reads from the recordings (the `recorded` fixture). A fact it cannot
 read there is named beside it, with the fixture file that holds it.
@@ -83,27 +83,10 @@ def test_the_data_elements_are_the_concept_s_and_with_expansion_its_descendants_
 
     content = _ok(_find(tools, pinned, expandDescendants=expand))
 
-    # A release given is verified against the NCIt graph, so the Shared SI Service answers.
+    # The release is verified against the NCIt graph, so the Shared SI Service answers.
     assert _sources(content["dataElements"]) == {"ssis_sparql"}
     assert _elements(content["dataElements"]) == expected
     assert "permissibleValues" not in content
-
-
-@pytest.mark.tool(FIND)
-@pytest.mark.requirement("find_data_elements_for_concept-1")
-def test_without_a_release_the_answer_is_the_one_its_surface_gives(tools, recorded):
-    rest = recorded("recorded/cadsr/concept-c17357.json")["response"]["body"]["DataElements"]
-    answers = {
-        "cadsr_rest": {(element["publicId"], element["version"]) for element in rest},
-        "ssis_sparql": {
-            (row["id"], row["version"]) for row in _rows(recorded, "data-elements-c17357")
-        },
-    }
-
-    content = _ok(tools.call(FIND, {"conceptCode": GENDER}))
-
-    (source,) = _sources(content["dataElements"])
-    assert _elements(content["dataElements"]) == answers[source]
 
 
 @pytest.mark.tool(FIND)
@@ -123,23 +106,6 @@ def test_with_the_flag_the_permissible_values_that_stand_for_the_concept_come_to
 
     assert _sources(content["permissibleValues"]) == {"ssis_sparql"}
     assert _values(content["permissibleValues"]) == expected
-
-
-@pytest.mark.tool(FIND)
-@pytest.mark.requirement("find_data_elements_for_concept-2")
-def test_the_reverse_lookup_is_unavailable_where_the_surface_has_none_never_empty(tools, recorded):
-    expected = {
-        (row["id"], row["version"], row["value"], _code(row["concept"]))
-        for row in _rows(recorded, "values-c17357")
-    }
-
-    # Without a release the caDSR API may answer, which has no reverse lookup (OP-S04).
-    result = tools.call(FIND, {"conceptCode": GENDER, "includePermissibleValues": True})
-
-    if result.is_error:
-        assert error_code(result) == "capability_unavailable", result.content
-    else:
-        assert _values(result.content["permissibleValues"]) == expected
 
 
 def _iso(text):
@@ -276,12 +242,14 @@ def test_a_permissible_value_by_its_identifier_is_unavailable(tools, pinned, rec
 
 @pytest.mark.tool(STORED)
 @pytest.mark.requirement("resolve_stored_value-1")
-def test_a_gdc_value_resolves_through_the_mapset_its_source_names(tools, recorded):
+def test_a_gdc_value_resolves_through_the_mapset_its_source_names(tools, pinned, recorded):
     maps = recorded("recorded/evs/mapset-gdc-maps-code.json")["response"]["body"]["maps"]
     mapset = recorded("recorded/evs/mapset-gdc.json")["response"]["body"]
     source = {"mapset": mapset["code"], "version": mapset["version"]}
 
-    content = _ok(tools.call(STORED, {"conceptCode": "C4817", "commons": "GDC"}))
+    content = _ok(
+        tools.call(STORED, {"conceptCode": "C4817", "commons": "GDC", "release": pinned["release"]})
+    )
 
     stored = content["storedValues"]
     assert {(value["value"], value["field"]) for value in stored} == {
@@ -323,13 +291,14 @@ def _crosswalked(value):
 
 @pytest.mark.tool(STORED)
 @pytest.mark.requirement("resolve_stored_value-2")
-def test_another_commons_value_resolves_through_the_crdc_crosswalk(tools, recorded):
+def test_another_commons_value_resolves_through_the_crdc_crosswalk(tools, pinned, recorded):
     crosswalk = recorded(CROSSWALK)["response"]["body"]["CRDCDataElements"]
     # Sex at Birth binds Male to C20197 for Pediatric Cancer (crdc-list.json).
     expected = _bound(crosswalk, "Pediatric Cancer", "C20197")
     assert expected
 
-    content = _ok(tools.call(STORED, {"conceptCode": "C20197", "commons": "Pediatric Cancer"}))
+    arguments = {"conceptCode": "C20197", "commons": "Pediatric Cancer"}
+    content = _ok(tools.call(STORED, arguments | {"release": pinned["release"]}))
 
     stored = content["storedValues"]
     assert set(map(_crosswalked, stored)) == expected
@@ -339,12 +308,16 @@ def test_another_commons_value_resolves_through_the_crdc_crosswalk(tools, record
 
 @pytest.mark.tool(STORED)
 @pytest.mark.requirement("resolve_stored_value-3")
-def test_a_commons_without_a_value_level_binding_stores_no_value_and_says_so(tools, recorded):
+def test_a_commons_without_a_value_level_binding_stores_no_value_and_says_so(
+    tools, pinned, recorded
+):
     crosswalk = recorded(CROSSWALK)["response"]["body"]["CRDCDataElements"]
     # No data element of the crosswalk is used by PDC (crdc-list.json).
     assert not [element for element in crosswalk if "PDC" in _users(element)]
 
-    content = _ok(tools.call(STORED, {"conceptCode": "C4817", "commons": "PDC"}))
+    content = _ok(
+        tools.call(STORED, {"conceptCode": "C4817", "commons": "PDC", "release": pinned["release"]})
+    )
 
     evidence = content["evidence"]
     assert (content["storedValues"], content["confidence"]) == ([], "none")

@@ -428,7 +428,7 @@ MASKED = [
 @pytest.mark.requirement("X-15")
 @pytest.mark.parametrize("name", MASKED)
 def test_a_failure_every_surface_masks_as_an_answer_is_an_upstream_error(
-    tools, upstream, recorded, name
+    tools, upstream, recorded, pinned, name
 ):
     for surface in ("ssis", "cadsr"):
         masked = recorded(f"scenarios/upstream/masked-error/{surface}.json")["response"]
@@ -436,7 +436,7 @@ def test_a_failure_every_surface_masks_as_an_answer_is_an_upstream_error(
     refused = recorded("scenarios/ssis/query-rejected/sparql.json")["response"]
     assert (refused["status"], refused["body"].startswith("<!DOCTYPE HTML")) == (403, True)
 
-    result = tools.call(name, MASKED_CALLS[name])
+    result = tools.call(name, MASKED_CALLS[name] | pinned)
 
     assert error_code(result) == "upstream_unavailable", result.content
     # The error comes from the masked answers: the server asked at least one surface.

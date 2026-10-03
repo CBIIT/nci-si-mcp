@@ -265,19 +265,18 @@ list_classification_schemes:
 
 find_data_elements_for_concept:
   group: cross-domain
-  inputs: (conceptCode, terminology?, release?, expandDescendants?, includePermissibleValues?, limit?, cursor?)
+  inputs: (conceptCode, terminology?, release, expandDescendants?, includePermissibleValues?, limit?, cursor?)
   returns: "{ dataElements[data_element_use], permissibleValues[value_use]?, truncation, nextCursor? }"
   items: ["dataElements[]", "permissibleValues[]"]
   values: {terminology: [ncit]}
-  defaults: {expandDescendants: false, includePermissibleValues: false}
+  defaults: {terminology: ncit, expandDescendants: false, includePermissibleValues: false}
   bounds: {limit: {default: 100, maximum: 1000}}
   summary: >-
     The data elements that use a concept, as an object class, property or permissible value
     concept, optionally across its descendants; with includePermissibleValues, also the
-    permissible values whose value meaning stands for it (the reverse lookup,
-    capability_unavailable on a surface that has none, OP-S04). A release given is checked
-    against the NCIt graph's: release_mismatch on a difference, release_not_available on a
-    surface that cannot name the NCIt release it used.
+    permissible values whose value meaning stands for it (the reverse lookup, OP-S04). The
+    release is required and checked against the NCIt graph's: release_mismatch on a difference,
+    release_not_available on a surface that cannot name the NCIt release it used.
 get_concept_for_permissible_value:
   group: cross-domain
   inputs: "(permissibleValueId | { dataElementId, value }, release)"
@@ -290,12 +289,14 @@ get_concept_for_permissible_value:
     capability_unavailable until the platform retrieves a value by it (OP-C10).
 resolve_stored_value:
   group: cross-domain
-  inputs: (conceptCode, commons, dataElementId?)
+  inputs: (conceptCode, commons, release, dataElementId?)
   returns: "{ storedValues[stored_value], confidence, evidence }"
   items: ["storedValues[]"]
   summary: >-
-    The literal a data commons stores for a concept: for GDC through the EVS mapset
-    NCIt_Maps_To_GDC, for the other commons through the CRDC crosswalk. confidence is asserted
+    The literal a data commons stores for a concept of the release given: for GDC through the
+    EVS mapset NCIt_Maps_To_GDC, served unpinned, so the release the mapset reports is compared
+    with the one asked for (release_mismatch on a difference); for the other commons through
+    the CRDC crosswalk, which names the registry state. confidence is asserted
     when a published source names the value and none otherwise; evidence names each source
     consulted ({ mapset, version } or { crosswalk, dataElement }), whether the commons binds
     values to concepts, and its coverage. A commons without a value-level binding (PDC, IDC)
