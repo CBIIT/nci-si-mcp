@@ -641,6 +641,9 @@ value_use:
         The bare code of the concept its value meaning stands for: the concept asked about or,
         with expandDescendants, a descendant
       of: A1.2
+    conceptTerminology:
+      content: The terminology of that concept, beside its code
+      of: A1.2
     provenance:
       content: The provenance record, as for the data element use record
       of: A1.5

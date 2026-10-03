@@ -42,6 +42,10 @@ missing argument with HTTP 200 (X-15).
 | OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The permissible values whose value meaning stands for Male (C20197), each with its data element and concept: the reverse lookup no façade operation offers. | `recorded/ssis-sparql/values-c20197.json` |
 | OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The permissible values that stand for Gender (C17357): find_data_elements_for_concept with includePermissibleValues. | `recorded/ssis-sparql/values-c17357.json` |
 | OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The same over C17357 and its descendants, each value naming its concept (A5.4). | `recorded/ssis-sparql/values-c17357-descendants.json` |
+| OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The data elements that use Ewing Sarcoma (C4817): ground_value's data element hop. | `recorded/ssis-sparql/data-elements-c4817.json` |
+| OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The permissible values that stand for Ewing Sarcoma (C4817): ground_value's value hop. | `recorded/ssis-sparql/values-c4817.json` |
+| OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The data elements that use Disease or Disorder (C2991), 1,001 rows: ground_value's data element hop reaches its bound. | `recorded/ssis-sparql/data-elements-c2991.json` |
+| OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The permissible values that stand for Disease or Disorder (C2991), 461 rows: ground_value's value hop, complete while the data element hop is cut. | `recorded/ssis-sparql/values-c2991.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 403 | recorded | The inspection layer's refusal of a query it does not pass: HTTP 403 with an HTML body. ssis/query-rejected serves it to every query. | `recorded/ssis-sparql/query-refused.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, `Content-Type: application/sparql-query`, body as written (below) | 403 | recorded | The identity query as a direct POST (application/sparql-query, SPARQL 1.1 protocol): refused with HTTP 403 and an HTML body, so a server that asks this way gets no answer. | `recorded/ssis-sparql/graph-identities-direct.json` |
 
@@ -273,6 +277,114 @@ WHERE {
   GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> {
     ?concept rdfs:subClassOf* ncit:C17357 .
   }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+    ?node ?role ?concept .
+    ?pv cadsr:has_concept ?node ;
+      mdr:value ?value .
+    ?element mdr:permitted_value ?pv ;
+      cadsr:publicId ?id ;
+      mdr:version ?version .
+  }
+}
+ORDER BY ?id ?version ?value ?concept
+LIMIT 1001
+```
+
+### `recorded/ssis-sparql/data-elements-c4817.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT ?id ?version (MIN(?label) AS ?name)
+WHERE {
+  VALUES ?concept { ncit:C4817 }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+    ?node ?role ?concept .
+    { VALUES ?part { mdr:Object_Class mdr:Property } ?element ?part ?node . }
+    UNION
+    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }
+    ?element cadsr:publicId ?id ;
+      mdr:version ?version ;
+      rdfs:label ?label .
+  }
+}
+GROUP BY ?id ?version
+ORDER BY ?id ?version
+LIMIT 1001
+```
+
+### `recorded/ssis-sparql/values-c4817.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT DISTINCT ?id ?version ?value ?concept
+WHERE {
+  VALUES ?concept { ncit:C4817 }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+    ?node ?role ?concept .
+    ?pv cadsr:has_concept ?node ;
+      mdr:value ?value .
+    ?element mdr:permitted_value ?pv ;
+      cadsr:publicId ?id ;
+      mdr:version ?version .
+  }
+}
+ORDER BY ?id ?version ?value ?concept
+LIMIT 1001
+```
+
+### `recorded/ssis-sparql/data-elements-c2991.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT ?id ?version (MIN(?label) AS ?name)
+WHERE {
+  VALUES ?concept { ncit:C2991 }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+    ?node ?role ?concept .
+    { VALUES ?part { mdr:Object_Class mdr:Property } ?element ?part ?node . }
+    UNION
+    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }
+    ?element cadsr:publicId ?id ;
+      mdr:version ?version ;
+      rdfs:label ?label .
+  }
+}
+GROUP BY ?id ?version
+ORDER BY ?id ?version
+LIMIT 1001
+```
+
+### `recorded/ssis-sparql/values-c2991.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT DISTINCT ?id ?version ?value ?concept
+WHERE {
+  VALUES ?concept { ncit:C2991 }
   GRAPH <http://cbiit.nci.nih.gov/caDSR> {
     VALUES ?role { cadsr:main_concept cadsr:minor_concept }
     ?node ?role ?concept .

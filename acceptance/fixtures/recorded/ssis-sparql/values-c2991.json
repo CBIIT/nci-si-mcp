@@ -1,0 +1,8333 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-03",
+ "request": {
+  "surface": "ssis-sparql",
+  "method": "POST",
+  "path": "/sparql",
+  "headers": {
+   "Accept": "application/sparql-results+json"
+  },
+  "form": {
+   "query": "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX owl: <http://www.w3.org/2002/07/owl#>\nPREFIX dc: <http://purl.org/dc/elements/1.1/>\nPREFIX mdr: <http://www.iso.org/11179/MDR#>\nPREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>\nPREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>\nSELECT DISTINCT ?id ?version ?value ?concept\nWHERE {\n  VALUES ?concept { ncit:C2991 }\n  GRAPH <http://cbiit.nci.nih.gov/caDSR> {\n    VALUES ?role { cadsr:main_concept cadsr:minor_concept }\n    ?node ?role ?concept .\n    ?pv cadsr:has_concept ?node ;\n      mdr:value ?value .\n    ?element mdr:permitted_value ?pv ;\n      cadsr:publicId ?id ;\n      mdr:version ?version .\n  }\n}\nORDER BY ?id ?version ?value ?concept\nLIMIT 1001"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "head": {
+    "link": [],
+    "vars": [
+     "id",
+     "version",
+     "value",
+     "concept"
+    ]
+   },
+   "results": {
+    "distinct": false,
+    "ordered": true,
+    "bindings": [
+     {
+      "id": {
+       "type": "literal",
+       "value": "10348376"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Alcohol and/or drug abuse"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "10348376"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Hypo or Hyper Thyroidism"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "10422402"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other complicating disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "11105684"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other motor neuron disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "11251139"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Minimal Disease (MD)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "11251139"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No evidence of disease at enrollment and remains without evidence of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "11251139"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Stable Disease - Not Fully Evaluable"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "11251158"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Minimal Disease (MD)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "11251158"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No evidence of disease at enrollment and remains without evidence of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "11251158"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Stable Disease - Not Fully Evaluable"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "11253424"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Minimal Disease (MD)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "11253424"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No evidence of disease at enrollment and remains without evidence of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "11253424"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Stable Disease - Not Fully Evaluable"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "11253426"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Minimal Disease (MD)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "11253426"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No evidence of disease at enrollment and remains without evidence of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "11253426"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Stable Disease - Not Fully Evaluable"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "12137231"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "12442951"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease or Disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "12442951"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease type or histology"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "12442951"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Stage, extent of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "12539399"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "13331404"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14238224"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other neurologic disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14665206"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Off treatment for symptomatic progression, disease not assessed"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14665206"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Off treatment for toxicity, disease not assessed"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14665206"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Patient died, disease not assessed"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14665206"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Patient withdrew consent, disease not assessed"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14741307"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Minimal Disease (MD)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14741307"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No evidence of disease at enrollment and remains without evidence of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14741307"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Stable Disease - Not Fully Evaluable"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14905510"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Bone only disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14940595"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other substance use disorder (e.g., drugs and/or alcohol dependence)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14940596"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other substance use disorder (e.g., drugs and/or alcohol dependence)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14946991"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Metastatic Disease at Diagnosis"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15177653"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Signs and symptoms of worsening disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15313143"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease extension into the vasculature"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15313143"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Unresected disease within the lung parenchyma (primary tumor STR)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15313143"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Unresected radiographically enlarged lymphatic disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15634963"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Completely resected disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15722207"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Addressing symptoms (symptomatic cardiopulmonary or CNS disease)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15722207"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Extra-thoracic disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15722841"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Minimal Disease (MD)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15722841"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No evidence of disease at enrollment and remains without evidence of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15722841"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Stable Disease - Not Fully Evaluable"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732406"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "170834008"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732406"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "170894006"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732407"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "1020003"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732407"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "1194003"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732407"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "1679003"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732407"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "1822007"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732407"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "198007"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732407"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "2128005"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732407"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "2231001"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732407"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "2432006"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732407"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "3219008"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732407"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "3239007"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732407"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "3303004"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732407"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "3305006"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732407"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "3441005"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732407"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "3548001"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732407"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "3928002"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732407"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "4003003"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732407"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "568005"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732407"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "788006"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732409"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "1020003"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732409"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "1194003"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732409"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "1679003"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732409"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "1822007"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732409"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "198007"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732409"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "2128005"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732409"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "2231001"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732409"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "2432006"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732409"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "3219008"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732409"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "3239007"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732409"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "3303004"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732409"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "3305006"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732409"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "3441005"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732409"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "3548001"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732409"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "3928002"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732409"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "4003003"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732409"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "568005"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15732409"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "788006"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "16457150"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Treatment for CNS disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "16457150"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Treatment for ocular disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "16895031"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Due to this disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "17384018"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "New site of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2003870"
+      },
+      "version": {
+       "type": "literal",
+       "value": "4"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Bony Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2003870"
+      },
+      "version": {
+       "type": "literal",
+       "value": "4"
+      },
+      "value": {
+       "type": "literal",
+       "value": "CNS Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2003870"
+      },
+      "version": {
+       "type": "literal",
+       "value": "4"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Complicating Disease or Condition"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2004800"
+      },
+      "version": {
+       "type": "literal",
+       "value": "4"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Locally advanced/metastatic"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2179872"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Residual axillary disease burden"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2180341"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Advanced Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2180341"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Early Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2180341"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Moderately advanced local disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2181987"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Enhancing Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2182048"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Enhancing Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2182049"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Enhancing Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2186"
+      },
+      "version": {
+       "type": "literal",
+       "value": "4"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Patient off-observation for other complicating disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2186"
+      },
+      "version": {
+       "type": "literal",
+       "value": "4.1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Patient off-observation for other complicating disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2200968"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Uncontrolled"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2201077"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Liver disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2309"
+      },
+      "version": {
+       "type": "literal",
+       "value": "5"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2467357"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "All SLNs found to be negative for disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2467357"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease criteria not confirmed pathologically"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2494565"
+      },
+      "version": {
+       "type": "literal",
+       "value": "3"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2494565"
+      },
+      "version": {
+       "type": "literal",
+       "value": "3"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Platelet disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2534540"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Glomerular disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2539206"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Locally advanced/metastatic"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2545283"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Diffuse bone disease on MIBG scan"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2554674"
+      },
+      "version": {
+       "type": "literal",
+       "value": "3"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Death not Caused by Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2554674"
+      },
+      "version": {
+       "type": "literal",
+       "value": "3"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other, non-malignant disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2668130"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Symptomatic disease/clinical decline"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2679802"
+      },
+      "version": {
+       "type": "literal",
+       "value": "3"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other autoimmune bowel disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2680962"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Treatment for relapsed, persistent or progressive disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2685158"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other pigmentary dilution disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2688923"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other plasma cell disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2719111"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease burden greater than anticipated"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2730258"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2760532"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Seizure disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2760660"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Thyroid disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2760804"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Hemorrhagic cystitis / hematuria requiring medical intervention"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2760894"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Asthma / reactive airway disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2769017"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Due to this disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2769114"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Due to this disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2769598"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other illness"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2770757"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Persistent disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2770790"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Uncontrolled"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2771490"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Persistent primary disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2771490"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Recurrent primary disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2783807"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Glomerular Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2783852"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Glomerular Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2797538"
+      },
+      "version": {
+       "type": "literal",
+       "value": "3"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other impairment or disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2798174"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Part time, by choice and not due to illness"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2798174"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Part time, due to illness"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2798174"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Unable to work due to illness or disability"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2798174"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Unemployed, by choice and not due to illness"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2798174"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Unemployed, due to illness"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2838551"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ineligible due to extent of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2838551"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ineligible due to other concurrent disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2861233"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2922102"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "S1 - Other HIV-related illness (e.g., neurological disease or lymphoma)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2939802"
+      },
+      "version": {
+       "type": "literal",
+       "value": "3"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease status follows a previous HCT"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2946347"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2950100"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2957419"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Persistent primary disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2957419"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Recurrent primary disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2959975"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Pending disease curation"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2960890"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Did not meet disease criteria"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2960890"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ineligible due to extent of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2960890"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ineligible due to other concurrent disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2970339"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2970715"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other nonmalignant systemic disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2978298"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2979313"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No longer meets eligibility criteria due to disease, conditioning, or GVHD prophylaxis used"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2979313"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No longer meets eligibility criteria due to disease, conditioning, or GVHD prophylaxis used"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2987376"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Myelodysplastic (MDS) / myeloproliferative (MPN) diseases"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2987376"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other malignant hematologic disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2990438"
+      },
+      "version": {
+       "type": "literal",
+       "value": "3"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Involved Blood"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2990438"
+      },
+      "version": {
+       "type": "literal",
+       "value": "3"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Involved Bone Marrow"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3009297"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No response / stable disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3009333"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No response / stable disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3028823"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Inadequate to Treat Extent of Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3045394"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No prior bone disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3081978"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other PCD"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3081978"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other autoimmune bowel disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3105041"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other antecedent hematologic disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3105041"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other hematologic disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3113591"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Stage III, Max Residual disease > 1.0cm"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3113591"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Stage III, Max Residual disease > 1cm"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3119721"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Biochemical evidence of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3133022"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Not Applicable - Primary disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3133026"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Not Applicable - Primary disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3158619"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Kidney disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3158619"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Liver disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3158619"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Lung disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3158619"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Thyroid disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3158627"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Cardio and peripheral vascular disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3158627"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Hematologic disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3158627"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Malignant hematologic disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3158627"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Musculoskeletal disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3158627"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Neurologic disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3158627"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Non-malignant disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3158627"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ocular disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3158627"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3165585"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Muscle Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3167411"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3178995"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Active disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3179398"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3179410"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3179414"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3186684"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Biochemical Evidence of Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3219607"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other complicating disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3235596"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3243227"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Family history of genetic disease carrier"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3247899"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Explant (Not Native Organ) / Any Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3247899"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Hematological Disorders / Hemoglobin Disorders"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3251818"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Explant (Not Native Organ) / Any Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3251818"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Hematological Disorders / Hemoglobin Disorders"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3282252"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease is worse"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3282271"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease in remission"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3282271"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease is worse"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3284111"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "CNS disease absent at diagnosis"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3287957"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Uncontrolled"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3308735"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease in remission"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3308735"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease is worse"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3308736"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease is worse"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3479260"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Adjuvant for primary disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3479260"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Neoadjuvant for primary disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3479260"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Treatment was given for metastatic disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3623534"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "ED"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3646387"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Biochemical Evidence of Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3652732"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Persistent Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3691252"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Illness"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3775434"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Locally advanced/metastatic"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3781080"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "ID"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3781081"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "ID"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3781084"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "ID"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3811429"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Residual axillary disease burden"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3812626"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Involved Blood"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3812626"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Involved Bone Marrow"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3854451"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Due to this disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3855586"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Extramedullary Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3859284"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Hospitalization due to a cardiac disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3860671"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Inflammatory breast disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3860671"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Leptomeningeal disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3865238"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Locally advanced/metastatic"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3872271"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3909334"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4158334"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4188891"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Locally advanced/metastatic"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4191258"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4251895"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other plasma cell disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4251895"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other plasma cell disorder (PCD)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4251895"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other plasma cell disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4251895"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other plasma cell disorder (PCD)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4264524"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Unequivocal progression of non-measurable disease in the opinion of the treating investigator"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4287260"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other cause"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4308162"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other pigmentary dilution disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4457219"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Unresectable disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4634873"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Involved Blood"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4634873"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Involved Bone Marrow"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4635871"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4688916"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Unresectable disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4762903"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease still present"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4783273"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Due to this disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4806364"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4828434"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Lung Disease, Pneumonia or Lung Infection"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4828515"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Cirrhosis or serious liver disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4828731"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Heart Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4845351"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4884731"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Too much disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4982097"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease detected"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4982097"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No disease detected but incomplete evaluation to establish CR"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5040071"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5045951"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other musculoskeletal disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5047371"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5047573"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease detected"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5047573"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No disease detected but incomplete evaluation to establish CR"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5077215"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Treatment for CNS disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5077215"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Treatment for ocular disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5094920"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Reversal of Disease Phenotype"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5095354"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Histiocytic disorders"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5095354"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other non-malignant disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5098971"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "AIDS-related Cancers and connected diseases"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5098971"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Head and Neck Cancers and related diseases"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5098971"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ovarian Cancer and related diseases"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5098971"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Prostate Cancer and related diseases"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5098971"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Testicular Cancer and related diseases"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5098971"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Vaginal Cancer and related diseases"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5102378"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Biochemical Evidence of Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105891"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Failure to respond or in response to disease assessment"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5109671"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other neurologic disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5119471"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other nonmalignant systemic disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5120776"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5139411"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "2"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5189714"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Motor neuron disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5254270"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Chronic Lower Respiratory Disease (CLRD-including chronic bronchitis, emphysema, asthma)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5254270"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Liver Disease (liver abscess, failure, fatty liver syndrome, inherited liver insufficiency, acute/chronic hepatic insufficiency, necrobacillosis, rupture)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5427655"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "with disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5427655"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "without disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5509026"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease status follows a previous HCT"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5544954"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5566418"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "High risk disease burden"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5566418"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Intermediate risk disease burden"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5566418"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Low risk disease burden"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5651055"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other antecedent hematologic disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5651055"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other hematologic disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5702197"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Bleeding Disorders"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5702197"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Bone Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5750671"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "BED"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5750671"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "DU"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5750671"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "PLD"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5750671"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "RD"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5777516"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Minimal Disease (MD)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5777516"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No evidence of disease at enrollment and remains without evidence of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5777516"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Stable Disease - Not Fully Evaluable"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5781885"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Minimal Disease (MD)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5781885"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No evidence of disease at enrollment and remains without evidence of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5781885"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Stable Disease - Not Fully Evaluable"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5781886"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Minimal Disease (MD)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5781886"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No evidence of disease at enrollment and remains without evidence of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5781886"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Stable Disease - Not Fully Evaluable"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5781887"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Minimal Disease (MD)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5781887"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No evidence of disease at enrollment and remains without evidence of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5781887"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Stable Disease - Not Fully Evaluable"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5810500"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5863895"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5863895"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Platelet disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5917028"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Treatment of primary disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5946730"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5978329"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Inadequate to Treat Extent of Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5983086"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Explant (Not Native Organ) / Any Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5983086"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Hematological Disorders / Hemoglobin Disorders"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5989661"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Relapse"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6002201"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "BAP1 mutant disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6032759"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Treatment for CNS disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6032759"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Treatment for ocular disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6032761"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Treatment for CNS disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6032761"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Treatment for ocular disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6033048"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6133609"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "BAP1 mutant disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6260060"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Stevens-Johnson syndrome / Toxic epidermal necrolysis"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6260087"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Bony Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6260087"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "CNS Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6260087"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Complicating Disease or Condition"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6272188"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other impairment or disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6306987"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6341394"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other complicating disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6346958"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease assessment information has already been reported previously"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6346958"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease assessment information has not yet been reported"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6564928"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Diffuse bone disease on MIBG scan"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6610553"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Minimal Disease (MD)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6610553"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No evidence of disease at enrollment and remains without evidence of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6610553"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Stable Disease - Not Fully Evaluable"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6610556"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Minimal Disease (MD)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6610556"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No evidence of disease at enrollment and remains without evidence of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6610556"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Stable Disease - Not Fully Evaluable"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6610562"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Minimal Disease (MD)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6610562"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No evidence of disease at enrollment and remains without evidence of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6610562"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Stable Disease - Not Fully Evaluable"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6610571"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Minimal Disease (MD)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6610571"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No evidence of disease at enrollment and remains without evidence of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6610571"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Stable Disease - Not Fully Evaluable"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6617428"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "New site of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6631153"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other impairment or disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6648994"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other disease / study"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6662743"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Persistent primary disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6662743"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Recurrent primary disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6662980"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Bone only disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6663683"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Did not meet disease criteria"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6663683"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ineligible due to extent of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6663683"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ineligible due to other concurrent disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6680190"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6686898"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease Registry"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6752643"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other pre-existing disease or condition"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6752643"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Study disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6752941"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "No longer meets eligibility criteria due to disease, conditioning, or GVHD prophylaxis used"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6776292"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Thrombocytosis / polycythemia"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6782824"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6825037"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Extramedullary Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6931082"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6932174"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Diffuse cerebral edema on neuroimaging"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6932174"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Diffuse cerebral edema on neuroimaging; decerebrate or decorticate posturing; or cranial nerve VI palsy; or papilledema; or Cushing's triad"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6941965"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Inflammatory breast disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6941965"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Leptomeningeal disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6943655"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Dermatitis / rash"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6943655"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Pneumonitis / Interstitial lung disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6968147"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "BCG Unresponsive"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6975011"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Bony Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6975011"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "CNS Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6975011"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Complicating Disease or Condition"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7003002"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "OTHER BLOOD DISORDER"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7003002"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "RENAL"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7055148"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Extramedullary Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7055159"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Due to this disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7063883"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Did not meet disease criteria"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7063883"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ineligible due to extent of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7063883"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ineligible due to other concurrent disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7092630"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "New Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7125369"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7155911"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7244865"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7307944"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7331908"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7339784"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Recipient is receiving disease modifying therapy"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7347908"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Due to this disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7348003"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease or Disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7348003"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease type or histology"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7348003"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Stage, extent of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7349375"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "History of neurodevelopmental disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7349375"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Known history of neurodevelopmental disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7350504"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7350592"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Diffuse bone disease on MIBG scan"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7350592"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Systemic disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7350607"
+      },
+      "version": {
+       "type": "literal",
+       "value": "3"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Tumor Disease Evaluation"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7363139"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Routine respiratory disease surveillance systems (e.g influenza)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7365523"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Chronic neurological or neuromuscular disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7374335"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Neurologic/neurodevelopmental"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7465121"
+      },
+      "version": {
+       "type": "literal",
+       "value": "2"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Tumor Disease Evaluation"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7465935"
+      },
+      "version": {
+       "type": "literal",
+       "value": "4"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Patient Does Not Meet Diagnosis/Disease Type Reasons"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7465935"
+      },
+      "version": {
+       "type": "literal",
+       "value": "4"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Relapse Reasons"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7479648"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Cardio and peripheral vascular disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7479648"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Hematologic disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7479648"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Malignant hematologic disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7479648"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Musculoskeletal disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7479648"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Neurologic disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7479648"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Non-malignant disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7479648"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Ocular disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7479648"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7525253"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Active disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7556988"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other chronic respiratory disease (e.g.COPD, Emphysema)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7556988"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Substance use disorders"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7615552"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7615598"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other impairment or disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7615652"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7627492"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7627820"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7631794"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "New Disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7717163"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7717175"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7717925"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7797418"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other motor neuron disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7800997"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7847918"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other Chronic respiratory disease or disorders (e.g.COPD, Emphysema)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7847918"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Substance Use Disease or Disorders"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7992794"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Yes, no longer present"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7992794"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Yes, still present"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7992795"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Yes, no longer present"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7992795"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Yes, still present"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7992796"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Yes, no longer present"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7992796"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Yes, still present"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7992797"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Yes, no longer present"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7992797"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Yes, still present"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7992798"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Yes, no longer present"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7992798"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Yes, still present"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8029299"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Active disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8031128"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Other impairment or disorder"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8046439"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Study specific disease only"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8137605"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Concurrent CIS and papillary disease (CIS+HGTa or CIS+HGT1)"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8137605"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Pure papillary (HGTa or HGT1) disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8137791"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Off treatment for symptomatic progression, disease not assessed"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8137791"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Off treatment for toxicity, disease not assessed"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8137791"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Patient died, disease not assessed"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8137791"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Patient withdrew consent, disease not assessed"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8151683"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8176749"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease Assessed, but not per protocol"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8176749"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease Not Assessed"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8176749"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease not assessed, off treatment for symptomatic progression"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8176749"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease not assessed, off treatment for toxicity"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8176749"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease not assessed, patient death"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8176749"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease not assessed, patient withdrew consent"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8176751"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease Assessed, but not per protocol"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8176751"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease Not Assessed"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8176751"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease not assessed, off treatment for symptomatic progression"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8176751"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease not assessed, off treatment for toxicity"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8176751"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease not assessed, patient death"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8176751"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease not assessed, patient withdrew consent"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8177109"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Patient does not meet disease criteria"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8177585"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Disease specific molecular marker"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8177862"
+      },
+      "version": {
+       "type": "literal",
+       "value": "1"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Limited Extent"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "967"
+      },
+      "version": {
+       "type": "literal",
+       "value": "3"
+      },
+      "value": {
+       "type": "literal",
+       "value": "Inadequate to treat extent of disease"
+      },
+      "concept": {
+       "type": "uri",
+       "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2991"
+      }
+     }
+    ]
+   }
+  }
+ }
+}

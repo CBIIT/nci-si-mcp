@@ -299,15 +299,22 @@ def traversal_exclusions(recorded: Recorded) -> Documents:
     """The exclusion roles named as positive ones, and two positive roles named as
     exclusions, in C4817 and the catalogue alike: only polarity by code is right. C4817 gains a
     role of each exclusion code it lacks, to its first role's target, so that every code of the
-    set is shown."""
+    set is shown, and one to its first child, so that a cohort withholds a code it would hold
+    (expand_cohort-1)."""
 
     requirement = "A5.6, A5.7, E-4: polarity by relationship code, not by name"
     roles = recorded("recorded/evs/roles.json")
     named = {role["code"]: role["name"] for role in roles["response"]["body"]}
     source = recorded(f"recorded/evs/{CONCEPTS}/C4817.json")["response"]["body"]
-    first = source["roles"][0]
+    first, child = source["roles"][0], source["children"][0]
     lacking = sorted(EXCLUSION_ROLES - {role["code"] for role in source["roles"]})
     added = [first | {"code": code, "type": named[code]} for code in lacking]
+    excluding = min(EXCLUSION_ROLES)
+    added.append(
+        first
+        | {"code": excluding, "type": named[excluding]}
+        | {"relatedCode": child["code"], "relatedName": child["name"]}
+    )
     body = source | {
         "roles": [
             role | {"type": _misleading(role["code"], role["type"])}
@@ -693,6 +700,8 @@ MATCHED_ENTITIES = {
         "recorded/cadsr/concept-c17357.json",
     ),
     "Transplant Donor Gender": ("recorded/cadsr/concept-c17357.json",),
+    # A data dictionary column no data element matches (harmonize_data_dictionary's unmatched).
+    "Freezer Shelf Label": (),
 }
 # Invented, as no answer can be recorded without credentials: the scores and the rule, marked so.
 SCORES = (0.97, 0.83)
@@ -774,6 +783,12 @@ def cadsr_credentialed(recorded: Recorded) -> Documents:
             "OP-M01, A9.3: CDE Match to its 2.0 contract for a second entity",
             {"status": 200, "body": _cde_match(recorded, "Transplant Donor Gender")},
             "Transplant Donor Gender",
+        ),
+        **_cde_match_forms(
+            f"{scenario}/cde-match-unmatched",
+            "OP-M01, A9.3: CDE Match to its 2.0 contract for an entity no data element matches",
+            {"status": 200, "body": _cde_match(recorded, "Freezer Shelf Label")},
+            "Freezer Shelf Label",
         ),
     }
 

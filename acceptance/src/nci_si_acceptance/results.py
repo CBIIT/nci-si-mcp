@@ -94,3 +94,36 @@ def _registry_identity(item: dict[str, Any]) -> Any:
     if "publicId" in owner:
         return owner.get("publicId"), owner.get("version")
     return item.get("name")
+
+
+def sparql_rows(document: dict[str, Any]) -> list[dict[str, str]]:
+    """The rows of a recorded SPARQL answer, each variable by its value."""
+
+    bindings = document["response"]["body"]["results"]["bindings"]
+    return [{key: value["value"] for key, value in row.items()} for row in bindings]
+
+
+def bare_code(iri: str) -> str:
+    """The code an NCIt IRI ends in: C4817 of ...Thesaurus.owl#C4817."""
+
+    return iri.rpartition("#")[2]
+
+
+def element_ids(uses: list[dict[str, Any]]) -> set[tuple[str, str]]:
+    """The data elements of data element uses, by public id and version."""
+
+    return {(use["dataElement"]["publicId"], use["dataElement"]["version"]) for use in uses}
+
+
+def value_ids(uses: list[dict[str, Any]]) -> set[tuple[str, str, str, str]]:
+    """Permissible value uses by data element, value and the concept it stands for."""
+
+    return {
+        (
+            use["dataElement"]["publicId"],
+            use["dataElement"]["version"],
+            use["value"],
+            use["conceptCode"],
+        )
+        for use in uses
+    }

@@ -799,6 +799,12 @@
      "type": "Disease_Without_Metastatic_Anatomic_Site",
      "relatedCode": "C2869",
      "relatedName": "Anemia"
+    },
+    {
+     "code": "R135",
+     "type": "Disease_Without_Primary_Anatomic_Site",
+     "relatedCode": "C174456",
+     "relatedName": "Atypical Ewing Sarcoma"
     }
    ],
    "inverseRoles": [

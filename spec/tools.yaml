@@ -357,13 +357,17 @@ ground_value:
   inputs: (conceptCode | text, commons?, release, registryRelease?)
   patterns: {release: *release, conceptCode: *ncit_code}
   free_text: [text]
-  returns: "{ concept, dataElements[data_element_use], permissibleValues[value_use], storedValues[stored_value], provenance, truncation }"
+  returns: "{ concept, dataElements[data_element_use], permissibleValues[value_use], storedValues[stored_value]?, provenance, truncation }"
   items: ["concept", "dataElements[]", "permissibleValues[]", "storedValues[]"]
   summary: >-
-    Concept to data element to permissible value to stored value, under one provenance
-    envelope naming both content states (release and registry). A text is resolved by lexical
-    search, the concept chosen named in the result. Without registryRelease the registry is
-    unpinned, as for every caDSR tool (X-21). Each hop's truncation is carried (perHop).
+    For a concept: the data elements that use it, the permissible values that stand for it,
+    and, with commons, the stored values a commons uses for it, each asked by the concept, under
+    one provenance envelope naming both content states (release and registry). Without commons
+    there is no storedValues. A text is resolved by lexical search to its first result, the
+    concept chosen named in the result. Without registryRelease the registry is unpinned, as for
+    every caDSR tool (X-21). A hop holds at most find_data_elements_for_concept's maximum
+    (1,000), its bound `results`; each hop's truncation is carried (perHop), and since each hop
+    is asked by the concept, one hop's bound limits no other.
 expand_cohort:
   group: workflow
   inputs: (conceptCode, release, maxDepth?, includeNegative?, maxNodes?)
@@ -376,10 +380,12 @@ expand_cohort:
     maxDepth: {default: 2, maximum: 4}
     maxNodes: {default: 200, maximum: 1000}
   summary: >-
-    The codes a cohort query should use: the concept and its descendants to maxDepth. A code
-    an exclusion role asserts is withheld from codes and listed in excluded with its
-    assertion, unless includeNegative keeps it in codes (still listed). The result equals
-    composing get_concept_hierarchy and get_concept_neighborhood.
+    The codes a cohort query should use: the concept itself and its descendants to maxDepth.
+    A code an exclusion role of the concept asked about asserts is withheld from codes and
+    listed in excluded with its assertion, unless includeNegative keeps it in codes (still
+    listed); a descendant's own exclusion roles are its own, not the cohort's. The result equals
+    composing get_concept_hierarchy (child, depth maxDepth) and get_concept_neighborhood
+    (depth 1).
 harmonize_data_dictionary:
   group: workflow
   inputs: "(columns[{ name, description?, sampleValues[]? }], registryRelease?, filters?)"
@@ -389,6 +395,7 @@ harmonize_data_dictionary:
   computed: true
   lists: {columns: 10}
   summary: >-
-    A data dictionary's columns matched to data elements, one match call per column, and each
-    column's sample values aligned to value meanings; unmatched lists the columns without a
-    match; every match names one registry state.
+    A data dictionary's columns matched to data elements, one match call per column (its name,
+    and its description as the entity's userTip), and each column's sample values aligned to
+    value meanings (vmMatch); unmatched names the columns without a match; every match names
+    one registry state.
