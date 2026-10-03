@@ -13,6 +13,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 from nci_si_acceptance.client import CREDENTIAL_VARIABLES
+from nci_si_acceptance.craft import LICENCE_FIELD
 from nci_si_acceptance.results import error_code, identity, pinned_release, release_of
 from nci_si_acceptance.spec import RECORDS, TOOLS, defaults, items_of, parameters
 
@@ -762,9 +763,6 @@ LICENSED_CALLS = {
     ),
     "get_concept_hierarchy": ({"code": LICENSED["code"], "direction": "child"}, {CHILD}),
 }
-# The field the crafted answers of license/attributed carry the licence text in: the form EVS
-# is asked for in #42. EVS gives the text today only in its terminology listing.
-LICENCE_FIELD = "licenseText"
 
 
 def _licensed_cases(scenario):
@@ -791,30 +789,33 @@ def _licensed_items(tools, name):
     return licensed
 
 
-def _attributions(items):
-    """The attribution of each item."""
+def _attributed(items):
+    """The items whose provenance carries an attribution, null or empty included."""
 
-    return {_provenance(item).get("attribution") for item in items}
+    return [item for item in items if "attribution" in _provenance(item)]
 
 
 @pytest.mark.requirement("X-19")
 @pytest.mark.parametrize("name", _licensed_cases("license/attributed"))
 def test_licence_text_the_platform_gives_with_an_item_is_passed_through_unchanged(
-    tools, recorded, name
+    tools, pinned, recorded, name
 ):
     concept = recorded("scenarios/license/attributed/granted.json")["response"]["body"]
     text = concept[LICENCE_FIELD]
     # The crafted answers carry text, or the cases would show nothing.
     assert text
 
-    assert _attributions(_licensed_items(tools, name)) == {text}
+    licensed = _licensed_items(tools, name)
+    # An NCIt call after it, given no text, must not inherit the licensed answer's.
+    plain = _successful_items(name, _call(tools, pinned, name))
+
+    attributions = [_provenance(item).get("attribution") for item in licensed]
+    assert (attributions, _attributed(plain)) == ([text] * len(licensed), [])
 
 
 @pytest.mark.requirement("X-19")
 @pytest.mark.parametrize("name", _licensed_cases("license/restricted"))
-def test_no_item_carries_licence_text_the_platform_did_not_give_with_it(
-    tools, pinned, recorded, name
-):
+def test_no_item_carries_licence_text_the_platform_did_not_give_with_it(tools, recorded, name):
     rows = recorded("recorded/evs/terminologies.json")["response"]["body"]
     (row,) = [
         row
@@ -826,7 +827,10 @@ def test_no_item_carries_licence_text_the_platform_did_not_give_with_it(
     # today: a server that joins the listing's text, or holds its own, would show.
     assert (bool(row["metadata"]["licenseText"]), LICENCE_FIELD in concept) == (True, False)
 
-    licensed = _licensed_items(tools, name)
-    plain = _successful_items(name, _call(tools, pinned, name))
+    assert _attributed(_licensed_items(tools, name)) == []
 
-    assert (_attributions(licensed), _attributions(plain)) == ({None}, {None})
+
+@pytest.mark.requirement("X-19")
+@pytest.mark.parametrize("name", PINNED)
+def test_an_item_the_platform_gave_no_licence_text_with_carries_none(tools, pinned, name):
+    assert _attributed(_items(tools, pinned, name)) == []

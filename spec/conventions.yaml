@@ -81,7 +81,7 @@ A7:
   rules:
     A7.1: Terminology and context identifiers come from the platform's metadata at build or start-up, never hard-coded or guessed.
     A7.2: A tool lists the terminologies, contexts or classification schemes available, with identifiers and current releases.
-    A7.3: Where the platform gives licence text with a result, the item carries it unchanged; the module adds none of its own.
+    A7.3: Where the platform gives licence text with an item, the item carries it unchanged; the module adds none of its own.
     A7.4: A credentialed operation degrades explicitly when the credential is absent and is never presented as public.
     A7.5: A credential or licence key is sent only to the platform that issued it (the EVS licence key to EVS, the caDSR credential to caDSR) and appears in no log, error message or result.
   why:

@@ -116,7 +116,7 @@ X-18:
   statement: A value below 1 for an argument with bounds is an invalid request, never raised to 1.
   basis: [A5.1, A2.5]
 X-19:
-  statement: An item carries the licence text the platform's answer gave with it, unchanged, as its attribution, and none that the platform did not give.
+  statement: An item of a release-pinned call carries the licence text the platform's answer gave with it, unchanged, as its attribution, and none that the platform did not give.
   basis: [A7.3, provenance]
 X-20:
   statement: A call that leaves out an optional argument with a stated default returns what the call that gives the default returns.

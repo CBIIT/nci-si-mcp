@@ -72,6 +72,9 @@ requirements, for the harness's own tests.
     attribution-everywhere every item with the listing's licence text, NCIt's included (X-19)
     drops-attribution the licence text EVS gives with an item left out             (X-19)
     alters-attribution the licence text EVS gives with an item cut short            (X-19)
+    attributes-all-but-last the licence text EVS gives left off the last item         (X-19)
+    attributes-ncit   NCIt items with a licence text of the server's own            (X-19)
+    sticky-attribution an item EVS gave no text with carries the last text it gave   (X-19)
 
 `unpinned-mismatch` is no defect for a tool without a pinned form upstream: it answers an
 unknown release with release_mismatch, as such a tool can only verify an unpinned answer (X-2).
@@ -129,6 +132,8 @@ CALLS = yaml.safe_load((Path(__file__).parent.parent / "tests" / "calls.yaml").r
 # Whether each call so far reached EVS, and EVS's answer to each call already answered.
 reached = []
 answered: dict[str, dict] = {}
+# The licence texts EVS gave so far (the sticky-attribution defect).
+given: list[str] = []
 
 
 def _ask(path: str, headers: dict[str, str]) -> tuple[int, dict, dict]:
@@ -147,8 +152,8 @@ def _ask(path: str, headers: dict[str, str]) -> tuple[int, dict, dict]:
 
 
 def _request(arguments: dict, correlation: str) -> tuple[str, dict[str, str]]:
-    """The path a call asks EVS for, and its headers: the licence key only for licensed
-    content (A7.5)."""
+    """The path a call asks EVS for, and its headers: the licence key with every request for
+    licensed content, the only requests this server sends EVS's content paths."""
 
     headers = {} if DEFECT == "no-correlation" else {"X-Correlation-ID": correlation}
     terminology = arguments.get("terminology")
@@ -307,13 +312,28 @@ def _attribution(terminology: str | None, answer: dict) -> dict:
     """The licence text EVS's answer gives with the concept asked for, as the item's
     attribution (X-19)."""
 
-    joined = DEFECT == "joins-listing" and terminology in LICENSED
-    if joined or DEFECT == "attribution-everywhere":
-        return {"attribution": _licence_text(LICENSED)}
-    text = _given_text(answer)
+    text = _remembered(_own_text(terminology) or _given_text(answer))
     if not text or DEFECT == "drops-attribution":
         return {}
     return {"attribution": text[:40] if DEFECT == "alters-attribution" else text}
+
+
+def _own_text(terminology: str | None) -> str | None:
+    """The licence text a defect attaches where EVS gave none."""
+
+    if DEFECT == "attributes-ncit" and terminology not in LICENSED:
+        return "Licensed by this server."
+    joined = DEFECT == "joins-listing" and terminology in LICENSED
+    return _licence_text(LICENSED) if joined or DEFECT == "attribution-everywhere" else None
+
+
+def _remembered(text: str | None) -> str | None:
+    """`text`; under the sticky defect, the last text given where there is none."""
+
+    if text:
+        given.append(text)
+        return text
+    return given[-1] if DEFECT == "sticky-attribution" and given else None
 
 
 def _given_text(answer: dict) -> str | None:
@@ -441,9 +461,18 @@ def _licensed_items(name: str, arguments: dict, provenance: dict) -> list[dict]:
 
     if TOOLS[name].get("traversal"):
         reached = provenance | {"depth": 1} | _how()
-        return [{"code": "10000001", "terminology": "mdr", "provenance": reached}]
-    codes = [arguments["code"]] if "code" in arguments else arguments.get("codes", LICENSED_CODES)
-    return [{"code": code, "terminology": "mdr", "provenance": provenance} for code in codes]
+        items = [{"code": "10000001", "terminology": "mdr", "provenance": reached}]
+    else:
+        codes = (
+            [arguments["code"]] if "code" in arguments else arguments.get("codes", LICENSED_CODES)
+        )
+        items = [{"code": code, "terminology": "mdr", "provenance": provenance} for code in codes]
+    if DEFECT == "attributes-all-but-last":
+        last = items[-1]["provenance"]
+        items[-1] = items[-1] | {
+            "provenance": {k: v for k, v in last.items() if k != "attribution"}
+        }
+    return items
 
 
 def _how() -> dict:

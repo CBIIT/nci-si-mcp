@@ -14,6 +14,7 @@ from jsonschema import Draft4Validator
 
 from nci_si_acceptance.craft import (
     EXCLUSION_ROLES,
+    LICENCE_FIELD,
     LICENCE_KEY,
     Recorded,
     craft,
@@ -340,6 +341,36 @@ def test_the_licence_key_of_the_scenarios_settings_is_what_grants_the_licensed_a
     assert settings["NCI_SI_EVS_LICENSE_KEY"] == LICENCE_KEY
     assert (granted, refused) == (200, 403)
     assert _codes(body) == codes
+
+
+def _objects(value):
+    """Every object in a JSON value, nested ones included."""
+
+    if isinstance(value, list):
+        return [found for each in value for found in _objects(each)]
+    if not isinstance(value, dict):
+        return []
+    return [value, *(found for each in value.values() for found in _objects(each))]
+
+
+@pytest.mark.parametrize(("path", "codes"), LICENSED_FORMS.items())
+def test_under_license_attributed_each_concept_carries_the_listing_s_licence_text(path, codes):
+    rows = json.loads((FIXTURES / "recorded/evs/terminologies.json").read_text(encoding="utf-8"))
+    (text,) = [
+        row["metadata"]["licenseText"]
+        for row in rows["response"]["body"]
+        if (row["terminology"], row["version"]) == ("mdr", "29_0")
+    ]
+    with FixtureServer(load_fixtures(FIXTURES)) as running:
+        running.activate("license/attributed")
+        key = {"X-EVSRESTAPI-License-Key": LICENCE_KEY}
+        status, body = _licensed_answer(running, path, key)
+
+    # Each concept, a link to one included, carries the text; no other object does.
+    carried = {("code" in each, each.get(LICENCE_FIELD)) for each in _objects(body)}
+    assert (status, _codes(body)) == (200, codes)
+    assert carried <= {(True, text), (False, None)}
+    assert bool(codes) == ((True, text) in carried)
 
 
 def test_a_licensed_descendant_carries_its_level_as_evs_gives_it():

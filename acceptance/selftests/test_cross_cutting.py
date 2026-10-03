@@ -82,6 +82,9 @@ DEFECTS = [
     ("attribution-everywhere", NOT_GIVEN),
     ("drops-attribution", PASSED_THROUGH),
     ("alters-attribution", PASSED_THROUGH),
+    ("attributes-all-but-last", PASSED_THROUGH),
+    ("sticky-attribution", PASSED_THROUGH),
+    ("attributes-ncit", "test_an_item_the_platform_gave_no_licence_text_with_carries_none"),
 ]
 
 

@@ -38,9 +38,11 @@ COMPLIANT_SERVER = Path(__file__).parent / "compliant_server.py"
 VERSION = {"surface": "evs", "method": "GET", "path": "/api/v1/version"}
 LICENCE_KEY = "selftest-licence-key"
 CURRENT = {"status": 200, "body": {"version": "26.09d"}}
-# MedDRA's licence text, in the listing and, under license/attributed, with the content; longer
-# than the cut the alters-attribution defect makes.
+# MedDRA's licence text in the listing, and the text given with the content under
+# license/attributed: another, so that a server that joins the listing's text shows there too,
+# and longer than the cut the alters-attribution defect makes.
 LICENCE_TEXT = "MedDRA is licensed for NCI work; any other use needs a subscription."
+GIVEN_TEXT = "MedDRA content, licensed for NCI work only, as given with this concept."
 # The answers to the compliant server's requests: EVS's version, which names the release it
 # serves, in each scenario the suite uses; and the licensed concept, only with the key. The
 # terminology listing is read by the suite itself (X-17), never asked.
@@ -93,7 +95,7 @@ ANSWERS = {
             "path": "/api/v1/concept/mdr_29_0/10000000",
             "headers": {"X-EVSRESTAPI-License-Key": LICENCE_KEY},
         },
-        "response": {"status": 200, "body": {"licenseText": LICENCE_TEXT}},
+        "response": {"status": 200, "body": {"licenseText": GIVEN_TEXT}},
     },
     "scenarios/license/attributed/search.json": {
         "request": VERSION
@@ -101,7 +103,7 @@ ANSWERS = {
             "path": "/api/v1/concept/mdr_29_0/search",
             "headers": {"X-EVSRESTAPI-License-Key": LICENCE_KEY},
         },
-        "response": {"status": 200, "body": {"concepts": [{"licenseText": LICENCE_TEXT}]}},
+        "response": {"status": 200, "body": {"concepts": [{"licenseText": GIVEN_TEXT}]}},
     },
     "scenarios/license/restricted/refused.json": {
         "request": VERSION | {"path": "/api/v1/concept/mdr_29_0/10000000"},
