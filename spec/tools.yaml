@@ -275,8 +275,9 @@ find_data_elements_for_concept:
     The data elements that use a concept, as an object class, property or permissible value
     concept, optionally across its descendants; with includePermissibleValues, also the
     permissible values whose value meaning stands for it (the reverse lookup, OP-S04). The
-    release is required and checked against the NCIt graph's: release_mismatch on a difference,
-    release_not_available on a surface that cannot name the NCIt release it used.
+    release is required and checked against the NCIt graph's: release_mismatch on a difference.
+    It is served from a surface that names the NCIt release it used: today the Shared SI
+    Service; caDSR REST, which cannot, answers release_not_available.
 get_concept_for_permissible_value:
   group: cross-domain
   inputs: "(permissibleValueId | { dataElementId, value }, release)"
