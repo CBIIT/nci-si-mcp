@@ -161,6 +161,23 @@ Findings made along the way are fixed on the same branch when they belong to the
 unrelated problem gets an issue. Do not change the ruleset, repository settings, `spec/`'s
 conventions or another issue's scope without the reviewer's agreement.
 
+The reviewer runs an independent mutation review of each pull request and posts the surviving
+mutants; close each real gap with a test that fails without the fix, and say which you judged
+equivalent and why.
+
+Rules learned the hard way:
+
+- A change to what the server returns reaches the acceptance harness: run the whole
+  `pdm run acceptance-selftest` and the fixture ratchet, not only the unit tests. Keep
+  `NCI_SI_ACCEPTANCE_PREPARE` unset in your shell, or the self-tests fail.
+- An interrupted self-test run can leave the `compliant_server.py` stub running; find it with
+  `ps` and stop it by its process id.
+- A wait loop ends when the file or process it watches is gone, and never matches its own
+  command line (`pgrep -f` on a string in the loop does).
+- Name roles, never people, in code, issues and pull requests.
+- Licence and attribution text is passed through from what the upstream API returns; the server
+  keeps no licence data of its own. A licence key or credential is never logged or committed.
+
 ## Constraints that shape the code
 
 - The core package has no dependencies (`dependencies = []`). `mcp` and `sentence_transformers`
