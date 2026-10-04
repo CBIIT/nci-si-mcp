@@ -61,7 +61,7 @@ pdm run pytest tests/test_service.py -k LookupTest
 pdm run lint                              # ruff check + basedpyright, the fast check
 pdm run fmt                               # ruff format
 pdm run pre-commit run --all-files        # every hook, as the CI quality job runs them
-pdm run acceptance -n 4 --report=fixture.json                # the acceptance suite, fixture mode
+NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")' pdm run acceptance -n 4 --report=fixture.json  # fixture mode, prepared as in CI
 pdm run acceptance-expected check acceptance/fixture.json    # the report against the expected outcomes
 pdm run acceptance-expected update acceptance/fixture.json   # rewrite the expected outcomes
 pdm run acceptance-status                 # regenerate the README status table
@@ -169,7 +169,7 @@ Rules learned the hard way:
 
 - A change to what the server returns reaches the acceptance harness: run the whole
   `pdm run acceptance-selftest` and the fixture ratchet, not only the unit tests. Keep
-  `NCI_SI_ACCEPTANCE_PREPARE` unset in your shell, or the self-tests fail.
+  `NCI_SI_ACCEPTANCE_PREPARE` unset for the self-tests; set it only on the fixture command above.
 - An interrupted self-test run can leave the `compliant_server.py` stub running; find it with
   `ps` and stop it by its process id.
 - A wait loop ends when the file or process it watches is gone, and never matches its own
