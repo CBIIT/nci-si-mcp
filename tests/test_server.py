@@ -367,7 +367,7 @@ class ServerTest(unittest.TestCase):
     def test_the_records_of_one_resource_read_share_their_correlation_identifier(self, _):
         self.evs.errors = {
             "get_api_version": EVSUnavailableError("down"),
-            "resolve_monthly_ncit_release": EVSUnavailableError("down"),
+            "get_terminologies": EVSUnavailableError("down"),
         }
         reports = []
         release_info = self.service.release_info
@@ -393,7 +393,7 @@ class ServerTest(unittest.TestCase):
     def test_release_info_stays_a_success_when_evs_is_down(self, _):
         self.evs.errors = {
             "get_api_version": EVSUnavailableError("down"),
-            "resolve_monthly_ncit_release": EVSUnavailableError("down"),
+            "get_terminologies": EVSUnavailableError("down"),
         }
 
         is_error, info = self.call("ncit_release_info")
@@ -435,7 +435,7 @@ class ServerTest(unittest.TestCase):
                     self.read(uri)
                 self.assertEqual(json.loads(str(raised.exception))["error"]["code"], code)
 
-        self.evs.errors = {"resolve_monthly_ncit_release": EVSUnavailableError("down")}
+        self.evs.errors = {"get_terminologies": EVSUnavailableError("down")}
         with self.assertRaises(MCPError) as raised:
             self.read("nci-si://release/ncit/26.06e")
         envelope = json.loads(str(raised.exception))

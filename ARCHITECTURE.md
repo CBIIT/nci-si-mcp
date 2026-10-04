@@ -87,15 +87,16 @@ in `traversal.py`, and `validation.py` reads the hard node limit in
 | --- | --- | --- |
 | `cli.py` | Defines `serve`, release inspection, sample indexing, search, lookup, traversal, and evaluation commands; reports configuration and startup failures; exits 1 on an error record. | `NCISIService`, `server` |
 | `server.py` | Registers five MCP tools and three MCP resource templates on an `mcp` 2.x `MCPServer` and flags error records as protocol errors. | `NCISIService`, optional `mcp` package |
-| `service.py` | Validates inputs, orchestrates the use cases, pins EVS requests to the monthly release, enforces release consistency with the index, falls back from live EVS to the cache in `lookup`, and maps expected failures to error records. Its collaborators are injectable for testing. | EVS client, local index, traversal, embeddings, evaluation, caDSR adapter |
+| `service.py` | Validates inputs, orchestrates the use cases, pins EVS requests to the release of the configured channel, enforces release consistency with the index, falls back from live EVS to the cache in `lookup`, and maps expected failures to error records. Its collaborators are injectable for testing. | EVS client, local index, traversal, embeddings, evaluation, caDSR adapter |
 | `upstream.py` | Parses an upstream response body as JSON content, and classifies a failure that arrived as a success (an HTML page, a webMethods `apiResponse.type` `E` envelope, a FHIR `OperationOutcome` error, invalid JSON) as `upstream_unavailable` before any caller sees it. | `errors.py` |
 | `http_client.py` | The one HTTP client for upstream platforms: sends `Accept: application/json`, the call's correlation identifier and the platform's credentials (never to another origin: a redirect elsewhere is refused); retries 5xx, 429 (after its `Retry-After`) and connection failures with jittered backoff, counting every attempt; bounds the response size; classifies the response (through `upstream.py`) before returning it; hands one record per attempt to a request-log hook (a hook that raises is logged by type and ignored). | Python `urllib`, `upstream.py`, `errors.py` |
-| `evs.py` | Calls EVS REST endpoints through the HTTP client, maps its failures to the EVS errors (not found, unusable response, unavailable, timeout, too large), resolves exactly one latest monthly NCIt release, and normalizes EVS payloads. | `http_client.py`, shared models, NCI EVS API |
+| `evs.py` | Calls EVS REST endpoints through the HTTP client, maps its failures to the EVS errors (not found, unknown release, unusable response, unavailable, timeout, too large), reads the terminology listing (optionally one channel's `latest` row), and normalizes EVS payloads. | `http_client.py`, shared models, NCI EVS API |
+| `release.py` | The release model. `resolve_evs_release` asks EVS for the one row that is latest and tagged with the channel and returns the `ReleaseContext` (terminology, channel, version, date, pinned path segment) that one call threads through its requests; zero or several rows are `release_not_available`. Nothing is kept between calls. `registry_state` builds the caDSR registry state (no identifier, the export's date, versioning per data element) from the export's `Last-Modified`. | `evs.py`, `errors.py` |
 | `index.py` | Migrates and transactionally maintains the release manifest, normalized concepts, FTS search text, vectors, and vector LSH buckets; performs BM25/vector/hybrid search. | SQLite FTS5, retrieval utilities, embedding provider, `validation.py`, concept normalization in `evs.py` |
 | `retrieval.py` | Implements tokenization, the dot product used as cosine similarity for unit vectors, and min-max normalization. | Python standard library |
 | `embeddings.py` | Defines the embedding abstraction, a deterministic local hashing provider, an optional sentence-transformers provider, and the check that provider and model settings agree. | Optional `sentence-transformers` package |
 | `traversal.py` | Resolves which edge types to follow and performs a breadth-first traversal of hierarchy, role, and association relations with deduplication and hard depth/node/edge limits, and gives each node and edge its traversal provenance and the walk its truncation record. | EVS client, shared models |
-| `models.py` | Defines the serializable release, concept, index, search-hit, traversal and caDSR status dataclasses, and the provenance, traversal provenance and truncation records every result is built from. | `errors.py` |
+| `models.py` | Defines the serializable concept, index, search-hit, traversal and caDSR status dataclasses, and the provenance, traversal provenance and truncation records every result is built from. | `errors.py` |
 | `evaluation.py` | Evaluates BM25, vector, and hybrid retrieval against a small built-in gold-query set. | Local index, embedding provider |
 | `cadsr.py` | Exposes an explicit `reuse_pending` boundary; no caDSR search or fabricated CDE results are implemented. | Shared models |
 | `config.py` | Loads the profile, the upstream mode and the six upstream base URLs (taken as a set: production defaults in live mode, all required in fixture mode), release channel, exclusion role codes, the two credentials (kept out of every string form), timeouts, EVS retry, batching, logging, data-directory and embedding settings from environment variables and validates them; whether the data directory is usable shows only when the index is opened. | Environment, `embeddings.py`, `validation.py` |
@@ -108,7 +109,7 @@ in `traversal.py`, and `validation.py` reads the hard node limit in
 
 1. `index-sample` enters through the CLI and calls `NCISIService.index_codes`.
 2. The service validates and deduplicates the codes, resolves the single latest
-   monthly NCIt release, then retrieves the concepts from EVS in bounded
+   NCIt release of the configured channel, then retrieves the concepts from EVS in bounded
    batches, each request pinned to that release. If EVS does not return every
    code, nothing is indexed.
 3. `LocalIndex` normalizes each concept and verifies the payload release and
@@ -141,7 +142,8 @@ in `traversal.py`, and `validation.py` reads the hard node limit in
 
 ### Lookup
 
-1. The service resolves the current monthly release. If the index holds a
+1. The service resolves the current release of the configured channel (monthly by
+   default) with `resolve_evs_release`, once for this call. If the index holds a
    different release, lookup fails with `release_mismatch` unless `live_only` is
    set, so that lookups and searches never mix releases. With `live_only` the
    call does not read the index; the CLI still opens it at startup.
@@ -150,7 +152,7 @@ in `traversal.py`, and `validation.py` reads the hard node limit in
    `not_found`.
 3. If EVS cannot be reached, lookup returns the concept from the index unless
    `live_only` is set. The result then has `provenance.source: evs_index`,
-   `servedBy: index` and a `fallback` object with the reason. An ambiguous monthly release is not an
+   `servedBy: index` and a `fallback` object with the reason. A channel without exactly one latest release is not an
    outage: lookup fails with `release_not_available` and does not use the cache.
 
 ### Traverse
@@ -158,7 +160,8 @@ in `traversal.py`, and `validation.py` reads the hard node limit in
 1. Direction, the include flags, and `edge_types` select the edge types to
    follow. A combination that selects nothing, or names an edge type the
    direction excludes, is rejected before any request is made.
-2. The service resolves the monthly release and calls `traverse_ncit`.
+2. The service resolves the release of the configured channel, once for this call, and
+   calls `traverse_ncit`.
 3. The walk is breadth-first, one depth at a time over all start codes, so
    nearer nodes claim the limits before farther ones. Each level is read with
    batched concept requests that include the selected relation lists, pinned to
@@ -292,7 +295,8 @@ not MCP tools. QUICKSTART.md lists the error codes.
 
 ## Verification map
 
-- `tests/test_evs.py`: monthly-release selection, release pinning, and concept provenance.
+- `tests/test_evs.py`: failure mapping, release verification, and concept normalization.
+- `tests/test_release.py`: one-row release resolution per channel and its failures, the unknown-release 404, the release being resolved afresh in every call, and the caDSR registry state.
 - `tests/test_evs_client.py`: failure classification, response limits, payload shapes, and request URLs through the EVS client.
 - `tests/test_http_client.py`: headers, correlation, counted retries, `Retry-After`, the request-log hook, and credentials (sent to their platform only, in no log, record or error).
 - `tests/test_index.py`: upserts and release replacement, rollback, embedding compatibility, migrations, and BM25/vector/hybrid search.

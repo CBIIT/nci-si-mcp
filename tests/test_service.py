@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from fakes import FakeEVS, concept, release
+from fakes import FakeEVS, concept, release, terminology_row
 from nci_si_mcp import service as service_module
 from nci_si_mcp.config import Settings
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
@@ -22,15 +22,17 @@ from nci_si_mcp.evs import (
     EVSClient,
     EVSNotFoundError,
     EVSReleaseMismatchError,
+    EVSReleaseNotFoundError,
     EVSResponseError,
     EVSResponseTooLargeError,
     EVSTimeoutError,
     EVSUnavailableError,
-    ReleaseResolutionError,
-    select_monthly_ncit_release,
 )
 from nci_si_mcp.index import LocalIndex
 from nci_si_mcp.service import NCISIService
+
+# Two releases that EVS marks latest for the monthly channel at once.
+TWO_LATEST = [terminology_row("26.06e"), terminology_row("26.07a")]
 
 NEOPLASM = concept(
     "C3262",
@@ -109,7 +111,7 @@ class LookupTest(ServiceTestCase):
 
     def test_cache_fallback_when_evs_is_unreachable_says_so(self):
         self.index()
-        for method in ("get_concept", "resolve_monthly_ncit_release"):
+        for method in ("get_concept", "get_terminologies"):
             with self.subTest(failing=method):
                 self.evs.errors = {method: EVSUnavailableError("connection refused")}
                 with self.assertLogs("nci_si_mcp.service", level="WARNING") as logs:
@@ -136,14 +138,12 @@ class LookupTest(ServiceTestCase):
 
         self.index("C3262")
         self.assert_error(self.service.lookup("C3262", live_only=True), "upstream_unavailable")
-        self.evs.errors = {"resolve_monthly_ncit_release": EVSUnavailableError("down")}
+        self.evs.errors = {"get_terminologies": EVSUnavailableError("down")}
         self.assert_error(self.service.lookup("C3262", live_only=True), "upstream_unavailable")
 
     def test_unresolved_release_fails_closed_instead_of_serving_the_cache(self):
         self.index()
-        self.evs.errors = {
-            "resolve_monthly_ncit_release": ReleaseResolutionError("found 2 monthly releases")
-        }
+        self.evs.rows = TWO_LATEST
 
         self.assert_error(self.service.lookup("C3262"), "release_not_available")
 
@@ -384,7 +384,7 @@ class TraverseTest(ServiceTestCase):
         )
 
     def test_invalid_selection_is_rejected_before_any_request(self):
-        self.evs.errors = {"resolve_monthly_ncit_release": EVSUnavailableError("down")}
+        self.evs.errors = {"get_terminologies": EVSUnavailableError("down")}
 
         self.assert_error(
             self.service.traverse(["C3262"], edge_types=["parent"]), "invalid_request"
@@ -404,8 +404,9 @@ class TraverseTest(ServiceTestCase):
         self.assert_error(self.service.traverse(["C999"]), "not_found")
         self.evs.errors = {"get_concepts_by_codes": EVSUnavailableError("timed out")}
         self.assert_error(self.service.traverse(["C3262"]), "upstream_unavailable")
-        self.evs.errors = {"resolve_monthly_ncit_release": ReleaseResolutionError("ambiguous")}
+        self.evs.rows = []
         self.assert_error(self.service.traverse(["C3262"]), "release_not_available")
+        self.evs.rows = None
         self.evs.errors = {"get_concepts_by_codes": EVSResponseError("not a list")}
         self.assert_error(self.service.traverse(["C3262"]), "upstream_unavailable")
 
@@ -456,17 +457,15 @@ class StatusTest(ServiceTestCase):
 
     def test_release_info_survives_an_evs_outage(self):
         self.index("C3262")
-        self.evs.errors = {
-            "get_api_version": EVSUnavailableError("down"),
-            "resolve_monthly_ncit_release": ReleaseResolutionError("found 2 monthly releases"),
-        }
+        self.evs.errors = {"get_api_version": EVSUnavailableError("down")}
+        self.evs.rows = TWO_LATEST
 
         result = self.service.release_info()
 
         self.assertFalse(is_error_record(result), result)
         self.assert_error(result["evs_api"], "upstream_unavailable")
         self.assert_error(result["selected_monthly_release"], "release_not_available")
-        self.assertIn("found 2", result["selected_monthly_release"]["error"]["message"])
+        self.assertIn("2 ncit monthly", result["selected_monthly_release"]["error"]["message"])
         self.assertEqual(result["active_index"]["release_version"], "26.06e")
 
     def test_evaluate_scores_every_mode_and_names_gold_concepts_that_are_not_indexed(self):
@@ -573,10 +572,10 @@ class ErrorModelTest(ServiceTestCase):
                 {"identifiers": ["C1"]},
             ),
             (
-                ReleaseResolutionError("found 2", requested="ncit monthly", source="evs"),
+                EVSReleaseNotFoundError("no such release", requested="ncit_9", source="evs"),
                 "release_not_available",
                 "Retry later",
-                {"requested": "ncit monthly", "source": "evs"},
+                {"requested": "ncit_9", "source": "evs"},
             ),
             (
                 EVSReleaseMismatchError("served 2", requested="1", served=["2"], source="evs"),
@@ -668,13 +667,7 @@ class ErrorModelTest(ServiceTestCase):
             self.assertIn(expected, message)
 
     def test_ambiguous_monthly_releases_are_listed_in_the_error(self):
-        rows = [
-            {"terminology": "ncit", "version": version, "latest": True, "tags": {"monthly": "true"}}
-            for version in ("26.06e", "26.07a")
-        ]
-        with self.assertRaises(ReleaseResolutionError) as raised:
-            select_monthly_ncit_release(rows)
-        self.evs.errors = {"resolve_monthly_ncit_release": raised.exception}
+        self.evs.rows = TWO_LATEST
 
         message = self.service.lookup("C3262")["error"]["message"]
 

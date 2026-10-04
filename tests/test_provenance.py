@@ -162,7 +162,7 @@ class EveryItemCarriesItsProvenanceTest(ProvenanceTestCase):
         self.assertEqual((manifest["source"], manifest["servedBy"]), ("evs_index", "index"))
 
     def test_the_release_report_names_no_release_when_evs_selected_none(self):
-        self.evs.errors = {"resolve_monthly_ncit_release": EVSUnavailableError("down")}
+        self.evs.errors = {"get_terminologies": EVSUnavailableError("down")}
 
         report = self.service.release_info()
 

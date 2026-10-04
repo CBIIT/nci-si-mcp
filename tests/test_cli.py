@@ -165,7 +165,7 @@ class MainTest(unittest.TestCase):
         service = self.fake_service()
         service.evs.errors = {
             "get_api_version": EVSUnavailableError("down"),
-            "resolve_monthly_ncit_release": EVSUnavailableError("down"),
+            "get_terminologies": EVSUnavailableError("down"),
         }
 
         code, info, _ = self.run_cli("release-info", service=service)

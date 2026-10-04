@@ -1,7 +1,7 @@
 """Shared test doubles. Nothing here touches the network."""
 
 from nci_si_mcp.evs import INDEX_INCLUDE, LOOKUP_INCLUDE, EVSNotFoundError
-from nci_si_mcp.models import ReleaseInfo
+from nci_si_mcp.release import ReleaseContext
 
 # Fields EVS returns only when the `include` parameter asks for them.
 OPTIONAL_FIELDS = frozenset(
@@ -19,17 +19,29 @@ OPTIONAL_FIELDS = frozenset(
 )
 
 
-def release(version="26.06e", date="2026-06-29"):
-    return ReleaseInfo(
+def release(version="26.06e", date="2026-06-29", channel="monthly"):
+    return ReleaseContext(
         terminology="ncit",
+        channel=channel,
         version=version,
         date=date,
         name=f"NCI Thesaurus {version}",
-        terminology_version=f"ncit_{version}",
-        latest=True,
-        monthly=True,
-        weekly=False,
+        pinned_terminology=f"ncit_{version}",
     )
+
+
+def terminology_row(version="26.06e", date="2026-06-29", latest=True, **tags):
+    """A row of EVS's terminology listing; the tags default to the monthly channel."""
+
+    return {
+        "terminology": "ncit",
+        "version": version,
+        "date": date,
+        "name": f"NCI Thesaurus {version}",
+        "terminologyVersion": f"ncit_{version}",
+        "latest": latest,
+        "tags": tags or {"monthly": "true"},
+    }
 
 
 def concept(code, name=None, version="26.06e", **fields):
@@ -45,6 +57,16 @@ def concept(code, name=None, version="26.06e", **fields):
     return payload
 
 
+def terminology_row_matches(row, terminology, latest, tag):
+    """Whether a listing row passes the filters a listing request names."""
+
+    return (
+        terminology in (None, row["terminology"])
+        and (row["latest"] or not latest)
+        and (tag is None or row["tags"].get(tag) == "true")
+    )
+
+
 class FakeEVS:
     """In-memory stand-in for EVSClient that records the calls it receives.
 
@@ -54,11 +76,14 @@ class FakeEVS:
     returns only the known concepts. EVS keeps no order in a batch, so the fake
     answers the known concepts in request order rotated by one: code that pairs
     answers with requests by position fails here. Set `errors[method]` to an exception to make
-    that method fail.
+    that method fail. The terminology listing is `rows` when set, otherwise the one latest
+    monthly row of `release`; like EVS it honours the `terminology`, `latest` and `tag` filters,
+    and it is read afresh on every call.
     """
 
     def __init__(self, concepts=(), version="26.06e", descendants=None):
         self.release = release(version)
+        self.rows = None
         self.concepts = {item["code"]: item for item in concepts}
         self.descendants = descendants or {}
         self.errors = {}
@@ -85,9 +110,17 @@ class FakeEVS:
         self._record("get_api_version")
         return {"version": "test"}
 
-    def resolve_monthly_ncit_release(self):
-        self._record("resolve_monthly_ncit_release")
-        return self.release
+    def get_terminologies(self, terminology=None, *, latest=False, tag=None):
+        self._record("get_terminologies", terminology, (latest, tag))
+        rows = self.rows
+        if rows is None:
+            rows = [
+                terminology_row(
+                    self.release.version, self.release.date, **{self.release.channel: "true"}
+                )
+            ]
+        matching = (terminology_row_matches(row, terminology, latest, tag) for row in rows)
+        return [row for row, kept in zip(rows, matching, strict=True) if kept]
 
     def get_concept(self, code, terminology="ncit", include=LOOKUP_INCLUDE):
         self._record("get_concept", terminology, code)

@@ -177,8 +177,15 @@ update them when behaviour changes.
 
 ### Release pinning
 
-- `select_monthly_ncit_release` requires exactly one latest monthly NCIt row and never falls back to
-  weekly. EVS sets `latest` per channel, so two `ncit` rows can carry it at once.
+- `release.resolve_evs_release(evs, terminology, channel)` asks EVS for the rows that are `latest`
+  and tagged with the channel (`?terminology=…&latest=true&tag=…`) and requires exactly one; any
+  other count is `release_not_available`, with no fallback to another channel. EVS sets `latest`
+  per channel, so the unfiltered listing can show two `ncit` rows as latest. The service resolves
+  once per call with `Settings.release_channel` and threads the `ReleaseContext` through that call;
+  nothing keeps it between calls. A 404 `Terminology not found` is `EVSReleaseNotFoundError`
+  (`release_not_available`).
+- `release.registry_state` is the pure part of the caDSR registry state: no registry identifier is
+  ever made up. The `Last-Modified` HEAD request belongs to the caDSR client.
 - Every concept request uses `release.pinned_terminology` (for example `ncit_26.09d`) as the path
   segment, and `evs.verify_release` checks the `version` of each returned concept.
 - `lookup` returns `release_mismatch` when the index holds another release, unless `live_only`. It

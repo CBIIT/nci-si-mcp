@@ -23,7 +23,6 @@ from .evs import (
     verify_release,
 )
 from .models import (
-    ReleaseInfo,
     TraversalEdge,
     TraversalNode,
     TraversalProvenance,
@@ -33,6 +32,7 @@ from .models import (
     upstream_origin,
     utc_now_iso,
 )
+from .release import ReleaseContext
 
 DEFAULT_MAX_DEPTH = 2
 DEFAULT_MAX_NODES = 200
@@ -170,7 +170,7 @@ def _fetch_batch(
 def _fetch_concepts(
     client: EVSClient,
     codes: list[str],
-    release: ReleaseInfo,
+    release: ReleaseContext,
     include: str,
     batch_size: int,
 ) -> tuple[dict[str, dict[str, Any]], list[str], list[str]]:
@@ -244,7 +244,7 @@ def _edge(
     )
 
 
-def _missing_concepts(release: ReleaseInfo, missing: list[str], depth: int) -> Exception:
+def _missing_concepts(release: ReleaseContext, missing: list[str], depth: int) -> Exception:
     codes = ", ".join(missing)
     if depth == 0:
         return EVSNotFoundError(
@@ -260,7 +260,7 @@ class _Walk:
     """One traversal in progress: its limits and what it has emitted so far."""
 
     client: EVSClient
-    release: ReleaseInfo
+    release: ReleaseContext
     edge_types: list[str]
     depth_limit: int
     node_limit: int
@@ -494,7 +494,7 @@ class _Walk:
 def traverse_ncit(
     client: EVSClient,
     start_codes: list[str],
-    release: ReleaseInfo,
+    release: ReleaseContext,
     edge_types: list[str],
     *,
     max_depth: int = DEFAULT_MAX_DEPTH,

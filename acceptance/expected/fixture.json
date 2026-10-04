@@ -200,7 +200,7 @@
   "tests/test_crosscutting.py::test_a_query_that_matches_nothing_is_an_empty_result_with_provenance[search_concepts]": "not_implemented",
   "tests/test_crosscutting.py::test_a_query_that_matches_nothing_is_an_empty_result_with_provenance[search_data_elements]": "not_implemented",
   "tests/test_crosscutting.py::test_a_rate_limited_request_is_asked_once_more_after_the_wait[get_data_element]": "not_implemented",
-  "tests/test_crosscutting.py::test_a_rate_limited_request_is_asked_once_more_after_the_wait[resolve_release]": "failed",
+  "tests/test_crosscutting.py::test_a_rate_limited_request_is_asked_once_more_after_the_wait[resolve_release]": "passed",
   "tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed[get_code_map]": "not_implemented",
   "tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed[get_data_element]": "not_implemented",
   "tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed[get_form]": "not_implemented",

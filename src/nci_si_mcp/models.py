@@ -18,27 +18,6 @@ def utc_now_iso() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
-@dataclass(frozen=True, slots=True)
-class ReleaseInfo:
-    terminology: str
-    version: str
-    date: str | None
-    name: str
-    terminology_version: str | None
-    latest: bool
-    monthly: bool
-    weekly: bool
-
-    @property
-    def pinned_terminology(self) -> str:
-        """EVS path segment that pins a request to exactly this release."""
-
-        return self.terminology_version or f"{self.terminology}_{self.version}"
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ProvenanceEnvelope:
     """The provenance record of one returned item (A4.4), field for field.
