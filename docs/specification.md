@@ -6,8 +6,9 @@ This is the specification of the required MCP tools and their behavior furnished
 Prototype Baseline Package. The Statements of Work frame and bound its scope; within that scope
 it is the source of record for what the tools do. Its source is data: the conventions
 (`spec/conventions.yaml`), the tools (`spec/tools.yaml`), the resources and prompts
-(`spec/resources.yaml`, `spec/prompts.yaml`) and the requirements (`spec/requirements.yaml`). The server implements the tools, and the acceptance suite tests the
-requirements, each test citing the requirements it enforces by id.
+(`spec/resources.yaml`, `spec/prompts.yaml`) and the requirements (`spec/requirements.yaml`).
+The server implements the tools, and the acceptance suite tests the requirements, each test
+citing the requirements it enforces by id.
 
 ## 1. Conventions
 
@@ -171,11 +172,11 @@ Binding on every tool.
 
 | Id | Convention |
 |---|---|
-| M2.1 | tools/list, resources/list, resources/read and server/discover carry ttlMs and cacheScope. |
+| M2.1 | tools/list, prompts/list, resources/list, resources/templates/list, resources/read and server/discover carry ttlMs and cacheScope. |
 | M2.2 | A result's ttlMs follows what it holds: release-pinned content 86,400,000 (long); governed content that no release pins (caDSR content while caDSR publishes no registry release) a short positive ttlMs, at most 3,600,000; a result computed from caller-supplied values (the tools marked computed in tools.yaml) 0; resolve_release, resolve_registry_release and get_release_alignment 0; a result that joins content of two states (a cross-domain or workflow result resting on release-pinned NCIt and on caDSR content) the shorter of their ttlMs. tools/list is long and public. |
 | M2.3 | cacheScope is public for governed content, the resolve tools included, and private for results computed from caller-supplied values. |
 | M2.4 | A cursor pins the release it was issued against; presented after that release is superseded, it is a structured error. |
-| M2.5 | A tool result carries ttlMs and cacheScope in its _meta. |
+| M2.5 | A tool result carries ttlMs and cacheScope in its _meta; the result of resources/read, as of the list methods, carries them as fields of the result, never in its _meta. The hint of a resource is of the class M2.2 gives what it holds, not necessarily its tool's own. |
 
 *Why M2.5.* The protocol carries ttlMs and cacheScope as fields of the results of the list methods, resources/read and server/discover only (revision 2026-07-28), so a tool result needs a stated place for them.
 
@@ -193,13 +194,13 @@ Binding on every tool.
 
 | Id | Convention |
 |---|---|
-| M4.1 | NCIt semantic and hybrid search are served from a release-bound local index (the amendment A9.2 asks for) until EVS serves them. The index is re-embedded for each approved monthly release, activated and rolled back atomically, and its release is in provenance and in the index-manifest resource, from which resolve_release learns it. |
+| M4.1 | NCIt semantic and hybrid search are served from a release-bound local index (the amendment A9.2 asks for) until EVS serves them. The index is re-embedded for each approved monthly release, activated and rolled back atomically, and its release is in provenance and in the index_manifest resource, from which resolve_release learns it. |
 
 ### M5 · Prompts and resources
 
 | Id | Convention |
 |---|---|
-| M5.1 | The furnished prompt templates and resources are listed by prompts/list and resources/list with their arguments, and a prompt names only tools present in the profile. A prompt is listed only in a profile that has every tool it names, so the evs and cadsr profiles list none and unified lists all four (spec/prompts.yaml). |
+| M5.1 | The furnished prompt templates are listed by prompts/list with their arguments, and the furnished resources by resources/list (a URI without a variable, a concrete resource) and resources/templates/list (a URI template, with variables); a resource carries a URI template rather than arguments. A prompt names only tools present in the profile and is listed only in a profile that has every tool it names, so the evs and cadsr profiles list none and unified lists all four (spec/prompts.yaml). A server declares the prompts and resources capabilities even where its profile lists no prompt (evs, cadsr). resources/read of a URI that no listed resource or template matches, such as a concept URI without its release, is an error, never content. |
 
 ### M6 · Pagination
 
@@ -220,7 +221,7 @@ Every returned item carries one, beside its identifier and status, which are fie
 | Field | Content | Rule |
 |---|---|---|
 | `release` | The release in effect, in one of two forms; the terminology form `{ terminology, identifier, date }`: the terminology and the release the call pinned; the registry form `{ registry, identifier?, date? }`: registry is cadsr; identifier and date are the registry release's, present only where caDSR publishes one (A3.8.1). Content the API serves without one names neither: it is newer than the export (2200604 modified 2026-08-25, the export of 2026-07-01), so the export's date would mislabel it; the item's own version and dateModified identify it, with retrievedAt beside them (A3.8.2) | A3.3 |
-| `source` | The surface that supplied the item: one of `evs_rest`, `evs_fhir`, `evs_index`, `cadsr_rest`, `ssis_facade`, `ssis_sparql` | A4.1 |
+| `source` | The surface that supplied the item; cadsr_export is the caDSR export folder's listing, the only source of the registry's content state (A3.8.2): one of `evs_rest`, `evs_fhir`, `evs_index`, `cadsr_rest`, `cadsr_export`, `ssis_facade`, `ssis_sparql` | A4.1 |
 | `servedBy` | Where the answer came from: one of `live`, `cache`, `index`, `fixture` | A4.1 |
 | `retrievedAt` | When it was retrieved, ISO-8601 | A4.1 |
 | `sourceUri` | The upstream URL that produced the item | A4.1 |
@@ -556,13 +557,15 @@ The truncation field of a result whose tool bounds it. When nothing was truncate
 
 ### The index manifest record
 
-The manifest of the interim NCIt index (M4.1), as the index-manifest resource returns it: the release the index was built for, which resolve_release learns the index's release from.
+The manifest of the interim NCIt index (M4.1), as the index_manifest resource returns it: the release the index holds and how it was built. Its terminology and version name the release resolve_release names for the pinned release, and only those two are compared with it. Only an active index is served, so the record carries no activation state.
 
 | Field | Content | Rule |
 |---|---|---|
 | `terminology` | The terminology indexed, ncit | M4.1 |
 | `version` | The release the index holds, in the form resolve_release names it | M4.1 |
-| `concepts` | The number of concepts the index holds | M4.1 |
+| `concepts` | The number of concepts the index holds, a positive integer | M4.1 |
+| `embedding` | { provider, model, dimensions } of the embedding as the index records it | M4.1 |
+| `builtAt` | When the index was built, ISO-8601 | M4.1 |
 | `provenance` | The provenance record, its source evs_index and servedBy index | A4.4 |
 
 ### The error record
@@ -632,16 +635,17 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 ### Resources
 
 Listed by resources/list and resources/templates/list (M5.1); each is read with
-resources/read and equals the answer of the tool it names.
+resources/read, and its content is compared with the answer of the tool it names on
+identity and release, not section by section.
 
-| Resource | URI templates | Group | MIME type | Equals | What it is |
+| Resource | URI templates | Group | MIME type | Compared with | What it is |
 |---|---|---|---|---|---|
 | EVS concept | `ncit://concept/{release}/{code}` | evs | `application/json` | `get_concept(terminology: ncit, release: {release}, code: {code}, include: [synonyms, definitions, properties, semanticType])` | One NCIt concept of the release named, with every section get_concept offers. |
 | EVS release | `ncit://release/{version}` | evs | `application/json` | `resolve_release(terminology: ncit)` | An NCIt release the platform serves, as resolve_release names it: for the current monthly release, resolve_release's answer; for another served release, the same record of that release. `version` names which release. |
-| EVS index manifest | `ncit://index/manifest/{release}` | evs | `application/json` | `resolve_release(terminology: ncit)` | The manifest of the interim NCIt index (M4.1) built for the release named: the record resolve_release learns the index's release from. Its version is the release resolve_release names when the index holds the current monthly release. `release` names which release. |
+| EVS index manifest | `ncit://index/manifest/{release}` | evs | `application/json` | `resolve_release(terminology: ncit)` | The manifest of the interim NCIt index (M4.1) built for the release named, from which resolve_release learns the index's release. It is not resolve_release's answer: only its terminology and version are compared, and they name the release resolve_release names for the pinned release. Only an active index is served. `release` names which release. |
 | caDSR data element | `cadsr://data-element/{publicId}`<br>`cadsr://data-element/{publicId}/{version}` | cadsr | `application/json` | `get_data_element(publicId: {publicId}, version: {version})` | A data element at its latest version, or at the version named; its own version, never the registry's state (A3.8.1). |
-| caDSR registry release | `cadsr://registry/release` | cadsr | `application/json` | `resolve_registry_release()` | The registry's content state as resolve_registry_release reports it: unpinned, with the export's date, while caDSR publishes no registry release (X-21). |
-| caDSR CRDC crosswalk | `cadsr://crosswalk/crdc` | cadsr | `application/json` | `get_code_map(sourceSystem: CRDC, limit: 1000)` | The CRDC crosswalk, the code maps of get_code_map for sourceSystem CRDC, at its largest page so that the crosswalk (105 data elements today) is one read. |
+| caDSR registry release | `cadsr://registry/release` | cadsr | `application/json` | `resolve_registry_release()` | The registry's content state as resolve_registry_release reports it: unpinned, with the export's date, while caDSR publishes no registry release (X-21). The provenance the resource adds names the export folder's listing as its source (cadsr_export, A3.8.2), servedBy live, and the release in registry form without an identifier. |
+| caDSR CRDC crosswalk | `cadsr://crosswalk/crdc` | cadsr | `application/json` | `get_code_map(sourceSystem: CRDC, limit: 1000)` | The CRDC crosswalk, the code maps of get_code_map for sourceSystem CRDC, at its largest page so that the crosswalk (105 data elements today) is one read. A crosswalk larger than get_code_map's maximum (1,000) is reported as truncation in the content, never cut silently. |
 
 ### Prompts
 
@@ -649,8 +653,8 @@ Furnished by the government, listed by prompts/list (M5.1).
 
 A prompt is listed only in a profile that has every tool it names (M5.1). All four need both
 modules, so the evs and cadsr profiles list none and unified lists all four. Each starts from
-`resolve_release`, so that one release is pinned for the whole sequence, and names its tools in
-the order the caller makes the calls.
+`resolve_release`, so that one release is pinned for the whole sequence, and the tools it names,
+in order, are the order the caller makes the calls.
 
 There is at most one prompt for each use the Statements of Work name, and only where it adds
 something the tools do not. Decision: there is no prompt for grounding a value, because
@@ -662,7 +666,7 @@ something the tools do not. Decision: there is no prompt for grounding a value, 
 The sequence from a protocol's concepts to the forms that capture them, and the choice among candidate data elements.
 
 Arguments: `concepts`.
-Names, in order: `resolve_release`, `find_data_elements_for_concept`, `get_data_element`, `get_form`.
+The tools it names, in order: `resolve_release`, `find_data_elements_for_concept`, `get_data_element`, `get_form`.
 
     Help author the data capture of a protocol from its concepts: {concepts}.
 
@@ -678,7 +682,7 @@ Names, in order: `resolve_release`, `find_data_elements_for_concept`, `get_data_
 The order of the steps, and reading the alignment of the releases before trusting a join.
 
 Arguments: `field`, `commons`.
-Names, in order: `resolve_release`, `get_code_map`, `resolve_stored_value`, `get_release_alignment`.
+The tools it names, in order: `resolve_release`, `get_code_map`, `resolve_stored_value`, `get_release_alignment`.
 
     Align the CRDC model field {field} with its data element and with the values the commons {commons} stores for it.
 
@@ -694,7 +698,7 @@ Names, in order: `resolve_release`, `get_code_map`, `resolve_stored_value`, `get
 The curation checklist from a USCDI+ Cancer element to NCIt and caDSR.
 
 Arguments: `element`, `values` (optional).
-Names, in order: `resolve_release`, `search_concepts`, `ground_value`, `match_value_meanings`.
+The tools it names, in order: `resolve_release`, `search_concepts`, `ground_value`, `match_value_meanings`.
 
     Curate the USCDI+ Cancer element {element} against NCIt and caDSR. Example values, if any: {values}.
 
@@ -710,7 +714,7 @@ Names, in order: `resolve_release`, `search_concepts`, `ground_value`, `match_va
 The comparison across the two programs' results.
 
 Arguments: `first_dictionary`, `second_dictionary`.
-Names, in order: `resolve_release`, `harmonize_data_dictionary`, `find_data_elements_for_concept`.
+The tools it names, in order: `resolve_release`, `harmonize_data_dictionary`, `find_data_elements_for_concept`.
 
     Harmonize the data dictionaries of two programs onto shared data elements.
 
@@ -736,11 +740,11 @@ Names, in order: `resolve_release`, `harmonize_data_dictionary`, `find_data_elem
 | P-2 | Every tool declares an outputSchema that is valid JSON Schema and covers the error record, admitting one and refusing one with a code outside its closed set or with no code. | M3.1, error | `tests/test_protocol.py::test_every_output_schema_admits_the_error_record_and_refuses_a_malformed_one` | tested |
 | P-3 | No tool description, nor any description in a tool's schemas, contains placeholder, debug or development text. | A2.4, A10.3 | `tests/test_protocol.py::test_no_description_holds_placeholder_or_debug_text` | tested |
 | P-4 | Tool names are verb-led, lowercase and underscore-separated. | A2.1 | `tests/test_protocol.py::test_tool_names_are_verb_led_lowercase_and_underscore_separated` | tested |
-| P-5 | tools/list carries a positive ttlMs and cacheScope public. | M2.1, M2.2 | `tests/test_protocol.py::test_tools_list_may_be_cached_and_shared` | tested |
+| P-5 | tools/list, prompts/list, resources/list and resources/templates/list each carry a positive ttlMs and cacheScope public. | M2.1, M2.2 | `tests/test_protocol.py::test_each_list_may_be_cached_and_shared[tools]`, `tests/test_protocol.py::test_each_list_may_be_cached_and_shared[prompts]`, `tests/test_protocol.py::test_each_list_may_be_cached_and_shared[resources]`, `tests/test_protocol.py::test_each_list_may_be_cached_and_shared[templates]` | tested |
 | P-6 | tools/list is the same after content calls, a release-pinned EVS call among them, and while the platform is unavailable. | M1.2 | `tests/test_protocol.py::test_tools_list_is_the_same_after_a_content_call`, `tests/test_protocol.py::test_tools_list_is_the_same_while_the_platform_is_unavailable` | tested |
 | P-7 | A correlation identifier passed on a call is sent upstream on every platform request the call makes, and returned in the provenance of each item. | A6.2, M7.1 | `tests/test_protocol.py::test_a_correlation_identifier_goes_upstream_and_comes_back` | tested |
-| P-8 | prompts/list lists exactly the prompts of spec/prompts.yaml that the profile under test has every tool of, each with its arguments as stated, and prompts/get returns messages naming exactly the tools the prompt states, all of them tools of the profile; resources/list and resources/templates/list together list exactly the URI templates of spec/resources.yaml that the profile serves. A server without the prompts or resources capability fails. | M5.1 | `tests/test_protocol.py::test_prompts_list_names_the_prompts_of_the_profile_with_their_arguments`, `tests/test_protocol.py::test_a_prompt_returns_messages_naming_the_tools_it_states_and_only_tools_of_the_profile`, `tests/test_protocol.py::test_resources_and_templates_list_the_uri_templates_of_the_profile` | tested |
-| P-9 | resources/read of each resource the profile serves returns JSON content in the resource's MIME type that equals the answer of the tool the resource names, on identity and release, carries a provenance record with the fields X-7 requires, and carries ttlMs and cacheScope as fields of the result, equal to the hint that tool's answer carries. | M2.1, M2.5, A4.1, M5.1 | `tests/test_protocol.py::test_a_resource_read_equals_its_tool_s_answer_with_provenance_and_the_same_caching[concept]`, `tests/test_protocol.py::test_a_resource_read_equals_its_tool_s_answer_with_provenance_and_the_same_caching[release]`, `tests/test_protocol.py::test_a_resource_read_equals_its_tool_s_answer_with_provenance_and_the_same_caching[index_manifest]`, `tests/test_protocol.py::test_a_resource_read_equals_its_tool_s_answer_with_provenance_and_the_same_caching[data_element-publicId]`, `tests/test_protocol.py::test_a_resource_read_equals_its_tool_s_answer_with_provenance_and_the_same_caching[data_element-publicId-version]`, `tests/test_protocol.py::test_a_resource_read_equals_its_tool_s_answer_with_provenance_and_the_same_caching[registry]`, `tests/test_protocol.py::test_a_resource_read_equals_its_tool_s_answer_with_provenance_and_the_same_caching[crosswalk]` | tested |
+| P-8 | prompts/list lists exactly the prompts of spec/prompts.yaml that the profile under test has every tool of, each with its arguments as stated, and prompts/get returns messages naming, in order of first mention, exactly the tools the prompt states, in their stated order, all of them tools of the profile; resources/list lists exactly the concrete resources (URIs without a variable) and resources/templates/list exactly the URI templates of spec/resources.yaml that the profile serves. A server without the prompts or resources capability fails, even where the profile lists no prompt. | M5.1 | `tests/test_protocol.py::test_prompts_list_names_the_prompts_of_the_profile_with_their_arguments`, `tests/test_protocol.py::test_a_prompt_returns_messages_naming_the_tools_it_states_and_only_tools_of_the_profile`, `tests/test_protocol.py::test_resources_list_the_concrete_resources_and_templates_list_the_templates_of_the_profile` | tested |
+| P-9 | resources/read of each resource the profile serves returns JSON content in the resource's MIME type (parameters aside), compared with the answer of the tool the resource names on identity and release, not section by section; carries a provenance record with the fields X-7 requires and those spec/resources.yaml states for it, and for a caDSR resource the registry form of release; and carries ttlMs and cacheScope as fields of the result, of the class M2.2 gives what the resource holds (release-pinned content ttlMs above 0 and cacheScope public, unpinned content ttlMs above 0 and at most 3,600,000 and cacheScope public). The index manifest states its concepts, embedding and builtAt. resources/read of a URI that no listed resource or template matches is an error, never content. | M2.1, M2.2, M2.5, A4.1, M4.1, M5.1 | `tests/test_protocol.py::test_a_uri_no_resource_or_template_matches_is_an_error_and_never_content[ncit://concept/C4817]`, `tests/test_protocol.py::test_a_uri_no_resource_or_template_matches_is_an_error_and_never_content[ncit://nothing/x]`, `tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[concept]`, `tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[release]`, `tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[index_manifest]`, `tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[data_element-publicId]`, `tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[data_element-publicId-version]`, `tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[registry]`, `tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[crosswalk]`, `tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[concept]`, `tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[release]`, `tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[index_manifest]`, `tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[data_element-publicId]`, `tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[data_element-publicId-version]`, `tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[registry]`, `tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[crosswalk]`, `tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[concept]`, `tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[release]`, `tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[index_manifest]`, `tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[data_element-publicId]`, `tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[data_element-publicId-version]`, `tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[registry]`, `tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[crosswalk]`, `tests/test_protocol.py::test_the_index_manifest_states_what_the_index_holds[index_manifest]` | tested |
 | P-10 | Every tool declares readOnlyHint true, destructiveHint false, idempotentHint true and openWorldHint true. | M1.4 | `tests/test_protocol.py::test_every_tool_is_annotated_read_only_idempotent_and_open_world` | tested |
 | P-11 | No tool description shows an operator, wildcard, filter syntax or parameter value that a tool test shows unsupported. | A2.3, A10.3 | `tests/test_protocol.py::test_no_description_or_schema_shows_what_the_tool_does_not_offer` | tested |
 | P-12 | Each tool takes the parameters the specification names for it, under those names, and requires exactly those not marked optional, so that equivalent operations of the two modules share parameter names. | A2.2 | `tests/test_protocol.py::test_each_tool_takes_the_parameters_the_specification_names` | tested |

@@ -6,5 +6,6 @@ This is the specification of the required MCP tools and their behavior furnished
 Prototype Baseline Package. The Statements of Work frame and bound its scope; within that scope
 it is the source of record for what the tools do. Its source is data: the conventions
 (`spec/conventions.yaml`), the tools (`spec/tools.yaml`), the resources and prompts
-(`spec/resources.yaml`, `spec/prompts.yaml`) and the requirements (`spec/requirements.yaml`). The server implements the tools, and the acceptance suite tests the
-requirements, each test citing the requirements it enforces by id.
+(`spec/resources.yaml`, `spec/prompts.yaml`) and the requirements (`spec/requirements.yaml`).
+The server implements the tools, and the acceptance suite tests the requirements, each test
+citing the requirements it enforces by id.

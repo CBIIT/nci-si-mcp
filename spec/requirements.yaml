@@ -21,7 +21,7 @@ P-4:
   statement: Tool names are verb-led, lowercase and underscore-separated.
   basis: [A2.1]
 P-5:
-  statement: tools/list carries a positive ttlMs and cacheScope public.
+  statement: tools/list, prompts/list, resources/list and resources/templates/list each carry a positive ttlMs and cacheScope public.
   basis: [M2.1, M2.2]
 P-6:
   statement: tools/list is the same after content calls, a release-pinned EVS call among them, and while the platform is unavailable.
@@ -30,11 +30,11 @@ P-7:
   statement: A correlation identifier passed on a call is sent upstream on every platform request the call makes, and returned in the provenance of each item.
   basis: [A6.2, M7.1]
 P-8:
-  statement: prompts/list lists exactly the prompts of spec/prompts.yaml that the profile under test has every tool of, each with its arguments as stated, and prompts/get returns messages naming exactly the tools the prompt states, all of them tools of the profile; resources/list and resources/templates/list together list exactly the URI templates of spec/resources.yaml that the profile serves. A server without the prompts or resources capability fails.
+  statement: prompts/list lists exactly the prompts of spec/prompts.yaml that the profile under test has every tool of, each with its arguments as stated, and prompts/get returns messages naming, in order of first mention, exactly the tools the prompt states, in their stated order, all of them tools of the profile; resources/list lists exactly the concrete resources (URIs without a variable) and resources/templates/list exactly the URI templates of spec/resources.yaml that the profile serves. A server without the prompts or resources capability fails, even where the profile lists no prompt.
   basis: [M5.1]
 P-9:
-  statement: resources/read of each resource the profile serves returns JSON content in the resource's MIME type that equals the answer of the tool the resource names, on identity and release, carries a provenance record with the fields X-7 requires, and carries ttlMs and cacheScope as fields of the result, equal to the hint that tool's answer carries.
-  basis: [M2.1, M2.5, A4.1, M5.1]
+  statement: resources/read of each resource the profile serves returns JSON content in the resource's MIME type (parameters aside), compared with the answer of the tool the resource names on identity and release, not section by section; carries a provenance record with the fields X-7 requires and those spec/resources.yaml states for it, and for a caDSR resource the registry form of release; and carries ttlMs and cacheScope as fields of the result, of the class M2.2 gives what the resource holds (release-pinned content ttlMs above 0 and cacheScope public, unpinned content ttlMs above 0 and at most 3,600,000 and cacheScope public). The index manifest states its concepts, embedding and builtAt. resources/read of a URI that no listed resource or template matches is an error, never content.
+  basis: [M2.1, M2.2, M2.5, A4.1, M4.1, M5.1]
 P-10:
   statement: Every tool declares readOnlyHint true, destructiveHint false, idempotentHint true and openWorldHint true.
   basis: [M1.4]

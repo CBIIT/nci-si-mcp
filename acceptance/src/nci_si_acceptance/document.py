@@ -168,7 +168,11 @@ def _prompt(name: str, prompt: dict[str, Any]) -> list[str]:
         for each in prompt["arguments"]
     )
     header = [f"#### `{name}`: {prompt['title']}", "", _cell(prompt["adds"]), ""]
-    header += [f"Arguments: {arguments}.", f"Names, in order: {_names(prompt['tools'])}.", ""]
+    header += [
+        f"Arguments: {arguments}.",
+        f"The tools it names, in order: {_names(prompt['tools'])}.",
+        "",
+    ]
     lines = [f"    {line}".rstrip() for line in prompt["template"].rstrip().splitlines()]
     return [*header, *lines, ""]
 
@@ -180,8 +184,9 @@ def _names(tools: list[str]) -> str:
 def _resources_and_prompts() -> list[str]:
     lines = ["## 3. Prompts and resources", "", "### Resources", ""]
     lines += ["Listed by resources/list and resources/templates/list (M5.1); each is read with"]
-    lines += ["resources/read and equals the answer of the tool it names.", ""]
-    lines += ["| Resource | URI templates | Group | MIME type | Equals | What it is |"]
+    lines += ["resources/read, and its content is compared with the answer of the tool it names on"]
+    lines += ["identity and release, not section by section.", ""]
+    lines += ["| Resource | URI templates | Group | MIME type | Compared with | What it is |"]
     lines += ["|---|---|---|---|---|---|"]
     lines += [_resource_row(resource) for resource in RESOURCES.values()]
     lines += ["", "### Prompts", ""]

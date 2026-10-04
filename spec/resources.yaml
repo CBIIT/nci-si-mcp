@@ -1,24 +1,38 @@
 # The resources the server furnishes, three of EVS and three of caDSR, in parallel: an item, a
-# release, a published set. A resource is read with resources/read; its content equals the
-# answer of the tool it names, called with that tool's arguments as the template fills them.
-# The tool's answer is compared on identity (code, public id and version) and release, not byte
-# for byte, and the read result carries the caching hint (ttlMs, cacheScope) that tool's answer
-# carries (M2.1, M2.2, M2.5). Where the tool's answer carries no provenance record
+# release, a published set. A resource is read with resources/read; its content is compared
+# with the answer of the tool it names, called with that tool's arguments as the template fills
+# them. The comparison is on identity (code, public id and version) and release, not section by
+# section and not byte for byte. Where the tool's answer carries no provenance record
 # (resolve_registry_release's), the resource adds one (A4.1).
 #
-#   uri        the URI templates; each `{name}` is a variable the caller fills
+# The read result carries the caching hint (ttlMs, cacheScope) as fields of the result (M2.1,
+# M2.5), of the class M2.2 gives what the resource holds, not the tool's own hint:
+#   release-pinned content   ttlMs above 0, long (above 3,600,000) allowed, cacheScope public
+#   unpinned content         ttlMs above 0 and at most 3,600,000, cacheScope public
+#   computed content         ttlMs 0, cacheScope private (no resource holds any today)
+#
+#   uri        the URI templates; each `{name}` is a variable the caller fills. A URI without
+#              a variable is a concrete resource (resources/list); one with variables is a
+#              template (resources/templates/list), and resources/read of a URI that neither
+#              a listed resource nor a template matches is an error (M5.1)
 #   group      the profile group that serves it: evs or cadsr (a unified server serves both)
-#   mime       the MIME type of the content
+#   mime       the base MIME type of the content (parameters such as charset are not compared)
 #   returns    the record the content is, in records.yaml (or its shape in the tools.yaml form)
-#   tool       the tool whose answer the content equals
+#   tool       the tool whose answer the content is compared with
 #   arguments  that tool's arguments; a value `{name}` is the template's variable, and an
 #              argument whose variable the template lacks is left out (the latest version)
 #   selects    variables that name which release the content is of, and are no argument
+#   holds      the class of what the content is: release-pinned (EVS content, which the release
+#              in the URI pins) or unpinned (caDSR registry content, which no release pins, X-21)
+#   compared   what the content is compared on: identity and release (the default), or identity
+#              alone, where the record is not the tool's answer
+#   provenance fields the resource's provenance record must carry, beyond those X-7 requires
 #   prepared   the content is served from the interim index, which the suite's prepare step builds
 #
 # The release is mandatory for every concept read (the EVS SOW: "structurally required for every
 # live, cached, and indexed concept ... request"), so it is a variable of the concept's URI. The
-# caDSR resources take no registry release, as the caDSR tools do without one (X-21).
+# caDSR resources take no registry release, as the caDSR tools do without one (X-21), so their
+# provenance names the registry alone: release {registry: cadsr}.
 # acceptance/selftests/test_spec.py holds the rules these entries follow.
 
 concept:
@@ -33,6 +47,7 @@ concept:
     release: "{release}"
     code: "{code}"
     include: [synonyms, definitions, properties, semanticType]
+  holds: release-pinned
   summary: One NCIt concept of the release named, with every section get_concept offers.
 release:
   title: EVS release
@@ -43,6 +58,7 @@ release:
   tool: resolve_release
   arguments: {terminology: ncit}
   selects: [version]
+  holds: release-pinned
   summary: >-
     An NCIt release the platform serves, as resolve_release names it: for the current monthly
     release, resolve_release's answer; for another served release, the same record of that
@@ -56,11 +72,15 @@ index_manifest:
   tool: resolve_release
   arguments: {terminology: ncit}
   selects: [release]
+  holds: release-pinned
+  compared: identity
+  provenance: {source: evs_index, servedBy: index}
   prepared: true
   summary: >-
-    The manifest of the interim NCIt index (M4.1) built for the release named: the record
-    resolve_release learns the index's release from. Its version is the release resolve_release
-    names when the index holds the current monthly release.
+    The manifest of the interim NCIt index (M4.1) built for the release named, from which
+    resolve_release learns the index's release. It is not resolve_release's answer: only its
+    terminology and version are compared, and they name the release resolve_release names for
+    the pinned release. Only an active index is served.
 data_element:
   title: caDSR data element
   uri: ["cadsr://data-element/{publicId}", "cadsr://data-element/{publicId}/{version}"]
@@ -69,6 +89,7 @@ data_element:
   returns: data_element
   tool: get_data_element
   arguments: {publicId: "{publicId}", version: "{version}"}
+  holds: unpinned
   summary: >-
     A data element at its latest version, or at the version named; its own version, never the
     registry's state (A3.8.1).
@@ -80,9 +101,13 @@ registry:
   returns: registry_release
   tool: resolve_registry_release
   arguments: {}
+  holds: unpinned
+  provenance: {source: cadsr_export, servedBy: live}
   summary: >-
     The registry's content state as resolve_registry_release reports it: unpinned, with the
-    export's date, while caDSR publishes no registry release (X-21).
+    export's date, while caDSR publishes no registry release (X-21). The provenance the
+    resource adds names the export folder's listing as its source (cadsr_export, A3.8.2),
+    servedBy live, and the release in registry form without an identifier.
 crosswalk:
   title: caDSR CRDC crosswalk
   uri: ["cadsr://crosswalk/crdc"]
@@ -91,6 +116,9 @@ crosswalk:
   returns: "{ codeMaps[code_map], nextCursor? }"
   tool: get_code_map
   arguments: {sourceSystem: CRDC, limit: 1000}
+  holds: unpinned
   summary: >-
     The CRDC crosswalk, the code maps of get_code_map for sourceSystem CRDC, at its largest
-    page so that the crosswalk (105 data elements today) is one read.
+    page so that the crosswalk (105 data elements today) is one read. A crosswalk larger than
+    get_code_map's maximum (1,000) is reported as truncation in the content, never cut
+    silently.

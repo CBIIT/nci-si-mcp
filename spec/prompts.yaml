@@ -7,7 +7,7 @@
 #   arguments  the arguments prompts/get takes: name, required and description. They are
 #              declared plainly: the caller's text is substituted into the template, and a
 #              tool call made from it is held to its own rules (A7.7)
-#   tools      the tools the template names, in the order it first names them
+#   tools      the tools it names, in order (of first mention in the template)
 #   adds       what the prompt adds to the tools it names
 #   template   the text, furnished by the government; `{name}` is an argument's value
 #

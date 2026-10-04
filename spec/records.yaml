@@ -21,8 +21,10 @@ provenance:
           item's own version and dateModified identify it, with retrievedAt beside them (A3.8.2)
       of: A3.3
     source:
-      content: The surface that supplied the item
-      values: [evs_rest, evs_fhir, evs_index, cadsr_rest, ssis_facade, ssis_sparql]
+      content: >-
+        The surface that supplied the item; cadsr_export is the caDSR export folder's listing,
+        the only source of the registry's content state (A3.8.2)
+      values: [evs_rest, evs_fhir, evs_index, cadsr_rest, cadsr_export, ssis_facade, ssis_sparql]
       of: A4.1
     servedBy:
       content: Where the answer came from
@@ -752,8 +754,10 @@ truncation:
 index_manifest:
   title: The index manifest record
   about: >-
-    The manifest of the interim NCIt index (M4.1), as the index-manifest resource returns it:
-    the release the index was built for, which resolve_release learns the index's release from.
+    The manifest of the interim NCIt index (M4.1), as the index_manifest resource returns it: the
+    release the index holds and how it was built. Its terminology and version name the release
+    resolve_release names for the pinned release, and only those two are compared with it. Only
+    an active index is served, so the record carries no activation state.
   fields:
     terminology:
       content: The terminology indexed, ncit
@@ -762,7 +766,13 @@ index_manifest:
       content: The release the index holds, in the form resolve_release names it
       of: M4.1
     concepts:
-      content: The number of concepts the index holds
+      content: The number of concepts the index holds, a positive integer
+      of: M4.1
+    embedding:
+      content: "{ provider, model, dimensions } of the embedding as the index records it"
+      of: M4.1
+    builtAt:
+      content: When the index was built, ISO-8601
       of: M4.1
     provenance:
       content: The provenance record, its source evs_index and servedBy index
