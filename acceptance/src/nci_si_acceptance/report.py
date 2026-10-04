@@ -1,7 +1,8 @@
 """The per-tool report (docs/specification.md §5).
 
 A run of the suite writes one report per run mode (`pytest --report=PATH`), with the
-final outcome of every test and the identity of the suite (suite_identity.py). A test counts for
+final outcome of every test, the transport of the run (stdio, or streamable-http for a remote
+server) and the identity of the suite (suite_identity.py). A test counts for
 the tool its `tool` marker names; a test marked `gate` gates every tool (§4). One run gives
 each required tool one outcome:
 
@@ -42,6 +43,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 import yaml
 
+from nci_si_acceptance.client import withhold_authorization
 from nci_si_acceptance.spec import REQUIRED_TOOLS
 from nci_si_acceptance.suite import FIXTURE_ONLY as FIXTURE_ONLY_SKIP
 from nci_si_acceptance.suite import UnmatchedUpstream
@@ -126,6 +128,8 @@ class Collector:
         # Which tool stands for each required one; None until a server has started.
         self.implemented_as: dict[str, str | None] | None = None
         self.listing_bytes: int | None = None
+        # Set from the target at the end of the run; the default is the harness's original one.
+        self.transport = "stdio"
 
     def record(self, report: pytest.TestReport, tool: str | None, gate: bool) -> None:
         outcome = _phase_outcome(report)
@@ -166,6 +170,7 @@ class Collector:
         rows = {name: self._row(name, group, bool(gates)) for name, group in REQUIRED_TOOLS.items()}
         return {
             "mode": mode,
+            "transport": self.transport,
             "failed_gates": gates,
             "unrun_gates": self._gates(UNRUN),
             "tools_list_bytes": self.listing_bytes,
@@ -275,12 +280,24 @@ def pytest_configure(config: pytest.Config) -> None:
 @pytest.hookimpl(wrapper=True)
 def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[None]) -> Any:
     report = yield
+    withhold_from(report)
     if call.excinfo is not None and isinstance(call.excinfo.value, UnmatchedUpstream):
         report.user_properties.append((UNMATCHED, call.excinfo.value.requests))
     marker = item.get_closest_marker("tool")
     tool = marker.args[0] if marker else None
     item.config.stash[COLLECTOR].record(report, tool, item.get_closest_marker("gate") is not None)
     return report
+
+
+def withhold_from(report: pytest.TestReport) -> None:
+    """Keep the operator's credential out of a failure's text and captured output, where a
+    server that echoes it back would otherwise show it."""
+
+    if report.longrepr is not None and not isinstance(report.longrepr, tuple):
+        shown = str(report.longrepr)
+        if (clean := withhold_authorization(shown)) != shown:
+            report.longrepr = clean
+    report.sections = [(name, withhold_authorization(text)) for name, text in report.sections]
 
 
 def suite_state(config: pytest.Config) -> dict[str, str]:
@@ -313,11 +330,27 @@ def write_report(config: pytest.Config, mode: str) -> None:
     path = config.getoption("report")
     if path:
         report = config.stash[COLLECTOR].report(mode) | {"suite": config.stash[SUITE]}
-        Path(path).write_text(json.dumps(report, indent=2) + "\n")
+        Path(path).write_text(json.dumps(withheld(report), indent=2) + "\n")
+
+
+def withheld(value: Any) -> Any:
+    """`value` with the operator's credential out of every string in it: before it is written as
+    JSON, where a credential with quotes, backslashes or non-ASCII characters would be escaped
+    and so no longer found."""
+
+    if isinstance(value, str):
+        return withhold_authorization(value)
+    if isinstance(value, dict):
+        return {key: withheld(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [withheld(item) for item in value]
+    return value
 
 
 def _read(path: Path, mode: str) -> dict[str, Any]:
     report = json.loads(path.read_text(encoding="utf-8"))
+    if "transport" not in report:
+        raise SystemExit(f"{path} was written by an older suite; re-run it")
     if report["mode"] != mode:
         raise SystemExit(f"{path} is the report of a {report['mode']} run, not of a {mode} run")
     return report
@@ -338,10 +371,13 @@ def main(arguments: Iterable[str] | None = None) -> int:
         if options.limitations:
             limitations = yaml.safe_load(options.limitations.read_text(encoding="utf-8")) or {}
         combined = combine(fixture, live, limitations)
-        modes = "fixture and live"
+        modes = f"fixture ({fixture['transport']}) and live ({live['transport']})"
     else:
         combined = {name: (row["outcome"], []) for name, row in fixture["tools"].items()}
-        modes = "fixture only; the live run is not included, so no outcome here is final"
+        modes = (
+            f"fixture ({fixture['transport']}) only; "
+            "the live run is not included, so no outcome here is final"
+        )
     sys.stdout.write(render(fixture, combined, modes))
     return 0
 

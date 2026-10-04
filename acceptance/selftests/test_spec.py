@@ -3,9 +3,11 @@ and the tools of a profile."""
 
 import json
 import re
+from pathlib import Path
 
 import pytest
 
+from nci_si_acceptance import client
 from nci_si_acceptance.client import CREDENTIAL_VARIABLES, INDEX_CODES_VARIABLE
 from nci_si_acceptance.fixture_server import HARNESS_VARIABLES, SCENARIOS, SETTINGS
 from nci_si_acceptance.record import FIXTURES
@@ -136,10 +138,17 @@ def test_a_tool_s_defaults_are_its_stated_defaults_and_its_bounds_defaults(tool)
     }
 
 
+def _section(heading):
+    """The text of the specification's section `heading`, up to the next one."""
+
+    text = (SPEC / "acceptance.md").read_text(encoding="utf-8")
+    return text.partition(f"### {heading}")[2].partition("\n### ")[0]
+
+
 def _settings_rows():
     """Each setting the specification says the suite gives a server, with when it does."""
 
-    rows = (SPEC / "acceptance.md").read_text(encoding="utf-8").splitlines()
+    rows = _section("Settings the suite gives a server").splitlines()
     cells = [row.split(" | ") for row in rows if row.startswith("| `NCI_SI_")]
     return {name: when for first, when, _ in cells for name in re.findall(r"`(NCI_SI_\w+)`", first)}
 
@@ -379,3 +388,23 @@ def test_the_names_a_text_holds_are_the_required_tools_once_each_in_order():
 )
 def test_a_word_names_a_tool_only_as_a_whole_word(text, names_get_form):
     assert (tools_named(text) == ["get_form"]) is names_get_form
+
+
+def test_the_specification_names_every_setting_of_a_run_and_the_readme_every_remote_one():
+    operator = {
+        value
+        for name, value in vars(client).items()
+        if name.endswith("_VARIABLE")
+        and value.startswith("NCI_SI_ACCEPTANCE_")
+        and value != INDEX_CODES_VARIABLE
+    }
+    rows = _section("Settings of a run")
+    readme = (Path(__file__).parents[1] / "README.md").read_text(encoding="utf-8")
+    remote = {name for name in operator if name.partition("NCI_SI_ACCEPTANCE_")[2] not in LOCAL}
+
+    assert set(re.findall(r"^\| `(NCI_SI_ACCEPTANCE_\w+)`", rows, re.MULTILINE)) == operator
+    assert {name for name in remote if f"`{name}`" not in readme} == set()
+
+
+# The settings of a run that starts its server as a command, which the README's examples show.
+LOCAL = {"MODE", "SERVER", "PROFILE", "PREPARE"}

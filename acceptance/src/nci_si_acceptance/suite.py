@@ -3,13 +3,19 @@ which upstream requests a test may leave without a fixture."""
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pytest
+import yaml
+
+from nci_si_acceptance.fixture_server import MANIFEST
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+FIXTURES = Path(__file__).parents[2] / "fixtures"
 LIVE_CAPABLE = "live_capable"
 SCENARIO = "scenario"
 # A test marked so runs against a server process of its own, as a scenario test does.
@@ -23,6 +29,11 @@ PREPARED = "prepared"
 # before its operator has prepared anything.
 UNPREPARED = "unprepared"
 NOT_PREPARED = "NOT RUN: no prepare command (NCI_SI_ACCEPTANCE_PREPARE)"
+NOT_DECLARED_PREPARED = "NOT RUN: the server is not declared prepared (NCI_SI_ACCEPTANCE_PREPARED)"
+# What a remote server cannot give a test: a state of its own without an operator's state-change
+# hook, and one without the index at all.
+NEEDS_STATE_HOOK = "needs a server of its own (NCI_SI_ACCEPTANCE_STATE_HOOK)"
+CANNOT_UNPREPARE = "needs a server without the index, which a remote server cannot be made"
 
 
 class UnmatchedUpstream(pytest.fail.Exception):
@@ -52,13 +63,43 @@ def skip_fixture_only(items: Iterable[pytest.Item]) -> None:
             item.add_marker(skip)
 
 
-def skip_unprepared(items: Iterable[pytest.Item]) -> None:
-    """What a run without a prepare command does: skip every test that needs its result."""
+def skip_unprepared(items: Iterable[pytest.Item], reason: str = NOT_PREPARED) -> None:
+    """What a run without a prepare command (or a remote server not declared prepared) does:
+    skip every test that needs its result."""
 
-    skip = pytest.mark.skip(reason=NOT_PREPARED)
+    skip = pytest.mark.skip(reason=reason)
     for item in items:
         if item.get_closest_marker(PREPARED) is not None:
             item.add_marker(skip)
+
+
+def _needs_own_server(item: pytest.Item) -> bool:
+    return bool(scenarios_of(item)) or item.get_closest_marker(OWN_SERVER) is not None
+
+
+def skip_remote_own_servers(items: Iterable[pytest.Item], has_hook: bool) -> None:
+    """What a fixture-mode run against a remote server does: skip the tests that need a server
+    without the index, which cannot be made of it, and, without the operator's state-change
+    hook, those that need a server of their own."""
+
+    for item in items:
+        if item.get_closest_marker(UNPREPARED) is not None:
+            item.add_marker(pytest.mark.skip(reason=CANNOT_UNPREPARE))
+        elif not has_hook and _needs_own_server(item):
+            item.add_marker(pytest.mark.skip(reason=NEEDS_STATE_HOOK))
+
+
+def order_for_state_changes(items: list[pytest.Item]) -> None:
+    """Order a run so that the operator's state-change hook runs as seldom as it can: the tests
+    on the server as the operator left it first, then those that need a server of their own,
+    then each scenario's together. The order within each group is kept."""
+
+    def rank(item: pytest.Item) -> tuple[int, tuple[str, ...]]:
+        if scenarios := scenarios_of(item):
+            return 2, scenarios
+        return int(_needs_own_server(item)), ()
+
+    items.sort(key=rank)
 
 
 def index_set(manifest: dict[str, Any]) -> list[str]:
@@ -86,3 +127,14 @@ def unmatched_requests(log: Iterable[dict[str, Any]]) -> list[str]:
         for entry in log
         if entry["fixture"] is None
     ]
+
+
+def main() -> None:
+    """Print the index set, one code per line: what an operator prepares a remote server with."""
+
+    manifest = yaml.safe_load((FIXTURES / MANIFEST).read_text(encoding="utf-8"))
+    sys.stdout.write("".join(f"{code}\n" for code in index_set(manifest)))
+
+
+if __name__ == "__main__":
+    main()

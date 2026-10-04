@@ -574,9 +574,12 @@ def _ignored_by_path(layers: list[Fixtures]) -> dict[tuple[str, str, str], froze
 
 
 class FixtureServer:
-    """The fixture upstream on a free local port, served from a background thread."""
+    """The fixture upstream, by default on a free local port, served from a background thread.
 
-    def __init__(self, fixtures: FixtureSet) -> None:
+    `address` is where it listens; `url` is how the harness itself reaches it.
+    """
+
+    def __init__(self, fixtures: FixtureSet, address: tuple[str, int] = ("127.0.0.1", 0)) -> None:
         self.fixtures = fixtures
         self._layers: list[Fixtures] = []
         self._recordings: list[Concepts] = []
@@ -585,8 +588,10 @@ class FixtureServer:
         self._served: dict[str, int] = {}
         self._log: list[dict[str, Any]] = []
         self._lock = threading.Lock()
-        self._http = ThreadingHTTPServer(("127.0.0.1", 0), _handler(self))
-        self.url = f"http://127.0.0.1:{self._http.server_port}"
+        self._http = ThreadingHTTPServer(address, _handler(self))
+        # A wildcard address is not one to connect to.
+        host = address[0] if address[0] != "0.0.0.0" else "127.0.0.1"  # noqa: S104
+        self.url = f"http://{host}:{self._http.server_port}"
         self._thread = threading.Thread(target=self._http.serve_forever, daemon=True)
         self.activate()
 

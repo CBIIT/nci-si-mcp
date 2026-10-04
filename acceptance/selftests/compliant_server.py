@@ -116,6 +116,13 @@ requirements, for the harness's own tests.
 `COMPLIANT_SERVER_PAGE_SIZE` makes prompts/list, resources/list and resources/templates/list
 page, that many items to a page with a nextCursor: a server that pages passes all the same (M6.1).
 
+`COMPLIANT_SERVER_TRANSPORT=http` serves streamable HTTP on 127.0.0.1 at `COMPLIANT_SERVER_PORT`
+in place of stdio, as a remote server. It answers 401 unless the Authorization header is
+`COMPLIANT_SERVER_AUTHORIZATION` (where that is set), and appends the header of each request to
+the file `COMPLIANT_SERVER_AUTH_LOG` names.
+
+`COMPLIANT_SERVER_NO_CACHE=1` makes the server ask EVS again for a call it has answered.
+
 `COMPLIANT_SERVER_PROFILE` names the profile the server serves, evs by default: the tools it
 lists, the resources it serves and the prompts it lists (those whose every tool the profile
 has, so none in evs). A resource's content is its tool's answer, called as spec/resources.yaml
@@ -154,11 +161,13 @@ from urllib.parse import quote, urlencode
 
 import anyio
 import mcp_types as types
+import uvicorn
 import yaml
 from mcp.server.caching import CacheHint
 from mcp.server.lowlevel.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.shared.exceptions import MCPError
+from starlette.responses import PlainTextResponse
 
 from nci_si_acceptance.results import EXPORT, SHORT_TTL, UNPINNED_REGISTRY
 from nci_si_acceptance.spec import (
@@ -178,6 +187,13 @@ from nci_si_acceptance.spec import (
 DEFECT = os.environ.get("COMPLIANT_SERVER_DEFECT", "")
 PROFILE = os.environ.get("COMPLIANT_SERVER_PROFILE", "evs")
 PAGE_SIZE = int(os.environ.get("COMPLIANT_SERVER_PAGE_SIZE", "0"))
+TRANSPORT = os.environ.get("COMPLIANT_SERVER_TRANSPORT", "stdio")
+PORT = int(os.environ.get("COMPLIANT_SERVER_PORT", "0"))
+# A server that remembers nothing between calls, so that a harness run after another finds it
+# asking EVS again (the probe of a remote server sees a request only from a server that asks).
+NO_CACHE = bool(os.environ.get("COMPLIANT_SERVER_NO_CACHE"))
+AUTHORIZATION = os.environ.get("COMPLIANT_SERVER_AUTHORIZATION")
+AUTHORIZATION_LOG = os.environ.get("COMPLIANT_SERVER_AUTH_LOG")
 EVS = os.environ["NCI_SI_EVS_BASE_URL"]
 TIMEOUT = float(os.environ.get("NCI_SI_TIMEOUT_SECONDS", "10"))
 LICENCE_KEY = os.environ.get("NCI_SI_EVS_LICENSE_KEY")
@@ -817,7 +833,10 @@ def _answer(name: str, arguments: dict, correlation: str) -> tuple[object, bool]
                 return {}, False
             return _error(code, status, body, correlation), True
         answered[call] = body
-    return _content(name, arguments, correlation, answered.get(call, {})), False
+    content = _content(name, arguments, correlation, answered.get(call, {}))
+    if NO_CACHE:
+        answered.clear()
+    return content, False
 
 
 def _meta() -> dict:
@@ -1138,7 +1157,35 @@ SERVER = Server(
 )
 
 
+def _note_authorization(given: str) -> None:
+    if AUTHORIZATION_LOG:
+        with Path(AUTHORIZATION_LOG).open("a", encoding="utf-8") as log:
+            log.write(given + "\n")
+
+
+def _checked(app):
+    """The app, answering 401 to a request without the expected Authorization header, and
+    noting the header each request brought."""
+
+    async def checked(scope, receive, send):
+        if scope["type"] == "http":
+            given = dict(scope["headers"]).get(b"authorization", b"").decode()
+            _note_authorization(given)
+            if AUTHORIZATION is not None and given != AUTHORIZATION:
+                await PlainTextResponse("unauthorized", status_code=401)(scope, receive, send)
+                return
+        await app(scope, receive, send)
+
+    return checked
+
+
 async def main() -> None:
+    if TRANSPORT == "http":
+        config = uvicorn.Config(
+            _checked(SERVER.streamable_http_app()), host="127.0.0.1", port=PORT, log_level="warning"
+        )
+        await uvicorn.Server(config).serve()
+        return
     async with stdio_server() as (read, write):
         await SERVER.run(read, write, SERVER.create_initialization_options())
 

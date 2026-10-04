@@ -1,16 +1,27 @@
 """The rules of a run: what a live run skips, which scenarios a test selects, and which
 requests lacked a fixture."""
 
+import tomllib
+from pathlib import Path
+
 import pytest
+import yaml
 
 from nci_si_acceptance.suite import (
+    CANNOT_UNPREPARE,
+    FIXTURES,
     LIVE_CAPABLE,
+    NEEDS_STATE_HOOK,
+    NOT_DECLARED_PREPARED,
     NOT_PREPARED,
     PREPARED,
     UnmatchedUpstream,
     index_set,
+    main,
+    order_for_state_changes,
     scenarios_of,
     skip_fixture_only,
+    skip_remote_own_servers,
     skip_unprepared,
     unmatched_requests,
 )
@@ -106,3 +117,64 @@ def test_the_index_set_is_every_concept_recorded_with_its_summary_in_the_manifes
     }
 
     assert index_set(manifest) == ["C4817", "C17049", "C3262"]
+
+
+def test_a_remote_server_not_declared_prepared_skips_the_tests_that_need_the_index():
+    needs = Item(getattr(pytest.mark, PREPARED))
+
+    skip_unprepared([needs], NOT_DECLARED_PREPARED)
+
+    assert needs.get_closest_marker("skip").kwargs == {"reason": NOT_DECLARED_PREPARED}
+
+
+def test_a_remote_server_without_a_state_hook_skips_the_tests_needing_a_server_of_its_own():
+    scenario = Item(pytest.mark.scenario("release/unknown"))
+    own = Item(pytest.mark.own_server)
+    ordinary = Item()
+
+    skip_remote_own_servers([scenario, own, ordinary], has_hook=False)
+
+    assert scenario.get_closest_marker("skip").kwargs == {"reason": NEEDS_STATE_HOOK}
+    assert own.get_closest_marker("skip").kwargs == {"reason": NEEDS_STATE_HOOK}
+    assert ordinary.get_closest_marker("skip") is None
+
+
+def test_a_state_hook_leaves_those_tests_to_run_but_not_one_without_the_index():
+    scenario = Item(pytest.mark.scenario("release/unknown"))
+    unprepared = Item(pytest.mark.unprepared, pytest.mark.own_server)
+
+    skip_remote_own_servers([scenario, unprepared], has_hook=True)
+
+    assert scenario.get_closest_marker("skip") is None
+    assert unprepared.get_closest_marker("skip").kwargs == {"reason": CANNOT_UNPREPARE}
+
+
+def test_a_run_with_a_state_hook_keeps_the_server_as_the_operator_left_it_first():
+    ordinary = Item()
+    own = Item(pytest.mark.own_server)
+    one = Item(pytest.mark.scenario("a/one"))
+    other_one = Item(pytest.mark.scenario("a/one"))
+    two = Item(pytest.mark.scenario("a/two"))
+    items = [two, one, own, ordinary, other_one]
+
+    order_for_state_changes(items)
+
+    assert items == [ordinary, own, one, other_one, two]
+
+
+def test_the_index_codes_command_prints_the_index_set_of_the_manifest_one_code_per_line(capsys):
+    manifest = yaml.safe_load((FIXTURES / "manifest.yaml").read_text(encoding="utf-8"))
+
+    main()
+
+    printed = capsys.readouterr().out
+    assert printed.splitlines() == index_set(manifest)
+    assert len(printed.splitlines()) > 1
+
+
+def test_the_index_codes_command_is_a_script_of_the_project():
+    project = tomllib.loads(Path(__file__).parents[2].joinpath("pyproject.toml").read_text())
+
+    assert project["tool"]["pdm"]["scripts"]["acceptance-index-codes"] == (
+        "python -m nci_si_acceptance.suite"
+    )

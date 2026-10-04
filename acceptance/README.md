@@ -2,7 +2,8 @@
 
 The behavioural acceptance suite for the NCI SI MCP tools, which tests the requirements of the
 [specification](../docs/specification.md), and the upstream fixture server it runs against. It tests the MCP
-tool surface of a server it starts as a command; it knows nothing of the server's code.
+tool surface of a server it starts as a command or of a remote one it connects to; it knows
+nothing of the server's code.
 
 From the repository root:
 
@@ -10,8 +11,10 @@ From the repository root:
 pdm run acceptance --report=fixture.json             # fixture mode; writes acceptance/fixture.json
 NCI_SI_ACCEPTANCE_MODE=live pdm run acceptance --report=live.json  # live-capable tests
 NCI_SI_ACCEPTANCE_SERVER="..." pdm run acceptance    # another server (default: nci-si-mcp serve)
+NCI_SI_ACCEPTANCE_URL=https://... pdm run acceptance # a remote server over streamable HTTP (below)
 NCI_SI_ACCEPTANCE_PROFILE=evs NCI_SI_ACCEPTANCE_SERVER="..." pdm run acceptance  # a server of one profile (default: unified)
 pdm run python -m nci_si_acceptance.report acceptance/fixture.json --live acceptance/live.json
+pdm run acceptance-index-codes                       # the index set, one code per line (remote server)
 pdm run acceptance-selftest                          # the harness's own tests
 SELFTEST_SHARD=1/2 pdm run acceptance-selftest       # one of two shards, as CI runs them
 pdm run acceptance-record                            # re-record fixtures/recorded/ from live
@@ -78,6 +81,68 @@ server whose requests while it starts found none: the server may treat the refus
 and still answer plausibly. A test that provokes such requests on purpose is marked
 `unmatched_upstream`.
 
+## Remote server
+
+The platform's server is remote: `NCI_SI_ACCEPTANCE_URL` names its streamable-HTTP endpoint in
+place of `NCI_SI_ACCEPTANCE_SERVER` (naming both stops the run). The harness starts nothing and
+cannot set the environment of a process it did not start, so the operator does three things the
+harness otherwise does: sets the server's upstream, changes its state for the tests that need a
+server of their own, and prepares its index. Run it in one process: xdist workers together with
+`NCI_SI_ACCEPTANCE_URL` are a usage error. The report records each run's transport, `stdio` or
+`streamable-http`, in the JSON and in the rendered report.
+
+| Setting | Meaning |
+|---|---|
+| `NCI_SI_ACCEPTANCE_URL` | The endpoint, in place of `NCI_SI_ACCEPTANCE_SERVER` |
+| `NCI_SI_ACCEPTANCE_AUTHORIZATION` | Sent as the `Authorization` header of every request. A credential: never logged, never in the report or an error message, and withheld, with the token after its scheme, from the output of a failing test; it is not given to the state hook |
+| `NCI_SI_ACCEPTANCE_FIXTURE_BIND` | `HOST` or `HOST:PORT` the fixture server listens on (default `127.0.0.1`, any port) |
+| `NCI_SI_ACCEPTANCE_FIXTURE_URL` | The base URL the server reaches the fixture server by, where it is not the bind address (set it when the bind is `0.0.0.0`: the harness warns otherwise) |
+| `NCI_SI_ACCEPTANCE_STATE_HOOK` | The operator's state-change hook (below) |
+| `NCI_SI_ACCEPTANCE_STATE_HOOK_TIMEOUT` | Seconds the hook may take to return, and again the endpoint to answer after it (default 60) |
+| `NCI_SI_ACCEPTANCE_PREPARED` | `1`: the operator has prepared the server's index (below) |
+
+**Fixture mode: what the operator sets on the server.** At the start of the run the harness prints
+the settings, the per-surface base URLs (`NCI_SI_EVS_BASE_URL`, …, each the fixture server's URL
+and the surface's name) and `NCI_SI_UPSTREAM_MODE=fixture`. Set them on the server before the run,
+with `NCI_SI_ACCEPTANCE_FIXTURE_BIND` on a fixed port so that they do not change. Before the first
+test the harness calls `resolve_release` and requires the fixture server's log to show the request;
+otherwise it stops with "the server under test does not reach the fixture server". A server that
+answers from a cache filled before the run asks nothing and fails the probe the same way: change
+its state first, or give the state hook, which the harness then runs before the probe; what the
+server asks while the hook runs counts as reaching the fixture server. In live mode
+there is no fixture server; the probe only requires that `resolve_release` answers ("the server
+under test does not answer" otherwise). A profile without `resolve_release` is probed by
+`tools/list` alone.
+
+**The state hook.** A shell command line that is called with the name of a scenario set and its
+settings, and whose contract is: apply these settings and forget every upstream answer cached so
+far. A restart is the simplest implementation and satisfies the contract, as a process per
+scenario gives over stdio; an operator whose server can flush its cache and reread its settings
+may do that instead. The harness runs it with its own environment, less the credential and less
+any `NCI_SI_*` setting that is not an `NCI_SI_ACCEPTANCE_*` one, plus the fixture settings that
+the announcement tells the operator, `NCI_SI_ACCEPTANCE_SCENARIOS` (the scenario set's names,
+separated by commas, empty for none) and the set's settings (none for an `own_server` test). It
+waits for the endpoint to answer, and then runs the tests: before the first test, once for each
+scenario set's tests, before each `own_server` test, and at the end, without settings, to leave
+the server as it was found. The hook must return once the old state is gone (for a restart: once
+the old instance has stopped), with the output of any process it leaves running redirected. The
+harness then waits for the endpoint, up to the timeout, and stops at once on an HTTP 401 or 403.
+The tests on the server as the operator started it run first, then the `own_server` tests, then
+each scenario set's. Without the hook those tests are skipped as "needs a server of its own
+(NCI_SI_ACCEPTANCE_STATE_HOOK)"; they count as not run, so a tool whose scenario tests did not run
+is never PASS (NOT RUN, or INCOMPLETE where others passed). A test that needs a server without
+the index (`unprepared`) is always skipped: a remote server cannot be made one.
+
+**The index.** The harness never runs `NCI_SI_ACCEPTANCE_PREPARE` against a remote server (naming
+it is a usage error). The operator prepares the server's index, before the run or inside the
+state hook, and declares it with `NCI_SI_ACCEPTANCE_PREPARED=1`; tests marked `prepared`
+are NOT RUN until then. `pdm run acceptance-index-codes` prints the index set, one code per line,
+for the operator to index. A server declared prepared must hold exactly that set: the semantic
+tests assert `totalKnown` equal to its size.
+
+The harness cannot read a remote server's standard error or data directory, so the checks that a
+secret is in neither (X-12) cover what the server returns.
+
 ## The report
 
 `--report` writes one JSON report per run; `nci_si_acceptance.report` renders it as the per-tool
@@ -97,7 +162,8 @@ has a documented upstream limitation (`--limitations`, YAML of test id to requir
 
 ## Layout
 
-`src/nci_si_acceptance/` holds the harness: `client.py` starts the server, `tools.py` calls the
+`src/nci_si_acceptance/` holds the harness: `client.py` starts the server or connects to it,
+`remote.py` probes a remote server and runs the operator's state hook, `tools.py` calls the
 required tools, `fixture_server.py` serves the fixtures (its docstring documents the format),
 `report.py` writes and renders the per-tool report, `suite_identity.py` digests the suite and
 decides whether a report is an acceptance report, `spec.py` reads the specification in
