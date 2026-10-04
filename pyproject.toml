@@ -108,6 +108,8 @@ acceptance = { cmd = "pytest", working_dir = "acceptance" }
 acceptance-selftest = { cmd = "pytest selftests -n 4 --cov --cov-report=term-missing", working_dir = "acceptance" }
 acceptance-record = "python -m nci_si_acceptance.record"
 acceptance-craft = "python -m nci_si_acceptance.craft"
+acceptance-expected = "python -m nci_si_acceptance.expected"
+acceptance-status = "python -m nci_si_acceptance.status"
 acceptance-register = "python -m nci_si_acceptance.register"
 acceptance-index-codes = "python -m nci_si_acceptance.suite"
 spec-render = "python -m nci_si_acceptance.document"

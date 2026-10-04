@@ -67,6 +67,10 @@ INCOMPLETE, NOT_RUN, NO_TESTS = "INCOMPLETE", "NOT RUN", "NO TESTS"
 FIXTURE_ONLY = "PASS (fixture only)"
 # The property a test failing for want of fixtures carries: the requests concerned.
 UNMATCHED = "unmatched_upstream"
+# The property that carries a test's tool and gate to wherever the report is collected.
+ATTRIBUTION = "acceptance_attribution"
+# The key of a worker's output that carries what it noted of the server under test.
+WORKER_TOOLS = "acceptance_tools"
 # A later phase of a test (setup, call, teardown) overrides an earlier outcome only
 # when it ranks higher.
 RANK = {
@@ -131,20 +135,54 @@ class Collector:
         # Set from the target at the end of the run; the default is the harness's original one.
         self.transport = "stdio"
 
-    def record(self, report: pytest.TestReport, tool: str | None, gate: bool) -> None:
+    # The collector is itself a plugin, so that it collects in the process that writes the
+    # report: under xdist, the controller, which sees the workers' reports here and nothing
+    # of their tests, and their notes of the server when they finish.
+
+    def pytest_runtest_logreport(self, report: pytest.TestReport) -> None:
+        self.record(report)
+
+    def pytest_sessionfinish(self, session: pytest.Session) -> None:
+        output = getattr(session.config, "workeroutput", None)  # set on an xdist worker only
+        if (noted := self.noted_tools()) is not None and output is not None:
+            output[WORKER_TOOLS] = noted
+
+    @pytest.hookimpl(optionalhook=True)
+    def pytest_testnodedown(self, node: Any) -> None:
+        if noted := getattr(node, "workeroutput", {}).get(WORKER_TOOLS):
+            self.merge_tools(noted)
+
+    def record(self, report: pytest.TestReport) -> None:
+        """Take one phase of a test; its tool and gate come in the report's own properties,
+        which is all that reaches the controller process of a run on xdist workers."""
+
         outcome = _phase_outcome(report)
         if outcome is None:
             return
-        test = self.tests.setdefault(
-            report.nodeid, {"tool": tool, "gate": gate, "outcome": outcome}
-        )
+        properties: dict[str, Any] = dict(report.user_properties)
+        attribution = properties.get(ATTRIBUTION) or {"tool": None, "gate": False}
+        test = self.tests.setdefault(report.nodeid, {**attribution, "outcome": outcome})
         if RANK[outcome] >= RANK[test["outcome"]]:
             test["outcome"] = outcome
-            test["unmatched"] = dict(report.user_properties).get(UNMATCHED, [])
+            test["unmatched"] = properties.get(UNMATCHED, [])
 
     def note_tools(self, tools: Tools) -> None:
         self.implemented_as = {name: tools.implemented_as(name) for name in REQUIRED_TOOLS}
         self.listing_bytes = tools.listing_bytes
+
+    def noted_tools(self) -> dict[str, Any] | None:
+        """What a worker noted of its server, to send to the controller; None if no server."""
+
+        if self.implemented_as is None:
+            return None
+        return {"implemented_as": self.implemented_as, "listing_bytes": self.listing_bytes}
+
+    def merge_tools(self, noted: dict[str, Any]) -> None:
+        """Take a worker's notes of its server, unless an earlier worker's are already here."""
+
+        if self.implemented_as is None:
+            self.implemented_as = noted["implemented_as"]
+            self.listing_bytes = noted["listing_bytes"]
 
     def _row(self, name: str, group: str, gates_failed: bool) -> dict[str, Any]:
         counts = Counter(test["outcome"] for test in self.tests.values() if test["tool"] == name)
@@ -159,11 +197,11 @@ class Collector:
         }
 
     def _gates(self, outcomes: tuple[str, ...]) -> list[str]:
-        return [
+        return sorted(
             nodeid
             for nodeid, test in self.tests.items()
             if test["gate"] and test["outcome"] in outcomes
-        ]
+        )
 
     def report(self, mode: str) -> dict[str, Any]:
         gates = self._gates(FAILED)
@@ -175,7 +213,8 @@ class Collector:
             "unrun_gates": self._gates(UNRUN),
             "tools_list_bytes": self.listing_bytes,
             "tools": rows,
-            "tests": self.tests,
+            # Workers report in the order they finish; a report is the same whatever that was.
+            "tests": dict(sorted(self.tests.items())),
         }
 
 
@@ -275,6 +314,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 def pytest_configure(config: pytest.Config) -> None:
     config.stash[COLLECTOR] = Collector()
+    config.pluginmanager.register(config.stash[COLLECTOR], "acceptance-collector")
 
 
 @pytest.hookimpl(wrapper=True)
@@ -284,8 +324,11 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[None]) ->
     if call.excinfo is not None and isinstance(call.excinfo.value, UnmatchedUpstream):
         report.user_properties.append((UNMATCHED, call.excinfo.value.requests))
     marker = item.get_closest_marker("tool")
-    tool = marker.args[0] if marker else None
-    item.config.stash[COLLECTOR].record(report, tool, item.get_closest_marker("gate") is not None)
+    attribution = {
+        "tool": marker.args[0] if marker else None,
+        "gate": item.get_closest_marker("gate") is not None,
+    }
+    report.user_properties.append((ATTRIBUTION, attribution))
     return report
 
 
@@ -328,7 +371,8 @@ def write_report(config: pytest.Config, mode: str) -> None:
     """Write the run's report where `--report` says, if it says."""
 
     path = config.getoption("report")
-    if path:
+    # A worker holds part of the run; the controller writes the report.
+    if path and not hasattr(config, "workerinput"):
         report = config.stash[COLLECTOR].report(mode) | {"suite": config.stash[SUITE]}
         Path(path).write_text(json.dumps(withheld(report), indent=2) + "\n")
 

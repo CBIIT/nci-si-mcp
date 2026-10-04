@@ -7,8 +7,10 @@ from types import SimpleNamespace
 import pytest
 
 from nci_si_acceptance.report import (
+    ATTRIBUTION,
     COLLECTOR,
     UNMATCHED,
+    WORKER_TOOLS,
     Collector,
     combine,
     main,
@@ -67,7 +69,8 @@ def collected(*phases, absent=()):
         )
     )
     for report, tool, gate in phases:
-        collector.record(report, tool, gate)
+        report.user_properties.append((ATTRIBUTION, {"tool": tool, "gate": gate}))
+        collector.record(report)
     return collector.report("fixture")
 
 
@@ -121,6 +124,17 @@ def test_skips_are_not_implemented_or_not_run_and_a_failed_gate_fails_every_pass
     ]
     assert (report["failed_gates"], tools["get_form"]["gates_only"]) == (["t.py::gate"], True)
     assert set(tools) == set(REQUIRED_TOOLS)
+
+
+def test_a_report_lists_its_tests_and_gates_in_order_whatever_order_they_finished_in():
+    report = collected(
+        (phase("call", "failed", "t.py::b"), None, True),
+        (phase("call", "failed", "t.py::c"), None, True),
+        (phase("call", "failed", "t.py::a"), None, True),
+    )
+
+    assert report["failed_gates"] == ["t.py::a", "t.py::b", "t.py::c"]
+    assert list(report["tests"]) == ["t.py::a", "t.py::b", "t.py::c"]
 
 
 def test_a_gate_that_did_not_run_is_listed_and_the_listing_size_kept():
@@ -408,3 +422,42 @@ def test_the_command_refuses_a_report_written_by_an_older_suite(tmp_path):
         main([str(tmp_path / "old.json")])
 
     assert str(refused.value) == f"{tmp_path / 'old.json'} was written by an older suite; re-run it"
+
+
+def test_a_worker_writes_no_report_for_the_controller_to_overwrite(tmp_path):
+    stash = pytest.Stash()
+    stash[COLLECTOR], stash[SUITE_KEY] = Collector(), SUITE
+    config = SimpleNamespace(
+        getoption=lambda name: str(tmp_path / "report.json"), stash=stash, workerinput={}
+    )
+
+    write_report(config, "fixture")
+
+    assert not (tmp_path / "report.json").exists()
+
+
+def test_what_a_worker_noted_of_the_server_reaches_the_controller_once():
+    worker = Collector()
+    worker.note_tools(SimpleNamespace(implemented_as=lambda name: name, listing_bytes=4096))
+    output = {}
+    worker.pytest_sessionfinish(SimpleNamespace(config=SimpleNamespace(workeroutput=output)))
+    controller = Collector()
+
+    controller.pytest_testnodedown(SimpleNamespace(workeroutput=output))
+    controller.pytest_testnodedown(SimpleNamespace(workeroutput={}))
+    controller.pytest_testnodedown(
+        SimpleNamespace(workeroutput={WORKER_TOOLS: {"implemented_as": {}, "listing_bytes": 1}})
+    )
+
+    assert (controller.listing_bytes, controller.implemented_as) == (
+        worker.listing_bytes,
+        {name: name for name in REQUIRED_TOOLS},
+    )
+
+
+def test_a_worker_that_started_no_server_forwards_nothing():
+    output = {}
+
+    Collector().pytest_sessionfinish(SimpleNamespace(config=SimpleNamespace(workeroutput=output)))
+
+    assert output == {}
