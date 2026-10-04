@@ -1,0 +1,12 @@
+# The approved releases of the suite: the only source of the digests that make a report an
+# acceptance report (src/nci_si_acceptance/suite_identity.py). A report whose suite digest is
+# not listed here reads MODIFIED. Empty until the furnished tag, which is the first entry.
+# Each entry:
+#
+#   - version: v1.0.0                 # the tag of the release
+#     digest: <64 hex characters>     # the suite digest of that tree, as the report states it
+#     approval: <reference>           # the written approval of the branch chief or a delegate
+#     date: 2026-12-01                # the date of the approval
+#
+# Every entry has its heading in CHANGELOG.md.
+[]

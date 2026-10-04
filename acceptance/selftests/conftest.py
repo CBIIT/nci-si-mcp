@@ -33,6 +33,19 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     items[:] = [item for item in items if item.nodeid in kept]
 
 
+# A copy of the suite's conftest runs outside a suite tree, so a plugin written into the copy's
+# directory stands in for the identity of the tree (test_suite_identity.py tests the real one).
+STAND_IN = "stand_in"
+STAND_IN_SOURCE = (
+    "from nci_si_acceptance import report\n"
+    "report.suite_state = lambda config: {'version': '0', 'fixture_set': 'x', 'digest': 'ab'}\n"
+)
+
+
+def stand_in(pytester: pytest.Pytester) -> None:
+    (pytester.path / f"{STAND_IN}.py").write_text(STAND_IN_SOURCE, encoding="utf-8")
+
+
 SUITE = Path(__file__).parent.parent / "tests"
 COMPLIANT_SERVER = Path(__file__).parent / "compliant_server.py"
 # Any parameters: the compliant server sends a call's free text as parameters (A7.7).
@@ -137,6 +150,7 @@ def compliant(pytester, monkeypatch):
     for scenario in ("restricted", "attributed"):
         settings = fixtures / "scenarios" / "license" / scenario / "settings.json"
         settings.write_text(json.dumps({"NCI_SI_EVS_LICENSE_KEY": LICENCE_KEY}), encoding="utf-8")
+    stand_in(pytester)
     tests = pytester.mkdir("tests")
     for name in ("conftest.py", "test_protocol.py", "test_crosscutting.py", "calls.yaml"):
         (tests / name).write_text((SUITE / name).read_text(encoding="utf-8"), encoding="utf-8")
@@ -154,7 +168,9 @@ def outcomes(compliant):
 
     def run(*arguments):
         report = compliant.path / "report.json"
-        compliant.runpytest_subprocess(*arguments, "-p", "no:cacheprovider", f"--report={report}")
+        compliant.runpytest_subprocess(
+            *arguments, "-p", "no:cacheprovider", "-p", STAND_IN, f"--report={report}"
+        )
         tests = json.loads(report.read_text(encoding="utf-8"))["tests"]
         return {nodeid.partition("::")[2]: test["outcome"] for nodeid, test in tests.items()}
 

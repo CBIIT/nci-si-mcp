@@ -72,7 +72,9 @@ reason beside the suppression, or once in the module when it repeats.
 Every change reaches `main` through a pull request that is squash-merged. The pull request
 title becomes the commit subject, and the next version is computed from it, so the title is a
 [Conventional Commit](https://www.conventionalcommits.org) subject. A check on the pull request
-fails otherwise.
+fails otherwise. Changes to `spec/` and `acceptance/` follow the change control in
+[acceptance/README.md](acceptance/README.md#change-control): the NCI SI MCP project coordinator is
+their code owner.
 
 | Title | Release (while the version is below 1.0) |
 | --- | --- |

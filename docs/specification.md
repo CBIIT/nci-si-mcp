@@ -888,7 +888,7 @@ and each such limitation is an entry in the upstream requirements package. A
 gate that fails live fails every tool, as a failing live test does. A module is accepted when
 every one of its tools is PASS or PASS (fixture only) and the gates pass; INCOMPLETE, NOT RUN, NO FIXTURE, NO TESTS and NOT IMPLEMENTED are not accepted.
 Every report names the suite version, the fixture-set version,
-a digest over the suite, and the tools whose tests have never run against an implementation.
+a digest over the suite (its tests, fixtures, request forms, harness code and configuration, and the specification data, but not its self-tests, documentation or the server under test), and the tools whose tests have never run against an implementation.
 
 ### Settings the suite gives a server
 
