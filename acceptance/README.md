@@ -122,6 +122,20 @@ MODIFIED, because only the digests of approved releases, listed in
 [approved.yaml](approved.yaml), make an acceptance report; and [CHANGELOG.md](CHANGELOG.md)
 records each approved change with the requirement it serves.
 
-The digest covers `tests/`, `fixtures/` with the manifest, `request-forms/`, `src/` and `../spec/`;
-it leaves out the self-tests, caches, `approved.yaml` and the server under test, so one approved
-suite attests any server (`src/nci_si_acceptance/suite_identity.py` defines the set).
+The digest covers `tests/`, `fixtures/` with the manifest, `request-forms/`, `src/`, `pyproject.toml`
+(the pytest configuration and the dependency pins decide what runs) and `../spec/`; it leaves out
+the self-tests, `README.md`, `CHANGELOG.md` (a record that carries release digests), caches, editor
+and system litter, `approved.yaml` and the server under test, so one approved suite attests any
+server (`src/nci_si_acceptance/suite_identity.py` defines the set). A symbolic link among the
+digested files, or a root that lacks any of them, is an error, never a partial digest.
+
+What the check is and is not:
+
+- It is a tripwire, not tamper-proofing. `approved.yaml` changes by review by the NCI SI MCP
+  project coordinator, and the report's identity block is self-stated.
+- Approval is attested on a clean checkout, since untracked files inside the digested paths count.
+- Reports are written outside the digested paths (as `--report=fixture.json` in `acceptance/`
+  already is); the digest is taken when the run starts, from the checkout the run is in, and a run
+  against a harness installed from another checkout is refused.
+- The suite version in the report comes from install metadata (the nearest tag), so run
+  `pdm install` after a tag. The digest alone decides approval.
