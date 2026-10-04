@@ -21,6 +21,15 @@ EdgeType = Literal[
     "inverse_association",
 ]
 
+# The closed value sets of the configuration, once here like the ones above.
+Profile = Literal["evs", "cadsr", "unified"]
+UpstreamMode = Literal["live", "fixture"]
+ReleaseChannel = Literal["monthly", "weekly"]
+
+PROFILES = frozenset(get_args(Profile))
+UPSTREAM_MODES = frozenset(get_args(UpstreamMode))
+RELEASE_CHANNELS = frozenset(get_args(ReleaseChannel))
+
 NCIT_CODE_RE = re.compile(r"C[0-9]+")
 SEARCH_MODES = frozenset(get_args(SearchMode))
 TRAVERSAL_DIRECTIONS = frozenset(get_args(Direction))

@@ -1,5 +1,6 @@
 import io
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -212,6 +213,51 @@ class MainTest(unittest.TestCase):
                 self.assertIn(variable, result["error"]["message"])
                 self.assertEqual(result["error"]["details"]["parameter"], variable)
                 self.assertTrue(result["error"]["correlationId"])
+
+    def test_a_bad_secret_is_reported_by_variable_and_appears_nowhere(self, _):
+        for variable, value in (
+            ("NCI_SI_CADSR_CREDENTIAL", "no-colon-secret"),
+            ("NCI_SI_EVS_LICENSE_KEY", "bad key secret"),
+        ):
+            with self.subTest(variable), self.assertLogs(level="DEBUG") as logs:
+                logging.getLogger().debug("marker")
+                code, result, stderr = self.run_cli(
+                    "release-info", service="real", NCI_SI_LOG_LEVEL="DEBUG", **{variable: value}
+                )
+
+                self.assertEqual((code, result["error"]["code"]), (1, "invalid_request"))
+                self.assertEqual(result["error"]["details"]["parameter"], variable)
+                reason = result["error"]["details"]["reason"]
+                self.assertTrue(reason.startswith(variable))
+                self.assertTrue(result["error"]["message"].startswith(reason))
+                everything = json.dumps(result) + stderr + "\n".join(logs.output)
+                self.assertNotIn("secret", everything)
+
+    def test_valid_secrets_appear_nowhere_on_success_or_startup_failure(self, _):
+        occupied = self.path / "occupied"
+        occupied.write_text("not a directory")
+        secrets = {
+            "NCI_SI_EVS_LICENSE_KEY": "licence-key-4711",
+            "NCI_SI_CADSR_CREDENTIAL": "reviewer:hunter2-secret",
+        }
+        for label, service, data_dir, expected in (
+            ("success", "fake", self.path, 0),
+            ("startup failure", "real", occupied, 1),
+        ):
+            with self.subTest(label), self.assertLogs(level="DEBUG") as logs:
+                logging.getLogger().debug("marker")
+                code, result, stderr = self.run_cli(
+                    "release-info",
+                    service=service,
+                    NCI_SI_LOG_LEVEL="DEBUG",
+                    NCI_SI_DATA_DIR=str(data_dir),
+                    **secrets,
+                )
+
+                self.assertEqual(code, expected)
+                everything = json.dumps(result) + stderr + "\n".join(logs.output)
+                for part in ("licence-key-4711", "hunter2", "reviewer"):
+                    self.assertNotIn(part, everything)
 
     def test_a_setting_error_that_names_no_variable_has_no_parameter_detail(self, _):
         with patch("nci_si_mcp.cli.Settings.from_env", side_effect=ValueError("odd")):
