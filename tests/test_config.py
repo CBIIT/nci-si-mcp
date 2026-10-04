@@ -211,11 +211,9 @@ class UpstreamUrlSetTest(unittest.TestCase):
         self.assertEqual(settings.evs_base_url, DEFAULT_EVS_BASE_URL)
         self.assertEqual(settings.ssis_facade_url, "https://cadsrapi.cancer.gov")
         self.assertEqual(settings.ssis_sparql_url, "https://shared.semantics.cancer.gov")
-        # No production default is sourced for these three, so they stay unconfigured.
-        self.assertEqual(
-            (settings.evs_fhir_base_url, settings.cadsr_base_url, settings.cadsr_ftp_url),
-            ("", "", ""),
-        )
+        self.assertEqual(settings.evs_fhir_base_url, "https://api-evsrest.nci.nih.gov/fhir/r4")
+        self.assertEqual(settings.cadsr_base_url, "https://cadsrapi.cancer.gov/rad")
+        self.assertEqual(settings.cadsr_ftp_url, "https://cadsr.nci.nih.gov/ftp/caDSR_Downloads")
 
     def test_a_url_given_in_live_mode_replaces_its_default_only(self):
         settings = settings_from(

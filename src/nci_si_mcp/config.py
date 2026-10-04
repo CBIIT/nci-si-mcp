@@ -50,11 +50,15 @@ def _require_between(name: str, value: float, low: int, high: int) -> None:
 
 DEFAULT_EVS_BASE_URL = "https://api-evsrest.nci.nih.gov"
 DEFAULT_EMBEDDING_MODEL = "hashing"
-# The production base URLs the specification gives: the two SSIS hosts are SPEC 6.1's, with the
-# platform's own path split off as spec/acceptance.md section 4 adds it. The FHIR, caDSR REST and
-# caDSR FTP base URLs have no sourced default, so unset in live mode they stay empty.
+# The production base URL of each surface, as acceptance/fixtures/manifest.yaml records them. The
+# server adds the platform's own paths: /api/v1/... to EVS, FHIR operations to the FHIR base,
+# /NCIAPI/1.0/api/... to caDSR, /CDE/XML/releasedCDEsXML-OD.zip to the FTP base, /si-api/v1/... to
+# the façade and /sparql to the SPARQL base.
 PRODUCTION_BASE_URLS = {
     "evs_base_url": DEFAULT_EVS_BASE_URL,
+    "evs_fhir_base_url": "https://api-evsrest.nci.nih.gov/fhir/r4",
+    "cadsr_base_url": "https://cadsrapi.cancer.gov/rad",
+    "cadsr_ftp_url": "https://cadsr.nci.nih.gov/ftp/caDSR_Downloads",
     "ssis_facade_url": "https://cadsrapi.cancer.gov",
     "ssis_sparql_url": "https://shared.semantics.cancer.gov",
 }
@@ -116,7 +120,7 @@ def _resolve_base_urls(settings: Settings) -> None:
         if not value:
             if settings.upstream_mode == "fixture":
                 raise ValueError(f"{variable} must be given when NCI_SI_UPSTREAM_MODE is fixture")
-            value = PRODUCTION_BASE_URLS.get(name, "")
+            value = PRODUCTION_BASE_URLS[name]
         elif not _is_base_url(value):
             # The value is not echoed: a URL can carry a password.
             raise ValueError(

@@ -118,8 +118,7 @@ class DocumentationTest(unittest.TestCase):
             with self.subTest(name):
                 actual = getattr(defaults, name.removeprefix("NCI_SI_").lower())
                 if default == "unset":
-                    # A credential is None; a base URL without a sourced default is empty.
-                    self.assertIn(actual, (None, ""))
+                    self.assertIsNone(actual)
                 elif isinstance(actual, tuple):
                     self.assertEqual(default.strip("`"), ",".join(actual))
                 else:
