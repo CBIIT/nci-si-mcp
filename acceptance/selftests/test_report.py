@@ -145,6 +145,9 @@ def test_a_tool_failing_its_own_test_while_a_gate_fails_is_not_failing_by_the_ga
     assert (tools["get_concept"]["outcome"], tools["get_concept"]["gates_only"]) == ("FAIL", True)
 
 
+SUITE = {"version": "1.2.3", "fixture_set": "ncit_26.09d, recorded 2026-10-03", "digest": "ab" * 32}
+
+
 def run(outcomes, tests=None):
     """A run's report with the given tool outcomes and test entries."""
 
@@ -167,6 +170,7 @@ def run(outcomes, tests=None):
         "tools_list_bytes": None,
         "tools": tools,
         "tests": tests or {},
+        "suite": SUITE,
     }
 
 
@@ -229,7 +233,7 @@ def test_the_rendered_report_states_its_modes_counts_and_what_proves_nothing_yet
 
     text = render(fixture, combined, "fixture only")
 
-    assert text.startswith("Run modes: fixture only.")
+    assert "\nRun modes: fixture only.\n" in text
     assert (
         "| `resolve_release` | evs | FAIL (gates only) | 4 / 0 / 0 / 0 | ncit_release_info |  |"
         in text
@@ -262,8 +266,17 @@ def test_the_command_combines_the_runs_with_per_test_limitations(tmp_path, capsy
     )
 
     output = capsys.readouterr().out
-    assert output.startswith("Run modes: fixture and live.")
+    assert "\nRun modes: fixture and live.\n" in output
     assert "| `get_form` | cadsr | PASS (fixture only) | 0 / 0 / 0 / 0 | — | C-4 |" in output
+
+
+def test_the_command_refuses_reports_of_different_suites(tmp_path):
+    live = run({}) | {"mode": "live", "suite": SUITE | {"digest": "cd" * 32}}
+    (tmp_path / "fixture.json").write_text(json.dumps(run({})), encoding="utf-8")
+    (tmp_path / "live.json").write_text(json.dumps(live), encoding="utf-8")
+
+    with pytest.raises(SystemExit, match="come from different suites"):
+        main([str(tmp_path / "fixture.json"), "--live", str(tmp_path / "live.json")])
 
 
 def test_the_command_refuses_a_report_of_the_wrong_run_mode(tmp_path):

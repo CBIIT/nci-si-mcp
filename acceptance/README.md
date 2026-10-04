@@ -85,7 +85,11 @@ table of the specification's §5. A tool is PASS, FAIL (a failed gate fails ever
 a fixture: a question for the fixture set), INCOMPLETE (the tests that ran passed but some could
 not run: a hardening candidate), NOT IMPLEMENTED, NOT RUN or NO TESTS; the module docstring
 defines each, and each row counts the tests passed, failed, without a fixture and not run.
-Below the table it names the gates that failed and those that did not run, and gives the size
+The rendered report opens with its title and the identity of the suite: the suite version, the
+fixture-set version (the pinned release and the date of the latest recording) and the suite
+digest. The title is ACCEPTANCE REPORT only when that digest is in `approved.yaml`; otherwise it
+is MODIFIED, which is every report until the furnished tag. The JSON report carries the same
+identity. Below the table it names the gates that failed and those that did not run, and gives the size
 of the tools/list result in bytes, which every client session reads.
 Combined with a live report, a tool that
 passes against fixtures but fails live is PASS (fixture only) only when every failing live test
@@ -95,7 +99,8 @@ has a documented upstream limitation (`--limitations`, YAML of test id to requir
 
 `src/nci_si_acceptance/` holds the harness: `client.py` starts the server, `tools.py` calls the
 required tools, `fixture_server.py` serves the fixtures (its docstring documents the format),
-`report.py` writes and renders the per-tool report, `spec.py` reads the specification in
+`report.py` writes and renders the per-tool report, `suite_identity.py` digests the suite and
+decides whether a report is an acceptance report, `spec.py` reads the specification in
 `../spec/` (the required tools among it), `requirements.py` checks the tests' citations of its
 requirements, `document.py` renders it as `../docs/specification.md`, and `suite.py` holds the
 rules of a run. `concepts.py` composes EVS concept answers from one recording per
@@ -105,4 +110,18 @@ register of request forms (`request-forms/`).
 `fixtures/` holds the fixtures ([fixtures/README.md](fixtures/README.md)), `tests/` the suite,
 `selftests/` the tests of the harness itself.
 
-The suite is versioned on its own (`pyproject.toml` here), independently of the server.
+The suite's version is the repository's nearest `vX.Y.Z` tag, derived at install time as the server's
+is; the fixture set is versioned apart, by its pinned release and recording dates.
+
+## Change control
+
+The NCI SI MCP project coordinator is the code owner of `spec/` and `acceptance/`. From the
+furnished tag, a change to `spec/` or to the suite needs the written approval of the branch chief
+or a delegate ([spec/acceptance.md](../spec/acceptance.md)); a report from a changed suite renders
+MODIFIED, because only the digests of approved releases, listed in
+[approved.yaml](approved.yaml), make an acceptance report; and [CHANGELOG.md](CHANGELOG.md)
+records each approved change with the requirement it serves.
+
+The digest covers `tests/`, `fixtures/` with the manifest, `request-forms/`, `src/` and `../spec/`;
+it leaves out the self-tests, caches, `approved.yaml` and the server under test, so one approved
+suite attests any server (`src/nci_si_acceptance/suite_identity.py` defines the set).

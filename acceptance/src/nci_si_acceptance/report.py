@@ -1,8 +1,9 @@
 """The per-tool report (docs/specification.md §5).
 
 A run of the suite writes one report per run mode (`pytest --report=PATH`), with the
-final outcome of every test. A test counts for the tool its `tool` marker names; a
-test marked `gate` gates every tool (§4). One run gives each required tool one outcome:
+final outcome of every test and the identity of the suite (suite_identity.py). A test counts for
+the tool its `tool` marker names; a test marked `gate` gates every tool (§4). One run gives
+each required tool one outcome:
 
     PASS             every test of the tool ran and passed, and every gate
     FAIL             a test of the tool failed, or a gate did (shown as "gates only")
@@ -44,6 +45,7 @@ import yaml
 from nci_si_acceptance.spec import REQUIRED_TOOLS
 from nci_si_acceptance.suite import FIXTURE_ONLY as FIXTURE_ONLY_SKIP
 from nci_si_acceptance.suite import UnmatchedUpstream
+from nci_si_acceptance.suite_identity import APPROVED, approved_digests, heading, identity
 from nci_si_acceptance.tools import NOT_IMPLEMENTED
 
 if TYPE_CHECKING:
@@ -212,10 +214,18 @@ def _size(size: int | None) -> str:
     return "not measured, no server started" if size is None else f"{size:,} bytes"
 
 
-def render(report: dict[str, Any], combined: dict[str, tuple[str, list[str]]], modes: str) -> str:
-    """The report as a Markdown table, with the tools whose tests prove nothing yet."""
+def render(
+    report: dict[str, Any],
+    combined: dict[str, tuple[str, list[str]]],
+    modes: str,
+    approved: Path = APPROVED,
+) -> str:
+    """The report as Markdown: the suite's identity, which says whether this is an acceptance
+    report or MODIFIED (suite_identity.py), then the per-tool table and the tools whose tests
+    prove nothing yet."""
 
     lines = [
+        *heading(report["suite"], approved_digests(approved)),
         f"Run modes: {modes}.",
         "",
         "| Tool | Group | Outcome | Tests passed / failed / no fixture / not run "
@@ -270,7 +280,8 @@ def write_report(config: pytest.Config, mode: str) -> None:
 
     path = config.getoption("report")
     if path:
-        Path(path).write_text(json.dumps(config.stash[COLLECTOR].report(mode), indent=2) + "\n")
+        report = config.stash[COLLECTOR].report(mode) | {"suite": identity()}
+        Path(path).write_text(json.dumps(report, indent=2) + "\n")
 
 
 def _read(path: Path, mode: str) -> dict[str, Any]:
@@ -288,10 +299,13 @@ def main(arguments: Iterable[str] | None = None) -> int:
     options = parser.parse_args(arguments)
     fixture = _read(options.fixture, "fixture")
     if options.live:
+        live = _read(options.live, "live")
+        if live["suite"] != fixture["suite"]:
+            raise SystemExit("the fixture and live reports come from different suites")
         limitations = {}
         if options.limitations:
             limitations = yaml.safe_load(options.limitations.read_text(encoding="utf-8")) or {}
-        combined = combine(fixture, _read(options.live, "live"), limitations)
+        combined = combine(fixture, live, limitations)
         modes = "fixture and live"
     else:
         combined = {name: (row["outcome"], []) for name, row in fixture["tools"].items()}
