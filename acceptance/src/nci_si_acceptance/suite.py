@@ -30,9 +30,9 @@ PREPARED = "prepared"
 UNPREPARED = "unprepared"
 NOT_PREPARED = "NOT RUN: no prepare command (NCI_SI_ACCEPTANCE_PREPARE)"
 NOT_DECLARED_PREPARED = "NOT RUN: the server is not declared prepared (NCI_SI_ACCEPTANCE_PREPARED)"
-# What a remote server cannot give a test: a server of its own without an operator's restart
-# command, and one without the index at all.
-NEEDS_RESTART = "needs a server of its own (NCI_SI_ACCEPTANCE_RESTART)"
+# What a remote server cannot give a test: a state of its own without an operator's state-change
+# hook, and one without the index at all.
+NEEDS_STATE_HOOK = "needs a server of its own (NCI_SI_ACCEPTANCE_STATE_HOOK)"
 CANNOT_UNPREPARE = "needs a server without the index, which a remote server cannot be made"
 
 
@@ -77,20 +77,20 @@ def _needs_own_server(item: pytest.Item) -> bool:
     return bool(scenarios_of(item)) or item.get_closest_marker(OWN_SERVER) is not None
 
 
-def skip_remote_own_servers(items: Iterable[pytest.Item], can_restart: bool) -> None:
+def skip_remote_own_servers(items: Iterable[pytest.Item], has_hook: bool) -> None:
     """What a fixture-mode run against a remote server does: skip the tests that need a server
-    without the index, which cannot be made of it, and, without the operator's restart command,
-    those that need a server of their own."""
+    without the index, which cannot be made of it, and, without the operator's state-change
+    hook, those that need a server of their own."""
 
     for item in items:
         if item.get_closest_marker(UNPREPARED) is not None:
             item.add_marker(pytest.mark.skip(reason=CANNOT_UNPREPARE))
-        elif not can_restart and _needs_own_server(item):
-            item.add_marker(pytest.mark.skip(reason=NEEDS_RESTART))
+        elif not has_hook and _needs_own_server(item):
+            item.add_marker(pytest.mark.skip(reason=NEEDS_STATE_HOOK))
 
 
-def order_for_restarts(items: list[pytest.Item]) -> None:
-    """Order a run so that the operator's restart command runs as seldom as it can: the tests
+def order_for_state_changes(items: list[pytest.Item]) -> None:
+    """Order a run so that the operator's state-change hook runs as seldom as it can: the tests
     on the server as the operator left it first, then those that need a server of their own,
     then each scenario's together. The order within each group is kept."""
 

@@ -1,10 +1,10 @@
-"""The restart command of the self-tests that run the suite against a remote server: (re)start
-the compliant server over streamable HTTP, as an operator's command restarts a deployment.
+"""The state-change hook of the self-tests that run the suite against a remote server: (re)start
+the compliant server over streamable HTTP, as an operator's hook restarts a deployment.
 
-It stops the server whose process id `RESTART_PID_FILE` holds, appends the licence key it was
-given (the scenario's setting, or none) and whether it was given the harness's credential to the
-file `RESTART_RECORD` names, and starts the server again with its own environment; then it
-returns at once, the server still starting, as a restart command does.
+It stops the server whose process id `RESTART_PID_FILE` holds, appends the scenario set it was
+named, the licence key it was given (the scenario's setting, or none) and whether it was given the
+harness's credential to the file `RESTART_RECORD` names, and starts the server again with its own
+environment; then it returns at once, the server still starting, as a restart does.
 """
 
 import json
@@ -39,6 +39,7 @@ def main() -> None:
     stop(pid_file)
     if record := os.environ.get("RESTART_RECORD"):
         seen = {
+            "scenarios": os.environ.get("NCI_SI_ACCEPTANCE_SCENARIOS"),
             "licenceKey": os.environ.get("NCI_SI_EVS_LICENSE_KEY"),
             "credentialGiven": "NCI_SI_ACCEPTANCE_AUTHORIZATION" in os.environ,
         }

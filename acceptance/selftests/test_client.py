@@ -17,9 +17,9 @@ from nci_si_acceptance.client import (
     PREPARED_VARIABLE,
     PROFILE_VARIABLE,
     REMOTE_ONLY,
-    RESTART_TIMEOUT_VARIABLE,
-    RESTART_VARIABLE,
     SERVER_VARIABLE,
+    STATE_HOOK_TIMEOUT_VARIABLE,
+    STATE_HOOK_VARIABLE,
     URL_VARIABLE,
     Target,
     open_session,
@@ -209,8 +209,8 @@ def test_a_remote_target_is_read_from_the_environment(remote):
     remote.setenv(AUTHORIZATION_VARIABLE, "Bearer abc")
     remote.setenv(FIXTURE_BIND_VARIABLE, "0.0.0.0:8099")
     remote.setenv(FIXTURE_URL_VARIABLE, "https://fixtures.example/")
-    remote.setenv(RESTART_VARIABLE, "restart-it")
-    remote.setenv(RESTART_TIMEOUT_VARIABLE, "90")
+    remote.setenv(STATE_HOOK_VARIABLE, "hook-it")
+    remote.setenv(STATE_HOOK_TIMEOUT_VARIABLE, "90")
     remote.setenv(PREPARED_VARIABLE, "1")
 
     target = Target.from_env()
@@ -224,18 +224,18 @@ def test_a_remote_target_is_read_from_the_environment(remote):
         "Bearer abc",
         ("0.0.0.0", 8099),  # noqa: S104
         "https://fixtures.example",
-        "restart-it",
+        "hook-it",
         90.0,
         True,
     )
     assert (target.transport, target.has_index) == ("streamable-http", True)
 
 
-def test_a_remote_target_has_no_restart_command_and_no_index_unless_the_operator_gives_them(remote):
+def test_a_remote_target_has_no_state_hook_and_no_index_unless_the_operator_gives_them(remote):
     target = Target.from_env()
 
-    assert (target.restart, target.authorization, target.fixture_bind) == (None, None, None)
-    assert (target.transport, target.has_index, target.restart_timeout) == (
+    assert (target.state_hook, target.authorization, target.fixture_bind) == (None, None, None)
+    assert (target.transport, target.has_index, target.state_hook_timeout) == (
         "streamable-http",
         False,
         60.0,
@@ -286,8 +286,8 @@ def test_a_setting_for_a_remote_server_alone_is_refused_without_one_naming_only_
         (FIXTURE_BIND_VARIABLE, "host:", "must be HOST or HOST:PORT, not 'host:'"),
         (FIXTURE_BIND_VARIABLE, ":80", "must be HOST or HOST:PORT, not ':80'"),
         (FIXTURE_BIND_VARIABLE, "host:http", "must be HOST or HOST:PORT, not 'host:http'"),
-        (RESTART_TIMEOUT_VARIABLE, "soon", "must be a positive number of seconds, not 'soon'"),
-        (RESTART_TIMEOUT_VARIABLE, "0", "must be a positive number of seconds, not '0'"),
+        (STATE_HOOK_TIMEOUT_VARIABLE, "soon", "must be a positive number of seconds, not 'soon'"),
+        (STATE_HOOK_TIMEOUT_VARIABLE, "0", "must be a positive number of seconds, not '0'"),
         (PREPARED_VARIABLE, "yes", "must be 1 or unset, not 'yes'"),
     ],
 )
@@ -320,6 +320,16 @@ def test_the_credential_is_withheld_from_text_and_other_text_is_kept(remote):
     assert withhold_authorization("Bearer do-not-print") == "Bearer do-not-print"
 
 
+def test_the_token_after_the_scheme_is_withheld_too_where_it_is_long_enough(remote):
+    remote.setenv(AUTHORIZATION_VARIABLE, "Bearer do-not-print")
+
+    assert (
+        withhold_authorization("echoed do-not-print only") == "echoed [authorization withheld] only"
+    )
+    remote.setenv(AUTHORIZATION_VARIABLE, "Bearer short")
+    assert withhold_authorization("Bearer short, short") == "[authorization withheld], short"
+
+
 def test_the_operator_sets_the_fixture_mode_and_every_upstream_on_a_remote_server():
     settings = remote_settings("https://fixtures.example")
 
@@ -333,4 +343,4 @@ def test_waiting_for_an_endpoint_that_does_not_answer_ends_with_the_time_given()
         closed.bind(("127.0.0.1", 0))
         url = f"http://127.0.0.1:{closed.getsockname()[1]}/mcp"
 
-    assert wait_for_endpoint(url, None, 0.2) is False
+    assert wait_for_endpoint(url, None, 0.2) == "nothing within 0.2 s"

@@ -11,14 +11,14 @@ from nci_si_acceptance.suite import (
     CANNOT_UNPREPARE,
     FIXTURES,
     LIVE_CAPABLE,
-    NEEDS_RESTART,
+    NEEDS_STATE_HOOK,
     NOT_DECLARED_PREPARED,
     NOT_PREPARED,
     PREPARED,
     UnmatchedUpstream,
     index_set,
     main,
-    order_for_restarts,
+    order_for_state_changes,
     scenarios_of,
     skip_fixture_only,
     skip_remote_own_servers,
@@ -127,29 +127,29 @@ def test_a_remote_server_not_declared_prepared_skips_the_tests_that_need_the_ind
     assert needs.get_closest_marker("skip").kwargs == {"reason": NOT_DECLARED_PREPARED}
 
 
-def test_a_remote_server_without_a_restart_command_skips_the_tests_needing_a_server_of_its_own():
+def test_a_remote_server_without_a_state_hook_skips_the_tests_needing_a_server_of_its_own():
     scenario = Item(pytest.mark.scenario("release/unknown"))
     own = Item(pytest.mark.own_server)
     ordinary = Item()
 
-    skip_remote_own_servers([scenario, own, ordinary], can_restart=False)
+    skip_remote_own_servers([scenario, own, ordinary], has_hook=False)
 
-    assert scenario.get_closest_marker("skip").kwargs == {"reason": NEEDS_RESTART}
-    assert own.get_closest_marker("skip").kwargs == {"reason": NEEDS_RESTART}
+    assert scenario.get_closest_marker("skip").kwargs == {"reason": NEEDS_STATE_HOOK}
+    assert own.get_closest_marker("skip").kwargs == {"reason": NEEDS_STATE_HOOK}
     assert ordinary.get_closest_marker("skip") is None
 
 
-def test_a_restart_command_leaves_those_tests_to_run_but_not_one_without_the_index():
+def test_a_state_hook_leaves_those_tests_to_run_but_not_one_without_the_index():
     scenario = Item(pytest.mark.scenario("release/unknown"))
     unprepared = Item(pytest.mark.unprepared, pytest.mark.own_server)
 
-    skip_remote_own_servers([scenario, unprepared], can_restart=True)
+    skip_remote_own_servers([scenario, unprepared], has_hook=True)
 
     assert scenario.get_closest_marker("skip") is None
     assert unprepared.get_closest_marker("skip").kwargs == {"reason": CANNOT_UNPREPARE}
 
 
-def test_a_run_with_a_restart_command_keeps_the_server_as_the_operator_left_it_first():
+def test_a_run_with_a_state_hook_keeps_the_server_as_the_operator_left_it_first():
     ordinary = Item()
     own = Item(pytest.mark.own_server)
     one = Item(pytest.mark.scenario("a/one"))
@@ -157,7 +157,7 @@ def test_a_run_with_a_restart_command_keeps_the_server_as_the_operator_left_it_f
     two = Item(pytest.mark.scenario("a/two"))
     items = [two, one, own, ordinary, other_one]
 
-    order_for_restarts(items)
+    order_for_state_changes(items)
 
     assert items == [ordinary, own, one, other_one, two]
 

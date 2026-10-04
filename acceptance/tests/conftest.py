@@ -7,8 +7,8 @@ server makes while it starts must find fixtures too.
 
 Against a remote server (`NCI_SI_ACCEPTANCE_URL`) the harness starts no process: a probe makes
 sure the server answers and reaches the fixture server before the first test, and the operator's
-restart command, where there is one, gives a scenario's tests, and each `own_server` test, the
-server of its own they need; without it those tests are skipped. A remote server's prepare step is
+state-change hook, where there is one, gives a scenario set's tests, and each `own_server` test,
+the state they need; without it those tests are skipped. A remote server's prepare step is
 the operator's (`NCI_SI_ACCEPTANCE_PREPARED`).
 
 The operator's prepare command, where one is given, runs once, before the first test that
@@ -39,7 +39,7 @@ from nci_si_acceptance.client import (
     server_environment,
 )
 from nci_si_acceptance.fixture_server import MANIFEST, FixtureServer, load_fixtures
-from nci_si_acceptance.remote import Restarter, announcement, probe
+from nci_si_acceptance.remote import StateHook, announcement, probe
 from nci_si_acceptance.report import COLLECTOR, write_report
 from nci_si_acceptance.suite import (
     NOT_DECLARED_PREPARED,
@@ -49,7 +49,7 @@ from nci_si_acceptance.suite import (
     UNPREPARED,
     UnmatchedUpstream,
     index_set,
-    order_for_restarts,
+    order_for_state_changes,
     scenarios_of,
     skip_fixture_only,
     skip_remote_own_servers,
@@ -74,6 +74,9 @@ def pytest_configure(config: pytest.Config) -> None:
         config.stash[TARGET] = Target.from_env()
     except ValueError as error:
         raise pytest.UsageError(str(error)) from error
+    if config.stash[TARGET].url and config.getoption("numprocesses", None):
+        # Workers would each run the probe and the state-change hook against the one server.
+        raise pytest.UsageError("a remote server (NCI_SI_ACCEPTANCE_URL) is tested by one process")
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
@@ -83,9 +86,9 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     if not target.has_index:
         skip_unprepared(items, NOT_DECLARED_PREPARED if target.url else NOT_PREPARED)
     if target.url and target.mode == "fixture":
-        skip_remote_own_servers(items, target.restart is not None)
-        if target.restart:
-            order_for_restarts(items)
+        skip_remote_own_servers(items, target.state_hook is not None)
+        if target.state_hook:
+            order_for_state_changes(items)
 
 
 def pytest_sessionfinish(session: pytest.Session) -> None:
@@ -132,12 +135,13 @@ def remote_ready(
     request: pytest.FixtureRequest,
     target: Target,
     upstream: FixtureServer | None,
-    restarter: Restarter | None,
+    state_hook: StateHook | None,
 ) -> None:
     """Before any test, a remote server is told what to reach, and is found to answer and,
     against fixtures, to reach the fixture server; otherwise the run stops. Where the operator
-    gave a restart command, the server is restarted first: one that answers from a cache filled
-    before the run asks the fixture server nothing, and would fail the probe."""
+    gave a state-change hook, it runs first: a server that answers from a cache filled before
+    the run asks the fixture server nothing, and would fail the probe. What the server asks
+    while the hook runs counts as reaching the fixture server."""
 
     if target.url is None:
         return
@@ -145,25 +149,24 @@ def remote_ready(
         reporter = request.config.pluginmanager.get_plugin("terminalreporter")
         for line in announcement(target, upstream):
             reporter.write_line(line)
-    if restarter:
-        restarter.serve((), {}, fresh=True)
+    started = state_hook.apply((), {}, fresh=True) if state_hook else ()
     toolmap = load_toolmap(FIXTURES / "baseline_toolmap.yaml")
     pinned = request.getfixturevalue("pinned")
-    probe(target.url, target.authorization, upstream, toolmap, pinned)
+    probe(target.url, target.authorization, upstream, toolmap, pinned, started)
 
 
 @pytest.fixture(scope="session")
-def restarter(
+def state_hook(
     target: Target, upstream: FixtureServer | None, tmp_path_factory: pytest.TempPathFactory
-) -> Iterator[Restarter | None]:
-    """The operator's restart command, where there is one and a fixture server to restart for."""
+) -> Iterator[StateHook | None]:
+    """The operator's state-change hook, where there is one and a fixture server to set up."""
 
-    if target.restart is None or upstream is None:
+    if target.state_hook is None or upstream is None:
         yield None
         return
-    restarting = Restarter(target, upstream, tmp_path_factory.mktemp("restart") / "output.log")
-    yield restarting
-    restarting.restore()
+    hook = StateHook(target, upstream, tmp_path_factory.mktemp("state-hook") / "output.log")
+    yield hook
+    hook.restore()
 
 
 @pytest.fixture(scope="session")
@@ -283,14 +286,14 @@ def tools(
     target: Target,
     upstream: FixtureServer | None,
     prepared: Path | None,
-    restarter: Restarter | None,
+    state_hook: StateHook | None,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> Iterator[Tools]:
     """The required tools of the server under test, for one test.
 
     A scenario test, and one marked `own_server`, does not use the shared server: it runs
-    against its own, which nothing an earlier test asked can have filled. A remote server is
-    restarted by the operator's command for it: once for a scenario's tests, for every
+    against its own, which nothing an earlier test asked can have filled. A remote server is put
+    in that state by the operator's hook: once for a scenario set's tests, for every
     `own_server` test.
     """
 
@@ -304,7 +307,7 @@ def tools(
     settings = upstream.fixtures.settings_of(scenarios)
     try:
         if target.url:
-            ours = _restarted_tools(target, upstream, restarter, scenarios, settings)
+            ours = _hooked_tools(target, upstream, state_hook, scenarios, settings)
         else:
             data = None if unprepared else prepared
             ours = _tools(target, upstream, tmp_path_factory, data, settings)
@@ -316,17 +319,17 @@ def tools(
 
 
 @contextmanager
-def _restarted_tools(
+def _hooked_tools(
     target: Target,
     upstream: FixtureServer,
-    restarter: Restarter,
+    state_hook: StateHook,
     scenarios: tuple[str, ...],
     settings: dict[str, str],
 ) -> Iterator[Tools]:
-    """The remote server as the operator's restart command leaves it for these scenarios (a
+    """The remote server as the operator's state-change hook leaves it for these scenarios (a
     server of its own, where there are none)."""
 
-    started = restarter.serve(scenarios, settings, fresh=not scenarios)
+    started = state_hook.apply(scenarios, settings, fresh=not scenarios)
     if unmatched := unmatched_requests(started):
         raise UnmatchedUpstream(unmatched, " while the server started")
     with _remote_tools(target, upstream, started) as tools:

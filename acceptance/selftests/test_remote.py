@@ -1,9 +1,9 @@
 """A remote server under test: the harness connects to a streamable-HTTP endpoint, announces what
-the operator sets on the server, probes it before the first test, and gets a server of its own
-for a test from the operator's restart command.
+the operator sets on the server, probes it before the first test, and gets the state a test needs
+from the operator's state-change hook.
 
 The server is the compliant server over streamable HTTP (`COMPLIANT_SERVER_TRANSPORT=http`),
-started once for the tests of this module (a restart command, restart_stub.py, starts it and
+started once for the tests of this module (a hook that restarts it, restart_stub.py, starts it and
 restarts it with a scenario's settings).
 """
 
@@ -12,7 +12,11 @@ import os
 import socket
 import subprocess
 import sys
-from dataclasses import dataclass
+import time
+import urllib.error
+import urllib.request
+from contextlib import suppress
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import pytest
@@ -21,7 +25,7 @@ from restart_stub import stop
 
 from nci_si_acceptance.client import Target, open_remote_session, wait_for_endpoint
 from nci_si_acceptance.fixture_server import FixtureServer, FixtureSet
-from nci_si_acceptance.remote import Restarter, announcement, probe
+from nci_si_acceptance.remote import StateHook, announcement, probe
 from nci_si_acceptance.tools import Process
 
 pytest_plugins = ["pytester"]
@@ -42,11 +46,17 @@ LICENCE_REACHES = (
 )
 # A test that fails with the credential in its message, as a server that echoed it back would.
 USAGE_ERROR = 4
+# Far less than the minute a wait that ignored the timeout it was given would take.
+PROMPTLY_SECONDS = 10
 ECHO = """
 import os
 
 def test_echo(tools):
     assert "echoed" == os.environ["NCI_SI_ACCEPTANCE_AUTHORIZATION"]
+
+
+def test_echo_token(tools):
+    assert "echoed" == os.environ["NCI_SI_ACCEPTANCE_AUTHORIZATION"].partition(" ")[2]
 """
 
 
@@ -95,7 +105,7 @@ def stub(tmp_path_factory):
     subprocess.run(  # noqa: S603
         [sys.executable, str(RESTART_STUB)], env=os.environ | environment, check=True
     )
-    assert wait_for_endpoint(started.url, CREDENTIAL, 60)
+    assert wait_for_endpoint(started.url, CREDENTIAL, 60) is None
     yield started
     stop(Path(environment["RESTART_PID_FILE"]))
 
@@ -145,9 +155,9 @@ def test_a_remote_server_is_tested_over_streamable_http_with_the_credential_on_e
 def test_the_credential_appears_in_no_output_of_the_harness(remote):
     result, report = remote("tests/test_echo.py")
 
-    assert outcomes_of(report) == {"test_echo": "failed"}
+    assert outcomes_of(report) == {"test_echo": "failed", "test_echo_token": "failed"}
     written = result.stdout.str() + result.stderr.str() + json.dumps(report)
-    assert CREDENTIAL not in written
+    assert CREDENTIAL.partition(" ")[2] not in written  # neither the value nor its token
     assert "[authorization withheld]" in result.stdout.str()
 
 
@@ -167,7 +177,9 @@ def test_the_harness_tells_the_operator_what_to_set_on_the_server(remote, stub):
 def test_without_a_restart_command_the_tests_that_need_a_server_of_their_own_are_not_run(remote):
     result, report = remote(TOOLS_LIST, UNKNOWN_RELEASE, OWN_SERVER)
 
-    result.stdout.fnmatch_lines(["SKIPPED * needs a server of its own (NCI_SI_ACCEPTANCE_RESTART)"])
+    result.stdout.fnmatch_lines(
+        ["SKIPPED * needs a server of its own (NCI_SI_ACCEPTANCE_STATE_HOOK)"]
+    )
     assert outcomes_of(report) == {
         TOOLS_LIST.partition("::")[2]: "passed",
         UNKNOWN_RELEASE.partition("::")[2]: "skipped",
@@ -187,10 +199,10 @@ def test_a_test_that_needs_the_index_is_not_run_until_the_operator_declares_it_p
     assert outcomes_of(report) == {PREPARED.partition("::")[2]: "skipped"}
 
 
-def test_the_restart_command_gives_scenario_and_own_server_tests_a_server_of_their_own(
+def test_the_state_hook_gives_scenario_and_own_server_tests_a_server_of_their_own(
     remote, stub, monkeypatch
 ):
-    monkeypatch.setenv("NCI_SI_ACCEPTANCE_RESTART", f"{sys.executable} {RESTART_STUB}")
+    monkeypatch.setenv("NCI_SI_ACCEPTANCE_STATE_HOOK", f"{sys.executable} {RESTART_STUB}")
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_PREPARED", "1")
     chosen = (UNKNOWN_RELEASE, LICENCE_REACHES, OWN_SERVER, TOOLS_LIST, PREPARED)
 
@@ -199,12 +211,19 @@ def test_the_restart_command_gives_scenario_and_own_server_tests_a_server_of_the
     assert {test["outcome"] for test in report["tests"].values()} == {"passed"}
     assert len(report["tests"]) == len(chosen)
     # The server is restarted before the probe; the tests on it as the operator left it run
-    # first, then the test that needs a server of its own, then each scenario; and the server
+    # first, then the test that needs a server of its own, then each scenario set; and the server
     # is left as it was found. The licence key is the setting of the license/restricted
-    # scenario, and the harness's credential is not given to the command.
+    # scenario, and the harness's credential is not given to the hook.
     seen = [json.loads(line) for line in stub.record.read_text(encoding="utf-8").splitlines()]
     assert [each["licenceKey"] for each in seen[1:]] == [None, None, LICENCE_KEY, None, None]
     assert {each["credentialGiven"] for each in seen} == {False}
+    assert [each["scenarios"] for each in seen[1:]] == [
+        "",
+        "",
+        "license/restricted",
+        "release/unknown",
+        "",
+    ]
 
 
 def test_a_run_ends_at_once_when_the_server_does_not_reach_the_fixture_server(
@@ -251,61 +270,163 @@ def test_naming_a_command_and_an_endpoint_stops_the_run_with_a_usage_error(compl
     )
 
 
-# ---- the restart command, called directly
+def fetches_at_startup(path):
+    """A state hook whose server asks the fixture server something while it starts."""
+
+    code = (
+        "import os, urllib.request; "
+        f"urllib.request.urlopen(os.environ['NCI_SI_EVS_BASE_URL'] + '{path}')"
+    )
+    return f'{sys.executable} -c "{code}" || true'
 
 
-def restarter(stub, tmp_path, command, timeout=30):
+def test_a_server_that_asks_the_fixture_server_while_the_hook_starts_it_passes_the_probe(
+    remote, monkeypatch
+):
+    # The compliant server keeps asking the fixture server it was given, not this one.
+    monkeypatch.setenv("NCI_SI_ACCEPTANCE_FIXTURE_BIND", f"127.0.0.1:{free_port()}")
+    monkeypatch.setenv("NCI_SI_ACCEPTANCE_STATE_HOOK", fetches_at_startup("/api/v1/version"))
+
+    result, report = remote(TOOLS_LIST)
+
+    assert result.ret == 0
+    assert outcomes_of(report) == {TOOLS_LIST.partition("::")[2]: "passed"}
+
+
+def test_requests_without_a_fixture_while_the_hook_starts_the_server_end_the_run(
+    remote, monkeypatch
+):
+    monkeypatch.setenv("NCI_SI_ACCEPTANCE_STATE_HOOK", fetches_at_startup("/api/v1/nothing"))
+
+    result, report = remote(TOOLS_LIST)
+
+    assert result.ret == 1
+    result.stdout.fnmatch_lines(
+        ["*upstream requests without a fixture while the server started:*", "*/api/v1/nothing*"]
+    )
+    assert report["tests"] == {}
+
+
+def test_a_remote_server_is_tested_by_one_process(remote):
+    result, _ = remote("-n", "2", TOOLS_LIST)
+
+    assert result.ret == USAGE_ERROR
+    result.stderr.fnmatch_lines(
+        ["*a remote server (NCI_SI_ACCEPTANCE_URL) is tested by one process*"]
+    )
+
+
+# ---- the state hook, called directly
+
+
+def hook_for(stub, tmp_path, command, timeout=30, authorization=CREDENTIAL):
     target = Target(
         "fixture",
         [],
         "evs",
         url=stub.url,
-        authorization=CREDENTIAL,
-        restart=command,
-        restart_timeout=timeout,
+        authorization=authorization,
+        state_hook=command,
+        state_hook_timeout=timeout,
     )
-    return Restarter(target, FixtureServer(FixtureSet({}, {})), tmp_path / "output.log")
+    return StateHook(target, FixtureServer(FixtureSet({}, {})), tmp_path / "output.log")
 
 
-def test_a_scenario_is_restarted_for_once_and_a_server_of_its_own_every_time(stub, tmp_path):
+def test_a_scenario_set_gets_one_state_change_and_a_server_of_its_own_every_time(stub, tmp_path):
     runs = tmp_path / "runs.txt"
-    restart = restarter(stub, tmp_path, f'echo "$SETTING" >> {runs}')
+    hook = hook_for(stub, tmp_path, f'echo "$SETTING" >> {runs}')
 
-    restart.serve(("a/one",), {"SETTING": "one"})
-    restart.serve(("a/one",), {"SETTING": "one"})
-    restart.serve((), {"SETTING": "own"}, fresh=True)
-    restart.serve((), {"SETTING": "own"}, fresh=True)
-    restart.serve(("a/two",), {"SETTING": "two"})
-    restart.restore()
-    restart.restore()
+    hook.apply(("a/one",), {"SETTING": "one"})
+    hook.apply(("a/one",), {"SETTING": "one"})
+    hook.apply((), {"SETTING": "own"}, fresh=True)
+    hook.apply((), {"SETTING": "own"}, fresh=True)
+    hook.apply(("a/two",), {"SETTING": "two"})
+    hook.restore()
+    hook.restore()
 
     assert runs.read_text(encoding="utf-8").splitlines() == ["one", "own", "own", "two", ""]
 
 
-def test_a_restart_command_that_fails_ends_the_run_with_what_it_said_less_the_credential(
+def test_the_hook_gets_the_fixture_and_scenario_settings_but_none_of_the_developers_own(
+    stub, tmp_path, monkeypatch
+):
+    seen = tmp_path / "environment.txt"
+    monkeypatch.setenv("NCI_SI_EVS_LICENSE_KEY", "developers-own-key")
+    monkeypatch.setenv("NCI_SI_UPSTREAM_MODE", "live")
+    monkeypatch.setenv("NCI_SI_DATA_DIR", "/developers/data")
+    monkeypatch.setenv("NCI_SI_ACCEPTANCE_PREPARED", "1")
+    monkeypatch.setenv("NCI_SI_ACCEPTANCE_AUTHORIZATION", CREDENTIAL)
+    hook = hook_for(stub, tmp_path, f"env > {seen}")
+
+    hook.apply(("a/one", "a/two"), {"NCI_SI_EVS_LICENSE_KEY": "the-scenarios"})
+
+    given = dict(
+        line.split("=", 1) for line in seen.read_text(encoding="utf-8").splitlines() if "=" in line
+    )
+    assert given["NCI_SI_EVS_LICENSE_KEY"] == "the-scenarios"
+    assert given["NCI_SI_UPSTREAM_MODE"] == "fixture"
+    assert given["NCI_SI_EVS_BASE_URL"].endswith("/evs")
+    assert given["NCI_SI_ACCEPTANCE_SCENARIOS"] == "a/one,a/two"
+    assert given["NCI_SI_ACCEPTANCE_PREPARED"] == "1"
+    assert "NCI_SI_DATA_DIR" not in given
+    assert "NCI_SI_ACCEPTANCE_AUTHORIZATION" not in given
+
+
+def test_a_state_hook_that_fails_ends_the_run_with_what_it_said_less_the_credential(
     stub, tmp_path, monkeypatch
 ):
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_AUTHORIZATION", CREDENTIAL)
     command = f'echo "told {CREDENTIAL}, has [$NCI_SI_ACCEPTANCE_AUTHORIZATION]"; exit 3'
 
     with pytest.raises(pytest.exit.Exception) as ended:
-        restarter(stub, tmp_path, command).serve(("a/one",), {})
+        hook_for(stub, tmp_path, command).apply(("a/one",), {})
 
     said = ended.value.msg
     assert "failed with exit status 3" in said
     assert "told [authorization withheld], has []" in said
 
 
-def test_a_restart_command_that_does_not_return_ends_the_run(stub, tmp_path):
+def test_a_state_hook_that_does_not_return_ends_the_run(stub, tmp_path):
     with pytest.raises(pytest.exit.Exception, match=r"did not return within 0\.3 s"):
-        restarter(stub, tmp_path, "sleep 5", timeout=0.3).serve(("a/one",), {})
+        hook_for(stub, tmp_path, "sleep 5", timeout=0.3).apply(("a/one",), {})
 
 
 def test_a_server_that_does_not_come_back_ends_the_run(tmp_path):
     gone = Stub(f"http://127.0.0.1:{free_port()}/mcp", 0, {}, tmp_path, tmp_path)
 
-    with pytest.raises(pytest.exit.Exception, match=r"does not answer 0\.3 s after the restart"):
-        restarter(gone, tmp_path, "true", timeout=0.3).serve(("a/one",), {})
+    with pytest.raises(pytest.exit.Exception, match=r"does not answer \(nothing within 0\.3 s\)"):
+        hook_for(gone, tmp_path, "true", timeout=0.3).apply(("a/one",), {})
+
+
+def test_the_configured_timeout_ends_the_wait_for_a_server_that_takes_the_connection_and_is_silent(
+    tmp_path,
+):
+    with socket.socket() as silent:
+        silent.bind(("127.0.0.1", 0))
+        silent.listen()
+        taking = Stub(f"http://127.0.0.1:{silent.getsockname()[1]}/mcp", 0, {}, tmp_path, tmp_path)
+        started = time.monotonic()
+
+        with pytest.raises(pytest.exit.Exception, match=r"nothing within 1 s\) after the state"):
+            hook_for(taking, tmp_path, "true", timeout=1).apply(("a/one",), {})
+
+    assert time.monotonic() - started < PROMPTLY_SECONDS
+
+
+def test_a_server_that_refuses_the_credential_ends_the_run_at_once_naming_the_status_only(
+    stub, tmp_path
+):
+    started = time.monotonic()
+
+    with pytest.raises(pytest.exit.Exception) as ended:
+        hook_for(stub, tmp_path, "true", timeout=30, authorization="Bearer wrong").apply(
+            ("a/one",), {}
+        )
+
+    assert ended.value.msg == (
+        "the server under test does not answer (HTTP 401) after the state change"
+    )
+    assert time.monotonic() - started < PROMPTLY_SECONDS
 
 
 def test_a_session_with_a_server_that_refuses_the_credential_fails(stub):
@@ -370,3 +491,58 @@ def test_a_server_that_gives_no_answer_fails_the_probe_without_its_message(stub)
 
 def test_without_a_fixture_server_the_probe_asks_only_for_an_answer(stub):
     assert probe(stub.url, CREDENTIAL, None, TOOLMAP, PINNED) is None
+
+
+def reached_directly(upstream):
+    """The log entries of a request made to the fixture server, as a server that reaches it
+    makes one (the fixture set is empty, so none finds a fixture)."""
+
+    with suppress(urllib.error.HTTPError):
+        urllib.request.urlopen(f"{upstream.url}/evs/api/v1/version")  # noqa: S310
+    return upstream.log()
+
+
+def test_a_request_to_the_fixture_server_before_the_probe_does_not_pass_it(stub):
+    with FixtureServer(FixtureSet({}, {}), ("127.0.0.1", free_port())) as upstream:
+        assert reached_directly(upstream)
+
+        with pytest.raises(pytest.exit.Exception, match="does not reach the fixture server"):
+            probe(stub.url, CREDENTIAL, upstream, TOOLMAP, PINNED)
+
+
+def test_what_the_server_asked_while_it_started_counts_as_reaching_the_fixture_server(stub):
+    with FixtureServer(FixtureSet({}, {}), ("127.0.0.1", free_port())) as upstream:
+        probe(stub.url, CREDENTIAL, upstream, TOOLMAP, PINNED, [{"fixture": "recorded/x.json"}])
+
+        assert upstream.log() == []
+
+
+def test_requests_without_a_fixture_while_the_server_started_end_the_run_when_probed(stub):
+    with FixtureServer(FixtureSet({}, {}), ("127.0.0.1", free_port())) as upstream:
+        startup = reached_directly(upstream)
+
+        with pytest.raises(pytest.exit.Exception, match="without a fixture while the server star"):
+            probe(stub.url, CREDENTIAL, upstream, TOOLMAP, PINNED, startup)
+
+
+def test_a_server_that_refuses_the_credential_fails_the_probe_naming_only_the_status(stub):
+    with pytest.raises(pytest.exit.Exception) as ended:
+        probe(stub.url, "Bearer wrong", None, TOOLMAP, PINNED)
+
+    assert ended.value.msg == "the server under test does not answer (HTTP 401)"
+
+
+def test_the_operator_is_warned_when_the_fixture_server_listens_on_every_address(stub):
+    anywhere = Target("fixture", [], url=stub.url, fixture_bind=("0.0.0.0", 8099))  # noqa: S104
+    named = replace(anywhere, fixture_url="https://fixtures.example")
+    local = replace(anywhere, fixture_bind=("127.0.0.1", 8099))
+
+    with FixtureServer(FixtureSet({}, {})) as upstream:
+        warned, told, quiet = (announcement(t, upstream) for t in (anywhere, named, local))
+
+    assert [line for line in warned if line.startswith("warning:")] == [
+        "warning: the fixture server listens on every address but the URLs name "
+        f"{upstream.url}; if the server under test runs elsewhere, set "
+        "NCI_SI_ACCEPTANCE_FIXTURE_URL"
+    ]
+    assert not [line for line in told + quiet if line.startswith("warning:")]

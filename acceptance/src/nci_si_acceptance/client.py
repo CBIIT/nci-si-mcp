@@ -22,9 +22,11 @@ through these settings (the acceptance README, "Remote server"):
                                      credential, never written anywhere
     NCI_SI_ACCEPTANCE_FIXTURE_BIND   HOST[:PORT] the fixture server listens on
     NCI_SI_ACCEPTANCE_FIXTURE_URL    the base URL the remote server reaches the fixture server by
-    NCI_SI_ACCEPTANCE_RESTART        the operator's command that restarts the server with the
-                                     settings of a scenario in its environment
-    NCI_SI_ACCEPTANCE_RESTART_TIMEOUT  seconds the endpoint may take to answer after a restart
+    NCI_SI_ACCEPTANCE_STATE_HOOK     the operator's command that applies the settings of a
+                                     scenario set to the server and makes it forget every
+                                     upstream answer cached so far
+    NCI_SI_ACCEPTANCE_STATE_HOOK_TIMEOUT  seconds the command may take to return, and again the
+                                     endpoint to answer after it
     NCI_SI_ACCEPTANCE_PREPARED       1: the operator has prepared the server's index
 """
 
@@ -40,6 +42,7 @@ from functools import partial
 from typing import TYPE_CHECKING, Any, Literal, TextIO
 from urllib.parse import urlsplit
 
+import httpx2
 from anyio.from_thread import BlockingPortal, start_blocking_portal
 from mcp.client import Client
 from mcp.client.stdio import StdioServerParameters, stdio_client
@@ -50,7 +53,7 @@ from nci_si_acceptance.fixture_server import UPSTREAM_VARIABLES
 from nci_si_acceptance.spec import PROFILES
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+    from collections.abc import AsyncIterator, Awaitable, Callable, Iterator, Mapping
     from pathlib import Path
 
     from mcp import types
@@ -65,22 +68,27 @@ URL_VARIABLE = "NCI_SI_ACCEPTANCE_URL"
 AUTHORIZATION_VARIABLE = "NCI_SI_ACCEPTANCE_AUTHORIZATION"
 FIXTURE_BIND_VARIABLE = "NCI_SI_ACCEPTANCE_FIXTURE_BIND"
 FIXTURE_URL_VARIABLE = "NCI_SI_ACCEPTANCE_FIXTURE_URL"
-RESTART_VARIABLE = "NCI_SI_ACCEPTANCE_RESTART"
-RESTART_TIMEOUT_VARIABLE = "NCI_SI_ACCEPTANCE_RESTART_TIMEOUT"
+STATE_HOOK_VARIABLE = "NCI_SI_ACCEPTANCE_STATE_HOOK"
+STATE_HOOK_TIMEOUT_VARIABLE = "NCI_SI_ACCEPTANCE_STATE_HOOK_TIMEOUT"
 PREPARED_VARIABLE = "NCI_SI_ACCEPTANCE_PREPARED"
 # The settings that mean something only for a remote server: naming one without the URL is a
 # usage error, never silently ignored.
 REMOTE_ONLY = (
     AUTHORIZATION_VARIABLE,
     FIXTURE_URL_VARIABLE,
-    RESTART_VARIABLE,
-    RESTART_TIMEOUT_VARIABLE,
+    STATE_HOOK_VARIABLE,
+    STATE_HOOK_TIMEOUT_VARIABLE,
     PREPARED_VARIABLE,
 )
 # The file of concept codes the prepare command indexes, which the suite names to it.
 INDEX_CODES_VARIABLE = "NCI_SI_ACCEPTANCE_INDEX_CODES"
 DEFAULT_SERVER = "nci-si-mcp serve"
-DEFAULT_RESTART_TIMEOUT_SECONDS = 60.0
+DEFAULT_STATE_HOOK_TIMEOUT_SECONDS = 60.0
+WITHHELD = "[authorization withheld]"
+MIN_TOKEN_LENGTH = 8
+# The statuses of a credential the endpoint will not accept, however long the harness waits.
+REFUSALS = (401, 403)
+HTTP_ERROR = 400
 # How long the harness waits for any one answer of the server, startup included.
 READ_TIMEOUT_SECONDS = 60
 
@@ -95,8 +103,9 @@ class Target:
     """The server under test, the profile it serves and the run mode.
 
     A command starts a server over stdio; a `url` names a remote one over streamable HTTP,
-    which the harness does not start and, but for the operator's `restart` command, cannot
-    restart. The `authorization` is a credential: it has no place in the representation.
+    which the harness does not start and, but for the operator's `state_hook` command, cannot
+    set the environment of. The `authorization` is a credential: it has no place in the
+    representation.
     """
 
     mode: Mode
@@ -107,8 +116,8 @@ class Target:
     authorization: str | None = field(default=None, repr=False)
     fixture_bind: tuple[str, int] | None = None
     fixture_url: str | None = None
-    restart: str | None = None
-    restart_timeout: float = DEFAULT_RESTART_TIMEOUT_SECONDS
+    state_hook: str | None = None
+    state_hook_timeout: float = DEFAULT_STATE_HOOK_TIMEOUT_SECONDS
     prepared: bool = False
 
     @classmethod
@@ -133,8 +142,8 @@ class Target:
             os.environ.get(AUTHORIZATION_VARIABLE) or None,
             bind,
             _fixture_url(),
-            os.environ.get(RESTART_VARIABLE) or None,
-            _seconds(RESTART_TIMEOUT_VARIABLE, DEFAULT_RESTART_TIMEOUT_SECONDS),
+            os.environ.get(STATE_HOOK_VARIABLE) or None,
+            _seconds(STATE_HOOK_TIMEOUT_VARIABLE, DEFAULT_STATE_HOOK_TIMEOUT_SECONDS),
             _declared(PREPARED_VARIABLE),
         )
 
@@ -228,10 +237,16 @@ def _upstream_settings(mode: Mode, fixture_url: str | None) -> dict[str, str]:
 
 
 def withhold_authorization(text: str) -> str:
-    """`text` without the operator's credential, which no output of the harness may carry."""
+    """`text` without the operator's credential, which no output of the harness may carry: the
+    whole value, and the token after its scheme (`Bearer TOKEN`) where that is long enough not
+    to withhold ordinary words."""
 
-    secret = os.environ.get(AUTHORIZATION_VARIABLE)
-    return text.replace(secret, "[authorization withheld]") if secret else text
+    if not (secret := os.environ.get(AUTHORIZATION_VARIABLE)):
+        return text
+    token = secret.partition(" ")[2]
+    for part in (secret, token) if len(token) >= MIN_TOKEN_LENGTH else (secret,):
+        text = text.replace(part, WITHHELD)
+    return text
 
 
 def remote_settings(fixture_url: str) -> dict[str, str]:
@@ -239,6 +254,13 @@ def remote_settings(fixture_url: str) -> dict[str, str]:
     environment of a process it did not start."""
 
     return {"NCI_SI_UPSTREAM_MODE": "fixture"} | _upstream_settings("fixture", fixture_url)
+
+
+def without_nci_si_settings(environment: Mapping[str, str]) -> dict[str, str]:
+    """`environment` less the developer's own `NCI_SI_*` settings, which no server under test
+    gets: a run depends only on its mode."""
+
+    return {key: value for key, value in environment.items() if not key.startswith("NCI_SI_")}
 
 
 def server_environment(mode: Mode, data_dir: Path, fixture_url: str | None) -> dict[str, str]:
@@ -249,7 +271,7 @@ def server_environment(mode: Mode, data_dir: Path, fixture_url: str | None) -> d
     every upstream base URL names the fixture server.
     """
 
-    environment = {key: value for key, value in os.environ.items() if not key.startswith("NCI_SI_")}
+    environment = without_nci_si_settings(os.environ)
     environment |= {"NCI_SI_UPSTREAM_MODE": mode, "NCI_SI_DATA_DIR": str(data_dir)}
     return environment | _upstream_settings(mode, fixture_url)
 
@@ -317,29 +339,46 @@ def open_session(
         yield Session(portal, client)
 
 
+async def _note_refusal(statuses: list[int], response: httpx2.Response) -> None:
+    if response.status_code >= HTTP_ERROR:
+        statuses.append(response.status_code)
+
+
 @asynccontextmanager
-async def _http_transport(url: str, authorization: str | None) -> AsyncIterator[Any]:
-    """The streamable-HTTP transport of an endpoint, the credential on every request."""
+async def _http_transport(
+    url: str, authorization: str | None, seconds: float | None, statuses: list[int]
+) -> AsyncIterator[Any]:
+    """The streamable-HTTP transport of an endpoint, the credential on every request. Every
+    HTTP error status is noted in `statuses`, which the MCP client's own errors do not carry."""
 
     headers = {"Authorization": authorization} if authorization else None
+    bound = httpx2.Timeout(seconds) if seconds else None
     async with (
-        create_mcp_http_client(headers=headers) as http,
+        create_mcp_http_client(headers=headers, timeout=bound) as http,
         streamable_http_client(url, http_client=http) as streams,
     ):
+        http.event_hooks["response"].append(partial(_note_refusal, statuses))
         yield streams
 
 
 @contextmanager
-def open_remote_session(url: str, authorization: str | None = None) -> Iterator[Session]:
-    """Hold one MCP session with the endpoint at `url`. The error of a failed connection names
-    neither the URL nor the credential."""
+def open_remote_session(
+    url: str,
+    authorization: str | None = None,
+    *,
+    timeout: float | None = None,
+    statuses: list[int] | None = None,
+) -> Iterator[Session]:
+    """Hold one MCP session with the endpoint at `url`, no request taking longer than `timeout`
+    seconds where that is given. The error of a failed connection names neither the URL nor the
+    credential; the HTTP error statuses the endpoint answered are appended to `statuses`."""
 
     with (
         start_blocking_portal() as portal,
         portal.wrap_async_context_manager(
             Client(
-                _http_transport(url, authorization),
-                read_timeout_seconds=READ_TIMEOUT_SECONDS,
+                _http_transport(url, authorization, timeout, [] if statuses is None else statuses),
+                read_timeout_seconds=timeout or READ_TIMEOUT_SECONDS,
                 cache=None,
             )
         ) as client,
@@ -347,16 +386,22 @@ def open_remote_session(url: str, authorization: str | None = None) -> Iterator[
         yield Session(portal, client)
 
 
-def wait_for_endpoint(url: str, authorization: str | None, seconds: float) -> bool:
-    """Whether the endpoint answers a tools/list within `seconds`, tried again until then."""
+def wait_for_endpoint(url: str, authorization: str | None, seconds: float) -> str | None:
+    """None once the endpoint answers a tools/list within `seconds`, tried again until then;
+    else why it did not: the HTTP status it answered (a 401 or 403, which waiting does not
+    mend, ends the wait at once), or that nothing came in the time given."""
 
     deadline = time.monotonic() + seconds
-    while True:
+    status = None
+    while (remaining := deadline - time.monotonic()) > 0:
+        refused: list[int] = []
         try:
-            with open_remote_session(url, authorization) as session:
-                session.list_tools()
-            return True
+            with open_remote_session(url, authorization, timeout=remaining, statuses=refused) as s:
+                s.list_tools()
+            return None
         except Exception:  # noqa: BLE001 - any failure to answer means not yet
-            if time.monotonic() >= deadline:
-                return False
-            time.sleep(0.5)
+            status = refused[0] if refused else None
+            if status in REFUSALS:
+                break
+            time.sleep(min(0.5, max(deadline - time.monotonic(), 0)))
+    return f"HTTP {status}" if status else f"nothing within {seconds:g} s"

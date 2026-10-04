@@ -330,11 +330,27 @@ def write_report(config: pytest.Config, mode: str) -> None:
     path = config.getoption("report")
     if path:
         report = config.stash[COLLECTOR].report(mode) | {"suite": config.stash[SUITE]}
-        Path(path).write_text(withhold_authorization(json.dumps(report, indent=2)) + "\n")
+        Path(path).write_text(json.dumps(withheld(report), indent=2) + "\n")
+
+
+def withheld(value: Any) -> Any:
+    """`value` with the operator's credential out of every string in it: before it is written as
+    JSON, where a credential with quotes, backslashes or non-ASCII characters would be escaped
+    and so no longer found."""
+
+    if isinstance(value, str):
+        return withhold_authorization(value)
+    if isinstance(value, dict):
+        return {key: withheld(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [withheld(item) for item in value]
+    return value
 
 
 def _read(path: Path, mode: str) -> dict[str, Any]:
     report = json.loads(path.read_text(encoding="utf-8"))
+    if "transport" not in report:
+        raise SystemExit(f"{path} was written by an older suite; re-run it")
     if report["mode"] != mode:
         raise SystemExit(f"{path} is the report of a {report['mode']} run, not of a {mode} run")
     return report
