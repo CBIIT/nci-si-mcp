@@ -697,7 +697,8 @@ Result:
 
 Every item a tool returns carries a `provenance` record (the specification's
 `provenance` record, in camelCase). Items are a looked-up concept, each hit's concept of a
-search, each node and edge of a traversal, the release report and the index manifest. A result
+search, each node and edge of a traversal, the release report and the index manifest (which
+`index-sample` and the release report's `active_index` also print, with the same record). A result
 with no item (a search that finds nothing) carries the record itself; a result with items does
 not. The same fields everywhere:
 
@@ -709,7 +710,8 @@ not. The same fields everywhere:
 | `retrievedAt` | When the item was retrieved; for an indexed concept, when it was indexed |
 | `sourceUri` | The EVS URL of the resource that holds the item, without query: the concept, or for a descendant edge its start code's `descendants`. Left out of a search that found nothing, which no upstream URL produced |
 | `correlationId` | The call's `_meta.correlationId`, or one the server generated; the same in every item of the call and in the error record |
-| `upstream` | What EVS said of the concept's origin, unchanged: its `terminology` and `version`. Left out where EVS said nothing (a traversal node is read from a relation list that carries neither) |
+| `upstream` | What EVS said of the item's origin, unchanged: its `terminology` and `version`. Present for a concept and for a traversal start code, whose payload was read in full; left out where EVS said nothing (a node named by a relation list, an edge) |
+| `graphs`, `registry`, `attribution` | Never supplied: they belong to the Shared SI Service, to caDSR content and to answers that carry licence text |
 
 An item reached by traversal adds `depth` (an edge has that of the node it reaches; the start
 codes have 0); and, for any item but a start code, `relationship` (`kind`; for a role or

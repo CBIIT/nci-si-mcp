@@ -233,6 +233,7 @@ class IndexCodesTest(ServiceTestCase):
 
     def test_missing_concepts_leave_the_index_unchanged(self):
         before = self.index("C3262")
+        del before["provenance"]  # built at the call, which this one is not
 
         result = self.service.index_codes(["C3262", "C999"])
 
@@ -242,6 +243,7 @@ class IndexCodesTest(ServiceTestCase):
 
     def test_payload_from_another_release_than_requested_changes_nothing(self):
         before = self.index("C3262")
+        del before["provenance"]  # built at the call, which this one is not
         self.evs.concepts["C40704"] = dict(KINASE, version="26.07a")
 
         for codes in (["C40704"], ["C3262", "C40704"]):

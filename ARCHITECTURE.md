@@ -189,8 +189,9 @@ in `traversal.py`, and `validation.py` reads the hard node limit in
 (the specification's provenance record, field for field, written in camelCase by `to_dict`),
 `TraversalProvenance` (adds the traversal record's fields) and `Truncation` (the truncation
 record). Each item is given its envelope where it is built: `NcitConcept.provenance` for a
-looked-up or indexed concept, the `_Walk` for traversal nodes and edges, `IndexManifest.provenance`
-for the index, and the service for the release report. The correlation identifier is read from
+looked-up or indexed concept, the `_Walk` for traversal nodes and edges, `IndexManifest.to_result`
+for the index (the same record in `index-sample` and in the release report), and the service for
+the release report. The correlation identifier is read from
 `errors.call_correlation_id`; `service._enveloped` gives a call made outside an adapter one, so
 that every item and error of a call carries the same. The stored form of a concept
 (`NcitConcept.to_stored`) keeps the full EVS payload; the result form leaves it out unless the

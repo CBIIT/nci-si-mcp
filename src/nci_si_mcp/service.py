@@ -181,7 +181,7 @@ class NCISIService:
         report = {
             "evs_api": evs_status(self.evs.get_api_version),
             "selected_monthly_release": selected,
-            "active_index": manifest.to_dict() if manifest else None,
+            "active_index": manifest.to_result() if manifest else None,
             "embedding": {
                 "provider": self.embedding_provider.name,
                 "model": self.embedding_provider.model,
@@ -218,9 +218,7 @@ class NCISIService:
         manifest = self.index.get_active_manifest()
         if not manifest:
             return {"active_index": None}
-        return {
-            "active_index": manifest.to_dict() | {"provenance": manifest.provenance().to_dict()}
-        }
+        return {"active_index": manifest.to_result()}
 
     def _fetch_for_index(
         self, codes: list[str], release: ReleaseInfo
@@ -267,7 +265,7 @@ class NCISIService:
             manifest.embedding_provider,
             manifest.embedding_model,
         )
-        return manifest.to_dict()
+        return manifest.to_result()
 
     @_enveloped
     def search(

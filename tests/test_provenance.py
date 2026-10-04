@@ -8,6 +8,7 @@ import tempfile
 import unittest
 from copy import deepcopy
 from pathlib import Path
+from unittest.mock import patch
 
 import yaml
 
@@ -16,10 +17,11 @@ from nci_si_mcp.config import Settings
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.errors import call_correlation_id, correlated
 from nci_si_mcp.evs import EVSResponseTooLargeError, EVSUnavailableError
-from nci_si_mcp.index import LocalIndex
-from nci_si_mcp.models import NcitConcept
+from nci_si_mcp.index import EXACT_VECTOR_SCAN_LIMIT, LocalIndex
+from nci_si_mcp.models import NcitConcept, utc_now_iso
 from nci_si_mcp.service import NCISIService
 from nci_si_mcp.traversal import NCIT_EXCLUSION_CODES
+from test_index import synthetic_concepts
 
 RECORDS = yaml.safe_load((Path(__file__).parent.parent / "spec/records.yaml").read_text())
 PROVENANCE = RECORDS["provenance"]["fields"]
@@ -344,9 +346,22 @@ class UpstreamPassThroughTest(ProvenanceTestCase):
         # A release EVS gave no date for is named without one, never with null.
         self.assertEqual(provenance["release"], {"terminology": "ncit", "identifier": "26.06e"})
 
-    def test_a_traversal_node_names_no_upstream_origin_the_relation_did_not_give(self):
-        for item in self.traversal()["nodes"]:
-            self.assertNotIn("upstream", item["provenance"])
+    def test_a_start_code_passes_through_what_its_payload_gave_and_nothing_else(self):
+        result = self.traversal(direction="both")
+
+        by_code = {node["code"]: node["provenance"] for node in result["nodes"]}
+        self.assertEqual(by_code["C3262"]["upstream"], {"terminology": "ncit", "version": "26.06e"})
+        # A node named by a relation list was told nothing of its origin, nor was an edge.
+        reached = [by_code[code] for code in by_code if code != "C3262"]
+        for provenance in [*reached, *(edge["provenance"] for edge in result["edges"])]:
+            self.assertNotIn("upstream", provenance)
+
+    def test_a_start_code_names_only_the_origin_fields_its_payload_has(self):
+        del self.evs.concepts["C3262"]["terminology"]
+
+        start = self.traversal()["nodes"][0]["provenance"]
+
+        self.assertEqual(start["upstream"], {"version": "26.06e"})
 
 
 class RawIsKeptBehindTheFlagTest(ProvenanceTestCase):
@@ -470,3 +485,244 @@ class TruncationTest(ProvenanceTestCase):
         self.assert_record(
             self.service.search("tumor", mode="vector")["truncation"], {"occurred": False}
         )
+
+
+class Clock:
+    """The call times before and after a call: every live item was retrieved between them."""
+
+    def __enter__(self):
+        self.before = utc_now_iso()
+        return self
+
+    def __exit__(self, *exc):
+        self.after = utc_now_iso()
+
+    def holds(self, retrieved_at):
+        return self.before <= retrieved_at <= self.after
+
+
+class NoUpstreamUrlTest(ProvenanceTestCase):
+    def test_a_result_no_upstream_url_produced_names_none(self):
+        self.service.index_codes(["C3262"])
+
+        empty = self.service.search("zzzz", mode="bm25")["provenance"]
+        manifest = self.service.index_manifest()["active_index"]["provenance"]
+
+        self.assertNotIn("sourceUri", empty)
+        self.assertNotIn("sourceUri", manifest)
+
+
+class RetrievedAtTest(ProvenanceTestCase):
+    def test_an_indexed_concept_and_the_manifest_keep_the_time_they_were_stored_with(self):
+        self.service.index_codes(["C3262"])
+        stored = self.service.index.get_concept("C3262").retrieved_at
+        built = self.service.index.get_active_manifest().built_at
+
+        first = self.service.search("neoplasm")["hits"][0]["concept"]["provenance"]
+        second = self.service.search("neoplasm")["hits"][0]["concept"]["provenance"]
+        manifest = self.service.index_manifest()["active_index"]["provenance"]
+        empty = self.service.search("zzzz", mode="bm25")["provenance"]
+
+        self.assertEqual((first["retrievedAt"], second["retrievedAt"]), (stored, stored))
+        self.assertEqual((manifest["retrievedAt"], empty["retrievedAt"]), (built, built))
+
+    def test_a_live_item_was_retrieved_during_its_call(self):
+        with Clock() as lookup:
+            concept_provenance = self.service.lookup("C3262")["provenance"]
+        with Clock() as walk:
+            result = self.traversal(direction="both")
+
+        self.assertTrue(lookup.holds(concept_provenance["retrievedAt"]))
+        for item in [*result["nodes"], *result["edges"]]:
+            self.assertTrue(walk.holds(item["provenance"]["retrievedAt"]))
+
+    def test_the_release_report_was_retrieved_during_its_call(self):
+        with Clock() as call:
+            report = self.service.release_info()["provenance"]
+
+        self.assertTrue(call.holds(report["retrievedAt"]))
+        self.assertEqual(
+            (report["servedBy"], report["source"], report["release"]["date"]),
+            ("live", "evs_rest", "2026-06-29"),
+        )
+
+
+class CorrelationOfEveryResultTest(ProvenanceTestCase):
+    def test_every_kind_of_result_carries_the_identifier_of_the_call(self):
+        self.service.index_codes(["C3262"])
+        self.evs.errors = {"get_concept": EVSUnavailableError("down")}
+
+        with correlated("call-42"), self.assertLogs("nci_si_mcp.service", level="WARNING"):
+            fallback = self.service.lookup("C3262")["provenance"]
+        with correlated("call-42"):
+            report = self.service.release_info()["provenance"]
+            manifest = self.service.index_manifest()["active_index"]["provenance"]
+            empty = self.service.search("zzzz", mode="bm25")["provenance"]
+            hit = self.service.search("neoplasm")["hits"][0]["concept"]["provenance"]
+
+        ids = {each["correlationId"] for each in (fallback, report, manifest, empty, hit)}
+        self.assertEqual(ids, {"call-42"})
+
+    def test_the_manifest_of_a_build_and_of_the_report_carry_the_record_too(self):
+        built = self.service.index_codes(["C3262"])
+        report = self.service.release_info()["active_index"]
+
+        for manifest in (built, report):
+            self.assertEqual(manifest["provenance"]["source"], "evs_index")
+            self.assertEqual(manifest["provenance"]["release"]["identifier"], "26.06e")
+        self.assertEqual(
+            self.service.index_manifest()["active_index"]["provenance"]["servedBy"], "index"
+        )
+
+
+class ResultShapesTest(ProvenanceTestCase):
+    """No field of the old shape comes back, and nothing is added without a record for it."""
+
+    CONCEPT = frozenset(
+        {
+            "code",
+            "preferred_name",
+            "source_vocabulary",
+            "terminology",
+            "evidence",
+            "provenance",
+        }
+    )
+
+    def test_a_concept_item_has_exactly_these_fields(self):
+        self.service.index_codes(["C3262"])
+        self.evs.errors = {"get_concept": EVSUnavailableError("down")}
+
+        with self.assertLogs("nci_si_mcp.service", level="WARNING"):
+            fallback = self.service.lookup("C3262")
+        hit = self.service.search("neoplasm")["hits"][0]
+        del self.evs.errors["get_concept"]
+        live = self.service.lookup("C3262")
+
+        self.assertEqual(set(live), self.CONCEPT)
+        self.assertEqual(set(fallback), self.CONCEPT | {"fallback"})
+        self.assertEqual(set(hit["concept"]), self.CONCEPT)
+        self.assertEqual(set(hit), {"concept", "score", "rank", "score_components"})
+
+    def test_a_search_result_has_exactly_these_fields(self):
+        self.service.index_codes(["C3262"])
+
+        found = self.service.search("neoplasm")
+        empty = self.service.search("zzzz", mode="bm25")
+
+        self.assertEqual(set(found), {"query", "mode", "hits", "truncation"})
+        self.assertEqual(set(empty), {"query", "mode", "hits", "truncation", "provenance"})
+
+    def test_a_traversal_result_and_its_items_have_exactly_these_fields(self):
+        result = self.traversal()
+
+        self.assertEqual(
+            set(result),
+            {"start_codes", "nodes", "edges", "truncation", "max_depth", "max_nodes", "max_edges"},
+        )
+        self.assertEqual(
+            set(result["nodes"][0]),
+            {"code", "preferred_name", "terminology", "source_vocabulary", "provenance"},
+        )
+        self.assertEqual(
+            set(result["edges"][0]),
+            {
+                "source_code",
+                "target_code",
+                "edge_type",
+                "relationship_name",
+                "target_name",
+                "source_name",
+                "provenance",
+            },
+        )
+
+
+class EdgeTypeProvenanceTest(ProvenanceTestCase):
+    def test_each_edge_type_says_its_kind_and_direction(self):
+        self.evs.concepts["C3262"].update(
+            parents=[child("C1")],
+            children=[child("C2")],
+            roles=[related("Has_Role", "C3", "R1")],
+            inverseRoles=[related("Role_Of", "C4", "R2")],
+            associations=[related("Has_Assoc", "C5", "A1")],
+            inverseAssociations=[related("Assoc_Of", "C6", "A2")],
+        )
+        self.evs.descendants = {"C3262": [{"code": "C7", "name": "D", "level": 1}]}
+        expected = {
+            "parent": ("parent", "in"),
+            "child": ("child", "out"),
+            "descendant": ("descendant", "out"),
+            "role": ("role", "out"),
+            "inverse_role": ("role", "in"),
+            "association": ("association", "out"),
+            "inverse_association": ("association", "in"),
+        }
+
+        result = self.traversal(direction="both", edge_types=sorted(expected))
+
+        seen = {
+            edge["edge_type"]: (
+                edge["provenance"]["relationship"]["kind"],
+                edge["provenance"]["direction"],
+            )
+            for edge in result["edges"]
+        }
+        self.assertEqual(seen, expected)
+
+    def test_a_relation_without_a_code_or_a_name_names_only_its_kind(self):
+        bare = {"relatedCode": "C5", "relatedName": "Five"}
+        self.evs.concepts["C3262"].update(roles=[bare], associations=[bare])
+
+        result = self.traversal(edge_types=["role", "association"])
+
+        kinds = [edge["provenance"]["relationship"] for edge in result["edges"]]
+        self.assertEqual(kinds, [{"kind": "role"}, {"kind": "association"}])
+        self.assertEqual({edge["provenance"]["polarity"] for edge in result["edges"]}, {"positive"})
+
+    def test_traversal_items_are_live_and_index_items_are_indexed(self):
+        self.service.index_codes(["C3262"])
+        result = self.traversal(direction="both")
+
+        for item in [*result["nodes"], *result["edges"]]:
+            self.assertEqual(
+                (item["provenance"]["source"], item["provenance"]["servedBy"]),
+                ("evs_rest", "live"),
+            )
+        indexed = [
+            self.service.search("neoplasm")["hits"][0]["concept"]["provenance"],
+            self.service.search("zzzz", mode="bm25")["provenance"],
+            self.service.index_manifest()["active_index"]["provenance"],
+        ]
+        for provenance in indexed:
+            self.assertEqual((provenance["source"], provenance["servedBy"]), ("evs_index", "index"))
+
+
+class ExactnessBoundaryTest(ProvenanceTestCase):
+    def search(self, index, limit, mode):
+        return index.search_with_truncation("alpha1", HashingEmbeddingProvider(), limit, mode)[1]
+
+    def build(self, count):
+        index = LocalIndex(self.path)
+        index.upsert_concepts(synthetic_concepts(count), "2026-06-29", HashingEmbeddingProvider())
+        return index
+
+    def test_vectors_are_exact_up_to_the_scan_limit_and_not_beyond(self):
+        index = self.build(30)
+
+        for limit_of_scan, exact in ((30, True), (29, False)):
+            with self.subTest(scan_limit=limit_of_scan):
+                with patch("nci_si_mcp.index.EXACT_VECTOR_SCAN_LIMIT", limit_of_scan):
+                    truncation = self.search(index, 1, "hybrid")
+                self.assertEqual(truncation.exact, exact)
+        self.assertEqual(EXACT_VECTOR_SCAN_LIMIT, 20_000)
+
+    def test_term_ranking_is_exact_only_below_its_candidate_cap(self):
+        index = self.build(1200)
+
+        # 120 concepts name alpha1: a cap of exactly 120 candidates is reached, one of 130 is not.
+        at_cap = self.search(index, 12, "bm25")
+        below_cap = self.search(index, 13, "bm25")
+
+        self.assertFalse(at_cap.exact)
+        self.assertEqual((below_cap.exact, below_cap.omitted), (True, 107))

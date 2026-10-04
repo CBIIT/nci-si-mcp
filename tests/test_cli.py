@@ -132,6 +132,17 @@ class MainTest(unittest.TestCase):
         code, evaluation, _ = self.run_cli("evaluate")
         self.assertEqual((code, len(evaluation["results"])), (0, 3))
 
+    def test_search_and_lookup_print_the_raw_payload_only_with_the_flag(self, _):
+        self.run_cli("index-sample", "C3262")
+
+        for argv in (("lookup", "C3262"), ("search", "neoplasm")):
+            with self.subTest(argv=argv):
+                _, plain, _ = self.run_cli(*argv)
+                _, raw, _ = self.run_cli(*argv, "--include-raw")
+
+                self.assertNotIn("raw", json.dumps(plain))
+                self.assertIn('"raw"', json.dumps(raw))
+
     def test_index_search_and_lookup_options_shape_the_result(self, _):
         code, manifest, _ = self.run_cli("index-sample", "C3262", "C40704")
         self.assertEqual((code, manifest["concept_count"]), (0, 2))

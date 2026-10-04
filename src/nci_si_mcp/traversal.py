@@ -30,6 +30,7 @@ from .models import (
     TraversalResult,
     Truncation,
     release_ref,
+    upstream_origin,
     utc_now_iso,
 )
 
@@ -292,7 +293,12 @@ class _Walk:
         self.batch_size = INVERSE_BATCH_SIZE if inverse else BATCH_SIZE
 
     def _provenance(
-        self, depth: int, uri: str, edge_type: str | None = None, item: dict[str, Any] | None = None
+        self,
+        depth: int,
+        uri: str,
+        edge_type: str | None = None,
+        item: dict[str, Any] | None = None,
+        upstream: dict[str, Any] | None = None,
     ) -> TraversalProvenance:
         """The provenance of an item at `depth`, read from `uri`; `edge_type` and `item` name
         the relation that brought it in, and the concept asked about has none."""
@@ -305,6 +311,7 @@ class _Walk:
             retrieved_at=self.retrieved_at,
             correlation_id=self.correlation_id,
             source_uri=uri,
+            upstream=upstream,
             depth=depth,
             relationship=relationship,
             direction=EDGE_DIRECTIONS[edge_type] if edge_type else None,
@@ -386,8 +393,11 @@ class _Walk:
         """Emit the start nodes and read their descendants when those are followed."""
 
         for code in start_codes:
-            name = str(concepts[code].get("name") or "")
-            self.nodes[code] = self._node(code, name, self._provenance(0, self._concept_uri(code)))
+            raw = concepts[code]
+            # A start code was read in full, so EVS said where it comes from; a node reached
+            # through a relation list was named there and nothing more.
+            provenance = self._provenance(0, self._concept_uri(code), upstream=upstream_origin(raw))
+            self.nodes[code] = self._node(code, str(raw.get("name") or ""), provenance)
         if self.depth_limit > 0 and "descendant" in self.edge_types:
             self._read_descendants(start_codes)
 

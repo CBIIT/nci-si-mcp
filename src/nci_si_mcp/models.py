@@ -125,6 +125,12 @@ def release_ref(terminology: str, identifier: str, date: str | None) -> dict[str
     return ref | {"date": date} if date else ref
 
 
+def upstream_origin(raw: dict[str, Any]) -> dict[str, Any]:
+    """What EVS REST says of an item's origin, under its own names: its terminology and version."""
+
+    return {key: raw[key] for key in ("terminology", "version") if key in raw}
+
+
 # NcitConcept and IndexManifest are stored as JSON in the index. A new field
 # needs a default, or a schema migration that rewrites the stored payloads.
 @dataclass(frozen=True, slots=True)
@@ -145,8 +151,6 @@ class NcitConcept:
 
     def provenance(self, source_uri: str) -> ProvenanceEnvelope:
         surface, served_by = _ORIGINS[self.source]
-        # What EVS says of the concept's origin, passed through under its own names.
-        upstream = {key: self.raw[key] for key in ("terminology", "version") if key in self.raw}
         return ProvenanceEnvelope(
             release=release_ref(self.terminology, self.release_version, self.release_date),
             source=surface,
@@ -154,7 +158,7 @@ class NcitConcept:
             retrieved_at=self.retrieved_at,
             correlation_id=call_correlation_id(),
             source_uri=source_uri,
-            upstream=upstream,
+            upstream=upstream_origin(self.raw),
         )
 
     def to_dict(self, source_uri: str, include_raw: bool = False) -> dict[str, Any]:
@@ -213,6 +217,11 @@ class IndexManifest:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+    def to_result(self) -> dict[str, Any]:
+        """The manifest as the index_manifest record: its fields and its provenance."""
+
+        return self.to_dict() | {"provenance": self.provenance().to_dict()}
 
     def provenance(self) -> ProvenanceEnvelope:
         """The provenance of what the index serves: the release it holds, as built."""
