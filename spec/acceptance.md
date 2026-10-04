@@ -43,6 +43,37 @@ timeout or a log level sets it.
 | `NCI_SI_LOG_LEVEL` | The `license/restricted` scenario | `DEBUG`, so that a secret logged as a detail shows |
 | `NCI_SI_ACCEPTANCE_INDEX_CODES` | The prepare command only | A file of the concept codes to index, one per line |
 
+### Settings of a run
+
+The operator selects the server under test, and the run, with these settings of the harness's own
+environment; none is given to a server.
+
+| Setting | Format |
+|---|---|
+| `NCI_SI_ACCEPTANCE_MODE` | `fixture` (default) or `live` |
+| `NCI_SI_ACCEPTANCE_SERVER` | The command that starts the server over stdio (default `nci-si-mcp serve`) |
+| `NCI_SI_ACCEPTANCE_PROFILE` | `evs`, `cadsr` or `unified` (default), the profile the server serves |
+| `NCI_SI_ACCEPTANCE_PREPARE` | A shell command line, run once before any test, that builds the index of a server the harness starts |
+| `NCI_SI_ACCEPTANCE_URL` | The streamable-HTTP endpoint of a remote server, in place of `NCI_SI_ACCEPTANCE_SERVER`; naming both is a usage error |
+| `NCI_SI_ACCEPTANCE_AUTHORIZATION` | The `Authorization` header sent on every request to a remote server: a credential, in no output of the harness |
+| `NCI_SI_ACCEPTANCE_FIXTURE_BIND` | `HOST` or `HOST:PORT` the fixture server listens on (default `127.0.0.1`, any port) |
+| `NCI_SI_ACCEPTANCE_FIXTURE_URL` | The base URL a remote server reaches the fixture server by |
+| `NCI_SI_ACCEPTANCE_RESTART` | The operator's command that restarts a remote server, with a scenario's settings in its environment |
+| `NCI_SI_ACCEPTANCE_RESTART_TIMEOUT` | Seconds the restart command, and then the endpoint, may take (default 60) |
+| `NCI_SI_ACCEPTANCE_PREPARED` | `1`: the operator has prepared the index of a remote server |
+
+A remote server is tested over streamable HTTP, and the report records the transport of each run
+(`stdio` or `streamable-http`). The harness cannot set a remote server's environment: the
+operator sets the fixture server's base URLs and `NCI_SI_UPSTREAM_MODE`, which the harness prints
+at the start of a fixture-mode run. Before the first test the harness requires that the server
+answers and, against fixtures, that its `resolve_release` call reaches the fixture server;
+otherwise the run stops. A test that needs a server of its own (a scenario, or a server that no
+earlier call can have filled a cache of) runs when the restart command gives it one; otherwise it
+is not run, and its tool is never PASS. The harness never prepares a remote server: the operator
+indexes the concepts that `pdm run acceptance-index-codes` prints, one per line, and declares the
+server prepared. A server declared prepared holds exactly that set: the semantic tests assert
+`totalKnown` equal to its size.
+
 The Prototype Baseline Assessment reads the outcomes of a run against the furnished prototype:
 a tool that passes is a reuse candidate, one that fails or is INCOMPLETE a hardening candidate,
 and one NOT IMPLEMENTED new development.
