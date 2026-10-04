@@ -123,7 +123,7 @@ def _generation_date(value: str | None, published: bool) -> str:
         if parsed.tzinfo is None:
             parsed = parsed.replace(tzinfo=UTC)
         return parsed.astimezone(UTC).isoformat()
-    except TypeError, ValueError, OverflowError:
+    except ValueError, OverflowError:
         raise RegistryMetadataError("The caDSR generation date is invalid") from None
 
 

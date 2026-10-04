@@ -258,7 +258,7 @@ class EVSClient:
 
         params = {"terminology": terminology, "latest": "true" if latest else None, "tag": tag}
         return _object_list(
-            self._get_existing(TERMINOLOGIES_PATH, {k: v for k, v in params.items() if v}),
+            self._get_existing(TERMINOLOGIES_PATH, params),
             "terminology metadata",
         )
 

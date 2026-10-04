@@ -114,10 +114,12 @@ class ResolveEvsReleaseTest(unittest.TestCase):
             self.assertIn("NCI_SI_RELEASE_CHANNEL", error.message)
 
     def test_a_row_without_a_version_is_not_a_release(self):
-        with self.assertRaises(PlatformError) as raised:
-            resolve_evs_release(fake_with(dict(MONTHLY, version="")), "ncit", "monthly")
+        absent = {key: value for key, value in MONTHLY.items() if key != "version"}
+        for row in (absent, dict(MONTHLY, version=None), dict(MONTHLY, version="")):
+            with self.subTest(row=row), self.assertRaises(PlatformError) as raised:
+                resolve_evs_release(fake_with(row), "ncit", "monthly")
 
-        self.assertEqual(raised.exception.code, "release_not_available")
+            self.assertEqual(raised.exception.code, "release_not_available")
 
     def test_the_query_names_the_terminology_latest_and_the_channel(self):
         with (
@@ -145,7 +147,7 @@ class ResolveEvsReleaseTest(unittest.TestCase):
         )
 
 
-class UnknownReleaseTest(unittest.TestCase):
+class UnknownReleaseTest(ServiceTestCase):
     def answer_404(self, message):
         body = io.BytesIO(f'{{"message": "{message}"}}'.encode())
         error = HTTPError("https://example.invalid", 404, "Not Found", {}, body)
@@ -169,8 +171,31 @@ class UnknownReleaseTest(unittest.TestCase):
         ):
             EVSClient("https://example.invalid", max_attempts=1).get_concept("C4817")
 
+    def test_a_pinned_release_no_longer_served_tells_the_caller_why_to_retry(self):
+        self.service.evs = EVSClient("https://example.invalid", max_attempts=1)
+        with (
+            patch.object(self.service.evs, "get_terminologies", return_value=[MONTHLY]),
+            self.answer_404("Terminology not found = ncit_26.09d"),
+        ):
+            result = self.service.lookup("C4817", live_only=True)
+
+        self.assertEqual(result["error"]["code"], "release_not_available")
+        self.assertEqual(result["error"]["details"], {"requested": "ncit_26.09d", "source": "evs"})
+        self.assertIn("Retry later", result["error"]["message"])
+        self.assertIn("no longer serves", result["error"]["message"])
+
 
 class ServiceReleaseTest(ServiceTestCase):
+    def test_an_index_mismatch_names_the_configured_weekly_channel(self):
+        self.index()
+        self.evs.release = release("26.07a", "2026-07-06", channel="weekly")
+
+        result = self.make_service(release_channel="weekly").lookup("C3262")
+
+        self.assertEqual(result["error"]["code"], "release_mismatch")
+        self.assertIn("current weekly release", result["error"]["message"])
+        self.assertEqual(result["error"]["details"]["requested"], "26.07a")
+
     def test_a_resolved_release_is_not_kept_between_calls(self):
         first = self.service.lookup("C3262", live_only=True)
         self.evs.release = release("26.07d", "2026-07-27")
@@ -213,6 +238,14 @@ class ServiceReleaseTest(ServiceTestCase):
 
 
 class RegistryStateTest(unittest.TestCase):
+    def test_a_blank_generation_date_is_reported_as_missing(self):
+        for identifier in (None, "R2026.3"):
+            for date in ("", "   "):
+                with self.subTest(identifier=identifier, date=date):
+                    error = registry_result(date, identifier)["error"]
+                    self.assertEqual(error["code"], "upstream_unavailable")
+                    self.assertIn("missing", error["message"])
+
     def test_no_registry_identifier_is_made_up_and_the_export_date_is_iso(self):
         state = registry_result("Mon, 28 Sep 2026 14:03:00 GMT")
 

@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from contextlib import contextmanager
+from dataclasses import replace
 from importlib import metadata
 from pathlib import Path
 from unittest.mock import patch
@@ -13,7 +14,7 @@ from unittest.mock import patch
 from mcp.client import Client
 from mcp.shared.exceptions import MCPError
 
-from fakes import FakeEVS, concept
+from fakes import FakeEVS, concept, release
 from nci_si_mcp.config import Settings
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.errors import correlated
@@ -346,6 +347,18 @@ class ServerTest(unittest.TestCase):
         error = json.loads(str(raised.exception))["error"]
         self.assertTrue(error["correlationId"])
         self.assertEqual(error["details"], {"requested": "99.99z", "source": "evs"})
+
+    def test_an_unavailable_release_resource_names_the_configured_weekly_channel(self, _):
+        self.service.settings = replace(self.settings, release_channel="weekly")
+        self.evs.release = release("26.07a", "2026-07-06", channel="weekly")
+
+        with self.assertRaises(MCPError) as raised:
+            self.read("nci-si://release/ncit/99.99z")
+
+        error = json.loads(str(raised.exception))["error"]
+        self.assertEqual(error["code"], "release_not_available")
+        self.assertIn("current weekly release", error["message"])
+        self.assertIn("26.07a", error["message"])
 
     def test_the_index_manifest_of_another_release_is_not_available(self, _):
         self.service.index_codes(["C3262"])
