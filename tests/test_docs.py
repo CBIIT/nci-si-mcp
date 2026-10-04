@@ -108,7 +108,7 @@ class DocumentationTest(unittest.TestCase):
 
     def test_quickstart_states_the_default_of_each_setting_in_the_table(self):
         table = section(QUICKSTART, "Settings")
-        row = re.compile(r"^\|\s*`(\w+)`\s*\|\s*`([^`]+)`", flags=re.MULTILINE)
+        row = re.compile(r"^\|\s*`(\w+)`\s*\|\s*(`[^`]+`|unset)\s*\|", flags=re.MULTILINE)
         documented = dict(row.findall(table))
         with patch.dict(os.environ, clear=True):
             defaults = Settings.from_env()
@@ -117,7 +117,13 @@ class DocumentationTest(unittest.TestCase):
         for name, default in documented.items():
             with self.subTest(name):
                 actual = getattr(defaults, name.removeprefix("NCI_SI_").lower())
-                self.assertEqual(type(actual)(default), actual)
+                if default == "unset":
+                    # A credential is None; a base URL without a sourced default is empty.
+                    self.assertIn(actual, (None, ""))
+                elif isinstance(actual, tuple):
+                    self.assertEqual(default.strip("`"), ",".join(actual))
+                else:
+                    self.assertEqual(type(actual)(default.strip("`")), actual)
 
     def test_quickstart_error_table_lists_exactly_the_error_codes(self):
         self.assertEqual(first_column(section(QUICKSTART, "Errors")), set(get_args(ErrorCode)))

@@ -1,5 +1,6 @@
 import io
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -212,6 +213,22 @@ class MainTest(unittest.TestCase):
                 self.assertIn(variable, result["error"]["message"])
                 self.assertEqual(result["error"]["details"]["parameter"], variable)
                 self.assertTrue(result["error"]["correlationId"])
+
+    def test_a_bad_secret_is_reported_by_variable_and_appears_nowhere(self, _):
+        for variable, value in (
+            ("NCI_SI_CADSR_CREDENTIAL", "no-colon-secret"),
+            ("NCI_SI_EVS_LICENSE_KEY", "bad key secret"),
+        ):
+            with self.subTest(variable), self.assertLogs(level="DEBUG") as logs:
+                logging.getLogger().debug("marker")
+                code, result, stderr = self.run_cli(
+                    "release-info", service="real", NCI_SI_LOG_LEVEL="DEBUG", **{variable: value}
+                )
+
+                self.assertEqual((code, result["error"]["code"]), (1, "invalid_request"))
+                self.assertEqual(result["error"]["details"]["parameter"], variable)
+                everything = json.dumps(result) + stderr + "\n".join(logs.output)
+                self.assertNotIn("secret", everything)
 
     def test_a_setting_error_that_names_no_variable_has_no_parameter_detail(self, _):
         with patch("nci_si_mcp.cli.Settings.from_env", side_effect=ValueError("odd")):

@@ -88,13 +88,32 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `NCI_SI_EVS_BASE_URL` | `https://api-evsrest.nci.nih.gov` | EVS endpoint (`http` or `https`) |
+| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Loaded and validated; the tool set it selects is not built yet |
+| `NCI_SI_UPSTREAM_MODE` | `live` | `live` or `fixture`; selects the six base URLs below as a set (next paragraph) |
+| `NCI_SI_EVS_BASE_URL` | `https://api-evsrest.nci.nih.gov` | EVS REST endpoint (`http` or `https`) |
+| `NCI_SI_EVS_FHIR_BASE_URL` | unset | EVS FHIR endpoint; no production default is sourced yet |
+| `NCI_SI_CADSR_BASE_URL` | unset | caDSR REST endpoint; no production default is sourced yet |
+| `NCI_SI_CADSR_FTP_URL` | unset | caDSR export (FTP) endpoint; no production default is sourced yet |
+| `NCI_SI_SSIS_FACADE_URL` | `https://cadsrapi.cancer.gov` | Shared Semantic Infrastructure façade |
+| `NCI_SI_SSIS_SPARQL_URL` | `https://shared.semantics.cancer.gov` | Shared Semantic Infrastructure SPARQL endpoint |
+| `NCI_SI_RELEASE_CHANNEL` | `monthly` | The release channel used where a call names none: `monthly` or `weekly` |
+| `NCI_SI_EXCLUSION_ROLE_CODES` | `R135,R136,R137,R138,R139,R140,R141,R142` | NCIt exclusion roles, a comma-separated list of codes (`R` and digits) |
+| `NCI_SI_EVS_LICENSE_KEY` | unset | EVS licence key. A credential: never logged, in no error message or string form. Loaded and validated; not sent yet |
+| `NCI_SI_CADSR_CREDENTIAL` | unset | caDSR credential as `user:password`; handled like the licence key |
 | `NCI_SI_TIMEOUT_SECONDS` | `30` | Per-request timeout |
+| `NCI_SI_MATCH_TIMEOUT_SECONDS` | `45` | Timeout of a caDSR match request |
 | `NCI_SI_EVS_MAX_ATTEMPTS` | `3` | Request attempts, 1 to 10 |
 | `NCI_SI_EVS_RETRY_BACKOFF_SECONDS` | `0.25` | Initial exponential backoff; a single wait is capped at 60 seconds |
 | `NCI_SI_EVS_MAX_RESPONSE_BYTES` | `10485760` | Maximum accepted EVS response, up to 1 GiB |
 | `NCI_SI_INDEX_BATCH_SIZE` | `100` | Codes per EVS indexing request |
 | `NCI_SI_LOG_LEVEL` | `INFO` | Stderr diagnostic level |
+
+The six base URLs are one set. In `live` mode a base URL that is not given takes its production
+default (none of the three marked unset has one yet, so those stay unconfigured), and one that is
+given replaces that default. In `fixture` mode every one of the six must be given, so a fixture
+server cannot reach a production host by accident; a missing one stops startup, naming it. The
+server adds the platform's own paths to each base URL. A setting set to an empty value is
+rejected: unset it instead.
 
 ## Build a small local index
 

@@ -129,6 +129,174 @@ class SettingsTest(unittest.TestCase):
         self.assertEqual(settings.data_dir, Path("/home/someone/nci-index"))
 
 
+BASE_URL_VARIABLES = (
+    "NCI_SI_EVS_BASE_URL",
+    "NCI_SI_EVS_FHIR_BASE_URL",
+    "NCI_SI_CADSR_BASE_URL",
+    "NCI_SI_CADSR_FTP_URL",
+    "NCI_SI_SSIS_FACADE_URL",
+    "NCI_SI_SSIS_SPARQL_URL",
+)
+FIXTURE_URLS = {name: f"http://127.0.0.1:9/{name[7:].lower()}" for name in BASE_URL_VARIABLES}
+CREDENTIAL = "reviewer:hunter2-secret"
+LICENCE_KEY = "licence-key-4711"
+
+
+class ProfileAndChannelTest(unittest.TestCase):
+    def test_defaults(self):
+        settings = settings_from()
+
+        self.assertEqual(
+            (
+                settings.profile,
+                settings.upstream_mode,
+                settings.release_channel,
+                settings.match_timeout_seconds,
+            ),
+            ("unified", "live", "monthly", 45.0),
+        )
+        self.assertEqual(
+            settings.exclusion_role_codes,
+            ("R135", "R136", "R137", "R138", "R139", "R140", "R141", "R142"),
+        )
+        self.assertEqual((settings.evs_license_key, settings.cadsr_credential), (None, None))
+
+    def test_each_closed_value_is_accepted(self):
+        for variable, values in (
+            ("NCI_SI_PROFILE", ("evs", "cadsr", "unified")),
+            ("NCI_SI_RELEASE_CHANNEL", ("monthly", "weekly")),
+        ):
+            for value in values:
+                with self.subTest(variable=variable, value=value):
+                    settings = settings_from(**{variable: value})
+                    self.assertIn(value, (settings.profile, settings.release_channel))
+
+    def test_a_value_outside_the_closed_set_names_the_variable(self):
+        for variable, value in (
+            ("NCI_SI_PROFILE", "everything"),
+            ("NCI_SI_PROFILE", "EVS"),
+            ("NCI_SI_PROFILE", ""),
+            ("NCI_SI_UPSTREAM_MODE", "mock"),
+            ("NCI_SI_RELEASE_CHANNEL", "daily"),
+            ("NCI_SI_RELEASE_CHANNEL", ""),
+        ):
+            with self.subTest(variable=variable, value=value):
+                with self.assertRaises(ValueError) as raised:
+                    settings_from(**{variable: value})
+                self.assertIn(variable, str(raised.exception))
+
+    def test_match_timeout_is_validated_like_the_timeout(self):
+        self.assertEqual(settings_from(NCI_SI_MATCH_TIMEOUT_SECONDS="60").match_timeout_seconds, 60)
+        for value in ("0", "-1", "nan", "3601", "soon"):
+            with self.subTest(value):
+                with self.assertRaises(ValueError) as raised:
+                    settings_from(NCI_SI_MATCH_TIMEOUT_SECONDS=value)
+                self.assertIn("NCI_SI_MATCH_TIMEOUT_SECONDS", str(raised.exception))
+
+    def test_exclusion_role_codes_are_a_list_of_role_codes(self):
+        settings = settings_from(NCI_SI_EXCLUSION_ROLE_CODES="R135, R201")
+
+        self.assertEqual(settings.exclusion_role_codes, ("R135", "R201"))
+        for value in ("", "R135,", "R135,C12", "r135", "R", "135", "R135;R136"):
+            with self.subTest(value):
+                with self.assertRaises(ValueError) as raised:
+                    settings_from(NCI_SI_EXCLUSION_ROLE_CODES=value)
+                self.assertIn("NCI_SI_EXCLUSION_ROLE_CODES", str(raised.exception))
+
+
+class UpstreamUrlSetTest(unittest.TestCase):
+    def test_live_mode_gives_each_unset_url_its_production_default(self):
+        settings = settings_from()
+
+        self.assertEqual(settings.evs_base_url, DEFAULT_EVS_BASE_URL)
+        self.assertEqual(settings.ssis_facade_url, "https://cadsrapi.cancer.gov")
+        self.assertEqual(settings.ssis_sparql_url, "https://shared.semantics.cancer.gov")
+        # No production default is sourced for these three, so they stay unconfigured.
+        self.assertEqual(
+            (settings.evs_fhir_base_url, settings.cadsr_base_url, settings.cadsr_ftp_url),
+            ("", "", ""),
+        )
+
+    def test_a_url_given_in_live_mode_replaces_its_default_only(self):
+        settings = settings_from(
+            NCI_SI_SSIS_FACADE_URL="http://localhost:8080/", NCI_SI_UPSTREAM_MODE="live"
+        )
+
+        self.assertEqual(settings.ssis_facade_url, "http://localhost:8080")
+        self.assertEqual(settings.ssis_sparql_url, "https://shared.semantics.cancer.gov")
+
+    def test_fixture_mode_takes_exactly_the_urls_given(self):
+        settings = settings_from(NCI_SI_UPSTREAM_MODE="fixture", **FIXTURE_URLS)
+
+        self.assertEqual(settings.upstream_mode, "fixture")
+        self.assertEqual(settings.evs_base_url, FIXTURE_URLS["NCI_SI_EVS_BASE_URL"])
+        self.assertEqual(settings.cadsr_ftp_url, FIXTURE_URLS["NCI_SI_CADSR_FTP_URL"])
+        self.assertEqual(settings.ssis_sparql_url, FIXTURE_URLS["NCI_SI_SSIS_SPARQL_URL"])
+
+    def test_fixture_mode_without_a_url_fails_naming_it(self):
+        for missing in BASE_URL_VARIABLES:
+            with self.subTest(missing):
+                given = {name: url for name, url in FIXTURE_URLS.items() if name != missing}
+                with self.assertRaises(ValueError) as raised:
+                    settings_from(NCI_SI_UPSTREAM_MODE="fixture", **given)
+                self.assertIn(missing, str(raised.exception))
+
+    def test_every_url_variable_is_validated(self):
+        for variable in BASE_URL_VARIABLES:
+            for value in (
+                "not a url",
+                "ftp://example.org",
+                "https://user:pw@example.org",
+                "https://x?y=1",
+            ):
+                with self.subTest(variable=variable, value=value):
+                    with self.assertRaises(ValueError) as raised:
+                        settings_from(**{variable: value})
+                    self.assertIn(variable, str(raised.exception))
+                    self.assertNotIn(value, str(raised.exception))
+
+
+class SecretsTest(unittest.TestCase):
+    def test_secrets_are_loaded(self):
+        settings = settings_from(
+            NCI_SI_EVS_LICENSE_KEY=LICENCE_KEY, NCI_SI_CADSR_CREDENTIAL=CREDENTIAL
+        )
+
+        self.assertEqual(
+            (settings.evs_license_key, settings.cadsr_credential), (LICENCE_KEY, CREDENTIAL)
+        )
+
+    def test_no_string_form_of_the_settings_shows_a_secret(self):
+        settings = settings_from(
+            NCI_SI_EVS_LICENSE_KEY=LICENCE_KEY, NCI_SI_CADSR_CREDENTIAL=CREDENTIAL
+        )
+
+        for text in (repr(settings), str(settings), f"{settings}", repr([settings])):
+            self.assertNotIn(LICENCE_KEY, text)
+            self.assertNotIn("hunter2", text)
+        self.assertIn("evs_base_url", repr(settings))
+
+    def test_an_invalid_secret_is_rejected_without_its_value(self):
+        for variable, value in (
+            ("NCI_SI_CADSR_CREDENTIAL", "nopasswordsecret"),
+            ("NCI_SI_CADSR_CREDENTIAL", ":secret-only"),
+            ("NCI_SI_CADSR_CREDENTIAL", "user-only-secret:"),
+            ("NCI_SI_CADSR_CREDENTIAL", "  "),
+            ("NCI_SI_EVS_LICENSE_KEY", "two part-secret"),
+            ("NCI_SI_EVS_LICENSE_KEY", "keyä-secret"),
+            ("NCI_SI_EVS_LICENSE_KEY", ""),
+        ):
+            with self.subTest(variable=variable, value=value):
+                with self.assertRaises(ValueError) as raised:
+                    settings_from(**{variable: value})
+                self.assertIn(variable, str(raised.exception))
+                self.assertNotIn("secret", str(raised.exception))
+
+    def test_loading_settings_logs_no_secret(self):
+        with self.assertNoLogs(level=logging.DEBUG):
+            settings_from(NCI_SI_EVS_LICENSE_KEY=LICENCE_KEY, NCI_SI_CADSR_CREDENTIAL=CREDENTIAL)
+
+
 class LoggingTest(unittest.TestCase):
     def test_diagnostics_go_to_stderr_at_the_configured_level(self):
         root = logging.getLogger()
