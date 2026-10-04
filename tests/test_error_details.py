@@ -37,8 +37,8 @@ def from_the_client(answer, call=lambda client: client.get_api_version()):
     """The code and details of the error that an EVS request answered with `answer` raises."""
 
     with (
-        patch("nci_si_mcp.evs.urlopen", side_effect=[answer]),
-        patch("nci_si_mcp.evs.time.sleep"),
+        patch("nci_si_mcp.http_client._open", side_effect=[answer]),
+        patch("nci_si_mcp.http_client.time.sleep"),
     ):
         client = EVSClient("https://example.invalid", max_attempts=1, max_response_bytes=5)
         try:

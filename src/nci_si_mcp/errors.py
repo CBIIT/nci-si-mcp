@@ -29,7 +29,7 @@ class PlatformError(Exception):
 
     def __init__(self, code: ErrorCode, message: str, /, **details: Any) -> None:
         super().__init__(message)
-        self.code = code
+        self.code: ErrorCode = code
         self.message = message
         self.details = details
 
@@ -75,6 +75,12 @@ def with_next_step(message: str, step: str) -> str:
 _correlation_id: ContextVar[str | None] = ContextVar("correlation_id", default=None)
 
 
+def current_correlation_id() -> str | None:
+    """The correlation identifier of the call in progress, or None outside any call."""
+
+    return _correlation_id.get()
+
+
 @contextmanager
 def correlated(correlation_id: object = None) -> Iterator[str]:
     """Run one call under its correlation identifier (M7.1).
@@ -105,7 +111,7 @@ def serialise(error: PlatformError) -> dict[str, Any]:
     record: dict[str, Any] = {"code": error.code, "message": error.message}
     if error.details:
         record["details"] = error.details
-    record["correlationId"] = _correlation_id.get() or uuid4().hex
+    record["correlationId"] = current_correlation_id() or uuid4().hex
     return {"error": record}
 
 
