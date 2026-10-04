@@ -6,10 +6,11 @@ files. The report is an acceptance report only when the digest is one of those l
 written approval from the furnished tag (spec/acceptance.md), and this is how an unapproved
 change shows: the digest moves and no approved entry carries it.
 
-The digest covers the tests, the fixtures with their manifest, the register of request forms
-and the harness (`acceptance/`), and the specification data (`spec/`). It leaves out the
-self-tests, caches and the approval record itself, and the server under test, which lives
-elsewhere: one approved suite attests any server.
+The digest covers the tests, the fixtures with their manifest, the register of request forms,
+the harness and the pytest configuration with the dependency pins (`acceptance/pyproject.toml`),
+and the specification data (`spec/`). It leaves out the self-tests, caches, editor and system
+litter, the README and change log, the approval record itself, and the server under test, which
+lives elsewhere: one approved suite attests any server.
 """
 
 from __future__ import annotations
@@ -30,34 +31,63 @@ SUITE_PATHS = (
     "acceptance/fixtures",
     "acceptance/request-forms",
     "acceptance/src",
+    "acceptance/pyproject.toml",
     "spec",
 )
 MANIFEST = "acceptance/fixtures/manifest.yaml"
 RECORDED = "acceptance/fixtures/recorded"
 # What a checkout or a run leaves among the suite's files without being part of it.
 CACHE_DIRECTORIES = frozenset({"__pycache__", ".pytest_cache"})
-IGNORED_NAMES = frozenset({".DS_Store"})
+IGNORED_NAMES = frozenset({".DS_Store", "Thumbs.db"})
+# Compiled, swap and backup files; coverage data; Emacs locks; macOS resource forks.
+IGNORED_SUFFIXES = (".pyc", ".swp", ".swo", "~")
+IGNORED_PREFIXES = (".coverage", ".#", "._")
 SHORT_DIGEST = 12
 
 
 def _is_part(path: Path) -> bool:
     return not (
         CACHE_DIRECTORIES.intersection(path.parts)
-        or path.suffix == ".pyc"
-        or path.name.startswith(".coverage")
+        or path.name.endswith(IGNORED_SUFFIXES)
+        or path.name.startswith(IGNORED_PREFIXES)
         or path.name in IGNORED_NAMES
     )
 
 
-def suite_files(root: Path = REPOSITORY) -> list[Path]:
-    """The suite's files below `root`, in the order of their relative POSIX paths."""
+class SuiteError(Exception):
+    """The suite's files cannot be digested as they stand."""
 
-    files = [
-        path
-        for base in SUITE_PATHS
-        for path in (root / base).rglob("*")
-        if path.is_file() and _is_part(path.relative_to(root))
-    ]
+
+def _link(path: Path) -> SuiteError:
+    return SuiteError(f"{path} is a symbolic link; the suite's files must be real files")
+
+
+def _below(root: Path, base: str) -> list[Path]:
+    top = root / base
+    if top.is_symlink():
+        raise _link(top)
+    if not top.exists():
+        raise SuiteError(f"{root} is not the root of the suite: {base} is missing")
+    return [top] if top.is_file() else list(top.rglob("*"))
+
+
+def suite_files(root: Path = REPOSITORY) -> list[Path]:
+    """The suite's files below `root`, in the order of their relative POSIX paths.
+
+    A wrong or empty root, or a symbolic link among the files, is an error: a digest of a
+    partial set, or of what a link leads to outside the tree, would attest nothing."""
+
+    files = []
+    for base in SUITE_PATHS:
+        for path in _below(root, base):
+            if not _is_part(path.relative_to(root)):
+                continue
+            if path.is_symlink():
+                raise _link(path)
+            if path.is_file():
+                files.append(path)
+    if root / MANIFEST not in files:
+        raise SuiteError(f"{root} is not the root of the suite: {MANIFEST} is missing")
     return sorted(files, key=lambda path: path.relative_to(root).as_posix())
 
 
@@ -98,17 +128,29 @@ def fixture_set_version(root: Path = REPOSITORY) -> str:
 def identity(root: Path = REPOSITORY) -> dict[str, str]:
     """What a report states of its suite."""
 
+    digest = suite_digest(root)
     return {
         "version": version("nci-si-acceptance"),
         "fixture_set": fixture_set_version(root),
-        "digest": suite_digest(root),
+        "digest": digest,
     }
 
 
 def approved_digests(path: Path = APPROVED) -> set[str]:
     """The digests of the approved releases of the suite."""
 
-    entries = yaml.safe_load(path.read_text(encoding="utf-8")) or []
+    problem = SuiteError(
+        "acceptance/approved.yaml must be a list of entries, each with a digest "
+        f"(the file is {path}; an empty list approves nothing)"
+    )
+    try:
+        entries = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as error:
+        raise problem from error
+    if not isinstance(entries, list) or not all(
+        isinstance(entry, dict) and isinstance(entry.get("digest"), str) for entry in entries
+    ):
+        raise problem
     return {entry["digest"] for entry in entries}
 
 

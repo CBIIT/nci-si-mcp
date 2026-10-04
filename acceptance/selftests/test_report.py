@@ -279,6 +279,16 @@ def test_the_command_refuses_reports_of_different_suites(tmp_path):
         main([str(tmp_path / "fixture.json"), "--live", str(tmp_path / "live.json")])
 
 
+def test_the_command_refuses_reports_that_differ_only_in_the_fixture_set(tmp_path):
+    other = SUITE | {"fixture_set": "ncit_26.09d, recorded 2026-10-04"}
+    live = run({}) | {"mode": "live", "suite": other}
+    (tmp_path / "fixture.json").write_text(json.dumps(run({})), encoding="utf-8")
+    (tmp_path / "live.json").write_text(json.dumps(live), encoding="utf-8")
+
+    with pytest.raises(SystemExit, match="come from different suites"):
+        main([str(tmp_path / "fixture.json"), "--live", str(tmp_path / "live.json")])
+
+
 def test_the_command_refuses_a_report_of_the_wrong_run_mode(tmp_path):
     (tmp_path / "fixture.json").write_text(json.dumps(run({})), encoding="utf-8")
 

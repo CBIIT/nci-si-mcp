@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from conftest import STAND_IN, stand_in
 
 pytest_plugins = ["pytester"]
 
@@ -38,6 +39,7 @@ def suite(pytester, monkeypatch):
     fixtures = pytester.mkdir("fixtures")
     (fixtures / "baseline_toolmap.yaml").write_text(TOOLMAP, encoding="utf-8")
     tests = pytester.mkdir("tests")
+    stand_in(pytester)
     (tests / "conftest.py").write_text(SUITE_CONFTEST.read_text(encoding="utf-8"), encoding="utf-8")
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_MODE", "fixture")
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_SERVER", f"{sys.executable} -m nci_si_mcp.cli serve")
@@ -46,7 +48,7 @@ def suite(pytester, monkeypatch):
 
 def run(suite, test, *options):
     (suite.path / "tests" / "test_probe.py").write_text(test, encoding="utf-8")
-    return suite.runpytest_subprocess("tests", "-p", "no:cacheprovider", *options)
+    return suite.runpytest_subprocess("tests", "-p", "no:cacheprovider", "-p", STAND_IN, *options)
 
 
 PROBE = """

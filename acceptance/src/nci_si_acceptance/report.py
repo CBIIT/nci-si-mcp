@@ -45,7 +45,14 @@ import yaml
 from nci_si_acceptance.spec import REQUIRED_TOOLS
 from nci_si_acceptance.suite import FIXTURE_ONLY as FIXTURE_ONLY_SKIP
 from nci_si_acceptance.suite import UnmatchedUpstream
-from nci_si_acceptance.suite_identity import APPROVED, approved_digests, heading, identity
+from nci_si_acceptance.suite_identity import (
+    APPROVED,
+    REPOSITORY,
+    SuiteError,
+    approved_digests,
+    heading,
+    identity,
+)
 from nci_si_acceptance.tools import NOT_IMPLEMENTED
 
 if TYPE_CHECKING:
@@ -252,6 +259,7 @@ def render(
 # ---- pytest plugin
 
 COLLECTOR = pytest.StashKey[Collector]()
+SUITE = pytest.StashKey[dict[str, str]]()
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -275,12 +283,36 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[None]) ->
     return report
 
 
+def suite_state(config: pytest.Config) -> dict[str, str]:
+    """The identity of the suite tree this run is in: the repository around the acceptance
+    directory pytest runs in. It must be the tree the harness is installed from, or the report
+    would name the harness's files for the tests that ran."""
+
+    root = config.rootpath.parent
+    if root != REPOSITORY:
+        raise pytest.UsageError(
+            f"this run is in the suite at {root}, but the harness is installed from {REPOSITORY}; "
+            "install the harness from the checkout under test (pdm install)"
+        )
+    try:
+        return identity(root)
+    except SuiteError as error:
+        raise pytest.UsageError(str(error)) from error
+
+
+def pytest_sessionstart(session: pytest.Session) -> None:
+    """Take the suite's identity before any test runs: it is the tree that ran."""
+
+    if session.config.getoption("report"):
+        session.config.stash[SUITE] = suite_state(session.config)
+
+
 def write_report(config: pytest.Config, mode: str) -> None:
     """Write the run's report where `--report` says, if it says."""
 
     path = config.getoption("report")
     if path:
-        report = config.stash[COLLECTOR].report(mode) | {"suite": identity()}
+        report = config.stash[COLLECTOR].report(mode) | {"suite": config.stash[SUITE]}
         Path(path).write_text(json.dumps(report, indent=2) + "\n")
 
 
