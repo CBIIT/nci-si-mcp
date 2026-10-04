@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from nci_si_acceptance.report import (
+    ATTRIBUTION,
     COLLECTOR,
     UNMATCHED,
     Collector,
@@ -67,7 +68,8 @@ def collected(*phases, absent=()):
         )
     )
     for report, tool, gate in phases:
-        collector.record(report, tool, gate)
+        report.user_properties.append((ATTRIBUTION, {"tool": tool, "gate": gate}))
+        collector.record(report)
     return collector.report("fixture")
 
 
@@ -121,6 +123,17 @@ def test_skips_are_not_implemented_or_not_run_and_a_failed_gate_fails_every_pass
     ]
     assert (report["failed_gates"], tools["get_form"]["gates_only"]) == (["t.py::gate"], True)
     assert set(tools) == set(REQUIRED_TOOLS)
+
+
+def test_a_report_lists_its_tests_and_gates_in_order_whatever_order_they_finished_in():
+    report = collected(
+        (phase("call", "failed", "t.py::b"), None, True),
+        (phase("call", "failed", "t.py::c"), None, True),
+        (phase("call", "failed", "t.py::a"), None, True),
+    )
+
+    assert report["failed_gates"] == ["t.py::a", "t.py::b", "t.py::c"]
+    assert list(report["tests"]) == ["t.py::a", "t.py::b", "t.py::c"]
 
 
 def test_a_gate_that_did_not_run_is_listed_and_the_listing_size_kept():
