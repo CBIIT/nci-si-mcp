@@ -1,0 +1,103 @@
+name: Acceptance (live)
+
+# The acceptance suite against the live services, run by hand: a live run depends on the network
+# it runs from (the EVS host may answer one IP family and not the other), so the run records
+# where it ran. Live outcomes are not ratcheted; the fixture run beside them is what the
+# combined per-tool report needs.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance-live:
+    name: acceptance (live)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0  # the package version is derived from the nearest tag
+          persist-credentials: false
+      - uses: pdm-project/setup-pdm@544d7237314ee09c256785bd360f6b30add38b37  # v4.6
+        with:
+          python-version: "3.14"
+          version: "2.29.2"
+          cache: true
+          # An environment built from another lock file may hold packages this one dropped.
+          cache-restore-exact-match: true
+      - run: pdm install --check
+      # Where the run came from, and which IP family reaches EVS from there. Each probe is
+      # recorded and never fails the job; no third-party service is asked for the address.
+      - name: Record the network location
+        env:
+          EVS_URL: https://api-evsrest.nci.nih.gov/api/v1/metadata/terminologies
+        run: |
+          probe() {
+            code="$(curl "$1" --silent --output /dev/null --max-time 10 --write-out '%{http_code}' "$EVS_URL")" \
+              && echo "reached, HTTP ${code}" || echo "failed (curl exit status $?)"
+          }
+          {
+            echo "- Runner environment: ${RUNNER_ENVIRONMENT}"
+            echo "- Operating system: ${RUNNER_OS}"
+            echo "- Architecture: ${RUNNER_ARCH}"
+            echo "- Runner name: ${RUNNER_NAME}"
+            echo "- EVS over IPv4 (curl -4): $(probe -4)"
+            echo "- EVS over IPv6 (curl -6): $(probe -6)"
+          } > acceptance/network.md
+          { echo "### Network location"; echo; cat acceptance/network.md; } >> "$GITHUB_STEP_SUMMARY"
+      # Pytest's exit status 0 and 1 are both a run (the outcomes are the result, here
+      # unratcheted); any other status, or a missing report, is a run that did not happen.
+      - name: Run the suite against the fixtures
+        env:
+          NCI_SI_ACCEPTANCE_PREPARE: 'nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")'
+        run: |
+          status=0
+          pdm run acceptance -n 4 --report=fixture.json || status=$?
+          if [ "$status" -gt 1 ] || [ ! -s acceptance/fixture.json ]; then
+            echo "::error title=The fixture run did not finish::exit status ${status}, or no report."
+            exit 1
+          fi
+      # The credentials reach only this step, and through it only the server under test (the
+      # suite hands a server nothing else of NCI_SI_*, and the credentials only in live mode).
+      # A secret that is not set arrives as an empty variable, which the suite would take as
+      # given; it is unset. Nothing here echoes a value, and a value is masked in the log.
+      - name: Run the suite against the live services
+        env:
+          NCI_SI_ACCEPTANCE_MODE: live
+          NCI_SI_ACCEPTANCE_PREPARE: 'nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")'
+          NCI_SI_EVS_LICENSE_KEY: ${{ secrets.NCI_SI_EVS_LICENSE_KEY }}
+          NCI_SI_CADSR_CREDENTIAL: ${{ secrets.NCI_SI_CADSR_CREDENTIAL }}
+        run: |
+          given=""
+          for name in NCI_SI_EVS_LICENSE_KEY NCI_SI_CADSR_CREDENTIAL; do
+            if [ -n "${!name}" ]; then given="$given $name"; else unset "$name"; fi
+          done
+          echo "- Credentials given to the live run:${given:- none}" | tee -a acceptance/network.md >> "$GITHUB_STEP_SUMMARY"
+          status=0
+          pdm run acceptance -n 4 --report=live.json || status=$?
+          if [ "$status" -gt 1 ] || [ ! -s acceptance/live.json ]; then
+            echo "::error title=The live run did not finish::exit status ${status}, or no report."
+            exit 1
+          fi
+      - name: Render the combined per-tool report
+        if: always()
+        run: |
+          if [ ! -s acceptance/fixture.json ] || [ ! -s acceptance/live.json ]; then
+            echo "::warning title=No combined report::a run wrote no report."
+            exit 0
+          fi
+          pdm run python -m nci_si_acceptance.report acceptance/fixture.json --live acceptance/live.json > acceptance/report.md
+          { echo "### Per-tool report (fixture and live)"; echo; cat acceptance/report.md; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        if: always()
+        with:
+          name: acceptance-live
+          path: |
+            acceptance/fixture.json
+            acceptance/live.json
+            acceptance/report.md
+            acceptance/network.md
+          if-no-files-found: warn
+          retention-days: 30

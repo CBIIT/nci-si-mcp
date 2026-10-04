@@ -10,6 +10,7 @@ from nci_si_acceptance.report import (
     ATTRIBUTION,
     COLLECTOR,
     UNMATCHED,
+    WORKER_TOOLS,
     Collector,
     combine,
     main,
@@ -421,3 +422,42 @@ def test_the_command_refuses_a_report_written_by_an_older_suite(tmp_path):
         main([str(tmp_path / "old.json")])
 
     assert str(refused.value) == f"{tmp_path / 'old.json'} was written by an older suite; re-run it"
+
+
+def test_a_worker_writes_no_report_for_the_controller_to_overwrite(tmp_path):
+    stash = pytest.Stash()
+    stash[COLLECTOR], stash[SUITE_KEY] = Collector(), SUITE
+    config = SimpleNamespace(
+        getoption=lambda name: str(tmp_path / "report.json"), stash=stash, workerinput={}
+    )
+
+    write_report(config, "fixture")
+
+    assert not (tmp_path / "report.json").exists()
+
+
+def test_what_a_worker_noted_of_the_server_reaches_the_controller_once():
+    worker = Collector()
+    worker.note_tools(SimpleNamespace(implemented_as=lambda name: name, listing_bytes=4096))
+    output = {}
+    worker.pytest_sessionfinish(SimpleNamespace(config=SimpleNamespace(workeroutput=output)))
+    controller = Collector()
+
+    controller.pytest_testnodedown(SimpleNamespace(workeroutput=output))
+    controller.pytest_testnodedown(SimpleNamespace(workeroutput={}))
+    controller.pytest_testnodedown(
+        SimpleNamespace(workeroutput={WORKER_TOOLS: {"implemented_as": {}, "listing_bytes": 1}})
+    )
+
+    assert (controller.listing_bytes, controller.implemented_as) == (
+        worker.listing_bytes,
+        {name: name for name in REQUIRED_TOOLS},
+    )
+
+
+def test_a_worker_that_started_no_server_forwards_nothing():
+    output = {}
+
+    Collector().pytest_sessionfinish(SimpleNamespace(config=SimpleNamespace(workeroutput=output)))
+
+    assert output == {}

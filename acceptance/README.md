@@ -15,6 +15,10 @@ NCI_SI_ACCEPTANCE_URL=https://... pdm run acceptance # a remote server over stre
 NCI_SI_ACCEPTANCE_PROFILE=evs NCI_SI_ACCEPTANCE_SERVER="..." pdm run acceptance  # a server of one profile (default: unified)
 pdm run python -m nci_si_acceptance.report acceptance/fixture.json --live acceptance/live.json
 pdm run acceptance-index-codes                       # the index set, one code per line (remote server)
+pdm run acceptance -n 4 --report=fixture.json        # the same on four workers; the report is identical
+pdm run acceptance-expected check acceptance/fixture.json   # a report against the expected outcomes
+pdm run acceptance-expected update acceptance/fixture.json  # rewrite the expected outcomes from a report
+pdm run acceptance-status                            # regenerate the README's status table
 pdm run acceptance-selftest                          # the harness's own tests
 SELFTEST_SHARD=1/2 pdm run acceptance-selftest       # one of two shards, as CI runs them
 pdm run acceptance-record                            # re-record fixtures/recorded/ from live
@@ -160,6 +164,47 @@ Combined with a live report, a tool that
 passes against fixtures but fails live is PASS (fixture only) only when every failing live test
 has a documented upstream limitation (`--limitations`, YAML of test id to requirement).
 
+## CI: the ratchet on expected outcomes
+
+The `acceptance` job of `.github/workflows/ci.yml` runs the suite in fixture mode against the
+server built from the checkout (`pdm run acceptance -n 4 --report=fixture.json` with the prepare
+step above), beside the `test` and `selftest` jobs and depending on none of them. Pytest's exit
+status 0 and 1 are both a run; any other status, or a missing report, fails the job. The verdict
+is the comparison with [`expected/fixture.json`](expected/fixture.json), which maps the id of
+every test to its outcome (`passed`, `failed`, `no_fixture`, `skipped`, `not_implemented`,
+`not_live`: the report's own vocabulary) and holds nothing else, so a reworded failure is not a
+change. The job fails on any test with another outcome, any test the report lacks and any test
+the expected outcomes lack, and writes the differences to its summary as a table of test,
+expected and actual outcome. It stays green while tools are NOT IMPLEMENTED or FAIL, and fails
+when a test of a tool that still fails stops passing, or starts to pass without anyone saying so.
+
+A change that moves outcomes on purpose (a tool implemented, a test added or corrected) updates
+the expected outcomes in the same pull request: run the suite as the job does, then
+`pdm run acceptance-expected update acceptance/fixture.json`, and `pdm run acceptance-status` for
+the README's table, which is generated from the expected outcomes and kept current by a
+self-test. The diff of `expected/fixture.json` is what the review reads.
+
+The job's summary holds the run's duration (a warning at 7 minutes of the 10 allowed: shard the
+run before it grows into the limit) and the per-tool report; the artifact `acceptance-fixture`
+keeps `fixture.json` and the rendered report for 30 days. A run on workers writes the report a
+serial run writes: the controller process collects each test's tool, gate and outcome from the
+reports its workers forward.
+
+## The live workflow
+
+`.github/workflows/acceptance-live.yml` is started by hand (`workflow_dispatch` only). It runs the
+fixture suite and the live suite (`NCI_SI_ACCEPTANCE_MODE=live`, both with `-n 4`; the live
+outcomes are not ratcheted), renders the combined report into the job summary and uploads
+`fixture.json`, `live.json`, the rendered report and `network.md` as the artifact
+`acceptance-live`. `network.md` records where the run came from: the runner's environment,
+operating system, architecture and name, and whether EVS answers over IPv4 and over IPv6
+(`curl -4` and `curl -6`, 10 seconds each; a failure is recorded and does not fail the job). The
+repository secrets `NCI_SI_EVS_LICENSE_KEY` and `NCI_SI_CADSR_CREDENTIAL` are optional and reach
+only the step that runs the live suite, and through it only the server under test: the harness
+gives a server no other `NCI_SI_*` setting, and the credentials only in live mode. A secret that
+is not set is unset in that step, not passed empty. A credential appears in no log, error or
+result (requirement A7.5); `network.md` names which credentials were given, never a value.
+
 ## Layout
 
 `src/nci_si_acceptance/` holds the harness: `client.py` starts the server or connects to it,
@@ -171,8 +216,10 @@ decides whether a report is an acceptance report, `spec.py` reads the specificat
 requirements, `document.py` renders it as `../docs/specification.md`, and `suite.py` holds the
 rules of a run. `concepts.py` composes EVS concept answers from one recording per
 concept, `record.py` records the set from live,
-`craft.py` crafts the scenarios EVS does not produce on demand, and `register.py` writes the
-register of request forms (`request-forms/`).
+`craft.py` crafts the scenarios EVS does not produce on demand, `register.py` writes the
+register of request forms (`request-forms/`), `expected.py` compares a report with the expected
+outcomes (`expected/fixture.json`) and rewrites them, and `status.py` writes the README's status
+table from them.
 `fixtures/` holds the fixtures ([fixtures/README.md](fixtures/README.md)), `tests/` the suite,
 `selftests/` the tests of the harness itself.
 

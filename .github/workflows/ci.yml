@@ -78,6 +78,75 @@ jobs:
             echo "::warning title=Coverage is not above 95%::${total}%. Cover the untested behaviour; do not pad."
           fi
 
+  # The acceptance suite against the server built from this checkout, on the recorded and crafted
+  # upstream answers: a ratchet over individual tests. Every test must have the outcome in
+  # acceptance/expected/fixture.json, so the job stays green while tools are NOT IMPLEMENTED or
+  # FAIL and fails when a test changes its outcome; a change that moves outcomes on purpose
+  # updates that file in the same pull request. It depends on no other job.
+  acceptance:
+    name: acceptance (fixture)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0  # the package version is derived from the nearest tag
+          persist-credentials: false
+      - uses: pdm-project/setup-pdm@544d7237314ee09c256785bd360f6b30add38b37  # v4.6
+        with:
+          python-version: "3.14"
+          version: "2.29.2"
+          cache: true
+          # An environment built from another lock file may hold packages this one dropped.
+          cache-restore-exact-match: true
+      - run: pdm install --check
+      # Pytest's exit status 0 (all passed) and 1 (some failed) are both a run; the verdict is the
+      # comparison below. Any other status (usage error, interruption, a crash) or a missing
+      # report is a run that did not happen.
+      - name: Run the suite against the fixtures
+        env:
+          # The README's prepare step: it builds the interim NCIt index every server starts from.
+          NCI_SI_ACCEPTANCE_PREPARE: 'nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")'
+        run: |
+          status=0
+          started="$(date +%s)"
+          pdm run acceptance -n 4 --report=fixture.json || status=$?
+          seconds=$(( $(date +%s) - started ))
+          echo "Fixture run: ${seconds} s of the 600 s limit, exit status ${status}." >> "$GITHUB_STEP_SUMMARY"
+          if [ "$seconds" -ge 420 ]; then
+            echo "::warning title=The acceptance run is slow::It took ${seconds} s; shard it before the 10-minute limit."
+          fi
+          if [ "$status" -gt 1 ]; then
+            echo "::error title=The acceptance run did not finish::pytest exited with status ${status}."
+            exit "$status"
+          fi
+          if [ ! -s acceptance/fixture.json ]; then
+            echo "::error title=No report::The run wrote no acceptance/fixture.json."
+            exit 1
+          fi
+      - name: Compare the outcomes with the expected ones
+        if: ${{ always() && hashFiles('acceptance/fixture.json') != '' }}
+        run: |
+          status=0
+          pdm run acceptance-expected check acceptance/fixture.json > acceptance/difference.md || status=$?
+          { echo "### Outcomes against acceptance/expected/fixture.json"; echo; cat acceptance/difference.md; } >> "$GITHUB_STEP_SUMMARY"
+          cat acceptance/difference.md
+          exit "$status"
+      - name: Render the per-tool report
+        if: ${{ always() && hashFiles('acceptance/fixture.json') != '' }}
+        run: |
+          pdm run python -m nci_si_acceptance.report acceptance/fixture.json > acceptance/report.md
+          { echo "### Per-tool report (fixture mode)"; echo; cat acceptance/report.md; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        if: ${{ always() && hashFiles('acceptance/fixture.json') != '' }}
+        with:
+          name: acceptance-fixture
+          path: |
+            acceptance/fixture.json
+            acceptance/report.md
+          if-no-files-found: error
+          retention-days: 30
+
   # The acceptance harness's own tests, shared out between two jobs that run at once
   # (selftests/conftest.py); each keeps its coverage data for the coverage job.
   selftest:

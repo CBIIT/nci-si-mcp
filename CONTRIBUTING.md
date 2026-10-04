@@ -23,6 +23,9 @@ pdm run pre-commit install     # run the gates on every commit
 | `pdm run fmt` | Format with Ruff |
 | `pdm run pre-commit run --all-files` | Every hook, as the CI `quality` job runs them |
 | `pdm run acceptance` | The acceptance suite against the server ([acceptance/README.md](acceptance/README.md)) |
+| `pdm run acceptance -n 4 --report=fixture.json` | The acceptance suite on four workers, with the report CI compares ([the ratchet](acceptance/README.md#ci-the-ratchet-on-expected-outcomes)) |
+| `pdm run acceptance-expected check acceptance/fixture.json` | The report against `acceptance/expected/fixture.json`, test by test |
+| `pdm run acceptance-status` | Regenerate the status table of the README from the expected outcomes |
 | `pdm run spec-render` | Regenerate [docs/specification.md](docs/specification.md) from `spec/`, after any change there |
 | `pandoc -f gfm docs/specification.md -o specification.docx` | The Word copy of the specification, a build product: never committed or edited |
 
@@ -60,6 +63,7 @@ skipped (`--no-verify` and `SKIP=` are not used).
 | Test quality | No test without an assertion, or with only mock or `callable` assertions (`scripts/validation/check_test_quality.py`) |
 | Dead code | No unused functions, classes or variables (vulture) |
 | gitleaks, zizmor | No secrets; safe GitHub Actions workflows |
+| Acceptance ratchet (CI) | Every test of the acceptance suite, in fixture mode, has the outcome in `acceptance/expected/fixture.json`. A change that moves an outcome on purpose updates that file in the same pull request, and the diff of the file is what the review reads: `pdm run acceptance-expected update acceptance/fixture.json` writes it from a fresh report, and `pdm run acceptance-status` the README table that follows |
 | Tests and coverage | The suite passes; CI fails below the coverage minimum of standard 3 and warns when the aim is missed |
 | Dependency audit (CI only) | No runtime dependency with a known vulnerability (pip-audit over the server and embeddings extras, on every change and weekly); no pull request bringing one in at high severity (dependency review). Dependabot proposes updates of the workflows' actions; SECURITY.md says how to report a vulnerability |
 
