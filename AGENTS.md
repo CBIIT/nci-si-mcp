@@ -126,6 +126,41 @@ detail.
 - The package version is derived from the nearest tag at install or build time; it is written in
   no file. Run `pdm install` after a new tag to refresh it.
 
+## How work is done: one issue, one reviewed pull request
+
+The milestones and issues on GitHub are the plan; take the open issues of the current phase in
+the order the phase's plan gives, one at a time. Every change is reviewed by the reviewer (the
+NCI SI MCP project coordinator, or the reviewer acting for them) before it reaches `main`.
+
+1. **Read the issue against `spec/` first.** The specification data is the source of record;
+   an issue body written earlier may be stale. Where they differ, follow `spec/` and correct the
+   issue body in the same step, saying what changed.
+2. **Plan before building.** Post the plan as a comment on the issue: what changes, which
+   acceptance tests you expect to move in `acceptance/expected/fixture.json` and why, open
+   questions with your recommendation, and the PR title. Wait for the reviewer's answer on the
+   issue before writing code; a correction there is binding.
+3. **Build on a branch,** never on `main`, with tests written for their value (see the
+   standards). Before opening the pull request run `pdm run test`, `pdm run acceptance-selftest`,
+   `pdm run pre-commit run --all-files`, then the fixture run and, where outcomes moved on
+   purpose, `pdm run acceptance-expected update acceptance/fixture.json` and
+   `pdm run acceptance-status`, so the ratchet file moves in the same change.
+4. **Open the pull request** with a Conventional Commit title that tells the truth about what a
+   client sees (`feat(scope)!:` where it breaks something). Its body gives what it does, the
+   expected-file diff grouped by test function with before and after counts, the predicted tests
+   that did not move and why, anything deferred and where it is recorded, and judgement calls
+   for the reviewer.
+5. **Wait for CI to finish** and report the real result; never hand over on "CI is running".
+6. **Merge only on the reviewer's clearance,** given as a PR comment that names the head commit,
+   with `gh pr merge N --squash --subject "<title>" --body "" --delete-branch --match-head-commit
+   <sha>`. A push after the clearance needs a new one.
+7. **After the merge,** confirm CI, Audit, CodeQL and Release on the merge commit, that the
+   issue closed, and that the release (if any) was cut; then remove your branches, worktrees,
+   scratch files and any process or wait loop you started.
+
+Findings made along the way are fixed on the same branch when they belong to the work; only an
+unrelated problem gets an issue. Do not change the ruleset, repository settings, `spec/`'s
+conventions or another issue's scope without the reviewer's agreement.
+
 ## Constraints that shape the code
 
 - The core package has no dependencies (`dependencies = []`). `mcp` and `sentence_transformers`
