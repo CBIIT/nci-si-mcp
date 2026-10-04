@@ -134,18 +134,28 @@ def pinned_release(name: str, pinned: dict[str, str]) -> tuple[str, str | None]:
 
 def identity(item: Any) -> Any:
     """An item by what it is: a concept by terminology and code, an edge by its ends and its
-    relationship's code, a release by its terminology and version, a caDSR item by its public id
-    and version (a code map by its data element's), the registry's state by whether it publishes
-    a release and its date, a context by its name."""
+    relationship's code, a mapping by its target terminology and code, a release by its
+    terminology and version, a caDSR item by its public id and version (a code map by its data
+    element's), the registry's state by whether it publishes a release and its date, a context
+    by its name."""
 
     if not isinstance(item, dict):
         return item
     if "sourceCode" in item:
         relationship = (item.get("provenance") or {}).get("relationship") or {}
         return item.get("sourceCode"), item.get("targetCode"), relationship.get("code")
+    return _terminology_identity(item)
+
+
+def _terminology_identity(item: dict[str, Any]) -> Any:
+    """A concept, a mapping or a release by its terminology and code or version; anything else
+    by the registry's identity."""
+
     # A concept carries a version too, so a code decides first.
     if "code" in item:
         return item.get("terminology"), item["code"]
+    if "targetTerminology" in item:
+        return item["targetTerminology"], item.get("targetCode")
     # A record of a release has a version in place of a code.
     if "terminology" in item:
         return item["terminology"], item.get("version")

@@ -89,6 +89,12 @@ ELEMENT = {"publicId": "2200604", "version": "4", "longName": "Person Sex Text T
             ("C4817", "C3262", "R101"),
             id="edge",
         ),
+        # Mappings were indistinct before this row: each had the identity None.
+        pytest.param(
+            {"targetCode": "HGNC:1100", "targetTerminology": "hgnc"},
+            ("hgnc", "HGNC:1100"),
+            id="mapping",
+        ),
         pytest.param(ELEMENT, ("2200604", "4"), id="data-element"),
         pytest.param(
             {"dataElement": {"publicId": "2200604", "version": "4"}, "usedBy": ["GDC"]},
