@@ -32,11 +32,19 @@ LOOKUP_INCLUDE = (
 
 
 class EVSError(RuntimeError):
-    """Base error for EVS client failures."""
+    """Base error for EVS client failures; `details` is what the error record carries."""
+
+    def __init__(self, message: str, /, **details: Any) -> None:
+        super().__init__(message)
+        self.details = details
 
 
 class EVSUnavailableError(EVSError):
     """EVS could not be reached, or kept failing after the bounded retries."""
+
+
+class EVSTimeoutError(EVSUnavailableError):
+    """EVS did not answer within the timeout on any attempt."""
 
 
 class EVSNotFoundError(EVSError):
@@ -49,6 +57,10 @@ class EVSResponseError(EVSError):
 
 class EVSResponseTooLargeError(EVSResponseError):
     """EVS answered with more bytes than the configured response limit."""
+
+
+class EVSReleaseMismatchError(EVSResponseError):
+    """EVS served content of another release than the one requested."""
 
 
 class ReleaseResolutionError(EVSError):
@@ -78,9 +90,12 @@ def verify_release(concepts: Iterable[dict[str, Any]], release_version: str) -> 
 
     other = {str(raw.get("version") or "unknown") for raw in concepts} - {release_version}
     if other:
-        raise EVSResponseError(
-            f"EVS served release {', '.join(sorted(other))} for a request pinned to "
-            f"{release_version}"
+        served = sorted(other)
+        raise EVSReleaseMismatchError(
+            f"EVS served release {', '.join(served)} for a request pinned to {release_version}",
+            requested=release_version,
+            served=served,
+            source="evs",
         )
 
 
@@ -124,10 +139,14 @@ def select_monthly_ncit_release(terminologies: Iterable[dict[str, Any]]) -> Rele
         versions = [candidate.version for candidate in candidates]
         raise ReleaseResolutionError(
             "Expected exactly one latest monthly NCIt release; "
-            f"found {len(candidates)} ({versions}). Refusing to fall back to weekly."
+            f"found {len(candidates)} ({versions}). Refusing to fall back to weekly.",
+            requested="ncit monthly",
+            source="evs",
         )
     if not candidates[0].version:
-        raise ReleaseResolutionError("The latest monthly NCIt release has no version")
+        raise ReleaseResolutionError(
+            "The latest monthly NCIt release has no version", requested="ncit monthly", source="evs"
+        )
     return candidates[0]
 
 
@@ -212,8 +231,29 @@ def _permanent_failure(exc: HTTPError, message: str) -> EVSError | None:
     if exc.code == HTTPStatus.NOT_FOUND:
         return EVSNotFoundError(message)
     if exc.code != HTTPStatus.TOO_MANY_REQUESTS and exc.code < HTTPStatus.INTERNAL_SERVER_ERROR:
-        return EVSResponseError(message)
+        return EVSResponseError(message, surface="evs", status=exc.code)
     return None
+
+
+def _timed_out(failure: Exception) -> bool:
+    return isinstance(failure, TimeoutError) or isinstance(
+        getattr(failure, "reason", None), TimeoutError
+    )
+
+
+def _unavailable(
+    failure: Exception, message: str, attempts: int, timeout_seconds: float
+) -> EVSUnavailableError:
+    """The error for a request that kept failing, with what is known of the failure."""
+
+    if _timed_out(failure):
+        return EVSTimeoutError(message, surface="evs", seconds=timeout_seconds, attempts=attempts)
+    details: dict[str, Any] = {"surface": "evs", "attempts": attempts}
+    if isinstance(failure, HTTPError):
+        details["status"] = failure.code
+        if retry_after := failure.headers.get("Retry-After"):
+            details["retryAfter"] = retry_after
+    return EVSUnavailableError(message, **details)
 
 
 def _declared_length(response: Any) -> int:
@@ -269,12 +309,14 @@ class EVSClient:
             f"EVS response for {path} exceeded {self.max_response_bytes} bytes "
             "(NCI_SI_EVS_MAX_RESPONSE_BYTES)"
         )
+        bound = {"bound": "NCI_SI_EVS_MAX_RESPONSE_BYTES", "limit": self.max_response_bytes}
         declared_length = _declared_length(response)
         if declared_length > self.max_response_bytes:
-            raise EVSResponseTooLargeError(too_large)
+            raise EVSResponseTooLargeError(too_large, **bound, reached=declared_length)
         payload = response.read(self.max_response_bytes + 1)
         if len(payload) > self.max_response_bytes:
-            raise EVSResponseTooLargeError(too_large)
+            # Only one byte past the limit is read, so `reached` is a lower bound.
+            raise EVSResponseTooLargeError(too_large, **bound, reached=len(payload))
         if len(payload) < declared_length:
             # http.client returns a body cut short by a dropped connection without raising.
             raise IncompleteRead(payload, declared_length - len(payload))
@@ -317,7 +359,7 @@ class EVSClient:
                 message = f"EVS request failed for {path}: {getattr(exc, 'reason', None) or exc}"
                 failure = exc
             if attempt >= self.max_attempts:
-                raise EVSUnavailableError(message) from failure
+                raise _unavailable(failure, message, attempt, self.timeout_seconds) from failure
             self._retry(path, attempt, message)
 
     def _get_existing(self, path: str, params: dict[str, Any] | None = None) -> Any:
@@ -327,7 +369,9 @@ class EVSClient:
             return self._get_json(path, params)
         except EVSNotFoundError as exc:
             raise EVSResponseError(
-                f"{exc}; EVS does not serve this endpoint or release, check NCI_SI_EVS_BASE_URL"
+                f"{exc}; EVS does not serve this endpoint or release, check NCI_SI_EVS_BASE_URL",
+                surface="evs",
+                status=int(HTTPStatus.NOT_FOUND),
             ) from exc
 
     def get_api_version(self) -> dict[str, Any]:
@@ -364,7 +408,10 @@ class EVSClient:
         terminology: str = "ncit",
         include: str = LOOKUP_INCLUDE,
     ) -> dict[str, Any]:
-        data = self._get_json(f"/api/v1/concept/{terminology}/{code}", {"include": include})
+        try:
+            data = self._get_json(f"/api/v1/concept/{terminology}/{code}", {"include": include})
+        except EVSNotFoundError as exc:
+            raise EVSNotFoundError(str(exc), identifiers=[code]) from exc
         return _object(data, "concept response")
 
     def get_descendants(

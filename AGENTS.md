@@ -144,13 +144,15 @@ types) live once in `validation.py` and feed the MCP schema and the argparse cho
 
 ### One error path
 
-Six error classes, closed in `errors.py` (`invalid_request`, `not_found`, `release_unavailable`,
-`upstream_unavailable`, `bound_exceeded`, `internal`). A failure is a `PlatformError`: its class, a
-message that names the caller's next step, and optional `details`. `errors.serialise` is the only
-function that turns one into the result, `{"error": {"code", "message", "details"?}}`; nothing
-builds that dict by hand. Service methods are wrapped by `_enveloped`, which converts the expected
-exception types listed in `_ERROR_CLASSES` (with the next step appended to their message) and
-logs a warning; an exception gets the entry of its nearest listed class. To add a failure mode,
+The error codes are the ten of the specification's error record (`spec/records.yaml`), closed in
+`errors.py` as `ErrorCode`. A failure is a `PlatformError`: its code, a message that names the
+caller's next step, and the `details` that code lists in `docs/SPEC.md` §3.1. `errors.serialise` is
+the only function that turns one into the result, `{"error": {"code", "message", "details"?,
+"correlationId"}}`; nothing builds that dict by hand. The adapters open `errors.correlated()` once
+per call (the request's `_meta.correlationId`, else generated). Service methods are wrapped by
+`_enveloped`, which converts the expected exception types listed in `_ERROR_CODES` (with the next
+step appended to their message and their `details` attribute carried over) and logs a warning; an
+exception gets the entry of its nearest listed class. To add a failure mode,
 raise a specific exception type and add it to that table, or raise a `PlatformError` where the
 message needs data (the releases served). Anything not in the table is a bug and propagates: do not
 add broad `except` clauses. An empty result is never an error and an error is never empty.
@@ -174,7 +176,7 @@ update them when behaviour changes.
   weekly. EVS sets `latest` per channel, so two `ncit` rows can carry it at once.
 - Every concept request uses `release.pinned_terminology` (for example `ncit_26.09d`) as the path
   segment, and `evs.verify_release` checks the `version` of each returned concept.
-- `lookup` returns `release_unavailable` when the index holds another release, unless `live_only`. It
+- `lookup` returns `release_mismatch` when the index holds another release, unless `live_only`. It
   falls back to the cache only on `EVSUnavailableError`, and marks the result with `fallback`.
 - The index holds one release. Indexing a concept of another release replaces everything.
 

@@ -43,6 +43,12 @@ def _masked_error(data: Any) -> str | None:
     return _webmethods_error(data) or _fhir_error(data)
 
 
+def _surface(source: str) -> str:
+    """The platform a request went to: the first word of `source`, lower-cased."""
+
+    return source.split(maxsplit=1)[0].lower()
+
+
 def parse_upstream_json(payload: bytes, source: str) -> Any:
     """Parse a response body as JSON content, or raise `upstream_unavailable`.
 
@@ -54,12 +60,15 @@ def parse_upstream_json(payload: bytes, source: str) -> Any:
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         what = "an HTML page" if payload.lstrip().startswith(b"<") else "invalid JSON"
         raise PlatformError(
-            "upstream_unavailable", f"{source} answered with {what} instead of JSON. {_NEXT_STEP}"
+            "upstream_unavailable",
+            f"{source} answered with {what} instead of JSON. {_NEXT_STEP}",
+            surface=_surface(source),
         ) from exc
     masked = _masked_error(data)
     if masked:
         raise PlatformError(
             "upstream_unavailable",
             f"{source} answered with {masked} in a success response. {_NEXT_STEP}",
+            surface=_surface(source),
         )
     return data

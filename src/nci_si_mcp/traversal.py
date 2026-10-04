@@ -87,7 +87,9 @@ def _available_edge_types(direction: str, included: dict[str, bool]) -> list[str
 def _default_edge_types(available: list[str]) -> list[str]:
     selected = [edge_type for edge_type in available if edge_type != "descendant"]
     if not selected:
-        raise InputValidationError("The include flags leave no edge type to traverse")
+        raise InputValidationError(
+            "The include flags leave no edge type to traverse", "include_hierarchy"
+        )
     return selected
 
 
@@ -117,7 +119,8 @@ def select_edge_types(
     if excluded:
         raise InputValidationError(
             f"Edge types {', '.join(excluded)} are excluded by direction "
-            f"'{direction}' and the include flags"
+            f"'{direction}' and the include flags",
+            "edge_types",
         )
     return [edge_type for edge_type in available if edge_type in requested]
 
@@ -204,7 +207,9 @@ def _edge(code: str, source_name: str, edge_type: str, item: dict[str, Any]) -> 
 def _missing_concepts(release: ReleaseInfo, missing: list[str], depth: int) -> Exception:
     codes = ", ".join(missing)
     if depth == 0:
-        return EVSNotFoundError(f"NCIt release {release.version} has no concept {codes}")
+        return EVSNotFoundError(
+            f"NCIt release {release.version} has no concept {codes}", identifiers=missing
+        )
     return EVSResponseError(
         f"EVS relations in release {release.version} refer to {codes}, which it does not serve"
     )

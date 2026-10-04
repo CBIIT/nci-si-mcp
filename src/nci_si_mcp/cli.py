@@ -5,11 +5,12 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import re
 import sys
 from typing import Any, TextIO
 
 from .config import Settings, configure_logging
-from .errors import PlatformError, is_error_record, serialise, with_next_step
+from .errors import PlatformError, correlated, is_error_record, serialise, with_next_step
 from .server import create_mcp
 from .service import NCISIService
 from .traversal import DEFAULT_MAX_DEPTH, DEFAULT_MAX_EDGES, DEFAULT_MAX_NODES
@@ -122,18 +123,30 @@ def _run(service: NCISIService, args: argparse.Namespace) -> dict[str, Any]:
     return service.evaluate()
 
 
+def _configuration_error(exc: ValueError) -> PlatformError:
+    """The invalid_request for a bad setting, naming the variable when the message does."""
+
+    named = re.search(r"NCI_SI_[A-Z_]+", str(exc))
+    details = {"parameter": named.group(), "reason": str(exc)} if named else {}
+    message = with_next_step(str(exc), "Fix the environment variable and rerun.")
+    return PlatformError("invalid_request", message, **details)
+
+
 def main() -> int:
     args = build_parser().parse_args()
+    # One correlation identifier for the whole command.
+    with correlated():
+        return _main(args)
+
+
+def _main(args: argparse.Namespace) -> int:
     # The MCP server speaks its protocol on stdout, so its failures go to stderr.
     serve = args.command == "serve"
     errors = sys.stderr if serve else sys.stdout
     try:
         settings = Settings.from_env()
     except ValueError as exc:
-        error = PlatformError(
-            "invalid_request", with_next_step(str(exc), "Fix the environment variable and rerun.")
-        )
-        return _print_result(serialise(error), errors)
+        return _print_result(serialise(_configuration_error(exc)), errors)
     configure_logging(settings.log_level)
     try:
         service = NCISIService(settings)
@@ -141,7 +154,7 @@ def main() -> int:
     except _STARTUP_ERRORS as exc:
         logger.debug("startup_failed", exc_info=True)
         message = with_next_step(f"{type(exc).__name__}: {exc}", "Fix the cause named and rerun.")
-        return _print_result(serialise(PlatformError("internal", message)), errors)
+        return _print_result(serialise(PlatformError("internal_error", message)), errors)
     if mcp:
         mcp.run()
         return 0

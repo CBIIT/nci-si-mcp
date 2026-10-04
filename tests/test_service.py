@@ -20,8 +20,10 @@ from nci_si_mcp.evs import (
     LOOKUP_INCLUDE,
     EVSClient,
     EVSNotFoundError,
+    EVSReleaseMismatchError,
     EVSResponseError,
     EVSResponseTooLargeError,
+    EVSTimeoutError,
     EVSUnavailableError,
     ReleaseResolutionError,
     select_monthly_ncit_release,
@@ -135,7 +137,7 @@ class LookupTest(ServiceTestCase):
             "resolve_monthly_ncit_release": ReleaseResolutionError("found 2 monthly releases")
         }
 
-        self.assert_error(self.service.lookup("C3262"), "release_unavailable")
+        self.assert_error(self.service.lookup("C3262"), "release_not_available")
 
     def test_release_rollover_is_a_version_mismatch_until_live_only(self):
         self.index()
@@ -144,10 +146,10 @@ class LookupTest(ServiceTestCase):
 
         result = self.service.lookup("C3262")
 
-        self.assert_error(result, "release_unavailable")
+        self.assert_error(result, "release_mismatch")
         self.assertEqual(
             result["error"]["details"],
-            {"live_release_version": "26.07d", "active_index_release_version": "26.06e"},
+            {"requested": "26.07d", "served": "26.06e", "source": "index"},
         )
         live = self.service.lookup("C3262", live_only=True)
         self.assertEqual((live["source"], live["release_version"]), ("live_evs", "26.07d"))
@@ -156,7 +158,7 @@ class LookupTest(ServiceTestCase):
         self.index()
         (self.path / "nci_si.sqlite3").write_bytes(b"not a database" * 100)
 
-        self.assert_error(self.service.lookup("C3262"), "internal")
+        self.assert_error(self.service.lookup("C3262"), "internal_error")
         self.assertEqual(self.service.lookup("C3262", live_only=True)["source"], "live_evs")
 
     def test_concept_served_from_another_release_than_requested_is_rejected(self):
@@ -164,7 +166,11 @@ class LookupTest(ServiceTestCase):
 
         result = self.service.lookup("C3262", live_only=True)
 
-        self.assert_error(result, "upstream_unavailable")
+        self.assert_error(result, "release_mismatch")
+        self.assertEqual(
+            result["error"]["details"],
+            {"requested": "26.06e", "served": ["26.07a"], "source": "evs"},
+        )
         self.assertIn("26.07a", result["error"]["message"])
 
     def test_invalid_code_is_rejected_before_any_request(self):
@@ -219,7 +225,7 @@ class IndexCodesTest(ServiceTestCase):
         result = self.service.index_codes(["C3262", "C999"])
 
         self.assert_error(result, "not_found")
-        self.assertEqual(result["error"]["details"], {"missing_codes": ["C999"]})
+        self.assertEqual(result["error"]["details"], {"identifiers": ["C999"]})
         self.assertEqual(self.service.index.get_active_manifest().to_dict(), before)
 
     def test_payload_from_another_release_than_requested_changes_nothing(self):
@@ -228,7 +234,7 @@ class IndexCodesTest(ServiceTestCase):
 
         for codes in (["C40704"], ["C3262", "C40704"]):
             with self.subTest(codes=codes):
-                self.assert_error(self.service.index_codes(codes), "upstream_unavailable")
+                self.assert_error(self.service.index_codes(codes), "release_mismatch")
                 self.assertEqual(self.service.index.get_active_manifest().to_dict(), before)
 
     def test_concept_that_was_not_requested_is_an_evs_fault(self):
@@ -293,7 +299,7 @@ class SearchTest(ServiceTestCase):
         self.assertEqual((result["hits"], result["release_version"]), ([], "26.06e"))
 
     def test_search_needs_an_index(self):
-        self.assert_error(self.service.search("tumor"), "internal")
+        self.assert_error(self.service.search("tumor"), "internal_error")
 
     def test_each_invalid_argument_is_rejected(self):
         self.index()
@@ -312,7 +318,7 @@ class SearchTest(ServiceTestCase):
         self.index()
         other = self.make_service(provider=HashingEmbeddingProvider(dimensions=64))
 
-        self.assert_error(other.search("tumor"), "internal")
+        self.assert_error(other.search("tumor"), "internal_error")
         self.assertFalse(other.release_info()["embedding"]["active_index_compatible"])
         self.assertTrue(self.service.release_info()["embedding"]["active_index_compatible"])
 
@@ -371,7 +377,7 @@ class TraverseTest(ServiceTestCase):
         self.evs.errors = {"get_concepts_by_codes": EVSUnavailableError("timed out")}
         self.assert_error(self.service.traverse(["C3262"]), "upstream_unavailable")
         self.evs.errors = {"resolve_monthly_ncit_release": ReleaseResolutionError("ambiguous")}
-        self.assert_error(self.service.traverse(["C3262"]), "release_unavailable")
+        self.assert_error(self.service.traverse(["C3262"]), "release_not_available")
         self.evs.errors = {"get_concepts_by_codes": EVSResponseError("not a list")}
         self.assert_error(self.service.traverse(["C3262"]), "upstream_unavailable")
 
@@ -431,12 +437,12 @@ class StatusTest(ServiceTestCase):
 
         self.assertFalse(is_error_record(result), result)
         self.assert_error(result["evs_api"], "upstream_unavailable")
-        self.assert_error(result["selected_monthly_release"], "release_unavailable")
+        self.assert_error(result["selected_monthly_release"], "release_not_available")
         self.assertIn("found 2", result["selected_monthly_release"]["error"]["message"])
         self.assertEqual(result["active_index"]["release_version"], "26.06e")
 
     def test_evaluate_scores_every_mode_and_names_gold_concepts_that_are_not_indexed(self):
-        self.assert_error(self.service.evaluate(), "internal")
+        self.assert_error(self.service.evaluate(), "internal_error")
         self.index()
 
         result = self.service.evaluate()
@@ -499,13 +505,13 @@ class FailureHandlingTest(ServiceTestCase):
             with self.subTest(operation):
                 with self.assertLogs("nci_si_mcp.service", level="WARNING"):
                     result = call()
-                self.assert_error(result, "internal")
+                self.assert_error(result, "internal_error")
                 self.assertIn(str(database), result["error"]["message"])
 
     def test_misuse_of_the_index_is_not_disguised_as_a_result(self):
         with self.assertRaises(IndexBuildError):
             self.service.index.upsert_concepts([], None, HashingEmbeddingProvider())
-        self.assertNotIn(IndexBuildError, service_module._ERROR_CLASSES)
+        self.assertNotIn(IndexBuildError, service_module._ERROR_CODES)
 
     def test_unexpected_exceptions_are_not_disguised_as_results(self):
         class BrokenProvider(HashingEmbeddingProvider):
@@ -523,35 +529,86 @@ if __name__ == "__main__":
 
 
 class ErrorModelTest(ServiceTestCase):
-    def test_each_expected_failure_maps_to_its_class_and_names_the_next_step(self):
+    def test_each_expected_failure_maps_to_its_code_details_and_next_step(self):
         failures = (
-            (EVSNotFoundError("EVS request failed: HTTP 404"), "not_found", "Check the code"),
-            (ReleaseResolutionError("found 2"), "release_unavailable", "Retry later"),
-            (EVSResponseTooLargeError("too big"), "bound_exceeded", "NCI_SI_EVS_MAX_RESPONSE"),
-            (EVSResponseError("not a list"), "upstream_unavailable", "NCI_SI_EVS_BASE_URL"),
-            (EVSUnavailableError("refused"), "upstream_unavailable", "Retry later"),
-            (InputValidationError("bad"), "invalid_request", "Correct the argument"),
-            (NoActiveIndexError("none"), "internal", "index-sample"),
-            (IndexCompatibilityError("other model"), "internal", "Rebuild the index"),
-            (IndexStorageError("locked"), "internal", "readable and writable"),
+            (
+                EVSNotFoundError("EVS request failed: HTTP 404", identifiers=["C1"]),
+                "not_found",
+                "Check the code",
+                {"identifiers": ["C1"]},
+            ),
+            (
+                ReleaseResolutionError("found 2", requested="ncit monthly", source="evs"),
+                "release_not_available",
+                "Retry later",
+                {"requested": "ncit monthly", "source": "evs"},
+            ),
+            (
+                EVSReleaseMismatchError("served 2", requested="1", served=["2"], source="evs"),
+                "release_mismatch",
+                "Retry later",
+                {"requested": "1", "served": ["2"], "source": "evs"},
+            ),
+            (
+                EVSResponseTooLargeError("too big", bound="b", limit=5, reached=6),
+                "bound_exceeded",
+                "NCI_SI_EVS_MAX_RESPONSE",
+                {"bound": "b", "limit": 5, "reached": 6},
+            ),
+            (
+                EVSResponseError("not a list", surface="evs", status=403),
+                "upstream_unavailable",
+                "NCI_SI_EVS_BASE_URL",
+                {"surface": "evs", "status": 403},
+            ),
+            (
+                EVSUnavailableError("refused", surface="evs", attempts=3),
+                "upstream_unavailable",
+                "Retry later",
+                {"surface": "evs", "attempts": 3},
+            ),
+            (
+                EVSTimeoutError("slow", surface="evs", seconds=30.0, attempts=3),
+                "timeout",
+                "NCI_SI_TIMEOUT_SECONDS",
+                {"surface": "evs", "seconds": 30.0, "attempts": 3},
+            ),
+            (
+                InputValidationError("bad", "code"),
+                "invalid_request",
+                "Correct the argument",
+                {"parameter": "code", "reason": "bad"},
+            ),
+            (NoActiveIndexError("none"), "internal_error", "index-sample", None),
+            (IndexCompatibilityError("other model"), "internal_error", "Rebuild the index", None),
+            (IndexStorageError("locked"), "internal_error", "readable and writable", None),
         )
-        for exception, error_class, step in failures:
+        for exception, code, step, details in failures:
             with self.subTest(type(exception).__name__):
                 self.evs.errors = {"get_concept": exception}
 
                 result = self.service.lookup("C3262", live_only=True)
 
-                self.assert_error(result, error_class)
+                self.assert_error(result, code)
                 message = result["error"]["message"]
                 self.assertTrue(message.startswith(str(exception).rstrip(".")), message)
                 self.assertIn(step, message)
+                self.assertEqual(result["error"].get("details"), details)
+
+    def test_a_timeout_falls_back_to_the_cache_like_any_outage(self):
+        self.index()
+        self.evs.errors = {"get_concept": EVSTimeoutError("slow", surface="evs")}
+
+        result = self.service.lookup("C3262")
+
+        self.assertEqual(result["source"], "active_cache")
 
     def test_an_error_is_only_the_error_record(self):
         result = self.service.search("tumor")
 
-        self.assert_error(result, "internal")
+        self.assert_error(result, "internal_error")
         self.assertEqual(set(result), {"error"})
-        self.assertEqual(set(result["error"]), {"code", "message"})
+        self.assertEqual(set(result["error"]), {"code", "message", "correlationId"})
 
     def test_results_that_find_nothing_are_not_errors(self):
         self.index()

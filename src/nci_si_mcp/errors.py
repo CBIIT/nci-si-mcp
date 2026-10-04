@@ -2,32 +2,46 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from typing import Any, Literal
+from uuid import uuid4
 
-# The closed set of failure classes (A2.5). Every error record carries one of them.
-ErrorClass = Literal[
+# The closed set of error codes: the specification's error record (spec/records.yaml).
+ErrorCode = Literal[
     "invalid_request",
     "not_found",
-    "release_unavailable",
+    "release_not_available",
+    "release_mismatch",
     "upstream_unavailable",
+    "timeout",
     "bound_exceeded",
-    "internal",
+    "capability_unavailable",
+    "cursor_expired",
+    "internal_error",
 ]
 
 
 class PlatformError(Exception):
-    """A failure to report to the caller: its class, a message that names the caller's
+    """A failure to report to the caller: its code, a message that names the caller's
     next step, and optionally the data that step needs (`details`)."""
 
-    def __init__(self, error_class: ErrorClass, message: str, /, **details: Any) -> None:
+    def __init__(self, code: ErrorCode, message: str, /, **details: Any) -> None:
         super().__init__(message)
-        self.error_class = error_class
+        self.code = code
         self.message = message
         self.details = details
 
 
 class InputValidationError(ValueError):
-    """Raised when a public API input is invalid."""
+    """Raised when a public API input is invalid; `parameter` names the argument."""
+
+    def __init__(self, message: str, /, parameter: str | None = None) -> None:
+        super().__init__(message)
+        self.details: dict[str, Any] = (
+            {"parameter": parameter, "reason": message} if parameter else {}
+        )
 
 
 class IndexCompatibilityError(RuntimeError):
@@ -57,18 +71,41 @@ def with_next_step(message: str, step: str) -> str:
     return message.rstrip(".") + ". " + step
 
 
-def serialise(error: PlatformError) -> dict[str, Any]:
-    """Return the error record `{"error": {"code", "message", "details"?}}`.
+# The identifier of the call in progress, set once per call by its adapter.
+_correlation_id: ContextVar[str | None] = ContextVar("correlation_id", default=None)
 
-    The one place a failure becomes a result. The record is the whole result: it
-    has no other key, so it cannot be mistaken for an empty success. Argument
-    parsing (argparse, MCP schema validation) and unexpected exceptions are
-    reported by the CLI and MCP runtimes themselves and do not use it.
+
+@contextmanager
+def correlated(correlation_id: object = None) -> Iterator[str]:
+    """Run one call under its correlation identifier (M7.1).
+
+    The caller's identifier is used when it is a non-empty string, otherwise one
+    is generated. The adapters open this once per call; `serialise` reads it.
     """
 
-    record: dict[str, Any] = {"code": error.error_class, "message": error.message}
+    value = correlation_id if isinstance(correlation_id, str) and correlation_id else uuid4().hex
+    token = _correlation_id.set(value)
+    try:
+        yield value
+    finally:
+        _correlation_id.reset(token)
+
+
+def serialise(error: PlatformError) -> dict[str, Any]:
+    """Return the error record `{"error": {code, message, details?, correlationId}}`.
+
+    The one place a failure becomes a result. The record is the whole result: it
+    has no other key, so it cannot be mistaken for an empty success. The
+    correlation identifier is the one of the call in progress; a failure raised
+    outside any call (a direct service call) gets a fresh one. Argument parsing
+    (argparse, MCP schema validation) and unexpected exceptions are reported by
+    the CLI and MCP runtimes themselves and do not use it.
+    """
+
+    record: dict[str, Any] = {"code": error.code, "message": error.message}
     if error.details:
         record["details"] = error.details
+    record["correlationId"] = _correlation_id.get() or uuid4().hex
     return {"error": record}
 
 

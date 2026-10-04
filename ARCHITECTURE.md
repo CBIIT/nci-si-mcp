@@ -97,7 +97,7 @@ in `traversal.py`, and `validation.py` reads the hard node limit in
 | `cadsr.py` | Exposes an explicit `reuse_pending` boundary; no caDSR search or fabricated CDE results are implemented. | Shared models |
 | `config.py` | Loads EVS, retry, batching, logging, data-directory, and embedding settings from environment variables and validates them; whether the data directory is usable shows only when the index is opened. | Environment, `embeddings.py` |
 | `validation.py` | Defines the closed value sets (search modes, directions, edge types), normalizes NCIt codes, and validates search and traversal inputs. | Shared errors, hard node limit in `traversal.py` |
-| `errors.py` | Defines the validation and index errors, `PlatformError` with the six error classes, and `serialise`, the one function that builds the error record. | Python standard library |
+| `errors.py` | Defines the validation and index errors, `PlatformError` with the ten error codes of the specification, the per-call correlation identifier, and `serialise`, the one function that builds the error record. | Python standard library |
 
 ## Primary flows
 
@@ -134,7 +134,7 @@ in `traversal.py`, and `validation.py` reads the hard node limit in
 ### Lookup
 
 1. The service resolves the current monthly release. If the index holds a
-   different release, lookup fails with `release_unavailable` unless `live_only` is
+   different release, lookup fails with `release_mismatch` unless `live_only` is
    set, so that lookups and searches never mix releases. With `live_only` the
    call does not read the index; the CLI still opens it at startup.
 2. The concept is requested from live EVS, pinned to that release, and the
@@ -143,7 +143,7 @@ in `traversal.py`, and `validation.py` reads the hard node limit in
 3. If EVS cannot be reached, lookup returns the concept from the index unless
    `live_only` is set. The result then has `source: active_cache` and a
    `fallback` object with the reason. An ambiguous monthly release is not an
-   outage: lookup fails with `release_unavailable` and does not use the cache.
+   outage: lookup fails with `release_not_available` and does not use the cache.
 
 ### Traverse
 
@@ -267,8 +267,8 @@ not MCP tools. QUICKSTART.md lists the error codes.
 - `tests/test_evs.py`: monthly-release selection, release pinning, and concept provenance.
 - `tests/test_evs_client.py`: retries and backoff, failure classification, response limits, payload shapes, and request URLs.
 - `tests/test_index.py`: upserts and release replacement, rollback, embedding compatibility, migrations, and BM25/vector/hybrid search.
-- `tests/test_service.py`: lookup (live, fallback, mismatch, not found), indexing, search, traversal, status, and the mapping of failures to error classes and next steps.
-- `tests/test_errors.py`: the error record, its closed set of classes, and the empty-result rule.
+- `tests/test_service.py`: lookup (live, fallback, mismatch, not found), indexing, search, traversal, status, and the mapping of failures to error codes, details and next steps.
+- `tests/test_errors.py`: the error record, its closed set of codes, and the correlation identifier.
 - `tests/test_upstream.py`: failures masked as success responses (HTML, webMethods, FHIR), also through the EVS client.
 - `tests/test_traversal.py`: edge-type selection, batching, depth/node/edge limits, descendants, deduplication, and graph integrity.
 - `tests/test_validation.py`: public input validation and embedding configuration.
@@ -276,7 +276,7 @@ not MCP tools. QUICKSTART.md lists the error codes.
 - `tests/test_evaluation.py`: ranking metrics.
 - `tests/test_cli.py`: argument parsing, command dispatch, exit codes, and startup failures.
 - `tests/test_server.py`: tool and resource registration, results, and protocol-level errors over an in-process MCP session.
-- `tests/test_docs.py`: the settings, error classes and modules the documentation names against the code.
+- `tests/test_docs.py`: the settings, error codes and modules the documentation names against the code.
 - `tests/test_quality_gates.py`: the complexity and test-quality gates in `scripts/validation`.
 - `tests/test_release_config.py`: the pull request title check against the release configuration.
 - `acceptance/`: the behavioural acceptance suite, which tests the MCP tool surface through a fixture upstream ([acceptance/README.md](acceptance/README.md)).

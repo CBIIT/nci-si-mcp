@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import inspect
 import json
 from collections.abc import Callable
 from typing import Any
 
 from . import __version__
 from .config import Settings, configure_logging
-from .errors import PlatformError, is_error_record, serialise
+from .errors import PlatformError, correlated, is_error_record, serialise
 from .service import NCISIService
 from .traversal import DEFAULT_MAX_DEPTH, DEFAULT_MAX_EDGES, DEFAULT_MAX_NODES
 from .validation import Direction, EdgeType, SearchMode
@@ -18,16 +19,18 @@ INSTRUCTIONS = (
     "plus text search over a small locally indexed sample of concepts. Concept, search "
     "and traversal results name the NCIt monthly release they came from. A failed tool "
     "call is flagged as an error. Failures the server handles carry the error record "
-    "{error: {code, message, details?}}: code is one of invalid_request, not_found, "
-    "release_unavailable, upstream_unavailable, bound_exceeded or internal, and message "
-    "names the next step; arguments rejected by the tool schema are reported as plain text."
+    "{error: {code, message, details?, correlationId}}: code is one of invalid_request, "
+    "not_found, release_not_available, release_mismatch, upstream_unavailable, timeout, "
+    "bound_exceeded, capability_unavailable, cursor_expired or internal_error, and message "
+    "names the next step; correlationId echoes the _meta.correlationId of the call, or is "
+    "generated; arguments rejected by the tool schema are reported as plain text."
 )
 
 
 def create_mcp(settings: Settings | None = None, *, service: NCISIService | None = None):
     # The mcp package is an optional extra, so it is imported only when a server is built.
     try:
-        from mcp.server.mcpserver import MCPServer
+        from mcp.server.mcpserver import Context, MCPServer
         from mcp.server.mcpserver.exceptions import ResourceError
         from mcp.types import CallToolResult, TextContent
     except ImportError as exc:
@@ -41,9 +44,14 @@ def create_mcp(settings: Settings | None = None, *, service: NCISIService | None
     service = service or NCISIService(resolved_settings)
     mcp = MCPServer("nci-si-mcp", instructions=INSTRUCTIONS, version=__version__)
 
-    def tool_result(result: dict[str, Any]) -> Any:
-        """Flag an error record as an error at the protocol level as well."""
+    def tool_result(ctx: Any, call: Callable[[], dict[str, Any]]) -> Any:
+        """Run one tool call under its correlation identifier (the request's
+        `_meta.correlationId`, else a generated one), and flag an error record as an
+        error at the protocol level as well."""
 
+        meta = ctx.request_context.meta or {}
+        with correlated(meta.get("correlationId")):
+            result = call()
         if is_error_record(result):
             text = json.dumps(result, indent=2)
             return CallToolResult(
@@ -58,22 +66,33 @@ def create_mcp(settings: Settings | None = None, *, service: NCISIService | None
             raise ResourceError(json.dumps(result))
         return result
 
-    _register_tools(mcp, service, tool_result)
+    def tool(fn: Callable[..., Any]) -> Callable[..., Any]:
+        """Register a tool whose `ctx` parameter receives the request context."""
+
+        # The annotation is set here because `Context` is imported only when a server is built.
+        if "ctx" in inspect.signature(fn).parameters:
+            fn.__annotations__["ctx"] = Context
+        return mcp.tool()(fn)
+
+    _register_tools(tool, service, tool_result)
     _register_resources(mcp, service, resource_result)
     return mcp
 
 
 def _register_tools(
-    mcp: Any, service: NCISIService, tool_result: Callable[[dict[str, Any]], Any]
+    tool: Callable[[Callable[..., Any]], Callable[..., Any]],
+    service: NCISIService,
+    tool_result: Callable[[Any, Callable[[], dict[str, Any]]], Any],
 ) -> None:
     """Register the tools. Their docstrings are the contract sent to MCP clients."""
 
-    @mcp.tool()
+    @tool
     def ncit_search(
         query: str,
         limit: int = 10,
         mode: SearchMode = "hybrid",
         include_raw: bool = False,
+        ctx: Any = None,
     ):
         """Search the locally indexed NCIt concepts by text.
 
@@ -98,11 +117,12 @@ def _register_tools(
         concept was indexed. `include_raw` adds the full EVS payload.
         """
         return tool_result(
-            service.search(query=query, limit=limit, mode=mode, include_raw=include_raw)
+            ctx,
+            lambda: service.search(query=query, limit=limit, mode=mode, include_raw=include_raw),
         )
 
-    @mcp.tool()
-    def ncit_lookup(code: str, live_only: bool = False, include_raw: bool = False):
+    @tool
+    def ncit_lookup(code: str, live_only: bool = False, include_raw: bool = False, ctx: Any = None):
         """Look up one NCIt concept by code (C followed by digits) in live EVS.
 
         The request is pinned to the current monthly release, and a live answer
@@ -113,13 +133,15 @@ def _register_tools(
         otherwise the call fails with `upstream_unavailable`.
 
         When the local index holds a different release than the current monthly
-        one, the call fails with `release_unavailable` for every code, so that
+        one, the call fails with `release_mismatch` for every code, so that
         results from two releases are never mixed. `live_only=true` skips both
         that check and the fallback. `include_raw` adds the full EVS payload.
         """
-        return tool_result(service.lookup(code=code, live_only=live_only, include_raw=include_raw))
+        return tool_result(
+            ctx, lambda: service.lookup(code=code, live_only=live_only, include_raw=include_raw)
+        )
 
-    @mcp.tool()
+    @tool
     def ncit_traverse(
         start_codes: list[str],
         direction: Direction = "out",
@@ -131,6 +153,7 @@ def _register_tools(
         include_associations: bool = True,
         relationship_names: list[str] | None = None,
         edge_types: list[EdgeType] | None = None,
+        ctx: Any = None,
     ):
         """Walk NCIt relationships breadth-first from the start codes, in live EVS.
 
@@ -164,7 +187,8 @@ def _register_tools(
         release does not contain returns `not_found`.
         """
         return tool_result(
-            service.traverse(
+            ctx,
+            lambda: service.traverse(
                 start_codes=start_codes,
                 direction=direction,
                 max_depth=max_depth,
@@ -175,11 +199,11 @@ def _register_tools(
                 include_associations=include_associations,
                 relationship_names=relationship_names,
                 edge_types=list(edge_types) if edge_types else None,
-            )
+            ),
         )
 
-    @mcp.tool()
-    def ncit_release_info():
+    @tool
+    def ncit_release_info(ctx: Any = None):
         """Report the EVS API version, the current monthly NCIt release and the local index.
 
         The call succeeds even when EVS cannot be reached: `evs_api` and
@@ -188,9 +212,9 @@ def _register_tools(
         says whether `ncit_search` can use the index: it is false when there is
         none or when it was built with other embedding settings.
         """
-        return tool_result(service.release_info())
+        return tool_result(ctx, service.release_info)
 
-    @mcp.tool()
+    @tool
     def cadsr_status():
         """Report that caDSR common data element search is not implemented yet.
 
@@ -203,10 +227,15 @@ def _register_tools(
 def _register_resources(
     mcp: Any, service: NCISIService, resource_result: Callable[[dict[str, Any]], dict[str, Any]]
 ) -> None:
+    def release_not_available(message: str, requested: str, source: str) -> dict[str, Any]:
+        error = PlatformError("release_not_available", message, requested=requested, source=source)
+        return resource_result(serialise(error))
+
     @mcp.resource("nci-si://concept/ncit/{code}", mime_type="application/json")
     def ncit_concept_resource(code: str):
         """One NCIt concept, as returned by the `ncit_lookup` tool with default options."""
-        return resource_result(service.lookup(code=code))
+        with correlated():
+            return resource_result(service.lookup(code=code))
 
     @mcp.resource("nci-si://release/ncit/{version}", mime_type="application/json")
     def ncit_release_resource(version: str):
@@ -216,22 +245,19 @@ def _register_resources(
         of the `ncit_release_info` tool. The version of the current monthly
         release returns that release's record; any other version is an error.
         """
-        info = resource_result(service.release_info())
-        if version in ("monthly", "latest", "monthly-latest"):
-            return info
-        selected = resource_result(info["selected_monthly_release"])
-        if version == selected["version"]:
-            return selected
-        return resource_result(
-            serialise(
-                PlatformError(
-                    "release_unavailable",
-                    f"Release {version} is not served here; the current monthly release is "
-                    f"{selected['version']}. Read that release, or use `monthly`.",
-                    requested_version=version,
-                )
+        with correlated():
+            info = resource_result(service.release_info())
+            if version in ("monthly", "latest", "monthly-latest"):
+                return info
+            selected = resource_result(info["selected_monthly_release"])
+            if version == selected["version"]:
+                return selected
+            return release_not_available(
+                f"Release {version} is not served here; the current monthly release is "
+                f"{selected['version']}. Read that release, or use `monthly`.",
+                version,
+                "evs",
             )
-        )
 
     @mcp.resource("nci-si://index/ncit/{version}/manifest", mime_type="application/json")
     def ncit_index_manifest_resource(version: str):
@@ -241,20 +267,17 @@ def _register_resources(
         other version is an error. Without an index the result is
         `{"active_index": null}`.
         """
-        result = resource_result(service.index_manifest())
-        manifest = result["active_index"]
-        if not manifest:
-            return result
-        if version in ("active", manifest["release_version"]):
-            return manifest
-        return resource_result(
-            serialise(
-                PlatformError(
-                    "release_unavailable",
-                    f"The local index holds release {manifest['release_version']}, not "
-                    f"{version}. Read that release or `active`, or rebuild the index with "
-                    "`index-sample`.",
-                    requested_version=version,
-                )
+        with correlated():
+            result = resource_result(service.index_manifest())
+            manifest = result["active_index"]
+            if not manifest:
+                return result
+            if version in ("active", manifest["release_version"]):
+                return manifest
+            return release_not_available(
+                f"The local index holds release {manifest['release_version']}, not "
+                f"{version}. Read that release or `active`, or rebuild the index with "
+                "`index-sample`.",
+                version,
+                "index",
             )
-        )

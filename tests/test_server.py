@@ -119,7 +119,7 @@ class ServerTest(unittest.TestCase):
         for value in ("both", "inverse_role", "descendant"):
             self.assertIn(f'"{value}"', traverse_schema)
         self.assertIn('"hybrid"', json.dumps(tools["ncit_search"].input_schema))
-        for term in ("release_unavailable", "not_found", "fallback", "live_only"):
+        for term in ("release_mismatch", "not_found", "fallback", "live_only"):
             self.assertIn(term, tools["ncit_lookup"].description)
         for term in ("truncated", "unexpanded_codes", "descendant", "relationship_names"):
             self.assertIn(term, tools["ncit_traverse"].description)
@@ -235,7 +235,7 @@ class ServerTest(unittest.TestCase):
         failures = (
             ("not_found", "ncit_lookup", {"code": "C999"}),
             ("invalid_request", "ncit_lookup", {"code": "oops"}),
-            ("internal", "ncit_search", {"query": "tumor"}),
+            ("internal_error", "ncit_search", {"query": "tumor"}),
             ("not_found", "ncit_traverse", {"start_codes": ["C999"]}),
         )
         for code, tool, arguments in failures:
@@ -249,7 +249,7 @@ class ServerTest(unittest.TestCase):
         (self.settings.data_dir / "nci_si.sqlite3").write_bytes(b"not a database" * 100)
         is_error, envelope = self.call("ncit_release_info")
         self.assertTrue(is_error)
-        self.assertEqual(envelope["error"]["code"], "internal")
+        self.assertEqual(envelope["error"]["code"], "internal_error")
 
     def test_an_error_is_the_error_record_as_structured_content_and_as_text(self, _):
         result = self.session(lambda client: client.call_tool("ncit_lookup", {"code": "C999"}))
@@ -257,6 +257,41 @@ class ServerTest(unittest.TestCase):
         self.assertTrue(result.is_error)
         self.assertEqual(set(result.structured_content), {"error"})
         self.assertEqual(result.structured_content, json.loads(result.content[0].text))
+
+    def test_the_error_record_returns_the_correlation_identifier_of_the_call(self, _):
+        def failing_lookup(meta):
+            return self.session(
+                lambda client: client.call_tool("ncit_lookup", {"code": "C999"}, meta=meta)
+            ).structured_content["error"]["correlationId"]
+
+        self.assertEqual(failing_lookup({"correlationId": "caller-42"}), "caller-42")
+        first, second = failing_lookup(None), failing_lookup({})
+        self.assertTrue(first)
+        self.assertNotEqual(first, second)
+
+    def test_every_tool_that_can_fail_honours_the_correlation_identifier(self, _):
+        calls = {
+            "ncit_search": {"query": "tumor"},
+            "ncit_traverse": {"start_codes": ["C999"]},
+        }
+        for tool, arguments in calls.items():
+            with self.subTest(tool):
+                result = self.session(
+                    lambda client, tool=tool, arguments=arguments: client.call_tool(
+                        tool, arguments, meta={"correlationId": "c-1"}
+                    )
+                )
+
+                self.assertTrue(result.is_error)
+                self.assertEqual(result.structured_content["error"]["correlationId"], "c-1")
+
+    def test_a_resource_error_carries_a_correlation_identifier_and_details(self, _):
+        with self.assertRaises(MCPError) as raised:
+            self.read("nci-si://release/ncit/99.99z")
+
+        error = json.loads(str(raised.exception))["error"]
+        self.assertTrue(error["correlationId"])
+        self.assertEqual(error["details"], {"requested": "99.99z", "source": "evs"})
 
     def test_a_search_that_finds_nothing_is_a_success_with_no_hits(self, _):
         self.service.index_codes(["C3262"])
@@ -300,8 +335,8 @@ class ServerTest(unittest.TestCase):
         self.service.index_codes(["C3262"])
         failures = {
             "nci-si://concept/ncit/C999": "not_found",
-            "nci-si://release/ncit/99.99z": "release_unavailable",
-            "nci-si://index/ncit/99.99z/manifest": "release_unavailable",
+            "nci-si://release/ncit/99.99z": "release_not_available",
+            "nci-si://index/ncit/99.99z/manifest": "release_not_available",
         }
         for uri, code in failures.items():
             with self.subTest(uri):
@@ -323,7 +358,9 @@ class ServerTest(unittest.TestCase):
             with self.subTest(uri):
                 with self.assertRaises(MCPError) as raised:
                     self.read(uri)
-                self.assertEqual(json.loads(str(raised.exception))["error"]["code"], "internal")
+                self.assertEqual(
+                    json.loads(str(raised.exception))["error"]["code"], "internal_error"
+                )
 
 
 if __name__ == "__main__":

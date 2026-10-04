@@ -12,10 +12,15 @@ def body(value):
 
 
 class ParseUpstreamJsonTest(unittest.TestCase):
+    def details(self, payload):
+        with self.assertRaises(PlatformError) as raised:
+            parse_upstream_json(payload, "EVS /x")
+        return raised.exception.details
+
     def failure(self, payload):
         with self.assertRaises(PlatformError) as raised:
             parse_upstream_json(payload, "EVS /api/v1/version")
-        self.assertEqual(raised.exception.error_class, "upstream_unavailable")
+        self.assertEqual(raised.exception.code, "upstream_unavailable")
         return raised.exception.message
 
     def test_content_is_returned_parsed(self):
@@ -41,6 +46,7 @@ class ParseUpstreamJsonTest(unittest.TestCase):
         envelope = {"DataElement": None, "apiResponse": {"type": "E", "message": "bad id"}}
 
         self.assertIn("webMethods error envelope (bad id)", self.failure(body(envelope)))
+        self.assertEqual(self.details(body(envelope)), {"surface": "evs"})
 
     def test_a_webmethods_success_envelope_is_content(self):
         payload = {"apiResponse": {"type": "S"}, "items": []}
@@ -62,6 +68,7 @@ class ParseUpstreamJsonTest(unittest.TestCase):
 
     def test_the_message_names_the_source_and_the_next_step(self):
         message = self.failure(b"<html>")
+        self.assertEqual(self.details(b"<html>"), {"surface": "evs"})
 
         self.assertIn("EVS /api/v1/version", message)
         self.assertIn("Retry later", message)

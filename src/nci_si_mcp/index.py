@@ -598,9 +598,7 @@ class LocalIndex:
     ) -> IndexManifest:
         manifest = self._active_manifest(conn)
         if not manifest:
-            raise NoActiveIndexError(
-                "No active NCIt index is available; build one with the index-sample command"
-            )
+            raise NoActiveIndexError("No active NCIt index is available")
         if not manifest.embedding_matches(embedding_provider.name, embedding_provider.model):
             raise IndexCompatibilityError(
                 "Active index embedding provider/model does not match runtime configuration"

@@ -32,46 +32,50 @@ def _is_int(value: object) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
-def validate_ncit_code(code: str) -> str:
+def validate_ncit_code(code: str, parameter: str = "code") -> str:
     normalized = str(code or "").strip().upper()
     if not NCIT_CODE_RE.fullmatch(normalized):
         raise InputValidationError(
-            f"NCIt code must have the form C followed by digits, not {str(code)[:40]!r}"
+            f"NCIt code must have the form C followed by digits, not {str(code)[:40]!r}",
+            parameter,
         )
     return normalized
 
 
-def validate_ncit_codes(codes: Iterable[str]) -> list[str]:
-    normalized = list(dict.fromkeys(validate_ncit_code(code) for code in codes))
+def validate_ncit_codes(codes: Iterable[str], parameter: str = "codes") -> list[str]:
+    normalized = list(dict.fromkeys(validate_ncit_code(code, parameter) for code in codes))
     if not normalized:
-        raise InputValidationError("At least one NCIt code is required")
+        raise InputValidationError("At least one NCIt code is required", parameter)
     return normalized
 
 
 def validate_search(query: str, limit: int, mode: str) -> tuple[str, int, str]:
     normalized_query = str(query or "").strip()
     if not normalized_query:
-        raise InputValidationError("Search query must not be blank")
+        raise InputValidationError("Search query must not be blank", "query")
     if not _is_int(limit) or not 1 <= limit <= MAX_SEARCH_LIMIT:
-        raise InputValidationError(f"Search limit must be between 1 and {MAX_SEARCH_LIMIT}")
+        raise InputValidationError(
+            f"Search limit must be between 1 and {MAX_SEARCH_LIMIT}", "limit"
+        )
     normalized_mode = str(mode or "").lower()
     if normalized_mode not in SEARCH_MODES:
         allowed = ", ".join(sorted(SEARCH_MODES))
-        raise InputValidationError(f"Search mode must be one of: {allowed}")
+        raise InputValidationError(f"Search mode must be one of: {allowed}", "mode")
     return normalized_query, limit, normalized_mode
 
 
 def _validate_limits(codes: list[str], max_depth: int, max_nodes: int, max_edges: int) -> None:
     if not _is_int(max_depth) or max_depth < 0:
-        raise InputValidationError("max_depth must be a non-negative integer")
+        raise InputValidationError("max_depth must be a non-negative integer", "max_depth")
     for field, value in (("max_nodes", max_nodes), ("max_edges", max_edges)):
         if not _is_int(value) or value < 1:
-            raise InputValidationError(f"{field} must be a positive integer")
+            raise InputValidationError(f"{field} must be a positive integer", field)
     node_limit = min(max_nodes, HARD_MAX_NODES)
     if len(codes) > node_limit:
         raise InputValidationError(
             f"{len(codes)} start codes exceed the node limit of {node_limit} "
-            f"(max_nodes, at most {HARD_MAX_NODES})"
+            f"(max_nodes, at most {HARD_MAX_NODES})",
+            "start_codes",
         )
 
 
@@ -83,7 +87,7 @@ def _normalize_edge_types(edge_types: Iterable[str] | None) -> list[str] | None:
     )
     if not TRAVERSAL_EDGE_TYPES.issuperset(normalized):
         allowed = ", ".join(sorted(TRAVERSAL_EDGE_TYPES))
-        raise InputValidationError(f"Edge type must be one of: {allowed}")
+        raise InputValidationError(f"Edge type must be one of: {allowed}", "edge_types")
     return normalized
 
 
@@ -92,7 +96,7 @@ def _normalize_relationship_names(names: Iterable[str] | None) -> list[str] | No
         return None
     normalized = list(dict.fromkeys(str(name or "").strip() for name in names))
     if "" in normalized:
-        raise InputValidationError("Relationship names must not be blank")
+        raise InputValidationError("Relationship names must not be blank", "relationship_names")
     return normalized
 
 
@@ -105,11 +109,11 @@ def validate_traversal(
     edge_types: Iterable[str] | None,
     relationship_names: Iterable[str] | None = None,
 ) -> tuple[list[str], str, list[str] | None, list[str] | None]:
-    codes = validate_ncit_codes(start_codes)
+    codes = validate_ncit_codes(start_codes, "start_codes")
     normalized_direction = str(direction or "").lower()
     if normalized_direction not in TRAVERSAL_DIRECTIONS:
         allowed = ", ".join(sorted(TRAVERSAL_DIRECTIONS))
-        raise InputValidationError(f"Traversal direction must be one of: {allowed}")
+        raise InputValidationError(f"Traversal direction must be one of: {allowed}", "direction")
     _validate_limits(codes, max_depth, max_nodes, max_edges)
     return (
         codes,

@@ -18,6 +18,33 @@ class ValidationTest(unittest.TestCase):
         self.assertEqual(validate_ncit_code(" c3262 "), "C3262")
         self.assertEqual(validate_ncit_codes(["c40704", " C3262 ", "C40704"]), ["C40704", "C3262"])
 
+    def test_a_rejected_argument_is_named_with_the_reason(self):
+        ok = {"max_depth": 1, "max_nodes": 10, "max_edges": 10, "edge_types": None}
+
+        def traversal(start_codes=("C1",), direction="out", **changes):
+            return lambda: validate_traversal(start_codes, direction, **{**ok, **changes})
+
+        rejections = {
+            "code": lambda: validate_ncit_code("oops"),
+            "codes": lambda: validate_ncit_codes([]),
+            "query": lambda: validate_search(" ", 10, "bm25"),
+            "limit": lambda: validate_search("x", 0, "bm25"),
+            "mode": lambda: validate_search("x", 10, "fuzzy"),
+            "start_codes": traversal(["oops"]),
+            "direction": traversal(direction="sideways"),
+            "max_depth": traversal(max_depth=-1),
+            "max_nodes": traversal(max_nodes=0),
+            "max_edges": traversal(max_edges=0),
+            "edge_types": traversal(edge_types=["bogus"]),
+            "relationship_names": traversal(relationship_names=[" "]),
+        }
+        for parameter, call in rejections.items():
+            with self.subTest(parameter), self.assertRaises(InputValidationError) as raised:
+                call()
+            self.assertEqual(
+                raised.exception.details, {"parameter": parameter, "reason": str(raised.exception)}
+            )
+
     def test_code_must_be_c_followed_by_digits_only(self):
         arabic_digits = "C١٢"  # noqa: RUF001 - digits that are not ASCII must be rejected
         for code in (

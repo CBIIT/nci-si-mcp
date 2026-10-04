@@ -149,6 +149,19 @@ class MainTest(unittest.TestCase):
         code, failed, _ = self.run_cli("lookup", "C3262", "--live-only", service=service)
         self.assertEqual((code, failed["error"]["code"]), (1, "upstream_unavailable"))
 
+    def test_one_command_reports_one_correlation_identifier(self, _):
+        service = self.fake_service()
+        service.evs.errors = {
+            "get_api_version": EVSUnavailableError("down"),
+            "resolve_monthly_ncit_release": EVSUnavailableError("down"),
+        }
+
+        code, info, _ = self.run_cli("release-info", service=service)
+
+        nested = [info["evs_api"]["error"], info["selected_monthly_release"]["error"]]
+        self.assertEqual(code, 0)
+        self.assertEqual(len({error["correlationId"] for error in nested}), 1)
+
     def test_traverse_options_shape_the_result(self, _):
         def traverse(*options):
             code, result, _ = self.run_cli("traverse", "C3262", "--max-depth", "1", *options)
@@ -178,13 +191,14 @@ class MainTest(unittest.TestCase):
     def test_error_envelope_exits_one(self, _):
         for argv, error in (
             (["lookup", "C999"], "not_found"),
-            (["search", "tumor"], "internal"),
-            (["evaluate"], "internal"),
+            (["search", "tumor"], "internal_error"),
+            (["evaluate"], "internal_error"),
             (["traverse", "C3262", "--max-depth", "-1"], "invalid_request"),
         ):
             with self.subTest(argv=argv):
                 code, result, _ = self.run_cli(*argv)
                 self.assertEqual((code, result["error"]["code"]), (1, error))
+                self.assertTrue(result["error"]["correlationId"])
 
     def test_invalid_configuration_names_the_variable(self, _):
         for variable, value in (
@@ -196,6 +210,15 @@ class MainTest(unittest.TestCase):
                 code, result, _ = self.run_cli("release-info", service="real", **{variable: value})
                 self.assertEqual((code, result["error"]["code"]), (1, "invalid_request"))
                 self.assertIn(variable, result["error"]["message"])
+                self.assertEqual(result["error"]["details"]["parameter"], variable)
+                self.assertTrue(result["error"]["correlationId"])
+
+    def test_a_setting_error_that_names_no_variable_has_no_parameter_detail(self, _):
+        with patch("nci_si_mcp.cli.Settings.from_env", side_effect=ValueError("odd")):
+            code, result, _ = self.run_cli("release-info", service="real")
+
+        self.assertEqual((code, result["error"]["code"]), (1, "invalid_request"))
+        self.assertNotIn("details", result["error"])
 
     def test_startup_failures_are_reported_not_raised(self, _):
         occupied = self.path / "occupied"
@@ -211,14 +234,14 @@ class MainTest(unittest.TestCase):
                 code, result, _ = self.run_cli(
                     "search", "tumor", service="real", NCI_SI_DATA_DIR=str(data_dir)
                 )
-                self.assertEqual((code, result["error"]["code"]), (1, "internal"))
+                self.assertEqual((code, result["error"]["code"]), (1, "internal_error"))
                 self.assertIn(str(data_dir), result["error"]["message"])
 
     def test_value_error_at_startup_is_reported(self, _):
         with patch("nci_si_mcp.cli.NCISIService", side_effect=ValueError("bad model name")):
             code, result, _ = self.run_cli("release-info", service="real")
 
-        self.assertEqual((code, result["error"]["code"]), (1, "internal"))
+        self.assertEqual((code, result["error"]["code"]), (1, "internal_error"))
 
     def test_serve_runs_the_server_and_keeps_stdout_for_the_protocol(self, _):
         server = MagicMock()
@@ -234,7 +257,7 @@ class MainTest(unittest.TestCase):
             code, printed, stderr = self.run_cli("serve")
 
         self.assertEqual((code, printed), (1, None))
-        self.assertEqual(json.loads(stderr)["error"]["code"], "internal")
+        self.assertEqual(json.loads(stderr)["error"]["code"], "internal_error")
         self.assertIn("mcp is missing", stderr)
 
         code, printed, stderr = self.run_cli("serve", NCI_SI_TIMEOUT_SECONDS="0")
