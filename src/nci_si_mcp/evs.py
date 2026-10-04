@@ -29,6 +29,15 @@ LOOKUP_INCLUDE = (
 )
 
 
+TERMINOLOGIES_PATH = "/api/v1/metadata/terminologies"
+
+
+def concept_path(terminology: str, code: str = "") -> str:
+    """The path of a concept in `terminology`, or of the terminology's concept list."""
+
+    return f"/api/v1/concept/{terminology}" + (f"/{code}" if code else "")
+
+
 class EVSError(RuntimeError):
     """Base error for EVS client failures; `details` is what the error record carries."""
 
@@ -250,6 +259,15 @@ class EVSClient:
             credentials={LICENSE_KEY_HEADER: license_key} if license_key else None,
         )
 
+    @property
+    def max_response_bytes(self) -> int:
+        return self.http.max_response_bytes
+
+    def uri(self, path: str) -> str:
+        """The URL of `path`: what a request for it asks, for an item's provenance."""
+
+        return f"{self.http.base_url}{path}"
+
     def _get_json(self, path: str, params: dict[str, Any] | None = None) -> Any:
         """GET a JSON document; HTTP 404 raises EVSNotFoundError.
 
@@ -277,9 +295,7 @@ class EVSClient:
         return _object(self._get_existing("/api/v1/version"), "version response")
 
     def get_terminologies(self) -> list[dict[str, Any]]:
-        return _object_list(
-            self._get_existing("/api/v1/metadata/terminologies"), "terminology metadata"
-        )
+        return _object_list(self._get_existing(TERMINOLOGIES_PATH), "terminology metadata")
 
     def resolve_monthly_ncit_release(self) -> ReleaseInfo:
         return select_monthly_ncit_release(self.get_terminologies())
@@ -296,7 +312,7 @@ class EVSClient:
         if not code_list:
             return []
         data = self._get_existing(
-            f"/api/v1/concept/{terminology}",
+            concept_path(terminology),
             {"list": ",".join(code_list), "include": include},
         )
         return _object_list(data, "concept list response")
@@ -308,7 +324,7 @@ class EVSClient:
         include: str = LOOKUP_INCLUDE,
     ) -> dict[str, Any]:
         try:
-            data = self._get_json(f"/api/v1/concept/{terminology}/{code}", {"include": include})
+            data = self._get_json(concept_path(terminology, code), {"include": include})
         except EVSNotFoundError as exc:
             raise EVSNotFoundError(str(exc), identifiers=[code]) from exc
         return _object(data, "concept response")
@@ -323,6 +339,6 @@ class EVSClient:
         """
 
         data = self._get_existing(
-            f"/api/v1/concept/{terminology}/{code}/descendants", {"maxLevel": max_level}
+            f"{concept_path(terminology, code)}/descendants", {"maxLevel": max_level}
         )
         return _object_list(data, "descendants response")

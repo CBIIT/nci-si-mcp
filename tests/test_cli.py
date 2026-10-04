@@ -117,7 +117,7 @@ class MainTest(unittest.TestCase):
         self.assertEqual((code, manifest["concept_count"]), (0, 1))
 
         code, lookup, _ = self.run_cli("lookup", "C3262", "--include-raw")
-        self.assertEqual((code, lookup["source"]), (0, "live_evs"))
+        self.assertEqual((code, lookup["provenance"]["source"]), (0, "evs_rest"))
         self.assertIn("raw", lookup)
 
         code, search, _ = self.run_cli("search", "tumor", "--mode", "bm25", "--limit", "1")
@@ -145,7 +145,7 @@ class MainTest(unittest.TestCase):
         service = self.fake_service()
         service.evs.errors = {"get_concept": EVSUnavailableError("down")}
         code, cached, _ = self.run_cli("lookup", "C3262", "--include-raw", service=service)
-        self.assertEqual((code, cached["source"]), (0, "active_cache"))
+        self.assertEqual((code, cached["provenance"]["servedBy"]), (0, "index"))
         self.assertIn("raw", cached)
         code, failed, _ = self.run_cli("lookup", "C3262", "--live-only", service=service)
         self.assertEqual((code, failed["error"]["code"]), (1, "upstream_unavailable"))

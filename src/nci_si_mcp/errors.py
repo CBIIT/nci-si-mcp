@@ -81,6 +81,18 @@ def current_correlation_id() -> str | None:
     return _correlation_id.get()
 
 
+def call_correlation_id() -> str:
+    """The correlation identifier of the call in progress, for the provenance of its items.
+
+    Every adapter and every service method runs under one, so none means a bug.
+    """
+
+    value = current_correlation_id()
+    if value is None:
+        raise RuntimeError("An item's provenance was built outside any call")
+    return value
+
+
 @contextmanager
 def correlated(correlation_id: object = None) -> Iterator[str]:
     """Run one call under its correlation identifier (M7.1).

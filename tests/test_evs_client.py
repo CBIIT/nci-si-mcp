@@ -14,6 +14,7 @@ from nci_si_mcp.evs import (
     EVSResponseTooLargeError,
     EVSTimeoutError,
     EVSUnavailableError,
+    concept_path,
 )
 
 
@@ -192,6 +193,19 @@ class EVSClientTest(unittest.TestCase):
             self.client().get_api_version()
 
         self.assertEqual(raised.exception.details, {"surface": "evs", "status": 404, "attempts": 1})
+
+    def test_the_uri_of_a_concept_is_the_url_its_request_goes_to(self, urlopen, sleep):
+        urlopen.side_effect = lambda request, timeout: FakeResponse(b'{"code": "C3262"}')
+        client = self.client(max_response_bytes=4096)
+
+        client.get_concept("C3262", terminology="ncit_26.06e")
+
+        (request,) = [call.args[0] for call in urlopen.call_args_list]
+        uri = client.uri(concept_path("ncit_26.06e", "C3262"))
+        self.assertEqual(request.full_url.partition("?")[0], uri)
+        self.assertEqual(uri, "https://example.invalid/api/v1/concept/ncit_26.06e/C3262")
+        # The limit an oversized answer is held to, which a truncation record reports.
+        self.assertEqual(client.max_response_bytes, 4096)
 
     def test_requests_use_the_configured_timeout(self, urlopen, sleep):
         # The transport answers with the timeout it was given.

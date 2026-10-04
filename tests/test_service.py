@@ -84,9 +84,13 @@ class LookupTest(ServiceTestCase):
         result = self.service.lookup(" c3262 ")
 
         self.assertEqual(result["code"], "C3262")
-        self.assertEqual(result["source"], "live_evs")
-        self.assertEqual(result["release_version"], "26.06e")
-        self.assertEqual(result["release_date"], "2026-06-29")
+        self.assertEqual(
+            result["provenance"]["release"],
+            {"terminology": "ncit", "identifier": "26.06e", "date": "2026-06-29"},
+        )
+        self.assertEqual(
+            (result["provenance"]["source"], result["provenance"]["servedBy"]), ("evs_rest", "live")
+        )
         self.assertNotIn("raw", result)
         self.assertNotIn("fallback", result)
         self.assertEqual(result["evidence"]["synonyms"][0]["name"], "Tumor")
@@ -111,8 +115,11 @@ class LookupTest(ServiceTestCase):
                 with self.assertLogs("nci_si_mcp.service", level="WARNING") as logs:
                     result = self.service.lookup("C3262")
 
-                self.assertEqual(result["source"], "active_cache")
-                self.assertEqual(result["release_version"], "26.06e")
+                self.assertEqual(
+                    (result["provenance"]["source"], result["provenance"]["servedBy"]),
+                    ("evs_index", "index"),
+                )
+                self.assertEqual(result["provenance"]["release"]["identifier"], "26.06e")
                 self.assertEqual(
                     result["fallback"],
                     {"reason": "upstream_unavailable", "message": "connection refused"},
@@ -153,14 +160,18 @@ class LookupTest(ServiceTestCase):
             {"requested": "26.07d", "served": ["26.06e"], "source": "index"},
         )
         live = self.service.lookup("C3262", live_only=True)
-        self.assertEqual((live["source"], live["release_version"]), ("live_evs", "26.07d"))
+        self.assertEqual(
+            (live["provenance"]["source"], live["provenance"]["release"]["identifier"]),
+            ("evs_rest", "26.07d"),
+        )
 
     def test_live_only_does_not_read_the_index(self):
         self.index()
         (self.path / "nci_si.sqlite3").write_bytes(b"not a database" * 100)
 
         self.assert_error(self.service.lookup("C3262"), "internal_error")
-        self.assertEqual(self.service.lookup("C3262", live_only=True)["source"], "live_evs")
+        live = self.service.lookup("C3262", live_only=True)
+        self.assertEqual(live["provenance"]["servedBy"], "live")
 
     def test_concept_served_from_another_release_than_requested_is_rejected(self):
         self.evs.concepts["C3262"] = dict(NEOPLASM, version="26.07a")
@@ -277,9 +288,12 @@ class SearchTest(ServiceTestCase):
 
         self.assertEqual(result["query"], "tumor")
         self.assertEqual(result["mode"], "bm25")
-        self.assertEqual(result["release_version"], "26.06e")
         self.assertEqual([hit["concept"]["code"] for hit in result["hits"]], ["C3262"])
         self.assertEqual(result["hits"][0]["rank"], 1)
+        self.assertEqual(
+            result["hits"][0]["concept"]["provenance"]["release"]["identifier"], "26.06e"
+        )
+        self.assertNotIn("provenance", result)
         self.assertNotIn("raw", result["hits"][0]["concept"])
         with_raw = self.service.search("tumor", include_raw=True)
         self.assertIn("raw", with_raw["hits"][0]["concept"])
@@ -297,7 +311,9 @@ class SearchTest(ServiceTestCase):
 
         result = self.service.search("zzzz", mode="bm25")
 
-        self.assertEqual((result["hits"], result["release_version"]), ([], "26.06e"))
+        self.assertEqual(result["hits"], [])
+        self.assertEqual(result["provenance"]["release"]["identifier"], "26.06e")
+        self.assertEqual(result["provenance"]["source"], "evs_index")
 
     def test_search_needs_an_index(self):
         self.assert_error(self.service.search("tumor"), "internal_error")
@@ -323,21 +339,22 @@ class SearchTest(ServiceTestCase):
         self.assertFalse(other.release_info()["embedding"]["active_index_compatible"])
         self.assertTrue(self.service.release_info()["embedding"]["active_index_compatible"])
 
-    def test_search_reports_the_release_of_its_hits(self):
+    def test_a_search_without_hits_needs_the_manifest_it_names_the_release_from(self):
         self.index()
         with patch.object(self.service.index, "get_active_manifest", return_value=None):
-            result = self.service.search("neoplasm")
+            result = self.service.search("zzzz", mode="bm25")
 
-        self.assertTrue(result["hits"])
-        self.assertEqual(result["release_version"], "26.06e")
+        self.assert_error(result, "internal_error")
 
 
 class TraverseTest(ServiceTestCase):
     def test_traversal_reads_the_pinned_monthly_release(self):
         result = self.service.traverse(["c3262", "C3262"], max_depth=1, edge_types=["Role"])
 
-        self.assertEqual(result["release_version"], "26.06e")
         self.assertEqual(result["start_codes"], ["C3262"])
+        self.assertEqual(
+            {item["provenance"]["release"]["identifier"] for item in result["nodes"]}, {"26.06e"}
+        )
         self.assertEqual([node["code"] for node in result["nodes"]], ["C3262", "C12922"])
         self.assertEqual(
             [(edge["source_code"], edge["target_code"]) for edge in result["edges"]],
@@ -349,7 +366,9 @@ class TraverseTest(ServiceTestCase):
     def test_direction_limits_and_name_filter_reach_the_walk(self):
         def targets(**arguments):
             result = self.service.traverse(["C3262"], max_depth=1, **arguments)
-            return [edge["target_code"] for edge in result["edges"]], result["truncated"]
+            return [edge["target_code"] for edge in result["edges"]], result["truncation"][
+                "occurred"
+            ]
 
         self.assertEqual(targets(), (["C4741", "C12922", "C165258"], False))
         self.assertEqual(targets(direction="in"), (["C2991"], False))
@@ -615,7 +634,7 @@ class ErrorModelTest(ServiceTestCase):
 
         result = self.service.lookup("C3262")
 
-        self.assertEqual(result["source"], "active_cache")
+        self.assertEqual(result["provenance"]["servedBy"], "index")
 
     def test_an_error_is_only_the_error_record(self):
         result = self.service.search("tumor")

@@ -204,8 +204,9 @@ limits first whatever the order of start codes and edge types. Each depth is rea
 `get_concepts_by_codes` requests whose `include` names only the selected relation lists. Walks
 that follow inverse roles or inverse associations use batches of 10, because those lists run to
 megabytes for hub concepts; a batch that exceeds the response limit is halved, and a single
-concept that still exceeds it is kept unexpanded (`unexpanded_codes`) with `truncated` set. The
-state of a walk (limits, emitted nodes and edges) lives in the `_Walk` object in `traversal.py`.
+concept that still exceeds it is kept unexpanded and counted against the `upstream_cap` bound of
+the walk's `Truncation` record. The state of a walk (limits, emitted nodes and edges) lives in the
+`_Walk` object in `traversal.py`, which also builds the `TraversalProvenance` of each node and edge.
 
 `descendant` edges are opt-in (`edge_types`) and come from one `get_descendants` call per start
 code with `maxLevel = max_depth`. They are bucketed by the `level` EVS assigns and emitted together

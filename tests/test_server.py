@@ -123,7 +123,7 @@ class ServerTest(unittest.TestCase):
         self.assertIn('"hybrid"', json.dumps(tools["ncit_search"].input_schema))
         for term in ("release_mismatch", "not_found", "fallback", "live_only"):
             self.assertIn(term, tools["ncit_lookup"].description)
-        for term in ("truncated", "unexpanded_codes", "descendant", "relationship_names"):
+        for term in ("truncation", "upstream_cap", "descendant", "relationship_names"):
             self.assertIn(term, tools["ncit_traverse"].description)
 
     def test_quickstart_lists_the_tools_and_every_argument_of_traverse(self, _):
@@ -144,10 +144,8 @@ class ServerTest(unittest.TestCase):
             properties = tools[tool].input_schema["properties"]
             return {name: spec["default"] for name, spec in properties.items() if "default" in spec}
 
-        self.assertEqual(
-            defaults("ncit_search"), {"limit": 10, "mode": "hybrid", "include_raw": False}
-        )
-        self.assertEqual(defaults("ncit_lookup"), {"live_only": False, "include_raw": False})
+        self.assertEqual(defaults("ncit_search"), {"limit": 10, "mode": "hybrid"})
+        self.assertEqual(defaults("ncit_lookup"), {"live_only": False})
         self.assertEqual(
             defaults("ncit_traverse"),
             {
@@ -180,7 +178,7 @@ class ServerTest(unittest.TestCase):
 
         is_error, lookup = self.call("ncit_lookup", code="C3262")
         self.assertFalse(is_error)
-        self.assertEqual((lookup["code"], lookup["source"]), ("C3262", "live_evs"))
+        self.assertEqual((lookup["code"], lookup["provenance"]["source"]), ("C3262", "evs_rest"))
 
         _, search = self.call("ncit_search", query="neoplasm", mode="bm25", limit=1)
         self.assertEqual([hit["concept"]["code"] for hit in search["hits"]], ["C3262"])
@@ -200,10 +198,9 @@ class ServerTest(unittest.TestCase):
 
     def test_every_tool_argument_shapes_the_result(self, _):
         self.service.index_codes(["C3262", "C4741"])
-        arguments = {"query": "neoplasm", "mode": "vector", "include_raw": True}
+        arguments = {"query": "neoplasm", "mode": "vector"}
         is_error, search = self.call("ncit_search", **arguments)
         self.assertEqual((is_error, search["mode"], len(search["hits"])), (False, "vector", 2))
-        self.assertIn("raw", search["hits"][0]["concept"])
         _, search = self.call("ncit_search", limit=1, **arguments)
         self.assertEqual(len(search["hits"]), 1)
 
@@ -227,9 +224,8 @@ class ServerTest(unittest.TestCase):
 
         # With EVS down, a lookup falls back to the index unless live_only forbids it.
         self.evs.errors = {"get_concept": EVSUnavailableError("down")}
-        _, cached = self.call("ncit_lookup", code="C3262", include_raw=True)
-        self.assertEqual(cached["source"], "active_cache")
-        self.assertIn("raw", cached)
+        _, cached = self.call("ncit_lookup", code="C3262")
+        self.assertEqual(cached["provenance"]["servedBy"], "index")
         is_error, failed = self.call("ncit_lookup", code="C3262", live_only=True)
         self.assertEqual((is_error, failed["error"]["code"]), (True, "upstream_unavailable"))
 
@@ -286,6 +282,42 @@ class ServerTest(unittest.TestCase):
 
                 self.assertTrue(result.is_error)
                 self.assertEqual(result.structured_content["error"]["correlationId"], "c-1")
+
+    def test_every_item_of_a_tool_result_carries_the_correlation_identifier_of_the_call(self, _):
+        self.service.index_codes(["C3262"])
+        calls = {
+            "ncit_lookup": {"code": "C3262"},
+            "ncit_search": {"query": "neoplasm"},
+            "ncit_traverse": {"start_codes": ["C3262"], "max_depth": 1},
+        }
+
+        def provenances(content):
+            nodes = content.get("nodes", []) + content.get("edges", [])
+            concepts = [hit["concept"] for hit in content.get("hits", [])]
+            return [item["provenance"] for item in (nodes or concepts or [content])]
+
+        for tool, arguments in calls.items():
+            with self.subTest(tool):
+                result = self.session(
+                    lambda client, tool=tool, arguments=arguments: client.call_tool(
+                        tool, arguments, meta={"correlationId": "c-7"}
+                    )
+                )
+
+                found = provenances(json.loads(result.content[0].text))
+                self.assertTrue(found)
+                self.assertEqual({each["correlationId"] for each in found}, {"c-7"})
+
+    def test_no_tool_offers_the_raw_payload_and_no_result_carries_it(self, _):
+        self.service.index_codes(["C3262"])
+        tools = self.session(lambda client: client.list_tools()).tools
+
+        for tool in tools:
+            self.assertNotIn("include_raw", tool.input_schema.get("properties", {}), tool.name)
+        _, lookup = self.call("ncit_lookup", code="C3262")
+        _, search = self.call("ncit_search", query="neoplasm")
+        self.assertNotIn("raw", lookup)
+        self.assertNotIn("raw", search["hits"][0]["concept"])
 
     def test_a_resource_error_carries_a_correlation_identifier_and_details(self, _):
         with self.assertRaises(MCPError) as raised:
@@ -373,7 +405,7 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(self.read("nci-si://index/ncit/active/manifest"), {"active_index": None})
         self.service.index_codes(["C3262"])
 
-        self.assertEqual(self.read("nci-si://concept/ncit/C3262")["source"], "live_evs")
+        self.assertEqual(self.read("nci-si://concept/ncit/C3262")["provenance"]["servedBy"], "live")
         for alias in ("monthly", "latest", "monthly-latest"):
             self.assertIn("active_index", self.read(f"nci-si://release/ncit/{alias}"))
         self.assertEqual(self.read("nci-si://release/ncit/26.06e")["name"], "NCI Thesaurus 26.06e")
@@ -386,7 +418,9 @@ class ServerTest(unittest.TestCase):
 
         self.assertNotIn("raw", self.read("nci-si://concept/ncit/C3262"))
         self.evs.errors = {"get_concept": EVSUnavailableError("down")}
-        self.assertEqual(self.read("nci-si://concept/ncit/C3262")["source"], "active_cache")
+        self.assertEqual(
+            self.read("nci-si://concept/ncit/C3262")["provenance"]["servedBy"], "index"
+        )
 
     def test_resource_failures_are_protocol_errors_carrying_the_envelope(self, _):
         self.service.index_codes(["C3262"])

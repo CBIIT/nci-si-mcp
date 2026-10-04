@@ -17,8 +17,9 @@ from .validation import Direction, EdgeType, SearchMode
 
 INSTRUCTIONS = (
     "NCI Thesaurus (NCIt) lookup and relationship traversal against live NCI EVS, "
-    "plus text search over a small locally indexed sample of concepts. Concept, search "
-    "and traversal results name the NCIt monthly release they came from. A failed tool "
+    "plus text search over a small locally indexed sample of concepts. Every item a tool "
+    "returns carries a provenance record that names the NCIt monthly release it came from, "
+    "the surface that supplied it and the call's correlationId. A failed tool "
     "call is flagged as an error. Failures the server handles carry the error record "
     "{error: {code, message, details?, correlationId}}: code is one of invalid_request, "
     "not_found, release_not_available, release_mismatch, upstream_unavailable, timeout, "
@@ -92,15 +93,14 @@ def _register_tools(
         query: str,
         limit: int = 10,
         mode: SearchMode = "hybrid",
-        include_raw: bool = False,
         ctx: Any = None,
     ):
         """Search the locally indexed NCIt concepts by text.
 
         The index holds only the concepts an operator loaded with the
         `index-sample` CLI command, all from the one NCIt monthly release named
-        in `release_version`. It is not all of NCIt, and no tool here adds to
-        it. `mode` is `hybrid` (0.55 * BM25 + 0.45 * vector), `bm25` or
+        in the `provenance.release` of its hits. It is not all of NCIt, and no
+        tool here adds to it. `mode` is `hybrid` (0.55 * BM25 + 0.45 * vector), `bm25` or
         `vector`; `limit` is 1 to 100.
 
         Each entry of `score_components` is min-max normalized over the
@@ -114,33 +114,36 @@ def _register_tools(
         whether or not anything matches the query; `bm25` returns only
         concepts that share a term with it.
 
-        Hits have `source: active_cache`, and `retrieved_at` is when the
-        concept was indexed. `include_raw` adds the full EVS payload.
+        Each hit's concept carries a `provenance` record: `source` is
+        `evs_index`, `servedBy` is `index`, `retrievedAt` is when the concept
+        was indexed, and `upstream` holds the terminology and version that EVS
+        gave it. A search with no hit carries the `provenance` itself.
+        `truncation` is `{occurred: false}` unless `limit` left scored concepts
+        out; it then names the `results` bound and how many were `omitted`,
+        `exact` where that is a count and not a lower bound.
         """
-        return tool_result(
-            ctx,
-            lambda: service.search(query=query, limit=limit, mode=mode, include_raw=include_raw),
-        )
+        return tool_result(ctx, lambda: service.search(query=query, limit=limit, mode=mode))
 
     @tool
-    def ncit_lookup(code: str, live_only: bool = False, include_raw: bool = False, ctx: Any = None):
+    def ncit_lookup(code: str, live_only: bool = False, ctx: Any = None):
         """Look up one NCIt concept by code (C followed by digits) in live EVS.
 
-        The request is pinned to the current monthly release, and a live answer
-        has `source: live_evs`. A code that release does not contain returns
-        `not_found`. If EVS cannot be reached and the concept is in the
-        local index, it is served from there instead, with
-        `source: active_cache` and a `fallback` object giving the reason;
-        otherwise the call fails with `upstream_unavailable`.
+        The request is pinned to the current monthly release, which the
+        concept's `provenance.release` names; a live answer has
+        `provenance.source: evs_rest` and `servedBy: live`, and
+        `provenance.upstream` holds the terminology and version EVS gave it. A
+        code that release does not contain returns `not_found`. If EVS cannot
+        be reached and the concept is in the local index, it is served from
+        there instead, with `source: evs_index`, `servedBy: index` and a
+        `fallback` object giving the reason; otherwise the call fails with
+        `upstream_unavailable`.
 
         When the local index holds a different release than the current monthly
         one, the call fails with `release_mismatch` for every code, so that
         results from two releases are never mixed. `live_only=true` skips both
-        that check and the fallback. `include_raw` adds the full EVS payload.
+        that check and the fallback.
         """
-        return tool_result(
-            ctx, lambda: service.lookup(code=code, live_only=live_only, include_raw=include_raw)
-        )
+        return tool_result(ctx, lambda: service.lookup(code=code, live_only=live_only))
 
     @tool
     def ncit_traverse(
@@ -177,15 +180,25 @@ def _register_tools(
 
         Limits are clamped to depth 4, 1,000 nodes and 5,000 edges, and the
         result reports the effective `max_depth`, `max_nodes` and `max_edges`.
-        Nearer nodes claim the limits before farther ones. `truncated` is true
-        when something was dropped: by the node limit, by the edge limit, or
-        because the relations or descendants of a concept were too large to
-        read, in which case `unexpanded_codes` lists it and raising the limits
-        does not help (for descendants, a smaller `max_depth` can). Stopping
-        at `max_depth` does not set `truncated`.
-        Every edge connects two nodes of the result, and all data is read from
-        the monthly release named in `release_version`. A start code that
-        release does not contain returns `not_found`.
+        Nearer nodes claim the limits before farther ones. `truncation` is
+        `{occurred: false}` unless something was dropped. It then names the
+        first `bound` that dropped something: `nodes` or `edges` (the limits),
+        or `upstream_cap`, when the relations or descendants of a concept
+        were too large for the EVS response limit to read, which raising the
+        node and edge limits does not help (for descendants, a smaller
+        `max_depth` can). `limit` is that bound's value, `reached` what had
+        been counted, and `omitted` how many nodes, edges or unread concepts
+        were left out; `exact` is false, since what lies beyond a dropped
+        item was never read. Stopping at `max_depth` is no truncation.
+        Every edge connects two nodes of the result. Every node and edge
+        carries a `provenance` record: the monthly release all data is read
+        from, and how the item was reached: its `depth` (an edge has that of
+        the node it reaches), and for any item but the start codes the
+        `relationship` `{kind, code?, name?}` (a role or association has a
+        code and name, a hierarchy link only its kind), the `direction` in
+        which that edge type is followed and the `polarity`, `negative` for
+        the exclusion roles R135 to R142 by code. A start code that release
+        does not contain returns `not_found`.
         """
         return tool_result(
             ctx,
@@ -208,7 +221,8 @@ def _register_tools(
         """Report the EVS API version, the current monthly NCIt release and the local index.
 
         The call succeeds even when EVS cannot be reached: `evs_api` and
-        `selected_monthly_release` then hold an error object. `active_index` is
+        `selected_monthly_release` then hold an error object, and the report
+        has no `provenance`, which otherwise names the selected release. `active_index` is
         null until an index has been built. `embedding.active_index_compatible`
         says whether `ncit_search` can use the index: it is false when there is
         none or when it was built with other embedding settings.

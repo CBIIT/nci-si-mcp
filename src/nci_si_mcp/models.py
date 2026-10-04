@@ -11,6 +11,8 @@ from dataclasses import asdict, dataclass, field, fields
 from datetime import UTC, datetime
 from typing import Any
 
+from .errors import call_correlation_id
+
 
 def utc_now_iso() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
@@ -37,6 +39,92 @@ class ReleaseInfo:
         return asdict(self)
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ProvenanceEnvelope:
+    """The provenance record of one returned item (A4.4), field for field.
+
+    `source_uri` is None only for a result that holds no item and so was produced from no
+    upstream URL; `upstream` holds what the platform supplied about the item's origin, unchanged,
+    and is left out when it supplied nothing (A4.3).
+    """
+
+    release: dict[str, str]
+    source: str
+    served_by: str
+    retrieved_at: str
+    correlation_id: str
+    source_uri: str | None = None
+    upstream: dict[str, Any] | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        data: dict[str, Any] = {
+            "release": self.release,
+            "source": self.source,
+            "servedBy": self.served_by,
+            "retrievedAt": self.retrieved_at,
+            "correlationId": self.correlation_id,
+        }
+        if self.source_uri:
+            data["sourceUri"] = self.source_uri
+        if self.upstream:
+            data["upstream"] = self.upstream
+        return data
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class TraversalProvenance(ProvenanceEnvelope):
+    """The provenance of an item reached by traversal (A4.2).
+
+    The concept asked about has depth 0 and no relationship, direction or polarity.
+    """
+
+    depth: int
+    relationship: dict[str, str] | None = None
+    direction: str | None = None
+    polarity: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        data = super().to_dict()
+        data["depth"] = self.depth
+        how_reached = {
+            "relationship": self.relationship,
+            "direction": self.direction,
+            "polarity": self.polarity,
+        }
+        return data | {name: value for name, value in how_reached.items() if value}
+
+
+@dataclass(frozen=True, slots=True)
+class Truncation:
+    """The truncation record of a bounded result (A5.4).
+
+    When a bound was reached `omitted` is always a number, and `exact` is False where it is
+    only a lower bound or an estimate.
+    """
+
+    occurred: bool
+    bound: str | None = None
+    limit: int | None = None
+    reached: int | None = None
+    omitted: int | None = None
+    exact: bool | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        data = asdict(self)
+        return {key: value for key, value in data.items() if value is not None}
+
+
+# The surface and the way of serving that each stored `source` stands for.
+_ORIGINS = {"live_evs": ("evs_rest", "live"), "active_cache": ("evs_index", "index")}
+
+
+def release_ref(terminology: str, identifier: str, date: str | None) -> dict[str, str]:
+    """The terminology form of the provenance record's release; a date EVS gave none is left out."""
+
+    ref = {"terminology": terminology, "identifier": identifier}
+    return ref | {"date": date} if date else ref
+
+
 # NcitConcept and IndexManifest are stored as JSON in the index. A new field
 # needs a default, or a schema migration that rewrites the stored payloads.
 @dataclass(frozen=True, slots=True)
@@ -52,11 +140,38 @@ class NcitConcept:
     evidence: dict[str, Any] = field(default_factory=dict)
     raw: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self, include_raw: bool = False) -> dict[str, Any]:
-        data = asdict(self)
-        if not include_raw:
-            data.pop("raw", None)
-        return data
+    def to_stored(self) -> dict[str, Any]:
+        return asdict(self)
+
+    def provenance(self, source_uri: str) -> ProvenanceEnvelope:
+        surface, served_by = _ORIGINS[self.source]
+        # What EVS says of the concept's origin, passed through under its own names.
+        upstream = {key: self.raw[key] for key in ("terminology", "version") if key in self.raw}
+        return ProvenanceEnvelope(
+            release=release_ref(self.terminology, self.release_version, self.release_date),
+            source=surface,
+            served_by=served_by,
+            retrieved_at=self.retrieved_at,
+            correlation_id=call_correlation_id(),
+            source_uri=source_uri,
+            upstream=upstream,
+        )
+
+    def to_dict(self, source_uri: str, include_raw: bool = False) -> dict[str, Any]:
+        """The concept as an item of a result: its provenance replaces the release fields.
+
+        The full EVS payload is added only when `include_raw` asks for it, which the CLI does.
+        """
+
+        data = {
+            "code": self.code,
+            "preferred_name": self.preferred_name,
+            "source_vocabulary": self.source_vocabulary,
+            "terminology": self.terminology,
+            "evidence": self.evidence,
+            "provenance": self.provenance(source_uri).to_dict(),
+        }
+        return data | {"raw": self.raw} if include_raw else data
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,6 +214,17 @@ class IndexManifest:
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
+    def provenance(self) -> ProvenanceEnvelope:
+        """The provenance of what the index serves: the release it holds, as built."""
+
+        return ProvenanceEnvelope(
+            release=release_ref(self.terminology, self.release_version, self.release_date),
+            source="evs_index",
+            served_by="index",
+            retrieved_at=self.built_at,
+            correlation_id=call_correlation_id(),
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class SearchHit:
@@ -107,10 +233,17 @@ class SearchHit:
     rank: int
     score_components: dict[str, float] = field(default_factory=dict)
 
-    def to_dict(self, include_raw: bool = False) -> dict[str, Any]:
+    def to_dict(self, source_uri: str, include_raw: bool = False) -> dict[str, Any]:
         data = asdict(self)
-        data["concept"] = self.concept.to_dict(include_raw=include_raw)
+        data["concept"] = self.concept.to_dict(source_uri, include_raw=include_raw)
         return data
+
+
+def _with_provenance(item: Any) -> dict[str, Any]:
+    """The fields of a traversal item, with its provenance as the record names its fields."""
+
+    data = {f.name: getattr(item, f.name) for f in fields(item) if f.name != "provenance"}
+    return data | {"provenance": item.provenance.to_dict()}
 
 
 @dataclass(frozen=True, slots=True)
@@ -118,11 +251,11 @@ class TraversalNode:
     code: str
     preferred_name: str
     terminology: str
-    release_version: str
+    provenance: TraversalProvenance
     source_vocabulary: str = "NCI Thesaurus"
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        return _with_provenance(self)
 
 
 @dataclass(frozen=True, slots=True)
@@ -131,31 +264,29 @@ class TraversalEdge:
     target_code: str
     edge_type: str
     relationship_name: str
+    provenance: TraversalProvenance
     target_name: str = ""
     source_name: str = ""
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        return _with_provenance(self)
 
 
 @dataclass(frozen=True, slots=True)
 class TraversalResult:
     start_codes: list[str]
-    release_version: str
     nodes: list[TraversalNode]
     edges: list[TraversalEdge]
-    truncated: bool
+    truncation: Truncation
     max_depth: int
     max_nodes: int
     max_edges: int
-    retrieved_at: str
-    # Nodes whose relations or descendants exceeded the EVS response-size limit and were not read.
-    unexpanded_codes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
         data["nodes"] = [node.to_dict() for node in self.nodes]
         data["edges"] = [edge.to_dict() for edge in self.edges]
+        data["truncation"] = self.truncation.to_dict()
         return data
 
 

@@ -18,11 +18,16 @@ from .errors import (
     InputValidationError,
     NoActiveIndexError,
     PlatformError,
+    call_correlation_id,
+    correlated,
+    current_correlation_id,
+    is_error_record,
     serialise,
     with_next_step,
 )
 from .evaluation import DEFAULT_GOLD_QUERIES, evaluate_retrieval
 from .evs import (
+    TERMINOLOGIES_PATH,
     EVSClient,
     EVSError,
     EVSNotFoundError,
@@ -32,11 +37,19 @@ from .evs import (
     EVSTimeoutError,
     EVSUnavailableError,
     ReleaseResolutionError,
+    concept_path,
     normalize_concept,
     verify_release,
 )
 from .index import LocalIndex
-from .models import ReleaseInfo, utc_now_iso
+from .models import (
+    IndexManifest,
+    NcitConcept,
+    ProvenanceEnvelope,
+    ReleaseInfo,
+    release_ref,
+    utc_now_iso,
+)
 from .traversal import (
     DEFAULT_MAX_DEPTH,
     DEFAULT_MAX_EDGES,
@@ -111,14 +124,19 @@ def _envelope(operation: str, exc: Exception) -> dict[str, Any]:
 
 
 def _enveloped[Method: Callable[..., dict[str, Any]]](method: Method) -> Method:
-    """Report a method's expected failures as error envelopes instead of raising."""
+    """Report a method's expected failures as error envelopes instead of raising.
+
+    A call made outside any adapter gets a correlation identifier of its own, so that the
+    provenance of its items and its errors carry the same one.
+    """
 
     @functools.wraps(method)
     def wrapper(*args: Any, **kwargs: Any) -> dict[str, Any]:
-        try:
-            return method(*args, **kwargs)
-        except _EXPECTED_ERRORS as exc:
-            return _envelope(method.__name__, exc)
+        with correlated(current_correlation_id()):
+            try:
+                return method(*args, **kwargs)
+            except _EXPECTED_ERRORS as exc:
+                return _envelope(method.__name__, exc)
 
     return cast("Method", wrapper)
 
@@ -159,11 +177,10 @@ class NCISIService:
                 return _envelope("release_info", exc)
 
         manifest = self.index.get_active_manifest()
-        return {
+        selected = evs_status(lambda: self.evs.resolve_monthly_ncit_release().to_dict())
+        report = {
             "evs_api": evs_status(self.evs.get_api_version),
-            "selected_monthly_release": evs_status(
-                lambda: self.evs.resolve_monthly_ncit_release().to_dict()
-            ),
+            "selected_monthly_release": selected,
             "active_index": manifest.to_dict() if manifest else None,
             "embedding": {
                 "provider": self.embedding_provider.name,
@@ -175,15 +192,35 @@ class NCISIService:
                     )
                 ),
             },
-            "retrieved_at": utc_now_iso(),
         }
+        # The report is dated and attributed by the release it selected, so there is none to
+        # name when EVS could not say.
+        if is_error_record(selected):
+            return report
+        return report | {"provenance": self._release_provenance(selected).to_dict()}
+
+    def _release_provenance(self, selected: dict[str, Any]) -> ProvenanceEnvelope:
+        """The provenance of the release report: the selected release, read from EVS now."""
+
+        return ProvenanceEnvelope(
+            release=release_ref(selected["terminology"], selected["version"], selected["date"]),
+            source="evs_rest",
+            served_by="live",
+            retrieved_at=utc_now_iso(),
+            correlation_id=call_correlation_id(),
+            source_uri=self.evs.uri(TERMINOLOGIES_PATH),
+        )
 
     @_enveloped
     def index_manifest(self) -> dict[str, Any]:
         """Return the manifest of the local index under `active_index`, or null."""
 
         manifest = self.index.get_active_manifest()
-        return {"active_index": manifest.to_dict() if manifest else None}
+        if not manifest:
+            return {"active_index": None}
+        return {
+            "active_index": manifest.to_dict() | {"provenance": manifest.provenance().to_dict()}
+        }
 
     def _fetch_for_index(
         self, codes: list[str], release: ReleaseInfo
@@ -241,19 +278,38 @@ class NCISIService:
         include_raw: bool = False,
     ) -> dict[str, Any]:
         query, limit, mode = validate_search(query, limit, mode)
-        hits = self.index.search(query, self.embedding_provider, limit=limit, mode=mode)
-        if hits:
-            release_version: str | None = hits[0].concept.release_version
-        else:
-            manifest = self.index.get_active_manifest()
-            release_version = manifest.release_version if manifest else None
-        return {
+        hits, truncation = self.index.search_with_truncation(
+            query, self.embedding_provider, limit=limit, mode=mode
+        )
+        result: dict[str, Any] = {
             "query": query,
             "mode": mode,
-            "release_version": release_version,
-            "hits": [hit.to_dict(include_raw=include_raw) for hit in hits],
-            "retrieved_at": utc_now_iso(),
+            "hits": [
+                hit.to_dict(self._indexed_concept_uri(hit.concept), include_raw=include_raw)
+                for hit in hits
+            ],
+            "truncation": truncation.to_dict(),
         }
+        # A result with no item has none to carry the provenance (M3.2).
+        if not hits:
+            result["provenance"] = self._active_manifest().provenance().to_dict()
+        return result
+
+    def _active_manifest(self) -> IndexManifest:
+        manifest = self.index.get_active_manifest()
+        if not manifest:
+            raise NoActiveIndexError("No active NCIt index is available")
+        return manifest
+
+    def _concept_uri(self, code: str, pinned_terminology: str) -> str:
+        """The URL of the concept in the release that the terminology segment pins."""
+
+        return self.evs.uri(concept_path(pinned_terminology, code))
+
+    def _indexed_concept_uri(self, concept: NcitConcept) -> str:
+        """The URL the indexed concept was read from, in the form EVS names a release."""
+
+        return self._concept_uri(concept.code, f"{concept.terminology}_{concept.release_version}")
 
     @_enveloped
     def lookup(
@@ -287,13 +343,14 @@ class NCISIService:
             if not cached:
                 raise
             logger.warning("lookup_cache_fallback code=%s reason=%s", code, exc)
-            result = cached.to_dict(include_raw=include_raw)
+            result = cached.to_dict(self._indexed_concept_uri(cached), include_raw=include_raw)
             result["fallback"] = {"reason": "upstream_unavailable", "message": str(exc)}
             return result
 
         verify_release([raw], release.version)
         concept = normalize_concept(raw, release_date=release.date, source="live_evs")
-        return concept.to_dict(include_raw=include_raw)
+        uri = self._concept_uri(concept.code, release.pinned_terminology)
+        return concept.to_dict(uri, include_raw=include_raw)
 
     @_enveloped
     def traverse(
