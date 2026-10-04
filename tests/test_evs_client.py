@@ -6,11 +6,13 @@ from http.client import IncompleteRead
 from unittest.mock import patch
 from urllib.error import HTTPError, URLError
 
+from nci_si_mcp.errors import PlatformError
 from nci_si_mcp.evs import (
     EVSClient,
     EVSNotFoundError,
     EVSResponseError,
     EVSResponseTooLargeError,
+    EVSTimeoutError,
     EVSUnavailableError,
 )
 
@@ -91,6 +93,101 @@ class EVSClientTest(unittest.TestCase):
         self.assertEqual(urlopen.call_count, 4)
         self.assertEqual([call.args[0] for call in sleep.call_args_list], [0.25, 0.5, 1.0])
         self.assertIn("still down", str(raised.exception))
+
+    def test_a_request_that_only_timed_out_is_a_timeout_with_what_was_waited(self, urlopen, sleep):
+        for label, failure in {
+            "read": TimeoutError("timed out"),
+            "connect": URLError(TimeoutError("timed out")),
+        }.items():
+            with self.subTest(label):
+                urlopen.side_effect = [failure, failure]
+
+                with (
+                    self.assertLogs("nci_si_mcp.evs", level="WARNING"),
+                    self.assertRaises(EVSTimeoutError) as raised,
+                ):
+                    self.client(timeout_seconds=7, max_attempts=2).get_api_version()
+
+                self.assertEqual(
+                    raised.exception.details, {"surface": "evs", "seconds": 7, "attempts": 2}
+                )
+
+    def test_a_timeout_followed_by_another_failure_is_not_a_timeout(self, urlopen, sleep):
+        urlopen.side_effect = [TimeoutError("timed out"), URLError("refused")]
+
+        with (
+            self.assertLogs("nci_si_mcp.evs", level="WARNING"),
+            self.assertRaises(EVSUnavailableError) as raised,
+        ):
+            self.client(max_attempts=2).get_api_version()
+
+        self.assertNotIsInstance(raised.exception, EVSTimeoutError)
+
+    def test_repeated_server_errors_report_every_attempt_and_the_status(self, urlopen, sleep):
+        urlopen.side_effect = [http_error(503), http_error(503), http_error(503)]
+
+        with (
+            self.assertLogs("nci_si_mcp.evs", level="WARNING"),
+            self.assertRaises(EVSUnavailableError) as raised,
+        ):
+            self.client(max_attempts=3).get_api_version()
+
+        self.assertEqual(raised.exception.details, {"surface": "evs", "attempts": 3, "status": 503})
+
+    def test_a_server_error_followed_by_a_timeout_is_not_a_timeout(self, urlopen, sleep):
+        urlopen.side_effect = [http_error(500), TimeoutError("timed out")]
+
+        with (
+            self.assertLogs("nci_si_mcp.evs", level="WARNING"),
+            self.assertRaises(EVSUnavailableError) as raised,
+        ):
+            self.client(max_attempts=2).get_api_version()
+
+        self.assertNotIsInstance(raised.exception, EVSTimeoutError)
+        self.assertEqual(raised.exception.details, {"surface": "evs", "attempts": 2, "status": 500})
+
+    def test_an_unavailable_error_carries_the_status_attempts_and_retry_after(self, urlopen, sleep):
+        headers = Message()
+        headers["Retry-After"] = "120"
+        busy = HTTPError("https://example.invalid", 429, "Too Many Requests", headers, io.BytesIO())
+        urlopen.side_effect = [busy, URLError("refused"), http_error(503)]
+        client = self.client(max_attempts=1)
+        expected = [
+            {"surface": "evs", "attempts": 1, "status": 429, "retryAfter": "120"},
+            {"surface": "evs", "attempts": 1},
+            {"surface": "evs", "attempts": 1, "status": 503},
+        ]
+
+        for details in expected:
+            with self.subTest(details=details):
+                with self.assertRaises(EVSUnavailableError) as raised:
+                    client.get_api_version()
+
+                self.assertEqual(raised.exception.details, details)
+
+    def test_a_rejected_request_carries_the_status(self, urlopen, sleep):
+        urlopen.side_effect = http_error(403)
+
+        with self.assertRaises(EVSResponseError) as raised:
+            self.client().get_api_version()
+
+        self.assertEqual(raised.exception.details, {"surface": "evs", "status": 403})
+
+    def test_a_missing_concept_carries_its_code(self, urlopen, sleep):
+        urlopen.side_effect = http_error(404, b'{"message": "C1 not found"}')
+
+        with self.assertRaises(EVSNotFoundError) as raised:
+            self.client().get_concept("C1")
+
+        self.assertEqual(raised.exception.details, {"identifiers": ["C1"]})
+
+    def test_an_endpoint_that_is_not_served_carries_the_404(self, urlopen, sleep):
+        urlopen.side_effect = http_error(404)
+
+        with self.assertRaises(EVSResponseError) as raised:
+            self.client().get_api_version()
+
+        self.assertEqual(raised.exception.details, {"surface": "evs", "status": 404})
 
     def test_requests_use_the_configured_timeout(self, urlopen, sleep):
         # The transport answers with the timeout it was given.
@@ -238,20 +335,53 @@ class EVSClientTest(unittest.TestCase):
                 urlopen.side_effect = None
                 urlopen.return_value = response
 
-                with self.assertRaises(EVSResponseTooLargeError):
+                with self.assertRaises(EVSResponseTooLargeError) as raised:
                     client.get_api_version()
 
+                self.assertEqual(
+                    raised.exception.details,
+                    {"bound": "NCI_SI_EVS_MAX_RESPONSE_BYTES", "limit": 10, "reached": 11},
+                )
                 self.assertEqual(urlopen.call_count, 1)
 
         urlopen.return_value = FakeResponse(b'{"a": 123}')
         self.assertEqual(client.get_api_version(), {"a": 123})
 
-    def test_unusable_bodies_raise_response_errors(self, urlopen, sleep):
+    def test_unusable_bodies_are_upstream_failures_that_are_not_retried(self, urlopen, sleep):
         for body in (b"<html>", b"\xff"):
             with self.subTest(body=body):
+                urlopen.reset_mock()
                 urlopen.return_value = FakeResponse(body)
-                with self.assertRaises(EVSResponseError):
+
+                with self.assertRaises(PlatformError) as raised:
                     self.client().get_api_version()
+
+                self.assertEqual(raised.exception.code, "upstream_unavailable")
+                self.assertEqual(urlopen.call_count, 1)
+
+    def test_failures_masked_as_success_responses_are_upstream_failures(self, urlopen, sleep):
+        masked = {
+            "an HTML page": b"<!DOCTYPE html><html><body>Service unavailable</body></html>",
+            "a webMethods error": b'{"apiResponse": {"type": "E", "message": "Not allowed"}}',
+            "a FHIR OperationOutcome": (
+                b'{"resourceType": "OperationOutcome", "issue": [{"severity": "error"}]}'
+            ),
+        }
+        calls = {
+            "version": lambda client: client.get_api_version(),
+            "terminologies": lambda client: client.get_terminologies(),
+            "a concept": lambda client: client.get_concept("C1"),
+            "descendants": lambda client: client.get_descendants("C1", 1),
+        }
+        for label, body in masked.items():
+            for name, call in calls.items():
+                with self.subTest(label, call=name):
+                    urlopen.return_value = FakeResponse(body)
+
+                    with self.assertRaises(PlatformError) as raised:
+                        call(self.client())
+
+                    self.assertEqual(raised.exception.code, "upstream_unavailable")
 
     def test_unexpected_shapes_raise_response_errors(self, urlopen, sleep):
         client = self.client()
@@ -315,7 +445,7 @@ class EVSClientTest(unittest.TestCase):
     def test_an_empty_body_without_a_declared_length_is_invalid_not_retried(self, urlopen, sleep):
         urlopen.return_value = FakeResponse(b"")
 
-        with self.assertRaises(EVSResponseError):
+        with self.assertRaises(PlatformError):
             self.client().get_api_version()
 
         self.assertEqual(urlopen.call_count, 1)
@@ -353,7 +483,7 @@ class EVSClientTest(unittest.TestCase):
                 urlopen.reset_mock()
                 urlopen.return_value = FakeResponse(b"", headers)
 
-                with self.assertRaises(EVSResponseError):
+                with self.assertRaises(PlatformError):
                     self.client().get_api_version()
 
                 self.assertEqual(urlopen.call_count, 1)

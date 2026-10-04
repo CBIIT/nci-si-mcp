@@ -144,17 +144,29 @@ types) live once in `validation.py` and feed the MCP schema and the argparse cho
 
 ### One error path
 
-Service methods are wrapped by `_enveloped`, which maps the expected exception types listed in
-`_ERROR_CODES` to an error envelope and logs a warning; an exception gets the code of its nearest
-listed class. To add a failure mode, raise a specific exception type and add it to that table.
-Anything not in the table is a bug and propagates: do not add broad `except` clauses.
+The error codes are the ten of the specification's error record (`spec/records.yaml`), closed in
+`errors.py` as `ErrorCode`. A failure is a `PlatformError`: its code, a message that names the
+caller's next step, and the `details` that code lists in `docs/SPEC.md` §3.1. `errors.serialise` is
+the only function that turns one into the result, `{"error": {"code", "message", "details"?,
+"correlationId"}}`; nothing builds that dict by hand. The adapters open `errors.correlated()` once
+per call (the request's `_meta.correlationId`, else generated). Service methods are wrapped by
+`_enveloped`, which converts the expected exception types listed in `_ERROR_CODES` (with the next
+step appended to their message and their `details` attribute carried over) and logs a warning; an
+exception gets the entry of its nearest listed class. To add a failure mode,
+raise a specific exception type and add it to that table, or raise a `PlatformError` where the
+message needs data (the releases served). Anything not in the table is a bug and propagates: do not
+add broad `except` clauses. An empty result is never an error and an error is never empty.
+
+`upstream.parse_upstream_json` is the one place that classifies a failure masked as a success
+(webMethods `apiResponse.type` `E`, FHIR `OperationOutcome` error, HTML where JSON was asked for)
+as `upstream_unavailable`; every upstream client parses its bodies through it.
 
 `LocalIndex._connect` turns SQLite failures of the database itself (locked, unreadable, not a
 database) into `IndexStorageError` naming the file; constraint and usage errors propagate as bugs.
 A 404 from EVS means "no such concept" only for `EVSClient.get_concept`. Every other method goes
 through `_get_existing`, which converts a 404 to `EVSResponseError` (a wrong base URL).
 
-`server.py` turns an envelope into a protocol-level error (`CallToolResult(is_error=True)` for
+`server.py` turns an error record into a protocol-level error (`CallToolResult(is_error=True)` for
 tools, `ResourceError` for resources). The tool docstrings are the contract sent to MCP clients;
 update them when behaviour changes.
 
@@ -164,7 +176,7 @@ update them when behaviour changes.
   weekly. EVS sets `latest` per channel, so two `ncit` rows can carry it at once.
 - Every concept request uses `release.pinned_terminology` (for example `ncit_26.09d`) as the path
   segment, and `evs.verify_release` checks the `version` of each returned concept.
-- `lookup` returns `version_mismatch` when the index holds another release, unless `live_only`. It
+- `lookup` returns `release_mismatch` when the index holds another release, unless `live_only`. It
   falls back to the cache only on `EVSUnavailableError`, and marks the result with `fallback`.
 - The index holds one release. Indexing a concept of another release replaces everything.
 

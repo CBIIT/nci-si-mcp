@@ -8,6 +8,7 @@ import pytest
 
 from nci_si_acceptance.client import open_session, server_environment
 from nci_si_acceptance.record import FIXTURES
+from nci_si_acceptance.results import error_code
 from nci_si_acceptance.spec import REQUIRED_TOOLS
 from nci_si_acceptance.tools import Tools, load_toolmap
 
@@ -112,7 +113,7 @@ def test_each_stand_in_gets_its_required_arguments_and_a_list_where_it_takes_one
             assert "array" in types(schema["properties"][argument]), argument
 
 
-UPSTREAM_ERRORS = {"evs_unavailable", "release_unresolved"}
+UPSTREAM_ERRORS = {"upstream_unavailable", "timeout", "release_not_available"}
 CALLS = {
     "resolve_release": {"terminology": "ncit"},
     "get_concept": {"terminology": "ncit", "release": "26.09d", "code": "C3262"},
@@ -143,6 +144,4 @@ def test_a_call_through_the_map_passes_the_prototypes_validation(prototype, requ
 
     # Offline, the prototype can only fail upstream: never on the arguments it was sent.
     assert result.tool == TOOLMAP[required]["tool"]
-    assert not result.is_error or (
-        isinstance(result.content, dict) and result.content.get("error") in UPSTREAM_ERRORS
-    ), json.dumps(result.content)
+    assert not result.is_error or error_code(result) in UPSTREAM_ERRORS, json.dumps(result.content)

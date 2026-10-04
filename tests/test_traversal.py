@@ -125,8 +125,13 @@ class EdgeTypeSelectionTest(unittest.TestCase):
             ("out", True, False, True, ["role"]),
             ("both", False, False, False, None),
         ):
-            with self.subTest(arguments=arguments), self.assertRaises(InputValidationError):
+            with (
+                self.subTest(arguments=arguments),
+                self.assertRaises(InputValidationError) as raised,
+            ):
                 select_edge_types(*arguments)
+            parameter = "include_hierarchy" if arguments[4] is None else "edge_types"
+            self.assertEqual(raised.exception.details["parameter"], parameter)
 
 
 class TraversalTest(unittest.TestCase):

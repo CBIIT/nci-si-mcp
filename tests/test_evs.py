@@ -38,7 +38,7 @@ class EVSTest(unittest.TestCase):
         self.assertFalse(release.weekly)
 
     def test_select_monthly_ncit_release_fails_closed_when_missing(self):
-        with self.assertRaises(ReleaseResolutionError):
+        with self.assertRaises(ReleaseResolutionError) as raised:
             select_monthly_ncit_release(
                 [
                     {
@@ -49,6 +49,16 @@ class EVSTest(unittest.TestCase):
                     }
                 ]
             )
+
+        self.assertEqual(raised.exception.details, {"requested": "ncit monthly", "source": "evs"})
+
+    def test_a_latest_monthly_release_without_a_version_is_not_available(self):
+        row = {"terminology": "ncit", "version": "", "latest": True, "tags": {"monthly": "true"}}
+
+        with self.assertRaises(ReleaseResolutionError) as raised:
+            select_monthly_ncit_release([row])
+
+        self.assertEqual(raised.exception.details, {"requested": "ncit monthly", "source": "evs"})
 
     def test_select_monthly_ncit_release_fails_closed_when_ambiguous(self):
         with self.assertRaises(ReleaseResolutionError):
@@ -121,14 +131,18 @@ class EVSTest(unittest.TestCase):
     def test_verify_release_accepts_only_the_requested_release(self):
         verify_release([], "26.06e")
         verify_release([{"version": "26.06e"}, {"version": "26.06e"}], "26.06e")
-        for concepts, named in (
-            ([{"version": "26.07a"}], "release 26.07a for"),
-            ([{"version": "26.06e"}, {}], "release unknown for"),
-            ([{"version": "26.06e"}, {"version": "26.05d"}], "release 26.05d for"),
+        for concepts, named, served in (
+            ([{"version": "26.07a"}], "release 26.07a for", ["26.07a"]),
+            ([{"version": "26.06e"}, {}], "release unknown for", ["unknown"]),
+            ([{"version": "26.06e"}, {"version": "26.05d"}], "release 26.05d for", ["26.05d"]),
         ):
             with self.subTest(concepts=concepts), self.assertRaises(EVSResponseError) as raised:
                 verify_release(concepts, "26.06e")
             self.assertIn(named, str(raised.exception))
+            self.assertEqual(
+                raised.exception.details,
+                {"requested": "26.06e", "served": served, "source": "evs"},
+            )
 
     def test_normalize_concept_includes_required_provenance(self):
         concept = normalize_concept(

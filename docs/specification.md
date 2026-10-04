@@ -579,6 +579,21 @@ A failed call returns { error } as its structuredContent, with isError set (M3.2
 | `details` | An object holding what the caller needs for its next step, such as the release requested and the release served, the bound, its limit and the amount reached, or the surface, status and attempts of a failed upstream request (optional) | A2.5 |
 | `correlationId` | The call's correlation identifier | M7.1 |
 
+The keys of `details` for each code:
+
+| Code | Keys |
+|---|---|
+| `invalid_request` | `parameter`: The argument, or the setting, that was refused; `reason`: Why it was refused, in words |
+| `not_found` | `identifiers`: The list of identifiers that were not found |
+| `release_not_available` | `requested`: The release, or the channel, that was asked for; `source`: Where the release could not be named, evs or index |
+| `release_mismatch` | `requested`: The release that was asked for; `served`: The list of releases the content came from, one element where it is a single release; `source`: Where the content came from, evs or index |
+| `upstream_unavailable` | `surface`: The platform that failed, such as evs; `status`: The HTTP status of the last failed request, where there was one; `attempts`: The number of requests made; `retryAfter`: The Retry-After the platform sent, where it sent one |
+| `timeout` | `surface`: The platform that did not answer, such as evs; `seconds`: The seconds waited for each attempt; `attempts`: The number of requests made, each of which timed out |
+| `bound_exceeded` | `bound`: The name of the bound that was exceeded; `limit`: The value of the bound; `reached`: The amount reached; where a response size is bounded and the platform declared no length, the limit plus one, since reading stops one byte past the bound |
+| `capability_unavailable` | `capability`: The capability that is not yet available |
+| `cursor_expired` | `cursorRelease`: The release the cursor was issued against; `currentRelease`: The current release, which supersedes it |
+| `internal_error` | none |
+
 ## 2. Tools
 
 ### EVS tools

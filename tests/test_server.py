@@ -5,6 +5,7 @@ import re
 import sys
 import tempfile
 import unittest
+from contextlib import contextmanager
 from importlib import metadata
 from pathlib import Path
 from unittest.mock import patch
@@ -15,6 +16,7 @@ from mcp.shared.exceptions import MCPError
 from fakes import FakeEVS, concept
 from nci_si_mcp.config import Settings
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
+from nci_si_mcp.errors import correlated
 from nci_si_mcp.evs import EVSUnavailableError
 from nci_si_mcp.index import LocalIndex
 from nci_si_mcp.server import INSTRUCTIONS, create_mcp
@@ -119,7 +121,7 @@ class ServerTest(unittest.TestCase):
         for value in ("both", "inverse_role", "descendant"):
             self.assertIn(f'"{value}"', traverse_schema)
         self.assertIn('"hybrid"', json.dumps(tools["ncit_search"].input_schema))
-        for term in ("version_mismatch", "concept_not_found", "fallback", "live_only"):
+        for term in ("release_mismatch", "not_found", "fallback", "live_only"):
             self.assertIn(term, tools["ncit_lookup"].description)
         for term in ("truncated", "unexpanded_codes", "descendant", "relationship_names"):
             self.assertIn(term, tools["ncit_traverse"].description)
@@ -218,7 +220,7 @@ class ServerTest(unittest.TestCase):
         self.assertEqual((walk["max_depth"], walk["max_nodes"], walk["max_edges"]), (1, 40, 50))
         self.assertEqual({edge["edge_type"] for edge in walk["edges"]}, {"role", "inverse_role"})
         _, walk = self.call("ncit_traverse", **dict(traverse, include_roles=False))
-        self.assertEqual(walk["error"], "invalid_request")
+        self.assertEqual(walk["error"]["code"], "invalid_request")
         selection = {"edge_types": ["child", "role"], "relationship_names": ["is_a_child"]}
         _, walk = self.call("ncit_traverse", start_codes=["C3262"], max_depth=1, **selection)
         self.assertEqual([edge["target_code"] for edge in walk["edges"]], ["C4741"])
@@ -229,28 +231,132 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(cached["source"], "active_cache")
         self.assertIn("raw", cached)
         is_error, failed = self.call("ncit_lookup", code="C3262", live_only=True)
-        self.assertEqual((is_error, failed["error"]), (True, "evs_unavailable"))
+        self.assertEqual((is_error, failed["error"]["code"]), (True, "upstream_unavailable"))
 
     def test_error_envelopes_are_flagged_as_protocol_errors(self, _):
         failures = (
-            ("concept_not_found", "ncit_lookup", {"code": "C999"}),
+            ("not_found", "ncit_lookup", {"code": "C999"}),
             ("invalid_request", "ncit_lookup", {"code": "oops"}),
-            ("no_active_index", "ncit_search", {"query": "tumor"}),
-            ("concept_not_found", "ncit_traverse", {"start_codes": ["C999"]}),
+            ("internal_error", "ncit_search", {"query": "tumor"}),
+            ("not_found", "ncit_traverse", {"start_codes": ["C999"]}),
         )
         for code, tool, arguments in failures:
             with self.subTest(tool=tool, code=code):
                 is_error, envelope = self.call(tool, **arguments)
                 self.assertTrue(is_error)
-                self.assertTrue(envelope["isError"])
-                self.assertEqual(envelope["error"], code)
-                self.assertTrue(envelope["message"])
+                self.assertEqual(envelope["error"]["code"], code)
+                self.assertTrue(envelope["error"]["message"])
 
         self.service.index_codes(["C3262"])
         (self.settings.data_dir / "nci_si.sqlite3").write_bytes(b"not a database" * 100)
         is_error, envelope = self.call("ncit_release_info")
         self.assertTrue(is_error)
-        self.assertEqual(envelope["error"], "index_storage_error")
+        self.assertEqual(envelope["error"]["code"], "internal_error")
+
+    def test_an_error_is_the_error_record_as_structured_content_and_as_text(self, _):
+        result = self.session(lambda client: client.call_tool("ncit_lookup", {"code": "C999"}))
+
+        self.assertTrue(result.is_error)
+        self.assertEqual(set(result.structured_content), {"error"})
+        self.assertEqual(result.structured_content, json.loads(result.content[0].text))
+
+    def test_the_error_record_returns_the_correlation_identifier_of_the_call(self, _):
+        def failing_lookup(meta):
+            return self.session(
+                lambda client: client.call_tool("ncit_lookup", {"code": "C999"}, meta=meta)
+            ).structured_content["error"]["correlationId"]
+
+        self.assertEqual(failing_lookup({"correlationId": "caller-42"}), "caller-42")
+        first, second = failing_lookup(None), failing_lookup({})
+        self.assertTrue(first)
+        self.assertNotEqual(first, second)
+
+    def test_every_tool_that_can_fail_honours_the_correlation_identifier(self, _):
+        calls = {
+            "ncit_search": {"query": "tumor"},
+            "ncit_traverse": {"start_codes": ["C999"]},
+        }
+        for tool, arguments in calls.items():
+            with self.subTest(tool):
+                result = self.session(
+                    lambda client, tool=tool, arguments=arguments: client.call_tool(
+                        tool, arguments, meta={"correlationId": "c-1"}
+                    )
+                )
+
+                self.assertTrue(result.is_error)
+                self.assertEqual(result.structured_content["error"]["correlationId"], "c-1")
+
+    def test_a_resource_error_carries_a_correlation_identifier_and_details(self, _):
+        with self.assertRaises(MCPError) as raised:
+            self.read("nci-si://release/ncit/99.99z")
+
+        error = json.loads(str(raised.exception))["error"]
+        self.assertTrue(error["correlationId"])
+        self.assertEqual(error["details"], {"requested": "99.99z", "source": "evs"})
+
+    def test_the_index_manifest_of_another_release_is_not_available(self, _):
+        self.service.index_codes(["C3262"])
+
+        with self.assertRaises(MCPError) as raised:
+            self.read("nci-si://index/ncit/99.99z/manifest")
+
+        error = json.loads(str(raised.exception))["error"]
+        self.assertEqual(error["code"], "release_not_available")
+        self.assertEqual(error["details"], {"requested": "99.99z", "source": "index"})
+
+    def failing_read_ids(self, uri):
+        """The correlation identifier of a failing resource read, and those it opened."""
+
+        opened = []
+
+        @contextmanager
+        def spy(*arguments):
+            with correlated(*arguments) as value:
+                opened.append(value)
+                yield value
+
+        with patch("nci_si_mcp.server.correlated", spy), self.assertRaises(MCPError) as raised:
+            self.read(uri)
+        return json.loads(str(raised.exception))["error"]["correlationId"], opened
+
+    def test_each_resource_read_runs_under_one_correlation_identifier(self, _):
+        self.service.index_codes(["C3262"])
+        for uri in (
+            "nci-si://concept/ncit/C999",
+            "nci-si://release/ncit/99.99z",
+            "nci-si://index/ncit/99.99z/manifest",
+        ):
+            with self.subTest(uri):
+                identifier, opened = self.failing_read_ids(uri)
+
+                self.assertEqual(opened, [identifier])
+
+    def test_the_records_of_one_resource_read_share_their_correlation_identifier(self, _):
+        self.evs.errors = {
+            "get_api_version": EVSUnavailableError("down"),
+            "resolve_monthly_ncit_release": EVSUnavailableError("down"),
+        }
+        reports = []
+        release_info = self.service.release_info
+
+        def recording_release_info():
+            reports.append(release_info())
+            return reports[-1]
+
+        with patch.object(self.service, "release_info", recording_release_info):
+            identifier, _opened = self.failing_read_ids("nci-si://release/ncit/26.06e")
+
+        nested = [reports[0]["evs_api"]["error"], reports[0]["selected_monthly_release"]["error"]]
+        self.assertEqual({error["correlationId"] for error in nested}, {identifier})
+
+    def test_a_search_that_finds_nothing_is_a_success_with_no_hits(self, _):
+        self.service.index_codes(["C3262"])
+
+        is_error, result = self.call("ncit_search", query="zzzz", mode="bm25")
+
+        self.assertFalse(is_error)
+        self.assertEqual(result["hits"], [])
 
     def test_release_info_stays_a_success_when_evs_is_down(self, _):
         self.evs.errors = {
@@ -261,7 +367,7 @@ class ServerTest(unittest.TestCase):
         is_error, info = self.call("ncit_release_info")
 
         self.assertFalse(is_error)
-        self.assertEqual(info["selected_monthly_release"]["error"], "evs_unavailable")
+        self.assertEqual(info["selected_monthly_release"]["error"]["code"], "upstream_unavailable")
 
     def test_resources_route_by_version(self, _):
         self.assertEqual(self.read("nci-si://index/ncit/active/manifest"), {"active_index": None})
@@ -285,28 +391,33 @@ class ServerTest(unittest.TestCase):
     def test_resource_failures_are_protocol_errors_carrying_the_envelope(self, _):
         self.service.index_codes(["C3262"])
         failures = {
-            "nci-si://concept/ncit/C999": "concept_not_found",
-            "nci-si://release/ncit/99.99z": "release_not_active",
-            "nci-si://index/ncit/99.99z/manifest": "index_not_active",
+            "nci-si://concept/ncit/C999": "not_found",
+            "nci-si://release/ncit/99.99z": "release_not_available",
+            "nci-si://index/ncit/99.99z/manifest": "release_not_available",
         }
         for uri, code in failures.items():
             with self.subTest(uri):
                 with self.assertRaises(MCPError) as raised:
                     self.read(uri)
-                self.assertEqual(json.loads(str(raised.exception))["error"], code)
+                self.assertEqual(json.loads(str(raised.exception))["error"]["code"], code)
 
         self.evs.errors = {"resolve_monthly_ncit_release": EVSUnavailableError("down")}
         with self.assertRaises(MCPError) as raised:
             self.read("nci-si://release/ncit/26.06e")
         envelope = json.loads(str(raised.exception))
-        self.assertEqual((envelope["error"], envelope["message"]), ("evs_unavailable", "down"))
+        self.assertEqual(
+            (envelope["error"]["code"], envelope["error"]["message"]),
+            ("upstream_unavailable", "down. Retry later."),
+        )
 
         (self.settings.data_dir / "nci_si.sqlite3").write_bytes(b"not a database" * 100)
         for uri in ("nci-si://index/ncit/active/manifest", "nci-si://release/ncit/monthly"):
             with self.subTest(uri):
                 with self.assertRaises(MCPError) as raised:
                     self.read(uri)
-                self.assertEqual(json.loads(str(raised.exception))["error"], "index_storage_error")
+                self.assertEqual(
+                    json.loads(str(raised.exception))["error"]["code"], "internal_error"
+                )
 
 
 if __name__ == "__main__":
