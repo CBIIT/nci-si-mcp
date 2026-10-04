@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import re
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -60,6 +61,37 @@ def served_arguments():
 
     with tempfile.TemporaryDirectory() as directory:
         return asyncio.run(run(Path(directory)))
+
+
+# Only the ignore file may name the local files of a coding tool; the names are built from parts
+# so that this file does not name them either.
+LOCAL_AGENT_FILES = tuple(
+    "".join(parts)
+    for parts in (("CLAUDE", ".md"), (".claude", "/"), ("CLAUDE", ".local.md"), (".mcp", ".json"))
+)
+
+
+def tracked_mentions_of_local_agent_files(root):
+    """`path:line` of every line in a tracked file, but the ignore file, naming one of them."""
+
+    listing = subprocess.run(
+        ["git", "ls-files", "-z"],  # noqa: S607 - git from PATH
+        cwd=root,
+        capture_output=True,
+        check=True,
+    ).stdout.decode("utf-8")
+    found = []
+    for name in filter(None, listing.split("\0")):
+        path = root / name
+        if name == ".gitignore" or not path.is_file():
+            continue
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        found += [
+            f"{name}:{number}"
+            for number, line in enumerate(lines, 1)
+            if any(local in line for local in LOCAL_AGENT_FILES)
+        ]
+    return found
 
 
 class DocumentationTest(unittest.TestCase):
@@ -116,6 +148,27 @@ class DocumentationTest(unittest.TestCase):
         modules = {path.name for path in PACKAGE.glob("*.py")} - {"__init__.py"}
 
         self.assertEqual(first_column(section(ARCHITECTURE, "Components")), modules)
+
+    def test_agent_instructions_exist_and_no_tracked_file_names_a_local_tool_file(self):
+        self.assertTrue((ROOT / "AGENTS.md").is_file(), "AGENTS.md must exist")
+        mentions = tracked_mentions_of_local_agent_files(ROOT)
+
+        self.assertEqual(
+            mentions,
+            [],
+            "only .gitignore may name the local files of a coding tool "
+            f"({', '.join(LOCAL_AGENT_FILES)}); found at {', '.join(mentions)}",
+        )
+
+    def test_the_check_reports_a_tracked_mention_and_ignores_the_ignore_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)  # noqa: S607
+            (root / ".gitignore").write_text(f"{LOCAL_AGENT_FILES[0]}\n", encoding="utf-8")
+            (root / "guide.md").write_text(f"ok\nsee {LOCAL_AGENT_FILES[1]}x\n", encoding="utf-8")
+            subprocess.run(["git", "add", "."], cwd=root, check=True)  # noqa: S607
+
+            self.assertEqual(tracked_mentions_of_local_agent_files(root), ["guide.md:2"])
 
 
 if __name__ == "__main__":
