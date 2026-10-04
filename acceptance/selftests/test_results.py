@@ -65,34 +65,62 @@ def test_a_request_names_a_code_in_its_path_or_a_parameter_but_not_inside_anothe
 ELEMENT = {"publicId": "2200604", "version": "4", "longName": "Person Sex Text Type"}
 
 
+# The first rows are the shapes main compared before resource contents existed, and must not
+# change.
 @pytest.mark.parametrize(
     ("item", "expected"),
     [
-        # EVS items keep their identities.
-        ({"terminology": "ncit", "code": "C4817", "name": "Ewing Sarcoma"}, ("ncit", "C4817")),
-        ({"terminology": "ncit", "release": "26.09d"}, ("ncit", None)),
-        # A concept carries its release's version beside its code, and is identified by the code.
-        ({"terminology": "ncit", "code": "C4817", "version": "26.09d"}, ("ncit", "C4817")),
-        # A record of a release has a version in place of a code, and the registry's state is
-        # known by whether it publishes a release and its date.
-        ({"terminology": "ncit", "version": "26.09d", "channel": "monthly"}, ("ncit", "26.09d")),
-        ({"published": False, "generatedAt": "2026-07-01"}, (False, None, "2026-07-01")),
-        (
-            {
-                "sourceCode": "C1",
-                "targetCode": "C2",
-                "provenance": {"relationship": {"code": "R1"}},
-            },
-            ("C1", "C2", "R1"),
+        pytest.param(
+            {"code": "C4817", "terminology": "ncit", "version": "26.09d", "name": "Ewing Sarcoma"},
+            ("ncit", "C4817"),
+            id="concept-record-with-version",
         ),
-        # caDSR items: a data element and a form by public id and version, a code map by its
-        # data element's, a value meaning match's item likewise, a context by its name.
-        (ELEMENT, ("2200604", "4")),
-        ({"dataElement": {"publicId": "88", "version": "5.1"}, "usedBy": ["GDC"]}, ("88", "5.1")),
-        ({"name": "NCIP", "provenance": {}}, "NCIP"),
+        pytest.param(
+            {"code": "C4817", "terminology": "ncit", "provenance": {}},
+            ("ncit", "C4817"),
+            id="concept-item-with-provenance",
+        ),
+        pytest.param(
+            {
+                "sourceCode": "C4817",
+                "targetCode": "C3262",
+                "provenance": {"relationship": {"code": "R101"}},
+            },
+            ("C4817", "C3262", "R101"),
+            id="edge",
+        ),
+        pytest.param(ELEMENT, ("2200604", "4"), id="data-element"),
+        pytest.param(
+            {"dataElement": {"publicId": "2200604", "version": "4"}, "usedBy": ["GDC"]},
+            ("2200604", "4"),
+            id="data-element-use",
+        ),
+        pytest.param(
+            {"dataElement": {"publicId": "2200604", "version": "4"}, "codeMap": {}},
+            ("2200604", "4"),
+            id="code-map",
+        ),
+        pytest.param("NCIP", "NCIP", id="context-as-string"),
+        pytest.param({"name": "NCIP"}, "NCIP", id="context-as-record"),
+        pytest.param(
+            {"terminology": "mdr", "release": "29_0"}, ("mdr", None), id="terminology-record"
+        ),
+        pytest.param(
+            {"terminology": "ncit", "version": "26.09d", "channel": "monthly"},
+            ("ncit", "26.09d"),
+            id="release-record",
+        ),
+        pytest.param(
+            {"published": False, "generatedAt": "2026-07-01"},
+            (False, None, "2026-07-01"),
+            id="registry-state",
+        ),
         # A data element that is no record names nothing to identify the item by but its name.
-        ({"dataElement": "2200604", "name": "a code map"}, "a code map"),
-        ("bare", "bare"),
+        pytest.param(
+            {"dataElement": "2200604", "name": "a code map"},
+            "a code map",
+            id="data-element-that-is-no-record",
+        ),
     ],
 )
 def test_an_item_is_identified_by_what_it_is(item, expected):
