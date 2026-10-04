@@ -1,10 +1,12 @@
 """The README's status table is generated from the expected outcomes and is current."""
 
+import json
 import subprocess
 import sys
 
 import pytest
 
+from nci_si_acceptance import status
 from nci_si_acceptance.status import BEGIN, END, README, current, render, tool_outcomes
 
 # A gate, and tests of three tools.
@@ -60,9 +62,43 @@ def test_only_the_text_between_the_markers_is_replaced():
     assert current(readme, f"{BEGIN}\nnew\n{END}") == f"before\n{BEGIN}\nnew\n{END}\nafter\n"
 
 
-def test_a_readme_without_the_markers_is_refused():
+@pytest.mark.parametrize("readme", ["no table here", f"a\n{BEGIN}\nb\n", f"a\n{END}\nb\n"])
+def test_a_readme_without_both_markers_is_refused(readme):
     with pytest.raises(SystemExit, match="lacks the markers"):
-        current("no table here", "table")
+        current(readme, "table")
+
+
+ATTRIBUTION_OF_TWO = {"t.py::a": ("get_form", False), "t.py::b": ("get_form", False)}
+
+
+@pytest.fixture
+def suite_of_two(tmp_path, monkeypatch):
+    """A suite of two tests and a README with the markers; the result writes the expected
+    outcomes and returns the arguments of `main`."""
+
+    monkeypatch.setattr(status, "collect_attribution", lambda: ATTRIBUTION_OF_TWO)
+    monkeypatch.setattr(status, "EXPECTED", tmp_path / "expected.json")
+    (tmp_path / "README.md").write_text(f"{BEGIN}\n{END}\n", encoding="utf-8")
+
+    def expected(outcomes):
+        (tmp_path / "expected.json").write_text(json.dumps(outcomes), encoding="utf-8")
+        return ["--check", "--readme", str(tmp_path / "README.md")]
+
+    return expected
+
+
+def test_expected_outcomes_for_a_test_the_suite_lacks_are_refused(suite_of_two):
+    arguments = suite_of_two(dict.fromkeys(["t.py::a", "t.py::b", "t.py::extra"], "passed"))
+
+    with pytest.raises(SystemExit, match=r"differ in 1 tests, among them t\.py::extra"):
+        status.main(arguments)
+
+
+def test_a_test_of_the_suite_without_expected_outcomes_is_refused(suite_of_two):
+    arguments = suite_of_two({"t.py::a": "passed"})
+
+    with pytest.raises(SystemExit, match=r"differ in 1 tests, among them t\.py::b"):
+        status.main(arguments)
 
 
 def run_status(*options):

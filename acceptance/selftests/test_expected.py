@@ -99,6 +99,29 @@ def test_update_rewrites_the_outcomes_from_a_report_and_nothing_else(files, tmp_
     assert main(arguments) == 0
 
 
+def test_update_writes_no_message_or_request_the_report_holds(files, tmp_path):
+    arguments = files({}, {"t.py::a": "failed"})
+    detailed = report({"t.py::a": "no_fixture"}, "fixture")
+    detailed["tests"]["t.py::a"] |= {"message": "assert 1 == 2", "unmatched": ["GET evs /x {}"]}
+    (tmp_path / "report.json").write_text(json.dumps(detailed), encoding="utf-8")
+
+    main(["update", *arguments[1:]])
+
+    written = (tmp_path / "expected.json").read_text(encoding="utf-8")
+    assert json.loads(written) == {"t.py::a": "no_fixture"}
+    assert "assert" not in written
+    assert "GET" not in written
+
+
+@pytest.mark.parametrize(
+    ("expected", "actual"),
+    [("not_implemented", "not_live"), ("not_live", "not_implemented")],
+)
+def test_outcomes_that_share_a_prefix_are_a_difference(files, capsys, expected, actual):
+    assert main(files({"t.py::a": expected}, {"t.py::a": actual})) == 1
+    assert f"| `t.py::a` | {expected} | {actual} |" in capsys.readouterr().out
+
+
 def test_the_committed_outcomes_are_in_the_reports_vocabulary_and_in_test_order():
     committed = json.loads(EXPECTED.read_text(encoding="utf-8"))
 
