@@ -277,7 +277,7 @@ class NCISIService:
                     f"holds {manifest.release_version}. Rebuild the index with `index-sample`, "
                     "or use live_only to read live EVS without consulting it.",
                     requested=release.version,
-                    served=manifest.release_version,
+                    served=[manifest.release_version],
                     source="index",
                 )
             raw = self.evs.get_concept(code, terminology=release.pinned_terminology)

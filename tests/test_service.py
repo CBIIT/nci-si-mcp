@@ -149,7 +149,7 @@ class LookupTest(ServiceTestCase):
         self.assert_error(result, "release_mismatch")
         self.assertEqual(
             result["error"]["details"],
-            {"requested": "26.07d", "served": "26.06e", "source": "index"},
+            {"requested": "26.07d", "served": ["26.06e"], "source": "index"},
         )
         live = self.service.lookup("C3262", live_only=True)
         self.assertEqual((live["source"], live["release_version"]), ("live_evs", "26.07d"))

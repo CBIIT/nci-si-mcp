@@ -544,7 +544,8 @@ for an empty one:
 }
 ```
 
-`details` is present where the failure has data for the caller's next step.
+`details` is present where the failure has data for the caller's next step; the
+keys of each code are those of the error record in [the specification](docs/specification.md).
 `correlationId` is the `correlationId` in the `_meta` of the `tools/call`
 request, or one generated for the call (for a resource read or a CLI command,
 one generated for it). MCP tool results carrying the record are also flagged as
@@ -564,12 +565,12 @@ EVS wraps in a success status but that is an error envelope, an error
 | `invalid_request` | An argument is missing, malformed, out of range, or contradicts another; CLI only: an environment variable is invalid | `parameter`, `reason` |
 | `not_found` | The current monthly release has no concept with that code, or `index-sample` named codes the release does not contain (nothing was indexed) | `identifiers` |
 | `release_not_available` | EVS did not report exactly one latest monthly NCIt release, or a resource names a release that is not the current one (or not the one the index holds) | `requested`, `source` |
-| `release_mismatch` | The local index holds a different release than the current monthly one, or EVS served a concept of another release than the one requested | `requested`, `served`, `source` |
-| `upstream_unavailable` | EVS could not be reached or kept failing after the retries, rejected the request, or returned something unusable: a malformed, HTML or masked-error body, or a 404 from any request other than a single-concept lookup (check `NCI_SI_EVS_BASE_URL`) | `surface`, and where known `status`, `attempts`, `retryAfter` |
+| `release_mismatch` | The local index holds a different release than the current monthly one, or EVS served a concept of another release than the one requested | `requested`, `served` (a list of releases), `source` |
+| `upstream_unavailable` | EVS could not be reached or kept failing after the retries, rejected the request, or returned something unusable: a malformed, HTML or masked-error body, or a 404 from any request other than a single-concept lookup (check `NCI_SI_EVS_BASE_URL`) | `surface`, `status`, `attempts`, `retryAfter` (`status` and `retryAfter` where known) |
 | `timeout` | Every attempt at an EVS request timed out (`NCI_SI_TIMEOUT_SECONDS`) | `surface`, `seconds`, `attempts` |
-| `bound_exceeded` | An EVS response was larger than `NCI_SI_EVS_MAX_RESPONSE_BYTES` and the call cannot proceed without it | `bound`, `limit`, `reached` (a lower bound when EVS declared no length) |
-| `capability_unavailable` | Defined by the specification; no tool returns it yet | the capability |
-| `cursor_expired` | Defined by the specification; no tool returns it yet | the cursor's release and the current one |
+| `bound_exceeded` | An EVS response was larger than `NCI_SI_EVS_MAX_RESPONSE_BYTES` and the call cannot proceed without it | `bound`, `limit`, `reached` (the limit plus one when EVS declared no length) |
+| `capability_unavailable` | Defined by the specification; no tool returns it yet | `capability` |
+| `cursor_expired` | Defined by the specification; no tool returns it yet | `cursorRelease`, `currentRelease` |
 | `internal_error` | `search` or `evaluate` was called before an index was built, the index was built with other embedding settings than the runtime uses, SQLite could not open, read or write the index file named in the message, or (CLI only) the index, the embedding model or the MCP package could not be loaded at startup | none |
 
 `ncit_release_info` and the `release-info` command succeed during an EVS outage:

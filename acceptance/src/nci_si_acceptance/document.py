@@ -76,7 +76,22 @@ def _record(record: dict[str, Any]) -> list[str]:
         for name, field in record["fields"].items()
     ]
     header = [f"### {record['title']}", "", _cell(record["about"]), ""]
-    return [*header, "| Field | Content | Rule |", "|---|---|---|", *rows, ""]
+    table = [*header, "| Field | Content | Rule |", "|---|---|---|", *rows, ""]
+    return [*table, *_detail_keys(record.get("detail_keys", {}))]
+
+
+def _detail_keys(keys: dict[str, dict[str, str]]) -> list[str]:
+    """The keys of `details` for each code of an error record, each with its meaning."""
+
+    if not keys:
+        return []
+    rows = [
+        f"| `{code}` | "
+        + ("; ".join(f"`{key}`: {_cell(text)}" for key, text in each.items()) or "none")
+        + " |"
+        for code, each in keys.items()
+    ]
+    return ["The keys of `details` for each code:", "", "| Code | Keys |", "|---|---|", *rows, ""]
 
 
 def _bound(bound: dict[str, Any]) -> str:
