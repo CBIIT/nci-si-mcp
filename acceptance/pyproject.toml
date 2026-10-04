@@ -2,12 +2,12 @@
 requires = ["pdm-backend>=2.4"]
 build-backend = "pdm.backend"
 
-# The suite is versioned on its own, independently of the server and of the fixture
-# set (docs/specification.md §5); the version changes by hand, under change
-# control.
+# The suite's version is the repository's nearest `vX.Y.Z` tag, as the server's is, so a
+# report names the tag of the suite it ran (docs/specification.md §5). The fixture set is
+# versioned apart, by its pin and recording dates.
 [project]
 name = "nci-si-acceptance"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Behavioural acceptance suite and upstream fixture server for the NCI SI MCP tools"
 readme = "README.md"
 license = "Apache-2.0"
@@ -21,6 +21,10 @@ dependencies = [
 
 [tool.pdm]
 distribution = true
+
+[tool.pdm.version]
+source = "scm"
+fallback_version = "0.0.0"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
