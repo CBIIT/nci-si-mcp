@@ -20,6 +20,7 @@ from mcp.client import Client
 from nci_si_mcp.config import Settings
 from nci_si_mcp.errors import ErrorCode
 from nci_si_mcp.server import create_mcp
+from nci_si_mcp.validation import PROFILES, RELEASE_CHANNELS, UPSTREAM_MODES
 
 ROOT = Path(__file__).parent.parent
 PACKAGE = ROOT / "src" / "nci_si_mcp"
@@ -123,6 +124,18 @@ class DocumentationTest(unittest.TestCase):
                     self.assertEqual(default.strip("`"), ",".join(actual))
                 else:
                     self.assertEqual(type(actual)(default.strip("`")), actual)
+
+    def test_quickstart_documents_the_closed_value_sets_of_the_code(self):
+        table = section(QUICKSTART, "Settings")
+        for variable, values in (
+            ("NCI_SI_PROFILE", PROFILES),
+            ("NCI_SI_UPSTREAM_MODE", UPSTREAM_MODES),
+            ("NCI_SI_RELEASE_CHANNEL", RELEASE_CHANNELS),
+        ):
+            with self.subTest(variable):
+                row = next(line for line in table.splitlines() if f"`{variable}`" in line)
+                purpose = row.split("|")[3]
+                self.assertEqual(set(re.findall(r"`(\w+)`", purpose)), values)
 
     def test_quickstart_error_table_lists_exactly_the_error_codes(self):
         self.assertEqual(first_column(section(QUICKSTART, "Errors")), set(get_args(ErrorCode)))

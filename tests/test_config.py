@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from nci_si_mcp.config import DEFAULT_EVS_BASE_URL, Settings, configure_logging
+from nci_si_mcp.validation import PROFILES, RELEASE_CHANNELS, UPSTREAM_MODES
 
 
 def settings_from(**environment):
@@ -293,6 +294,63 @@ class SecretsTest(unittest.TestCase):
     def test_loading_settings_logs_no_secret(self):
         with self.assertNoLogs(level=logging.DEBUG):
             settings_from(NCI_SI_EVS_LICENSE_KEY=LICENCE_KEY, NCI_SI_CADSR_CREDENTIAL=CREDENTIAL)
+
+
+class SettingsEdgeCaseTest(unittest.TestCase):
+    def assert_rejected(self, variable, secret=None, **fields):
+        with self.assertRaises(ValueError) as raised:
+            Settings(**fields)
+        self.assertIn(variable, str(raised.exception))
+        if secret:
+            self.assertNotIn(secret, str(raised.exception))
+
+    def test_direct_construction_rejects_empty_values(self):
+        self.assert_rejected("NCI_SI_EVS_LICENSE_KEY", evs_license_key="")
+        self.assert_rejected("NCI_SI_EXCLUSION_ROLE_CODES", exclusion_role_codes=())
+
+    def test_control_characters_and_non_ascii_digits_are_rejected_without_the_value(self):
+        self.assert_rejected("NCI_SI_EVS_LICENSE_KEY", "key\x01", evs_license_key="key\x01")
+        self.assert_rejected(
+            "NCI_SI_CADSR_CREDENTIAL", "pa\x00ss", cadsr_credential="user:pa\x00ss"
+        )
+        fullwidth = "".join(chr(0xFF10 + digit) for digit in (1, 3, 5))
+        self.assert_rejected(
+            "NCI_SI_EXCLUSION_ROLE_CODES", fullwidth, exclusion_role_codes=(f"R{fullwidth}",)
+        )
+
+    def test_the_credential_splits_at_the_first_colon(self):
+        for credential in ("user:pa:ss", "user:pass:"):
+            with self.subTest(credential):
+                settings = Settings(cadsr_credential=credential)
+                self.assertEqual(settings.cadsr_credential, credential)
+
+    def test_role_code_order_is_kept(self):
+        settings = settings_from(NCI_SI_EXCLUSION_ROLE_CODES="R201,R135")
+
+        self.assertEqual(settings.exclusion_role_codes, ("R201", "R135"))
+
+    def test_trailing_slashes_are_stripped_and_a_lone_slash_is_not_a_default(self):
+        self.assertEqual(settings_from(NCI_SI_EVS_BASE_URL="https://h//").evs_base_url, "https://h")
+        with self.assertRaises(ValueError) as raised:
+            settings_from(NCI_SI_EVS_BASE_URL="/")
+        self.assertIn("NCI_SI_EVS_BASE_URL", str(raised.exception))
+
+    def test_the_closed_sets_are_exactly_the_documented_ones(self):
+        self.assertEqual(PROFILES, {"evs", "cadsr", "unified"})
+        self.assertEqual(UPSTREAM_MODES, {"live", "fixture"})
+        self.assertEqual(RELEASE_CHANNELS, {"monthly", "weekly"})
+
+    def test_a_closed_value_must_match_exactly(self):
+        for variable, field in (
+            ("NCI_SI_PROFILE", "profile"),
+            ("NCI_SI_UPSTREAM_MODE", "upstream_mode"),
+            ("NCI_SI_RELEASE_CHANNEL", "release_channel"),
+        ):
+            for value in ("EVS", "Live", "Weekly", " live", "live ", "all"):
+                with self.subTest(variable=variable, value=value):
+                    self.assert_rejected(variable, **{field: value})
+                    with self.assertRaises(ValueError):
+                        settings_from(**{variable: value})
 
 
 class LoggingTest(unittest.TestCase):
