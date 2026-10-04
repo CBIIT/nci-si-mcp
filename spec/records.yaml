@@ -815,6 +815,7 @@ error:
     release_not_available:
       requested: The release, or the channel, that was asked for
       source: Where the release could not be named, evs or index
+      found: The releases the channel's query named, where it named more than one (A3.6.3)
     release_mismatch:
       requested: The release that was asked for
       served: The list of releases the content came from, one element where it is a single release

@@ -61,7 +61,7 @@ pdm run pytest tests/test_service.py -k LookupTest
 pdm run lint                              # ruff check + basedpyright, the fast check
 pdm run fmt                               # ruff format
 pdm run pre-commit run --all-files        # every hook, as the CI quality job runs them
-pdm run acceptance -n 4 --report=fixture.json                # the acceptance suite, fixture mode
+NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")' pdm run acceptance -n 4 --report=fixture.json  # fixture mode, prepared as in CI
 pdm run acceptance-expected check acceptance/fixture.json    # the report against the expected outcomes
 pdm run acceptance-expected update acceptance/fixture.json   # rewrite the expected outcomes
 pdm run acceptance-status                 # regenerate the README status table
@@ -169,7 +169,7 @@ Rules learned the hard way:
 
 - A change to what the server returns reaches the acceptance harness: run the whole
   `pdm run acceptance-selftest` and the fixture ratchet, not only the unit tests. Keep
-  `NCI_SI_ACCEPTANCE_PREPARE` unset in your shell, or the self-tests fail.
+  `NCI_SI_ACCEPTANCE_PREPARE` unset for the self-tests; set it only on the fixture command above.
 - An interrupted self-test run can leave the `compliant_server.py` stub running; find it with
   `ps` and stop it by its process id.
 - A wait loop ends when the file or process it watches is gone, and never matches its own
@@ -229,8 +229,15 @@ update them when behaviour changes.
 
 ### Release pinning
 
-- `select_monthly_ncit_release` requires exactly one latest monthly NCIt row and never falls back to
-  weekly. EVS sets `latest` per channel, so two `ncit` rows can carry it at once.
+- `release.resolve_evs_release(evs, terminology, channel)` asks EVS for the rows that are `latest`
+  and tagged with the channel (`?terminology=…&latest=true&tag=…`) and requires exactly one; any
+  other count is `release_not_available`, with no fallback to another channel. EVS sets `latest`
+  per channel, so the unfiltered listing can show two `ncit` rows as latest. The service resolves
+  once per call with `Settings.release_channel` and threads the `ReleaseContext` through that call;
+  nothing keeps it between calls. A 404 `Terminology not found` is `EVSReleaseNotFoundError`
+  (`release_not_available`).
+- `release.registry_state` is the pure part of the caDSR registry state: no registry identifier is
+  ever made up. The `Last-Modified` HEAD request belongs to the caDSR client.
 - Every concept request uses `release.pinned_terminology` (for example `ncit_26.09d`) as the path
   segment, and `evs.verify_release` checks the `version` of each returned concept.
 - `lookup` returns `release_mismatch` when the index holds another release, unless `live_only`. It

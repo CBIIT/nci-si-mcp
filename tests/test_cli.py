@@ -128,6 +128,15 @@ class MainTest(unittest.TestCase):
 
         code, info, _ = self.run_cli("release-info")
         self.assertEqual((code, info["active_index"]["release_version"]), (0, "26.06e"))
+        self.assertEqual(
+            info["selected_monthly_release"],
+            {
+                "terminology": "ncit",
+                "channel": "monthly",
+                "version": "26.06e",
+                "date": "2026-06-29",
+            },
+        )
 
         code, evaluation, _ = self.run_cli("evaluate")
         self.assertEqual((code, len(evaluation["results"])), (0, 3))
@@ -165,7 +174,7 @@ class MainTest(unittest.TestCase):
         service = self.fake_service()
         service.evs.errors = {
             "get_api_version": EVSUnavailableError("down"),
-            "resolve_monthly_ncit_release": EVSUnavailableError("down"),
+            "get_terminologies": EVSUnavailableError("down"),
         }
 
         code, info, _ = self.run_cli("release-info", service=service)

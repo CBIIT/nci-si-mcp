@@ -13,10 +13,11 @@ from typing import get_args
 from unittest.mock import patch
 from urllib.error import HTTPError
 
+from fakes import terminology_row
 from nci_si_acceptance.spec import RECORDS
 from nci_si_mcp import service as service_module
 from nci_si_mcp.errors import ErrorCode
-from nci_si_mcp.evs import EVSClient, select_monthly_ncit_release, verify_release
+from nci_si_mcp.evs import EVSClient, verify_release
 from test_docs import QUICKSTART, section
 from test_evs_client import FakeResponse
 from test_service import NEOPLASM, ServiceTestCase, release
@@ -26,11 +27,11 @@ SPEC_KEYS = {code: set(keys) for code, keys in RECORDS["error"]["detail_keys"].i
 UNRAISED = {"capability_unavailable", "cursor_expired"}
 
 
-def http_error(status, headers=None):
+def http_error(status, headers=None, body=b""):
     message = Message()
     for name, value in (headers or {}).items():
         message[name] = value
-    return HTTPError("https://example.invalid", status, "Reason", message, BytesIO())
+    return HTTPError("https://example.invalid", status, "Reason", message, BytesIO(body))
 
 
 def from_the_client(answer, call=lambda client: client.get_api_version()):
@@ -74,7 +75,11 @@ class DetailKeysTest(ServiceTestCase):
             from_the_record(self.service.search(" ")),
             from_the_record(self.service.index_codes(["C3262", "C40704"])),
             mismatch,
-            from_the_exception(self.release_resolution_error()),
+            self.unresolved_release(),
+            from_the_client(
+                http_error(404, body=b'{"message": "Terminology not found = ncit_9"}'),
+                lambda client: client.get_concept("C1"),
+            ),
             self.verify_release_error(),
             from_the_client(http_error(429, {"Retry-After": "30"})),
             from_the_client(http_error(403)),
@@ -86,12 +91,12 @@ class DetailKeysTest(ServiceTestCase):
             ),
         ]
 
-    def release_resolution_error(self):
+    def unresolved_release(self):
+        self.evs.rows = [terminology_row(), terminology_row("26.07d")]
         try:
-            select_monthly_ncit_release([])
-        except Exception as error:  # noqa: BLE001
-            return error
-        raise AssertionError("an empty listing names a release")
+            return from_the_record(self.service.lookup("C3262"))
+        finally:
+            self.evs.rows = None
 
     def verify_release_error(self):
         try:

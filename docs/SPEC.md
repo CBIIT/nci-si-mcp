@@ -123,7 +123,7 @@ Replace the fourteen-value `ErrorCode` literal in `errors.py`, and the `_ERROR_C
 |---|---|---|
 | `invalid_request` | `invalid_request`, `invalid_configuration` | parameter, reason |
 | `not_found` | `concept_not_found`, `concepts_missing` | identifiers not found |
-| `release_not_available` | `release_unresolved`, `release_not_active`, `index_not_active` | requested, source |
+| `release_not_available` | `release_unresolved`, `release_not_active`, `index_not_active` | requested, source, found (optional, ambiguous channel versions) |
 | `release_mismatch` | `version_mismatch` | requested, served, source |
 | `upstream_unavailable` | `evs_unavailable`, `evs_invalid_response` | surface, status, attempts, retry-after |
 | `timeout` | — | surface, seconds waited |
@@ -146,11 +146,11 @@ Extend `models.py`'s per-concept fields into one `ProvenanceEnvelope` attached *
 
 `ReleaseContext` is resolved once per tool call and threaded through every upstream request. It is never resolved implicitly inside another tool — `resolve_release` and `resolve_registry_release` are the only discovery operations and the only unversioned upstream calls (A3.2).
 
-**EVS.** `resolve_evs_release(terminology, channel)` calls `/metadata/terminologies?terminology=…&latest=true&tag={channel}` and requires exactly one row. This replaces `select_monthly_ncit_release`, which already requires exactly one latest monthly row but filters the full listing itself; `latest` is channel-scoped, and the one-row query moves the selection upstream. A `ReleaseResolutionError` is raised only if the row count is not one. Content requests then address `/concept/{terminology}_{release}/…`; a 404 with `Terminology not found` maps to `release_not_available`. The payload's `version` is compared as a second guard and a mismatch is `release_mismatch`, never silently accepted.
+**EVS.** `resolve_evs_release(terminology, channel)` calls `/metadata/terminologies?terminology=…&latest=true&tag={channel}` and requires exactly one row. It replaces `select_monthly_ncit_release`; `latest` is channel-scoped, and the one-row query moves the selection upstream. Zero or several rows, or a row without a version, raise `release_not_available`; `requested` names the requested channel and optional `found` lists the ambiguous versions. The serialized release contains `terminology`, `channel`, `version` and `date`; the pinned path stays internal. Content requests address `/concept/{terminology}_{release}/…`; a 404 with `Terminology not found` maps to `release_not_available`. The payload's `version` is compared as a second guard and a mismatch is `release_mismatch`, never silently accepted. Tool/key/alias renames and `alternatives[]` remain #18.
 
-**caDSR.** `resolve_registry_state()` returns `{registryIdentifier: null, exportDate, itemVersioning: "per data element"}`, with `exportDate` read from the FTP listing's `Last-Modified` for `releasedCDEsXML-OD.zip`. The module never fabricates a registry identifier (A3.8.1). When a registry identifier appears upstream (C-1), the field becomes required and the same fail-closed path applies; the code path is written now and gated on the field being non-null.
+**caDSR.** The pure `registry_state(generation_date, upstream_identifier, source_distribution=…)` builds the specification's `registry_release` record: `{published, identifier?, generatedAt, sourceDistribution}`. Without a published release, `published` is false, `identifier` is absent, and the export's `Last-Modified` for `releasedCDEsXML-OD.zip` becomes an ISO-8601 UTC `generatedAt`. When a registry release appears upstream (C-1), `published` is true and its identifier and own ISO-8601 date are passed through unchanged. `sourceDistribution` names the distribution the caller read the date from. A missing or invalid date, blank supplied identifier or missing distribution raises `RegistryMetadataError`; the shared error path reports `upstream_unavailable` with `surface: cadsr`. No identifier or date is invented, and registry reproducibility is not achievable while no registry release is published. The instrumented HEAD request and tool exposure belong to #31.
 
-**Shared SI.** Every SSIS call records the identity of each graph it touched, read once per process from the content graphs' `owl:versionInfo` / `dc:date` (one query, the identity query of the request-form register) and cached with the SSIS release-alignment TTL (§3.6).
+**Shared SI.** Every SSIS call records the identity of each graph it touched, read from the content graphs' `owl:versionInfo` / `dc:date` with two queries and no property paths, and cached with the SSIS release-alignment TTL (§3.6). These queries belong to #36.
 
 ### 3.4 HTTP client (`platform/http.py`)
 
@@ -277,7 +277,7 @@ All matching calls hold any credential server-side (both contracts declare `401`
 
 Ten tools, signatures in the specification (group `cadsr`). Specific behaviours:
 
-- `resolve_registry_release` → `{identifier: null, exportDate, note}` today; `ttlMs` 0.
+- `resolve_registry_release` → `{published: false, generatedAt, sourceDistribution}` today, with no `identifier`; when a registry release is published, `published` is true, `identifier` is present and `generatedAt` is the release's own date (§3.3); `ttlMs` 0.
 - `search_data_elements` → filters by context, workflow status, registration status, value-domain type; truncation at the cap reported; `totalKnown` where available.
 - `match_data_elements` → `modelVariant` and `similarityThreshold` are **rejected with `invalid_request`** naming the parameter when supplied, because the published contract does not expose them; the rejection message cites the upstream requirements package. When the contract gains them, the rejection is removed and nothing else changes.
 - `get_form` → by public id with modules and questions; keyword search returns `invalid_request` stating the upstream constraint.

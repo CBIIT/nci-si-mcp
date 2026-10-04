@@ -234,7 +234,6 @@ class EVSClientTest(unittest.TestCase):
         calls = {
             "version": client.get_api_version,
             "terminologies": client.get_terminologies,
-            "release": client.resolve_monthly_ncit_release,
             "batch": lambda: client.get_concepts_by_codes(["C1"]),
             "descendants": lambda: client.get_descendants("C1", 1),
         }

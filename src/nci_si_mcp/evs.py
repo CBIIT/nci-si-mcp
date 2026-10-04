@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
 from http import HTTPStatus
 from typing import Any
@@ -14,7 +15,7 @@ from .http_client import (
     UpstreamTooLargeError,
     UpstreamUnavailableError,
 )
-from .models import NcitConcept, ReleaseInfo, utc_now_iso
+from .models import NcitConcept, utc_now_iso
 
 SOURCE_VOCABULARIES = {"ncit": "NCI Thesaurus"}
 
@@ -70,8 +71,8 @@ class EVSReleaseMismatchError(EVSResponseError):
     """EVS served content of another release than the one requested."""
 
 
-class ReleaseResolutionError(EVSError):
-    """Raised when monthly NCIt cannot be resolved exactly."""
+class EVSReleaseNotFoundError(EVSError):
+    """EVS does not serve the release (terminology version) a request was pinned to."""
 
 
 def _object(data: Any, what: str) -> dict[str, Any]:
@@ -104,57 +105,6 @@ def verify_release(concepts: Iterable[dict[str, Any]], release_version: str) -> 
             served=served,
             source="evs",
         )
-
-
-def _tags(raw: dict[str, Any]) -> dict[str, Any]:
-    return _object(raw.get("tags") or {}, "field 'tags'")
-
-
-def release_from_terminology(raw: dict[str, Any]) -> ReleaseInfo:
-    tags = _tags(raw)
-    return ReleaseInfo(
-        terminology=str(raw.get("terminology", "")),
-        version=str(raw.get("version", "")),
-        date=raw.get("date"),
-        name=str(raw.get("name", "")),
-        terminology_version=raw.get("terminologyVersion"),
-        latest=bool(raw.get("latest")),
-        monthly=str(tags.get("monthly", "")).lower() == "true",
-        weekly=str(tags.get("weekly", "")).lower() == "true",
-    )
-
-
-def _is_latest_monthly_ncit(item: dict[str, Any]) -> bool:
-    return (
-        str(item.get("terminology", "")).lower() == "ncit"
-        and bool(item.get("latest"))
-        and str(_tags(item).get("monthly", "")).lower() == "true"
-    )
-
-
-def select_monthly_ncit_release(terminologies: Iterable[dict[str, Any]]) -> ReleaseInfo:
-    """Pick the one NCIt row that is both `latest` and tagged monthly, or refuse.
-
-    EVS lists every release it serves and marks `latest` per channel, so the
-    weekly and the monthly channel can each have a latest row.
-    """
-
-    candidates = [
-        release_from_terminology(item) for item in terminologies if _is_latest_monthly_ncit(item)
-    ]
-    if len(candidates) != 1:
-        versions = [candidate.version for candidate in candidates]
-        raise ReleaseResolutionError(
-            "Expected exactly one latest monthly NCIt release; "
-            f"found {len(candidates)} ({versions}). Refusing to fall back to weekly.",
-            requested="ncit monthly",
-            source="evs",
-        )
-    if not candidates[0].version:
-        raise ReleaseResolutionError(
-            "The latest monthly NCIt release has no version", requested="ncit monthly", source="evs"
-        )
-    return candidates[0]
 
 
 def _property_values(properties: list[dict[str, Any]], kind: str) -> list[Any]:
@@ -223,8 +173,15 @@ _EVS_ERRORS: dict[type[UpstreamError], type[EVSError]] = {
 }
 
 
+# What EVS says of a request pinned to a release it does not serve.
+_UNKNOWN_TERMINOLOGY = re.compile(r"Terminology not found\s*=\s*([^\s)]+)")
+
+
 def _evs_error(exc: UpstreamError) -> EVSError:
     if exc.details.get("status") == HTTPStatus.NOT_FOUND:
+        unknown = _UNKNOWN_TERMINOLOGY.search(str(exc))
+        if unknown:
+            return EVSReleaseNotFoundError(str(exc), requested=unknown[1], source="evs")
         return EVSNotFoundError(str(exc), **exc.details)
     error = next(error for kind, error in _EVS_ERRORS.items() if isinstance(exc, kind))
     return error(str(exc), **exc.details)
@@ -294,11 +251,16 @@ class EVSClient:
     def get_api_version(self) -> dict[str, Any]:
         return _object(self._get_existing("/api/v1/version"), "version response")
 
-    def get_terminologies(self) -> list[dict[str, Any]]:
-        return _object_list(self._get_existing(TERMINOLOGIES_PATH), "terminology metadata")
+    def get_terminologies(
+        self, terminology: str | None = None, *, latest: bool = False, tag: str | None = None
+    ) -> list[dict[str, Any]]:
+        """The terminology rows EVS lists; `latest` and `tag` select a channel's current release."""
 
-    def resolve_monthly_ncit_release(self) -> ReleaseInfo:
-        return select_monthly_ncit_release(self.get_terminologies())
+        params = {"terminology": terminology, "latest": "true" if latest else None, "tag": tag}
+        return _object_list(
+            self._get_existing(TERMINOLOGIES_PATH, params),
+            "terminology metadata",
+        )
 
     def get_concepts_by_codes(
         self,

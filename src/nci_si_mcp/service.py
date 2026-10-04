@@ -32,11 +32,11 @@ from .evs import (
     EVSError,
     EVSNotFoundError,
     EVSReleaseMismatchError,
+    EVSReleaseNotFoundError,
     EVSResponseError,
     EVSResponseTooLargeError,
     EVSTimeoutError,
     EVSUnavailableError,
-    ReleaseResolutionError,
     concept_path,
     normalize_concept,
     verify_release,
@@ -46,10 +46,10 @@ from .models import (
     IndexManifest,
     NcitConcept,
     ProvenanceEnvelope,
-    ReleaseInfo,
     release_ref,
     utc_now_iso,
 )
+from .release import RegistryMetadataError, ReleaseContext, resolve_evs_release
 from .traversal import (
     DEFAULT_MAX_DEPTH,
     DEFAULT_MAX_EDGES,
@@ -75,12 +75,11 @@ _ERROR_CODES: dict[type[Exception], tuple[ErrorCode, str]] = {
     InputValidationError: ("invalid_request", "Correct the argument and call again."),
     EVSNotFoundError: (
         "not_found",
-        "Check the code against the current monthly release, which `release-info` names.",
+        "Check the code against the current release, which `release-info` names.",
     ),
-    ReleaseResolutionError: (
+    EVSReleaseNotFoundError: (
         "release_not_available",
-        "Retry later: no release can be selected until EVS marks exactly one monthly NCIt "
-        "release as latest.",
+        "Retry later: EVS no longer serves the release the request was pinned to.",
     ),
     EVSReleaseMismatchError: (
         "release_mismatch",
@@ -96,6 +95,10 @@ _ERROR_CODES: dict[type[Exception], tuple[ErrorCode, str]] = {
     ),
     EVSTimeoutError: ("timeout", "Retry later, or raise NCI_SI_TIMEOUT_SECONDS."),
     EVSError: ("upstream_unavailable", "Retry later."),
+    RegistryMetadataError: (
+        "upstream_unavailable",
+        "Retry later; no registry state is used without usable metadata.",
+    ),
     NoActiveIndexError: ("internal_error", "Build the index with `index-sample` first."),
     IndexCompatibilityError: (
         "internal_error",
@@ -166,6 +169,11 @@ class NCISIService:
         )
         self.cadsr = cadsr or CadsrAdapter()
 
+    def _release(self) -> ReleaseContext:
+        """The NCIt release the configured channel names now: resolved for one call, never kept."""
+
+        return resolve_evs_release(self.evs, "ncit", self.settings.release_channel)
+
     @_enveloped
     def release_info(self) -> dict[str, Any]:
         """Report EVS, release and index status; EVS failures are nested, not fatal."""
@@ -177,7 +185,7 @@ class NCISIService:
                 return _envelope("release_info", exc)
 
         manifest = self.index.get_active_manifest()
-        selected = evs_status(lambda: self.evs.resolve_monthly_ncit_release().to_dict())
+        selected = evs_status(lambda: self._release().to_dict())
         report = {
             "evs_api": evs_status(self.evs.get_api_version),
             "selected_monthly_release": selected,
@@ -221,7 +229,7 @@ class NCISIService:
         return {"active_index": manifest.to_result()}
 
     def _fetch_for_index(
-        self, codes: list[str], release: ReleaseInfo
+        self, codes: list[str], release: ReleaseContext
     ) -> tuple[list[dict[str, Any]], set[str]]:
         """Fetch the payloads pinned to the release, and the codes EVS returned.
 
@@ -242,7 +250,7 @@ class NCISIService:
     @_enveloped
     def index_codes(self, codes: Iterable[str]) -> dict[str, Any]:
         normalized_codes = validate_ncit_codes(codes)
-        release = self.evs.resolve_monthly_ncit_release()
+        release = self._release()
         raw_concepts, returned_codes = self._fetch_for_index(normalized_codes, release)
         missing_codes = [code for code in normalized_codes if code not in returned_codes]
         if missing_codes:
@@ -313,7 +321,7 @@ class NCISIService:
     def lookup(
         self, code: str, live_only: bool = False, include_raw: bool = False
     ) -> dict[str, Any]:
-        """Read one concept from live EVS, pinned to the current monthly release.
+        """Read one concept from live EVS, pinned to the configured channel's current release.
 
         Unless `live_only` is set, the result must agree with the active index:
         a different current release is a `release_mismatch`, and when EVS is
@@ -324,13 +332,13 @@ class NCISIService:
         code = validate_ncit_code(code)
         manifest = None if live_only else self.index.get_active_manifest()
         try:
-            release = self.evs.resolve_monthly_ncit_release()
+            release = self._release()
             if manifest and manifest.release_version != release.version:
                 raise PlatformError(
                     "release_mismatch",
-                    f"The current monthly release is {release.version} but the active index "
-                    f"holds {manifest.release_version}. Rebuild the index with `index-sample`, "
-                    "or use live_only to read live EVS without consulting it.",
+                    f"The current {release.channel} release is {release.version} but the active "
+                    f"index holds {manifest.release_version}. Rebuild the index with "
+                    "`index-sample`, or use live_only to read live EVS without consulting it.",
                     requested=release.version,
                     served=[manifest.release_version],
                     source="index",
@@ -379,7 +387,7 @@ class NCISIService:
         return traverse_ncit(
             self.evs,
             start_codes,
-            self.evs.resolve_monthly_ncit_release(),
+            self._release(),
             selected,
             max_depth=max_depth,
             max_nodes=max_nodes,

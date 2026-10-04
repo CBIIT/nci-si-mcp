@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from contextlib import contextmanager
+from dataclasses import replace
 from importlib import metadata
 from pathlib import Path
 from unittest.mock import patch
@@ -13,7 +14,7 @@ from unittest.mock import patch
 from mcp.client import Client
 from mcp.shared.exceptions import MCPError
 
-from fakes import FakeEVS, concept
+from fakes import FakeEVS, concept, release
 from nci_si_mcp.config import Settings
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.errors import correlated
@@ -189,12 +190,32 @@ class ServerTest(unittest.TestCase):
         self.assertEqual([edge["target_code"] for edge in traversal["edges"]], ["C4741"])
 
         _, info = self.call("ncit_release_info")
-        self.assertEqual(info["selected_monthly_release"]["version"], "26.06e")
+        self.assertEqual(
+            info["selected_monthly_release"],
+            {
+                "terminology": "ncit",
+                "channel": "monthly",
+                "version": "26.06e",
+                "date": "2026-06-29",
+            },
+        )
         self.assertEqual(info["active_index"]["concept_count"], 1)
 
         is_error, status = self.call("cadsr_status")
         self.assertFalse(is_error)
         self.assertEqual(status["state"], "reuse_pending")
+
+    def test_release_resources_emit_the_same_public_fields_as_the_tool(self, _):
+        _, info = self.call("ncit_release_info")
+        expected = info["selected_monthly_release"]
+
+        self.assertEqual(self.read("nci-si://release/ncit/26.06e"), expected)
+        for alias in ("monthly", "latest", "monthly-latest"):
+            with self.subTest(alias=alias):
+                self.assertEqual(
+                    self.read(f"nci-si://release/ncit/{alias}")["selected_monthly_release"],
+                    expected,
+                )
 
     def test_every_tool_argument_shapes_the_result(self, _):
         self.service.index_codes(["C3262", "C4741"])
@@ -327,6 +348,18 @@ class ServerTest(unittest.TestCase):
         self.assertTrue(error["correlationId"])
         self.assertEqual(error["details"], {"requested": "99.99z", "source": "evs"})
 
+    def test_an_unavailable_release_resource_names_the_configured_weekly_channel(self, _):
+        self.service.settings = replace(self.settings, release_channel="weekly")
+        self.evs.release = release("26.07a", "2026-07-06", channel="weekly")
+
+        with self.assertRaises(MCPError) as raised:
+            self.read("nci-si://release/ncit/99.99z")
+
+        error = json.loads(str(raised.exception))["error"]
+        self.assertEqual(error["code"], "release_not_available")
+        self.assertIn("current weekly release", error["message"])
+        self.assertIn("26.07a", error["message"])
+
     def test_the_index_manifest_of_another_release_is_not_available(self, _):
         self.service.index_codes(["C3262"])
 
@@ -367,7 +400,7 @@ class ServerTest(unittest.TestCase):
     def test_the_records_of_one_resource_read_share_their_correlation_identifier(self, _):
         self.evs.errors = {
             "get_api_version": EVSUnavailableError("down"),
-            "resolve_monthly_ncit_release": EVSUnavailableError("down"),
+            "get_terminologies": EVSUnavailableError("down"),
         }
         reports = []
         release_info = self.service.release_info
@@ -393,7 +426,7 @@ class ServerTest(unittest.TestCase):
     def test_release_info_stays_a_success_when_evs_is_down(self, _):
         self.evs.errors = {
             "get_api_version": EVSUnavailableError("down"),
-            "resolve_monthly_ncit_release": EVSUnavailableError("down"),
+            "get_terminologies": EVSUnavailableError("down"),
         }
 
         is_error, info = self.call("ncit_release_info")
@@ -408,7 +441,7 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(self.read("nci-si://concept/ncit/C3262")["provenance"]["servedBy"], "live")
         for alias in ("monthly", "latest", "monthly-latest"):
             self.assertIn("active_index", self.read(f"nci-si://release/ncit/{alias}"))
-        self.assertEqual(self.read("nci-si://release/ncit/26.06e")["name"], "NCI Thesaurus 26.06e")
+        self.assertEqual(self.read("nci-si://release/ncit/26.06e")["version"], "26.06e")
         for version in ("active", "26.06e"):
             manifest = self.read(f"nci-si://index/ncit/{version}/manifest")
             self.assertEqual(manifest["concept_count"], 1)
@@ -435,7 +468,7 @@ class ServerTest(unittest.TestCase):
                     self.read(uri)
                 self.assertEqual(json.loads(str(raised.exception))["error"]["code"], code)
 
-        self.evs.errors = {"resolve_monthly_ncit_release": EVSUnavailableError("down")}
+        self.evs.errors = {"get_terminologies": EVSUnavailableError("down")}
         with self.assertRaises(MCPError) as raised:
             self.read("nci-si://release/ncit/26.06e")
         envelope = json.loads(str(raised.exception))

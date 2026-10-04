@@ -28,7 +28,9 @@ def build_parser() -> argparse.ArgumentParser:
     subcommands = parser.add_subparsers(dest="command", required=True)
 
     subcommands.add_parser("serve", help="Run the MCP stdio server")
-    subcommands.add_parser("release-info", help="Show EVS monthly release and index status")
+    subcommands.add_parser(
+        "release-info", help="Show the EVS release of the configured channel and index status"
+    )
 
     index_sample = subcommands.add_parser("index-sample", help="Index a small list of NCIt codes")
     index_sample.add_argument("codes", nargs="+", help="NCIt codes such as C3262")

@@ -128,8 +128,9 @@ def _register_tools(
     def ncit_lookup(code: str, live_only: bool = False, ctx: Any = None):
         """Look up one NCIt concept by code (C followed by digits) in live EVS.
 
-        The request is pinned to the current monthly release, which the
-        concept's `provenance.release` names; a live answer has
+        The request is pinned to the current release of the configured channel
+        (`NCI_SI_RELEASE_CHANNEL`, monthly by default), resolved afresh for this call and
+        named by the concept's `provenance.release`; a live answer has
         `provenance.source: evs_rest` and `servedBy: live`, and
         `provenance.upstream` holds the terminology and version EVS gave it. A
         code that release does not contain returns `not_found`. If EVS cannot
@@ -138,7 +139,7 @@ def _register_tools(
         `fallback` object giving the reason; otherwise the call fails with
         `upstream_unavailable`.
 
-        When the local index holds a different release than the current monthly
+        When the local index holds a different release than the current
         one, the call fails with `release_mismatch` for every code, so that
         results from two releases are never mixed. `live_only=true` skips both
         that check and the fallback.
@@ -191,7 +192,7 @@ def _register_tools(
         were left out; `exact` is false, since what lies beyond a dropped
         item was never read. Stopping at `max_depth` is no truncation.
         Every edge connects two nodes of the result. Every node and edge
-        carries a `provenance` record: the monthly release all data is read
+        carries a `provenance` record: the release of the configured channel all data is read
         from, and how the item was reached: its `depth` (an edge has that of
         the node it reaches), and for any item but the start codes the
         `relationship` `{kind, code?, name?}` (a role or association has a
@@ -218,11 +219,13 @@ def _register_tools(
 
     @tool
     def ncit_release_info(ctx: Any = None):
-        """Report the EVS API version, the current monthly NCIt release and the local index.
+        """Report the EVS API version, the configured channel's NCIt release and the local index.
 
         The call succeeds even when EVS cannot be reached: `evs_api` and
-        `selected_monthly_release` then hold an error object, and the report
-        has no `provenance`, which otherwise names the selected release. `active_index` is
+        `selected_monthly_release` (the release the configured channel names, monthly by
+        default) then hold an error object, and the report has no `provenance`, which
+        otherwise names the selected release. A selected release contains `terminology`,
+        `channel`, `version` and `date`; its pinned request path is internal. `active_index` is
         null until an index has been built. `embedding.active_index_compatible`
         says whether `ncit_search` can use the index: it is false when there is
         none or when it was built with other embedding settings.
@@ -266,11 +269,12 @@ def _register_resources(
     @mcp.resource("nci-si://release/ncit/{version}", mime_type="application/json")
     @_per_call
     def ncit_release_resource(version: str):
-        """The current monthly NCIt release.
+        """The current NCIt release of the configured channel (monthly by default).
 
         `monthly`, `latest` and `monthly-latest` return the full status report
-        of the `ncit_release_info` tool. The version of the current monthly
-        release returns that release's record; any other version is an error.
+        of the `ncit_release_info` tool, even when the configured channel is weekly.
+        The current version returns `{terminology, channel, version, date}`;
+        any other version is an error.
         """
         info = resource_result(service.release_info())
         if version in ("monthly", "latest", "monthly-latest"):
@@ -279,7 +283,7 @@ def _register_resources(
         if version == selected["version"]:
             return selected
         return release_not_available(
-            f"Release {version} is not served here; the current monthly release is "
+            f"Release {version} is not served here; the current {selected['channel']} release is "
             f"{selected['version']}. Read that release, or use `monthly`.",
             version,
             "evs",
