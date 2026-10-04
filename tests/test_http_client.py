@@ -7,6 +7,7 @@ import json
 import socket
 import threading
 import time
+import traceback
 import unittest
 from dataclasses import dataclass, field
 from email.utils import formatdate
@@ -34,6 +35,9 @@ class Reply:
     body: bytes = OK
     headers: dict = field(default_factory=dict)
     drop: bool = False
+    reason: str | None = None  # the status phrase
+    declared_length: int | None = None  # Content-Length, where it is not the body's
+    delay: float = 0
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -43,10 +47,12 @@ class Handler(BaseHTTPRequestHandler):
         if reply.drop:
             self.connection.shutdown(socket.SHUT_RDWR)
             return
-        self.send_response(reply.status)
+        time.sleep(reply.delay)
+        self.send_response(reply.status, reply.reason)
         for name, value in reply.headers.items():
             self.send_header(name, value(self.server) if callable(value) else value)
-        self.send_header("Content-Length", str(len(reply.body)))
+        length = len(reply.body) if reply.declared_length is None else reply.declared_length
+        self.send_header("Content-Length", str(length))
         self.end_headers()
         self.wfile.write(reply.body)
 
@@ -216,6 +222,13 @@ class RetryAfterTest(ServerTestCase):
 
         self.assertEqual(self.waits, [4.0])
 
+    def test_a_503_that_names_a_wait_longer_than_the_backoff_is_waited_for(self):
+        server = self.serve(Reply(503, headers={"Retry-After": "5"}))
+
+        self.client(server).get_json("/x")
+
+        self.assertEqual(self.waits, [5.0])
+
     def test_a_wait_longer_than_the_cap_is_not_waited_and_not_asked_again(self):
         server = self.serve(Reply(429, headers={"Retry-After": "3600"}))
 
@@ -226,6 +239,18 @@ class RetryAfterTest(ServerTestCase):
         self.assertEqual(
             error.details, {"surface": "evs", "attempts": 1, "status": 429, "retryAfter": "3600"}
         )
+
+    def test_a_wait_of_exactly_the_cap_is_waited_and_one_above_it_is_not(self):
+        at_cap = self.serve(Reply(429, headers={"Retry-After": "60"}))
+
+        self.client(at_cap).get_json("/x")
+
+        self.assertEqual(self.waits, [60.0])
+        above = self.serve(Reply(429, headers={"Retry-After": "61"}))
+
+        self.failure(self.client(above))
+
+        self.assertEqual(len(above.seen), 1)
 
     def test_a_429_repeated_until_the_attempts_are_used_reports_them(self):
         server = self.serve(*[Reply(429, headers={"Retry-After": "1"})] * 3)
@@ -328,16 +353,16 @@ class CredentialsTest(ServerTestCase):
 
         EVSClient(server.url, license_key=KEY).get_api_version()
 
-        self.assertEqual(
-            [headers[LICENSE_KEY_HEADER.lower()] for _, headers in server.seen], [KEY] * 2
-        )
+        # The name on the wire, spelled out: the constant is what the client sends.
+        sent = [headers["x-evsrestapi-license-key"] for _, headers in server.seen]
+        self.assertEqual(sent, [KEY] * 2)
 
     def test_a_client_without_credentials_sends_none(self):
         server = self.serve()
 
         self.client(server).get_json("/x")
 
-        self.assertNotIn(LICENSE_KEY_HEADER.lower(), server.seen[0][1])
+        self.assertNotIn("x-evsrestapi-license-key", server.seen[0][1])
 
     def test_a_redirect_to_another_host_is_refused_and_carries_no_credential(self):
         elsewhere = self.serve()
@@ -351,7 +376,12 @@ class CredentialsTest(ServerTestCase):
         self.assertIn("another origin", str(error))
 
     def test_a_redirect_to_another_scheme_is_refused_too(self):
-        server = self.serve(Reply(301, headers={"Location": "https://127.0.0.1/x"}))
+        server = self.serve(
+            Reply(
+                301,
+                headers={"Location": lambda server: f"https://127.0.0.1:{server.server_port}/x"},
+            )
+        )
 
         error = self.failure(self.client(server), UpstreamRejectedError)
 
@@ -365,6 +395,97 @@ class CredentialsTest(ServerTestCase):
 
         self.assertEqual([path for path, _ in server.seen], ["/x", "/y"])
         self.assertEqual(server.seen[1][1][LICENSE_KEY_HEADER.lower()], KEY)
+
+
+class MessagesTest(ServerTestCase):
+    def test_a_failure_is_worded_with_the_platform_the_path_and_the_status(self):
+        server = self.serve(Reply(503, reason="Busy"))
+
+        error = self.failure(self.client(server, max_attempts=1))
+
+        self.assertEqual(str(error), "EVS request failed for /x: HTTP 503 Busy")
+
+    def test_a_connection_failure_is_worded_with_its_reason(self):
+        client = self.client(self.serve(), max_attempts=1)
+
+        with patch("nci_si_mcp.http_client._open", side_effect=ConnectionResetError("reset")):
+            error = self.failure(client)
+
+        self.assertEqual(str(error), "EVS request failed for /x: reset")
+
+    def test_a_parameter_of_zero_is_sent(self):
+        server = self.serve()
+
+        self.client(server).get_json("/x", {"maxLevel": 0, "flag": ""})
+
+        self.assertEqual(server.seen[0][0], "/x?maxLevel=0&flag=")
+
+    def test_a_negative_backoff_never_reaches_sleep(self):
+        server = self.serve(Reply(503))
+
+        self.client(server, retry_backoff_seconds=-5).get_json("/x")
+
+        self.assertEqual(self.waits, [])
+
+
+class HookTest(ServerTestCase):
+    def test_a_slow_answer_is_timed(self):
+        server = self.serve(Reply(delay=0.05))
+        records = []
+        client = self.client(server)
+        client.on_request = records.append
+
+        client.get_json("/x")
+
+        self.assertGreaterEqual(records[0].elapsed_seconds, 0.04)
+
+    def test_an_oversized_and_a_truncated_response_are_named_in_the_record(self):
+        replies = {
+            "too_large": Reply(body=b"x" * 2000),
+            "incomplete_body": Reply(body=b'{"a"', declared_length=50),
+        }
+        for failure, reply in replies.items():
+            with self.subTest(failure):
+                server = self.serve(reply)
+                records = []
+                client = self.client(server, max_attempts=1)
+                client.on_request = records.append
+
+                with self.assertRaises(Exception):  # noqa: B017 - the kind is not the point
+                    client.get_json("/x")
+
+                self.assertEqual((records[0].status, records[0].failure), (200, failure))
+
+    def test_a_hook_that_raises_changes_nothing_and_is_named_by_its_type_only(self):
+        def hook(_):
+            raise RuntimeError(f"hook failed with {KEY}")
+
+        server = self.serve(Reply(503), Reply(503))
+        client = self.client(server, credentials={LICENSE_KEY_HEADER: KEY})
+        client.on_request = hook
+
+        with self.assertLogs("nci_si_mcp.http_client", level="WARNING") as logs:
+            result = client.get_json("/x")
+
+        self.assertEqual(result, {"ok": True})
+        self.assertEqual(len(server.seen), 3)
+        lines = [line for line in logs.output if "hook_failed" in line]
+        self.assertEqual(len(lines), 3)
+        self.assertTrue(all(line.endswith("error_type=RuntimeError") for line in lines))
+        self.assertNotIn(KEY, "\n".join(logs.output))
+
+    def test_a_hook_that_raises_does_not_replace_the_error_of_a_failing_call(self):
+        def hook(_):
+            raise RuntimeError("hook failed")
+
+        server = self.serve(Reply(403))
+        client = self.client(server)
+        client.on_request = hook
+
+        with self.assertLogs("nci_si_mcp.http_client", level="WARNING"):
+            error = self.failure(client, UpstreamRejectedError)
+
+        self.assertEqual(error.details["status"], 403)
 
 
 class CredentialsStayOutTest(ServerTestCase):
@@ -408,6 +529,46 @@ class CredentialsStayOutTest(ServerTestCase):
         self.assertEqual(len(records), len(self.ECHOES))
         self.assertNotIn(KEY, repr(records))
         self.assertNotIn(KEY, "\n".join(logs.output))
+
+    def test_a_status_phrase_that_echoes_the_key_is_redacted_everywhere(self):
+        server = self.serve(*[Reply(503, reason=f"Busy {KEY}")] * 3)
+        client = self.client(server, credentials={LICENSE_KEY_HEADER: KEY})
+        records = []
+        client.on_request = records.append
+
+        with self.assertLogs("nci_si_mcp", level="DEBUG") as logs:
+            error = self.failure(client)
+
+        warnings = [line for line in logs.output if line.startswith("WARNING")]
+        self.assertEqual(len(warnings), 2)
+        for line in warnings:
+            self.assertIn("surface=evs", line)
+            self.assertRegex(line, r"attempt=[12] max_attempts=3 delay_seconds=")
+        everything = [str(error), repr(error.details), repr(records), *logs.output]
+        self.assertEqual([text for text in everything if KEY in text], [])
+        self.assertIn("Busy [redacted]", str(error))
+
+    def test_no_exception_in_the_chain_holds_the_key_however_often_it_is_echoed(self):
+        twice = f"{KEY} and again {KEY}"
+        envelope = {"apiResponse": {"type": "E", "message": twice}}
+        echoes = {
+            "an error status": Reply(403, json.dumps({"message": twice}).encode(), reason=twice),
+            "a server error": Reply(503, json.dumps({"message": twice}).encode(), reason=twice),
+            "a masked envelope": Reply(body=json.dumps(envelope).encode()),
+        }
+        for label, reply in echoes.items():
+            with self.subTest(label):
+                client = self.client(
+                    self.serve(reply), max_attempts=1, credentials={LICENSE_KEY_HEADER: KEY}
+                )
+                with self.assertRaises(Exception) as raised:
+                    client.get_json("/x")
+
+                error = raised.exception
+                self.assertNotIn(KEY, str(error))
+                self.assertNotIn(KEY, "".join(traceback.format_exception(error)))
+                chain = [error.__cause__, error.__context__]
+                self.assertEqual([each for each in chain if each and KEY in repr(each)], [])
 
     def test_the_key_does_not_show_in_the_error_of_the_service(self):
         server = self.serve(self.ECHOES["an error status"])

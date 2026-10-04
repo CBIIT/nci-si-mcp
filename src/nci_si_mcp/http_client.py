@@ -204,7 +204,8 @@ class HttpClient:
     `credentials` are headers sent on every request of this client and to no other host: a
     redirect to another origin is refused. `on_request`, `sleep` and `jitter` are public so
     that the caller can set the request-log hook and a test can replace the clock and the
-    random source.
+    random source. A hook that raises is logged by its exception type and otherwise ignored:
+    it never changes the result of a call, nor the error of a failing one.
     """
 
     def __init__(
@@ -269,8 +270,19 @@ class HttpClient:
             "elapsed_seconds=%.3f correlation_id=%s",
             *(getattr(record, name) for name in record.__slots__),
         )
-        if self.on_request:
-            self.on_request(record)
+        hook = self.on_request
+        if hook:
+            self._report(hook, record)
+
+    @staticmethod
+    def _report(hook: Callable[[RequestRecord], None], record: RequestRecord) -> None:
+        """Hand a record to the hook. The hook is observability: it never breaks a call."""
+
+        try:
+            hook(record)
+        except Exception as exc:  # noqa: BLE001 - whatever a hook raises must not reach the call
+            # The type only: the message of a hook's failure may hold anything.
+            logger.warning("upstream_request_hook_failed error_type=%s", type(exc).__name__)
 
     def _read(self, response: Any, path: str, attempt: _Attempt) -> Any:
         too_large = (
@@ -297,21 +309,23 @@ class HttpClient:
             return parse_upstream_json(payload, f"{self.label} {path}")
         except PlatformError as exc:
             attempt.failure = "unusable_response"
-            # A platform can echo a header in its message. The chain is cut: it holds the
-            # message as it came.
             details = {**exc.details, "attempts": attempt.number}
-            raise PlatformError(exc.code, self._redact(exc.message), **details) from None
+            redacted = PlatformError(exc.code, self._redact(exc.message), **details)
+        # Raised outside the handler, so that no chain holds the message as the platform
+        # worded it: a platform can echo a header in its message.
+        raise redacted
 
     def _http_failure(self, exc: HTTPError, path: str, attempt: _Attempt) -> Exception:
         """The failure an HTTP error status stands for: to retry, or to report as it is."""
 
-        detail = self._redact(_error_detail(exc))
+        detail = _error_detail(exc)
         reason = " ".join(
             part
             for part in (f"HTTP {exc.code}", str(exc.reason or ""), f"({detail})" if detail else "")
             if part
         )
-        message = f"{self.label} request failed for {path}: {reason}"
+        # Everything here, the status line included, is what the platform said.
+        message = self._redact(f"{self.label} request failed for {path}: {reason}")
         retry_after = exc.headers.get("Retry-After")
         exc.close()
         if exc.code == HTTPStatus.TOO_MANY_REQUESTS or exc.code >= HTTPStatus.INTERNAL_SERVER_ERROR:
@@ -327,13 +341,17 @@ class HttpClient:
                 return self._read(response, path, attempt)
         except HTTPError as exc:
             attempt.status, attempt.failure = exc.code, "http_status"
-            raise self._http_failure(exc, path, attempt) from exc
+            failure = self._http_failure(exc, path, attempt)
         except (OSError, HTTPException) as exc:
             attempt.failure = _transport_failure(exc)
             reason = getattr(exc, "reason", None) or exc
-            raise _Transient(
-                f"{self.label} request failed for {path}: {reason}", timed_out=_timed_out(exc)
-            ) from exc
+            failure = _Transient(
+                self._redact(f"{self.label} request failed for {path}: {reason}"),
+                timed_out=_timed_out(exc),
+            )
+        # Raised outside the handlers, so that no chain carries the failure as it came: an
+        # HTTP status line can hold anything the platform chose to echo.
+        raise failure
 
     def _attempt(self, request: Request, path: str, number: int) -> Any:
         attempt = _Attempt(number)
