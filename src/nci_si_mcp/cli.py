@@ -9,7 +9,7 @@ import sys
 from typing import Any, TextIO
 
 from .config import Settings, configure_logging
-from .errors import error_response
+from .errors import PlatformError, is_error_record, serialise, with_next_step
 from .server import create_mcp
 from .service import NCISIService
 from .traversal import DEFAULT_MAX_DEPTH, DEFAULT_MAX_EDGES, DEFAULT_MAX_NODES
@@ -80,10 +80,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _print_result(value: dict[str, Any], stream: TextIO) -> int:
-    """Print a result as JSON and return the exit code: 1 for an error envelope."""
+    """Print a result as JSON and return the exit code: 1 for an error record."""
 
     print(json.dumps(value, indent=2, sort_keys=True), file=stream)
-    return 1 if value.get("isError") else 0
+    return 1 if is_error_record(value) else 0
 
 
 def _run(service: NCISIService, args: argparse.Namespace) -> dict[str, Any]:
@@ -130,15 +130,18 @@ def main() -> int:
     try:
         settings = Settings.from_env()
     except ValueError as exc:
-        return _print_result(error_response("invalid_configuration", str(exc)), errors)
+        error = PlatformError(
+            "invalid_request", with_next_step(str(exc), "Fix the environment variable and rerun.")
+        )
+        return _print_result(serialise(error), errors)
     configure_logging(settings.log_level)
     try:
         service = NCISIService(settings)
         mcp = create_mcp(settings, service=service) if serve else None
     except _STARTUP_ERRORS as exc:
         logger.debug("startup_failed", exc_info=True)
-        message = f"{type(exc).__name__}: {exc}"
-        return _print_result(error_response("startup_failed", message), errors)
+        message = with_next_step(f"{type(exc).__name__}: {exc}", "Fix the cause named and rerun.")
+        return _print_result(serialise(PlatformError("internal", message)), errors)
     if mcp:
         mcp.run()
         return 0

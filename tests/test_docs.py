@@ -18,7 +18,7 @@ from unittest.mock import patch
 from mcp.client import Client
 
 from nci_si_mcp.config import Settings
-from nci_si_mcp.errors import ErrorCode
+from nci_si_mcp.errors import ErrorClass
 from nci_si_mcp.server import create_mcp
 
 ROOT = Path(__file__).parent.parent
@@ -120,7 +120,7 @@ class DocumentationTest(unittest.TestCase):
                 self.assertEqual(type(actual)(default), actual)
 
     def test_quickstart_error_table_lists_exactly_the_error_codes(self):
-        self.assertEqual(first_column(section(QUICKSTART, "Errors")), set(get_args(ErrorCode)))
+        self.assertEqual(first_column(section(QUICKSTART, "Errors")), set(get_args(ErrorClass)))
 
     @patch("nci_si_mcp.server.configure_logging")
     def test_every_usage_example_calls_a_tool_and_arguments_the_server_has(self, _):

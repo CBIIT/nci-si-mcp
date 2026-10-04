@@ -147,7 +147,7 @@ class MainTest(unittest.TestCase):
         self.assertEqual((code, cached["source"]), (0, "active_cache"))
         self.assertIn("raw", cached)
         code, failed, _ = self.run_cli("lookup", "C3262", "--live-only", service=service)
-        self.assertEqual((code, failed["error"]), (1, "evs_unavailable"))
+        self.assertEqual((code, failed["error"]["code"]), (1, "upstream_unavailable"))
 
     def test_traverse_options_shape_the_result(self, _):
         def traverse(*options):
@@ -177,14 +177,14 @@ class MainTest(unittest.TestCase):
 
     def test_error_envelope_exits_one(self, _):
         for argv, error in (
-            (["lookup", "C999"], "concept_not_found"),
-            (["search", "tumor"], "no_active_index"),
-            (["evaluate"], "no_active_index"),
+            (["lookup", "C999"], "not_found"),
+            (["search", "tumor"], "internal"),
+            (["evaluate"], "internal"),
             (["traverse", "C3262", "--max-depth", "-1"], "invalid_request"),
         ):
             with self.subTest(argv=argv):
                 code, result, _ = self.run_cli(*argv)
-                self.assertEqual((code, result["error"]), (1, error))
+                self.assertEqual((code, result["error"]["code"]), (1, error))
 
     def test_invalid_configuration_names_the_variable(self, _):
         for variable, value in (
@@ -194,8 +194,8 @@ class MainTest(unittest.TestCase):
         ):
             with self.subTest(variable):
                 code, result, _ = self.run_cli("release-info", service="real", **{variable: value})
-                self.assertEqual((code, result["error"]), (1, "invalid_configuration"))
-                self.assertIn(variable, result["message"])
+                self.assertEqual((code, result["error"]["code"]), (1, "invalid_request"))
+                self.assertIn(variable, result["error"]["message"])
 
     def test_startup_failures_are_reported_not_raised(self, _):
         occupied = self.path / "occupied"
@@ -211,14 +211,14 @@ class MainTest(unittest.TestCase):
                 code, result, _ = self.run_cli(
                     "search", "tumor", service="real", NCI_SI_DATA_DIR=str(data_dir)
                 )
-                self.assertEqual((code, result["error"]), (1, "startup_failed"))
-                self.assertIn(str(data_dir), result["message"])
+                self.assertEqual((code, result["error"]["code"]), (1, "internal"))
+                self.assertIn(str(data_dir), result["error"]["message"])
 
     def test_value_error_at_startup_is_reported(self, _):
         with patch("nci_si_mcp.cli.NCISIService", side_effect=ValueError("bad model name")):
             code, result, _ = self.run_cli("release-info", service="real")
 
-        self.assertEqual((code, result["error"]), (1, "startup_failed"))
+        self.assertEqual((code, result["error"]["code"]), (1, "internal"))
 
     def test_serve_runs_the_server_and_keeps_stdout_for_the_protocol(self, _):
         server = MagicMock()
@@ -234,13 +234,13 @@ class MainTest(unittest.TestCase):
             code, printed, stderr = self.run_cli("serve")
 
         self.assertEqual((code, printed), (1, None))
-        self.assertEqual(json.loads(stderr)["error"], "startup_failed")
+        self.assertEqual(json.loads(stderr)["error"]["code"], "internal")
         self.assertIn("mcp is missing", stderr)
 
         code, printed, stderr = self.run_cli("serve", NCI_SI_TIMEOUT_SECONDS="0")
 
         self.assertEqual((code, printed), (1, None))
-        self.assertEqual(json.loads(stderr)["error"], "invalid_configuration")
+        self.assertEqual(json.loads(stderr)["error"]["code"], "invalid_request")
 
 
 class ProcessTest(unittest.TestCase):
@@ -264,7 +264,7 @@ class ProcessTest(unittest.TestCase):
             )
 
         self.assertEqual(process.returncode, 1)
-        self.assertEqual(json.loads(process.stdout)["error"], "invalid_request")
+        self.assertEqual(json.loads(process.stdout)["error"]["code"], "invalid_request")
         self.assertIn("lookup_failed error=invalid_request", process.stderr)
         self.assertIn("WARNING", process.stderr)
 

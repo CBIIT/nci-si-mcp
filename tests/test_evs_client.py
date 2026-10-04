@@ -6,6 +6,7 @@ from http.client import IncompleteRead
 from unittest.mock import patch
 from urllib.error import HTTPError, URLError
 
+from nci_si_mcp.errors import PlatformError
 from nci_si_mcp.evs import (
     EVSClient,
     EVSNotFoundError,
@@ -246,12 +247,41 @@ class EVSClientTest(unittest.TestCase):
         urlopen.return_value = FakeResponse(b'{"a": 123}')
         self.assertEqual(client.get_api_version(), {"a": 123})
 
-    def test_unusable_bodies_raise_response_errors(self, urlopen, sleep):
+    def test_unusable_bodies_are_upstream_failures_that_are_not_retried(self, urlopen, sleep):
         for body in (b"<html>", b"\xff"):
             with self.subTest(body=body):
+                urlopen.reset_mock()
                 urlopen.return_value = FakeResponse(body)
-                with self.assertRaises(EVSResponseError):
+
+                with self.assertRaises(PlatformError) as raised:
                     self.client().get_api_version()
+
+                self.assertEqual(raised.exception.error_class, "upstream_unavailable")
+                self.assertEqual(urlopen.call_count, 1)
+
+    def test_failures_masked_as_success_responses_are_upstream_failures(self, urlopen, sleep):
+        masked = {
+            "an HTML page": b"<!DOCTYPE html><html><body>Service unavailable</body></html>",
+            "a webMethods error": b'{"apiResponse": {"type": "E", "message": "Not allowed"}}',
+            "a FHIR OperationOutcome": (
+                b'{"resourceType": "OperationOutcome", "issue": [{"severity": "error"}]}'
+            ),
+        }
+        calls = {
+            "version": lambda client: client.get_api_version(),
+            "terminologies": lambda client: client.get_terminologies(),
+            "a concept": lambda client: client.get_concept("C1"),
+            "descendants": lambda client: client.get_descendants("C1", 1),
+        }
+        for label, body in masked.items():
+            for name, call in calls.items():
+                with self.subTest(label, call=name):
+                    urlopen.return_value = FakeResponse(body)
+
+                    with self.assertRaises(PlatformError) as raised:
+                        call(self.client())
+
+                    self.assertEqual(raised.exception.error_class, "upstream_unavailable")
 
     def test_unexpected_shapes_raise_response_errors(self, urlopen, sleep):
         client = self.client()
@@ -315,7 +345,7 @@ class EVSClientTest(unittest.TestCase):
     def test_an_empty_body_without_a_declared_length_is_invalid_not_retried(self, urlopen, sleep):
         urlopen.return_value = FakeResponse(b"")
 
-        with self.assertRaises(EVSResponseError):
+        with self.assertRaises(PlatformError):
             self.client().get_api_version()
 
         self.assertEqual(urlopen.call_count, 1)
@@ -353,7 +383,7 @@ class EVSClientTest(unittest.TestCase):
                 urlopen.reset_mock()
                 urlopen.return_value = FakeResponse(b"", headers)
 
-                with self.assertRaises(EVSResponseError):
+                with self.assertRaises(PlatformError):
                     self.client().get_api_version()
 
                 self.assertEqual(urlopen.call_count, 1)

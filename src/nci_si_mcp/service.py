@@ -12,12 +12,14 @@ from .cadsr import CadsrAdapter
 from .config import Settings
 from .embeddings import EmbeddingProvider, create_embedding_provider
 from .errors import (
-    ErrorCode,
+    ErrorClass,
     IndexCompatibilityError,
     IndexStorageError,
     InputValidationError,
     NoActiveIndexError,
-    error_response,
+    PlatformError,
+    serialise,
+    with_next_step,
 )
 from .evaluation import DEFAULT_GOLD_QUERIES, evaluate_retrieval
 from .evs import (
@@ -25,6 +27,7 @@ from .evs import (
     EVSError,
     EVSNotFoundError,
     EVSResponseError,
+    EVSResponseTooLargeError,
     EVSUnavailableError,
     ReleaseResolutionError,
     normalize_concept,
@@ -48,25 +51,56 @@ from .validation import (
 
 logger = logging.getLogger(__name__)
 
-# Expected failures and the error code each is reported under. An exception
-# gets the code of its nearest listed class. Anything else is a bug and propagates.
-_ERROR_CODES: dict[type[Exception], ErrorCode] = {
-    InputValidationError: "invalid_request",
-    EVSNotFoundError: "concept_not_found",
-    ReleaseResolutionError: "release_unresolved",
-    EVSResponseError: "evs_invalid_response",
-    EVSError: "evs_unavailable",
-    NoActiveIndexError: "no_active_index",
-    IndexCompatibilityError: "index_incompatible",
-    IndexStorageError: "index_storage_error",
+# Expected failures: each exception type, the error class it is reported under, and the
+# caller's next step, which is appended to the exception's message. An exception gets the
+# entry of its nearest listed class. Anything else is a bug and propagates. A
+# `PlatformError` is reported as it is, with the message its raiser wrote.
+_ERROR_CLASSES: dict[type[Exception], tuple[ErrorClass, str]] = {
+    InputValidationError: ("invalid_request", "Correct the argument and call again."),
+    EVSNotFoundError: (
+        "not_found",
+        "Check the code against the current monthly release, which `release-info` names.",
+    ),
+    ReleaseResolutionError: (
+        "release_unavailable",
+        "Retry later: no release can be selected until EVS marks exactly one monthly NCIt "
+        "release as latest.",
+    ),
+    EVSResponseTooLargeError: (
+        "bound_exceeded",
+        "Raise NCI_SI_EVS_MAX_RESPONSE_BYTES, or ask for fewer concepts.",
+    ),
+    EVSResponseError: (
+        "upstream_unavailable",
+        "Retry later; if it persists, check NCI_SI_EVS_BASE_URL.",
+    ),
+    EVSError: ("upstream_unavailable", "Retry later."),
+    NoActiveIndexError: ("internal", "Build the index with `index-sample` first."),
+    IndexCompatibilityError: (
+        "internal",
+        "Rebuild the index with `index-sample`, or use the embedding settings it was built with.",
+    ),
+    IndexStorageError: (
+        "internal",
+        "Check that the index file is readable and writable and that nothing else holds it.",
+    ),
 }
-_EXPECTED_ERRORS = tuple(_ERROR_CODES)
+_EXPECTED_ERRORS = (*_ERROR_CLASSES, PlatformError)
+
+
+def _platform_error(exc: Exception) -> PlatformError:
+    if isinstance(exc, PlatformError):
+        return exc
+    error_class, next_step = next(
+        _ERROR_CLASSES[cls] for cls in type(exc).__mro__ if cls in _ERROR_CLASSES
+    )
+    return PlatformError(error_class, with_next_step(str(exc), next_step))
 
 
 def _envelope(operation: str, exc: Exception) -> dict[str, Any]:
-    code: ErrorCode = next(_ERROR_CODES[cls] for cls in type(exc).__mro__ if cls in _ERROR_CODES)
-    logger.warning("%s_failed error=%s message=%s", operation, code, exc)
-    return error_response(code, str(exc))
+    error = _platform_error(exc)
+    logger.warning("%s_failed error=%s message=%s", operation, error.error_class, error.message)
+    return serialise(error)
 
 
 def _enveloped[Method: Callable[..., dict[str, Any]]](method: Method) -> Method:
@@ -113,7 +147,7 @@ class NCISIService:
         def evs_status(fetch: Callable[[], dict[str, Any]]) -> dict[str, Any]:
             try:
                 return fetch()
-            except EVSError as exc:
+            except (EVSError, PlatformError) as exc:
                 return _envelope("release_info", exc)
 
         manifest = self.index.get_active_manifest()
@@ -169,11 +203,10 @@ class NCISIService:
         raw_concepts, returned_codes = self._fetch_for_index(normalized_codes, release)
         missing_codes = [code for code in normalized_codes if code not in returned_codes]
         if missing_codes:
-            logger.warning("index_codes_failed error=concepts_missing codes=%s", missing_codes)
-            return error_response(
-                "concepts_missing",
+            raise PlatformError(
+                "not_found",
                 f"NCIt release {release.version} has no concept {', '.join(missing_codes)}; "
-                "the index was not changed",
+                "the index was not changed. Remove the codes, or check them against that release.",
                 missing_codes=missing_codes,
             )
         manifest = self.index.upsert_concepts(
@@ -231,16 +264,11 @@ class NCISIService:
         try:
             release = self.evs.resolve_monthly_ncit_release()
             if manifest and manifest.release_version != release.version:
-                logger.warning(
-                    "lookup_failed error=version_mismatch live=%s index=%s",
-                    release.version,
-                    manifest.release_version,
-                )
-                return error_response(
-                    "version_mismatch",
+                raise PlatformError(
+                    "release_unavailable",
                     f"The current monthly release is {release.version} but the active index "
-                    f"holds {manifest.release_version}. Rebuild the index, or use live_only "
-                    "to read live EVS without consulting it.",
+                    f"holds {manifest.release_version}. Rebuild the index with `index-sample`, "
+                    "or use live_only to read live EVS without consulting it.",
                     live_release_version=release.version,
                     active_index_release_version=manifest.release_version,
                 )
@@ -251,7 +279,7 @@ class NCISIService:
                 raise
             logger.warning("lookup_cache_fallback code=%s reason=%s", code, exc)
             result = cached.to_dict(include_raw=include_raw)
-            result["fallback"] = {"reason": "evs_unavailable", "message": str(exc)}
+            result["fallback"] = {"reason": "upstream_unavailable", "message": str(exc)}
             return result
 
         verify_release([raw], release.version)

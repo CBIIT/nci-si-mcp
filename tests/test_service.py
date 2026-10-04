@@ -7,14 +7,24 @@ from fakes import FakeEVS, concept, release
 from nci_si_mcp import service as service_module
 from nci_si_mcp.config import Settings
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
-from nci_si_mcp.errors import IndexBuildError
+from nci_si_mcp.errors import (
+    IndexBuildError,
+    IndexCompatibilityError,
+    IndexStorageError,
+    InputValidationError,
+    NoActiveIndexError,
+    PlatformError,
+    is_error_record,
+)
 from nci_si_mcp.evs import (
     LOOKUP_INCLUDE,
     EVSClient,
+    EVSNotFoundError,
     EVSResponseError,
     EVSResponseTooLargeError,
     EVSUnavailableError,
     ReleaseResolutionError,
+    select_monthly_ncit_release,
 )
 from nci_si_mcp.index import LocalIndex
 from nci_si_mcp.service import NCISIService
@@ -57,13 +67,13 @@ class ServiceTestCase(unittest.TestCase):
 
     def index(self, *codes):
         result = self.service.index_codes(codes or ["C3262", "C40704"])
-        self.assertNotIn("isError", result)
+        self.assertFalse(is_error_record(result), result)
         return result
 
     def assert_error(self, result, code):
-        self.assertTrue(result.get("isError"), result)
-        self.assertEqual(result["error"], code, result)
-        self.assertTrue(result["message"])
+        self.assertTrue(is_error_record(result), result)
+        self.assertEqual(result["error"]["code"], code, result)
+        self.assertTrue(result["error"]["message"])
 
 
 class LookupTest(ServiceTestCase):
@@ -82,13 +92,13 @@ class LookupTest(ServiceTestCase):
         self.assertIn("raw", self.service.lookup("C3262", include_raw=True))
 
     def test_unknown_concept_is_not_found_even_when_evs_is_otherwise_healthy(self):
-        self.assert_error(self.service.lookup("C999"), "concept_not_found")
+        self.assert_error(self.service.lookup("C999"), "not_found")
 
     def test_concept_gone_from_live_evs_is_not_served_from_the_cache(self):
         self.index()
         del self.evs.concepts["C3262"]
 
-        self.assert_error(self.service.lookup("C3262"), "concept_not_found")
+        self.assert_error(self.service.lookup("C3262"), "not_found")
 
     def test_cache_fallback_when_evs_is_unreachable_says_so(self):
         self.index()
@@ -102,22 +112,22 @@ class LookupTest(ServiceTestCase):
                 self.assertEqual(result["release_version"], "26.06e")
                 self.assertEqual(
                     result["fallback"],
-                    {"reason": "evs_unavailable", "message": "connection refused"},
+                    {"reason": "upstream_unavailable", "message": "connection refused"},
                 )
                 self.assertNotIn("raw", result)
                 self.assertIn("connection refused", logs.output[0])
 
     def test_no_fallback_without_a_cached_copy_or_with_live_only(self):
         self.evs.errors = {"get_concept": EVSUnavailableError("connection refused")}
-        self.assert_error(self.service.lookup("C3262"), "evs_unavailable")
+        self.assert_error(self.service.lookup("C3262"), "upstream_unavailable")
 
         self.index("C40704")
-        self.assert_error(self.service.lookup("C3262"), "evs_unavailable")
+        self.assert_error(self.service.lookup("C3262"), "upstream_unavailable")
 
         self.index("C3262")
-        self.assert_error(self.service.lookup("C3262", live_only=True), "evs_unavailable")
+        self.assert_error(self.service.lookup("C3262", live_only=True), "upstream_unavailable")
         self.evs.errors = {"resolve_monthly_ncit_release": EVSUnavailableError("down")}
-        self.assert_error(self.service.lookup("C3262", live_only=True), "evs_unavailable")
+        self.assert_error(self.service.lookup("C3262", live_only=True), "upstream_unavailable")
 
     def test_unresolved_release_fails_closed_instead_of_serving_the_cache(self):
         self.index()
@@ -125,7 +135,7 @@ class LookupTest(ServiceTestCase):
             "resolve_monthly_ncit_release": ReleaseResolutionError("found 2 monthly releases")
         }
 
-        self.assert_error(self.service.lookup("C3262"), "release_unresolved")
+        self.assert_error(self.service.lookup("C3262"), "release_unavailable")
 
     def test_release_rollover_is_a_version_mismatch_until_live_only(self):
         self.index()
@@ -134,9 +144,9 @@ class LookupTest(ServiceTestCase):
 
         result = self.service.lookup("C3262")
 
-        self.assert_error(result, "version_mismatch")
+        self.assert_error(result, "release_unavailable")
         self.assertEqual(
-            result["details"],
+            result["error"]["details"],
             {"live_release_version": "26.07d", "active_index_release_version": "26.06e"},
         )
         live = self.service.lookup("C3262", live_only=True)
@@ -146,7 +156,7 @@ class LookupTest(ServiceTestCase):
         self.index()
         (self.path / "nci_si.sqlite3").write_bytes(b"not a database" * 100)
 
-        self.assert_error(self.service.lookup("C3262"), "index_storage_error")
+        self.assert_error(self.service.lookup("C3262"), "internal")
         self.assertEqual(self.service.lookup("C3262", live_only=True)["source"], "live_evs")
 
     def test_concept_served_from_another_release_than_requested_is_rejected(self):
@@ -154,8 +164,8 @@ class LookupTest(ServiceTestCase):
 
         result = self.service.lookup("C3262", live_only=True)
 
-        self.assert_error(result, "evs_invalid_response")
-        self.assertIn("26.07a", result["message"])
+        self.assert_error(result, "upstream_unavailable")
+        self.assertIn("26.07a", result["error"]["message"])
 
     def test_invalid_code_is_rejected_before_any_request(self):
         for code in ("not-a-code", "C12/children", "", None):
@@ -163,13 +173,13 @@ class LookupTest(ServiceTestCase):
                 self.assert_error(self.service.lookup(code), "invalid_request")
         self.assertEqual(self.evs.calls, [])
 
-    def test_an_oversized_response_is_an_invalid_response_not_an_outage(self):
+    def test_an_oversized_response_is_a_bound_not_an_outage(self):
         self.index()
         self.evs.errors = {"get_concept": EVSResponseTooLargeError("too large")}
 
         result = self.service.lookup("C3262")
 
-        self.assert_error(result, "evs_invalid_response")
+        self.assert_error(result, "bound_exceeded")
         self.assertNotIn("fallback", result)
 
 
@@ -183,7 +193,7 @@ class IndexCodesTest(ServiceTestCase):
         self.evs = RepeatingEVS([NEOPLASM])
         self.service = self.make_service()
 
-        self.assert_error(self.service.index_codes(["C3262"]), "evs_invalid_response")
+        self.assert_error(self.service.index_codes(["C3262"]), "upstream_unavailable")
         self.assertIsNone(self.service.index.get_active_manifest())
 
     def test_indexing_fetches_pinned_batches_and_activates_the_release(self):
@@ -208,8 +218,8 @@ class IndexCodesTest(ServiceTestCase):
 
         result = self.service.index_codes(["C3262", "C999"])
 
-        self.assert_error(result, "concepts_missing")
-        self.assertEqual(result["details"], {"missing_codes": ["C999"]})
+        self.assert_error(result, "not_found")
+        self.assertEqual(result["error"]["details"], {"missing_codes": ["C999"]})
         self.assertEqual(self.service.index.get_active_manifest().to_dict(), before)
 
     def test_payload_from_another_release_than_requested_changes_nothing(self):
@@ -218,7 +228,7 @@ class IndexCodesTest(ServiceTestCase):
 
         for codes in (["C40704"], ["C3262", "C40704"]):
             with self.subTest(codes=codes):
-                self.assert_error(self.service.index_codes(codes), "evs_invalid_response")
+                self.assert_error(self.service.index_codes(codes), "upstream_unavailable")
                 self.assertEqual(self.service.index.get_active_manifest().to_dict(), before)
 
     def test_concept_that_was_not_requested_is_an_evs_fault(self):
@@ -230,7 +240,7 @@ class IndexCodesTest(ServiceTestCase):
         self.evs = ExtraEVS([NEOPLASM])
         self.service = self.make_service()
 
-        self.assert_error(self.service.index_codes(["C3262"]), "evs_invalid_response")
+        self.assert_error(self.service.index_codes(["C3262"]), "upstream_unavailable")
         self.assertIsNone(self.service.index.get_active_manifest())
 
     def test_indexed_concepts_carry_their_synonyms_and_definitions(self):
@@ -249,7 +259,7 @@ class IndexCodesTest(ServiceTestCase):
     def test_evs_outage_is_reported(self):
         self.evs.errors = {"get_concepts_by_codes": EVSUnavailableError("timed out")}
 
-        self.assert_error(self.service.index_codes(["C3262"]), "evs_unavailable")
+        self.assert_error(self.service.index_codes(["C3262"]), "upstream_unavailable")
 
 
 class SearchTest(ServiceTestCase):
@@ -283,7 +293,7 @@ class SearchTest(ServiceTestCase):
         self.assertEqual((result["hits"], result["release_version"]), ([], "26.06e"))
 
     def test_search_needs_an_index(self):
-        self.assert_error(self.service.search("tumor"), "no_active_index")
+        self.assert_error(self.service.search("tumor"), "internal")
 
     def test_each_invalid_argument_is_rejected(self):
         self.index()
@@ -302,7 +312,7 @@ class SearchTest(ServiceTestCase):
         self.index()
         other = self.make_service(provider=HashingEmbeddingProvider(dimensions=64))
 
-        self.assert_error(other.search("tumor"), "index_incompatible")
+        self.assert_error(other.search("tumor"), "internal")
         self.assertFalse(other.release_info()["embedding"]["active_index_compatible"])
         self.assertTrue(self.service.release_info()["embedding"]["active_index_compatible"])
 
@@ -357,13 +367,13 @@ class TraverseTest(ServiceTestCase):
         self.assertEqual(self.evs.calls, [])
 
     def test_failures_use_the_matching_error_code(self):
-        self.assert_error(self.service.traverse(["C999"]), "concept_not_found")
+        self.assert_error(self.service.traverse(["C999"]), "not_found")
         self.evs.errors = {"get_concepts_by_codes": EVSUnavailableError("timed out")}
-        self.assert_error(self.service.traverse(["C3262"]), "evs_unavailable")
+        self.assert_error(self.service.traverse(["C3262"]), "upstream_unavailable")
         self.evs.errors = {"resolve_monthly_ncit_release": ReleaseResolutionError("ambiguous")}
-        self.assert_error(self.service.traverse(["C3262"]), "release_unresolved")
+        self.assert_error(self.service.traverse(["C3262"]), "release_unavailable")
         self.evs.errors = {"get_concepts_by_codes": EVSResponseError("not a list")}
-        self.assert_error(self.service.traverse(["C3262"]), "evs_invalid_response")
+        self.assert_error(self.service.traverse(["C3262"]), "upstream_unavailable")
 
     def test_each_invalid_argument_is_rejected(self):
         for arguments in (
@@ -400,6 +410,16 @@ class StatusTest(ServiceTestCase):
         self.assertEqual(result["active_index"]["concept_count"], 2)
         self.assertEqual(result["embedding"]["provider"], "hashing")
 
+    def test_release_info_survives_a_masked_evs_failure(self):
+        masked = PlatformError("upstream_unavailable", "EVS answered with an HTML page.")
+        self.evs.errors = {"get_api_version": masked}
+
+        result = self.service.release_info()
+
+        self.assertFalse(is_error_record(result), result)
+        self.assert_error(result["evs_api"], "upstream_unavailable")
+        self.assertEqual(result["selected_monthly_release"]["version"], "26.06e")
+
     def test_release_info_survives_an_evs_outage(self):
         self.index("C3262")
         self.evs.errors = {
@@ -409,14 +429,14 @@ class StatusTest(ServiceTestCase):
 
         result = self.service.release_info()
 
-        self.assertNotIn("isError", result)
-        self.assert_error(result["evs_api"], "evs_unavailable")
-        self.assert_error(result["selected_monthly_release"], "release_unresolved")
-        self.assertIn("found 2", result["selected_monthly_release"]["message"])
+        self.assertFalse(is_error_record(result), result)
+        self.assert_error(result["evs_api"], "upstream_unavailable")
+        self.assert_error(result["selected_monthly_release"], "release_unavailable")
+        self.assertIn("found 2", result["selected_monthly_release"]["error"]["message"])
         self.assertEqual(result["active_index"]["release_version"], "26.06e")
 
     def test_evaluate_scores_every_mode_and_names_gold_concepts_that_are_not_indexed(self):
-        self.assert_error(self.service.evaluate(), "no_active_index")
+        self.assert_error(self.service.evaluate(), "internal")
         self.index()
 
         result = self.service.evaluate()
@@ -479,13 +499,13 @@ class FailureHandlingTest(ServiceTestCase):
             with self.subTest(operation):
                 with self.assertLogs("nci_si_mcp.service", level="WARNING"):
                     result = call()
-                self.assert_error(result, "index_storage_error")
-                self.assertIn(str(database), result["message"])
+                self.assert_error(result, "internal")
+                self.assertIn(str(database), result["error"]["message"])
 
     def test_misuse_of_the_index_is_not_disguised_as_a_result(self):
         with self.assertRaises(IndexBuildError):
             self.service.index.upsert_concepts([], None, HashingEmbeddingProvider())
-        self.assertNotIn(IndexBuildError, service_module._ERROR_CODES)
+        self.assertNotIn(IndexBuildError, service_module._ERROR_CLASSES)
 
     def test_unexpected_exceptions_are_not_disguised_as_results(self):
         class BrokenProvider(HashingEmbeddingProvider):
@@ -500,3 +520,71 @@ class FailureHandlingTest(ServiceTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ErrorModelTest(ServiceTestCase):
+    def test_each_expected_failure_maps_to_its_class_and_names_the_next_step(self):
+        failures = (
+            (EVSNotFoundError("EVS request failed: HTTP 404"), "not_found", "Check the code"),
+            (ReleaseResolutionError("found 2"), "release_unavailable", "Retry later"),
+            (EVSResponseTooLargeError("too big"), "bound_exceeded", "NCI_SI_EVS_MAX_RESPONSE"),
+            (EVSResponseError("not a list"), "upstream_unavailable", "NCI_SI_EVS_BASE_URL"),
+            (EVSUnavailableError("refused"), "upstream_unavailable", "Retry later"),
+            (InputValidationError("bad"), "invalid_request", "Correct the argument"),
+            (NoActiveIndexError("none"), "internal", "index-sample"),
+            (IndexCompatibilityError("other model"), "internal", "Rebuild the index"),
+            (IndexStorageError("locked"), "internal", "readable and writable"),
+        )
+        for exception, error_class, step in failures:
+            with self.subTest(type(exception).__name__):
+                self.evs.errors = {"get_concept": exception}
+
+                result = self.service.lookup("C3262", live_only=True)
+
+                self.assert_error(result, error_class)
+                message = result["error"]["message"]
+                self.assertTrue(message.startswith(str(exception).rstrip(".")), message)
+                self.assertIn(step, message)
+
+    def test_an_error_is_only_the_error_record(self):
+        result = self.service.search("tumor")
+
+        self.assert_error(result, "internal")
+        self.assertEqual(set(result), {"error"})
+        self.assertEqual(set(result["error"]), {"code", "message"})
+
+    def test_results_that_find_nothing_are_not_errors(self):
+        self.index()
+        empty = {
+            "search": self.service.search("zzzz", mode="bm25"),
+            "traverse": self.service.traverse(["C40704"]),
+        }
+        self.assertEqual(empty["search"]["hits"], [])
+        self.assertEqual(empty["traverse"]["edges"], [])
+        for operation, result in empty.items():
+            with self.subTest(operation):
+                self.assertFalse(is_error_record(result), result)
+
+    def test_a_release_error_names_the_releases_and_the_next_step(self):
+        self.index()
+        self.evs.release = release("26.07d", "2026-07-27")
+        self.evs.concepts["C3262"] = dict(NEOPLASM, version="26.07d")
+
+        message = self.service.lookup("C3262")["error"]["message"]
+
+        for expected in ("26.07d", "26.06e", "index-sample", "live_only"):
+            self.assertIn(expected, message)
+
+    def test_ambiguous_monthly_releases_are_listed_in_the_error(self):
+        rows = [
+            {"terminology": "ncit", "version": version, "latest": True, "tags": {"monthly": "true"}}
+            for version in ("26.06e", "26.07a")
+        ]
+        with self.assertRaises(ReleaseResolutionError) as raised:
+            select_monthly_ncit_release(rows)
+        self.evs.errors = {"resolve_monthly_ncit_release": raised.exception}
+
+        message = self.service.lookup("C3262")["error"]["message"]
+
+        self.assertIn("26.06e", message)
+        self.assertIn("26.07a", message)

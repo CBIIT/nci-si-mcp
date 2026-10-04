@@ -74,7 +74,7 @@ flowchart LR
 ```
 
 `errors.py` is used by every layer and is left out of the diagram. Also not
-drawn: `index.py` calls the concept normalization in `evs.py`, and the two
+drawn: `evs.py` parses its response bodies with `upstream.py`, `index.py` calls the concept normalization in `evs.py`, and the two
 adapters read the closed value sets in `validation.py` and the default limits
 in `traversal.py`, and `validation.py` reads the hard node limit in
 `traversal.py`.
@@ -83,9 +83,10 @@ in `traversal.py`, and `validation.py` reads the hard node limit in
 
 | Component | Responsibility | Main dependencies |
 | --- | --- | --- |
-| `cli.py` | Defines `serve`, release inspection, sample indexing, search, lookup, traversal, and evaluation commands; reports configuration and startup failures; exits 1 on an error envelope. | `NCISIService`, `server` |
-| `server.py` | Registers five MCP tools and three MCP resource templates on an `mcp` 2.x `MCPServer` and flags error envelopes as protocol errors. | `NCISIService`, optional `mcp` package |
-| `service.py` | Validates inputs, orchestrates the use cases, pins EVS requests to the monthly release, enforces release consistency with the index, falls back from live EVS to the cache in `lookup`, and maps expected failures to error envelopes. Its collaborators are injectable for testing. | EVS client, local index, traversal, embeddings, evaluation, caDSR adapter |
+| `cli.py` | Defines `serve`, release inspection, sample indexing, search, lookup, traversal, and evaluation commands; reports configuration and startup failures; exits 1 on an error record. | `NCISIService`, `server` |
+| `server.py` | Registers five MCP tools and three MCP resource templates on an `mcp` 2.x `MCPServer` and flags error records as protocol errors. | `NCISIService`, optional `mcp` package |
+| `service.py` | Validates inputs, orchestrates the use cases, pins EVS requests to the monthly release, enforces release consistency with the index, falls back from live EVS to the cache in `lookup`, and maps expected failures to error records. Its collaborators are injectable for testing. | EVS client, local index, traversal, embeddings, evaluation, caDSR adapter |
+| `upstream.py` | Parses an upstream response body as JSON content, and classifies a failure that arrived as a success (an HTML page, a webMethods `apiResponse.type` `E` envelope, a FHIR `OperationOutcome` error, invalid JSON) as `upstream_unavailable` before any caller sees it. | `errors.py` |
 | `evs.py` | Calls EVS REST endpoints with bounded retries and response-size limits, classifies failures (unreachable, not found, unusable response), resolves exactly one latest monthly NCIt release, and normalizes EVS payloads. | Python `urllib`, shared models, NCI EVS API |
 | `index.py` | Migrates and transactionally maintains the release manifest, normalized concepts, FTS search text, vectors, and vector LSH buckets; performs BM25/vector/hybrid search. | SQLite FTS5, retrieval utilities, embedding provider, `validation.py`, concept normalization in `evs.py` |
 | `retrieval.py` | Implements tokenization, the dot product used as cosine similarity for unit vectors, and min-max normalization. | Python standard library |
@@ -96,7 +97,7 @@ in `traversal.py`, and `validation.py` reads the hard node limit in
 | `cadsr.py` | Exposes an explicit `reuse_pending` boundary; no caDSR search or fabricated CDE results are implemented. | Shared models |
 | `config.py` | Loads EVS, retry, batching, logging, data-directory, and embedding settings from environment variables and validates them; whether the data directory is usable shows only when the index is opened. | Environment, `embeddings.py` |
 | `validation.py` | Defines the closed value sets (search modes, directions, edge types), normalizes NCIt codes, and validates search and traversal inputs. | Shared errors, hard node limit in `traversal.py` |
-| `errors.py` | Defines the validation and index errors, the error codes, and the serialized error envelope. | Python standard library |
+| `errors.py` | Defines the validation and index errors, `PlatformError` with the six error classes, and `serialise`, the one function that builds the error record. | Python standard library |
 
 ## Primary flows
 
@@ -133,16 +134,16 @@ in `traversal.py`, and `validation.py` reads the hard node limit in
 ### Lookup
 
 1. The service resolves the current monthly release. If the index holds a
-   different release, lookup fails with `version_mismatch` unless `live_only` is
+   different release, lookup fails with `release_unavailable` unless `live_only` is
    set, so that lookups and searches never mix releases. With `live_only` the
    call does not read the index; the CLI still opens it at startup.
 2. The concept is requested from live EVS, pinned to that release, and the
    release of the answer is verified. A code the release does not contain is
-   `concept_not_found`.
+   `not_found`.
 3. If EVS cannot be reached, lookup returns the concept from the index unless
    `live_only` is set. The result then has `source: active_cache` and a
    `fallback` object with the reason. An ambiguous monthly release is not an
-   outage: lookup fails with `release_unresolved` and does not use the cache.
+   outage: lookup fails with `release_unavailable` and does not use the cache.
 
 ### Traverse
 
@@ -266,14 +267,16 @@ not MCP tools. QUICKSTART.md lists the error codes.
 - `tests/test_evs.py`: monthly-release selection, release pinning, and concept provenance.
 - `tests/test_evs_client.py`: retries and backoff, failure classification, response limits, payload shapes, and request URLs.
 - `tests/test_index.py`: upserts and release replacement, rollback, embedding compatibility, migrations, and BM25/vector/hybrid search.
-- `tests/test_service.py`: lookup (live, fallback, mismatch, not found), indexing, search, traversal, status, and the mapping of failures to error codes.
+- `tests/test_service.py`: lookup (live, fallback, mismatch, not found), indexing, search, traversal, status, and the mapping of failures to error classes and next steps.
+- `tests/test_errors.py`: the error record, its closed set of classes, and the empty-result rule.
+- `tests/test_upstream.py`: failures masked as success responses (HTML, webMethods, FHIR), also through the EVS client.
 - `tests/test_traversal.py`: edge-type selection, batching, depth/node/edge limits, descendants, deduplication, and graph integrity.
 - `tests/test_validation.py`: public input validation and embedding configuration.
 - `tests/test_config.py`: environment parsing and settings validation.
 - `tests/test_evaluation.py`: ranking metrics.
 - `tests/test_cli.py`: argument parsing, command dispatch, exit codes, and startup failures.
 - `tests/test_server.py`: tool and resource registration, results, and protocol-level errors over an in-process MCP session.
-- `tests/test_docs.py`: the settings, error codes and modules the documentation names against the code.
+- `tests/test_docs.py`: the settings, error classes and modules the documentation names against the code.
 - `tests/test_quality_gates.py`: the complexity and test-quality gates in `scripts/validation`.
 - `tests/test_release_config.py`: the pull request title check against the release configuration.
 - `acceptance/`: the behavioural acceptance suite, which tests the MCP tool surface through a fixture upstream ([acceptance/README.md](acceptance/README.md)).

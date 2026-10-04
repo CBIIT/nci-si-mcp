@@ -8,7 +8,7 @@ from typing import Any
 
 from . import __version__
 from .config import Settings, configure_logging
-from .errors import error_response
+from .errors import PlatformError, is_error_record, serialise
 from .service import NCISIService
 from .traversal import DEFAULT_MAX_DEPTH, DEFAULT_MAX_EDGES, DEFAULT_MAX_NODES
 from .validation import Direction, EdgeType, SearchMode
@@ -17,9 +17,10 @@ INSTRUCTIONS = (
     "NCI Thesaurus (NCIt) lookup and relationship traversal against live NCI EVS, "
     "plus text search over a small locally indexed sample of concepts. Concept, search "
     "and traversal results name the NCIt monthly release they came from. A failed tool "
-    "call is flagged as an error. Failures the server handles carry a JSON object with "
-    "isError, error (a stable code), message and optional details; arguments rejected "
-    "by the tool schema are reported as plain text."
+    "call is flagged as an error. Failures the server handles carry the error record "
+    "{error: {code, message, details?}}: code is one of invalid_request, not_found, "
+    "release_unavailable, upstream_unavailable, bound_exceeded or internal, and message "
+    "names the next step; arguments rejected by the tool schema are reported as plain text."
 )
 
 
@@ -41,15 +42,19 @@ def create_mcp(settings: Settings | None = None, *, service: NCISIService | None
     mcp = MCPServer("nci-si-mcp", instructions=INSTRUCTIONS, version=__version__)
 
     def tool_result(result: dict[str, Any]) -> Any:
-        """Flag an error envelope as an error at the protocol level as well."""
+        """Flag an error record as an error at the protocol level as well."""
 
-        if result.get("isError"):
+        if is_error_record(result):
             text = json.dumps(result, indent=2)
-            return CallToolResult(content=[TextContent(type="text", text=text)], is_error=True)
+            return CallToolResult(
+                content=[TextContent(type="text", text=text)],
+                structured_content=result,
+                is_error=True,
+            )
         return result
 
     def resource_result(result: dict[str, Any]) -> dict[str, Any]:
-        if result.get("isError"):
+        if is_error_record(result):
             raise ResourceError(json.dumps(result))
         return result
 
@@ -102,13 +107,13 @@ def _register_tools(
 
         The request is pinned to the current monthly release, and a live answer
         has `source: live_evs`. A code that release does not contain returns
-        `concept_not_found`. If EVS cannot be reached and the concept is in the
+        `not_found`. If EVS cannot be reached and the concept is in the
         local index, it is served from there instead, with
         `source: active_cache` and a `fallback` object giving the reason;
-        otherwise the call fails with `evs_unavailable`.
+        otherwise the call fails with `upstream_unavailable`.
 
         When the local index holds a different release than the current monthly
-        one, the call fails with `version_mismatch` for every code, so that
+        one, the call fails with `release_unavailable` for every code, so that
         results from two releases are never mixed. `live_only=true` skips both
         that check and the fallback. `include_raw` adds the full EVS payload.
         """
@@ -156,7 +161,7 @@ def _register_tools(
         at `max_depth` does not set `truncated`.
         Every edge connects two nodes of the result, and all data is read from
         the monthly release named in `release_version`. A start code that
-        release does not contain returns `concept_not_found`.
+        release does not contain returns `not_found`.
         """
         return tool_result(
             service.traverse(
@@ -218,10 +223,13 @@ def _register_resources(
         if version == selected["version"]:
             return selected
         return resource_result(
-            error_response(
-                "release_not_active",
-                f"Release {version} is not the current monthly release {selected['version']}",
-                requested_version=version,
+            serialise(
+                PlatformError(
+                    "release_unavailable",
+                    f"Release {version} is not served here; the current monthly release is "
+                    f"{selected['version']}. Read that release, or use `monthly`.",
+                    requested_version=version,
+                )
             )
         )
 
@@ -240,9 +248,13 @@ def _register_resources(
         if version in ("active", manifest["release_version"]):
             return manifest
         return resource_result(
-            error_response(
-                "index_not_active",
-                f"The local index holds release {manifest['release_version']}, not {version}",
-                requested_version=version,
+            serialise(
+                PlatformError(
+                    "release_unavailable",
+                    f"The local index holds release {manifest['release_version']}, not "
+                    f"{version}. Read that release or `active`, or rebuild the index with "
+                    "`index-sample`.",
+                    requested_version=version,
+                )
             )
         )

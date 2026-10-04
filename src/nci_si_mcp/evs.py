@@ -14,6 +14,7 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from .models import NcitConcept, ReleaseInfo, utc_now_iso
+from .upstream import parse_upstream_json
 
 logger = logging.getLogger(__name__)
 
@@ -277,10 +278,7 @@ class EVSClient:
         if len(payload) < declared_length:
             # http.client returns a body cut short by a dropped connection without raising.
             raise IncompleteRead(payload, declared_length - len(payload))
-        try:
-            return json.loads(payload.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise EVSResponseError(f"EVS returned invalid JSON for {path}: {exc}") from exc
+        return parse_upstream_json(payload, f"EVS {path}")
 
     def _request(self, path: str, params: dict[str, Any] | None) -> Request:
         query = ""
