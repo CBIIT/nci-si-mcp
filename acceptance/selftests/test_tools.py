@@ -6,7 +6,7 @@ import pytest
 from mcp.shared.exceptions import MCPError
 from mcp_types import METHOD_NOT_FOUND
 
-from nci_si_acceptance.spec import TOOLS
+from nci_si_acceptance.spec import TOOLS, Listing
 from nci_si_acceptance.tools import NOT_IMPLEMENTED, Tools, load_toolmap, translate
 
 TOOLMAP = {
@@ -274,6 +274,8 @@ READS = {
     "json": read_result('{"code": "C4817"}'),
     "prose": read_result("not json", mime="text/plain"),
     "bare": read_result(fields=()),
+    "parameters": read_result('{"a": 1}', mime="Application/JSON; charset=utf-8"),
+    "typeless": read_result("{}", mime=None),
 }
 
 
@@ -290,8 +292,25 @@ def test_a_resource_read_gives_its_json_its_mime_type_and_the_hint_it_carries():
     assert not tools.read_resource("bare").carried
 
 
-def test_the_listings_of_resources_and_of_templates_are_one_set_of_uris():
-    assert Tools(Surface(), {}).listed_resources() == {"cadsr://a/b", "ncit://c/{x}"}
+def test_a_mime_type_is_read_on_its_base_without_parameters_or_case():
+    tools = Tools(Surface(), {})
+
+    assert tools.read_resource("parameters").mime_types == ("application/json",)
+    assert tools.read_resource("typeless").mime_types == ("",)
+
+
+def test_the_concrete_resources_and_the_templates_are_listed_each_by_its_own_method():
+    listed = Tools(Surface(), {}).listed_resources()
+
+    assert listed == Listing({"cadsr://a/b"}, {"ncit://c/{x}"})
+    assert (listed.uris, listed.templates) == ({"cadsr://a/b"}, {"ncit://c/{x}"})
+
+
+def test_the_refusal_of_a_read_is_what_the_server_said_and_content_is_no_refusal():
+    refusing, giving = Tools(Surface(refusal=True), {}), Tools(Surface(), {})
+
+    assert refusing.resource_refusal("json") == "Method not found"
+    assert giving.resource_refusal("json") is None
 
 
 def test_the_prompts_of_a_server_are_listed_and_got_by_name_with_their_arguments():
@@ -307,6 +326,7 @@ def test_the_prompts_of_a_server_are_listed_and_got_by_name_with_their_arguments
         ("prompts/list", lambda tools: tools.list_prompts()),
         ("prompts/get", lambda tools: tools.get_prompt("p", {})),
         ("resources/list", lambda tools: tools.listed_resources()),
+        ("resources/templates/list", lambda tools: tools.list_resource_templates()),
         ("resources/read", lambda tools: tools.read_resource("json")),
     ],
 )

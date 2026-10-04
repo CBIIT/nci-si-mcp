@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 import yaml
 
@@ -71,6 +71,24 @@ def uri_variables(template: str) -> list[str]:
     """The variables of a URI template, in order: {release} and {code} of a concept's."""
 
     return re.findall(r"\{(\w+)\}", template)
+
+
+class Listing(NamedTuple):
+    """What resources/list and resources/templates/list name: the concrete resources, which have
+    no variable in their URI, and the URI templates, which have (M5.1)."""
+
+    uris: set[str]
+    templates: set[str]
+
+
+def resources_listed(profile: str) -> Listing:
+    """What a server of `profile` lists of the resources it serves."""
+
+    stated = [uri for resource in resources_of(profile).values() for uri in resource["uri"]]
+    return Listing(
+        {uri for uri in stated if not uri_variables(uri)},
+        {uri for uri in stated if uri_variables(uri)},
+    )
 
 
 def resource_call(resource: str, template: str, values: dict[str, str]) -> tuple[str, dict]:

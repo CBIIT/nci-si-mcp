@@ -35,7 +35,7 @@ import pytest
 import yaml
 from mcp.shared.exceptions import MCPError
 
-from nci_si_acceptance.spec import TOOLS
+from nci_si_acceptance.spec import TOOLS, Listing
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -177,15 +177,23 @@ def _content(result: types.CallToolResult) -> Any:
 
 @dataclass(frozen=True, slots=True)
 class Read:
-    """What resources/read gave for a URI: the MIME type of each content, the first content as
-    JSON (or its text), and the caching hint the result carries, with whether both fields of it
-    came on the wire (an omitted one is read as its default)."""
+    """What resources/read gave for a URI: the base MIME type of each content (its parameters,
+    such as a charset, dropped), the first content as JSON (or its text), and the caching hint
+    the result carries, with whether both fields of it came on the wire (an omitted one is read
+    as its default)."""
 
     mime_types: tuple[str | None, ...]
     content: Any
     ttl_ms: int
     cache_scope: str
     carried: bool
+
+
+def _base_type(mime: str | None) -> str:
+    """A MIME type without its parameters, in lower case: application/json for
+    "application/json; charset=utf-8"."""
+
+    return (mime or "").partition(";")[0].strip().lower()
 
 
 def _read(result: types.ReadResourceResult) -> Read:
@@ -196,7 +204,7 @@ def _read(result: types.ReadResourceResult) -> Read:
     except ValueError:
         content = text
     return Read(
-        tuple(each.mime_type for each in result.contents),
+        tuple(_base_type(each.mime_type) for each in result.contents),
         content,
         result.ttl_ms,
         result.cache_scope,
@@ -262,19 +270,38 @@ class Tools:
     def get_prompt(self, name: str, arguments: dict[str, str]) -> types.GetPromptResult:
         return _answered("prompts/get", lambda: self._session.get_prompt(name, arguments))
 
-    def listed_resources(self) -> set[str]:
-        """The URIs and URI templates resources/list and resources/templates/list name."""
+    def list_resources(self) -> types.ListResourcesResult:
+        """resources/list, every page; a server without resources fails the test."""
 
-        resources = _answered("resources/list", self._session.list_resources)
-        templates = _answered("resources/templates/list", self._session.list_resource_templates)
-        return {each.uri for each in resources.resources} | {
-            each.uri_template for each in templates.resource_templates
-        }
+        return _answered("resources/list", self._session.list_resources)
+
+    def list_resource_templates(self) -> types.ListResourceTemplatesResult:
+        """resources/templates/list, every page."""
+
+        return _answered("resources/templates/list", self._session.list_resource_templates)
+
+    def listed_resources(self) -> Listing:
+        """The concrete URIs resources/list names and the URI templates
+        resources/templates/list names, each from its own method."""
+
+        return Listing(
+            {each.uri for each in self.list_resources().resources},
+            {each.uri_template for each in self.list_resource_templates().resource_templates},
+        )
 
     def read_resource(self, uri: str) -> Read:
         """resources/read of `uri`; a refusal fails the test."""
 
         return _read(_answered("resources/read", lambda: self._session.read_resource(uri)))
+
+    def resource_refusal(self, uri: str) -> str | None:
+        """What the server says in refusing resources/read of `uri`; None where it gave content."""
+
+        try:
+            self._session.read_resource(uri)
+        except MCPError as refusal:
+            return refusal.message
+        return None
 
     def implemented_as(self, name: str) -> str | None:
         """The tool that answers for `name`: itself, its stand-in, or none."""

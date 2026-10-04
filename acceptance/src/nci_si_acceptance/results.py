@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 # The caDSR export folder's listing, and the export whose date is the registry's state.
 EXPORT_LISTING = "recorded/cadsr-ftp/cde-xml-listing.json"
 EXPORT = "releasedCDEsXML-OD.zip"
+# The release of a caDSR item while caDSR publishes no registry release: the registry alone (X-21).
+UNPINNED_REGISTRY = {"registry": "cadsr"}
 
 
 def export_date(listing: str) -> str:
@@ -69,13 +71,48 @@ def _valid(value: Any, field: dict[str, Any]) -> bool:
     return value is not None and value in field.get("values", [value])
 
 
+def _parsed(value: Any) -> datetime | None:
+    try:
+        return datetime.fromisoformat(value)
+    except TypeError, ValueError:
+        return None
+
+
+def is_iso8601(value: Any) -> bool:
+    """Whether `value` is an ISO-8601 date or timestamp."""
+
+    return _parsed(value) is not None
+
+
 def is_timestamp(value: Any) -> bool:
     """Whether `value` is an ISO-8601 timestamp with a time zone."""
 
-    try:
-        return datetime.fromisoformat(value).tzinfo is not None
-    except TypeError, ValueError:
-        return False
+    parsed = _parsed(value)
+    return parsed is not None and parsed.tzinfo is not None
+
+
+def is_count(value: Any) -> bool:
+    """Whether `value` is a positive integer."""
+
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+
+def is_name(value: Any) -> bool:
+    """Whether `value` is a non-empty string."""
+
+    return isinstance(value, str) and value != ""
+
+
+# M2.2: governed content that no release pins is cached briefly, at most this long.
+SHORT_TTL = 3_600_000
+
+
+def hint_fits(ttl: Any, scope: Any, pinned: bool) -> bool:
+    """Whether a caching hint is of the class M2.2 and M2.3 give governed content: public, and
+    ttlMs above 0, any length for release-pinned content, at most SHORT_TTL for content that no
+    release pins."""
+
+    return is_count(ttl) and (pinned or ttl <= SHORT_TTL) and scope == "public"
 
 
 def release_of(item: Any) -> tuple[Any, Any]:
@@ -106,10 +143,13 @@ def identity(item: Any) -> Any:
     if "sourceCode" in item:
         relationship = (item.get("provenance") or {}).get("relationship") or {}
         return item.get("sourceCode"), item.get("targetCode"), relationship.get("code")
-    if "code" not in item and "terminology" not in item:
-        return _registry_identity(item)
+    # A concept carries a version too, so a code decides first.
+    if "code" in item:
+        return item.get("terminology"), item["code"]
     # A record of a release has a version in place of a code.
-    return item.get("terminology"), item.get("code", item.get("version"))
+    if "terminology" in item:
+        return item["terminology"], item.get("version")
+    return _registry_identity(item)
 
 
 def _registry_identity(item: dict[str, Any]) -> Any:

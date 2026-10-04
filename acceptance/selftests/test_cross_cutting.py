@@ -22,6 +22,7 @@ BACKOFF = "test_a_rate_limited_request_is_asked_once_more_after_the_wait"
 PAGED = "test_a_cursor_continues_with_the_next_items_of_the_same_release"
 PASSED_THROUGH = "test_licence_text_the_platform_gives_with_an_item_is_passed_through_unchanged"
 NOT_GIVEN = "test_no_item_carries_licence_text_the_platform_did_not_give_with_it"
+CODES = "test_codes_are_bare_with_their_terminology_beside_them"
 OFF_FORM = "test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it"
 # Each defect of the compliant server, and the cross-cutting test whose every case must fail.
 DEFECTS = [
@@ -33,7 +34,7 @@ DEFECTS = [
     ("bad-timestamp", "test_every_item_carries_its_provenance"),
     ("no-polarity", "test_an_item_reached_by_traversal_says_how"),
     ("nothing-reached", "test_an_item_reached_by_traversal_says_how"),
-    ("prefixed-code", "test_codes_are_bare_with_their_terminology_beside_them"),
+    ("prefixed-code", CODES),
     ("repeated-request", "test_no_upstream_request_is_repeated_within_a_call"),
     ("asks-nothing", "test_no_upstream_request_is_repeated_within_a_call"),
     ("uncached-result", "test_a_release_pinned_result_may_be_cached"),
@@ -104,12 +105,13 @@ DEFECTS = [
 OTHER_GROUPS = set(TOOLS) - profile_tools("evs")
 
 
-def _served(found):
-    """The outcomes of the cases of tools the compliant server serves: a case's id names its
-    tool among its dash-separated parts (`get_code_map`, `-1-get_code_map-limit`)."""
+def _served(found, ignoring=frozenset()):
+    """The outcomes of the cases of tools the compliant server serves, less those of `ignoring`:
+    a case's id names its tool among its dash-separated parts (`get_code_map`,
+    `-1-get_code_map-limit`)."""
 
     def other(case):
-        return OTHER_GROUPS & set(case.partition("[")[2].rstrip("]").split("-"))
+        return (OTHER_GROUPS | ignoring) & set(case.partition("[")[2].rstrip("]").split("-"))
 
     return {case: outcome for case, outcome in found.items() if not other(case)}
 
@@ -191,11 +193,15 @@ def test_only_a_call_without_a_pinned_form_may_answer_an_unknown_release_with_th
     assert set(found.values()) == {"passed", "failed"}
 
 
+# A release record holds no code, so a defect in the codes of an answer shows in no case of it.
+CODELESS = {CODES: {"resolve_release"}}
+
+
 @pytest.mark.parametrize(("defect", "test"), DEFECTS)
 def test_each_cross_cutting_test_fails_on_its_own_defect(outcomes, monkeypatch, defect, test):
     monkeypatch.setenv("COMPLIANT_SERVER_DEFECT", defect)
 
-    failing = _served(outcomes(CROSS_CUTTING, "-k", test))
+    failing = _served(outcomes(CROSS_CUTTING, "-k", test), CODELESS.get(test, frozenset()))
 
     assert failing
     assert set(failing.values()) == {"failed"}

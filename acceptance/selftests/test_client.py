@@ -16,7 +16,7 @@ from nci_si_acceptance.client import (
     server_environment,
 )
 from nci_si_acceptance.fixture_server import UPSTREAM_VARIABLES, FixtureServer, FixtureSet
-from nci_si_acceptance.spec import PROMPTS
+from nci_si_acceptance.spec import PROMPTS, resources_listed
 
 # The furnished server, started from the environment the tests run in.
 BASELINE_SERVER = [sys.executable, "-m", "nci_si_mcp.cli", "serve"]
@@ -136,6 +136,25 @@ def test_a_session_lists_and_gets_prompts_and_lists_and_reads_resources(tmp_path
         "cadsr://crosswalk/crdc",
     }
     assert "ncit://concept/{release}/{code}" in {each.uri_template for each in templates}
+
+
+def test_a_session_follows_the_cursor_of_every_list_it_reads_to_the_last_page(tmp_path):
+    command = [sys.executable, str(COMPLIANT_SERVER)]
+    with FixtureServer(FixtureSet({}, {})) as upstream:
+        environment = server_environment("fixture", tmp_path, upstream.url)
+        # One item to a page: without the cursor a list would hold its first item only.
+        environment |= {"COMPLIANT_SERVER_PROFILE": "unified", "COMPLIANT_SERVER_PAGE_SIZE": "1"}
+        with open_session(command, environment) as session:
+            prompts = session.list_prompts()
+            resources = session.list_resources()
+            templates = session.list_resource_templates()
+
+    assert sorted(prompt.name for prompt in prompts.prompts) == sorted(PROMPTS)
+    assert len(resources.resources) == len(resources_listed("unified").uris)
+    assert len(templates.resource_templates) == len(resources_listed("unified").templates)
+    # The list is whole: no cursor is left to follow, and the hint is the first page's.
+    assert [each.next_cursor for each in (prompts, resources, templates)] == [None] * 3
+    assert prompts.ttl_ms > 0
 
 
 def test_a_server_that_never_answers_ends_the_session_with_a_timeout(monkeypatch, tmp_path):

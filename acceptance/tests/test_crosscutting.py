@@ -17,7 +17,9 @@ from nci_si_acceptance.craft import LICENCE_FIELD
 from nci_si_acceptance.fixture_server import FORM_TYPE
 from nci_si_acceptance.results import (
     CARRIED,
+    UNPINNED_REGISTRY,
     error_code,
+    hint_fits,
     identity,
     is_timestamp,
     pinned_release,
@@ -210,11 +212,8 @@ def test_a_release_pinned_result_may_be_cached(tools, pinned, name):
 
 # The caDSR calls: each takes a registry release, and none gives one (X-21).
 REGISTRY = [name for name in CALLS if "registryRelease" in parameters(name)[0]]
-UNPINNED_REGISTRY = {"registry": "cadsr"}
 # A registry release caDSR does not publish: it publishes none (registry-releases.json: 404).
 UNPUBLISHED = "2026.07.02"
-# M2.2: governed content no release pins is cached briefly, at most this long.
-SHORT_TTL = 3_600_000
 NOT_FOUND = 404
 
 
@@ -254,9 +253,7 @@ def test_a_cadsr_result_is_cached_as_what_it_holds_says(tools, pinned, name):
     if TOOLS[name].get("computed"):
         assert (ttl, scope) == (0, "private")
     else:
-        assert isinstance(ttl, int)
-        assert 0 < ttl <= SHORT_TTL
-        assert scope == "public"
+        assert hint_fits(ttl, scope, pinned=False), (ttl, scope)
 
 
 def _schema_errors(tools, result):

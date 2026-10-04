@@ -17,6 +17,7 @@ from nci_si_acceptance.spec import (
     RESOURCES,
     SPEC,
     TOOLS,
+    Listing,
     alternatives,
     defaults,
     items_of,
@@ -24,6 +25,7 @@ from nci_si_acceptance.spec import (
     profile_tools,
     prompts_of,
     resource_call,
+    resources_listed,
     resources_of,
     tools_named,
     uri_variables,
@@ -241,10 +243,59 @@ def test_a_uri_template_belongs_to_one_resource_and_a_resource_has_its_mime_type
     assert {resource["mime"] for resource in RESOURCES.values()} == {"application/json"}
 
 
+@pytest.mark.parametrize("key", sorted(RESOURCES))
+def test_a_resource_states_the_class_of_what_it_holds_and_what_it_is_compared_on(key):
+    resource = RESOURCES[key]
+
+    # EVS content is pinned by the release in its URI; caDSR registry content is pinned by none.
+    assert resource["holds"] == ("release-pinned" if resource["group"] == "evs" else "unpinned")
+    assert resource.get("compared", "identity and release") in ("identity", "identity and release")
+    # What the provenance adds to X-7 is fields of the record, with values of their closed sets.
+    stated = resource.get("provenance", {})
+    fields = RECORDS["provenance"]["fields"]
+    assert [name for name in stated if name not in fields] == []
+    assert [name for name, value in stated.items() if value not in fields[name]["values"]] == []
+
+
+def test_the_export_folder_listing_is_a_source_of_provenance_of_the_registry_resource():
+    assert RESOURCES["registry"]["provenance"]["source"] == "cadsr_export"
+    assert "cadsr_export" in RECORDS["provenance"]["fields"]["source"]["values"]
+
+
+def test_the_manifest_is_the_index_s_own_record_with_its_embedding_and_build_time():
+    fields = RECORDS["index_manifest"]["fields"]
+
+    assert set(fields) == {
+        "terminology",
+        "version",
+        "concepts",
+        "embedding",
+        "builtAt",
+        "provenance",
+    }
+    assert RESOURCES["index_manifest"]["compared"] == "identity"
+
+
 def test_a_profile_serves_the_resources_of_its_group_and_unified_serves_all_six():
     assert set(resources_of("evs")) == {"concept", "release", "index_manifest"}
     assert set(resources_of("cadsr")) == {"data_element", "registry", "crosswalk"}
     assert resources_of("unified") == RESOURCES
+
+
+def test_resources_and_templates_are_listed_apart_by_whether_the_uri_has_a_variable():
+    assert resources_listed("cadsr") == Listing(
+        {"cadsr://registry/release", "cadsr://crosswalk/crdc"},
+        {"cadsr://data-element/{publicId}", "cadsr://data-element/{publicId}/{version}"},
+    )
+    assert resources_listed("evs") == Listing(
+        set(),
+        {
+            "ncit://concept/{release}/{code}",
+            "ncit://release/{version}",
+            "ncit://index/manifest/{release}",
+        },
+    )
+    assert resources_listed("unified").uris == resources_listed("cadsr").uris
 
 
 @pytest.mark.parametrize(
@@ -311,3 +362,20 @@ def test_the_names_a_text_holds_are_the_required_tools_once_each_in_order():
     text = "Call get_form, then resolve_release, get_form again, ncit_traverse and plain_words."
 
     assert tools_named(text) == ["get_form", "resolve_release"]
+
+
+@pytest.mark.parametrize(
+    ("text", "names_get_form"),
+    [
+        ("Xget_form", False),
+        ("get_form_", False),
+        ("get_form2", False),
+        ("GET_FORM", False),
+        ("get_form_x", False),
+        ("get_form", True),
+        ("get_form.", True),
+        ("**get_form**", True),
+    ],
+)
+def test_a_word_names_a_tool_only_as_a_whole_word(text, names_get_form):
+    assert (tools_named(text) == ["get_form"]) is names_get_form

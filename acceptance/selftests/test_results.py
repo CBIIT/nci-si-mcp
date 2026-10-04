@@ -12,7 +12,11 @@ from nci_si_acceptance.results import (
     element_ids,
     error_code,
     export_date,
+    hint_fits,
     identity,
+    is_count,
+    is_iso8601,
+    is_name,
     is_timestamp,
     pinned_release,
     provenance_of,
@@ -67,6 +71,8 @@ ELEMENT = {"publicId": "2200604", "version": "4", "longName": "Person Sex Text T
         # EVS items keep their identities.
         ({"terminology": "ncit", "code": "C4817", "name": "Ewing Sarcoma"}, ("ncit", "C4817")),
         ({"terminology": "ncit", "release": "26.09d"}, ("ncit", None)),
+        # A concept carries its release's version beside its code, and is identified by the code.
+        ({"terminology": "ncit", "code": "C4817", "version": "26.09d"}, ("ncit", "C4817")),
         # A record of a release has a version in place of a code, and the registry's state is
         # known by whether it publishes a release and its date.
         ({"terminology": "ncit", "version": "26.09d", "channel": "monthly"}, ("ncit", "26.09d")),
@@ -91,6 +97,14 @@ ELEMENT = {"publicId": "2200604", "version": "4", "longName": "Person Sex Text T
 )
 def test_an_item_is_identified_by_what_it_is(item, expected):
     assert identity(item) == expected
+
+
+def test_two_concepts_of_one_release_are_two_items():
+    release = {"terminology": "ncit", "version": "26.09d"}
+
+    assert identity(release | {"code": "C4817"}) != identity(release | {"code": "C3262"})
+    # A release's own record is another item than a concept of it.
+    assert identity(release) != identity(release | {"code": "C4817"})
 
 
 @pytest.mark.parametrize(
@@ -177,3 +191,45 @@ def test_an_item_s_provenance_is_its_record_or_none(item, provenance):
 )
 def test_a_timestamp_is_iso_8601_with_a_time_zone(value, valid):
     assert is_timestamp(value) is valid
+
+
+@pytest.mark.parametrize(
+    ("value", "valid"),
+    [("2026-10-04T10:00:00", True), ("2026-10-04", True), ("today", False), (None, False)],
+)
+def test_a_date_or_timestamp_without_a_time_zone_is_iso_8601(value, valid):
+    assert is_iso8601(value) is valid
+
+
+@pytest.mark.parametrize(
+    ("value", "count", "name"),
+    [
+        (5, True, False),
+        (0, False, False),
+        (True, False, False),
+        ("5", False, True),
+        ("", False, False),
+    ],
+)
+def test_a_count_is_a_positive_integer_and_a_name_a_non_empty_string(value, count, name):
+    assert (is_count(value), is_name(value)) == (count, name)
+
+
+@pytest.mark.parametrize(
+    ("ttl", "scope", "pinned", "fits"),
+    [
+        # Release-pinned content may be cached for any positive time, long included.
+        (86_400_000, "public", True, True),
+        (1, "public", True, True),
+        (0, "public", True, False),
+        (86_400_000, "private", True, False),
+        # Content no release pins is cached briefly, at most an hour.
+        (3_600_000, "public", False, True),
+        (3_600_001, "public", False, False),
+        (0, "public", False, False),
+        (None, "public", False, False),
+        (3_600_000, "private", False, False),
+    ],
+)
+def test_a_caching_hint_fits_the_class_of_what_the_content_holds(ttl, scope, pinned, fits):
+    assert hint_fits(ttl, scope, pinned) is fits

@@ -9,7 +9,12 @@ from jsonschema import Draft202012Validator
 from nci_si_acceptance.client import Target
 from nci_si_acceptance.results import (
     CARRIED,
+    UNPINNED_REGISTRY,
+    hint_fits,
     identity,
+    is_count,
+    is_iso8601,
+    is_name,
     is_timestamp,
     provenance_of,
     release_of,
@@ -25,10 +30,12 @@ from nci_si_acceptance.spec import (
     profile_tools,
     prompts_of,
     resource_call,
+    resources_listed,
     resources_of,
     tools_named,
     uri_variables,
 )
+from nci_si_acceptance.tools import Read
 
 # M7.1: where a caller's correlation identifier goes, and the header that carries it upstream.
 CORRELATION = "acceptance-correlation-0001"
@@ -227,12 +234,24 @@ def test_tool_names_are_verb_led_lowercase_and_underscore_separated(server):
     assert misnamed == []
 
 
+# The list methods and the call that lists each (M2.1), by the name the case carries.
+LISTS = {
+    "tools": lambda server: server.listing,
+    "prompts": lambda server: server.list_prompts(),
+    "resources": lambda server: server.list_resources(),
+    "templates": lambda server: server.list_resource_templates(),
+}
+
+
 @pytest.mark.gate
 @pytest.mark.live_capable
 @pytest.mark.requirement("P-5")
-def test_tools_list_may_be_cached_and_shared(server):
-    assert server.listing.ttl_ms > 0
-    assert server.listing.cache_scope == "public"
+@pytest.mark.parametrize("method", LISTS)
+def test_each_list_may_be_cached_and_shared(server, method):
+    listed = LISTS[method](server)
+
+    assert listed.ttl_ms > 0
+    assert listed.cache_scope == "public"
 
 
 @pytest.mark.gate
@@ -365,22 +384,37 @@ def test_a_prompt_returns_messages_naming_the_tools_it_states_and_only_tools_of_
     texts = {name: _messages(server, name, required) for name, required in asked.items()}
 
     assert [name for name, text in texts.items() if not text] == []
-    named = {name: set(tools_named(text)) for name, text in texts.items()}
-    assert {name: found - profile_tools(target.profile) for name, found in named.items()} == {
-        name: set() for name in texts
-    }
+    named = {name: tools_named(text) for name, text in texts.items()}
+    available = profile_tools(target.profile)
+    assert {
+        name: [tool for tool in found if tool not in available] for name, found in named.items()
+    } == {name: [] for name in texts}
+    # The tools it names, in order of first mention, are the stated ones in their stated order.
     # A prompt the specification does not furnish is the listing's finding, not this test's.
     furnished = {name: found for name, found in named.items() if name in PROMPTS}
-    assert furnished == {name: set(PROMPTS[name]["tools"]) for name in furnished}
+    assert furnished == {name: PROMPTS[name]["tools"] for name in furnished}
 
 
 @pytest.mark.gate
 @pytest.mark.live_capable
 @pytest.mark.requirement("P-8")
-def test_resources_and_templates_list_the_uri_templates_of_the_profile(server, target):
-    stated = {uri for resource in resources_of(target.profile).values() for uri in resource["uri"]}
+def test_resources_list_the_concrete_resources_and_templates_list_the_templates_of_the_profile(
+    server, target
+):
+    assert server.listed_resources() == resources_listed(target.profile)
 
-    assert server.listed_resources() == stated
+
+# URIs that no listed resource or template matches: a concept read without its release, which
+# is mandatory (M5.1), and a scheme nobody furnishes.
+UNMATCHED = ["ncit://concept/C4817", "ncit://nothing/x"]
+
+
+@pytest.mark.gate
+@pytest.mark.live_capable
+@pytest.mark.requirement("P-9")
+@pytest.mark.parametrize("uri", UNMATCHED)
+def test_a_uri_no_resource_or_template_matches_is_an_error_and_never_content(server, uri):
+    assert server.resource_refusal(uri) is not None
 
 
 # What the recorded fixtures hold of each resource: a concept, a data element and its version 1.
@@ -416,11 +450,8 @@ def _case(key: str, template: str) -> object:
     return pytest.param(key, template, id=name, marks=marks)
 
 
-READS = [
-    _case(key, template)
-    for key, resource in resources_of(Target.from_env().profile).items()
-    for template in resource["uri"]
-]
+SERVED = resources_of(Target.from_env().profile)
+READS = [_case(key, template) for key, resource in SERVED.items() for template in resource["uri"]]
 
 
 def _items(tool: str, content: object) -> list:
@@ -429,35 +460,100 @@ def _items(tool: str, content: object) -> list:
     return items_of(tool, content) or [content]
 
 
+def _read(server, pinned, template: str) -> Read:
+    """What the server gives for `template` filled in from the fixture set."""
+
+    return server.read_resource(template.format_map(_instance(template, pinned)))
+
+
+def _released(items: list) -> set[tuple]:
+    """The releases the items name, those that name none left out."""
+
+    return {release_of(item) for item in items} - {(None, None)}
+
+
 @pytest.mark.gate
 @pytest.mark.requirement("P-9")
 @pytest.mark.parametrize(("key", "template"), READS)
-def test_a_resource_read_equals_its_tool_s_answer_with_provenance_and_the_same_caching(
+def test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer(
     server, pinned, key, template
 ):
     values = _instance(template, pinned)
     tool, arguments = resource_call(key, template, values)
 
-    read = server.read_resource(template.format_map(values))
+    read = _read(server, pinned, template)
     answer = server.call(tool, arguments)
 
     assert not answer.is_error, answer.content
     assert read.mime_types == (RESOURCES[key]["mime"],)
     assert isinstance(read.content, dict), read.content
-    # M2.5: the hint is a field of the result, and follows what the content holds (M2.2, M2.3),
-    # which is what the tool's answer holds.
-    assert read.carried
-    assert (read.ttl_ms, read.cache_scope) == (
-        answer.meta.get("ttlMs"),
-        answer.meta.get("cacheScope"),
-    )
-    items = _items(tool, read.content)
-    provenances = [provenance_of(item) for item in items]
-    assert provenances
+    items, expected = _items(tool, read.content), _items(tool, answer.content)
+    # Compared on identity and release, not section by section. A tool whose answer names no
+    # release (the registry state's) leaves none to compare; the manifest, which is not the
+    # tool's answer, is compared on identity alone (spec/resources.yaml).
+    assert {identity(item) for item in items} == {identity(item) for item in expected}
+    released = _released(expected)
+    if RESOURCES[key].get("compared") != "identity" and released:
+        assert _released(items) == released
+
+
+@pytest.mark.gate
+@pytest.mark.requirement("P-9")
+@pytest.mark.parametrize(("key", "template"), READS)
+def test_a_resource_read_carries_a_provenance_record(server, pinned, key, template):
+    read = _read(server, pinned, template)
+
+    assert isinstance(read.content, dict), read.content
+    provenances = [provenance_of(item) for item in _items(RESOURCES[key]["tool"], read.content)]
     assert [wrong_fields(each, CARRIED) for each in provenances] == [[]] * len(provenances)
     assert all(is_timestamp(each.get("retrievedAt")) for each in provenances)
-    expected = _items(tool, answer.content)
-    assert {identity(item) for item in items} == {identity(item) for item in expected}
-    # A tool whose answer names no release (the registry state's) leaves none to compare.
-    released = {release_of(item) for item in expected} - {(None, None)}
-    assert not released or {release_of(item) for item in items} == released
+    # What the specification states beyond X-7 of this resource's provenance, and for a caDSR
+    # resource the registry form of release (X-21): caDSR publishes no registry release.
+    stated = RESOURCES[key].get("provenance", {})
+    assert [{name: each.get(name) for name in stated} for each in provenances] == [stated] * len(
+        provenances
+    )
+    if RESOURCES[key]["group"] == "cadsr":
+        assert [each.get("release") for each in provenances] == [UNPINNED_REGISTRY] * len(
+            provenances
+        )
+
+
+@pytest.mark.gate
+@pytest.mark.requirement("P-9")
+@pytest.mark.parametrize(("key", "template"), READS)
+def test_a_resource_read_carries_the_caching_hint_of_what_it_holds(server, pinned, key, template):
+    read = _read(server, pinned, template)
+
+    # M2.5: the hint is a field of the result. Its class is M2.2's, the tool's own hint aside.
+    assert read.carried
+    held = RESOURCES[key]["holds"] == "release-pinned"
+    assert hint_fits(read.ttl_ms, read.cache_scope, pinned=held), (read.ttl_ms, read.cache_scope)
+
+
+MANIFESTS = [key for key, resource in SERVED.items() if resource["returns"] == "index_manifest"]
+
+
+@pytest.mark.gate
+@pytest.mark.prepared
+@pytest.mark.requirement("P-9")
+@pytest.mark.parametrize("key", MANIFESTS)
+def test_the_index_manifest_states_what_the_index_holds(server, pinned, key):
+    read = _read(server, pinned, RESOURCES[key]["uri"][0])
+
+    manifest = read.content
+    assert isinstance(manifest, dict), manifest
+    # Which provider and model built the index is the operator's choice, never asserted.
+    embedding = manifest.get("embedding")
+    embedding = embedding if isinstance(embedding, dict) else {}
+    stated = RESOURCES[key]["provenance"]
+    provenance = provenance_of(manifest)
+    held = {
+        "concepts": is_count(manifest.get("concepts")),
+        "embedding.provider": is_name(embedding.get("provider")),
+        "embedding.model": is_name(embedding.get("model")),
+        "embedding.dimensions": is_count(embedding.get("dimensions")),
+        "builtAt": is_iso8601(manifest.get("builtAt")),
+        "provenance": {name: provenance.get(name) for name in stated} == stated,
+    }
+    assert [name for name, fine in held.items() if not fine] == []
