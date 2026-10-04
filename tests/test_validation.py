@@ -45,6 +45,12 @@ class ValidationTest(unittest.TestCase):
                 raised.exception.details, {"parameter": parameter, "reason": str(raised.exception)}
             )
 
+    def test_more_start_codes_than_the_node_limit_names_the_start_codes(self):
+        with self.assertRaises(InputValidationError) as raised:
+            validate_traversal(["C1", "C2"], "out", 1, 1, 10, None)
+
+        self.assertEqual(raised.exception.details["parameter"], "start_codes")
+
     def test_code_must_be_c_followed_by_digits_only(self):
         arabic_digits = "C١٢"  # noqa: RUF001 - digits that are not ASCII must be rejected
         for code in (

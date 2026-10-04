@@ -261,7 +261,7 @@ class NCISIService:
         """Read one concept from live EVS, pinned to the current monthly release.
 
         Unless `live_only` is set, the result must agree with the active index:
-        a different current release is a `version_mismatch`, and when EVS is
+        a different current release is a `release_mismatch`, and when EVS is
         unreachable the concept is served from the index, marked as a fallback.
         With `live_only` the index is not read.
         """

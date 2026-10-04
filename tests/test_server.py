@@ -5,6 +5,7 @@ import re
 import sys
 import tempfile
 import unittest
+from contextlib import contextmanager
 from importlib import metadata
 from pathlib import Path
 from unittest.mock import patch
@@ -15,6 +16,7 @@ from mcp.shared.exceptions import MCPError
 from fakes import FakeEVS, concept
 from nci_si_mcp.config import Settings
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
+from nci_si_mcp.errors import correlated
 from nci_si_mcp.evs import EVSUnavailableError
 from nci_si_mcp.index import LocalIndex
 from nci_si_mcp.server import INSTRUCTIONS, create_mcp
@@ -292,6 +294,61 @@ class ServerTest(unittest.TestCase):
         error = json.loads(str(raised.exception))["error"]
         self.assertTrue(error["correlationId"])
         self.assertEqual(error["details"], {"requested": "99.99z", "source": "evs"})
+
+    def test_the_index_manifest_of_another_release_is_not_available(self, _):
+        self.service.index_codes(["C3262"])
+
+        with self.assertRaises(MCPError) as raised:
+            self.read("nci-si://index/ncit/99.99z/manifest")
+
+        error = json.loads(str(raised.exception))["error"]
+        self.assertEqual(error["code"], "release_not_available")
+        self.assertEqual(error["details"], {"requested": "99.99z", "source": "index"})
+
+    def failing_read_ids(self, uri):
+        """The correlation identifier of a failing resource read, and those it opened."""
+
+        opened = []
+
+        @contextmanager
+        def spy(*arguments):
+            with correlated(*arguments) as value:
+                opened.append(value)
+                yield value
+
+        with patch("nci_si_mcp.server.correlated", spy), self.assertRaises(MCPError) as raised:
+            self.read(uri)
+        return json.loads(str(raised.exception))["error"]["correlationId"], opened
+
+    def test_each_resource_read_runs_under_one_correlation_identifier(self, _):
+        self.service.index_codes(["C3262"])
+        for uri in (
+            "nci-si://concept/ncit/C999",
+            "nci-si://release/ncit/99.99z",
+            "nci-si://index/ncit/99.99z/manifest",
+        ):
+            with self.subTest(uri):
+                identifier, opened = self.failing_read_ids(uri)
+
+                self.assertEqual(opened, [identifier])
+
+    def test_the_records_of_one_resource_read_share_their_correlation_identifier(self, _):
+        self.evs.errors = {
+            "get_api_version": EVSUnavailableError("down"),
+            "resolve_monthly_ncit_release": EVSUnavailableError("down"),
+        }
+        reports = []
+        release_info = self.service.release_info
+
+        def recording_release_info():
+            reports.append(release_info())
+            return reports[-1]
+
+        with patch.object(self.service, "release_info", recording_release_info):
+            identifier, _opened = self.failing_read_ids("nci-si://release/ncit/26.06e")
+
+        nested = [reports[0]["evs_api"]["error"], reports[0]["selected_monthly_release"]["error"]]
+        self.assertEqual({error["correlationId"] for error in nested}, {identifier})
 
     def test_a_search_that_finds_nothing_is_a_success_with_no_hits(self, _):
         self.service.index_codes(["C3262"])

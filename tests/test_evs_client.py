@@ -123,6 +123,29 @@ class EVSClientTest(unittest.TestCase):
 
         self.assertNotIsInstance(raised.exception, EVSTimeoutError)
 
+    def test_repeated_server_errors_report_every_attempt_and_the_status(self, urlopen, sleep):
+        urlopen.side_effect = [http_error(503), http_error(503), http_error(503)]
+
+        with (
+            self.assertLogs("nci_si_mcp.evs", level="WARNING"),
+            self.assertRaises(EVSUnavailableError) as raised,
+        ):
+            self.client(max_attempts=3).get_api_version()
+
+        self.assertEqual(raised.exception.details, {"surface": "evs", "attempts": 3, "status": 503})
+
+    def test_a_server_error_followed_by_a_timeout_is_not_a_timeout(self, urlopen, sleep):
+        urlopen.side_effect = [http_error(500), TimeoutError("timed out")]
+
+        with (
+            self.assertLogs("nci_si_mcp.evs", level="WARNING"),
+            self.assertRaises(EVSUnavailableError) as raised,
+        ):
+            self.client(max_attempts=2).get_api_version()
+
+        self.assertNotIsInstance(raised.exception, EVSTimeoutError)
+        self.assertEqual(raised.exception.details, {"surface": "evs", "attempts": 2, "status": 500})
+
     def test_an_unavailable_error_carries_the_status_attempts_and_retry_after(self, urlopen, sleep):
         headers = Message()
         headers["Retry-After"] = "120"

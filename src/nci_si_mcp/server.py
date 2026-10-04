@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import functools
 import inspect
 import json
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from . import __version__
 from .config import Settings, configure_logging
@@ -224,6 +225,17 @@ def _register_tools(
         return service.cadsr_status()
 
 
+def _per_call[Resource: Callable[..., Any]](resource: Resource) -> Resource:
+    """Read a resource under one correlation identifier, shared by every record of the read."""
+
+    @functools.wraps(resource)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        with correlated():
+            return resource(*args, **kwargs)
+
+    return cast("Resource", wrapper)
+
+
 def _register_resources(
     mcp: Any, service: NCISIService, resource_result: Callable[[dict[str, Any]], dict[str, Any]]
 ) -> None:
@@ -232,12 +244,13 @@ def _register_resources(
         return resource_result(serialise(error))
 
     @mcp.resource("nci-si://concept/ncit/{code}", mime_type="application/json")
+    @_per_call
     def ncit_concept_resource(code: str):
         """One NCIt concept, as returned by the `ncit_lookup` tool with default options."""
-        with correlated():
-            return resource_result(service.lookup(code=code))
+        return resource_result(service.lookup(code=code))
 
     @mcp.resource("nci-si://release/ncit/{version}", mime_type="application/json")
+    @_per_call
     def ncit_release_resource(version: str):
         """The current monthly NCIt release.
 
@@ -245,21 +258,21 @@ def _register_resources(
         of the `ncit_release_info` tool. The version of the current monthly
         release returns that release's record; any other version is an error.
         """
-        with correlated():
-            info = resource_result(service.release_info())
-            if version in ("monthly", "latest", "monthly-latest"):
-                return info
-            selected = resource_result(info["selected_monthly_release"])
-            if version == selected["version"]:
-                return selected
-            return release_not_available(
-                f"Release {version} is not served here; the current monthly release is "
-                f"{selected['version']}. Read that release, or use `monthly`.",
-                version,
-                "evs",
-            )
+        info = resource_result(service.release_info())
+        if version in ("monthly", "latest", "monthly-latest"):
+            return info
+        selected = resource_result(info["selected_monthly_release"])
+        if version == selected["version"]:
+            return selected
+        return release_not_available(
+            f"Release {version} is not served here; the current monthly release is "
+            f"{selected['version']}. Read that release, or use `monthly`.",
+            version,
+            "evs",
+        )
 
     @mcp.resource("nci-si://index/ncit/{version}/manifest", mime_type="application/json")
+    @_per_call
     def ncit_index_manifest_resource(version: str):
         """The manifest of the local search index.
 
@@ -267,17 +280,16 @@ def _register_resources(
         other version is an error. Without an index the result is
         `{"active_index": null}`.
         """
-        with correlated():
-            result = resource_result(service.index_manifest())
-            manifest = result["active_index"]
-            if not manifest:
-                return result
-            if version in ("active", manifest["release_version"]):
-                return manifest
-            return release_not_available(
-                f"The local index holds release {manifest['release_version']}, not "
-                f"{version}. Read that release or `active`, or rebuild the index with "
-                "`index-sample`.",
-                version,
-                "index",
-            )
+        result = resource_result(service.index_manifest())
+        manifest = result["active_index"]
+        if not manifest:
+            return result
+        if version in ("active", manifest["release_version"]):
+            return manifest
+        return release_not_available(
+            f"The local index holds release {manifest['release_version']}, not "
+            f"{version}. Read that release or `active`, or rebuild the index with "
+            "`index-sample`.",
+            version,
+            "index",
+        )

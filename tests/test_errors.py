@@ -11,6 +11,7 @@ from nci_si_mcp.errors import (
     serialise,
     with_next_step,
 )
+from nci_si_mcp.server import INSTRUCTIONS
 
 # The `code` values of the error record in spec/records.yaml.
 SPEC_CODES = {
@@ -28,6 +29,11 @@ SPEC_CODES = {
 
 
 class SerialiseTest(unittest.TestCase):
+    def test_the_server_tells_clients_every_code(self):
+        for code in get_args(ErrorCode):
+            with self.subTest(code):
+                self.assertIn(code, INSTRUCTIONS)
+
     def test_the_codes_are_those_of_the_specification(self):
         self.assertEqual(set(get_args(ErrorCode)), SPEC_CODES)
 
@@ -102,6 +108,13 @@ class CorrelationTest(unittest.TestCase):
             pass
 
         self.assertNotEqual(self.identifier(), "inside")
+
+    def test_failures_outside_a_call_each_get_their_own_identifier(self):
+        first, second = self.identifier(), self.identifier()
+
+        self.assertTrue(first)
+        self.assertTrue(second)
+        self.assertNotEqual(first, second)
 
     def test_a_failure_outside_a_call_still_gets_one(self):
         self.assertTrue(self.identifier())

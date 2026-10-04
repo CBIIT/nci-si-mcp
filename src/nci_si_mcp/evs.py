@@ -241,19 +241,31 @@ def _timed_out(failure: Exception) -> bool:
     )
 
 
-def _unavailable(
-    failure: Exception, message: str, attempts: int, timeout_seconds: float
-) -> EVSUnavailableError:
-    """The error for a request that kept failing, with what is known of the failure."""
+def _http_details(exc: HTTPError) -> dict[str, Any]:
+    """The status of an HTTP failure, and its Retry-After header where it has one."""
 
-    if _timed_out(failure):
+    details: dict[str, Any] = {"status": exc.code}
+    if retry_after := exc.headers.get("Retry-After"):
+        details["retryAfter"] = retry_after
+    return details
+
+
+def _unavailable(
+    message: str,
+    attempts: int,
+    timeouts: int,
+    timeout_seconds: float,
+    last_http: dict[str, Any],
+) -> EVSUnavailableError:
+    """The error for a request that kept failing, with what is known of the failures.
+
+    It is a timeout only when every one of the `attempts` timed out; otherwise
+    the details carry those of the last HTTP failure, if there was one.
+    """
+
+    if timeouts == attempts:
         return EVSTimeoutError(message, surface="evs", seconds=timeout_seconds, attempts=attempts)
-    details: dict[str, Any] = {"surface": "evs", "attempts": attempts}
-    if isinstance(failure, HTTPError):
-        details["status"] = failure.code
-        if retry_after := failure.headers.get("Retry-After"):
-            details["retryAfter"] = retry_after
-    return EVSUnavailableError(message, **details)
+    return EVSUnavailableError(message, surface="evs", attempts=attempts, **last_http)
 
 
 def _declared_length(response: Any) -> int:
@@ -340,7 +352,8 @@ class EVSClient:
         """
 
         request = self._request(path, params)
-        attempt = 0
+        attempt = timeouts = 0
+        last_http: dict[str, Any] = {}
         while True:
             attempt += 1
             failure: Exception
@@ -354,12 +367,16 @@ class EVSClient:
                 permanent = _permanent_failure(exc, message)
                 if permanent is not None:
                     raise permanent from exc
+                last_http = _http_details(exc)
                 failure = exc
             except (OSError, HTTPException) as exc:
                 message = f"EVS request failed for {path}: {getattr(exc, 'reason', None) or exc}"
                 failure = exc
+            timeouts += _timed_out(failure)
             if attempt >= self.max_attempts:
-                raise _unavailable(failure, message, attempt, self.timeout_seconds) from failure
+                raise _unavailable(
+                    message, attempt, timeouts, self.timeout_seconds, last_http
+                ) from failure
             self._retry(path, attempt, message)
 
     def _get_existing(self, path: str, params: dict[str, Any] | None = None) -> Any:

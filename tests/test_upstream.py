@@ -48,10 +48,21 @@ class ParseUpstreamJsonTest(unittest.TestCase):
         self.assertIn("webMethods error envelope (bad id)", self.failure(body(envelope)))
         self.assertEqual(self.details(body(envelope)), {"surface": "evs"})
 
-    def test_a_webmethods_success_envelope_is_content(self):
-        payload = {"apiResponse": {"type": "S"}, "items": []}
+    def test_a_webmethods_envelope_that_is_not_an_error_is_content(self):
+        for kind in ("S", "W", None):
+            with self.subTest(kind=kind):
+                payload = {"apiResponse": {"type": kind}, "items": []}
 
-        self.assertEqual(parse_upstream_json(body(payload), "x"), payload)
+                self.assertEqual(parse_upstream_json(body(payload), "x"), payload)
+
+    def test_an_issue_list_is_an_error_only_in_an_operation_outcome(self):
+        for payload in (
+            {"issue": [{"severity": "error"}]},
+            {"resourceType": "Bundle", "issue": [{"severity": "error"}]},
+            {**OUTCOME, "issue": [{"severity": "information"}]},
+        ):
+            with self.subTest(payload=payload):
+                self.assertEqual(parse_upstream_json(body(payload), "x"), payload)
 
     def test_a_fhir_operation_outcome_with_an_error_or_fatal_issue(self):
         for severity in ("error", "fatal"):

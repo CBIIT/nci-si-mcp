@@ -52,6 +52,14 @@ class EVSTest(unittest.TestCase):
 
         self.assertEqual(raised.exception.details, {"requested": "ncit monthly", "source": "evs"})
 
+    def test_a_latest_monthly_release_without_a_version_is_not_available(self):
+        row = {"terminology": "ncit", "version": "", "latest": True, "tags": {"monthly": "true"}}
+
+        with self.assertRaises(ReleaseResolutionError) as raised:
+            select_monthly_ncit_release([row])
+
+        self.assertEqual(raised.exception.details, {"requested": "ncit monthly", "source": "evs"})
+
     def test_select_monthly_ncit_release_fails_closed_when_ambiguous(self):
         with self.assertRaises(ReleaseResolutionError):
             select_monthly_ncit_release(

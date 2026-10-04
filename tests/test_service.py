@@ -372,6 +372,12 @@ class TraverseTest(ServiceTestCase):
         self.assert_error(too_many, "invalid_request")
         self.assertEqual(self.evs.calls, [])
 
+    def test_every_unknown_start_code_is_named_when_the_walk_cannot_start(self):
+        result = self.service.traverse(["C998", "C999"], max_depth=0)
+
+        self.assert_error(result, "not_found")
+        self.assertEqual(result["error"]["details"], {"identifiers": ["C998", "C999"]})
+
     def test_failures_use_the_matching_error_code(self):
         self.assert_error(self.service.traverse(["C999"]), "not_found")
         self.evs.errors = {"get_concepts_by_codes": EVSUnavailableError("timed out")}
