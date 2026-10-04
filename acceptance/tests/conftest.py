@@ -5,6 +5,12 @@ server process of its own, started with the scenarios active and with their
 settings, so that nothing the server keeps between calls outlives them. Requests a
 server makes while it starts must find fixtures too.
 
+Against a remote server (`NCI_SI_ACCEPTANCE_URL`) the harness starts no process: a probe makes
+sure the server answers and reaches the fixture server before the first test, and the operator's
+restart command, where there is one, gives a scenario's tests, and each `own_server` test, the
+server of its own they need; without it those tests are skipped. A remote server's prepare step is
+the operator's (`NCI_SI_ACCEPTANCE_PREPARED`).
+
 The operator's prepare command, where one is given, runs once, before the first test that
 starts a server, in the server's environment, with the codes of the index set listed in the file
 `NCI_SI_ACCEPTANCE_INDEX_CODES` names; every server then starts from a copy of the data
@@ -28,19 +34,25 @@ import yaml
 from nci_si_acceptance.client import (
     INDEX_CODES_VARIABLE,
     Target,
+    open_remote_session,
     open_session,
     server_environment,
 )
 from nci_si_acceptance.fixture_server import MANIFEST, FixtureServer, load_fixtures
+from nci_si_acceptance.remote import Restarter, announcement, probe
 from nci_si_acceptance.report import COLLECTOR, write_report
 from nci_si_acceptance.suite import (
+    NOT_DECLARED_PREPARED,
+    NOT_PREPARED,
     OWN_SERVER,
     UNMATCHED_UPSTREAM,
     UNPREPARED,
     UnmatchedUpstream,
     index_set,
+    order_for_restarts,
     scenarios_of,
     skip_fixture_only,
+    skip_remote_own_servers,
     skip_unprepared,
     unmatched_requests,
 )
@@ -48,6 +60,8 @@ from nci_si_acceptance.tools import Process, Tools, load_toolmap
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
+
+    from nci_si_acceptance.client import Session
 
 pytest_plugins = ["nci_si_acceptance.report"]
 
@@ -63,14 +77,21 @@ def pytest_configure(config: pytest.Config) -> None:
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    if config.stash[TARGET].mode == "live":
+    target = config.stash[TARGET]
+    if target.mode == "live":
         skip_fixture_only(items)
-    if config.stash[TARGET].prepare is None:
-        skip_unprepared(items)
+    if not target.has_index:
+        skip_unprepared(items, NOT_DECLARED_PREPARED if target.url else NOT_PREPARED)
+    if target.url and target.mode == "fixture":
+        skip_remote_own_servers(items, target.restart is not None)
+        if target.restart:
+            order_for_restarts(items)
 
 
 def pytest_sessionfinish(session: pytest.Session) -> None:
-    write_report(session.config, session.config.stash[TARGET].mode)
+    target = session.config.stash[TARGET]
+    session.config.stash[COLLECTOR].transport = target.transport
+    write_report(session.config, target.mode)
 
 
 @pytest.fixture(scope="session")
@@ -102,8 +123,47 @@ def upstream(target: Target) -> Iterator[FixtureServer | None]:
     if target.mode == "live":
         yield None
         return
-    with FixtureServer(load_fixtures(FIXTURES)) as server:
+    with FixtureServer(load_fixtures(FIXTURES), target.fixture_bind or ("127.0.0.1", 0)) as server:
         yield server
+
+
+@pytest.fixture(scope="session", autouse=True)
+def remote_ready(
+    request: pytest.FixtureRequest,
+    target: Target,
+    upstream: FixtureServer | None,
+    restarter: Restarter | None,
+) -> None:
+    """Before any test, a remote server is told what to reach, and is found to answer and,
+    against fixtures, to reach the fixture server; otherwise the run stops. Where the operator
+    gave a restart command, the server is restarted first: one that answers from a cache filled
+    before the run asks the fixture server nothing, and would fail the probe."""
+
+    if target.url is None:
+        return
+    if upstream:
+        reporter = request.config.pluginmanager.get_plugin("terminalreporter")
+        for line in announcement(target, upstream):
+            reporter.write_line(line)
+    if restarter:
+        restarter.serve((), {}, fresh=True)
+    toolmap = load_toolmap(FIXTURES / "baseline_toolmap.yaml")
+    pinned = request.getfixturevalue("pinned")
+    probe(target.url, target.authorization, upstream, toolmap, pinned)
+
+
+@pytest.fixture(scope="session")
+def restarter(
+    target: Target, upstream: FixtureServer | None, tmp_path_factory: pytest.TempPathFactory
+) -> Iterator[Restarter | None]:
+    """The operator's restart command, where there is one and a fixture server to restart for."""
+
+    if target.restart is None or upstream is None:
+        yield None
+        return
+    restarting = Restarter(target, upstream, tmp_path_factory.mktemp("restart") / "output.log")
+    yield restarting
+    restarting.restore()
 
 
 @pytest.fixture(scope="session")
@@ -147,9 +207,31 @@ def server(
 ) -> Iterator[Tools]:
     """The server under test, shared by every test that selects no scenario."""
 
+    if target.url:
+        with _remote_tools(target, upstream) as tools:
+            pytestconfig.stash[COLLECTOR].note_tools(tools)
+            yield tools
+        return
     with _tools(target, upstream, tmp_path_factory, prepared) as tools:
         pytestconfig.stash[COLLECTOR].note_tools(tools)
         yield tools
+
+
+def _make_tools(session: Session, upstream: FixtureServer | None, process: Process) -> Tools:
+    toolmap = load_toolmap(FIXTURES / "baseline_toolmap.yaml")
+    counted = (lambda: len(upstream.log())) if upstream else None
+    return Tools(session, toolmap, process, counted)
+
+
+@contextmanager
+def _remote_tools(
+    target: Target, upstream: FixtureServer | None, startup: tuple[dict[str, Any], ...] = ()
+) -> Iterator[Tools]:
+    """A session with the remote server, which the harness neither started nor can read the
+    standard error or data directory of."""
+
+    with open_remote_session(target.url, target.authorization) as session:
+        yield _make_tools(session, upstream, Process(None, None, startup))
 
 
 @contextmanager
@@ -175,9 +257,7 @@ def _tools(
         ):
             startup = _startup_requests(upstream)
             if not (unmatched := unmatched_requests(startup)):
-                toolmap = load_toolmap(FIXTURES / "baseline_toolmap.yaml")
-                counted = (lambda: len(upstream.log())) if upstream else None
-                yield Tools(session, toolmap, Process(log, data, tuple(startup)), counted)
+                yield _make_tools(session, upstream, Process(log, data, tuple(startup)))
                 return
     finally:
         # The server's standard error, shown with a failing test's other output.
@@ -203,12 +283,15 @@ def tools(
     target: Target,
     upstream: FixtureServer | None,
     prepared: Path | None,
+    restarter: Restarter | None,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> Iterator[Tools]:
     """The required tools of the server under test, for one test.
 
     A scenario test, and one marked `own_server`, does not use the shared server: it runs
-    against its own, which nothing an earlier test asked can have filled.
+    against its own, which nothing an earlier test asked can have filled. A remote server is
+    restarted by the operator's command for it: once for a scenario's tests, for every
+    `own_server` test.
     """
 
     scenarios = scenarios_of(request.node)
@@ -220,12 +303,34 @@ def tools(
     upstream.activate(*scenarios)
     settings = upstream.fixtures.settings_of(scenarios)
     try:
-        data = None if unprepared else prepared
-        with _tools(target, upstream, tmp_path_factory, data, settings) as own:
-            request.config.stash[COLLECTOR].note_tools(own)
-            yield own
+        if target.url:
+            ours = _restarted_tools(target, upstream, restarter, scenarios, settings)
+        else:
+            data = None if unprepared else prepared
+            ours = _tools(target, upstream, tmp_path_factory, data, settings)
+        with ours as its_own:
+            request.config.stash[COLLECTOR].note_tools(its_own)
+            yield its_own
     finally:
         upstream.activate()
+
+
+@contextmanager
+def _restarted_tools(
+    target: Target,
+    upstream: FixtureServer,
+    restarter: Restarter,
+    scenarios: tuple[str, ...],
+    settings: dict[str, str],
+) -> Iterator[Tools]:
+    """The remote server as the operator's restart command leaves it for these scenarios (a
+    server of its own, where there are none)."""
+
+    started = restarter.serve(scenarios, settings, fresh=not scenarios)
+    if unmatched := unmatched_requests(started):
+        raise UnmatchedUpstream(unmatched, " while the server started")
+    with _remote_tools(target, upstream, started) as tools:
+        yield tools
 
 
 @pytest.fixture(autouse=True)

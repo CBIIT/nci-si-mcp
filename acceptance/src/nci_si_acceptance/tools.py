@@ -144,15 +144,19 @@ class Result:
 @dataclass(frozen=True, slots=True)
 class Process:
     """What the harness keeps of a server process: its standard error, its data directory,
-    and the upstream requests it made while it started."""
+    and the upstream requests it made while it started. A remote server's standard error and
+    data directory are out of the harness's reach (`log` and `data` are None): only what the
+    server returns can be checked for what it must not write."""
 
-    log: Path
-    data: Path
+    log: Path | None
+    data: Path | None
     startup: tuple[dict[str, Any], ...]
 
     def written(self) -> str:
         """Everything the process wrote: its standard error and every file of its data."""
 
+        if self.log is None or self.data is None:
+            return ""
         files = [self.log, *sorted(path for path in self.data.rglob("*") if path.is_file())]
         return "".join(path.read_bytes().decode("utf-8", "replace") for path in files)
 

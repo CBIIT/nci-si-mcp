@@ -109,6 +109,7 @@ acceptance-selftest = { cmd = "pytest selftests -n 4 --cov --cov-report=term-mis
 acceptance-record = "python -m nci_si_acceptance.record"
 acceptance-craft = "python -m nci_si_acceptance.craft"
 acceptance-register = "python -m nci_si_acceptance.register"
+acceptance-index-codes = "python -m nci_si_acceptance.suite"
 spec-render = "python -m nci_si_acceptance.document"
 
 [tool.pytest.ini_options]

@@ -6,7 +6,15 @@ from types import SimpleNamespace
 
 import pytest
 
-from nci_si_acceptance.report import UNMATCHED, Collector, combine, main, render, tool_outcome
+from nci_si_acceptance.report import (
+    UNMATCHED,
+    Collector,
+    combine,
+    main,
+    render,
+    tool_outcome,
+    withhold_from,
+)
 from nci_si_acceptance.spec import REQUIRED_TOOLS
 
 
@@ -165,6 +173,7 @@ def run(outcomes, tests=None):
         tools[name]["outcome"] = outcome
     return {
         "mode": "fixture",
+        "transport": "stdio",
         "failed_gates": [],
         "unrun_gates": [],
         "tools_list_bytes": None,
@@ -250,7 +259,10 @@ def test_the_rendered_report_states_its_modes_counts_and_what_proves_nothing_yet
 
 def test_the_command_combines_the_runs_with_per_test_limitations(tmp_path, capsys):
     fixture = run({"get_form": "PASS"})
-    live = run({}, {"t.py::form": live_test("get_form", "failed")}) | {"mode": "live"}
+    live = run({}, {"t.py::form": live_test("get_form", "failed")}) | {
+        "mode": "live",
+        "transport": "streamable-http",
+    }
     (tmp_path / "fixture.json").write_text(json.dumps(fixture), encoding="utf-8")
     (tmp_path / "live.json").write_text(json.dumps(live), encoding="utf-8")
     (tmp_path / "limitations.yaml").write_text('"t.py::form": C-4\n', encoding="utf-8")
@@ -266,7 +278,7 @@ def test_the_command_combines_the_runs_with_per_test_limitations(tmp_path, capsy
     )
 
     output = capsys.readouterr().out
-    assert "\nRun modes: fixture and live.\n" in output
+    assert "\nRun modes: fixture (stdio) and live (streamable-http).\n" in output
     assert "| `get_form` | cadsr | PASS (fixture only) | 0 / 0 / 0 / 0 | — | C-4 |" in output
 
 
@@ -321,6 +333,36 @@ def test_the_command_says_a_fixture_run_alone_is_not_the_final_outcome(tmp_path,
     main([str(tmp_path / "fixture.json")])
 
     output = capsys.readouterr().out
-    assert "the live run is not included" in output
+    assert "\nRun modes: fixture (stdio) only; the live run is not included" in output
     assert "| `get_form` | cadsr | PASS | 0 / 0 / 0 / 0 | — |  |" in output
     assert "Size of the tools/list result: not measured, no server started." in output
+
+
+def test_the_report_records_the_transport_of_the_run():
+    assert Collector().report("fixture")["transport"] == "stdio"
+
+    collector = Collector()
+    collector.transport = "streamable-http"
+
+    assert collector.report("live")["transport"] == "streamable-http"
+
+
+def test_a_failure_shows_the_credential_of_a_remote_server_nowhere(monkeypatch):
+    monkeypatch.setenv("NCI_SI_ACCEPTANCE_AUTHORIZATION", "Bearer do-not-print")
+    failed = pytest.TestReport(
+        "t.py::test_a",
+        ("t.py", 1, "test_a"),
+        {},
+        "failed",
+        "assert 'x' == 'Bearer do-not-print'",
+        "call",
+        sections=[("Captured stdout call", "sent Bearer do-not-print\nand more")],
+    )
+    skipped = phase("setup", "skipped", reason="needs a server")
+
+    withhold_from(failed)
+    withhold_from(skipped)
+
+    assert str(failed.longrepr) == "assert 'x' == '[authorization withheld]'"
+    assert failed.sections == [("Captured stdout call", "sent [authorization withheld]\nand more")]
+    assert skipped.longrepr == ("t.py", 1, "Skipped: needs a server")
