@@ -25,7 +25,6 @@ def release(version="26.06e", date="2026-06-29", channel="monthly"):
         channel=channel,
         version=version,
         date=date,
-        name=f"NCI Thesaurus {version}",
         pinned_terminology=f"ncit_{version}",
     )
 

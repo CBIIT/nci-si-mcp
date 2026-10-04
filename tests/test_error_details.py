@@ -13,6 +13,7 @@ from typing import get_args
 from unittest.mock import patch
 from urllib.error import HTTPError
 
+from fakes import terminology_row
 from nci_si_acceptance.spec import RECORDS
 from nci_si_mcp import service as service_module
 from nci_si_mcp.errors import ErrorCode
@@ -91,7 +92,7 @@ class DetailKeysTest(ServiceTestCase):
         ]
 
     def unresolved_release(self):
-        self.evs.rows = []
+        self.evs.rows = [terminology_row(), terminology_row("26.07d")]
         try:
             return from_the_record(self.service.lookup("C3262"))
         finally:

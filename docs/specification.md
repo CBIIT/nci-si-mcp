@@ -585,7 +585,7 @@ The keys of `details` for each code:
 |---|---|
 | `invalid_request` | `parameter`: The argument, or the setting, that was refused; `reason`: Why it was refused, in words |
 | `not_found` | `identifiers`: The list of identifiers that were not found |
-| `release_not_available` | `requested`: The release, or the channel, that was asked for; `source`: Where the release could not be named, evs or index |
+| `release_not_available` | `requested`: The release, or the channel, that was asked for; `source`: Where the release could not be named, evs or index; `found`: The releases the channel's query named, where it named more than one (A3.6.3) |
 | `release_mismatch` | `requested`: The release that was asked for; `served`: The list of releases the content came from, one element where it is a single release; `source`: Where the content came from, evs or index |
 | `upstream_unavailable` | `surface`: The platform that failed, such as evs; `status`: The HTTP status of the last failed request, where there was one; `attempts`: The number of requests made; `retryAfter`: The Retry-After the platform sent, where it sent one |
 | `timeout` | `surface`: The platform that did not answer, such as evs; `seconds`: The seconds waited for each attempt; `attempts`: The number of requests made, each of which timed out |

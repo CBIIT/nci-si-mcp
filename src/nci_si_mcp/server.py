@@ -224,7 +224,8 @@ def _register_tools(
         The call succeeds even when EVS cannot be reached: `evs_api` and
         `selected_monthly_release` (the release the configured channel names, monthly by
         default) then hold an error object, and the report has no `provenance`, which
-        otherwise names the selected release. `active_index` is
+        otherwise names the selected release. A selected release contains `terminology`,
+        `channel`, `version` and `date`; its pinned request path is internal. `active_index` is
         null until an index has been built. `embedding.active_index_compatible`
         says whether `ncit_search` can use the index: it is false when there is
         none or when it was built with other embedding settings.
@@ -268,11 +269,12 @@ def _register_resources(
     @mcp.resource("nci-si://release/ncit/{version}", mime_type="application/json")
     @_per_call
     def ncit_release_resource(version: str):
-        """The current monthly NCIt release.
+        """The current NCIt release of the configured channel (monthly by default).
 
         `monthly`, `latest` and `monthly-latest` return the full status report
-        of the `ncit_release_info` tool. The version of the current monthly
-        release returns that release's record; any other version is an error.
+        of the `ncit_release_info` tool, even when the configured channel is weekly.
+        The current version returns `{terminology, channel, version, date}`;
+        any other version is an error.
         """
         info = resource_result(service.release_info())
         if version in ("monthly", "latest", "monthly-latest"):
@@ -281,7 +283,7 @@ def _register_resources(
         if version == selected["version"]:
             return selected
         return release_not_available(
-            f"Release {version} is not served here; the current monthly release is "
+            f"Release {version} is not served here; the current {selected['channel']} release is "
             f"{selected['version']}. Read that release, or use `monthly`.",
             version,
             "evs",

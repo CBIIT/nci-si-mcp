@@ -49,7 +49,7 @@ from .models import (
     release_ref,
     utc_now_iso,
 )
-from .release import ReleaseContext, resolve_evs_release
+from .release import RegistryMetadataError, ReleaseContext, resolve_evs_release
 from .traversal import (
     DEFAULT_MAX_DEPTH,
     DEFAULT_MAX_EDGES,
@@ -95,6 +95,10 @@ _ERROR_CODES: dict[type[Exception], tuple[ErrorCode, str]] = {
     ),
     EVSTimeoutError: ("timeout", "Retry later, or raise NCI_SI_TIMEOUT_SECONDS."),
     EVSError: ("upstream_unavailable", "Retry later."),
+    RegistryMetadataError: (
+        "upstream_unavailable",
+        "Retry later; no registry state is used without usable metadata.",
+    ),
     NoActiveIndexError: ("internal_error", "Build the index with `index-sample` first."),
     IndexCompatibilityError: (
         "internal_error",

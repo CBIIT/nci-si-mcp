@@ -189,12 +189,32 @@ class ServerTest(unittest.TestCase):
         self.assertEqual([edge["target_code"] for edge in traversal["edges"]], ["C4741"])
 
         _, info = self.call("ncit_release_info")
-        self.assertEqual(info["selected_monthly_release"]["version"], "26.06e")
+        self.assertEqual(
+            info["selected_monthly_release"],
+            {
+                "terminology": "ncit",
+                "channel": "monthly",
+                "version": "26.06e",
+                "date": "2026-06-29",
+            },
+        )
         self.assertEqual(info["active_index"]["concept_count"], 1)
 
         is_error, status = self.call("cadsr_status")
         self.assertFalse(is_error)
         self.assertEqual(status["state"], "reuse_pending")
+
+    def test_release_resources_emit_the_same_public_fields_as_the_tool(self, _):
+        _, info = self.call("ncit_release_info")
+        expected = info["selected_monthly_release"]
+
+        self.assertEqual(self.read("nci-si://release/ncit/26.06e"), expected)
+        for alias in ("monthly", "latest", "monthly-latest"):
+            with self.subTest(alias=alias):
+                self.assertEqual(
+                    self.read(f"nci-si://release/ncit/{alias}")["selected_monthly_release"],
+                    expected,
+                )
 
     def test_every_tool_argument_shapes_the_result(self, _):
         self.service.index_codes(["C3262", "C4741"])
@@ -408,7 +428,7 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(self.read("nci-si://concept/ncit/C3262")["provenance"]["servedBy"], "live")
         for alias in ("monthly", "latest", "monthly-latest"):
             self.assertIn("active_index", self.read(f"nci-si://release/ncit/{alias}"))
-        self.assertEqual(self.read("nci-si://release/ncit/26.06e")["name"], "NCI Thesaurus 26.06e")
+        self.assertEqual(self.read("nci-si://release/ncit/26.06e")["version"], "26.06e")
         for version in ("active", "26.06e"):
             manifest = self.read(f"nci-si://index/ncit/{version}/manifest")
             self.assertEqual(manifest["concept_count"], 1)

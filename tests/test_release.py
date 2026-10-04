@@ -4,14 +4,21 @@ from unittest.mock import patch
 from urllib.error import HTTPError
 
 from fakes import FakeEVS, release, terminology_row
-from nci_si_mcp.errors import PlatformError, is_error_record
+from nci_si_mcp.errors import PlatformError, is_error_record, serialise
 from nci_si_mcp.evs import EVSClient, EVSNotFoundError, EVSReleaseNotFoundError
-from nci_si_mcp.release import ITEM_VERSIONING, registry_state, resolve_evs_release
+from nci_si_mcp.release import registry_state, resolve_evs_release
+from nci_si_mcp.service import _enveloped
 from test_service import NEOPLASM, ServiceTestCase
 
 # The weekly build is listed first, as EVS may list it, and both are latest for their channel.
 WEEKLY = terminology_row("26.09c", "2026-09-21", weekly="true")
 MONTHLY = terminology_row("26.09d", "2026-09-28", monthly="true")
+EXPORT = "releasedCDEsXML-OD.zip"
+
+
+@_enveloped
+def registry_result(date, identifier=None, distribution=EXPORT):
+    return registry_state(date, identifier, source_distribution=distribution).to_dict()
 
 
 def fake_with(*rows):
@@ -45,6 +52,15 @@ class ResolveEvsReleaseTest(unittest.TestCase):
             ("ncit", "monthly", "26.09d", "2026-09-28"),
         )
         self.assertEqual(resolved.pinned_terminology, "ncit_26.09d")
+        self.assertEqual(
+            resolved.to_dict(),
+            {
+                "terminology": "ncit",
+                "channel": "monthly",
+                "version": "26.09d",
+                "date": "2026-09-28",
+            },
+        )
 
     def test_each_channel_takes_the_row_its_tag_names(self):
         evs = fake_with(WEEKLY, MONTHLY)
@@ -82,18 +98,19 @@ class ResolveEvsReleaseTest(unittest.TestCase):
 
     def test_zero_and_several_rows_fail_closed_naming_what_was_found_and_the_next_step(self):
         for rows, found in (
-            ([WEEKLY], "none"),
-            ([MONTHLY, terminology_row("26.08e", monthly="true")], "26.09d, 26.08e"),
+            ([WEEKLY], []),
+            ([MONTHLY, terminology_row("26.08e", monthly="true")], ["26.09d", "26.08e"]),
         ):
             with self.subTest(found=found), self.assertRaises(PlatformError) as raised:
                 resolve_evs_release(fake_with(*rows), "ncit", "monthly")
 
             error = raised.exception
             self.assertEqual(error.code, "release_not_available")
-            self.assertEqual(set(error.details), {"requested", "source"})
-            self.assertEqual(error.details["source"], "evs")
-            self.assertIn(found, error.details["requested"])
-            self.assertIn(found, error.message)
+            details = {"requested": "ncit monthly", "source": "evs"}
+            if found:
+                details["found"] = found
+            self.assertEqual(serialise(error)["error"]["details"], details)
+            self.assertIn(", ".join(found) or "none", error.message)
             self.assertIn("NCI_SI_RELEASE_CHANNEL", error.message)
 
     def test_a_row_without_a_version_is_not_a_release(self):
@@ -197,48 +214,72 @@ class ServiceReleaseTest(ServiceTestCase):
 
 class RegistryStateTest(unittest.TestCase):
     def test_no_registry_identifier_is_made_up_and_the_export_date_is_iso(self):
-        state = registry_state("Sun, 28 Sep 2026 14:03:00 GMT")
+        state = registry_result("Mon, 28 Sep 2026 14:03:00 GMT")
 
         self.assertEqual(
-            state.to_dict(),
+            state,
             {
-                "registryIdentifier": None,
-                "exportDate": "2026-09-28T14:03:00+00:00",
-                "itemVersioning": ITEM_VERSIONING,
+                "published": False,
+                "generatedAt": "2026-09-28T14:03:00+00:00",
+                "sourceDistribution": EXPORT,
             },
         )
-        self.assertEqual(ITEM_VERSIONING, "per data element")
 
     def test_an_offset_date_is_given_in_utc(self):
         self.assertEqual(
-            registry_state("Mon, 28 Sep 2026 16:03:00 +0200").export_date,
+            registry_result("Mon, 28 Sep 2026 16:03:00 +0200")["generatedAt"],
             "2026-09-28T14:03:00+00:00",
         )
 
-    def test_a_missing_header_leaves_the_date_out_and_still_no_identifier(self):
-        for header in (None, ""):
-            with self.subTest(header=header):
-                state = registry_state(header)
-                self.assertEqual((state.registry_identifier, state.export_date), (None, None))
+    def test_an_http_date_without_a_zone_uses_utc(self):
+        self.assertEqual(
+            registry_result("Mon, 28 Sep 2026 14:03:00")["generatedAt"],
+            "2026-09-28T14:03:00+00:00",
+        )
 
-    def test_a_header_that_is_no_date_fails_instead_of_guessing_one(self):
-        with self.assertRaises(PlatformError) as raised:
-            registry_state("last Tuesday")
-
-        self.assertEqual(raised.exception.code, "upstream_unavailable")
-        self.assertEqual(raised.exception.details, {"surface": "cadsr"})
+    def test_a_missing_or_invalid_generation_date_fails_closed_in_either_state(self):
+        for identifier in (None, "R2026.3"):
+            for date in (None, "", "  ", 7, "last Tuesday", "2026-02-30T14:00"):
+                with self.subTest(identifier=identifier, date=date):
+                    result = registry_result(date, identifier)
+                    self.assertEqual(set(result), {"error"})
+                    self.assertEqual(result["error"]["code"], "upstream_unavailable")
+                    self.assertEqual(result["error"]["details"], {"surface": "cadsr"})
+                    self.assertIn("Retry later", result["error"]["message"])
+                    self.assertTrue(result["error"]["correlationId"])
 
     def test_an_identifier_the_registry_publishes_is_carried_as_it_is(self):
-        state = registry_state("Sun, 28 Sep 2026 14:03:00 GMT", " R2026.3 ")
+        state = registry_result("2026-07-01T22:19", " R2026.3 ", "registry-releases.json")
 
-        self.assertEqual(state.to_dict()["registryIdentifier"], "R2026.3")
+        self.assertEqual(
+            state,
+            {
+                "published": True,
+                "identifier": " R2026.3 ",
+                "generatedAt": "2026-07-01T22:19",
+                "sourceDistribution": "registry-releases.json",
+            },
+        )
+
+    def test_a_published_release_date_keeps_its_precision_and_offset(self):
+        for date in ("2026-09-28", "2026-09-28T16:03:00+02:00", "2026-09-28T14:03:00Z"):
+            with self.subTest(date=date):
+                self.assertEqual(registry_result(date, "R2026.3")["generatedAt"], date)
 
     def test_a_published_identifier_that_is_blank_or_not_text_fails_closed(self):
         for identifier in ("", "  ", 7):
-            with self.subTest(identifier=identifier), self.assertRaises(PlatformError) as raised:
-                registry_state("Sun, 28 Sep 2026 14:03:00 GMT", identifier)
+            with self.subTest(identifier=identifier):
+                error = registry_result("2026-09-28T14:03:00Z", identifier)["error"]
+                self.assertEqual(error["code"], "upstream_unavailable")
+                self.assertEqual(error["details"], {"surface": "cadsr"})
+                self.assertIn("identifier", error["message"])
 
-            self.assertEqual(raised.exception.code, "release_not_available")
-            self.assertEqual(
-                raised.exception.details, {"requested": "cadsr registry", "source": "cadsr"}
-            )
+    def test_a_missing_source_distribution_is_not_a_registry_state(self):
+        for distribution in (None, "", " ", 7):
+            with self.subTest(distribution=distribution):
+                error = registry_result("Mon, 28 Sep 2026 14:03:00 GMT", distribution=distribution)[
+                    "error"
+                ]
+                self.assertEqual(error["code"], "upstream_unavailable")
+                self.assertEqual(error["details"], {"surface": "cadsr"})
+                self.assertIn("distribution", error["message"])

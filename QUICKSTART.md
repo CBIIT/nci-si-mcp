@@ -738,7 +738,7 @@ where every candidate was scored.
 - `ncit_search`: text search over the locally indexed concepts.
 - `ncit_lookup`: one concept from live EVS. When EVS is unreachable and the concept is in the local index, it is served from there and marked as a fallback.
 - `ncit_traverse`: breadth-first walk over hierarchy, role, and association edges in live EVS.
-- `ncit_release_info`: EVS API version, the current release of the configured channel (`NCI_SI_RELEASE_CHANNEL`, monthly by default, reported as `selected_monthly_release`), and local index status. The release is resolved afresh in every call, never cached.
+- `ncit_release_info`: EVS API version, the current release of the configured channel (`NCI_SI_RELEASE_CHANNEL`, monthly by default, reported as `selected_monthly_release`), and local index status. The release contains `terminology`, `channel`, `version` and `date`, and is resolved afresh in every call, never cached. These four fields replace the previous record's `name`, `terminology_version`, `latest`, `monthly` and `weekly`; the pinned request path stays internal. The CLI `release-info` command returns the same report.
 - `cadsr_status`: reports that caDSR search is not implemented.
 
 Each tool description, as sent to MCP clients, states the contract in full.
@@ -772,7 +772,7 @@ Stopping at `max_depth` is no truncation.
 ## MCP Resources
 
 - `nci-si://concept/ncit/{code}`: the result of `ncit_lookup` with default options.
-- `nci-si://release/ncit/{version}`: `monthly`, `latest`, or `monthly-latest` return the full `ncit_release_info` report; the version of the current monthly release returns that release's record.
+- `nci-si://release/ncit/{version}`: `monthly`, `latest`, or `monthly-latest` return the full `ncit_release_info` report for the configured channel, including weekly; the current version returns its `{terminology, channel, version, date}` record. The aliases retain their existing names until #18.
 - `nci-si://index/ncit/{version}/manifest`: `active`, or the release the local index holds, returns its manifest; without an index the result is `{"active_index": null}`.
 
 ## Errors
@@ -812,7 +812,7 @@ EVS wraps in a success status but that is an error envelope, an error
 | --- | --- | --- |
 | `invalid_request` | An argument is missing, malformed, out of range, or contradicts another; CLI only: an environment variable is invalid | `parameter`, `reason` |
 | `not_found` | The current monthly release has no concept with that code, or `index-sample` named codes the release does not contain (nothing was indexed) | `identifiers` |
-| `release_not_available` | EVS did not name exactly one latest NCIt release for the channel (`requested` names the channel and the releases EVS listed), EVS no longer serves the release a request was pinned to, or a resource names a release that is not the current one (or not the one the index holds) | `requested`, `source` |
+| `release_not_available` | EVS did not name exactly one latest NCIt release for the channel (`requested` names the requested channel; optional `found` lists versions when several rows were returned), EVS no longer serves the pinned release, or a resource names a release that is not current (or not the one the index holds) | `requested`, `source`, `found` |
 | `release_mismatch` | The local index holds a different release than the current monthly one, or EVS served a concept of another release than the one requested | `requested`, `served` (a list of releases), `source` |
 | `upstream_unavailable` | EVS could not be reached or kept failing after the retries, rejected the request, or returned something unusable: a malformed, HTML or masked-error body, or a 404 from any request other than a single-concept lookup (check `NCI_SI_EVS_BASE_URL`) | `surface`, `status`, `attempts`, `retryAfter` (`status` and `retryAfter` where known) |
 | `timeout` | Every attempt at an EVS request timed out (`NCI_SI_TIMEOUT_SECONDS`) | `surface`, `seconds`, `attempts` |

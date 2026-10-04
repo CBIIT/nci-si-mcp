@@ -9,15 +9,13 @@ never an invented identifier (A3.8).
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from datetime import UTC
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from typing import Any
 
 from .errors import PlatformError, with_next_step
 from .evs import EVSClient
-
-ITEM_VERSIONING = "per data element"
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,15 +26,19 @@ class ReleaseContext:
     channel: str
     version: str
     date: str | None
-    name: str
     # The path segment that addresses exactly this release, for example `ncit_26.09d`.
     pinned_terminology: str
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        return {
+            "terminology": self.terminology,
+            "channel": self.channel,
+            "version": self.version,
+            "date": self.date,
+        }
 
 
-def _not_available(message: str, requested: str) -> PlatformError:
+def _not_available(message: str, requested: str, found: list[str] | None = None) -> PlatformError:
     return PlatformError(
         "release_not_available",
         with_next_step(
@@ -45,6 +47,7 @@ def _not_available(message: str, requested: str) -> PlatformError:
         ),
         requested=requested,
         source="evs",
+        **({"found": found} if found else {}),
     )
 
 
@@ -60,11 +63,11 @@ def resolve_evs_release(evs: EVSClient, terminology: str, channel: str) -> Relea
     requested = f"{terminology} {channel}"
     versions = [str(row.get("version") or "") for row in rows]
     if len(rows) != 1:
-        # The error record has no key for the rows found, so `requested` names them too.
         found = ", ".join(versions) or "none"
         raise _not_available(
             f"EVS lists {len(rows)} {requested} releases as latest, not exactly one ({found})",
-            f"{requested} (EVS lists: {found})",
+            requested,
+            versions,
         )
     (row,) = rows
     if not versions[0]:
@@ -74,7 +77,6 @@ def resolve_evs_release(evs: EVSClient, terminology: str, channel: str) -> Relea
         channel=channel,
         version=versions[0],
         date=row.get("date"),
-        name=str(row.get("name", "")),
         pinned_terminology=row.get("terminologyVersion") or f"{terminology}_{versions[0]}",
     )
 
@@ -83,66 +85,69 @@ def resolve_evs_release(evs: EVSClient, terminology: str, channel: str) -> Relea
 class RegistryState:
     """The content state of the caDSR registry (A3.8).
 
-    `registry_identifier` is None while caDSR publishes no registry release; `export_date` is
-    the most specific provenance there is, None when the export carries no date.
+    The identifier is absent while caDSR publishes no registry release; the export's date
+    is then the most specific provenance available, not a reproducible registry release.
     """
 
-    registry_identifier: str | None
-    export_date: str | None
-    item_versioning: str = ITEM_VERSIONING
+    identifier: str | None
+    generated_at: str
+    source_distribution: str
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "registryIdentifier": self.registry_identifier,
-            "exportDate": self.export_date,
-            "itemVersioning": self.item_versioning,
+            "published": self.identifier is not None,
+            "generatedAt": self.generated_at,
+            "sourceDistribution": self.source_distribution,
+            **({"identifier": self.identifier} if self.identifier is not None else {}),
         }
 
 
-def _export_date(last_modified: str | None) -> str | None:
-    """The ISO-8601 UTC time of an HTTP-date `Last-Modified` value; None when there is none."""
+class RegistryMetadataError(ValueError):
+    """The registry supplied unusable release metadata, not a missing requested release."""
 
-    if not last_modified:
-        return None
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.details = {"surface": "cadsr"}
+
+
+def _generation_date(value: str | None, published: bool) -> str:
+    """Validate a published ISO date, or convert the export's HTTP date to UTC."""
+
+    if not isinstance(value, str) or not value.strip():
+        raise RegistryMetadataError("The caDSR generation date is missing or not text")
     try:
-        parsed = parsedate_to_datetime(last_modified)
-    except TypeError, ValueError:
-        raise PlatformError(
-            "upstream_unavailable",
-            with_next_step(
-                f"The caDSR export's Last-Modified value {last_modified!r} is not an HTTP date",
-                "Retry later; no export date is guessed",
-            ),
-            surface="cadsr",
-        ) from None
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=UTC)
-    return parsed.astimezone(UTC).isoformat()
+        if published:
+            datetime.fromisoformat(value)
+            return value
+        parsed = parsedate_to_datetime(value)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=UTC)
+        return parsed.astimezone(UTC).isoformat()
+    except TypeError, ValueError, OverflowError:
+        raise RegistryMetadataError("The caDSR generation date is invalid") from None
 
 
 def registry_state(
-    last_modified: str | None, upstream_identifier: str | None = None
+    generation_date: str | None,
+    upstream_identifier: str | None = None,
+    *,
+    source_distribution: str,
 ) -> RegistryState:
-    """The registry state from the export's `Last-Modified` header and any upstream identifier.
+    """The registry state from upstream metadata, never an invented identifier or date.
 
-    No identifier is ever made up: it stays None until the registry publishes one. Once it
-    does (C-1) the field is required, so a blank or non-text identifier fails closed with
-    `release_not_available` instead of being passed on.
+    Without an identifier, `generation_date` is the export's `Last-Modified` HTTP date.
+    With one, it is that release's own ISO-8601 date, passed through unchanged. The caller
+    names the distribution the date came from (`releasedCDEsXML-OD.zip` today).
     """
 
     if upstream_identifier is not None and not (
         isinstance(upstream_identifier, str) and upstream_identifier.strip()
     ):
-        raise PlatformError(
-            "release_not_available",
-            with_next_step(
-                "The caDSR registry names a release identifier that is blank",
-                "Retry later; no registry state is used without a usable identifier",
-            ),
-            requested="cadsr registry",
-            source="cadsr",
-        )
+        raise RegistryMetadataError("The caDSR registry release identifier is blank or not text")
+    if not isinstance(source_distribution, str) or not source_distribution.strip():
+        raise RegistryMetadataError("The caDSR source distribution is missing or not text")
     return RegistryState(
-        registry_identifier=upstream_identifier.strip() if upstream_identifier else None,
-        export_date=_export_date(last_modified),
+        identifier=upstream_identifier,
+        generated_at=_generation_date(generation_date, upstream_identifier is not None),
+        source_distribution=source_distribution,
     )
