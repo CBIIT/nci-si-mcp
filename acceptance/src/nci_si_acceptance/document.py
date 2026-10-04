@@ -3,10 +3,11 @@
     pdm run spec-render
 
 writes `docs/specification.md`: an introduction, the conventions, the required tools, the
-requirements with the suite tests that cite each, and the acceptance rules. The two prose
-parts are `spec/introduction.md` and `spec/acceptance.md`; everything else comes from the
-data. A self-test fails when the file is not current. A Word copy is built from it with
-pandoc where one is wanted; neither is edited by hand.
+resources and prompts, the requirements with the suite tests that cite each, and the
+acceptance rules. The prose parts are `spec/introduction.md`, `spec/prompts.md` and
+`spec/acceptance.md`; everything else comes from the data. A self-test fails when the file is
+not current. A Word copy is built from it with pandoc where one is wanted; neither is edited
+by hand.
 """
 
 from __future__ import annotations
@@ -19,7 +20,7 @@ from typing import Any
 import pytest
 
 from nci_si_acceptance.requirements import citations, load_requirements
-from nci_si_acceptance.spec import CONVENTIONS, RECORDS, SPEC, TOOLS
+from nci_si_acceptance.spec import CONVENTIONS, PROMPTS, RECORDS, RESOURCES, SPEC, TOOLS
 
 DOCUMENT = SPEC.parent / "docs" / "specification.md"
 SUITE = Path(__file__).parents[2] / "tests"
@@ -146,6 +147,54 @@ def _tools() -> list[str]:
     return lines
 
 
+def _argument(value: Any) -> str:
+    return f"[{', '.join(value)}]" if isinstance(value, list) else str(value)
+
+
+def _resource_row(resource: dict[str, Any]) -> str:
+    templates = "<br>".join(f"`{uri}`" for uri in resource["uri"])
+    arguments = ", ".join(f"{name}: {_argument(v)}" for name, v in resource["arguments"].items())
+    selects = resource.get("selects")
+    chosen = f" `{', '.join(selects)}` names which release." if selects else ""
+    return (
+        f"| {resource['title']} | {templates} | {resource['group']} | `{resource['mime']}` "
+        f"| `{resource['tool']}({arguments})` | {_cell(resource['summary'])}{chosen} |"
+    )
+
+
+def _prompt(name: str, prompt: dict[str, Any]) -> list[str]:
+    arguments = ", ".join(
+        f"`{each['name']}`{'' if each['required'] else ' (optional)'}"
+        for each in prompt["arguments"]
+    )
+    header = [f"#### `{name}`: {prompt['title']}", "", _cell(prompt["adds"]), ""]
+    header += [
+        f"Arguments: {arguments}.",
+        f"The tools it names, in order: {_names(prompt['tools'])}.",
+        "",
+    ]
+    lines = [f"    {line}".rstrip() for line in prompt["template"].rstrip().splitlines()]
+    return [*header, *lines, ""]
+
+
+def _names(tools: list[str]) -> str:
+    return ", ".join(f"`{tool}`" for tool in tools)
+
+
+def _resources_and_prompts() -> list[str]:
+    lines = ["## 3. Prompts and resources", "", "### Resources", ""]
+    lines += ["Listed by resources/list and resources/templates/list (M5.1); each is read with"]
+    lines += ["resources/read, and its content is compared with the answer of the tool it names on"]
+    lines += ["identity and release, not section by section.", ""]
+    lines += ["| Resource | URI templates | Group | MIME type | Compared with | What it is |"]
+    lines += ["|---|---|---|---|---|---|"]
+    lines += [_resource_row(resource) for resource in RESOURCES.values()]
+    lines += ["", "### Prompts", ""]
+    lines += ["Furnished by the government, listed by prompts/list (M5.1).", ""]
+    lines += [_text("prompts.md"), ""]
+    return lines + [line for name, prompt in PROMPTS.items() for line in _prompt(name, prompt)]
+
+
 def _status(key: str, entry: dict[str, Any], tests: dict[str, list[str]]) -> str:
     cited = ", ".join(f"`{test}`" for test in tests.get(key, []))
     planned = f"planned {entry['planned']}" if "planned" in entry else ""
@@ -165,7 +214,7 @@ def _requirements(cited: dict[str, tuple[str, ...]]) -> list[str]:
         for key in keys:
             tests.setdefault(key, []).append(test)
     requirements = load_requirements()
-    lines = ["## 3. Requirements", ""]
+    lines = ["## 4. Requirements", ""]
     for section, title in SECTIONS.items():
         rows = [
             f"| {key} | {_cell(entry['statement'])} | {', '.join(entry['basis'])} "
@@ -181,7 +230,8 @@ def _requirements(cited: dict[str, tuple[str, ...]]) -> list[str]:
 def render(cited: dict[str, tuple[str, ...]]) -> str:
     """The specification, given the requirements each suite test cites."""
 
-    lines = [_text("introduction.md"), *_conventions(), *_tools(), *_requirements(cited)]
+    lines = [_text("introduction.md"), *_conventions(), *_tools(), *_resources_and_prompts()]
+    lines += _requirements(cited)
     lines.append(_text("acceptance.md"))
     return "\n".join(lines).rstrip() + "\n"
 

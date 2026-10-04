@@ -7,7 +7,14 @@ from pathlib import Path
 import pytest
 import yaml
 
-from nci_si_acceptance.results import bare_code, element_ids, error_code, sparql_rows, value_ids
+from nci_si_acceptance.results import (
+    UNPINNED_REGISTRY,
+    bare_code,
+    element_ids,
+    error_code,
+    sparql_rows,
+    value_ids,
+)
 from nci_si_acceptance.spec import TOOLS, defaults
 
 GROUND = "ground_value"
@@ -21,7 +28,6 @@ SPARQL = "recorded/ssis-sparql"
 EWING, DISEASE = "C4817", "C2991"
 # What a hop holds at most: find_data_elements_for_concept's maximum (ground_value's summary).
 HOP_MAXIMUM = TOOLS["find_data_elements_for_concept"]["bounds"]["limit"]["maximum"]
-UNPINNED_REGISTRY = {"registry": "cadsr"}
 CALLS = yaml.safe_load((Path(__file__).parent / "calls.yaml").read_text(encoding="utf-8"))
 
 

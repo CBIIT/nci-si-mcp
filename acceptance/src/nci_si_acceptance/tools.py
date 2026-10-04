@@ -33,8 +33,9 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 import yaml
+from mcp.shared.exceptions import MCPError
 
-from nci_si_acceptance.spec import TOOLS
+from nci_si_acceptance.spec import TOOLS, Listing
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -174,6 +175,53 @@ def _content(result: types.CallToolResult) -> Any:
         return text
 
 
+@dataclass(frozen=True, slots=True)
+class Read:
+    """What resources/read gave for a URI: the base MIME type of each content (its parameters,
+    such as a charset, dropped), the first content as JSON (or its text), and the caching hint
+    the result carries, with whether both fields of it came on the wire (an omitted one is read
+    as its default)."""
+
+    mime_types: tuple[str | None, ...]
+    content: Any
+    ttl_ms: int
+    cache_scope: str
+    carried: bool
+
+
+def _base_type(mime: str | None) -> str:
+    """A MIME type without its parameters, in lower case: application/json for
+    "application/json; charset=utf-8"."""
+
+    return (mime or "").partition(";")[0].strip().lower()
+
+
+def _read(result: types.ReadResourceResult) -> Read:
+    first = result.contents[0] if result.contents else None
+    text = getattr(first, "text", None)
+    try:
+        content = json.loads(text) if text is not None else None
+    except ValueError:
+        content = text
+    return Read(
+        tuple(_base_type(each.mime_type) for each in result.contents),
+        content,
+        result.ttl_ms,
+        result.cache_scope,
+        {"ttl_ms", "cache_scope"} <= result.model_fields_set,
+    )
+
+
+def _answered[T](method: str, request: Callable[[], T]) -> T:
+    """The server's answer to `request`; its refusal, such as no such method because the server
+    lacks the capability, fails the test and says so."""
+
+    try:
+        return request()
+    except MCPError as refusal:
+        pytest.fail(f"{method} was refused: {refusal.message}")
+
+
 class Tools:
     """The required tools of one server session."""
 
@@ -213,6 +261,47 @@ class Tools:
         made = self._requests() - before
         if made > bound:
             pytest.fail(f"{name} made {made} upstream requests, more than its bound of {bound}")
+
+    def list_prompts(self) -> types.ListPromptsResult:
+        """prompts/list; a server without prompts fails the test."""
+
+        return _answered("prompts/list", self._session.list_prompts)
+
+    def get_prompt(self, name: str, arguments: dict[str, str]) -> types.GetPromptResult:
+        return _answered("prompts/get", lambda: self._session.get_prompt(name, arguments))
+
+    def list_resources(self) -> types.ListResourcesResult:
+        """resources/list, every page; a server without resources fails the test."""
+
+        return _answered("resources/list", self._session.list_resources)
+
+    def list_resource_templates(self) -> types.ListResourceTemplatesResult:
+        """resources/templates/list, every page."""
+
+        return _answered("resources/templates/list", self._session.list_resource_templates)
+
+    def listed_resources(self) -> Listing:
+        """The concrete URIs resources/list names and the URI templates
+        resources/templates/list names, each from its own method."""
+
+        return Listing(
+            {each.uri for each in self.list_resources().resources},
+            {each.uri_template for each in self.list_resource_templates().resource_templates},
+        )
+
+    def read_resource(self, uri: str) -> Read:
+        """resources/read of `uri`; a refusal fails the test."""
+
+        return _read(_answered("resources/read", lambda: self._session.read_resource(uri)))
+
+    def resource_refusal(self, uri: str) -> str | None:
+        """What the server says in refusing resources/read of `uri`; None where it gave content."""
+
+        try:
+            self._session.read_resource(uri)
+        except MCPError as refusal:
+            return refusal.message
+        return None
 
     def implemented_as(self, name: str) -> str | None:
         """The tool that answers for `name`: itself, its stand-in, or none."""

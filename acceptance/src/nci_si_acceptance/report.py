@@ -1,8 +1,8 @@
-"""The per-tool report (docs/specification.md §4).
+"""The per-tool report (docs/specification.md §5).
 
 A run of the suite writes one report per run mode (`pytest --report=PATH`), with the
 final outcome of every test. A test counts for the tool its `tool` marker names; a
-test marked `gate` gates every tool (§3). One run gives each required tool one outcome:
+test marked `gate` gates every tool (§4). One run gives each required tool one outcome:
 
     PASS             every test of the tool ran and passed, and every gate
     FAIL             a test of the tool failed, or a gate did (shown as "gates only")

@@ -1,6 +1,6 @@
 # The fixture set: its pin, the concept rules, the scenarios, and what
 # `pdm run acceptance-record` records (fixtures/README.md). Re-pinning the release is a
-# re-recording under change control (docs/specification.md §4).
+# re-recording under change control (docs/specification.md §5).
 
 evs:
   release: ncit_26.09d

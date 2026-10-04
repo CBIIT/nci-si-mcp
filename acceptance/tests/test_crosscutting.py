@@ -5,7 +5,6 @@ import base64
 import json
 import re
 from collections import Counter
-from datetime import datetime
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, unquote_plus
 
@@ -16,9 +15,19 @@ from jsonschema import Draft202012Validator
 from nci_si_acceptance.client import CREDENTIAL_VARIABLES
 from nci_si_acceptance.craft import LICENCE_FIELD
 from nci_si_acceptance.fixture_server import FORM_TYPE
-from nci_si_acceptance.results import error_code, identity, pinned_release, release_of
+from nci_si_acceptance.results import (
+    CARRIED,
+    UNPINNED_REGISTRY,
+    error_code,
+    hint_fits,
+    identity,
+    is_timestamp,
+    pinned_release,
+    provenance_of,
+    release_of,
+    wrong_fields,
+)
 from nci_si_acceptance.spec import (
-    RECORDS,
     TOOLS,
     alternatives,
     defaults,
@@ -27,9 +36,7 @@ from nci_si_acceptance.spec import (
 )
 
 CALLS = yaml.safe_load((Path(__file__).parent / "calls.yaml").read_text(encoding="utf-8"))
-FIELDS = RECORDS["provenance"]["fields"] | RECORDS["traversal"]["fields"]
-# What every item's provenance carries (X-7), and what an item reached by traversal adds.
-CARRIED = ("release", "source", "retrievedAt", "servedBy")
+# What an item reached by traversal adds to the provenance every item carries (X-7).
 REACHED = ("relationship", "direction", "polarity")
 # The bare form NCIt publishes its codes in (A1.2: C4817); other terminologies are held only to
 # carry no URI, since some publish punctuation in their codes (HGNC:3508, ICD-O-3 8001/3).
@@ -97,20 +104,6 @@ def _items(tools, pinned, name):
     return found
 
 
-def _provenance(item):
-    return item.get("provenance") or {} if isinstance(item, dict) else {}
-
-
-def _wrong(provenance, names):
-    """The fields among `names` that are missing, or hold a value outside their closed set."""
-
-    return [name for name in names if not _valid(provenance.get(name), FIELDS[name])]
-
-
-def _valid(value, field):
-    return value is not None and value in field.get("values", [value])
-
-
 def _codes(item):
     """Each code an item carries, with the terminology beside it."""
 
@@ -132,13 +125,6 @@ def _bare(code, terminology):
     pattern = BARE.get(str(terminology).lower())
     uri = "://" in code or code.lower().startswith("urn:")
     return not uri and (pattern is None or pattern.fullmatch(code) is not None)
-
-
-def _timestamp(value):
-    try:
-        return datetime.fromisoformat(value).tzinfo is not None
-    except TypeError, ValueError:
-        return False
 
 
 @pytest.mark.requirement("X-1")
@@ -167,22 +153,24 @@ def test_a_result_is_an_object(tools, pinned, name):
 @pytest.mark.requirement("X-7")
 @pytest.mark.parametrize("name", CALLED)
 def test_every_item_carries_its_provenance(tools, pinned, name):
-    provenances = [_provenance(item) for item in _items(tools, pinned, name)]
+    provenances = [provenance_of(item) for item in _items(tools, pinned, name)]
 
-    assert [_wrong(provenance, CARRIED) for provenance in provenances] == [[]] * len(provenances)
-    assert all(_timestamp(provenance.get("retrievedAt")) for provenance in provenances)
+    assert [wrong_fields(provenance, CARRIED) for provenance in provenances] == [[]] * len(
+        provenances
+    )
+    assert all(is_timestamp(provenance.get("retrievedAt")) for provenance in provenances)
 
 
 @pytest.mark.requirement("X-7")
 @pytest.mark.parametrize("name", _per_tool(name for name in CALLS if TOOLS[name].get("traversal")))
 def test_an_item_reached_by_traversal_says_how(tools, pinned, name):
-    provenances = [_provenance(item) for item in _items(tools, pinned, name)]
+    provenances = [provenance_of(item) for item in _items(tools, pinned, name)]
     depths = [provenance.get("depth") for provenance in provenances]
 
     assert all(isinstance(depth, int) and depth >= 0 for depth in depths)
     assert max(depths) > 0, "the call reaches no item by traversal"
     reached = [provenance for provenance in provenances if provenance["depth"] > 0]
-    assert [_wrong(provenance, REACHED) for provenance in reached] == [[]] * len(reached)
+    assert [wrong_fields(provenance, REACHED) for provenance in reached] == [[]] * len(reached)
 
 
 @pytest.mark.requirement("X-9")
@@ -224,18 +212,15 @@ def test_a_release_pinned_result_may_be_cached(tools, pinned, name):
 
 # The caDSR calls: each takes a registry release, and none gives one (X-21).
 REGISTRY = [name for name in CALLS if "registryRelease" in parameters(name)[0]]
-UNPINNED_REGISTRY = {"registry": "cadsr"}
 # A registry release caDSR does not publish: it publishes none (registry-releases.json: 404).
 UNPUBLISHED = "2026.07.02"
-# M2.2: governed content no release pins is cached briefly, at most this long.
-SHORT_TTL = 3_600_000
 NOT_FOUND = 404
 
 
 @pytest.mark.requirement("X-21")
 @pytest.mark.parametrize("name", _per_tool(REGISTRY))
 def test_a_cadsr_item_without_a_registry_release_names_the_registry_alone(tools, pinned, name):
-    provenances = [_provenance(item) for item in _items(tools, pinned, name)]
+    provenances = [provenance_of(item) for item in _items(tools, pinned, name)]
     # An item of a tool that also takes the NCIt release names the registry beside it (A1.5),
     # where it rests on caDSR content; a caDSR tool's items name it as their release.
     states = (
@@ -268,9 +253,7 @@ def test_a_cadsr_result_is_cached_as_what_it_holds_says(tools, pinned, name):
     if TOOLS[name].get("computed"):
         assert (ttl, scope) == (0, "private")
     else:
-        assert isinstance(ttl, int)
-        assert 0 < ttl <= SHORT_TTL
-        assert scope == "public"
+        assert hint_fits(ttl, scope, pinned=False), (ttl, scope)
 
 
 def _schema_errors(tools, result):
@@ -473,8 +456,8 @@ def test_a_query_that_matches_nothing_is_an_empty_result_with_provenance(tools, 
     assert items_of(name, result.content) == []
     assert "nextCursor" not in result.content
     # With no item to carry it, the result carries the provenance itself.
-    provenance = _provenance(result.content)
-    assert _wrong(provenance, CARRIED) == []
+    provenance = provenance_of(result.content)
+    assert wrong_fields(provenance, CARRIED) == []
     assert release_of(result.content) == pinned_release(name, pinned)
     if name in REGISTRY:
         assert provenance["release"] == UNPINNED_REGISTRY
@@ -484,7 +467,7 @@ def test_a_query_that_matches_nothing_is_an_empty_result_with_provenance(tools, 
 @pytest.mark.parametrize("name", _per_tool(UPSTREAM))
 def test_what_the_platform_says_of_an_item_s_origin_is_passed_through(tools, pinned, name):
     supplied = _pinned(CALLS[name]["upstream"], pinned)
-    passed = [_provenance(item).get("upstream") or {} for item in _items(tools, pinned, name)]
+    passed = [provenance_of(item).get("upstream") or {} for item in _items(tools, pinned, name)]
 
     assert [{key: each.get(key) for key in supplied} for each in passed] == [supplied] * len(passed)
 
@@ -809,7 +792,7 @@ def _licensed_items(tools, name):
 def _attributed(items):
     """The items whose provenance carries an attribution, null or empty included."""
 
-    return [item for item in items if "attribution" in _provenance(item)]
+    return [item for item in items if "attribution" in provenance_of(item)]
 
 
 @pytest.mark.requirement("X-19")
@@ -826,7 +809,7 @@ def test_licence_text_the_platform_gives_with_an_item_is_passed_through_unchange
     # An NCIt call after it, given no text, must not inherit the licensed answer's.
     plain = _successful_items(name, _call(tools, pinned, name))
 
-    attributions = [_provenance(item).get("attribution") for item in licensed]
+    attributions = [provenance_of(item).get("attribution") for item in licensed]
     assert (attributions, _attributed(plain)) == ([text] * len(licensed), [])
 
 

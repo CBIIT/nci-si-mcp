@@ -6,17 +6,25 @@ import pytest
 
 from nci_si_acceptance.record import FIXTURES
 from nci_si_acceptance.results import (
+    CARRIED,
     EXPORT_LISTING,
     bare_code,
     element_ids,
     error_code,
     export_date,
+    hint_fits,
     identity,
+    is_count,
+    is_iso8601,
+    is_name,
+    is_timestamp,
     pinned_release,
+    provenance_of,
     release_of,
     requests_naming,
     sparql_rows,
     value_ids,
+    wrong_fields,
 )
 from nci_si_acceptance.tools import Result
 
@@ -57,32 +65,80 @@ def test_a_request_names_a_code_in_its_path_or_a_parameter_but_not_inside_anothe
 ELEMENT = {"publicId": "2200604", "version": "4", "longName": "Person Sex Text Type"}
 
 
+# The first rows are the shapes main compared before resource contents existed, and must not
+# change.
 @pytest.mark.parametrize(
     ("item", "expected"),
     [
-        # EVS items keep their identities.
-        ({"terminology": "ncit", "code": "C4817", "name": "Ewing Sarcoma"}, ("ncit", "C4817")),
-        ({"terminology": "ncit", "release": "26.09d"}, ("ncit", None)),
-        (
-            {
-                "sourceCode": "C1",
-                "targetCode": "C2",
-                "provenance": {"relationship": {"code": "R1"}},
-            },
-            ("C1", "C2", "R1"),
+        pytest.param(
+            {"code": "C4817", "terminology": "ncit", "version": "26.09d", "name": "Ewing Sarcoma"},
+            ("ncit", "C4817"),
+            id="concept-record-with-version",
         ),
-        # caDSR items: a data element and a form by public id and version, a code map by its
-        # data element's, a value meaning match's item likewise, a context by its name.
-        (ELEMENT, ("2200604", "4")),
-        ({"dataElement": {"publicId": "88", "version": "5.1"}, "usedBy": ["GDC"]}, ("88", "5.1")),
-        ({"name": "NCIP", "provenance": {}}, "NCIP"),
+        pytest.param(
+            {"code": "C4817", "terminology": "ncit", "provenance": {}},
+            ("ncit", "C4817"),
+            id="concept-item-with-provenance",
+        ),
+        pytest.param(
+            {
+                "sourceCode": "C4817",
+                "targetCode": "C3262",
+                "provenance": {"relationship": {"code": "R101"}},
+            },
+            ("C4817", "C3262", "R101"),
+            id="edge",
+        ),
+        # Mappings were indistinct before this row: each had the identity None.
+        pytest.param(
+            {"targetCode": "HGNC:1100", "targetTerminology": "hgnc"},
+            ("hgnc", "HGNC:1100"),
+            id="mapping",
+        ),
+        pytest.param(ELEMENT, ("2200604", "4"), id="data-element"),
+        pytest.param(
+            {"dataElement": {"publicId": "2200604", "version": "4"}, "usedBy": ["GDC"]},
+            ("2200604", "4"),
+            id="data-element-use",
+        ),
+        pytest.param(
+            {"dataElement": {"publicId": "2200604", "version": "4"}, "codeMap": {}},
+            ("2200604", "4"),
+            id="code-map",
+        ),
+        pytest.param("NCIP", "NCIP", id="context-as-string"),
+        pytest.param({"name": "NCIP"}, "NCIP", id="context-as-record"),
+        pytest.param(
+            {"terminology": "mdr", "release": "29_0"}, ("mdr", None), id="terminology-record"
+        ),
+        pytest.param(
+            {"terminology": "ncit", "version": "26.09d", "channel": "monthly"},
+            ("ncit", "26.09d"),
+            id="release-record",
+        ),
+        pytest.param(
+            {"published": False, "generatedAt": "2026-07-01"},
+            (False, None, "2026-07-01"),
+            id="registry-state",
+        ),
         # A data element that is no record names nothing to identify the item by but its name.
-        ({"dataElement": "2200604", "name": "a code map"}, "a code map"),
-        ("bare", "bare"),
+        pytest.param(
+            {"dataElement": "2200604", "name": "a code map"},
+            "a code map",
+            id="data-element-that-is-no-record",
+        ),
     ],
 )
 def test_an_item_is_identified_by_what_it_is(item, expected):
     assert identity(item) == expected
+
+
+def test_two_concepts_of_one_release_are_two_items():
+    release = {"terminology": "ncit", "version": "26.09d"}
+
+    assert identity(release | {"code": "C4817"}) != identity(release | {"code": "C3262"})
+    # A release's own record is another item than a concept of it.
+    assert identity(release) != identity(release | {"code": "C4817"})
 
 
 @pytest.mark.parametrize(
@@ -132,3 +188,82 @@ def test_uses_are_named_by_their_data_element_and_value():
 
     assert element_ids([use]) == {("2200604", "4")}
     assert value_ids([use | {"conceptCode": "C20197"}]) == {("2200604", "4", "Male", "C20197")}
+
+
+PROVENANCE = {
+    "release": {"terminology": "ncit", "identifier": "26.09d"},
+    "source": "evs_rest",
+    "servedBy": "live",
+    "retrievedAt": "2026-10-04T10:00:00+00:00",
+}
+
+
+def test_a_provenance_record_lacking_a_carried_field_or_holding_one_off_its_set_is_named():
+    assert wrong_fields(PROVENANCE, CARRIED) == []
+    assert wrong_fields(PROVENANCE | {"source": "somewhere"}, CARRIED) == ["source"]
+    assert wrong_fields({k: v for k, v in PROVENANCE.items() if k != "release"}, CARRIED) == [
+        "release"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("item", "provenance"),
+    [({"provenance": PROVENANCE}, PROVENANCE), ({"provenance": None}, {}), ("text", {})],
+)
+def test_an_item_s_provenance_is_its_record_or_none(item, provenance):
+    assert provenance_of(item) == provenance
+
+
+@pytest.mark.parametrize(
+    ("value", "valid"),
+    [
+        ("2026-10-04T10:00:00+00:00", True),
+        ("2026-10-04T10:00:00", False),
+        ("today", False),
+        (None, False),
+    ],
+)
+def test_a_timestamp_is_iso_8601_with_a_time_zone(value, valid):
+    assert is_timestamp(value) is valid
+
+
+@pytest.mark.parametrize(
+    ("value", "valid"),
+    [("2026-10-04T10:00:00", True), ("2026-10-04", True), ("today", False), (None, False)],
+)
+def test_a_date_or_timestamp_without_a_time_zone_is_iso_8601(value, valid):
+    assert is_iso8601(value) is valid
+
+
+@pytest.mark.parametrize(
+    ("value", "count", "name"),
+    [
+        (5, True, False),
+        (0, False, False),
+        (True, False, False),
+        ("5", False, True),
+        ("", False, False),
+    ],
+)
+def test_a_count_is_a_positive_integer_and_a_name_a_non_empty_string(value, count, name):
+    assert (is_count(value), is_name(value)) == (count, name)
+
+
+@pytest.mark.parametrize(
+    ("ttl", "scope", "pinned", "fits"),
+    [
+        # Release-pinned content may be cached for any positive time, long included.
+        (86_400_000, "public", True, True),
+        (1, "public", True, True),
+        (0, "public", True, False),
+        (86_400_000, "private", True, False),
+        # Content no release pins is cached briefly, at most an hour.
+        (3_600_000, "public", False, True),
+        (3_600_001, "public", False, False),
+        (0, "public", False, False),
+        (None, "public", False, False),
+        (3_600_000, "private", False, False),
+    ],
+)
+def test_a_caching_hint_fits_the_class_of_what_the_content_holds(ttl, scope, pinned, fits):
+    assert hint_fits(ttl, scope, pinned) is fits

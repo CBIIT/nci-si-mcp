@@ -82,6 +82,44 @@ requirements, for the harness's own tests.
     attributes-all-but-last the licence text EVS gives left off the last item         (X-19)
     attributes-ncit   NCIt items with a licence text of the server's own            (X-19)
     sticky-attribution an item EVS gave no text with carries the last text it gave   (X-19)
+    no-prompts        no prompts capability: prompts/list is a method not found      (P-8)
+    prompt-outside-profile a prompt, naming tools the profile lacks, in a profile with none (P-8)
+    prompt-missing    one prompt of the profile not listed                          (P-8)
+    argument-undeclared a prompt whose first argument prompts/list does not declare (P-8)
+    prompt-omits-tool the last tool a prompt states left out of its messages         (P-8)
+    prompt-empty      prompts/get returns no message                                (P-8)
+    no-resources      no resources capability: resources/list is a method not found (P-8)
+    uri-differs       the concept's URI template listed without its release          (P-8)
+    resource-no-ttl   resources/read results without ttlMs and cacheScope           (P-9)
+    resource-no-provenance resource content without its provenance                  (P-9)
+    resource-other-content resource content of another concept than the one read    (P-9)
+    resource-wrong-mime resource content in another MIME type                       (P-9)
+    resource-ignores-version cadsr://data-element/{publicId}/{version} gives the latest (P-9)
+    crosswalk-cut     the crosswalk resource cut at 100 code maps                   (P-9)
+    manifest-other-release the manifest names another release than the one asked    (P-9)
+    registry-identifier the registry resource names a registry identifier, in its body
+                      and in its provenance's release                                (P-9)
+    resource-private-scope resource hints with cacheScope private                   (P-9)
+    resource-other-ttl resource hints of the other class: 0 for pinned, long for unpinned (P-9)
+    resource-ttl-in-meta the hint in the result's _meta, not in its fields          (P-9)
+    bad-timestamp     (also) a retrievedAt in a resource's provenance that is no timestamp (P-9)
+    manifest-no-embedding the manifest without its embedding                        (P-9)
+    manifest-unbuilt  a manifest of no concepts, built at no time                   (P-9)
+    unmatched-uri-content a URI no template matches answered with content           (P-9)
+    templates-as-resources templates listed by resources/list, none by templates/list (P-8)
+    prompt-reordered  the first two tools a prompt states named in the other order   (P-8)
+    prompts-no-ttl    prompts/list with ttlMs 0                                     (P-5)
+    resources-no-ttl  resources/list with ttlMs 0                                   (P-5)
+    templates-no-ttl  resources/templates/list with ttlMs 0                         (P-5)
+    lists-private     the four lists with cacheScope private                        (P-5)
+
+`COMPLIANT_SERVER_PAGE_SIZE` makes prompts/list, resources/list and resources/templates/list
+page, that many items to a page with a nextCursor: a server that pages passes all the same (M6.1).
+
+`COMPLIANT_SERVER_PROFILE` names the profile the server serves, evs by default: the tools it
+lists, the resources it serves and the prompts it lists (those whose every tool the profile
+has, so none in evs). A resource's content is its tool's answer, called as spec/resources.yaml
+says; a prompt's messages are its template with the arguments filled in.
 
 `unpinned-mismatch` is no defect for a tool without a pinned form upstream: it answers an
 unknown release with release_mismatch, as such a tool can only verify an unpinned answer (X-2).
@@ -120,10 +158,26 @@ import yaml
 from mcp.server.caching import CacheHint
 from mcp.server.lowlevel.server import Server
 from mcp.server.stdio import stdio_server
+from mcp.shared.exceptions import MCPError
 
-from nci_si_acceptance.spec import RECORDS, TOOLS, defaults, parameters, profile_tools
+from nci_si_acceptance.results import EXPORT, SHORT_TTL, UNPINNED_REGISTRY
+from nci_si_acceptance.spec import (
+    PROMPTS,
+    RECORDS,
+    RESOURCES,
+    TOOLS,
+    defaults,
+    parameters,
+    profile_tools,
+    prompts_of,
+    resource_call,
+    resources_of,
+    uri_variables,
+)
 
 DEFECT = os.environ.get("COMPLIANT_SERVER_DEFECT", "")
+PROFILE = os.environ.get("COMPLIANT_SERVER_PROFILE", "evs")
+PAGE_SIZE = int(os.environ.get("COMPLIANT_SERVER_PAGE_SIZE", "0"))
 EVS = os.environ["NCI_SI_EVS_BASE_URL"]
 TIMEOUT = float(os.environ.get("NCI_SI_TIMEOUT_SECONDS", "10"))
 LICENCE_KEY = os.environ.get("NCI_SI_EVS_LICENSE_KEY")
@@ -138,6 +192,13 @@ UNKNOWN_RELEASE = "release_mismatch" if DEFECT == "unpinned-mismatch" else "rele
 SWALLOWED = {"unknown-as-empty": "release_not_available", "outage-as-empty": "upstream_unavailable"}
 # A request body, where there is one.
 type Body = bytes | None
+# The release EVS serves as current, the caDSR export's date, the latest version of data
+# element 2200604 (an older one is 1), and the data elements of the crosswalk today.
+CURRENT, EXPORT_DATE, LATEST_VERSION, CODE_MAPS = "26.09d", "2026-07-01", "4", 105
+# A registry release caDSR does not publish, which the registry-identifier defect names.
+UNPUBLISHED = "2026.07.02"
+# The ttlMs of release-pinned content (long); SHORT_TTL is that of content no release pins.
+LONG_TTL = 86_400_000
 # The suite's calls (tests/calls.yaml): what each tool's upstream answers would say.
 CALLS = yaml.safe_load((Path(__file__).parent.parent / "tests" / "calls.yaml").read_text())
 # Whether each call so far reached EVS, and EVS's answer to each call already answered.
@@ -319,7 +380,7 @@ def _tool(name: str) -> types.Tool:
 
 
 def _names() -> list[str]:
-    names = sorted(profile_tools("evs"))
+    names = sorted(profile_tools(PROFILE))
     if DEFECT == "misnamed":
         names.append("ConceptLookup")
     dropped = {
@@ -334,13 +395,17 @@ async def list_tools(_context, _params) -> types.ListToolsResult:
     return types.ListToolsResult(tools=[_tool(name) for name in _names()])
 
 
+def _retrieved() -> str:
+    return "today" if DEFECT == "bad-timestamp" else datetime.now(UTC).isoformat()
+
+
 def _provenance(name: str, arguments: dict, correlation: str, answer: dict) -> dict:
     release = "26.08e" if DEFECT == "wrong-release" else arguments.get("release")
     terminology = "mdr" if DEFECT == "wrong-terminology" else arguments.get("terminology")
     provenance = {
         "release": {"terminology": terminology, "identifier": release},
         "source": "evs_rest",
-        "retrievedAt": "today" if DEFECT == "bad-timestamp" else datetime.now(UTC).isoformat(),
+        "retrievedAt": _retrieved(),
         "servedBy": "live",
         "correlationId": correlation,
         "upstream": _upstream(name, arguments),
@@ -418,6 +483,8 @@ def _truncation(name: str, arguments: dict) -> dict:
     """The truncation field of a tool that bounds its result: a bound reached where the call
     sets one of the suite's truncating arguments."""
 
+    if name == "get_code_map":
+        return _code_map_cut(arguments)
     if "truncation" not in TOOLS[name]["returns"]:
         return {}
     truncating = CALLS.get(name, {}).get("truncating", {"arguments": {}})
@@ -427,6 +494,16 @@ def _truncation(name: str, arguments: dict) -> dict:
     if not limits:
         return {"truncation": {"occurred": False}}
     return {"truncation": _reached(truncating["bound"], limits[0])}
+
+
+def _code_map_cut(arguments: dict) -> dict:
+    """The truncation of the crosswalk's code maps, cut at the call's limit."""
+
+    limit = arguments.get("limit", defaults("get_code_map")["limit"])
+    if limit >= CODE_MAPS:
+        return {"truncation": {"occurred": False}}
+    cut = {"occurred": True, "bound": "results", "limit": limit, "reached": limit}
+    return {"truncation": cut | {"omitted": CODE_MAPS - limit, "exact": True}}
 
 
 def _reached(bound: str, limit: int) -> dict:
@@ -489,9 +566,61 @@ def _content(name: str, arguments: dict, correlation: str, answer: dict) -> obje
     return content | _truncation(name, arguments) | _next_cursor(name, arguments, items)
 
 
+def _registry(provenance: dict) -> dict:
+    """The provenance of a caDSR item: the registry alone is its release (X-21)."""
+
+    return provenance | {"release": dict(UNPINNED_REGISTRY), "source": "cadsr_rest"}
+
+
+def _data_element(arguments: dict, provenance: dict) -> list[dict]:
+    """A data element at the version asked for, the latest by default."""
+
+    version = arguments.get("version", LATEST_VERSION)
+    public_id = arguments.get("publicId", "2200604")
+    return [{"publicId": public_id, "version": version, "provenance": _registry(provenance)}]
+
+
+def _code_maps(arguments: dict, provenance: dict) -> list[dict]:
+    """The crosswalk's code maps, as many as the limit allows of its 105."""
+
+    limit = arguments.get("limit", defaults("get_code_map")["limit"])
+    return [
+        {
+            "dataElement": {"publicId": str(1000 + number), "version": "1"},
+            "provenance": _registry(provenance),
+        }
+        for number in range(min(limit, CODE_MAPS))
+    ]
+
+
+def _release(_arguments: dict, provenance: dict) -> list[dict]:
+    """The current release as resolve_release names it."""
+
+    named = provenance | {"release": {"terminology": "ncit", "identifier": CURRENT}}
+    record = {"terminology": "ncit", "channel": "monthly", "version": CURRENT}
+    return [record | {"date": EXPORT_DATE, "alternatives": [], "provenance": named}]
+
+
+def _registry_state(_arguments: dict, _provenance: dict) -> list[dict]:
+    """The registry's unpinned state with the export's date; the answer has no provenance."""
+
+    return [{"published": False, "generatedAt": EXPORT_DATE, "sourceDistribution": EXPORT}]
+
+
+# The tools whose answers have the shape of their records, not a concept's.
+RECORDS_OF = {
+    "get_data_element": _data_element,
+    "get_code_map": _code_maps,
+    "resolve_release": _release,
+    "resolve_registry_release": _registry_state,
+}
+
+
 def _items_of_call(name: str, arguments: dict, provenance: dict) -> list[dict]:
     if _matches_nothing(name, arguments):
         return []
+    if name in RECORDS_OF:
+        return RECORDS_OF[name](arguments, provenance)
     if arguments.get("terminology") in LICENSED:
         return _licensed_items(name, arguments, provenance)
     return _page(name, arguments, provenance)
@@ -711,13 +840,301 @@ async def call_tool(_context, params: types.CallToolRequestParams) -> types.Call
     )
 
 
+def _uris() -> list[tuple[str, str]]:
+    """Each resource of the profile with each of its URI templates."""
+
+    return [
+        (key, uri) for key, resource in resources_of(PROFILE).items() for uri in resource["uri"]
+    ]
+
+
+def _advertised(uri: str) -> str:
+    """The template as the server lists it: the concept's without its release, under the
+    uri-differs defect."""
+
+    differing = DEFECT == "uri-differs" and uri.startswith("ncit://concept/")
+    return "ncit://concept/{code}" if differing else uri
+
+
+def _name(key: str, uri: str) -> str:
+    """A resource's name: its key, with the variables of a second template added."""
+
+    return "-".join([key, *uri_variables(uri)]) if len(RESOURCES[key]["uri"]) > 1 else key
+
+
+def _slice(items: list, params: types.PaginatedRequestParams | None) -> tuple[list, str | None]:
+    """The page of `items` the request asks for and the cursor of the next, where the server
+    pages (COMPLIANT_SERVER_PAGE_SIZE); else all of them."""
+
+    if not PAGE_SIZE:
+        return items, None
+    start = int(params.cursor or 0) if params else 0
+    end = start + PAGE_SIZE
+    return items[start:end], str(end) if end < len(items) else None
+
+
+def _listed_as(templated: bool) -> list[tuple[str, str]]:
+    """The URIs resources/list names (templated False) or resources/templates/list names. The
+    templates-as-resources defect lists them all as resources."""
+
+    if DEFECT == "templates-as-resources":
+        return [] if templated else _uris()
+    return [(key, uri) for key, uri in _uris() if bool(uri_variables(uri)) == templated]
+
+
+async def list_resources(
+    _context, params: types.PaginatedRequestParams | None
+) -> types.ListResourcesResult:
+    resources = [
+        types.Resource(name=_name(key, uri), uri=_advertised(uri), mime_type=RESOURCES[key]["mime"])
+        for key, uri in _listed_as(templated=False)
+    ]
+    page, cursor = _slice(resources, params)
+    return types.ListResourcesResult(resources=page, next_cursor=cursor)
+
+
+async def list_resource_templates(
+    _context, params: types.PaginatedRequestParams | None
+) -> types.ListResourceTemplatesResult:
+    templates = [
+        types.ResourceTemplate(
+            name=_name(key, uri), uri_template=_advertised(uri), mime_type=RESOURCES[key]["mime"]
+        )
+        for key, uri in _listed_as(templated=True)
+    ]
+    page, cursor = _slice(templates, params)
+    return types.ListResourceTemplatesResult(resource_templates=page, next_cursor=cursor)
+
+
+def _matched(uri: str) -> tuple[str, str, dict[str, str]]:
+    """The resource and template a URI is an instance of, with the values of its variables."""
+
+    for key, template in _uris():
+        pattern = re.sub(r"\\\{(\w+)\\\}", r"(?P<\1>[^/]+)", re.escape(template))
+        if found := re.fullmatch(pattern, uri):
+            return key, template, found.groupdict()
+    raise MCPError(types.INVALID_PARAMS, f"no such resource: {uri}")
+
+
+# What identifies an item, and another value for it (the resource-other-content defect).
+OTHER = {"code": "C9999", "publicId": "999", "version": "0.0", "generatedAt": "1999-01-01"}
+
+
+def _renamed(value: object) -> object:
+    """`value` with whatever identifies an item another (the resource-other-content defect)."""
+
+    if isinstance(value, dict):
+        return {k: OTHER.get(k, v) if isinstance(v, str) else _renamed(v) for k, v in value.items()}
+    return [_renamed(item) for item in value] if isinstance(value, list) else value
+
+
+def _unproven(value: object) -> object:
+    """`value` without any provenance (the resource-no-provenance defect)."""
+
+    if isinstance(value, dict):
+        return {k: _unproven(v) for k, v in value.items() if k != "provenance"}
+    return [_unproven(item) for item in value] if isinstance(value, list) else value
+
+
+def _manifest(tool_answer: dict, values: dict[str, str]) -> dict:
+    """The index manifest of the release asked for. It is not the tool's answer: that supplies
+    the provenance beside which the index's own is stated."""
+
+    version = "26.08e" if DEFECT == "manifest-other-release" else values["release"]
+    release = {"terminology": "ncit", "identifier": version}
+    manifest = {
+        "terminology": "ncit",
+        "version": version,
+        "concepts": 0 if DEFECT == "manifest-unbuilt" else 5,
+        "embedding": {"provider": "stub-provider", "model": "stub-model", "dimensions": 8},
+        "builtAt": "never" if DEFECT == "manifest-unbuilt" else datetime.now(UTC).isoformat(),
+        "provenance": tool_answer["provenance"]
+        | {"release": release, "source": "evs_index", "servedBy": "index"},
+    }
+    if DEFECT == "manifest-no-embedding":
+        del manifest["embedding"]
+    return manifest
+
+
+def _registry_resource(tool_answer: dict, _values: dict[str, str]) -> dict:
+    """The registry's state, to which the resource adds the provenance the tool's answer lacks:
+    the export folder's listing is its source (A3.8.2)."""
+
+    release = dict(UNPINNED_REGISTRY)
+    state = dict(tool_answer)
+    if DEFECT == "registry-identifier":
+        state["identifier"] = release["identifier"] = UNPUBLISHED
+    provenance = {
+        "release": release,
+        "source": "cadsr_export",
+        "retrievedAt": _retrieved(),
+        "servedBy": "live",
+    }
+    return state | {"provenance": provenance}
+
+
+def _as_resource(key: str, tool_answer: dict, values: dict[str, str]) -> dict:
+    """What a resource holds, given its tool's answer: the answer itself for most."""
+
+    builders = {"index_manifest": _manifest, "registry": _registry_resource}
+    return builders.get(key, lambda answer, _values: answer)(tool_answer, values)
+
+
+def _read_call(key: str, template: str, values: dict[str, str]) -> tuple[str, dict]:
+    """The tool call a resource's content is made from, as the defects alter it."""
+
+    tool, arguments = resource_call(key, template, values)
+    if DEFECT == "crosswalk-cut":
+        arguments = arguments | {"limit": 100}
+    if DEFECT == "resource-ignores-version":
+        arguments = {name: value for name, value in arguments.items() if name != "version"}
+    return tool, arguments
+
+
+def _hint(key: str) -> dict:
+    """The caching hint of a resource: the class M2.2 gives what it holds (a long ttlMs for
+    release-pinned content, a short one for content no release pins), as the defects alter it."""
+
+    pinned = RESOURCES[key]["holds"] == "release-pinned"
+    other = DEFECT == "resource-other-ttl"
+    ttl = LONG_TTL if pinned else SHORT_TTL
+    scope = "private" if DEFECT == "resource-private-scope" else "public"
+    return {"ttl_ms": (0 if pinned else LONG_TTL) if other else ttl, "cache_scope": scope}
+
+
+def _read_result(key: str, contents: list) -> types.ReadResourceResult:
+    """The result of resources/read: the hint as fields of the result, or where a defect puts
+    it, in the _meta or nowhere."""
+
+    hint = _hint(key)
+    if DEFECT == "resource-no-ttl":
+        return types.ReadResourceResult(contents=contents)
+    if DEFECT == "resource-ttl-in-meta":
+        meta = {"ttlMs": hint["ttl_ms"], "cacheScope": hint["cache_scope"]}
+        return types.ReadResourceResult(contents=contents, _meta=meta)
+    return types.ReadResourceResult(contents=contents, **hint)
+
+
+async def read_resource(
+    _context, params: types.ReadResourceRequestParams
+) -> types.ReadResourceResult:
+    try:
+        key, template, values = _matched(params.uri)
+    except MCPError:
+        if DEFECT != "unmatched-uri-content":
+            raise
+        return _read_result("concept", [types.TextResourceContents(uri=params.uri, text="{}")])
+    tool, arguments = _read_call(key, template, values)
+    content, failed = _answer(tool, arguments, "")
+    if failed:
+        raise MCPError(types.INVALID_PARAMS, json.dumps(content))
+    content = _as_resource(key, content, values)
+    content = {"resource-other-content": _renamed, "resource-no-provenance": _unproven}.get(
+        DEFECT, lambda each: each
+    )(content)
+    mime = "text/plain" if DEFECT == "resource-wrong-mime" else RESOURCES[key]["mime"]
+    contents = [
+        types.TextResourceContents(uri=params.uri, mime_type=mime, text=json.dumps(content))
+    ]
+    return _read_result(key, contents)
+
+
+def _stated_prompts() -> dict[str, dict]:
+    """The prompts the server lists: those of its profile, one too few under prompt-missing,
+    and under prompt-outside-profile one that names tools the profile lacks."""
+
+    prompts = dict(prompts_of(PROFILE))
+    if DEFECT == "prompt-outside-profile":
+        prompts["protocol_authoring"] = PROMPTS["protocol_authoring"]
+    if DEFECT == "prompt-missing":
+        prompts.pop(next(iter(prompts)))
+    return prompts
+
+
+def _declared(prompt: dict) -> list[types.PromptArgument]:
+    arguments = prompt["arguments"][1:] if DEFECT == "argument-undeclared" else prompt["arguments"]
+    return [
+        types.PromptArgument(
+            name=each["name"], description=each["description"], required=each["required"]
+        )
+        for each in arguments
+    ]
+
+
+async def list_prompts(
+    _context, params: types.PaginatedRequestParams | None
+) -> types.ListPromptsResult:
+    prompts = [
+        types.Prompt(
+            name=name,
+            title=prompt["title"],
+            description=prompt["adds"],
+            arguments=_declared(prompt),
+        )
+        for name, prompt in _stated_prompts().items()
+    ]
+    page, cursor = _slice(prompts, params)
+    return types.ListPromptsResult(prompts=page, next_cursor=cursor)
+
+
+class _Blank(dict):
+    """The arguments of a prompt: one not given is empty text."""
+
+    def __missing__(self, key: str) -> str:
+        return ""
+
+
+def _swapped(text: str, first: str, second: str) -> str:
+    """`text` with the names of two tools exchanged (the prompt-reordered defect)."""
+
+    return text.replace(first, "\0").replace(second, first).replace("\0", second)
+
+
+async def get_prompt(_context, params: types.GetPromptRequestParams) -> types.GetPromptResult:
+    prompt = _stated_prompts()[params.name]
+    text = prompt["template"].format_map(_Blank(params.arguments or {}))
+    if DEFECT == "prompt-omits-tool":
+        text = text.replace(prompt["tools"][-1], "the last tool")
+    if DEFECT == "prompt-reordered":
+        text = _swapped(text, *prompt["tools"][:2])
+    content = types.TextContent(type="text", text=text)
+    message = types.PromptMessage(role="user", content=content)
+    return types.GetPromptResult(messages=[] if DEFECT == "prompt-empty" else [message])
+
+
+def _handlers() -> dict:
+    """The handlers the server registers; a defect leaves out a capability."""
+
+    handlers = {"on_list_tools": list_tools, "on_call_tool": call_tool}
+    if DEFECT != "no-prompts":
+        handlers |= {"on_list_prompts": list_prompts, "on_get_prompt": get_prompt}
+    if DEFECT != "no-resources":
+        handlers |= {
+            "on_list_resources": list_resources,
+            "on_list_resource_templates": list_resource_templates,
+            "on_read_resource": read_resource,
+        }
+    return handlers
+
+
+# The list methods, and the defect that gives each a ttlMs of 0.
+LISTS = {
+    "tools/list": "no-ttl",
+    "prompts/list": "prompts-no-ttl",
+    "resources/list": "resources-no-ttl",
+    "resources/templates/list": "templates-no-ttl",
+}
+
+
+def _list_hint(uncached: str) -> CacheHint:
+    scope = "private" if DEFECT == "lists-private" else "public"
+    return CacheHint(ttl_ms=0 if uncached == DEFECT else LONG_TTL, scope=scope)
+
+
 SERVER = Server(
     "compliant-server",
-    cache_hints={
-        "tools/list": CacheHint(ttl_ms=0 if DEFECT == "no-ttl" else 86_400_000, scope="public")
-    },
-    on_list_tools=list_tools,
-    on_call_tool=call_tool,
+    cache_hints={method: _list_hint(uncached) for method, uncached in LISTS.items()},
+    **_handlers(),
 )
 
 

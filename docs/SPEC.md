@@ -247,7 +247,7 @@ Twelve tools, signatures in the specification (`spec/tools.yaml`, group `evs`). 
 
 ### 4.6 Resources
 
-Today's templates are `nci-si://concept/ncit/{code}`, `nci-si://release/ncit/{version}` and `nci-si://index/ncit/{version}/manifest`. They become `ncit://concept/{code}`, `ncit://release/{version}` and `ncit://index/manifest/{release}`. Every `resources/read` result carries `ttlMs` / `cacheScope` per §3.6.
+The furnished resources, EVS and caDSR, and the prompt templates are specified in `spec/resources.yaml` and `spec/prompts.yaml` (rendered in `docs/specification.md`, section 3). Today's templates are `nci-si://concept/ncit/{code}`, `nci-si://release/ncit/{version}` and `nci-si://index/ncit/{version}/manifest`. They become `ncit://concept/{release}/{code}` (the release is mandatory for every concept read), `ncit://release/{version}` and `ncit://index/manifest/{release}`. The caDSR module adds `cadsr://data-element/{publicId}` and `cadsr://data-element/{publicId}/{version}`, `cadsr://registry/release` and `cadsr://crosswalk/crdc`. Every `resources/read` result carries `ttlMs` / `cacheScope` per §3.6, of the class §3.6 gives what the resource holds, and a provenance record; its content is compared with the answer of the tool it names on identity and release, not section by section. The acceptance suite tests all of this at protocol level (P-8, P-9).
 
 ---
 

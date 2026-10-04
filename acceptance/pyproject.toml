@@ -3,7 +3,7 @@ requires = ["pdm-backend>=2.4"]
 build-backend = "pdm.backend"
 
 # The suite is versioned on its own, independently of the server and of the fixture
-# set (docs/specification.md §4); the version changes by hand, under change
+# set (docs/specification.md §5); the version changes by hand, under change
 # control.
 [project]
 name = "nci-si-acceptance"

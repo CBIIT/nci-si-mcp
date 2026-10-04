@@ -33,7 +33,7 @@ from nci_si_acceptance.fixture_server import UPSTREAM_VARIABLES
 from nci_si_acceptance.spec import PROFILES
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Awaitable, Callable, Iterator
     from pathlib import Path
 
     from mcp import types
@@ -114,6 +114,34 @@ class Session:
         self, name: str, arguments: dict[str, Any], meta: types.RequestParamsMeta | None = None
     ) -> types.CallToolResult:
         return self._portal.call(partial(self._client.call_tool, name, arguments, meta=meta))
+
+    def _every_page[T: types.PaginatedResult](
+        self, list_page: Callable[..., Awaitable[T]], field: str
+    ) -> T:
+        """Every page of a list method, followed by nextCursor: the first page's result (and
+        so its caching hint) holding the items of all of them."""
+
+        first = page = self._portal.call(list_page)
+        items = list(getattr(page, field))
+        while page.next_cursor:
+            page = self._portal.call(partial(list_page, cursor=page.next_cursor))
+            items += getattr(page, field)
+        return first.model_copy(update={field: items, "next_cursor": None})
+
+    def list_prompts(self) -> types.ListPromptsResult:
+        return self._every_page(self._client.list_prompts, "prompts")
+
+    def get_prompt(self, name: str, arguments: dict[str, str]) -> types.GetPromptResult:
+        return self._portal.call(partial(self._client.get_prompt, name, arguments))
+
+    def list_resources(self) -> types.ListResourcesResult:
+        return self._every_page(self._client.list_resources, "resources")
+
+    def list_resource_templates(self) -> types.ListResourceTemplatesResult:
+        return self._every_page(self._client.list_resource_templates, "resource_templates")
+
+    def read_resource(self, uri: str) -> types.ReadResourceResult:
+        return self._portal.call(partial(self._client.read_resource, uri))
 
 
 @contextmanager

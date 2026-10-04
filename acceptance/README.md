@@ -70,7 +70,7 @@ default hashing embedder:
 Run it only through the suite: the base URLs it is given name each surface of the fixture
 server (`NCI_SI_EVS_BASE_URL` ends in `/evs`, to which the server adds `/api/v1/…` as it does to
 the production host), and a command pointed at the fixture server's bare address finds no
-fixture. Every setting the suite gives a server, and its format, is in the specification's §4
+fixture. Every setting the suite gives a server, and its format, is in the specification's §5
 ([`spec/acceptance.md`](../spec/acceptance.md)).
 
 In fixture mode a test fails when one of its upstream requests found no fixture, and so does a
@@ -81,7 +81,7 @@ and still answer plausibly. A test that provokes such requests on purpose is mar
 ## The report
 
 `--report` writes one JSON report per run; `nci_si_acceptance.report` renders it as the per-tool
-table of the specification's §4. A tool is PASS, FAIL (a failed gate fails every tool), NO FIXTURE (a request lacked
+table of the specification's §5. A tool is PASS, FAIL (a failed gate fails every tool), NO FIXTURE (a request lacked
 a fixture: a question for the fixture set), INCOMPLETE (the tests that ran passed but some could
 not run: a hardening candidate), NOT IMPLEMENTED, NOT RUN or NO TESTS; the module docstring
 defines each, and each row counts the tests passed, failed, without a fixture and not run.
