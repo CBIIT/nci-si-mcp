@@ -21,6 +21,7 @@ class FakeResponse:
     def __init__(self, payload, headers=None):
         self.payload = payload
         # Header names are case-insensitive, as on a real response.
+        self.status = 200
         self.headers = Message()
         for name, value in (headers or {}).items():
             self.headers[name] = value
@@ -41,11 +42,14 @@ def http_error(status, body=b""):
     return HTTPError("https://example.invalid", status, "Reason", {}, io.BytesIO(body))
 
 
-@patch("nci_si_mcp.evs.time.sleep")
-@patch("nci_si_mcp.evs.urlopen")
+@patch("nci_si_mcp.http_client.time.sleep")
+@patch("nci_si_mcp.http_client._open")
 class EVSClientTest(unittest.TestCase):
     def client(self, **options):
-        return EVSClient("https://example.invalid/", **options)
+        client = EVSClient("https://example.invalid/", **options)
+        # No jitter: a backoff is waited in full.
+        client.http.jitter = lambda low, high: high
+        return client
 
     def test_transient_failures_are_retried_until_one_succeeds(self, urlopen, sleep):
         failures = {
@@ -70,7 +74,7 @@ class EVSClientTest(unittest.TestCase):
                 urlopen.reset_mock()
                 urlopen.side_effect = [failure, FakeResponse(b'{"version": "test"}')]
 
-                with self.assertLogs("nci_si_mcp.evs", level="WARNING"):
+                with self.assertLogs("nci_si_mcp.http_client", level="WARNING"):
                     result = self.client(max_attempts=2).get_api_version()
 
                 self.assertEqual(result, {"version": "test"})
@@ -85,7 +89,7 @@ class EVSClientTest(unittest.TestCase):
         ]
 
         with (
-            self.assertLogs("nci_si_mcp.evs", level="WARNING"),
+            self.assertLogs("nci_si_mcp.http_client", level="WARNING"),
             self.assertRaises(EVSUnavailableError) as raised,
         ):
             self.client(max_attempts=4, retry_backoff_seconds=0.25).get_api_version()
@@ -103,7 +107,7 @@ class EVSClientTest(unittest.TestCase):
                 urlopen.side_effect = [failure, failure]
 
                 with (
-                    self.assertLogs("nci_si_mcp.evs", level="WARNING"),
+                    self.assertLogs("nci_si_mcp.http_client", level="WARNING"),
                     self.assertRaises(EVSTimeoutError) as raised,
                 ):
                     self.client(timeout_seconds=7, max_attempts=2).get_api_version()
@@ -116,7 +120,7 @@ class EVSClientTest(unittest.TestCase):
         urlopen.side_effect = [TimeoutError("timed out"), URLError("refused")]
 
         with (
-            self.assertLogs("nci_si_mcp.evs", level="WARNING"),
+            self.assertLogs("nci_si_mcp.http_client", level="WARNING"),
             self.assertRaises(EVSUnavailableError) as raised,
         ):
             self.client(max_attempts=2).get_api_version()
@@ -127,7 +131,7 @@ class EVSClientTest(unittest.TestCase):
         urlopen.side_effect = [http_error(503), http_error(503), http_error(503)]
 
         with (
-            self.assertLogs("nci_si_mcp.evs", level="WARNING"),
+            self.assertLogs("nci_si_mcp.http_client", level="WARNING"),
             self.assertRaises(EVSUnavailableError) as raised,
         ):
             self.client(max_attempts=3).get_api_version()
@@ -138,7 +142,7 @@ class EVSClientTest(unittest.TestCase):
         urlopen.side_effect = [http_error(500), TimeoutError("timed out")]
 
         with (
-            self.assertLogs("nci_si_mcp.evs", level="WARNING"),
+            self.assertLogs("nci_si_mcp.http_client", level="WARNING"),
             self.assertRaises(EVSUnavailableError) as raised,
         ):
             self.client(max_attempts=2).get_api_version()
@@ -171,7 +175,7 @@ class EVSClientTest(unittest.TestCase):
         with self.assertRaises(EVSResponseError) as raised:
             self.client().get_api_version()
 
-        self.assertEqual(raised.exception.details, {"surface": "evs", "status": 403})
+        self.assertEqual(raised.exception.details, {"surface": "evs", "status": 403, "attempts": 1})
 
     def test_a_missing_concept_carries_its_code(self, urlopen, sleep):
         urlopen.side_effect = http_error(404, b'{"message": "C1 not found"}')
@@ -187,11 +191,11 @@ class EVSClientTest(unittest.TestCase):
         with self.assertRaises(EVSResponseError) as raised:
             self.client().get_api_version()
 
-        self.assertEqual(raised.exception.details, {"surface": "evs", "status": 404})
+        self.assertEqual(raised.exception.details, {"surface": "evs", "status": 404, "attempts": 1})
 
     def test_requests_use_the_configured_timeout(self, urlopen, sleep):
         # The transport answers with the timeout it was given.
-        def transport(request, data=None, timeout=None):
+        def transport(request, timeout):
             return FakeResponse(json.dumps({"timeout": timeout}).encode())
 
         urlopen.side_effect = transport
@@ -204,7 +208,7 @@ class EVSClientTest(unittest.TestCase):
         urlopen.side_effect = [URLError("down")] * 10
 
         with (
-            self.assertLogs("nci_si_mcp.evs", level="WARNING"),
+            self.assertLogs("nci_si_mcp.http_client", level="WARNING"),
             self.assertRaises(EVSUnavailableError),
         ):
             self.client(max_attempts=10, retry_backoff_seconds=3600).get_api_version()
@@ -266,7 +270,7 @@ class EVSClientTest(unittest.TestCase):
     def test_a_backoff_of_zero_retries_without_waiting(self, urlopen, sleep):
         urlopen.side_effect = [URLError("temporary"), FakeResponse(b'{"version": "test"}')]
 
-        with self.assertLogs("nci_si_mcp.evs", level="WARNING"):
+        with self.assertLogs("nci_si_mcp.http_client", level="WARNING"):
             result = self.client(max_attempts=2, retry_backoff_seconds=0).get_api_version()
 
         self.assertEqual(result, {"version": "test"})
@@ -456,7 +460,7 @@ class EVSClientTest(unittest.TestCase):
             FakeResponse(b'{"a": 1}\n', {"Content-Length": "9"}),
         ]
 
-        with self.assertLogs("nci_si_mcp.evs", level="WARNING"):
+        with self.assertLogs("nci_si_mcp.http_client", level="WARNING"):
             result = self.client(max_attempts=2).get_api_version()
 
         self.assertEqual(result, {"a": 1})

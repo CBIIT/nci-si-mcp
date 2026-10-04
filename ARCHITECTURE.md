@@ -23,6 +23,7 @@ flowchart LR
 
     subgraph Domain["Domain and retrieval layer"]
         EVS["EVS client + normalization<br/>evs.py"]
+        Http["Instrumented HTTP client<br/>http_client.py"]
         Index["LocalIndex<br/>index.py"]
         Retrieval["Tokenization + score utilities<br/>retrieval.py"]
         Embeddings["Embedding providers<br/>embeddings.py"]
@@ -59,7 +60,8 @@ flowchart LR
     Eval --> Embeddings
     Index --> Validation
 
-    EVS --> EVSAPI
+    EVS --> Http
+    Http --> EVSAPI
     Traversal --> EVS
     Index --> Retrieval
     Index --> Embeddings
@@ -74,7 +76,7 @@ flowchart LR
 ```
 
 `errors.py` is used by every layer and is left out of the diagram. Also not
-drawn: `evs.py` parses its response bodies with `upstream.py`, `index.py` calls the concept normalization in `evs.py`, and the two
+drawn: `http_client.py` parses its response bodies with `upstream.py`, `index.py` calls the concept normalization in `evs.py`, and the two
 adapters read the closed value sets in `validation.py` and the default limits
 in `traversal.py`, and `validation.py` reads the hard node limit in
 `traversal.py`.
@@ -87,7 +89,8 @@ in `traversal.py`, and `validation.py` reads the hard node limit in
 | `server.py` | Registers five MCP tools and three MCP resource templates on an `mcp` 2.x `MCPServer` and flags error records as protocol errors. | `NCISIService`, optional `mcp` package |
 | `service.py` | Validates inputs, orchestrates the use cases, pins EVS requests to the monthly release, enforces release consistency with the index, falls back from live EVS to the cache in `lookup`, and maps expected failures to error records. Its collaborators are injectable for testing. | EVS client, local index, traversal, embeddings, evaluation, caDSR adapter |
 | `upstream.py` | Parses an upstream response body as JSON content, and classifies a failure that arrived as a success (an HTML page, a webMethods `apiResponse.type` `E` envelope, a FHIR `OperationOutcome` error, invalid JSON) as `upstream_unavailable` before any caller sees it. | `errors.py` |
-| `evs.py` | Calls EVS REST endpoints with bounded retries and response-size limits, classifies failures (unreachable, not found, unusable response), resolves exactly one latest monthly NCIt release, and normalizes EVS payloads. | Python `urllib`, shared models, NCI EVS API |
+| `http_client.py` | The one HTTP client for upstream platforms: sends `Accept: application/json`, the call's correlation identifier and the platform's credentials (never to another origin: a redirect elsewhere is refused); retries 5xx, 429 (after its `Retry-After`) and connection failures with jittered backoff, counting every attempt; bounds the response size; classifies the response (through `upstream.py`) before returning it; hands one record per attempt to a request-log hook (a hook that raises is logged by type and ignored). | Python `urllib`, `upstream.py`, `errors.py` |
+| `evs.py` | Calls EVS REST endpoints through the HTTP client, maps its failures to the EVS errors (not found, unusable response, unavailable, timeout, too large), resolves exactly one latest monthly NCIt release, and normalizes EVS payloads. | `http_client.py`, shared models, NCI EVS API |
 | `index.py` | Migrates and transactionally maintains the release manifest, normalized concepts, FTS search text, vectors, and vector LSH buckets; performs BM25/vector/hybrid search. | SQLite FTS5, retrieval utilities, embedding provider, `validation.py`, concept normalization in `evs.py` |
 | `retrieval.py` | Implements tokenization, the dot product used as cosine similarity for unit vectors, and min-max normalization. | Python standard library |
 | `embeddings.py` | Defines the embedding abstraction, a deterministic local hashing provider, an optional sentence-transformers provider, and the check that provider and model settings agree. | Optional `sentence-transformers` package |
@@ -265,7 +268,8 @@ not MCP tools. QUICKSTART.md lists the error codes.
 ## Verification map
 
 - `tests/test_evs.py`: monthly-release selection, release pinning, and concept provenance.
-- `tests/test_evs_client.py`: retries and backoff, failure classification, response limits, payload shapes, and request URLs.
+- `tests/test_evs_client.py`: failure classification, response limits, payload shapes, and request URLs through the EVS client.
+- `tests/test_http_client.py`: headers, correlation, counted retries, `Retry-After`, the request-log hook, and credentials (sent to their platform only, in no log, record or error).
 - `tests/test_index.py`: upserts and release replacement, rollback, embedding compatibility, migrations, and BM25/vector/hybrid search.
 - `tests/test_service.py`: lookup (live, fallback, mismatch, not found), indexing, search, traversal, status, and the mapping of failures to error codes, details and next steps.
 - `tests/test_errors.py`: the error record, its closed set of codes, and the correlation identifier.

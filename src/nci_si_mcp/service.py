@@ -140,6 +140,7 @@ class NCISIService:
             max_attempts=settings.evs_max_attempts,
             retry_backoff_seconds=settings.evs_retry_backoff_seconds,
             max_response_bytes=settings.evs_max_response_bytes,
+            license_key=settings.evs_license_key,
         )
         self.index = index or LocalIndex(settings.data_dir)
         self.embedding_provider = embedding_provider or create_embedding_provider(

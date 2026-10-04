@@ -159,7 +159,12 @@ add broad `except` clauses. An empty result is never an error and an error is ne
 
 `upstream.parse_upstream_json` is the one place that classifies a failure masked as a success
 (webMethods `apiResponse.type` `E`, FHIR `OperationOutcome` error, HTML where JSON was asked for)
-as `upstream_unavailable`; every upstream client parses its bodies through it.
+as `upstream_unavailable`; every upstream client parses its bodies through it (in `http_client.HttpClient`).
+
+`http_client.HttpClient` is the one HTTP client. It raises the `Upstream*` errors, which
+`EVSClient` turns into the `EVS*` ones in `_evs_error`; its attempts are all counted and reported to
+the `on_request` hook. A credential is a header of one client and goes to that client's origin only;
+it is redacted from every message built from what the platform said.
 
 `LocalIndex._connect` turns SQLite failures of the database itself (locked, unreadable, not a
 database) into `IndexStorageError` naming the file; constraint and usage errors propagate as bugs.

@@ -17,6 +17,7 @@ from nci_si_mcp.errors import (
     is_error_record,
 )
 from nci_si_mcp.evs import (
+    LICENSE_KEY_HEADER,
     LOOKUP_INCLUDE,
     EVSClient,
     EVSNotFoundError,
@@ -477,15 +478,22 @@ class StatusTest(ServiceTestCase):
         self.assertIsInstance(service.evs, EVSClient)
         self.assertEqual(
             (
-                service.evs.base_url,
-                service.evs.timeout_seconds,
-                service.evs.max_attempts,
-                service.evs.retry_backoff_seconds,
-                service.evs.max_response_bytes,
+                service.evs.http.base_url,
+                service.evs.http.timeout_seconds,
+                service.evs.http.max_attempts,
+                service.evs.http.retry_backoff_seconds,
+                service.evs.http.max_response_bytes,
             ),
             ("http://localhost:8080", 2.5, 7, 1.5, 123),
         )
         self.assertEqual(service.embedding_provider.model, "hashing-128")
+
+    def test_the_licence_key_setting_reaches_the_evs_client_and_only_it(self):
+        keyed = NCISIService(Settings(data_dir=self.path, evs_license_key="a-key"))
+        plain = NCISIService(Settings(data_dir=self.path))
+
+        self.assertEqual(keyed.evs.http.credentials, {LICENSE_KEY_HEADER: "a-key"})
+        self.assertEqual(plain.evs.http.credentials, {})
 
     def test_cadsr_reports_that_reuse_is_pending(self):
         status = self.service.cadsr_status()

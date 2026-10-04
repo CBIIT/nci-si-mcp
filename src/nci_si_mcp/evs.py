@@ -2,26 +2,24 @@
 
 from __future__ import annotations
 
-import json
-import logging
-import time
 from collections.abc import Iterable
 from http import HTTPStatus
-from http.client import HTTPException, IncompleteRead
 from typing import Any
-from urllib.error import HTTPError
-from urllib.parse import urlencode
-from urllib.request import Request, urlopen
 
+from .http_client import (
+    HttpClient,
+    UpstreamError,
+    UpstreamRejectedError,
+    UpstreamTimeoutError,
+    UpstreamTooLargeError,
+    UpstreamUnavailableError,
+)
 from .models import NcitConcept, ReleaseInfo, utc_now_iso
-from .upstream import parse_upstream_json
-
-logger = logging.getLogger(__name__)
 
 SOURCE_VOCABULARIES = {"ncit": "NCI Thesaurus"}
 
-# Longest wait before a retry, whatever the backoff setting and attempt number.
-MAX_RETRY_DELAY_SECONDS = 60.0
+# The header that carries the licence key. It goes to EVS and to no other host (A7.5).
+LICENSE_KEY_HEADER = "X-EVSRESTAPI-License-Key"
 
 # What a concept request asks EVS to include: enough to build the search text
 # for indexing, and additionally every relation list for a lookup.
@@ -207,77 +205,20 @@ def normalize_concept(
     )
 
 
-def _error_detail(exc: HTTPError) -> str:
-    """The reason EVS gives in the body of an error response, if it gives one."""
-
-    try:
-        body = json.loads(exc.read(4096).decode("utf-8"))
-    except OSError, ValueError, HTTPException:
-        return ""
-    return str(body.get("message") or "") if isinstance(body, dict) else ""
-
-
-def _http_error_message(exc: HTTPError) -> str:
-    """Describe an HTTP failure, including the reason EVS gives in its error body."""
-
-    detail = _error_detail(exc)
-    parts = [f"HTTP {exc.code}", str(exc.reason or ""), f"({detail})" if detail else ""]
-    return " ".join(part for part in parts if part)
+# The EVS error of each failure of the HTTP client, nearest class first.
+_EVS_ERRORS: dict[type[UpstreamError], type[EVSError]] = {
+    UpstreamTimeoutError: EVSTimeoutError,
+    UpstreamUnavailableError: EVSUnavailableError,
+    UpstreamTooLargeError: EVSResponseTooLargeError,
+    UpstreamRejectedError: EVSResponseError,
+}
 
 
-def _permanent_failure(exc: HTTPError, message: str) -> EVSError | None:
-    """The error for a status that a retry cannot change, or None for one it can."""
-
-    if exc.code == HTTPStatus.NOT_FOUND:
-        return EVSNotFoundError(message)
-    if exc.code != HTTPStatus.TOO_MANY_REQUESTS and exc.code < HTTPStatus.INTERNAL_SERVER_ERROR:
-        return EVSResponseError(message, surface="evs", status=exc.code)
-    return None
-
-
-def _timed_out(failure: Exception) -> bool:
-    return isinstance(failure, TimeoutError) or isinstance(
-        getattr(failure, "reason", None), TimeoutError
-    )
-
-
-def _http_details(exc: HTTPError) -> dict[str, Any]:
-    """The status of an HTTP failure, and its Retry-After header where it has one."""
-
-    details: dict[str, Any] = {"status": exc.code}
-    if retry_after := exc.headers.get("Retry-After"):
-        details["retryAfter"] = retry_after
-    return details
-
-
-def _unavailable(
-    message: str,
-    attempts: int,
-    timeouts: int,
-    timeout_seconds: float,
-    last_http: dict[str, Any],
-) -> EVSUnavailableError:
-    """The error for a request that kept failing, with what is known of the failures.
-
-    It is a timeout only when every one of the `attempts` timed out; otherwise
-    the details carry those of the last HTTP failure, if there was one.
-    """
-
-    if timeouts == attempts:
-        return EVSTimeoutError(message, surface="evs", seconds=timeout_seconds, attempts=attempts)
-    return EVSUnavailableError(message, surface="evs", attempts=attempts, **last_http)
-
-
-def _declared_length(response: Any) -> int:
-    """The Content-Length of a response, or 0 when none applies."""
-
-    # http.client ignores Content-Length for a chunked body, and so does this.
-    if response.headers.get("Transfer-Encoding", "").lower() == "chunked":
-        return 0
-    try:
-        return int(response.headers.get("Content-Length") or 0)
-    except ValueError:
-        return 0
+def _evs_error(exc: UpstreamError) -> EVSError:
+    if exc.details.get("status") == HTTPStatus.NOT_FOUND:
+        return EVSNotFoundError(str(exc), **exc.details)
+    error = next(error for kind, error in _EVS_ERRORS.items() if isinstance(exc, kind))
+    return error(str(exc), **exc.details)
 
 
 class EVSClient:
@@ -296,88 +237,30 @@ class EVSClient:
         max_attempts: int = 3,
         retry_backoff_seconds: float = 0.25,
         max_response_bytes: int = 10 * 1024 * 1024,
+        license_key: str | None = None,
     ) -> None:
-        self.base_url = base_url.rstrip("/")
-        self.timeout_seconds = timeout_seconds
-        self.max_attempts = max(1, max_attempts)
-        self.retry_backoff_seconds = max(0.0, retry_backoff_seconds)
-        self.max_response_bytes = max_response_bytes
-
-    def _retry(self, path: str, attempt: int, message: str) -> None:
-        delay = min(self.retry_backoff_seconds * (2 ** (attempt - 1)), MAX_RETRY_DELAY_SECONDS)
-        logger.warning(
-            "evs_request_retry path=%s attempt=%s max_attempts=%s delay_seconds=%.3f reason=%s",
-            path,
-            attempt,
-            self.max_attempts,
-            delay,
-            message,
-        )
-        if delay:
-            time.sleep(delay)
-
-    def _read_response(self, response: Any, path: str) -> Any:
-        too_large = (
-            f"EVS response for {path} exceeded {self.max_response_bytes} bytes "
-            "(NCI_SI_EVS_MAX_RESPONSE_BYTES)"
-        )
-        bound = {"bound": "NCI_SI_EVS_MAX_RESPONSE_BYTES", "limit": self.max_response_bytes}
-        declared_length = _declared_length(response)
-        if declared_length > self.max_response_bytes:
-            raise EVSResponseTooLargeError(too_large, **bound, reached=declared_length)
-        payload = response.read(self.max_response_bytes + 1)
-        if len(payload) > self.max_response_bytes:
-            # Only one byte past the limit is read, so `reached` is a lower bound.
-            raise EVSResponseTooLargeError(too_large, **bound, reached=len(payload))
-        if len(payload) < declared_length:
-            # http.client returns a body cut short by a dropped connection without raising.
-            raise IncompleteRead(payload, declared_length - len(payload))
-        return parse_upstream_json(payload, f"EVS {path}")
-
-    def _request(self, path: str, params: dict[str, Any] | None) -> Request:
-        query = ""
-        if params:
-            filtered = {key: value for key, value in params.items() if value is not None}
-            query = "?" + urlencode(filtered, doseq=True) if filtered else ""
-        # The base URL comes from Settings, which accepts only http and https.
-        return Request(  # noqa: S310
-            f"{self.base_url}{path}{query}", headers={"Accept": "application/json"}
+        self.http = HttpClient(
+            base_url,
+            label="EVS",
+            timeout_seconds=timeout_seconds,
+            max_attempts=max_attempts,
+            retry_backoff_seconds=retry_backoff_seconds,
+            max_response_bytes=max_response_bytes,
+            size_bound="NCI_SI_EVS_MAX_RESPONSE_BYTES",
+            credentials={LICENSE_KEY_HEADER: license_key} if license_key else None,
         )
 
     def _get_json(self, path: str, params: dict[str, Any] | None = None) -> Any:
-        """GET a JSON document, retrying transport failures, HTTP 429 and HTTP 5xx.
+        """GET a JSON document; HTTP 404 raises EVSNotFoundError.
 
-        HTTP 404 raises EVSNotFoundError. That means "no such concept" only for a
-        single-concept request; the other methods go through `_get_existing`.
+        That means "no such concept" only for a single-concept request; the other methods go
+        through `_get_existing`.
         """
 
-        request = self._request(path, params)
-        attempt = timeouts = 0
-        last_http: dict[str, Any] = {}
-        while True:
-            attempt += 1
-            failure: Exception
-            try:
-                # The request is built by `_request`, from an http or https base URL.
-                with urlopen(request, timeout=self.timeout_seconds) as response:  # noqa: S310
-                    return self._read_response(response, path)
-            except HTTPError as exc:
-                message = f"EVS request failed for {path}: {_http_error_message(exc)}"
-                exc.close()
-                permanent = _permanent_failure(exc, message)
-                if permanent is not None:
-                    raise permanent from exc
-                last_http = _http_details(exc)
-                failure = exc
-            except (OSError, HTTPException) as exc:
-                message = f"EVS request failed for {path}: {getattr(exc, 'reason', None) or exc}"
-                failure = exc
-            timeouts += _timed_out(failure)
-            if attempt >= self.max_attempts:
-                raise _unavailable(
-                    message, attempt, timeouts, self.timeout_seconds, last_http
-                ) from failure
-            self._retry(path, attempt, message)
+        try:
+            return self.http.get_json(path, params)
+        except UpstreamError as exc:
+            raise _evs_error(exc) from exc
 
     def _get_existing(self, path: str, params: dict[str, Any] | None = None) -> Any:
         """GET a document that must exist, so a 404 means a wrong endpoint or release."""
@@ -387,8 +270,7 @@ class EVSClient:
         except EVSNotFoundError as exc:
             raise EVSResponseError(
                 f"{exc}; EVS does not serve this endpoint or release, check NCI_SI_EVS_BASE_URL",
-                surface="evs",
-                status=int(HTTPStatus.NOT_FOUND),
+                **exc.details,
             ) from exc
 
     def get_api_version(self) -> dict[str, Any]:

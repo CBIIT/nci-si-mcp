@@ -19,6 +19,8 @@ from mcp.client import Client
 
 from nci_si_mcp.config import Settings
 from nci_si_mcp.errors import ErrorCode
+from nci_si_mcp.evs import LICENSE_KEY_HEADER
+from nci_si_mcp.http_client import MAX_RETRY_DELAY_SECONDS
 from nci_si_mcp.server import create_mcp
 from nci_si_mcp.validation import PROFILES, RELEASE_CHANNELS, UPSTREAM_MODES
 
@@ -106,6 +108,14 @@ class DocumentationTest(unittest.TestCase):
         table = first_column(section(QUICKSTART, "Settings"))
         self.assertEqual(table | exported, read_by_the_code)
         self.assertEqual(set(setting.findall(QUICKSTART)), read_by_the_code)
+
+    def test_quickstart_names_the_licence_key_header_and_the_wait_cap_the_client_uses(self):
+        row = next(line for line in QUICKSTART.splitlines() if "NCI_SI_EVS_LICENSE_KEY" in line)
+        backoff = next(line for line in QUICKSTART.splitlines() if "RETRY_BACKOFF" in line)
+
+        self.assertIn("`X-EVSRESTAPI-License-Key`", row)
+        self.assertEqual(LICENSE_KEY_HEADER, "X-EVSRESTAPI-License-Key")
+        self.assertIn(f"capped at {MAX_RETRY_DELAY_SECONDS:.0f} seconds", backoff)
 
     def test_quickstart_states_the_default_of_each_setting_in_the_table(self):
         table = section(QUICKSTART, "Settings")
