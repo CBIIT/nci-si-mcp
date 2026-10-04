@@ -5,7 +5,15 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from nci_si_mcp.config import DEFAULT_EVS_BASE_URL, Settings, configure_logging
+import yaml
+
+from nci_si_mcp.config import (
+    DEFAULT_EVS_BASE_URL,
+    DEFAULT_EXCLUSION_ROLE_CODES,
+    PRODUCTION_BASE_URLS,
+    Settings,
+    configure_logging,
+)
 from nci_si_mcp.validation import PROFILES, RELEASE_CHANNELS, UPSTREAM_MODES
 
 
@@ -351,6 +359,31 @@ class SettingsEdgeCaseTest(unittest.TestCase):
                     self.assert_rejected(variable, **{field: value})
                     with self.assertRaises(ValueError):
                         settings_from(**{variable: value})
+
+
+REPOSITORY = Path(__file__).parent.parent
+
+
+class DefaultsMatchTheirSourcesTest(unittest.TestCase):
+    """The server never reads acceptance/ or spec/ at runtime, so config keeps copies of these
+    facts and this test ties them to their sources."""
+
+    def test_production_urls_and_exclusion_roles_equal_the_repository_data(self):
+        manifest = yaml.safe_load((REPOSITORY / "acceptance/fixtures/manifest.yaml").read_text())
+        records = yaml.safe_load((REPOSITORY / "spec/records.yaml").read_text())
+        surfaces = manifest["surfaces"]
+        spec_roles = records["traversal"]["fields"]["polarity"]["exclusions"]["ncit"]
+        for setting, ours, theirs in (
+            ("evs_base_url", PRODUCTION_BASE_URLS["evs_base_url"], surfaces["evs"]),
+            ("evs_fhir_base_url", PRODUCTION_BASE_URLS["evs_fhir_base_url"], surfaces["evs-fhir"]),
+            ("cadsr_base_url", PRODUCTION_BASE_URLS["cadsr_base_url"], surfaces["cadsr"]),
+            ("cadsr_ftp_url", PRODUCTION_BASE_URLS["cadsr_ftp_url"], surfaces["cadsr-ftp"]),
+            ("ssis_facade_url", PRODUCTION_BASE_URLS["ssis_facade_url"], surfaces["ssis"]),
+            ("ssis_sparql_url", PRODUCTION_BASE_URLS["ssis_sparql_url"], surfaces["ssis-sparql"]),
+            ("exclusion_role_codes", DEFAULT_EXCLUSION_ROLE_CODES, tuple(spec_roles)),
+        ):
+            with self.subTest(setting):
+                self.assertEqual(ours, theirs, f"{setting}: config has {ours!r}, source {theirs!r}")
 
 
 class LoggingTest(unittest.TestCase):
