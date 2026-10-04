@@ -113,8 +113,7 @@ class UpsertTest(IndexTestCase):
         self.assertEqual(cached.source, "active_cache")
         self.assertEqual(cached.release_version, "26.06e")
         self.assertEqual(cached.release_date, "2026-06-29")
-        self.assertNotIn("raw", cached.to_dict())
-        self.assertIn("raw", cached.to_dict(include_raw=True))
+        self.assertEqual(cached.to_stored()["raw"], RAW_CONCEPTS[1])
         self.assertIsNone(index.get_concept("C999"))
 
     def test_cached_concept_keeps_the_time_it_was_fetched(self):
@@ -229,7 +228,7 @@ class UpsertTest(IndexTestCase):
             conn.execute(
                 "INSERT INTO concepts VALUES ('26.99z', 'C9999', ?, ?, ?)",
                 (
-                    json.dumps(stale.to_dict(include_raw=True)),
+                    json.dumps(stale.to_stored()),
                     text,
                     json.dumps(self.provider.embed([text])[0]),
                 ),
@@ -442,7 +441,7 @@ class MigrationTest(IndexTestCase):
                     (
                         release_version,
                         item.code,
-                        json.dumps(item.to_dict(include_raw=True)),
+                        json.dumps(item.to_stored()),
                         search_text,
                         json.dumps(vectors[release_version]),
                     ),
@@ -534,8 +533,42 @@ class SearchTest(IndexTestCase):
         self.assertEqual([hit.rank for hit in hits], [1, 2])
         self.assertEqual(hits[0].score_components, {"bm25": 1.0, "vector": 1.0})
         self.assertEqual(hits[0].concept.source, "active_cache")
-        self.assertNotIn("raw", hits[0].to_dict()["concept"])
-        self.assertIn("raw", hits[0].to_dict(include_raw=True)["concept"])
+
+    def test_a_limit_reports_the_scored_concepts_it_left_out_exactly_in_a_small_index(self):
+        index = self.build(synthetic_concepts(30))
+
+        hits, truncation = index.search_with_truncation(
+            "alpha1", self.provider, limit=10, mode="hybrid"
+        )
+
+        self.assertEqual(len(hits), 10)
+        self.assertEqual(
+            truncation.to_dict(),
+            {
+                "occurred": True,
+                "bound": "results",
+                "limit": 10,
+                "reached": 10,
+                "omitted": 20,
+                "exact": True,
+            },
+        )
+        _, everything = index.search_with_truncation(
+            "alpha1", self.provider, limit=30, mode="hybrid"
+        )
+        self.assertEqual(everything.to_dict(), {"occurred": False})
+
+    def test_a_term_ranking_stopped_at_its_candidate_cap_reports_a_lower_bound(self):
+        index = self.build(synthetic_concepts(1200))
+
+        hits, truncation = index.search_with_truncation(
+            "alpha1", self.provider, limit=10, mode="bm25"
+        )
+
+        # A tenth of the concepts name alpha1, but only the cap of 100 candidates were scored.
+        self.assertEqual(len(hits), 10)
+        self.assertEqual(truncation.to_dict()["omitted"], 90)
+        self.assertFalse(truncation.exact)
 
     def test_scores_are_min_max_normalized(self):
         self.assertEqual(

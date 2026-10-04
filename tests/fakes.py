@@ -64,6 +64,10 @@ class FakeEVS:
         self.errors = {}
         self.calls = []
         self.includes = []
+        self.max_response_bytes = 1_000_000
+
+    def uri(self, path):
+        return f"https://evs.test{path}"
 
     def _record(self, method, terminology=None, argument=None):
         self.calls.append((method, terminology, argument))

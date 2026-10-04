@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from fakes import FakeEVS, concept, release
-from nci_si_mcp.errors import InputValidationError
+from nci_si_mcp.errors import InputValidationError, correlated
 from nci_si_mcp.evs import EVSNotFoundError, EVSResponseError, EVSResponseTooLargeError
 from nci_si_mcp.traversal import (
     HARD_MAX_DEPTH,
@@ -135,6 +135,10 @@ class EdgeTypeSelectionTest(unittest.TestCase):
 
 
 class TraversalTest(unittest.TestCase):
+    def setUp(self):
+        # The provenance of an item carries the identifier of the call that read it.
+        self.enterContext(correlated("call-1"))
+
     def test_clamp_limits_enforces_hard_caps(self):
         self.assertEqual(clamp_limits(99, 99999), (HARD_MAX_DEPTH, HARD_MAX_NODES))
         self.assertEqual(clamp_limits(-1, 0), (0, 1))
@@ -153,8 +157,10 @@ class TraversalTest(unittest.TestCase):
             ],
         )
         self.assertEqual(client.includes, ["minimal,children,roles,associations"] * 2)
-        self.assertEqual(result.release_version, "26.06e")
-        self.assertEqual({node.release_version for node in result.nodes}, {"26.06e"})
+        self.assertEqual(
+            {item.provenance.release["identifier"] for item in [*result.nodes, *result.edges]},
+            {"26.06e"},
+        )
 
     def test_direction_decides_which_relations_are_requested_and_followed(self):
         expected = {
@@ -204,7 +210,7 @@ class TraversalTest(unittest.TestCase):
             with self.subTest(depth=depth):
                 result = walk(chain(), max_depth=depth)
                 self.assertEqual(pairs(result), edges)
-                self.assertFalse(result.truncated)
+                self.assertFalse(result.truncation.occurred)
         self.assertEqual(walk(chain(), max_depth=99).max_depth, HARD_MAX_DEPTH)
 
     def test_depth_zero_still_names_and_checks_the_start_codes(self):
@@ -248,7 +254,7 @@ class TraversalTest(unittest.TestCase):
                 ("descendant", "is_a_descendant"),
             ],
         )
-        self.assertFalse(result.truncated)
+        self.assertFalse(result.truncation.occurred)
 
     def test_result_reports_the_effective_limits(self):
         result = walk(chain(), max_depth=99, max_nodes=99999, max_edges=99999)
@@ -271,7 +277,7 @@ class TraversalTest(unittest.TestCase):
 
         self.assertEqual(pairs(result), [("C1", "C2")])
         self.assertEqual(codes(result), ["C1", "C2"])
-        self.assertTrue(result.truncated)
+        self.assertTrue(result.truncation.occurred)
         self.assertEqual(result.max_edges, 1)
         self.assertEqual(len(client.calls), 1)
 
@@ -279,7 +285,7 @@ class TraversalTest(unittest.TestCase):
         result = walk(chain(), max_depth=1, max_edges=1)
 
         self.assertEqual(pairs(result), [("C1", "C2")])
-        self.assertFalse(result.truncated)
+        self.assertFalse(result.truncation.occurred)
 
     def test_node_limit_drops_edges_to_new_nodes_but_keeps_edges_between_kept_nodes(self):
         client = FakeEVS(
@@ -293,7 +299,7 @@ class TraversalTest(unittest.TestCase):
 
         self.assertEqual(pairs(result), [("C1", "C2"), ("C2", "C1")])
         self.assertEqual(codes(result), ["C1", "C2"])
-        self.assertTrue(result.truncated)
+        self.assertTrue(result.truncation.occurred)
 
     def test_node_limit_keeps_a_later_edge_between_kept_nodes(self):
         client = FakeEVS([concept("C1", children=[child("C3"), child("C2")]), concept("C2")])
@@ -301,7 +307,7 @@ class TraversalTest(unittest.TestCase):
         result = walk(client, start_codes=["C1", "C2"], max_depth=1, max_nodes=2)
 
         self.assertEqual(pairs(result), [("C1", "C2")])
-        self.assertTrue(result.truncated)
+        self.assertTrue(result.truncation.occurred)
 
     def test_descendants_are_requested_to_the_clamped_depth(self):
         client = FakeEVS(
@@ -341,7 +347,7 @@ class TraversalTest(unittest.TestCase):
         result = walk(star(), max_depth=3, max_nodes=3, edge_types=["descendant"])
 
         self.assertEqual(codes(result), ["C1", "C11", "C21"])
-        self.assertTrue(result.truncated)
+        self.assertTrue(result.truncation.occurred)
 
     def test_node_limit_is_spent_nearest_first_across_start_codes(self):
         client = FakeEVS(
@@ -357,7 +363,7 @@ class TraversalTest(unittest.TestCase):
         )
 
         self.assertEqual(codes(result), ["C1", "C2", "C11", "C21", "C12"])
-        self.assertTrue(result.truncated)
+        self.assertTrue(result.truncation.occurred)
 
     def test_node_limit_is_spent_nearest_first_across_edge_types(self):
         client = FakeEVS(
@@ -370,7 +376,7 @@ class TraversalTest(unittest.TestCase):
         result = walk(client, max_depth=3, max_nodes=3, edge_types=["descendant", "role"])
 
         self.assertEqual(set(codes(result)), {"C1", "C11", "C50"})
-        self.assertTrue(result.truncated)
+        self.assertTrue(result.truncation.occurred)
 
     def test_descendant_without_a_usable_level_is_an_evs_fault(self):
         for level in (None, 0, -1, 3, "2", True):
@@ -410,7 +416,7 @@ class TraversalTest(unittest.TestCase):
 
         self.assertIn(("C9", "C77"), pairs(with_descendants))
         self.assertEqual(set(codes(with_descendants)), set(codes(without)))
-        self.assertFalse(with_descendants.truncated)
+        self.assertFalse(with_descendants.truncation.occurred)
 
     def test_another_start_code_can_bring_a_descendant_closer(self):
         client = FakeEVS(
@@ -569,8 +575,8 @@ class TraversalTest(unittest.TestCase):
             result = walk(client, max_depth=2)
 
         self.assertEqual(pairs(result), [("C1", "C2"), ("C1", "C3"), ("C2", "C4")])
-        self.assertTrue(result.truncated)
-        self.assertEqual(result.unexpanded_codes, ["C3"])
+        self.assertTrue(result.truncation.occurred)
+        self.assertEqual((result.truncation.bound, result.truncation.omitted), ("upstream_cap", 1))
         self.assertEqual({call[1] for call in client.calls}, {"ncit_26.06e"})
 
     def test_oversized_descendants_are_reported_and_the_walk_continues(self):
@@ -581,8 +587,8 @@ class TraversalTest(unittest.TestCase):
             result = walk(client, max_depth=1, edge_types=["child", "descendant"])
 
         self.assertEqual(pairs(result), [("C1", "C11")])
-        self.assertTrue(result.truncated)
-        self.assertEqual(result.unexpanded_codes, ["C1"])
+        self.assertTrue(result.truncation.occurred)
+        self.assertEqual((result.truncation.bound, result.truncation.omitted), ("upstream_cap", 1))
         self.assertIn("code=C1 reason=too large", logs.output[-1])
 
     def test_every_oversized_concept_of_a_batch_is_reported(self):
@@ -595,8 +601,8 @@ class TraversalTest(unittest.TestCase):
         with self.assertLogs("nci_si_mcp.traversal", level="WARNING"):
             result = walk(client, max_depth=2)
 
-        self.assertEqual(result.unexpanded_codes, ["C2", "C4"])
-        self.assertTrue(result.truncated)
+        self.assertEqual((result.truncation.bound, result.truncation.omitted), ("upstream_cap", 2))
+        self.assertTrue(result.truncation.occurred)
         self.assertEqual(pairs(result)[-1], ("C3", "C39"))
 
     def test_an_oversized_start_code_is_named_and_reported(self):
@@ -610,8 +616,8 @@ class TraversalTest(unittest.TestCase):
             [(node.code, node.preferred_name) for node in result.nodes], [("C1", "Hub")]
         )
         self.assertEqual(result.edges, [])
-        self.assertTrue(result.truncated)
-        self.assertEqual(result.unexpanded_codes, ["C1"])
+        self.assertTrue(result.truncation.occurred)
+        self.assertEqual((result.truncation.bound, result.truncation.omitted), ("upstream_cap", 1))
 
     def test_oversized_descendants_of_one_start_code_do_not_hide_the_others(self):
         class Hub(FakeEVS):
@@ -626,7 +632,7 @@ class TraversalTest(unittest.TestCase):
             result = walk(client, start_codes=["C1", "C2"], max_depth=1, edge_types=["descendant"])
 
         self.assertEqual(pairs(result), [("C2", "C21")])
-        self.assertEqual(result.unexpanded_codes, ["C1"])
+        self.assertEqual((result.truncation.bound, result.truncation.omitted), ("upstream_cap", 1))
 
     def test_other_evs_faults_are_not_reported_as_oversized(self):
         client = star()
@@ -651,7 +657,7 @@ class TraversalTest(unittest.TestCase):
         with self.assertLogs("nci_si_mcp.traversal", level="WARNING") as logs:
             result = walk(client, max_depth=1, edge_types=["child", "descendant"])
 
-        self.assertEqual(result.unexpanded_codes, ["C1"])
+        self.assertEqual((result.truncation.bound, result.truncation.omitted), ("upstream_cap", 1))
         self.assertEqual(pairs(result), [])
         self.assertIn("reason=too large", logs.output[-1])
 
@@ -674,8 +680,7 @@ class TraversalTest(unittest.TestCase):
     def test_nothing_unexpanded_when_everything_fits(self):
         result = walk(chain(), max_depth=3)
 
-        self.assertEqual(result.unexpanded_codes, [])
-        self.assertEqual(result.to_dict()["unexpanded_codes"], [])
+        self.assertEqual(result.to_dict()["truncation"], {"occurred": False})
 
     def test_hierarchy_edges_carry_their_documented_names(self):
         result = walk(
@@ -725,7 +730,7 @@ class TraversalTest(unittest.TestCase):
 
         # One request for C1, then 8 -> 4 + 4 -> 2 + 2 -> 1 + 1, and the minimal re-read of C17.
         self.assertEqual([len(call[2]) for call in client.calls], [1, 8, 4, 4, 2, 2, 1, 1, 1])
-        self.assertEqual(result.unexpanded_codes, ["C17"])
+        self.assertEqual((result.truncation.bound, result.truncation.omitted), ("upstream_cap", 1))
         too_large = [line for line in logs.output if "traverse_batch_too_large" in line]
         self.assertEqual(len(too_large), 4)
         self.assertIn("concepts=8 reason=too large", too_large[0])
@@ -766,7 +771,7 @@ class TraversalTest(unittest.TestCase):
         result = walk(client, max_depth=1, max_edges=1)
 
         self.assertEqual(pairs(result), [("C1", "C2")])
-        self.assertFalse(result.truncated)
+        self.assertFalse(result.truncation.occurred)
 
     def test_every_unknown_start_code_is_named(self):
         client = FakeEVS([concept("C1")])

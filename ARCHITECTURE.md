@@ -94,8 +94,8 @@ in `traversal.py`, and `validation.py` reads the hard node limit in
 | `index.py` | Migrates and transactionally maintains the release manifest, normalized concepts, FTS search text, vectors, and vector LSH buckets; performs BM25/vector/hybrid search. | SQLite FTS5, retrieval utilities, embedding provider, `validation.py`, concept normalization in `evs.py` |
 | `retrieval.py` | Implements tokenization, the dot product used as cosine similarity for unit vectors, and min-max normalization. | Python standard library |
 | `embeddings.py` | Defines the embedding abstraction, a deterministic local hashing provider, an optional sentence-transformers provider, and the check that provider and model settings agree. | Optional `sentence-transformers` package |
-| `traversal.py` | Resolves which edge types to follow and performs a breadth-first traversal of hierarchy, role, and association relations with deduplication and hard depth/node/edge limits. | EVS client, shared models |
-| `models.py` | Defines serializable release, concept, index, search-hit, traversal, and caDSR status dataclasses. | Python standard library |
+| `traversal.py` | Resolves which edge types to follow and performs a breadth-first traversal of hierarchy, role, and association relations with deduplication and hard depth/node/edge limits, and gives each node and edge its traversal provenance and the walk its truncation record. | EVS client, shared models |
+| `models.py` | Defines the serializable release, concept, index, search-hit, traversal and caDSR status dataclasses, and the provenance, traversal provenance and truncation records every result is built from. | `errors.py` |
 | `evaluation.py` | Evaluates BM25, vector, and hybrid retrieval against a small built-in gold-query set. | Local index, embedding provider |
 | `cadsr.py` | Exposes an explicit `reuse_pending` boundary; no caDSR search or fabricated CDE results are implemented. | Shared models |
 | `config.py` | Loads the profile, the upstream mode and the six upstream base URLs (taken as a set: production defaults in live mode, all required in fixture mode), release channel, exclusion role codes, the two credentials (kept out of every string form), timeouts, EVS retry, batching, logging, data-directory and embedding settings from environment variables and validates them; whether the data directory is usable shows only when the index is opened. | Environment, `embeddings.py`, `validation.py` |
@@ -131,8 +131,13 @@ in `traversal.py`, and `validation.py` reads the hard node limit in
    and combined as BM25, vector, or a `0.55 * BM25 + 0.45 * vector` hybrid
    score. Scores order the hits of one query; they are not comparable across
    queries.
-5. Ranked `SearchHit` objects are returned with raw EVS payloads hidden unless
-   explicitly requested.
+5. Ranked `SearchHit` objects are returned. Each hit's concept carries its provenance
+   (`source: evs_index`), and raw EVS payloads are left out unless the CLI's
+   `--include-raw` asks for them. `search_with_truncation` also counts the scored
+   concepts that `limit` left out and returns them as the `Truncation` record; its `exact`
+   is true only where every candidate was scored (BM25 below its candidate cap, vectors
+   in an index of up to 20,000 concepts). A search with no hit carries the provenance of
+   the active manifest as its own field.
 
 ### Lookup
 
@@ -144,8 +149,8 @@ in `traversal.py`, and `validation.py` reads the hard node limit in
    release of the answer is verified. A code the release does not contain is
    `not_found`.
 3. If EVS cannot be reached, lookup returns the concept from the index unless
-   `live_only` is set. The result then has `source: active_cache` and a
-   `fallback` object with the reason. An ambiguous monthly release is not an
+   `live_only` is set. The result then has `provenance.source: evs_index`,
+   `servedBy: index` and a `fallback` object with the reason. An ambiguous monthly release is not an
    outage: lookup fails with `release_not_available` and does not use the cache.
 
 ### Traverse
@@ -165,12 +170,32 @@ in `traversal.py`, and `validation.py` reads the hard node limit in
    depth of its level. EVS gives a descendant one level, which can be deeper
    than its shortest path.
 5. Edges are deduplicated, every emitted edge references emitted nodes, and the
-   result reports whether a limit dropped anything. A concept whose relations
-   or descendants exceed the EVS response-size limit is kept as a node, sets
-   `truncated`, and is listed in `unexpanded_codes`. Its relation lists come in
+   `Truncation` record names the first bound that dropped anything and counts what it
+   dropped (`exact` is false: what lies beyond a dropped item was never read). A concept
+   whose relations or descendants exceed the EVS response-size limit is kept as a node and
+   counted against the `upstream_cap` bound; the log names it. Its relation lists come in
    one response and its descendants in another: the response that was too
    large contributes no edges, so oversized relations drop every selected
    relation type of that concept, and the other response is still used.
+6. Every node and edge carries a `TraversalProvenance`: the release, `evs_rest` and
+   `live`, the walk's time and correlation identifier, the URL of the resource that holds
+   the item, its `depth`, and for any item but a start code the `relationship`, `direction`
+   and `polarity` of the edge that reached it. Polarity is decided by the relationship's
+   code against the NCIt exclusion set, never by its name.
+
+## Provenance
+
+`models.py` holds the records that every tool result is built from: `ProvenanceEnvelope`
+(the specification's provenance record, field for field, written in camelCase by `to_dict`),
+`TraversalProvenance` (adds the traversal record's fields) and `Truncation` (the truncation
+record). Each item is given its envelope where it is built: `NcitConcept.provenance` for a
+looked-up or indexed concept, the `_Walk` for traversal nodes and edges, `IndexManifest.to_result`
+for the index (the same record in `index-sample` and in the release report), and the service for
+the release report. The correlation identifier is read from
+`errors.call_correlation_id`; `service._enveloped` gives a call made outside an adapter one, so
+that every item and error of a call carries the same. The stored form of a concept
+(`NcitConcept.to_stored`) keeps the full EVS payload; the result form leaves it out unless the
+CLI asks.
 
 ## Persistence schema
 

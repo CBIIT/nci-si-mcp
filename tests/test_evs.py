@@ -1,5 +1,6 @@
 import unittest
 
+from nci_si_mcp.errors import correlated
 from nci_si_mcp.evs import (
     EVSResponseError,
     ReleaseResolutionError,
@@ -171,8 +172,9 @@ class EVSTest(unittest.TestCase):
         self.assertEqual(concept.source, "live_evs")
         self.assertEqual(concept.evidence["semantic_types"], ["Neoplastic Process"])
         self.assertEqual(concept.evidence["contributing_sources"], ["GDC"])
-        self.assertNotIn("raw", concept.to_dict())
-        self.assertIn("raw", concept.to_dict(include_raw=True))
+        with correlated("call-1"):
+            self.assertNotIn("raw", concept.to_dict("https://evs.test/concept"))
+            self.assertIn("raw", concept.to_dict("https://evs.test/concept", include_raw=True))
 
     def test_a_concept_of_another_terminology_is_not_labelled_nci_thesaurus(self):
         concept = normalize_concept(

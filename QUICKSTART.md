@@ -64,12 +64,31 @@ A call of `ncit_lookup` with `{"code": "C4817"}` answers, abridged:
   "code": "C4817",
   "preferred_name": "Ewing Sarcoma",
   "terminology": "ncit",
-  "release_version": "26.09d",
-  "release_date": "2026-09-28",
-  "source": "live_evs",
+  "provenance": {
+    "correlationId": "783d05bf5edd4a9caf784122c48bf6ca",
+    "release": {
+      "date": "2026-09-28",
+      "identifier": "26.09d",
+      "terminology": "ncit"
+    },
+    "retrievedAt": "2026-10-04T16:00:41.439290Z",
+    "servedBy": "live",
+    "source": "evs_rest",
+    "sourceUri": "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit_26.09d/C4817",
+    "upstream": {
+      "terminology": "ncit",
+      "version": "26.09d"
+    }
+  },
   "evidence": {
-    "semantic_types": ["Neoplastic Process"],
-    "definitions": [{"source": "NCI", "type": "DEFINITION", "definition": "A small round cell tumor that lacks ..."}]
+    "semantic_types": [
+      "Neoplastic Process"
+    ],
+    "definitions": [
+      {
+        "…": "3 items omitted"
+      }
+    ]
   }
 }
 ```
@@ -130,11 +149,11 @@ with the concepts it names. `search` only sees what has been indexed; no MCP
 tool builds the index.
 
 Until the index is rebuilt after a new monthly release, `search` keeps serving
-the old release (named in `release_version`), and `lookup` fails with
+the old release (named in the `provenance.release` of each hit), and `lookup` fails with
 `release_mismatch` for every code unless `--live-only` is given.
 
-Search and lookup hide the full EVS `raw` payload by default to keep MCP context
-compact. Use `--include-raw` only for debugging:
+No MCP result carries the full EVS `raw` payload, to keep MCP context compact. The
+CLI adds it to `search` and `lookup` with `--include-raw`, for debugging:
 
 ```bash
 python -m nci_si_mcp.cli lookup C3262 --include-raw
@@ -158,7 +177,7 @@ again.
 ## Usage examples
 
 Each example gives what a user asks, the call a client makes for it, and the result. The calls
-are exact. The results are captured from a live run on 2026-10-03 against EVS release 26.09d,
+are exact. The results are captured from a live run on 2026-10-04 against EVS release 26.09d,
 shortened where marked …; the search example needs the five sample concepts of the previous section in the index.
 
 ### Look up a concept
@@ -176,57 +195,7 @@ Result:
 ```json
 {
   "code": "C4817",
-  "preferred_name": "Ewing Sarcoma",
-  "source_vocabulary": "NCI Thesaurus",
-  "terminology": "ncit",
-  "release_version": "26.09d",
-  "release_date": "2026-09-28",
-  "retrieved_at": "2026-10-03T22:47:35.948616Z",
-  "source": "live_evs",
   "evidence": {
-    "definitions": [
-      {
-        "definition": "A malignant neoplasm of the bone, or the soft tissue adjacent to bone, that is comprised of primitive neuroectodermal cells.",
-        "type": "ALT_DEFINITION",
-        "source": "NICHD"
-      },
-      {
-        "definition": "A small round cell tumor that lacks morphologic, immunohistochemical, and electron microscopic evidence of neuroectodermal differentiation. It represents one of the two ends of the spectrum called Ewing sarcoma/peripheral neuroectodermal tumor. It affects mostly males under age 20, and it can occur in soft tissue or bone. Pain and the presence of a mass are the most common clinical symptoms.",
-        "type": "DEFINITION",
-        "source": "NCI"
-      },
-      {
-        "definition": "A type of cancer that forms in bone or soft tissue.",
-        "type": "ALT_DEFINITION",
-        "source": "NCI-GLOSS"
-      }
-    ],
-    "synonyms": [
-      {
-        "name": "Ewing Sarcoma",
-        "term_type": "PT",
-        "type": "FULL_SYN",
-        "source": "Cellosaurus"
-      },
-      {
-        "name": "Ewing Sarcoma",
-        "term_type": "PT",
-        "type": "FULL_SYN",
-        "source": "CPTAC"
-      },
-      {
-        "name": "Ewing Sarcoma",
-        "term_type": "PT",
-        "type": "FULL_SYN",
-        "source": "CTRP"
-      },
-      {
-        "…": "13 more items omitted"
-      }
-    ],
-    "semantic_types": [
-      "Neoplastic Process"
-    ],
     "contributing_sources": [
       "Cellosaurus",
       "CPTAC",
@@ -235,8 +204,70 @@ Result:
       "HemOnc",
       "MedDRA",
       "NICHD"
+    ],
+    "definitions": [
+      {
+        "definition": "A malignant neoplasm of the bone, or the soft tissue adjacent to bone, that is comprised of primitive neuroectodermal cells.",
+        "source": "NICHD",
+        "type": "ALT_DEFINITION"
+      },
+      {
+        "definition": "A small round cell tumor that lacks morphologic, immunohistochemical, and electron microscopic evidence of neuroectodermal differentiation. It represents one of the two ends of the spectrum called Ewing sarcoma/peripheral neuroectodermal tumor. It affects mostly males under age 20, and it can occur in soft tissue or bone. Pain and the presence of a mass are the most common clinical symptoms.",
+        "source": "NCI",
+        "type": "DEFINITION"
+      },
+      {
+        "definition": "A type of cancer that forms in bone or soft tissue.",
+        "source": "NCI-GLOSS",
+        "type": "ALT_DEFINITION"
+      }
+    ],
+    "semantic_types": [
+      "Neoplastic Process"
+    ],
+    "synonyms": [
+      {
+        "name": "Ewing Sarcoma",
+        "source": "Cellosaurus",
+        "term_type": "PT",
+        "type": "FULL_SYN"
+      },
+      {
+        "name": "Ewing Sarcoma",
+        "source": "CPTAC",
+        "term_type": "PT",
+        "type": "FULL_SYN"
+      },
+      {
+        "name": "Ewing Sarcoma",
+        "source": "CTRP",
+        "term_type": "PT",
+        "type": "FULL_SYN"
+      },
+      {
+        "…": "13 more items omitted"
+      }
     ]
-  }
+  },
+  "preferred_name": "Ewing Sarcoma",
+  "provenance": {
+    "correlationId": "783d05bf5edd4a9caf784122c48bf6ca",
+    "release": {
+      "date": "2026-09-28",
+      "identifier": "26.09d",
+      "terminology": "ncit"
+    },
+    "retrievedAt": "2026-10-04T16:00:41.439290Z",
+    "servedBy": "live",
+    "source": "evs_rest",
+    "sourceUri": "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit_26.09d/C4817",
+    "upstream": {
+      "terminology": "ncit",
+      "version": "26.09d"
+    }
+  },
+  "source_vocabulary": "NCI Thesaurus",
+  "terminology": "ncit"
 }
 ```
 
@@ -254,20 +285,10 @@ Result:
 
 ```json
 {
-  "query": "kinase inhibition",
-  "mode": "hybrid",
-  "release_version": "26.09d",
   "hits": [
     {
       "concept": {
         "code": "C40704",
-        "preferred_name": "Receptor Tyrosine Kinase Inhibition",
-        "source_vocabulary": "NCI Thesaurus",
-        "terminology": "ncit",
-        "release_version": "26.09d",
-        "release_date": "2026-09-28",
-        "retrieved_at": "2026-10-03T22:47:33.896612Z",
-        "source": "active_cache",
         "evidence": {
           "contributing_sources": [],
           "definitions": [
@@ -300,10 +321,29 @@ Result:
               "type": "Preferred_Name"
             }
           ]
-        }
+        },
+        "preferred_name": "Receptor Tyrosine Kinase Inhibition",
+        "provenance": {
+          "correlationId": "4c8cc0ffb0264edea058da9c37e998ed",
+          "release": {
+            "date": "2026-09-28",
+            "identifier": "26.09d",
+            "terminology": "ncit"
+          },
+          "retrievedAt": "2026-10-04T16:00:39.748210Z",
+          "servedBy": "index",
+          "source": "evs_index",
+          "sourceUri": "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit_26.09d/C40704",
+          "upstream": {
+            "terminology": "ncit",
+            "version": "26.09d"
+          }
+        },
+        "source_vocabulary": "NCI Thesaurus",
+        "terminology": "ncit"
       },
-      "score": 0.969251231258575,
       "rank": 1,
+      "score": 0.969251231258575,
       "score_components": {
         "bm25": 0.9440931477428637,
         "vector": 1.0
@@ -312,13 +352,6 @@ Result:
     {
       "concept": {
         "code": "C153397",
-        "preferred_name": "In Vitro Kinase Inhibitor Assay",
-        "source_vocabulary": "NCI Thesaurus",
-        "terminology": "ncit",
-        "release_version": "26.09d",
-        "release_date": "2026-10-03T22:47:33.896588Z",
-        "retrieved_at": "2026-10-03T22:47:33.896588Z",
-        "source": "active_cache",
         "evidence": {
           "contributing_sources": [
             "CTRP"
@@ -351,12 +384,34 @@ Result:
               "source": "NCI",
               "term_type": "PT",
               "type": "FULL_SYN"
+            },
+            {
+              "…": "2 more items omitted"
             }
           ]
-        }
+        },
+        "preferred_name": "In Vitro Kinase Inhibitor Assay",
+        "provenance": {
+          "correlationId": "4c8cc0ffb0264edea058da9c37e998ed",
+          "release": {
+            "date": "2026-09-28",
+            "identifier": "26.09d",
+            "terminology": "ncit"
+          },
+          "retrievedAt": "2026-10-04T16:00:39.748186Z",
+          "servedBy": "index",
+          "source": "evs_index",
+          "sourceUri": "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit_26.09d/C153397",
+          "upstream": {
+            "terminology": "ncit",
+            "version": "26.09d"
+          }
+        },
+        "source_vocabulary": "NCI Thesaurus",
+        "terminology": "ncit"
       },
-      "score": 0.9560088666814356,
       "rank": 2,
+      "score": 0.9560088666814356,
       "score_components": {
         "bm25": 1.0,
         "vector": 0.9022419259587456
@@ -365,13 +420,6 @@ Result:
     {
       "concept": {
         "code": "C116938",
-        "preferred_name": "CDK4/6 Inhibition",
-        "source_vocabulary": "NCI Thesaurus",
-        "terminology": "ncit",
-        "release_version": "26.09d",
-        "release_date": "2026-09-28",
-        "retrieved_at": "2026-10-03T22:47:33.896569Z",
-        "source": "active_cache",
         "evidence": {
           "contributing_sources": [
             "GDC"
@@ -398,12 +446,37 @@ Result:
               "source": "NCI",
               "term_type": "SY",
               "type": "FULL_SYN"
+            },
+            {
+              "name": "CDK4/6 Inhibition",
+              "source": null,
+              "term_type": null,
+              "type": "Preferred_Name"
             }
           ]
-        }
+        },
+        "preferred_name": "CDK4/6 Inhibition",
+        "provenance": {
+          "correlationId": "4c8cc0ffb0264edea058da9c37e998ed",
+          "release": {
+            "date": "2026-09-28",
+            "identifier": "26.09d",
+            "terminology": "ncit"
+          },
+          "retrievedAt": "2026-10-04T16:00:39.748168Z",
+          "servedBy": "index",
+          "source": "evs_index",
+          "sourceUri": "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit_26.09d/C116938",
+          "upstream": {
+            "terminology": "ncit",
+            "version": "26.09d"
+          }
+        },
+        "source_vocabulary": "NCI Thesaurus",
+        "terminology": "ncit"
       },
-      "score": 0.33446213441111494,
       "rank": 3,
+      "score": 0.33446213441111494,
       "score_components": {
         "bm25": 0.0,
         "vector": 0.7432491875802554
@@ -413,7 +486,11 @@ Result:
       "…": "2 more items omitted"
     }
   ],
-  "retrieved_at": "2026-10-03T22:47:35.952544Z"
+  "mode": "hybrid",
+  "query": "kinase inhibition",
+  "truncation": {
+    "occurred": false
+  }
 }
 ```
 
@@ -431,73 +508,229 @@ Result:
 
 ```json
 {
-  "start_codes": [
-    "C3262"
+  "edges": [
+    {
+      "edge_type": "child",
+      "provenance": {
+        "correlationId": "b1e98805097549fa885fab66d047dc86",
+        "depth": 1,
+        "direction": "out",
+        "polarity": "positive",
+        "relationship": {
+          "kind": "child"
+        },
+        "release": {
+          "date": "2026-09-28",
+          "identifier": "26.09d",
+          "terminology": "ncit"
+        },
+        "retrievedAt": "2026-10-04T16:00:43.011922Z",
+        "servedBy": "live",
+        "source": "evs_rest",
+        "sourceUri": "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit_26.09d/C3262"
+      },
+      "relationship_name": "is_a_child",
+      "source_code": "C3262",
+      "source_name": "Neoplasm",
+      "target_code": "C4741",
+      "target_name": "Neoplasm by Morphology"
+    },
+    {
+      "edge_type": "child",
+      "provenance": {
+        "correlationId": "b1e98805097549fa885fab66d047dc86",
+        "depth": 1,
+        "direction": "out",
+        "polarity": "positive",
+        "relationship": {
+          "kind": "child"
+        },
+        "release": {
+          "date": "2026-09-28",
+          "identifier": "26.09d",
+          "terminology": "ncit"
+        },
+        "retrievedAt": "2026-10-04T16:00:43.011922Z",
+        "servedBy": "live",
+        "source": "evs_rest",
+        "sourceUri": "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit_26.09d/C3262"
+      },
+      "relationship_name": "is_a_child",
+      "source_code": "C3262",
+      "source_name": "Neoplasm",
+      "target_code": "C3263",
+      "target_name": "Neoplasm by Site"
+    },
+    {
+      "edge_type": "child",
+      "provenance": {
+        "correlationId": "b1e98805097549fa885fab66d047dc86",
+        "depth": 1,
+        "direction": "out",
+        "polarity": "positive",
+        "relationship": {
+          "kind": "child"
+        },
+        "release": {
+          "date": "2026-09-28",
+          "identifier": "26.09d",
+          "terminology": "ncit"
+        },
+        "retrievedAt": "2026-10-04T16:00:43.011922Z",
+        "servedBy": "live",
+        "source": "evs_rest",
+        "sourceUri": "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit_26.09d/C3262"
+      },
+      "relationship_name": "is_a_child",
+      "source_code": "C3262",
+      "source_name": "Neoplasm",
+      "target_code": "C7062",
+      "target_name": "Neoplasm by Special Category"
+    }
   ],
-  "release_version": "26.09d",
+  "max_depth": 1,
+  "max_edges": 1000,
+  "max_nodes": 200,
   "nodes": [
     {
       "code": "C3262",
       "preferred_name": "Neoplasm",
-      "terminology": "ncit",
-      "release_version": "26.09d",
-      "source_vocabulary": "NCI Thesaurus"
+      "provenance": {
+        "correlationId": "b1e98805097549fa885fab66d047dc86",
+        "depth": 0,
+        "release": {
+          "date": "2026-09-28",
+          "identifier": "26.09d",
+          "terminology": "ncit"
+        },
+        "retrievedAt": "2026-10-04T16:00:43.011922Z",
+        "servedBy": "live",
+        "source": "evs_rest",
+        "sourceUri": "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit_26.09d/C3262"
+      },
+      "source_vocabulary": "NCI Thesaurus",
+      "terminology": "ncit"
     },
     {
       "code": "C4741",
       "preferred_name": "Neoplasm by Morphology",
-      "terminology": "ncit",
-      "release_version": "26.09d",
-      "source_vocabulary": "NCI Thesaurus"
+      "provenance": {
+        "correlationId": "b1e98805097549fa885fab66d047dc86",
+        "depth": 1,
+        "direction": "out",
+        "polarity": "positive",
+        "relationship": {
+          "kind": "child"
+        },
+        "release": {
+          "date": "2026-09-28",
+          "identifier": "26.09d",
+          "terminology": "ncit"
+        },
+        "retrievedAt": "2026-10-04T16:00:43.011922Z",
+        "servedBy": "live",
+        "source": "evs_rest",
+        "sourceUri": "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit_26.09d/C4741"
+      },
+      "source_vocabulary": "NCI Thesaurus",
+      "terminology": "ncit"
     },
     {
       "code": "C3263",
       "preferred_name": "Neoplasm by Site",
-      "terminology": "ncit",
-      "release_version": "26.09d",
-      "source_vocabulary": "NCI Thesaurus"
+      "provenance": {
+        "correlationId": "b1e98805097549fa885fab66d047dc86",
+        "depth": 1,
+        "direction": "out",
+        "polarity": "positive",
+        "relationship": {
+          "kind": "child"
+        },
+        "release": {
+          "date": "2026-09-28",
+          "identifier": "26.09d",
+          "terminology": "ncit"
+        },
+        "retrievedAt": "2026-10-04T16:00:43.011922Z",
+        "servedBy": "live",
+        "source": "evs_rest",
+        "sourceUri": "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit_26.09d/C3263"
+      },
+      "source_vocabulary": "NCI Thesaurus",
+      "terminology": "ncit"
     },
     {
       "code": "C7062",
       "preferred_name": "Neoplasm by Special Category",
-      "terminology": "ncit",
-      "release_version": "26.09d",
-      "source_vocabulary": "NCI Thesaurus"
+      "provenance": {
+        "correlationId": "b1e98805097549fa885fab66d047dc86",
+        "depth": 1,
+        "direction": "out",
+        "polarity": "positive",
+        "relationship": {
+          "kind": "child"
+        },
+        "release": {
+          "date": "2026-09-28",
+          "identifier": "26.09d",
+          "terminology": "ncit"
+        },
+        "retrievedAt": "2026-10-04T16:00:43.011922Z",
+        "servedBy": "live",
+        "source": "evs_rest",
+        "sourceUri": "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit_26.09d/C7062"
+      },
+      "source_vocabulary": "NCI Thesaurus",
+      "terminology": "ncit"
     }
   ],
-  "edges": [
-    {
-      "source_code": "C3262",
-      "target_code": "C4741",
-      "edge_type": "child",
-      "relationship_name": "is_a_child",
-      "target_name": "Neoplasm by Morphology",
-      "source_name": "Neoplasm"
-    },
-    {
-      "source_code": "C3262",
-      "target_code": "C3263",
-      "edge_type": "child",
-      "relationship_name": "is_a_child",
-      "target_name": "Neoplasm by Site",
-      "source_name": "Neoplasm"
-    },
-    {
-      "source_code": "C3262",
-      "target_code": "C7062",
-      "edge_type": "child",
-      "relationship_name": "is_a_child",
-      "target_name": "Neoplasm by Special Category",
-      "source_name": "Neoplasm"
-    }
+  "start_codes": [
+    "C3262"
   ],
-  "truncated": false,
-  "max_depth": 1,
-  "max_nodes": 200,
-  "max_edges": 1000,
-  "retrieved_at": "2026-10-03T22:47:37.361790Z",
-  "unexpanded_codes": []
+  "truncation": {
+    "occurred": false
+  }
 }
+```
+
+## Provenance and truncation
+
+Every item a tool returns carries a `provenance` record (the specification's
+`provenance` record, in camelCase). Items are a looked-up concept, each hit's concept of a
+search, each node and edge of a traversal, the release report and the index manifest (which
+`index-sample` and the release report's `active_index` also print, with the same record). A result
+with no item (a search that finds nothing) carries the record itself; a result with items does
+not. The same fields everywhere:
+
+| Field | Value |
+| --- | --- |
+| `release` | `{terminology, identifier, date}` of the NCIt release the item was read from; `date` is left out when EVS gave none |
+| `source` | `evs_rest` for live EVS, `evs_index` for the local index |
+| `servedBy` | `live` or `index` |
+| `retrievedAt` | When the item was retrieved; for an indexed concept, when it was indexed |
+| `sourceUri` | The EVS URL of the resource that holds the item, without query: the concept, or for a descendant edge its start code's `descendants`. Left out of a search that found nothing, which no upstream URL produced |
+| `correlationId` | The call's `_meta.correlationId`, or one the server generated; the same in every item of the call and in the error record |
+| `upstream` | What EVS said of the item's origin, unchanged: its `terminology` and `version`. Present for a concept and for a traversal start code, whose payload was read in full; left out where EVS said nothing (a node named by a relation list, an edge) |
+| `graphs`, `registry`, `attribution` | Never supplied: they belong to the Shared SI Service, to caDSR content and to answers that carry licence text |
+
+An item reached by traversal adds `depth` (an edge has that of the node it reaches; the start
+codes have 0); and, for any item but a start code, `relationship` (`kind`; for a role or
+association also its `code` and `name`; a hierarchy link has only its kind: `parent`, `child` or
+`descendant`), `direction` (`out` or `in`, the way the edge type is followed) and `polarity`
+(`negative` exactly for the exclusion roles R135 to R142 by relationship code, otherwise
+`positive`). A node carries the provenance of the edge that first reached it.
+
+A tool that bounds its result returns `truncation`. It is `{"occurred": false}` when nothing
+was cut. Otherwise it holds `bound` (`results`, `nodes`, `edges` or `upstream_cap`), `limit`,
+`reached`, `omitted` (always a number) and `exact` (false where `omitted` is a lower bound). A
+traversal reports the first bound that dropped something; it counts the concepts or edges it
+dropped, not those beyond them, so `exact` is false. `upstream_cap` is a concept whose relations
+or descendants exceeded `NCI_SI_EVS_MAX_RESPONSE_BYTES`: `omitted` counts such concepts, and the
+log names them. A search reports `results` when `limit` left scored concepts out; `exact` is true
+where every candidate was scored.
+
+```json
+{"occurred": true, "bound": "nodes", "limit": 3, "reached": 3, "omitted": 2, "exact": false}
 ```
 
 ## MCP Tools
@@ -532,12 +765,9 @@ edge type that the direction or the include flags exclude is an
 `invalid_request`.
 
 The walk proceeds one depth at a time over all start codes, so nearer nodes
-claim the limits first. `truncated` in the result means the node limit, the
-edge limit, or the EVS response-size limit dropped something. In the last case
-`unexpanded_codes` lists the concepts whose relations or descendants were too
-large to read; raising `max_nodes` or `max_edges` does not help there, raising
-`NCI_SI_EVS_MAX_RESPONSE_BYTES` does, and so can a smaller `max_depth` for
-descendants.
+claim the limits first. The result's `truncation` is `{"occurred": false}`, or
+says which bound dropped something and how much (see Provenance and truncation).
+Stopping at `max_depth` is no truncation.
 
 ## MCP Resources
 

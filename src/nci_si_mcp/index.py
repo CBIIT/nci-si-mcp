@@ -23,7 +23,7 @@ from .errors import (
     NoActiveIndexError,
 )
 from .evs import normalize_concept
-from .models import IndexManifest, NcitConcept, SearchHit, utc_now_iso
+from .models import IndexManifest, NcitConcept, SearchHit, Truncation, utc_now_iso
 from .retrieval import cosine_similarity, min_max_normalize, tokenize
 from .validation import validate_search
 
@@ -272,7 +272,7 @@ def _insert_rows(
         [
             (
                 *key,
-                json.dumps(concept.to_dict(include_raw=True), sort_keys=True),
+                json.dumps(concept.to_stored(), sort_keys=True),
                 search_text,
                 json.dumps(vector),
             )
@@ -292,6 +292,37 @@ def _insert_rows(
             for key, vector in zip(keys, vectors, strict=True)
             for band, bucket in vector_lsh_buckets(vector)
         ],
+    )
+
+
+def _fts_candidate_cap(limit: int) -> int:
+    return min(MAX_FTS_CANDIDATES, max(limit * 10, 100))
+
+
+def _complete(manifest: IndexManifest, mode: str, bm25_count: int, limit: int) -> bool:
+    """Whether the concepts scored are every concept that could match the query.
+
+    BM25 reads at most a cap of candidates, and vectors are scored exactly only in an
+    index of up to `EXACT_VECTOR_SCAN_LIMIT` concepts.
+    """
+
+    if mode == "bm25":
+        return bm25_count < _fts_candidate_cap(limit)
+    return manifest.concept_count <= EXACT_VECTOR_SCAN_LIMIT
+
+
+def _results_truncation(scored: int, limit: int, complete: bool) -> Truncation:
+    """The truncation record of a search whose `limit` may have left scored concepts out."""
+
+    if scored <= limit:
+        return Truncation(occurred=False)
+    return Truncation(
+        occurred=True,
+        bound="results",
+        limit=limit,
+        reached=limit,
+        omitted=scored - limit,
+        exact=complete,
     )
 
 
@@ -551,11 +582,23 @@ class LocalIndex:
         limit: int = 10,
         mode: str = "hybrid",
     ) -> list[SearchHit]:
+        """The hits of `search_with_truncation`, without its truncation record."""
+
+        return self.search_with_truncation(query, embedding_provider, limit, mode)[0]
+
+    def search_with_truncation(
+        self,
+        query: str,
+        embedding_provider: EmbeddingProvider,
+        limit: int = 10,
+        mode: str = "hybrid",
+    ) -> tuple[list[SearchHit], Truncation]:
         """Rank concepts of the active release by BM25, vector similarity, or both.
 
         Each component is min-max normalized over the concepts scored for this
         query, so scores rank hits within one result but are not comparable
-        across queries. The hybrid score is 0.55 * BM25 + 0.45 * vector.
+        across queries. The hybrid score is 0.55 * BM25 + 0.45 * vector. The
+        truncation record says how many scored concepts the limit left out.
         """
 
         query, limit, mode = validate_search(query, limit, mode)
@@ -573,7 +616,11 @@ class LocalIndex:
                 vector_scores = self._vector_scores(
                     conn, manifest, embedding_provider, query, set(bm25_scores)
                 )
-            ranked = _rank(mode, bm25_scores, vector_scores)[:limit]
+            scored = _rank(mode, bm25_scores, vector_scores)
+            ranked = scored[:limit]
+            truncation = _results_truncation(
+                len(scored), limit, _complete(manifest, mode, len(bm25_scores), limit)
+            )
             placeholders = ",".join("?" for _ in ranked)
             payload_by_code = {
                 row["code"]: json.loads(row["payload"])
@@ -583,7 +630,7 @@ class LocalIndex:
                     [release, *(code for code, _, _ in ranked)],
                 )
             }
-        return [
+        hits = [
             SearchHit(
                 concept=NcitConcept(**payload_by_code[code]),
                 score=float(score),
@@ -592,6 +639,7 @@ class LocalIndex:
             )
             for rank, (code, score, components) in enumerate(ranked, start=1)
         ]
+        return hits, truncation
 
     def _searchable_manifest(
         self, conn: sqlite3.Connection, embedding_provider: EmbeddingProvider
@@ -623,7 +671,7 @@ class LocalIndex:
             (
                 " OR ".join(f'"{token}"' for token in tokens),
                 release,
-                min(MAX_FTS_CANDIDATES, max(limit * 10, 100)),
+                _fts_candidate_cap(limit),
             ),
         ).fetchall()
         return {row["code"]: float(row["score"]) for row in rows}

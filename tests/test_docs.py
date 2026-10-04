@@ -4,6 +4,7 @@ The tools and resources in QUICKSTART.md are compared with the running server in
 """
 
 import asyncio
+import importlib
 import json
 import logging
 import os
@@ -15,13 +16,16 @@ from pathlib import Path
 from typing import get_args
 from unittest.mock import patch
 
+import yaml
 from mcp.client import Client
 
+from nci_si_mcp.cli import build_parser
 from nci_si_mcp.config import Settings
 from nci_si_mcp.errors import ErrorCode
 from nci_si_mcp.evs import LICENSE_KEY_HEADER
 from nci_si_mcp.http_client import MAX_RETRY_DELAY_SECONDS
 from nci_si_mcp.server import create_mcp
+from nci_si_mcp.traversal import NCIT_EXCLUSION_CODES
 from nci_si_mcp.validation import PROFILES, RELEASE_CHANNELS, UPSTREAM_MODES
 
 ROOT = Path(__file__).parent.parent
@@ -52,6 +56,22 @@ def first_column(table):
 # Stands in for a result until it is captured from a live run.
 RESULT_PENDING = "<!-- result: to be captured from a live run -->"
 CALL = re.compile(r"^Call:\n\n```json\n(.+)\n```$", flags=re.MULTILINE)
+
+
+RECORDS = yaml.safe_load((ROOT / "spec/records.yaml").read_text(encoding="utf-8"))
+
+
+def provenances(value):
+    """Every provenance record nested anywhere in a parsed example."""
+
+    children = value.values() if isinstance(value, dict) else value
+    nested = (
+        [each for item in children for each in provenances(item)]
+        if isinstance(value, dict | list)
+        else []
+    )
+    own = [value["provenance"]] if isinstance(value, dict) and "provenance" in value else []
+    return own + nested
 
 
 def served_arguments():
@@ -171,6 +191,63 @@ class DocumentationTest(unittest.TestCase):
                 call = json.loads(CALL.search(example).group(1))
                 self.assertIn(call["tool"], served)
                 self.assertLessEqual(set(call["arguments"]), served[call["tool"]])
+
+    def test_quickstart_provenance_table_names_the_fields_of_the_specification(self):
+        text = section(QUICKSTART, "Provenance and truncation")
+
+        self.assertEqual(first_column(text), set(RECORDS["provenance"]["fields"]))
+        # The bounds the text lists are values of the truncation record.
+        listed = re.search(r"`bound` \(([^)]*)\)", text).group(1)
+        self.assertLessEqual(
+            set(re.findall(r"`(\w+)`", listed)),
+            set(RECORDS["truncation"]["fields"]["bound"]["values"]),
+        )
+
+    def test_quickstart_names_the_exclusion_roles_and_the_cli_flag_the_code_has(self):
+        text = section(QUICKSTART, "Provenance and truncation")
+        low, high = map(int, re.search(r"R(\d+) to R(\d+)", text).groups())
+
+        self.assertEqual(NCIT_EXCLUSION_CODES, {f"R{number}" for number in range(low, high + 1)})
+        self.assertIn("--include-raw", QUICKSTART)
+        for command in ("search", "lookup"):
+            arguments = build_parser().parse_args([command, "x", "--include-raw"])
+            self.assertTrue(arguments.include_raw)
+        # Every command-line flag the guide names is one of the CLI.
+        (subcommands,) = build_parser()._subparsers._group_actions
+        flags = {
+            flag
+            for parser in subcommands.choices.values()
+            for flag in parser._option_string_actions
+        }
+        self.assertLessEqual(set(re.findall(r"(?<![\w-])--[a-z][a-z-]+", QUICKSTART)), flags)
+
+    def test_quickstart_examples_parse_and_carry_the_provenance_field_set(self):
+        blocks = re.findall(r"```json\n(.*?)\n```", QUICKSTART, flags=re.DOTALL)
+        found = [record for block in blocks for record in provenances(json.loads(block))]
+        fields = RECORDS["provenance"]["fields"]
+        required = {name for name, spec in fields.items() if not spec.get("optional")}
+        required -= {"graphs", "upstream"}
+        allowed = set(fields) | set(RECORDS["traversal"]["fields"])
+
+        # The lookups, the three hits shown and the nodes and edges of the traversal.
+        self.assertGreaterEqual(len(found), 12)
+        for record in found:
+            self.assertLessEqual(required, set(record))
+            self.assertLessEqual(set(record), allowed)
+
+    def test_architecture_provenance_section_names_functions_that_exist(self):
+        # `owner.name`, where the owner is a module or a class of one; `models.py` is a file name.
+        named = re.findall(r"`(\w+)\.(?!py\b)(\w+)`", section(ARCHITECTURE, "Provenance"))
+        stems = sorted(path.stem for path in PACKAGE.glob("*.py") if path.stem != "__init__")
+        modules = {stem: importlib.import_module(f"nci_si_mcp.{stem}") for stem in stems}
+        owners = dict(modules)
+        for module in modules.values():
+            owners.update(vars(module))
+
+        self.assertTrue(named)
+        for owner, name in named:
+            with self.subTest(f"{owner}.{name}"):
+                self.assertTrue(hasattr(owners[owner], name))
 
     def test_architecture_describes_every_module(self):
         modules = {path.name for path in PACKAGE.glob("*.py")} - {"__init__.py"}
