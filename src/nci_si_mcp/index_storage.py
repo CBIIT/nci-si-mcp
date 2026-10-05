@@ -12,7 +12,7 @@ from dataclasses import replace
 from pathlib import Path
 from uuid import uuid4
 
-from .errors import IndexCompatibilityError
+from .errors import IndexCompatibilityError, IndexStorageError
 from .models import IndexManifest, NcitConcept
 
 SCHEMA_VERSION = 5
@@ -148,16 +148,26 @@ def build_lease(directory: Path, build_id: str) -> Iterator[None]:
     """
     fts_table(build_id)
     path = directory / f"build-{build_id}.sqlite3"
-    lock = sqlite3.connect(str(path), timeout=0)
-    acquired = False
+    lock = _open_lease(path)
     try:
-        lock.execute("BEGIN EXCLUSIVE")
-        acquired = True
         yield
     finally:
         lock.close()
-        if acquired:
-            path.unlink(missing_ok=True)
+        path.unlink(missing_ok=True)
+
+
+def _open_lease(path: Path) -> sqlite3.Connection:
+    lock = None
+    try:
+        lock = sqlite3.connect(str(path), timeout=0)
+        lock.execute("BEGIN EXCLUSIVE")
+    except sqlite3.Error as exc:
+        if lock is not None:
+            lock.close()
+        if exc.sqlite_errorcode == sqlite3.SQLITE_BUSY:
+            raise
+        raise IndexStorageError(f"{exc} ({path})") from exc
+    return lock
 
 
 def clean_stale_builds(conn: sqlite3.Connection, directory: Path) -> None:

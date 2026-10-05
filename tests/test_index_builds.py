@@ -4,12 +4,29 @@ import sqlite3
 from unittest.mock import patch
 
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
-from nci_si_mcp.errors import IndexBuildError, IndexCompatibilityError, correlated
+from nci_si_mcp.errors import (
+    IndexBuildError,
+    IndexCompatibilityError,
+    IndexStorageError,
+    correlated,
+)
 from nci_si_mcp.index import LocalIndex
 from test_index import RAW_CONCEPTS, IndexTestCase
 
 
 class BuildLifecycleTest(IndexTestCase):
+    def test_unusable_build_lease_reports_storage_error_and_keeps_active_index(self):
+        index = self.build()
+        active = index.get_active_manifest()
+        with patch("nci_si_mcp.index.uuid4") as identifier:
+            identifier.return_value.hex = "f" * 32
+            lease_path = self.path / f"build-{'f' * 32}.sqlite3"
+            lease_path.mkdir()
+            with self.assertRaises(IndexStorageError) as raised:
+                index.build(RAW_CONCEPTS, None, self.provider)
+        self.assertIn(str(lease_path), str(raised.exception))
+        self.assertEqual(index.get_active_manifest(), active)
+
     def test_another_cache_writer_succeeds_mid_build_and_cannot_activate_partial_data(self):
         index = self.build()
         embed = self.provider.embed
