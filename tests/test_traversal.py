@@ -3,9 +3,15 @@ from unittest.mock import patch
 
 from fakes import FakeEVS, concept, release
 from nci_si_mcp.bounds import (
+    DEFAULT_MAX_DEPTH,
+    DEFAULT_MAX_EDGES,
+    DEFAULT_MAX_NODES,
     HARD_MAX_DEPTH,
     HARD_MAX_EDGES,
     HARD_MAX_NODES,
+    MAX_TRAVERSAL_REQUESTS,
+    Budget,
+    budgeted,
     clamp_edge_limit,
     clamp_limits,
 )
@@ -80,11 +86,30 @@ class HubEVS(FakeEVS):
         return super().get_concepts_by_codes(codes, terminology, include)
 
 
-def walk(client, start_codes=("C1",), direction="out", edge_types=None, **options):
+def walk(
+    client,
+    start_codes=("C1",),
+    direction="out",
+    edge_types=None,
+    max_depth=DEFAULT_MAX_DEPTH,
+    max_nodes=DEFAULT_MAX_NODES,
+    max_edges=DEFAULT_MAX_EDGES,
+    budget_per_kind=None,
+    requests=MAX_TRAVERSAL_REQUESTS,
+    **options,
+):
     """Select edge types as the service does, then traverse release 26.06e."""
 
     selected = select_edge_types(direction, True, True, True, edge_types)
-    return traverse_ncit(client, list(start_codes), release(), selected, **options)
+    budget = Budget(
+        depth=max_depth,
+        nodes=max_nodes,
+        edges=max_edges,
+        per_kind=budget_per_kind,
+        requests=requests,
+    )
+    with budgeted(budget):
+        return traverse_ncit(client, list(start_codes), release(), selected, budget, **options)
 
 
 def pairs(result):

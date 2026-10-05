@@ -721,13 +721,17 @@ association also its `code` and `name`; a hierarchy link has only its kind: `par
 `positive`). A node carries the provenance of the edge that first reached it.
 
 A tool that bounds its result returns `truncation`. It is `{"occurred": false}` when nothing
-was cut. Otherwise it holds `bound` (`results`, `nodes`, `edges` or `upstream_cap`), `limit`,
+was cut. Otherwise it holds `bound` (`results`, `nodes`, `edges`, `kind_budget`, `requests` or
+`upstream_cap`), `limit`,
 `reached`, `omitted` (always a number) and `exact` (false where `omitted` is a lower bound). A
 traversal reports the first bound that dropped something; it counts the concepts or edges it
 dropped, not those beyond them, so `exact` is false. `upstream_cap` is a concept whose relations
 or descendants exceeded `NCI_SI_EVS_MAX_RESPONSE_BYTES`: `omitted` counts such concepts, and the
 log names them. A search reports `results` when `limit` left scored concepts out; `exact` is true
 where every candidate was scored.
+`kind_budget` counts new nodes omitted by the first exhausted kind. `requests` counts
+unread work as a lower bound; when the number of relations left out for a kind is
+unknown, its record gives `omitted: 0` and `exact: false`.
 
 ```json
 {"occurred": true, "bound": "nodes", "limit": 3, "reached": 3, "omitted": 2, "exact": false}
@@ -775,8 +779,10 @@ report `perKind` truncation records when anything is dropped.
 
 Each traversal can make at most 200 HTTP attempts, including release discovery,
 retries and split batches. Exhaustion before any graph is available returns
-`bound_exceeded`; otherwise the partial graph carries `requests` truncation with
-a lower bound on the omitted work. An explicit kind allowance uses `kind_budget`
+`bound_exceeded`; otherwise the partial graph reports the first bound that dropped
+anything, using `requests` if no earlier bound was reached. Unread kinds carry
+their own truncation record with `omitted: 0` and `exact: false` when the omitted
+relation count is unknown. An explicit kind allowance uses `kind_budget`
 truncation. These budgets are independent for concurrent calls.
 Stopping at `max_depth` is no truncation.
 

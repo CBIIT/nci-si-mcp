@@ -189,16 +189,18 @@ def _register_tools(
         `perKind` records. A traversal shares 200 HTTP attempts across release
         discovery, retries and split batches. Exhaustion before any graph is
         available returns `bound_exceeded`; otherwise it returns a partial graph
-        with `requests` truncation. An exhausted kind uses `kind_budget`.
+        with `requests` truncation unless an earlier bound already dropped something.
+        An exhausted kind uses `kind_budget`. Unread kinds report a lower-bound
+        omitted count of zero with `exact: false` when their relation count is unknown.
         Nearer nodes claim the limits before farther ones. `truncation` is
         `{occurred: false}` unless something was dropped. It then names the
-        first `bound` that dropped something: `nodes` or `edges` (the limits),
-        or `upstream_cap`, when the relations or descendants of a concept
+        first `bound` that still omits something: `nodes`, `edges`, `kind_budget`,
+        `requests`, or `upstream_cap`, when the relations or descendants of a concept
         were too large for the EVS response limit to read, which raising the
         node and edge limits does not help (for descendants, a smaller
         `max_depth` can). `limit` is that bound's value, `reached` what had
-        been counted, and `omitted` how many nodes, edges or unread concepts
-        were left out; `exact` is false, since what lies beyond a dropped
+        been counted, and `omitted` a lower bound on nodes, edges or unread work
+        left out; `exact` is false, since what lies beyond a dropped
         item was never read. Stopping at `max_depth` is no truncation.
         Every edge connects two nodes of the result. Every node and edge
         carries a `provenance` record: the release of the configured channel all data is read

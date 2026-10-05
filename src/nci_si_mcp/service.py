@@ -393,13 +393,14 @@ class NCISIService:
         selected = select_edge_types(
             direction, include_hierarchy, include_roles, include_associations, edge_types
         )
-        with budgeted(Budget(nodes=max_nodes, edges=max_edges, per_kind=budget_per_kind)):
+        budget = Budget(depth=max_depth, nodes=max_nodes, edges=max_edges, per_kind=budget_per_kind)
+        with budgeted(budget):
             return traverse_ncit(
                 self.evs,
                 start_codes,
                 self._release(),
                 selected,
-                max_depth=max_depth,
+                budget,
                 relationship_names=relationship_names,
             ).to_dict()
 

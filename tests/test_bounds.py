@@ -119,8 +119,8 @@ class TraversalBudgetTest(unittest.TestCase):
 
     def test_a_later_batch_cannot_discard_the_start_nodes_already_read(self):
         client = BudgetEVS([concept("C1"), concept("C2")])
-        with budgeted(Budget(requests=1)), patch("nci_si_mcp.traversal.BATCH_SIZE", 1):
-            result = walk(client, start_codes=["C1", "C2"], max_depth=1)
+        with patch("nci_si_mcp.traversal.BATCH_SIZE", 1):
+            result = walk(client, start_codes=["C1", "C2"], max_depth=1, requests=1)
         self.assertEqual(codes(result), ["C1"])
         self.assertEqual(result.truncation.bound, "requests")
         self.assertEqual((result.truncation.limit, result.truncation.reached), (1, 1))
@@ -130,11 +130,10 @@ class TraversalBudgetTest(unittest.TestCase):
     def test_request_exhaustion_does_not_hide_an_already_confirmed_missing_start(self):
         client = BudgetEVS([concept("C2")])
         with (
-            budgeted(Budget(requests=1)),
             patch("nci_si_mcp.traversal.BATCH_SIZE", 1),
             self.assertRaises(EVSNotFoundError) as raised,
         ):
-            walk(client, start_codes=["C1", "C2"])
+            walk(client, start_codes=["C1", "C2"], requests=1)
         self.assertEqual(raised.exception.details["identifiers"], ["C1"])
 
     def test_parallel_dropped_edges_count_one_omitted_node(self):
@@ -150,26 +149,74 @@ class TraversalBudgetTest(unittest.TestCase):
         self.assertEqual(result.truncation.omitted, 1)
         self.assertEqual(result.truncation.to_dict()["perKind"]["role"]["omitted"], 1)
 
+    def test_omitted_nodes_do_not_include_existing_targets_of_edge_drops(self):
+        client = FakeEVS(
+            [
+                concept(
+                    "C1",
+                    roles=[
+                        related("r1", "C2"),
+                        related("r2", "C3"),
+                        related("r3", "C1"),
+                    ],
+                )
+            ]
+        )
+        result = walk(client, max_depth=1, budget_per_kind=1, max_edges=1)
+        self.assertEqual(result.truncation.bound, "kind_budget")
+        self.assertEqual(result.truncation.omitted, 1)
+        self.assertEqual(result.truncation.to_dict()["perKind"]["role"]["omitted"], 1)
+
+    def test_unread_kinds_do_not_claim_completeness_at_the_request_cap(self):
+        client = BudgetEVS([concept("C1", children=[child("C2")]), concept("C2")])
+        result = walk(client, requests=1)
+        kinds = result.truncation.to_dict()["perKind"]
+        for kind in ("child", "role", "association"):
+            self.assertEqual(
+                kinds[kind],
+                {
+                    "occurred": True,
+                    "bound": "requests",
+                    "limit": 1,
+                    "reached": 1,
+                    "omitted": 0,
+                    "exact": False,
+                },
+            )
+
+    def test_reconciled_drops_do_not_hide_request_exhaustion(self):
+        client = BudgetEVS(
+            [
+                concept(
+                    "C1",
+                    roles=[related("r1", "C2"), related("r2", "C3")],
+                    associations=[related("a", "C4")],
+                ),
+                concept("C2", children=[child("C3")]),
+                concept("C4"),
+            ]
+        )
+        with patch("nci_si_mcp.traversal.BATCH_SIZE", 1):
+            result = walk(client, budget_per_kind=1, requests=2, max_depth=2)
+        self.assertEqual(result.truncation.bound, "requests")
+
     def test_a_split_batch_keeps_its_successful_half_at_the_request_cap(self):
         client = BudgetHub([concept("C1"), concept("C2")])
-        with budgeted(Budget(requests=2)):
-            result = walk(client, start_codes=["C1", "C2"], max_depth=1)
+        result = walk(client, start_codes=["C1", "C2"], max_depth=1, requests=2)
         self.assertEqual(codes(result), ["C1"])
         self.assertEqual(result.truncation.bound, "requests")
         self.assertEqual(len(client.calls), 2)
 
     def test_no_graph_is_an_error_and_a_later_bound_preserves_graph_content(self):
         client = BudgetEVS([concept("C1", children=[child("C2")]), concept("C2")])
-        with budgeted(Budget(requests=0)), self.assertRaises(RequestBudgetError):
-            walk(client)
-        with budgeted(Budget(requests=1)):
-            result = walk(client, max_depth=2)
+        with self.assertRaises(RequestBudgetError):
+            walk(client, requests=0)
+        result = walk(client, max_depth=2, requests=1)
         self.assertEqual(codes(result), ["C1", "C2"])
         self.assertEqual(result.truncation.bound, "requests")
 
     def test_exact_request_allowance_is_not_itself_truncation(self):
-        with budgeted(Budget(requests=1)):
-            result = walk(BudgetEVS([concept("C1")]), max_depth=1)
+        result = walk(BudgetEVS([concept("C1")]), max_depth=1, requests=1)
         self.assertEqual(result.truncation.to_dict(), {"occurred": False})
 
     def test_descendant_requests_preserve_the_first_starts_graph_at_the_cap(self):
@@ -177,8 +224,7 @@ class TraversalBudgetTest(unittest.TestCase):
             [concept("C1"), concept("C2")],
             descendants={"C1": [descendant("C3", 1)], "C2": [descendant("C4", 1)]},
         )
-        with budgeted(Budget(requests=2)):
-            result = walk(client, start_codes=["C1", "C2"], edge_types=["descendant"])
+        result = walk(client, start_codes=["C1", "C2"], edge_types=["descendant"], requests=2)
         self.assertEqual(codes(result), ["C1", "C2", "C3"])
         self.assertEqual(result.truncation.bound, "requests")
         self.assertEqual(result.truncation.reached, 2)
@@ -267,6 +313,7 @@ class ServiceBudgetTest(ServiceTestCase):
         with patch("nci_si_mcp.service.Budget", return_value=Budget(requests=1)):
             result = self.service.traverse(["C1"])
         self.assertEqual(result["error"]["code"], "bound_exceeded")
+        self.assertIn("fewer start codes", result["error"]["message"])
         self.assertEqual(
             result["error"]["details"], {"bound": "requests", "limit": 1, "reached": 1}
         )

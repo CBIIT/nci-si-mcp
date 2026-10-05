@@ -56,7 +56,7 @@ These hold today and continue to hold:
 | `include_raw` and `live_only` are MCP tool parameters | Both are removed from the MCP surface. `include_raw` stays on the CLI for debugging; `live_only` becomes the `servedBy` field in provenance, reported rather than requested |
 | Edge types are selected independently of relationship names, but the name filter also applies to hierarchy edges, which carry the pseudo-names `is_a_parent`, `is_a_child`, `is_a_descendant`: a role-name filter drops them unless those names are listed | Edge kinds and relationship names are separate fields, and hierarchy edges carry no invented name; a filter on one never silently removes the other (A5.5) |
 | Exclusion polarity is not represented | Polarity is derived from the relationship **code** against the pinned release's catalogue, never from the label (A5.7) |
-| Traversal bounds nodes and edges, nearest first; outbound requests are not counted | The budget counts outbound requests **including retries** (A5.3), with nodes and edges as additional bounds |
+| Traversal bounds nodes and edges, nearest first | Implemented in §3.5: the budget also counts outbound requests **including retries** (A5.3), with per-kind node allowances |
 | `cadsr_status` is a stub | The caDSR module is real; the stub is deleted |
 
 
@@ -164,7 +164,7 @@ One client for all surfaces, replacing `EVSClient._get_json` and the per-module 
 
 ### 3.5 Bounds (`platform/bounds.py`)
 
-Implemented in `bounds.py`: each traversal creates a `Budget` from caller limits clamped to the documented maxima. Its context variable is scoped and restored like the correlation context. The HTTP client counts attempts, including release discovery, retries and split batches, against the 200-request allowance declared for hierarchy and neighborhood. Other calls have no request budget unless their specification declares one. Without graph content exhaustion returns `bound_exceeded`; with graph content it returns a partial graph and `requests` truncation with numeric lower-bound `omitted` and `exact: false`.
+Implemented in `bounds.py`: the service creates one `Budget`, including depth, from caller limits clamped to the documented maxima and passes it explicitly to the walker. Its context variable is scoped and restored like the correlation context so the HTTP client uses that same instance. The HTTP client counts attempts, including release discovery, retries and split batches, against the 200-request allowance declared for hierarchy and neighborhood. Other calls have no request budget unless their specification declares one. Without graph content exhaustion returns `bound_exceeded`; with graph content it returns a partial graph. The first bound that dropped anything wins, so request exhaustion reports `requests` only when no earlier bound applies. Unknown per-kind omissions use the lower bound zero with `exact: false`.
 
 `clamp_limits`, `clamp_edge_limit` and the `HARD_MAX_*` constants now live in `bounds.py`; the defaults and maxima are the tools' `bounds` in `spec/tools.yaml`. The walker rotates relationship kinds across each breadth-first frontier. Starts count against the global node limit; a kind's optional allowance counts only new nodes it admits. Existing-node edges, duplicates and filtered edges spend no node allowance. Truncation includes per-kind records for mixed-kind walks.
 

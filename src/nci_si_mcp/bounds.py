@@ -34,6 +34,7 @@ class RequestBudgetError(RuntimeError):
 
 @dataclass
 class Budget:
+    depth: int = DEFAULT_MAX_DEPTH
     requests: int = MAX_TRAVERSAL_REQUESTS
     nodes: int = DEFAULT_MAX_NODES
     edges: int = DEFAULT_MAX_EDGES
@@ -43,7 +44,7 @@ class Budget:
     exhausted: bool = field(default=False, init=False)
 
     def __post_init__(self) -> None:
-        _, self.nodes = clamp_limits(0, self.nodes)
+        self.depth, self.nodes = clamp_limits(self.depth, self.nodes)
         self.edges = clamp_edge_limit(self.edges)
         if self.per_kind is not None:
             self.per_kind = min(self.per_kind, HARD_MAX_PER_KIND)
