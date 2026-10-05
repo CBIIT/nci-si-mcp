@@ -330,6 +330,7 @@ def test_lexical(tools):
         "list_relationships": "list_relationships",
         "resolve_retired_code": "resolve_retired_code",
         "get_concept_subsets": "get_concept_subsets",
+        "expand_value_set": "expand_value_set",
         "get_concept_mappings": "get_concept_mappings",
         "search_concepts": "search_concepts",
         "get_concept_hierarchy": "get_concept_hierarchy",

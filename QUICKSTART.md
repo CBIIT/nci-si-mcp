@@ -74,7 +74,7 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects eleven EVS tools, no caDSR tools yet, or the same eleven EVS tools, respectively; CLI maintenance commands and resources remain available |
+| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects twelve EVS tools, no caDSR tools yet, or the same twelve EVS tools, respectively; CLI maintenance commands and resources remain available |
 | `NCI_SI_UPSTREAM_MODE` | `live` | `live` or `fixture`; selects the six base URLs below as a set (next paragraph) |
 | `NCI_SI_EVS_BASE_URL` | `https://api-evsrest.nci.nih.gov` | EVS REST endpoint (`http` or `https`) |
 | `NCI_SI_EVS_FHIR_BASE_URL` | `https://api-evsrest.nci.nih.gov/fhir/r4` | EVS FHIR endpoint |
@@ -90,7 +90,7 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 | `NCI_SI_MATCH_TIMEOUT_SECONDS` | `45` | Timeout of a caDSR match request |
 | `NCI_SI_EVS_MAX_ATTEMPTS` | `3` | Request attempts, 1 to 10. Only a 5xx, a 429 and a connection failure are retried; a 429 waits for its `Retry-After` (a platform that asks for more than 60 seconds is not asked again) |
 | `NCI_SI_EVS_RETRY_BACKOFF_SECONDS` | `0.25` | Initial exponential backoff, jittered between half and all of it; a single wait is capped at 60 seconds |
-| `NCI_SI_EVS_MAX_RESPONSE_BYTES` | `10485760` | Maximum accepted EVS response, up to 1 GiB |
+| `NCI_SI_EVS_MAX_RESPONSE_BYTES` | `10485760` | Maximum accepted EVS REST or FHIR response, up to 1 GiB |
 | `NCI_SI_INDEX_BATCH_SIZE` | `100` | Codes per EVS indexing request |
 | `NCI_SI_LOG_LEVEL` | `INFO` | Stderr diagnostic level; per-call audit records remain enabled at every level |
 
@@ -517,6 +517,7 @@ unknown, its record gives `omitted: 0` and `exact: false`.
 - `get_concept`: fetch a caller-pinned EVS concept with required `terminology`, `release` and `code`. Optional `include` selects synonyms, definitions, properties or semanticType; status is passed through from EVS.
 - `resolve_retired_code`: fetch a required `terminology`, `release` and `code`, returning upstream `active` and optional `status`, with `replacements` always present. Active concepts return an empty list without a history request. Retired concepts use the pinned single-code history endpoint; each named replacement carries its code, name, terminology and provenance. A history 404 is an upstream error, not an empty result.
 - `get_concept_subsets`: read the required `terminology`, `release` and `code`, returning its `Concept_In_Subset` associations as subset code, terminology, name and provenance, in platform order.
+- `expand_value_set`: expand an NCIt subset with required `terminology`, `release` and exactly one of `valueSet` or `code`. `count` defaults to 200 and clamps to 1000; `offset` defaults to 0. `activeOnly` defaults to false; when true, inactive members are removed before paging and `total` counts those kept. Members retain platform order and FHIR provenance, with `inactive` only when true. Pages, including clamped and empty pages, are not truncation. EVS's unpinned expansion must report exactly the requested release or the call fails with `release_mismatch`; historical expansion is not guaranteed. Other terminologies return `capability_unavailable` without a request.
 - `get_concept_mappings`: read the required `terminology`, `release` and `code`, returning its maps in platform order. Optional `targetTerminology` matches the platform label exactly, including case. Record values are unchanged; optional target version and term type are omitted when absent, null or empty. Both tools use one pinned concept read, carry provenance on empty results and fail on malformed content.
 - `list_relationships`: list the pinned release’s roles and associations with code, terminology, name, kind, polarity and provenance. Reads each catalogue once per call; no cross-call cache. Missing configured exclusion codes make this tool and `get_concept_neighborhood` fail with `internal_error`, naming the absent codes in `details.missingCodes`. No network access is needed at startup.
 - `get_concepts`: fetch a caller-pinned batch with required `terminology`, `release` and `codes`. Returns `concepts` and `missing` in input order, preserving duplicate occurrences. Optional `include` works as in `get_concept`. Empty input makes no request. At most 650 supplied codes and a 7000-byte encoded request target are allowed; larger inputs are `invalid_request`. An oversized response is `bound_exceeded` (`NCI_SI_EVS_MAX_RESPONSE_BYTES`), never partial results.
@@ -537,7 +538,7 @@ with no matches still return empty successes; missing current releases retain th
 `release_not_available` behavior.
 
 Each tool description, as sent to MCP clients, states the contract in full. The former
-`ncit_*` tools and `cadsr_status` are removed; use the eleven tools above. The caDSR profile
+`ncit_*` tools and `cadsr_status` are removed; use the twelve tools above. The caDSR profile
 currently exposes no tools. CLI diagnostics retain `search`, `lookup`, `traverse` and
 `release-info`, including CLI-only options such as `--live-only` and `--include-raw`.
 The release report's `selected_release` field names the configured channel's release.

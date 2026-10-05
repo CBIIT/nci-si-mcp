@@ -97,6 +97,7 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 | `upstream.py` | Parses an upstream response body as JSON content, and classifies a failure that arrived as a success (an HTML page, a webMethods `apiResponse.type` `E` envelope, a FHIR `OperationOutcome` error, invalid JSON) as `upstream_unavailable` before any caller sees it. | `errors.py` |
 | `http_client.py` | The one HTTP client for upstream platforms: sends `Accept: application/json`, the call's correlation identifier and the platform's credentials (never to another origin: a redirect elsewhere is refused); retries 5xx, 429 (after its `Retry-After`) and connection failures with jittered backoff, counting every attempt; bounds the response size; classifies the response (through `upstream.py`) before returning it; hands one record per attempt to a request-log hook (a hook that raises is logged by type and ignored). | Python `urllib`, `upstream.py`, `errors.py` |
 | `evs.py` | Calls EVS REST endpoints through the HTTP client, classifies EVS-specific failures (missing concept, unknown release, unusable content and release mismatch) while shared HTTP failures propagate unchanged, reads the terminology listing (optionally one channel's `latest` row), and normalizes EVS payloads. | `http_client.py`, shared models, NCI EVS API |
+| `fhir.py` | Reads and verifies the unpinned NCIt value-set expansion, projects members and applies inactive filtering and local offset paging. | `http_client.py`, release, shared models |
 | `release.py` | The release model. `resolve_evs_release` asks EVS for the one row that is latest and tagged with the channel and returns the `ReleaseContext` that one call threads through its requests; zero or several rows are `release_not_available`, with ambiguous versions in `found`. Only terminology, channel, version and date are serialized; the pinned path stays internal. Nothing is kept between calls. `registry_state` builds `published`, optional `identifier`, `generatedAt` and `sourceDistribution` from upstream metadata. Without a registry release, the export's `Last-Modified` supplies the date. Invalid metadata raises `RegistryMetadataError`, mapped to `upstream_unavailable`. | `evs.py`, `errors.py` |
 | `index.py` | Migrates and transactionally maintains the release manifest, normalized concepts, FTS search text, vectors, and vector LSH buckets; performs BM25/vector/hybrid search. | SQLite FTS5, retrieval utilities, embedding provider, `validation.py`, concept normalization in `evs.py` |
 | `retrieval.py` | Implements tokenization, the dot product used as cosine similarity for unit vectors, and min-max normalization. | Python standard library |
@@ -335,7 +336,7 @@ MCP resources:
 - `nci-si://release/ncit/{version}`
 - `nci-si://index/ncit/{version}/manifest`
 
-The `evs` and `unified` profiles expose the eleven EVS tools; `cadsr` currently exposes no tools.
+The `evs` and `unified` profiles expose the twelve EVS tools; `cadsr` currently exposes no tools.
 Each tool has group metadata and read-only, idempotent,
 non-destructive, open-world annotations. Resources are available in every profile.
 
@@ -418,6 +419,28 @@ repeated C202904 with minimal detail, returned HTTP 200 at encoded request-targe
 (7.2%) below the largest successful probe. The byte check uses the actual HTTP URL formatter,
 including the configured base path, pinned release, escaped codes and include fields. The count
 applies before deduplication; either excess is `invalid_request`, without truncation or splitting.
+
+### FHIR value-set expansion
+
+`expand_value_set` accepts exactly one of `valueSet` or `code`, with required terminology
+and release. EVS enumerates NCIt subsets only; other terminologies return
+`capability_unavailable` after argument validation and without a request. The FHIR client uses
+`NCI_SI_EVS_FHIR_BASE_URL` and shares REST's timeout, retry, licence-key and
+`NCI_SI_EVS_MAX_RESPONSE_BYTES` settings through `HttpClient`.
+
+The recorded platform rejects `system-version`, and its subset enumeration uses latest monthly.
+Under A3.2 the client requests the unpinned expansion directly, verifies its identity and exact
+`ValueSet.version` before projecting members, and returns `release_mismatch` on a difference.
+No version normalization, pinned probe, cross-call cache or historical expansion claim is made.
+Verified results advertise the pinned-content cache hint; mismatches are private with zero TTL.
+
+The complete flat expansion is checked against its reported total before inactive members are
+filtered and offset/count applied locally. Nested, incomplete or malformed answers fail closed.
+Count defaults to 200 and clamps to 1000; offset defaults to 0 and activeOnly to false. Paging,
+including clamped paging, is not truncation; offset at or beyond total returns an empty page.
+Every member carries source-release provenance with the actual FHIR url/version; copyright text
+passes through only when supplied. Inactive appears only when true. Oversized responses fail
+through the shared byte-cap error, never as partial expansion data.
 
 ### Concept subsets and mappings
 

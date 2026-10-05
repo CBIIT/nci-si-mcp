@@ -8,6 +8,7 @@ from typing import Any, NoReturn, get_args
 from urllib.parse import urlsplit
 
 from . import cursor as cursors
+from . import fhir
 from .bounds import (
     HARD_MAX_BATCH_CODES,
     HARD_MAX_DEPTH,
@@ -51,6 +52,7 @@ from .validation import (
     RetiredSelection,
     bounded,
     validate_choice,
+    validate_expansion_options,
     validate_identifier,
     validate_terminology,
 )
@@ -167,6 +169,43 @@ def get_concept_subsets(
                 }
             )
     return {"subsets": subsets, "provenance": provenance}
+
+
+def expand_value_set(
+    context: Context,
+    terminology: str,
+    release: str,
+    valueSet: str | None = None,  # noqa: N803 - public name specified in tools.yaml.
+    code: str | None = None,
+    count: int = 200,
+    offset: int = 0,
+    activeOnly: bool = False,  # noqa: N803
+) -> dict[str, Any]:
+    """Expand an NCIt subset through EVS FHIR with required release verification.
+
+    Supply exactly one of valueSet or code. count defaults to 200 and is capped
+    at 1000; count below 1 or offset below 0 is invalid_request. offset defaults
+    to 0. activeOnly defaults to false; when true, filter inactive members before
+    paging and count only those kept in total. Inactive is present only when true.
+    Pages, including clamped pages, are not truncation; past-end pages are empty.
+    EVS lacks pinned expansion, so the unpinned answer's version must exactly match
+    release before any content is returned. Historical expansion is not promised.
+    Each member has FHIR provenance; empty results retain it. Non-NCIt expansion
+    is capability_unavailable. HTTP response limits apply to the complete expansion.
+    """
+    selected = _pin(context, terminology, release)
+    supplied = [value for value in (valueSet, code) if value is not None]
+    if len(supplied) != 1:
+        raise InputValidationError("Supply exactly one of valueSet or code", "valueSet")
+    identifier = _code(supplied[0], terminology)
+    count = validate_expansion_options(count, offset, activeOnly)
+    if terminology != "ncit":
+        raise PlatformError(
+            "capability_unavailable",
+            "EVS enumerates FHIR value sets for NCIt subsets only. Request an NCIt subset.",
+            capability="expand_value_set",
+        )
+    return fhir.expand(context.fhir, selected, identifier, count, offset, activeOnly)
 
 
 def get_concept_mappings(

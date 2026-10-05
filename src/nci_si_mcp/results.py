@@ -142,6 +142,21 @@ class SubsetsResult(TypedDict):
     provenance: Provenance
 
 
+class ValueSetMember(TypedDict):
+    code: str
+    terminology: str
+    name: str
+    inactive: NotRequired[Literal[True]]
+    provenance: Provenance
+
+
+class ValueSetExpansion(TypedDict):
+    members: list[ValueSetMember]
+    total: int
+    truncation: Truncation
+    provenance: Provenance
+
+
 class Mapping(TypedDict):
     targetCode: str
     targetTerminology: str

@@ -29,6 +29,7 @@ from .results import (
     SubsetsResult,
     TerminologiesResult,
     TraversalResult,
+    ValueSetExpansion,
 )
 
 
@@ -93,6 +94,22 @@ def _input_field(parameter: Parameter) -> tuple:
 
 
 SPECS = (
+    ToolSpec(
+        content.expand_value_set,
+        "evs",
+        ValueSetExpansion | ErrorResult,
+        False,
+        name="expand_value_set",
+        audit={
+            "terminology": "plain",
+            "release": "plain",
+            "valueSet": "plain",
+            "code": "plain",
+            "count": "plain",
+            "offset": "plain",
+            "activeOnly": "plain",
+        },
+    ),
     ToolSpec(
         content.get_concept_subsets,
         "evs",
