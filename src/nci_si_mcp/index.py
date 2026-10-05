@@ -27,7 +27,7 @@ from .errors import (
 from .evs import normalize_concept
 from .models import IndexManifest, NcitConcept, SearchHit, Truncation, utc_now_iso
 from .retrieval import cosine_similarity, min_max_normalize, tokenize
-from .validation import validate_search
+from .validation import MAX_INDEX_SEARCH_LIMIT, validate_search
 
 logger = logging.getLogger(__name__)
 
@@ -621,7 +621,7 @@ class LocalIndex:
         truncation record says how many scored concepts the limit left out.
         """
 
-        query, limit, mode = validate_search(query, limit, mode, maximum=1000)
+        query, limit, mode = validate_search(query, limit, mode, maximum=MAX_INDEX_SEARCH_LIMIT)
         with self._connect() as conn:
             # One read transaction, so a concurrent re-index cannot change the
             # release between reading the manifest and reading the concepts.
