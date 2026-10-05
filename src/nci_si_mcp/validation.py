@@ -35,6 +35,10 @@ NeighborhoodKind = Literal[
 TruncationBound = Literal[
     "results", "depth", "nodes", "edges", "kind_budget", "requests", "upstream_cap"
 ]
+ProvenanceSource = Literal[
+    "evs_rest", "evs_fhir", "evs_index", "cadsr_rest", "cadsr_export", "ssis_facade", "ssis_sparql"
+]
+ServedBy = Literal["live", "cache", "index", "fixture"]
 
 PROFILES = frozenset(get_args(Profile))
 UPSTREAM_MODES = frozenset(get_args(UpstreamMode))
