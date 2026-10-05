@@ -174,6 +174,24 @@ The values are the specification's M2.2 and M2.3 (`spec/conventions.yaml`): rele
 
 A tool result carries both in its `_meta` (M2.5). A cursor encodes the release it was issued against; presenting it after that release is superseded returns `cursor_expired` (M2.4).
 
+Implemented for current producers in `caching.py` and the MCP adapter: pinned content and
+the list/discovery surface use 86,400,000/public, resolution/status uses 0/public, and tool
+errors use 0/private. List, discovery and resource-read hints are protocol result fields;
+tool hints are protocol `_meta`, preserving other metadata. Moving release-report aliases,
+the active index alias and absent-index reports use the resolution policy. CLI content is
+unchanged. Protocol tests exercise the current resource URIs; the spec URI surface remains #30.
+Cache classes are required at tool/resource registration; resource producers explicitly
+select status policy when needed. Response middleware reads a per-call declaration, not
+tool names, URI tables or JSON content. Tests require every registered producer to declare
+its class and check renamed producers, concurrent calls and undeclared-response rejection.
+
+Per the #14 review, cursors ship with their first producers in #23 (hierarchy) and #27
+(search): pin the release, reject supersession with `cursor_expired` and both release
+details, bind arguments as applied including limit/default equivalence, and test malformed
+cursors and continuation to the end. No unused codec is introduced here. Unpinned caDSR
+content and caller-computed policies ship with #33/#34; mixed-state and workflow policies
+ship with #38/#39. Those issue bodies record the requirements; #14 covers cache policy only.
+
 ### 3.7 Schema generation (`platform/schema.py`)
 
 `outputSchema` is generated from the result dataclasses for every tool, success and error shapes alike, and checked by a unit test that renders `tools/list` for each profile and validates every schema. A second test asserts the rendered surface is byte-identical across terminology, release and upstream mode (static surface, M1.2). A third asserts no description contains placeholder text or an operator a tool test shows unsupported (A2.3, A2.4). An input schema states no `maximum` for a bounded argument: a value above it is applied as the maximum (the tools' `bounds` in `spec/tools.yaml`), and the argument's description states its default and maximum.
