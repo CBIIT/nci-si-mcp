@@ -21,9 +21,10 @@ from nci_si_mcp.bounds import (
 )
 from nci_si_mcp.errors import correlated
 from nci_si_mcp.evs import EVSNotFoundError
+from nci_si_mcp.registry import invoke
+from test_handlers import HandlerTestCase
 from test_http_client import Reply, ServerTestCase
-from test_service import ServiceTestCase
-from test_traversal import HubEVS, child, codes, descendant, related, walk
+from test_traversal import HubEVS, child, codes, complete_graph, descendant, related, walk
 
 
 class BudgetTest(unittest.TestCase):
@@ -145,7 +146,7 @@ class TraversalBudgetTest(unittest.TestCase):
                 )
             ]
         )
-        result = walk(client, max_depth=1, budget_per_kind=1)
+        result = walk(complete_graph(client), max_depth=1, budget_per_kind=1)
         self.assertEqual(result.truncation.omitted, 1)
         self.assertEqual(result.truncation.to_dict()["perKind"]["role"]["omitted"], 1)
 
@@ -246,7 +247,9 @@ class TraversalBudgetTest(unittest.TestCase):
                 )
             ]
         )
-        result = walk(client, max_depth=1, budget_per_kind=2, relationship_names=["keep"])
+        result = walk(
+            complete_graph(client), max_depth=1, budget_per_kind=2, relationship_names=["keep"]
+        )
         self.assertEqual(codes(result), ["C1", "C2", "C3"])
         self.assertEqual(len(result.edges), 3)
         self.assertEqual(result.truncation.reached, 2)
@@ -259,7 +262,7 @@ class TraversalBudgetTest(unittest.TestCase):
                 concept("C2", associations=[related("assoc", "C5")]),
             ]
         )
-        result = walk(client, start_codes=["C1", "C2"], max_depth=1, max_nodes=4)
+        result = walk(complete_graph(client), start_codes=["C1", "C2"], max_depth=1, max_nodes=4)
         self.assertEqual(set(codes(result)), {"C1", "C2", "C3", "C5"})
         kinds = result.truncation.to_dict()["perKind"]
         self.assertTrue(kinds["role"]["occurred"])
@@ -275,7 +278,7 @@ class TraversalBudgetTest(unittest.TestCase):
                 )
             ]
         )
-        result = walk(client, max_depth=1, budget_per_kind=1)
+        result = walk(complete_graph(client), max_depth=1, budget_per_kind=1)
         self.assertEqual(set(codes(result)), {"C1", "C2", "C3"})
         self.assertEqual(len(result.edges), 4)
         self.assertEqual(result.truncation.to_dict(), {"occurred": False})
@@ -290,7 +293,7 @@ class TraversalBudgetTest(unittest.TestCase):
                 )
             ]
         )
-        result = walk(client, max_depth=1, budget_per_kind=2)
+        result = walk(complete_graph(client), max_depth=1, budget_per_kind=2)
         self.assertEqual(set(codes(result)), {"C1", "C2", "C3", "C9"})
         record = result.truncation.to_dict()["perKind"]["role"]
         self.assertEqual(
@@ -299,19 +302,19 @@ class TraversalBudgetTest(unittest.TestCase):
         self.assertEqual(record["omitted"], 2)
 
 
-class ServiceBudgetTest(ServiceTestCase):
+class ServiceBudgetTest(HandlerTestCase):
     def test_kind_budget_validation_happens_before_network_access(self):
         for value in (0, -1, True, 1.5, "3"):
             with self.subTest(value=value):
-                result = self.service.traverse(["C3262"], budget_per_kind=value)
+                result = invoke(self.context, "traverse", ["C3262"], budget_per_kind=value)
                 self.assertEqual(result["error"]["code"], "invalid_request")
                 self.assertEqual(result["error"]["details"]["parameter"], "budget_per_kind")
                 self.assertEqual(self.evs.calls, [])
 
     def test_release_discovery_spends_the_same_budget_as_the_start_concepts(self):
-        self.service.evs = BudgetEVS([concept("C1")])
-        with patch("nci_si_mcp.service.Budget", return_value=Budget(requests=1)):
-            result = self.service.traverse(["C1"])
+        self.context.evs = BudgetEVS([concept("C1")])
+        with patch("nci_si_mcp.handlers.Budget", return_value=Budget(requests=1)):
+            result = invoke(self.context, "traverse", ["C1"])
         self.assertEqual(result["error"]["code"], "bound_exceeded")
         self.assertIn("fewer start codes", result["error"]["message"])
         self.assertEqual(

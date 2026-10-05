@@ -248,7 +248,7 @@ def test_the_rendered_report_states_its_modes_counts_and_what_proves_nothing_yet
         }
     )
     fixture["tools"]["resolve_release"] |= {
-        "implemented_as": "ncit_release_info",
+        "implemented_as": "resolve_release",
         "gates_only": True,
         "counts": {"passed": 4},
     }
@@ -263,7 +263,7 @@ def test_the_rendered_report_states_its_modes_counts_and_what_proves_nothing_yet
 
     assert "\nRun modes: fixture only.\n" in text
     assert (
-        "| `resolve_release` | evs | FAIL (gates only) | 4 / 0 / 0 / 0 | ncit_release_info |  |"
+        "| `resolve_release` | evs | FAIL (gates only) | 4 / 0 / 0 / 0 | resolve_release |  |"
         in text
     )
     assert "| `get_form` | cadsr | INCOMPLETE | 3 / 0 / 0 / 5 | — |  |" in text

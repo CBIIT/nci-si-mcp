@@ -1,7 +1,7 @@
 """A run of the suite, end to end, from a copy of the suite's conftest and the furnished server.
 
 These check what only a whole run shows: the missing-fixture guard, at startup too, a
-scenario served with its settings to a server process of its own, the tool map, and the
+scenario served with its settings to a server process of its own, direct tool calls, and the
 per-tool report.
 """
 
@@ -16,9 +16,7 @@ from conftest import STAND_IN, stand_in
 pytest_plugins = ["pytester"]
 
 SUITE_CONFTEST = Path(__file__).parent.parent / "tests" / "conftest.py"
-# The furnished server's `ncit_release_info` stands in for `resolve_release`.
-TOOLMAP = "resolve_release:\n  tool: ncit_release_info\n"
-VERSION_REQUEST = {"surface": "evs", "method": "GET", "path": "/api/v1/version"}
+DISCOVERY_REQUEST = {"surface": "evs", "method": "GET", "path": "/api/v1/metadata/terminologies"}
 
 
 def fixture(directory, name, response, **document):
@@ -27,17 +25,16 @@ def fixture(directory, name, response, **document):
     document = {
         "kind": "crafted",
         "requirement": "self-test",
-        "request": VERSION_REQUEST,
+        "request": DISCOVERY_REQUEST,
     } | document
     path.write_text(json.dumps(document | {"response": response}), encoding="utf-8")
 
 
 @pytest.fixture
 def suite(pytester, monkeypatch):
-    """A copy of the suite's conftest, with a tool map and no fixtures yet."""
+    """A copy of the suite's conftest, with no fixtures yet."""
 
-    fixtures = pytester.mkdir("fixtures")
-    (fixtures / "baseline_toolmap.yaml").write_text(TOOLMAP, encoding="utf-8")
+    pytester.mkdir("fixtures")
     tests = pytester.mkdir("tests")
     stand_in(pytester)
     (tests / "conftest.py").write_text(SUITE_CONFTEST.read_text(encoding="utf-8"), encoding="utf-8")
@@ -54,10 +51,10 @@ def run(suite, test, *options):
 PROBE = """
 import pytest
 
-@pytest.mark.tool("resolve_release")
+@pytest.mark.tool("list_terminologies")
 {marker}
 def test_probe(tools):
-    assert tools.call("resolve_release").tool == "ncit_release_info"
+    assert tools.call("list_terminologies").tool == "list_terminologies"
 """
 
 
@@ -66,17 +63,20 @@ def test_requests_without_a_fixture_fail_the_test_and_are_listed(suite):
 
     result.assert_outcomes(passed=1, errors=1)
     result.stdout.fnmatch_lines(
-        ["E * upstream requests without a fixture:", "E * GET evs /api/v1/version {}"]
+        [
+            "E * upstream requests without a fixture:",
+            "E * GET evs /api/v1/metadata/terminologies {}",
+        ]
     )
     report = json.loads((suite.path / "report.json").read_text(encoding="utf-8"))
-    assert report["tools"]["resolve_release"]["outcome"] == "NO FIXTURE"
+    assert report["tools"]["list_terminologies"]["outcome"] == "NO FIXTURE"
 
 
-# A server that asks EVS for its version before it serves.
+# A server that asks EVS for its terminology listing before it serves.
 EAGER_SERVER = """
 import os, runpy, sys, urllib.error, urllib.request
 try:
-    urllib.request.urlopen(os.environ["NCI_SI_EVS_BASE_URL"] + "/api/v1/version")
+    urllib.request.urlopen(os.environ["NCI_SI_EVS_BASE_URL"] + "/api/v1/metadata/terminologies")
 except urllib.error.HTTPError:
     pass
 sys.argv = ["nci-si-mcp", "serve"]
@@ -96,9 +96,9 @@ def test_requests_without_a_fixture_while_the_server_starts_fail_every_test_usin
     test = (
         PROBE.format(marker="@pytest.mark.unmatched_upstream")
         + """
-@pytest.mark.tool("resolve_release")
+@pytest.mark.tool("list_terminologies")
 def test_again(tools):
-    tools.call("resolve_release")
+    tools.call("list_terminologies")
 """
     )
     result = run(suite, test, "--report=report.json")
@@ -107,20 +107,25 @@ def test_again(tools):
     result.stdout.fnmatch_lines(
         [
             "E * upstream requests without a fixture while the server started:",
-            "E * GET evs /api/v1/version {}",
+            "E * GET evs /api/v1/metadata/terminologies {}",
         ]
     )
     report = json.loads((suite.path / "report.json").read_text(encoding="utf-8"))
-    assert report["tools"]["resolve_release"]["outcome"] == "NO FIXTURE"
+    assert report["tools"]["list_terminologies"]["outcome"] == "NO FIXTURE"
     assert {test["outcome"] for test in report["tests"].values()} == {"no_fixture"}
     assert all(
-        test["unmatched"] == ["GET evs /api/v1/version {}"] for test in report["tests"].values()
+        test["unmatched"] == ["GET evs /api/v1/metadata/terminologies {}"]
+        for test in report["tests"].values()
     )
 
 
 def test_a_test_sees_none_of_the_requests_its_server_made_while_it_started(suite, monkeypatch):
     eager(suite, monkeypatch)
-    fixture(suite.path / "fixtures", "scenarios/probe/up/version.json", {"status": 200, "body": {}})
+    fixture(
+        suite.path / "fixtures",
+        "scenarios/probe/up/terminologies.json",
+        {"status": 200, "body": []},
+    )
     test = """
 import pytest
 
@@ -160,7 +165,7 @@ def test_a_live_run_reports_its_mode_and_a_tool_with_only_fixture_tests_as_not_r
 
     result.assert_outcomes(skipped=1)
     report = json.loads((suite.path / "report.json").read_text(encoding="utf-8"))
-    assert (report["mode"], report["tools"]["resolve_release"]["outcome"]) == ("live", "NOT RUN")
+    assert (report["mode"], report["tools"]["list_terminologies"]["outcome"]) == ("live", "NOT RUN")
 
 
 def test_a_test_marked_unmatched_upstream_may_leave_them(suite):
@@ -171,29 +176,32 @@ def test_a_test_marked_unmatched_upstream_may_leave_them(suite):
 
 def test_a_scenario_is_served_to_a_server_of_its_own_and_ends_with_the_test(suite):
     fixtures = suite.path / "fixtures"
-    fixture(fixtures, "recorded/version.json", {"status": 200, "body": {"version": "ordinary"}})
+    fixture(fixtures, "recorded/terminologies.json", {"status": 200, "body": []})
     fixture(
         fixtures,
-        "scenarios/probe/other/version.json",
-        {"status": 200, "body": {"version": "scenario"}},
+        "scenarios/probe/other/terminologies.json",
+        {"status": 200, "body": []},
     )
     test = """
 import pytest
 
-def version(upstream):
-    return [entry["fixture"] for entry in upstream.log() if entry["path"] == "/api/v1/version"]
+def recordings(upstream):
+    return [
+        entry["fixture"] for entry in upstream.log()
+        if entry["path"] == "/api/v1/metadata/terminologies"
+    ]
 
 @pytest.mark.unmatched_upstream
 @pytest.mark.scenario("probe/other")
 def test_during(tools, server, upstream):
     assert tools is not server
-    tools.call("resolve_release")
-    assert version(upstream) == ["scenarios/probe/other/version.json"]
+    tools.call("list_terminologies")
+    assert recordings(upstream) == ["scenarios/probe/other/terminologies.json"]
 
 @pytest.mark.unmatched_upstream
 def test_after(tools, upstream):
-    tools.call("resolve_release")
-    assert version(upstream) == ["recorded/version.json"]
+    tools.call("list_terminologies")
+    assert recordings(upstream) == ["recorded/terminologies.json"]
 """
     result = run(suite, test)
 
@@ -202,18 +210,18 @@ def test_after(tools, upstream):
 
 def test_a_scenario_starts_its_server_with_its_settings(suite):
     scenario = suite.path / "fixtures" / "scenarios" / "probe" / "single-attempt"
-    fixture(scenario, "version.json", {"status": 503, "body": {"message": "down"}})
+    fixture(scenario, "terminologies.json", {"status": 503, "body": {"message": "down"}})
     (scenario / "settings.json").write_text('{"NCI_SI_EVS_MAX_ATTEMPTS": "1"}', encoding="utf-8")
     test = """
 import pytest
 
 def attempts(upstream):
-    return [entry for entry in upstream.log() if entry["path"] == "/api/v1/version"]
+    return [entry for entry in upstream.log() if entry["path"] == "/api/v1/metadata/terminologies"]
 
 @pytest.mark.unmatched_upstream
 @pytest.mark.scenario("probe/single-attempt")
 def test_once(tools, upstream):
-    tools.call("resolve_release")
+    tools.call("list_terminologies")
     assert len(attempts(upstream)) == 1
 """
     result = run(suite, test)
@@ -222,14 +230,14 @@ def test_once(tools, upstream):
 
 
 def test_a_failed_gate_fails_every_tool_whose_own_tests_pass(suite):
-    fixture(suite.path / "fixtures", "recorded/version.json", {"status": 200, "body": {}})
+    fixture(suite.path / "fixtures", "recorded/terminologies.json", {"status": 200, "body": []})
     test = """
 import pytest
 
 @pytest.mark.unmatched_upstream
-@pytest.mark.tool("resolve_release")
+@pytest.mark.tool("list_terminologies")
 def test_tool(tools):
-    tools.call("resolve_release")
+    tools.call("list_terminologies")
 
 @pytest.mark.gate
 def test_gate():
@@ -241,8 +249,8 @@ def test_gate():
     report = json.loads((suite.path / "report.json").read_text(encoding="utf-8"))
     assert report["failed_gates"] == ["tests/test_probe.py::test_gate"]
     assert (
-        report["tools"]["resolve_release"]["outcome"],
-        report["tools"]["resolve_release"]["gates_only"],
+        report["tools"]["list_terminologies"]["outcome"],
+        report["tools"]["list_terminologies"]["gates_only"],
     ) == ("FAIL", True)
 
 
@@ -251,64 +259,75 @@ def test_the_report_gives_each_required_tool_its_outcome(suite):
 import pytest
 
 @pytest.mark.unmatched_upstream
-@pytest.mark.tool("resolve_release")
-def test_mapped(tools):
-    tools.call("resolve_release")
+@pytest.mark.tool("list_terminologies")
+def test_direct(tools):
+    tools.call("list_terminologies")
 
-@pytest.mark.tool("get_concept")
+@pytest.mark.tool("get_form")
 def test_absent(tools):
-    tools.call("get_concept", {"code": "C3262"})
+    tools.call("get_form", {"publicId": "123"})
 """
     result = run(suite, test, "--report=report.json")
 
     result.assert_outcomes(passed=1, skipped=1)
     report = json.loads((suite.path / "report.json").read_text(encoding="utf-8"))
     tools = report["tools"]
-    assert (tools["resolve_release"]["outcome"], tools["resolve_release"]["implemented_as"]) == (
+    assert (
+        tools["list_terminologies"]["outcome"],
+        tools["list_terminologies"]["implemented_as"],
+    ) == (
         "PASS",
-        "ncit_release_info",
+        "list_terminologies",
     )
-    assert tools["get_concept"]["outcome"] == "NOT IMPLEMENTED"
+    assert tools["get_form"]["outcome"] == "NOT IMPLEMENTED"
     assert tools["list_contexts"]["outcome"] == "NO TESTS"
     assert {nodeid: test["outcome"] for nodeid, test in report["tests"].items()} == {
-        "tests/test_probe.py::test_mapped": "passed",
+        "tests/test_probe.py::test_direct": "passed",
         "tests/test_probe.py::test_absent": "not_implemented",
     }
 
 
-def test_the_report_names_the_stand_in_of_each_mapped_tool_with_the_real_map(suite):
-    real = Path(__file__).parent.parent / "fixtures" / "baseline_toolmap.yaml"
-    (suite.path / "fixtures" / "baseline_toolmap.yaml").write_text(
-        real.read_text(encoding="utf-8"), encoding="utf-8"
-    )
+def test_the_report_names_direct_tools_including_unsupported_capabilities(suite):
     test = """
 import pytest
 
 @pytest.mark.unmatched_upstream
-@pytest.mark.tool("resolve_release")
-def test_monthly(tools):
-    assert tools.call("resolve_release", {"terminology": "ncit"}).tool == "ncit_release_info"
+@pytest.mark.tool("get_concept_hierarchy")
+def test_parent(tools):
+    result = tools.call("get_concept_hierarchy", {
+        "terminology": "ncit", "release": "26.09d", "code": "C3262",
+        "direction": "parent", "depth": 1
+    })
+    assert result.tool == "get_concept_hierarchy"
 
-@pytest.mark.tool("resolve_release")
-def test_weekly(tools):
-    tools.call("resolve_release", {"terminology": "ncit", "channel": "weekly"})
+@pytest.mark.tool("get_concept_hierarchy")
+def test_paths_to_root(tools):
+    result = tools.call("get_concept_hierarchy", {
+        "terminology": "ncit", "release": "26.09d", "code": "C3262", "direction": "pathsToRoot"
+    })
+    assert result.is_error
 """
     result = run(suite, test, "--report=report.json")
 
-    result.assert_outcomes(passed=1, skipped=1)
+    result.assert_outcomes(passed=2)
     tools = json.loads((suite.path / "report.json").read_text(encoding="utf-8"))["tools"]
-    assert (tools["resolve_release"]["outcome"], tools["resolve_release"]["counts"]) == (
-        "INCOMPLETE",
-        {"passed": 1, "not_implemented": 1},
+    assert (
+        tools["get_concept_hierarchy"]["outcome"],
+        tools["get_concept_hierarchy"]["counts"],
+    ) == (
+        "PASS",
+        {"passed": 2},
     )
     implemented = {
         name: row["implemented_as"] for name, row in tools.items() if row["implemented_as"]
     }
     assert implemented == {
-        "resolve_release": "ncit_release_info",
-        "get_concept": "ncit_lookup",
-        "get_concept_hierarchy": "ncit_traverse",
-        "get_concept_neighborhood": "ncit_traverse",
+        "resolve_release": "resolve_release",
+        "list_terminologies": "list_terminologies",
+        "get_concept": "get_concept",
+        "search_concepts": "search_concepts",
+        "get_concept_hierarchy": "get_concept_hierarchy",
+        "get_concept_neighborhood": "get_concept_neighborhood",
     }
 
 
@@ -326,7 +345,7 @@ PREPARED_PROBE = """
 import pytest
 
 @pytest.mark.prepared
-@pytest.mark.tool("resolve_release")
+@pytest.mark.tool("list_terminologies")
 def test_shared(tools):
     codes = (tools.process.data / "codes.txt").read_text(encoding="utf-8")
     assert codes.split() == ["C4817", "C3262"]
@@ -335,13 +354,13 @@ def test_shared(tools):
 
 @pytest.mark.prepared
 @pytest.mark.own_server
-@pytest.mark.tool("resolve_release")
+@pytest.mark.tool("list_terminologies")
 def test_own(tools):
     assert (tools.process.data / "codes.txt").exists()
     assert not (tools.process.data / "written.txt").exists()
 
 @pytest.mark.unprepared
-@pytest.mark.tool("resolve_release")
+@pytest.mark.tool("list_terminologies")
 def test_unprepared(tools):
     assert not (tools.process.data / "codes.txt").exists()
 """
@@ -389,7 +408,8 @@ def test_without_a_prepare_command_a_test_that_needs_it_is_not_run(suite):
         ),
         (
             "import os, urllib.request\n"
-            "try: urllib.request.urlopen(os.environ['NCI_SI_EVS_BASE_URL'] + '/api/v1/version')\n"
+            "url = os.environ['NCI_SI_EVS_BASE_URL'] + '/api/v1/metadata/terminologies'\n"
+            "try: urllib.request.urlopen(url)\n"
             "except OSError: pass\n",
             "*upstream requests without a fixture while preparing*",
         ),

@@ -85,7 +85,9 @@ def _recorded_section(body, section):
     """A section as the concept record defines it, from EVS's recording of the concept."""
 
     if section == "semanticType":
-        return [entry["value"] for entry in body["properties"] if entry["code"] == SEMANTIC_TYPE]
+        return [
+            entry["value"] for entry in body["properties"] if entry.get("code") == SEMANTIC_TYPE
+        ]
     return body[section]
 
 

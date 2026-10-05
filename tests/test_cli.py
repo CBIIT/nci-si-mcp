@@ -14,10 +14,11 @@ import nci_si_mcp
 from fakes import FakeEVS, concept
 from nci_si_mcp.cli import build_parser, main
 from nci_si_mcp.config import Settings
+from nci_si_mcp.context import Context
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
-from nci_si_mcp.evs import EVSUnavailableError
+from nci_si_mcp.http_client import UpstreamUnavailableError
 from nci_si_mcp.index import LocalIndex
-from nci_si_mcp.service import NCISIService
+from test_traversal import complete_graph
 
 NEOPLASM = concept(
     "C3262",
@@ -79,19 +80,19 @@ class MainTest(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         self.path = Path(directory.name)
 
-    def fake_service(self):
-        return NCISIService(
+    def fake_context(self):
+        return Context(
             Settings(data_dir=self.path),
-            evs=FakeEVS([NEOPLASM, KINASE]),
+            evs=complete_graph(FakeEVS([NEOPLASM, KINASE])),
             index=LocalIndex(self.path),
             embedding_provider=HashingEmbeddingProvider(),
         )
 
-    def run_cli(self, *argv, service="fake", **environment):
+    def run_cli(self, *argv, context="fake", **environment):
         """Run `main` and return (exit code, parsed stdout, stderr text).
 
-        `service` is "fake" for a real service over FakeEVS, "real" to let the
-        CLI build its own, or an object to hand to the CLI as the service.
+        `context` is "fake" for a real context over FakeEVS, "real" to let the
+        CLI build its own, or an object to hand to the CLI as the context.
         """
 
         stdout, stderr = io.StringIO(), io.StringIO()
@@ -102,10 +103,10 @@ class MainTest(unittest.TestCase):
             redirect_stdout(stdout),
             redirect_stderr(stderr),
         ]
-        if service == "fake":
-            service = self.fake_service()
-        if service != "real":
-            patches.append(patch("nci_si_mcp.cli.NCISIService", return_value=service))
+        if context == "fake":
+            context = self.fake_context()
+        if context != "real":
+            patches.append(patch("nci_si_mcp.cli.Context", return_value=context))
         with ExitStack() as stack:
             for item in patches:
                 stack.enter_context(item)
@@ -129,7 +130,7 @@ class MainTest(unittest.TestCase):
         code, info, _ = self.run_cli("release-info")
         self.assertEqual((code, info["active_index"]["release_version"]), (0, "26.06e"))
         self.assertEqual(
-            info["selected_monthly_release"],
+            info["selected_release"],
             {
                 "terminology": "ncit",
                 "channel": "monthly",
@@ -162,34 +163,35 @@ class MainTest(unittest.TestCase):
         self.assertIn("raw", search["hits"][0]["concept"])
 
         # With EVS down, a lookup falls back to the index unless --live-only forbids it.
-        service = self.fake_service()
-        service.evs.errors = {"get_concept": EVSUnavailableError("down")}
-        code, cached, _ = self.run_cli("lookup", "C3262", "--include-raw", service=service)
+        context = self.fake_context()
+        context.evs.errors = {"get_concept": UpstreamUnavailableError("down")}
+        code, cached, _ = self.run_cli("lookup", "C3262", "--include-raw", context=context)
         self.assertEqual((code, cached["provenance"]["servedBy"]), (0, "index"))
         self.assertIn("raw", cached)
-        code, failed, _ = self.run_cli("lookup", "C3262", "--live-only", service=service)
+        code, failed, _ = self.run_cli("lookup", "C3262", "--live-only", context=context)
         self.assertEqual((code, failed["error"]["code"]), (1, "upstream_unavailable"))
 
     def test_one_command_reports_one_correlation_identifier(self, _):
-        service = self.fake_service()
-        service.evs.errors = {
-            "get_api_version": EVSUnavailableError("down"),
-            "get_terminologies": EVSUnavailableError("down"),
+        context = self.fake_context()
+        context.evs.errors = {
+            "get_api_version": UpstreamUnavailableError("down"),
+            "get_terminologies": UpstreamUnavailableError("down"),
         }
 
-        code, info, _ = self.run_cli("release-info", service=service)
+        code, info, _ = self.run_cli("release-info", context=context)
 
-        nested = [info["evs_api"]["error"], info["selected_monthly_release"]["error"]]
+        nested = [info["evs_api"]["error"], info["selected_release"]["error"]]
         self.assertEqual(code, 0)
         self.assertEqual(len({error["correlationId"] for error in nested}), 1)
 
     def test_kind_budget_limits_nodes_through_the_cli(self, _):
-        service = self.fake_service()
-        service.evs.concepts["C3262"] = dict(service.evs.concepts["C3262"])
-        service.evs.concepts["C3262"]["children"] = [
+        context = self.fake_context()
+        context.evs.concepts["C3262"] = dict(context.evs.concepts["C3262"])
+        context.evs.concepts["C3262"]["children"] = [
             {"code": "C2", "name": "Two"},
             {"code": "C3", "name": "Three"},
         ]
+        complete_graph(context.evs)
         code, result, _ = self.run_cli(
             "traverse",
             "C3262",
@@ -199,7 +201,7 @@ class MainTest(unittest.TestCase):
             "child",
             "--budget-per-kind",
             "1",
-            service=service,
+            context=context,
         )
         self.assertEqual(code, 0)
         self.assertEqual([node["code"] for node in result["nodes"]], ["C3262", "C2"])
@@ -250,7 +252,7 @@ class MainTest(unittest.TestCase):
             ("NCI_SI_EMBEDDING_MODEL", "all-MiniLM-L6-v2"),
         ):
             with self.subTest(variable):
-                code, result, _ = self.run_cli("release-info", service="real", **{variable: value})
+                code, result, _ = self.run_cli("release-info", context="real", **{variable: value})
                 self.assertEqual((code, result["error"]["code"]), (1, "invalid_request"))
                 self.assertIn(variable, result["error"]["message"])
                 self.assertEqual(result["error"]["details"]["parameter"], variable)
@@ -264,7 +266,7 @@ class MainTest(unittest.TestCase):
             with self.subTest(variable), self.assertLogs(level="DEBUG") as logs:
                 logging.getLogger().debug("marker")
                 code, result, stderr = self.run_cli(
-                    "release-info", service="real", NCI_SI_LOG_LEVEL="DEBUG", **{variable: value}
+                    "release-info", context="real", NCI_SI_LOG_LEVEL="DEBUG", **{variable: value}
                 )
 
                 self.assertEqual((code, result["error"]["code"]), (1, "invalid_request"))
@@ -282,7 +284,7 @@ class MainTest(unittest.TestCase):
             "NCI_SI_EVS_LICENSE_KEY": "licence-key-4711",
             "NCI_SI_CADSR_CREDENTIAL": "reviewer:hunter2-secret",
         }
-        for label, service, data_dir, expected in (
+        for label, context, data_dir, expected in (
             ("success", "fake", self.path, 0),
             ("startup failure", "real", occupied, 1),
         ):
@@ -290,7 +292,7 @@ class MainTest(unittest.TestCase):
                 logging.getLogger().debug("marker")
                 code, result, stderr = self.run_cli(
                     "release-info",
-                    service=service,
+                    context=context,
                     NCI_SI_LOG_LEVEL="DEBUG",
                     NCI_SI_DATA_DIR=str(data_dir),
                     **secrets,
@@ -303,7 +305,7 @@ class MainTest(unittest.TestCase):
 
     def test_a_setting_error_that_names_no_variable_has_no_parameter_detail(self, _):
         with patch("nci_si_mcp.cli.Settings.from_env", side_effect=ValueError("odd")):
-            code, result, _ = self.run_cli("release-info", service="real")
+            code, result, _ = self.run_cli("release-info", context="real")
 
         self.assertEqual((code, result["error"]["code"]), (1, "invalid_request"))
         self.assertNotIn("details", result["error"])
@@ -320,14 +322,14 @@ class MainTest(unittest.TestCase):
         }.items():
             with self.subTest(label):
                 code, result, _ = self.run_cli(
-                    "search", "tumor", service="real", NCI_SI_DATA_DIR=str(data_dir)
+                    "search", "tumor", context="real", NCI_SI_DATA_DIR=str(data_dir)
                 )
                 self.assertEqual((code, result["error"]["code"]), (1, "internal_error"))
                 self.assertIn(str(data_dir), result["error"]["message"])
 
     def test_value_error_at_startup_is_reported(self, _):
-        with patch("nci_si_mcp.cli.NCISIService", side_effect=ValueError("bad model name")):
-            code, result, _ = self.run_cli("release-info", service="real")
+        with patch("nci_si_mcp.cli.Context", side_effect=ValueError("bad model name")):
+            code, result, _ = self.run_cli("release-info", context="real")
 
         self.assertEqual((code, result["error"]["code"]), (1, "internal_error"))
 
@@ -338,7 +340,7 @@ class MainTest(unittest.TestCase):
 
         self.assertEqual((code, printed), (0, None))
         server.run.assert_called_once_with()
-        self.assertIsInstance(create.call_args.kwargs["service"], NCISIService)
+        self.assertIsInstance(create.call_args.kwargs["context"], Context)
 
     def test_serve_failures_go_to_stderr(self, _):
         with patch("nci_si_mcp.cli.create_mcp", side_effect=RuntimeError("mcp is missing")):
@@ -376,8 +378,13 @@ class ProcessTest(unittest.TestCase):
 
         self.assertEqual(process.returncode, 1)
         self.assertEqual(json.loads(process.stdout)["error"]["code"], "invalid_request")
-        self.assertIn("lookup_failed error=invalid_request", process.stderr)
-        self.assertIn("WARNING", process.stderr)
+        records = [json.loads(line) for line in process.stderr.splitlines()]
+        self.assertEqual([record["event"] for record in records], ["call_failed", "call_completed"])
+        self.assertEqual(records[0]["responseCode"], "invalid_request")
+        self.assertEqual(records[0]["level"], "WARNING")
+        self.assertEqual(
+            records[1]["correlationId"], json.loads(process.stdout)["error"]["correlationId"]
+        )
 
 
 if __name__ == "__main__":

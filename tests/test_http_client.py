@@ -16,7 +16,7 @@ from typing import ClassVar
 from unittest.mock import patch
 
 from nci_si_mcp.errors import PlatformError, correlated
-from nci_si_mcp.evs import LICENSE_KEY_HEADER, EVSClient, EVSResponseError
+from nci_si_mcp.evs import LICENSE_KEY_HEADER, EVSClient
 from nci_si_mcp.http_client import (
     MAX_RETRY_DELAY_SECONDS,
     HttpClient,
@@ -469,9 +469,13 @@ class HookTest(ServerTestCase):
 
         self.assertEqual(result, {"ok": True})
         self.assertEqual(len(server.seen), 3)
-        lines = [line for line in logs.output if "hook_failed" in line]
+        lines = [
+            json.loads(record.getMessage())
+            for record in logs.records
+            if "hook_failed" in record.getMessage()
+        ]
         self.assertEqual(len(lines), 3)
-        self.assertTrue(all(line.endswith("error_type=RuntimeError") for line in lines))
+        self.assertEqual([line["errorType"] for line in lines], ["RuntimeError"] * 3)
         self.assertNotIn(KEY, "\n".join(logs.output))
 
     def test_a_hook_that_raises_does_not_replace_the_error_of_a_failing_call(self):
@@ -539,11 +543,17 @@ class CredentialsStayOutTest(ServerTestCase):
         with self.assertLogs("nci_si_mcp", level="DEBUG") as logs:
             error = self.failure(client)
 
-        warnings = [line for line in logs.output if line.startswith("WARNING")]
+        warnings = [
+            json.loads(record.getMessage())
+            for record in logs.records
+            if record.levelname == "WARNING"
+        ]
         self.assertEqual(len(warnings), 2)
         for line in warnings:
-            self.assertIn("surface=evs", line)
-            self.assertRegex(line, r"attempt=[12] max_attempts=3 delay_seconds=")
+            self.assertEqual(line["surface"], "evs")
+            self.assertIn(line["attempt"], (1, 2))
+            self.assertEqual(line["maxAttempts"], 3)
+            self.assertGreater(line["delayMs"], 0)
         everything = [str(error), repr(error.details), repr(records), *logs.output]
         self.assertEqual([text for text in everything if KEY in text], [])
         self.assertIn("Busy [redacted]", str(error))
@@ -570,11 +580,11 @@ class CredentialsStayOutTest(ServerTestCase):
                 chain = [error.__cause__, error.__context__]
                 self.assertEqual([each for each in chain if each and KEY in repr(each)], [])
 
-    def test_the_key_does_not_show_in_the_error_of_the_service(self):
+    def test_the_key_does_not_show_in_the_error_from_evs(self):
         server = self.serve(self.ECHOES["an error status"])
         client = EVSClient(server.url, license_key=KEY)
 
-        with self.assertRaises(EVSResponseError) as raised:
+        with self.assertRaises(UpstreamRejectedError) as raised:
             client.get_api_version()
 
         self.assertEqual(raised.exception.details["status"], 403)

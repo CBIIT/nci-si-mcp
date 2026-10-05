@@ -26,6 +26,7 @@ from urllib.error import HTTPError
 from urllib.parse import urlencode, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
+from .audit import emit, hashed, requested
 from .bounds import current_budget
 from .errors import PlatformError, current_correlation_id
 from .upstream import parse_upstream_json
@@ -256,20 +257,28 @@ class HttpClient:
         return Request(f"{self.base_url}{path}{query}", headers=headers)  # noqa: S310
 
     def _record(self, request: Request, attempt: _Attempt, elapsed: float) -> None:
+        requested()
         record = RequestRecord(
             surface=self.surface,
             method=request.get_method(),
-            url=request.full_url.partition("?")[0],
+            url=self._redact(request.full_url.partition("?")[0]),
             status=attempt.status,
             failure=attempt.failure,
             attempt=attempt.number,
             elapsed_seconds=elapsed,
             correlation_id=current_correlation_id(),
         )
-        logger.debug(
-            "upstream_request surface=%s method=%s url=%s status=%s failure=%s attempt=%s "
-            "elapsed_seconds=%.3f correlation_id=%s",
-            *(getattr(record, name) for name in record.__slots__),
+        emit(
+            logger,
+            logging.DEBUG,
+            "upstream_request",
+            surface=record.surface,
+            method=record.method,
+            urlHash=hashed(record.url)["sha256"],
+            status=record.status,
+            failure=record.failure,
+            attempt=record.attempt,
+            elapsedMs=record.elapsed_seconds * 1000,
         )
         hook = self.on_request
         if hook:
@@ -283,7 +292,12 @@ class HttpClient:
             hook(record)
         except Exception as exc:  # noqa: BLE001 - whatever a hook raises must not reach the call
             # The type only: the message of a hook's failure may hold anything.
-            logger.warning("upstream_request_hook_failed error_type=%s", type(exc).__name__)
+            emit(
+                logger,
+                logging.WARNING,
+                "upstream_request_hook_failed",
+                errorType=type(exc).__name__,
+            )
 
     def _read(self, response: Any, path: str, attempt: _Attempt) -> Any:
         too_large = (
@@ -354,13 +368,25 @@ class HttpClient:
         # HTTP status line can hold anything the platform chose to echo.
         raise failure
 
-    def _attempt(self, request: Request, path: str, number: int) -> Any:
+    def _attempt(
+        self, request: Request, path: str, number: int, reject: Callable[[Any], str | None] | None
+    ) -> Any:
         if budget := current_budget():
             budget.request()
         attempt = _Attempt(number)
         started = time.monotonic()
         try:
-            return self._exchange(request, path, attempt)
+            payload = self._exchange(request, path, attempt)
+            reason = reject(payload) if reject else None
+            if reason is not None:
+                attempt.failure = "unusable_response"
+                raise UpstreamUnavailableError(
+                    self._redact(reason),
+                    surface=self.surface,
+                    status=attempt.status,
+                    attempts=number,
+                )
+            return payload
         finally:
             self._record(request, attempt, time.monotonic() - started)
 
@@ -395,24 +421,33 @@ class HttpClient:
         )
 
     def _wait(self, path: str, attempt: int, delay: float, reason: str) -> None:
-        logger.warning(
-            "upstream_request_retry surface=%s path=%s attempt=%s max_attempts=%s "
-            "delay_seconds=%.3f reason=%s",
-            self.surface,
-            path,
-            attempt,
-            self.max_attempts,
-            delay,
-            reason,
+        emit(
+            logger,
+            logging.WARNING,
+            "upstream_request_retry",
+            surface=self.surface,
+            pathHash=hashed(path)["sha256"],
+            attempt=attempt,
+            maxAttempts=self.max_attempts,
+            delayMs=delay * 1000,
+            reasonHash=hashed(reason)["sha256"],
         )
         if delay:
             self.sleep(delay)
 
-    def get_json(self, path: str, params: dict[str, Any] | None = None) -> Any:
+    def get_json(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+        *,
+        reject: Callable[[Any], str | None] | None = None,
+    ) -> Any:
         """GET a JSON document, retrying transport failures, HTTP 429 and HTTP 5xx.
 
         Every attempt is counted: the error reports the number of requests made. Whatever
         the platform answered is classified before it is returned.
+        A request-local reject callback may name unusable domain content. That terminal
+        failure carries this response's status and actual attempt count.
         """
 
         request = self._request(path, params)
@@ -421,7 +456,7 @@ class HttpClient:
         while True:
             attempts += 1
             try:
-                return self._attempt(request, path, attempts)
+                return self._attempt(request, path, attempts, reject)
             except _Transient as failure:
                 timeouts += failure.timed_out
                 last_http = failure.http_details() or last_http

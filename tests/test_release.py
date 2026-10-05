@@ -1,4 +1,5 @@
 import io
+import json
 import unittest
 from unittest.mock import patch
 from urllib.error import HTTPError
@@ -6,9 +7,11 @@ from urllib.error import HTTPError
 from fakes import FakeEVS, release, terminology_row
 from nci_si_mcp.errors import PlatformError, is_error_record, serialise
 from nci_si_mcp.evs import EVSClient, EVSNotFoundError, EVSReleaseNotFoundError
+from nci_si_mcp.invocation import call
+from nci_si_mcp.registry import invoke
 from nci_si_mcp.release import registry_state, resolve_evs_release
-from nci_si_mcp.service import _enveloped
-from test_service import NEOPLASM, ServiceTestCase
+from test_evs_client import FakeResponse
+from test_handlers import NEOPLASM, HandlerTestCase
 
 # The weekly build is listed first, as EVS may list it, and both are latest for their channel.
 WEEKLY = terminology_row("26.09c", "2026-09-21", weekly="true")
@@ -16,31 +19,17 @@ MONTHLY = terminology_row("26.09d", "2026-09-28", monthly="true")
 EXPORT = "releasedCDEsXML-OD.zip"
 
 
-@_enveloped
 def registry_result(date, identifier=None, distribution=EXPORT):
-    return registry_state(date, identifier, source_distribution=distribution).to_dict()
+    return call(
+        "registry_state",
+        lambda: registry_state(date, identifier, source_distribution=distribution).to_dict(),
+    )
 
 
 def fake_with(*rows):
     evs = FakeEVS()
     evs.rows = list(rows)
     return evs
-
-
-class FakeResponse:
-    status = 200
-
-    def __init__(self):
-        self.headers = {}
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *_):
-        return False
-
-    def read(self, limit):
-        return b"[]"[:limit]
 
 
 class ResolveEvsReleaseTest(unittest.TestCase):
@@ -123,7 +112,7 @@ class ResolveEvsReleaseTest(unittest.TestCase):
 
     def test_the_query_names_the_terminology_latest_and_the_channel(self):
         with (
-            patch("nci_si_mcp.http_client._open", return_value=FakeResponse()) as opened,
+            patch("nci_si_mcp.http_client._open", return_value=FakeResponse(b"[]")) as opened,
             self.assertRaises(PlatformError) as raised,
         ):
             resolve_evs_release(EVSClient("https://example.invalid"), "ncit", "weekly")
@@ -137,17 +126,18 @@ class ResolveEvsReleaseTest(unittest.TestCase):
         )
 
     def test_the_unfiltered_listing_sends_no_filter(self):
-        with patch("nci_si_mcp.http_client._open", return_value=FakeResponse()) as opened:
+        response = FakeResponse(json.dumps([MONTHLY]).encode())
+        with patch("nci_si_mcp.http_client._open", return_value=response) as opened:
             rows = EVSClient("https://example.invalid").get_terminologies()
 
-        self.assertEqual(rows, [])
+        self.assertEqual(rows, [MONTHLY])
         self.assertEqual(
             opened.call_args.args[0].full_url,
             "https://example.invalid/api/v1/metadata/terminologies",
         )
 
 
-class UnknownReleaseTest(ServiceTestCase):
+class UnknownReleaseTest(HandlerTestCase):
     def answer_404(self, message):
         body = io.BytesIO(f'{{"message": "{message}"}}'.encode())
         error = HTTPError("https://example.invalid", 404, "Not Found", {}, body)
@@ -172,12 +162,12 @@ class UnknownReleaseTest(ServiceTestCase):
             EVSClient("https://example.invalid", max_attempts=1).get_concept("C4817")
 
     def test_a_pinned_release_no_longer_served_tells_the_caller_why_to_retry(self):
-        self.service.evs = EVSClient("https://example.invalid", max_attempts=1)
+        self.context.evs = EVSClient("https://example.invalid", max_attempts=1)
         with (
-            patch.object(self.service.evs, "get_terminologies", return_value=[MONTHLY]),
+            patch.object(self.context.evs, "get_terminologies", return_value=[MONTHLY]),
             self.answer_404("Terminology not found = ncit_26.09d"),
         ):
-            result = self.service.lookup("C4817", live_only=True)
+            result = invoke(self.context, "lookup", "C4817", live_only=True)
 
         self.assertEqual(result["error"]["code"], "release_not_available")
         self.assertEqual(result["error"]["details"], {"requested": "ncit_26.09d", "source": "evs"})
@@ -185,30 +175,30 @@ class UnknownReleaseTest(ServiceTestCase):
         self.assertIn("no longer serves", result["error"]["message"])
 
 
-class ServiceReleaseTest(ServiceTestCase):
+class ServiceReleaseTest(HandlerTestCase):
     def test_an_index_mismatch_names_the_configured_weekly_channel(self):
         self.index()
         self.evs.release = release("26.07a", "2026-07-06", channel="weekly")
 
-        result = self.make_service(release_channel="weekly").lookup("C3262")
+        result = invoke(self.make_context(release_channel="weekly"), "lookup", "C3262")
 
         self.assertEqual(result["error"]["code"], "release_mismatch")
         self.assertIn("current weekly release", result["error"]["message"])
         self.assertEqual(result["error"]["details"]["requested"], "26.07a")
 
     def test_a_resolved_release_is_not_kept_between_calls(self):
-        first = self.service.lookup("C3262", live_only=True)
+        first = invoke(self.context, "lookup", "C3262", live_only=True)
         self.evs.release = release("26.07d", "2026-07-27")
         self.evs.concepts["C3262"] = dict(NEOPLASM, version="26.07d")
 
-        second = self.service.lookup("C3262", live_only=True)
+        second = invoke(self.context, "lookup", "C3262", live_only=True)
 
         self.assertEqual(first["provenance"]["release"]["identifier"], "26.06e")
         self.assertEqual(second["provenance"]["release"]["identifier"], "26.07d")
 
     def test_every_call_resolves_the_release_before_it_reads_content(self):
-        self.service.lookup("C3262", live_only=True)
-        self.service.traverse(["C3262"], max_depth=1)
+        invoke(self.context, "lookup", "C3262", live_only=True)
+        invoke(self.context, "traverse", ["C3262"], max_depth=1)
 
         methods = [call[0] for call in self.evs.calls]
         self.assertEqual(methods.count("get_terminologies"), 2)
@@ -217,21 +207,24 @@ class ServiceReleaseTest(ServiceTestCase):
     def test_the_configured_channel_decides_the_release(self):
         self.evs.release = release("26.07a", "2026-07-06", channel="weekly")
         self.evs.concepts["C3262"] = dict(NEOPLASM, version="26.07a")
-        weekly = self.make_service(release_channel="weekly")
+        weekly = self.make_context(release_channel="weekly")
 
-        reported = weekly.release_info()["selected_monthly_release"]
-        result = weekly.lookup("C3262", live_only=True)
+        reported = invoke(
+            weekly,
+            "release_info",
+        )["selected_release"]
+        result = invoke(weekly, "lookup", "C3262", live_only=True)
 
         self.assertEqual((reported["channel"], reported["version"]), ("weekly", "26.07a"))
         self.assertEqual(result["provenance"]["release"]["identifier"], "26.07a")
         self.assertIn(("get_terminologies", "ncit", (True, "weekly")), self.evs.calls)
-        # The default service, on the monthly channel, finds no monthly row here.
-        self.assertTrue(is_error_record(self.service.lookup("C3262", live_only=True)))
+        # The default context, on the monthly channel, finds no monthly row here.
+        self.assertTrue(is_error_record(invoke(self.context, "lookup", "C3262", live_only=True)))
 
     def test_the_payload_version_is_a_second_guard_against_the_resolved_release(self):
         self.evs.concepts["C3262"] = dict(NEOPLASM, version="26.05d")
 
-        result = self.service.lookup("C3262", live_only=True)
+        result = invoke(self.context, "lookup", "C3262", live_only=True)
 
         self.assertEqual(result["error"]["code"], "release_mismatch")
         self.assertEqual(result["error"]["details"]["requested"], "26.06e")

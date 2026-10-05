@@ -15,19 +15,33 @@ from functools import lru_cache
 from itertools import batched
 from pathlib import Path
 
+from .audit import emit
 from .embeddings import EmbeddingProvider
 from .errors import (
     IndexBuildError,
     IndexCompatibilityError,
     IndexStorageError,
     NoActiveIndexError,
+    PlatformError,
 )
 from .evs import normalize_concept
 from .models import IndexManifest, NcitConcept, SearchHit, Truncation, utc_now_iso
 from .retrieval import cosine_similarity, min_max_normalize, tokenize
-from .validation import validate_search
+from .validation import MAX_INDEX_SEARCH_LIMIT, validate_search
 
 logger = logging.getLogger(__name__)
+
+
+def require_index_release(manifest: IndexManifest, requested: str | None) -> None:
+    if requested is not None and manifest.release_version != requested:
+        raise PlatformError(
+            "release_mismatch",
+            "The index holds another release. Rebuild it for the requested release.",
+            requested=requested,
+            served=[manifest.release_version],
+            source="index",
+        )
+
 
 # SQL built with f-strings below interpolates only table names and predicates
 # written in this module, or lists of "?" placeholders; every value is bound.
@@ -443,7 +457,7 @@ class LocalIndex:
             _backfill_search_tables(conn, version)
             conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         if dropped:
-            logger.warning("index_migration_dropped_releases releases=%s", ",".join(dropped))
+            emit(logger, logging.WARNING, "index_migration_dropped_releases", releases=dropped)
 
     @staticmethod
     def _active_manifest(conn: sqlite3.Connection) -> IndexManifest | None:
@@ -516,8 +530,12 @@ class LocalIndex:
         for table in ("concepts", "concepts_fts", "vector_lsh"):
             conn.execute(f"DELETE FROM {table}")  # noqa: S608
         if active:
-            logger.info(
-                "index_release_replaced previous=%s new=%s", active.release_version, release_version
+            emit(
+                logger,
+                logging.INFO,
+                "index_release_replaced",
+                previous=active.release_version,
+                release=release_version,
             )
 
     def _activate(
@@ -592,6 +610,8 @@ class LocalIndex:
         embedding_provider: EmbeddingProvider,
         limit: int = 10,
         mode: str = "hybrid",
+        *,
+        requested_release: str | None = None,
     ) -> tuple[list[SearchHit], Truncation]:
         """Rank concepts of the active release by BM25, vector similarity, or both.
 
@@ -601,13 +621,14 @@ class LocalIndex:
         truncation record says how many scored concepts the limit left out.
         """
 
-        query, limit, mode = validate_search(query, limit, mode)
+        query, limit, mode = validate_search(query, limit, mode, maximum=MAX_INDEX_SEARCH_LIMIT)
         with self._connect() as conn:
             # One read transaction, so a concurrent re-index cannot change the
             # release between reading the manifest and reading the concepts.
             conn.execute("BEGIN")
             manifest = self._searchable_manifest(conn, embedding_provider)
             release = manifest.release_version
+            require_index_release(manifest, requested_release)
             bm25_scores: dict[str, float] = {}
             if mode != "vector":
                 bm25_scores = self._bm25_scores(conn, release, query, limit)

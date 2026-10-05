@@ -16,7 +16,6 @@ service does not produce on demand (and which requirement it stands in for).
 - `scenarios/<group>/<name>/`: the fixtures of one scenario, which answer before the ordinary
   ones while a test selects it (`@pytest.mark.scenario("<group>/<name>")`). A `settings.json`
   there holds the `NCI_SI_*` settings the scenario's server process starts with.
-- `baseline_toolmap.yaml`: the stand-ins for required tools the server lacks.
 
 ## Scenarios
 

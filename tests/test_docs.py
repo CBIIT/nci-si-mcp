@@ -229,8 +229,8 @@ class DocumentationTest(unittest.TestCase):
         required -= {"graphs", "upstream"}
         allowed = set(fields) | set(RECORDS["traversal"]["fields"])
 
-        # The lookups, the three hits shown and the nodes and edges of the traversal.
-        self.assertGreaterEqual(len(found), 12)
+        # One lookup, one hit, and four nodes plus three edges in the live examples.
+        self.assertEqual(len(found), 9)
         for record in found:
             self.assertLessEqual(required, set(record))
             self.assertLessEqual(set(record), allowed)

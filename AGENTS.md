@@ -6,10 +6,13 @@ detail.
 
 ## What this is
 
-An EVS-first MCP server prototype: NCIt search, lookup and graph traversal over the NCI EVS REST
-API, served over stdio with `mcp` 2.x. caDSR is a stub by design: `cadsr.py` reports `reuse_pending`
-and must never return fabricated CDE data. The goal it grows toward is the shared NCI Semantic
-Infrastructure MCP platform; the milestones and issues on GitHub (Phase 0 to 5) are the plan.
+The government-furnished prototype of the NCI Semantic Infrastructure MCP server, and the
+acceptance suite it and its successors are measured by. Two Statements of Work build on it:
+EVS v2.1 and caDSR v1.1. It is a prototype, not a production service. The server never returns
+caDSR or other upstream content it did not retrieve. Until NCI issues caDSR credentials,
+caDSR behavior is built and tested against fixtures crafted from the published contracts.
+The milestones and issues on GitHub (Phase 0 to 5) are the plan. README.md gives the current
+status per tool group; QUICKSTART.md holds the usage details.
 
 Documentation, from short to detailed: `README.md` (what the repository is, who it is for, the
 status per tool group), `QUICKSTART.md` (install and run; settings, tools, resources, error
@@ -19,10 +22,10 @@ codes), `CONTRIBUTING.md` (how to work on it: commands, gates, standards, releas
 The specification of the required tools and their behaviour is owned by this repository. Its
 source of record is the data in `spec/` (conventions, records, tools, requirements);
 `docs/specification.md` is generated from it with `pdm run spec-render` and is never edited by
-hand. `docs/implementation-plan.md` plans the implementation, and `acceptance/` holds the acceptance suite that
-tests the requirements (its README says how). The programme's other documents (the Statements of
-Work, which frame and bound the scope and are not a specification, and the Platform API
-Specification) live outside this repository; do not rely on them being present.
+hand. `docs/implementation-plan.md` plans the implementation, and `acceptance/` holds the
+acceptance suite that tests the requirements (its README says how). The programme's other
+documents (the Statements of Work, which frame and bound the scope and are not a specification,
+and the Platform API Specification) live outside this repository; do not rely on them being present.
 
 ## Engineering standards
 
@@ -36,7 +39,7 @@ These are the owner's rules. They apply to every change.
   never write a test whose purpose is the number (no assertion-free tests, no tests that only
   check that a mock was called). CI fails below 90% and warns at or below 95%.
 - **Design: KISS and DRY.** The simplest structure that does the job, one place for each fact,
-  and the established architecture (thin adapters over the service, one error path, closed value
+  and the established architecture (thin adapters over the registry, one error path, closed value
   sets in `validation.py`). No abstraction for a single use.
 - **Readable, maintainable, extendable code.** Small functions (cyclomatic complexity below 8 is
   a gate), names that say what a thing is, comments that give the reason.
@@ -57,7 +60,7 @@ The project is managed with PDM (Python 3.14 or newer); `pdm install` builds `.v
 ```bash
 pdm run test                              # whole suite, with the 90% coverage floor
 pdm run pytest tests/test_index.py        # one file, no coverage floor
-pdm run pytest tests/test_service.py -k LookupTest
+pdm run pytest tests/test_handlers.py -k LookupTest
 pdm run lint                              # ruff check + basedpyright, the fast check
 pdm run fmt                               # ruff format
 pdm run pre-commit run --all-files        # every hook, as the CI quality job runs them
@@ -81,7 +84,7 @@ pdm run spec-render                       # regenerate docs/specification.md fro
   environment, so `pdm.lock` decides their versions.
 - `tests/test_docs.py`, `tests/test_server.py` and `tests/test_release_config.py` compare
   QUICKSTART.md, ARCHITECTURE.md and the title check with the code (settings and defaults, error
-  codes, modules, tools, `ncit_traverse` arguments, resources, commit types). Change the document
+  codes, modules, tools, public arguments, resources, commit types). Change the document
   with the code.
 - Do not enable PDM's uv mode (`use_uv`): it rewrites `pyproject.toml` during an install, which
   marks every installed version as locally modified.
@@ -107,7 +110,9 @@ and fails when an outcome differs from the expected one. A change that moves an 
 updates that file in the same pull request, written with `pdm run acceptance-expected update` from
 a fresh report, and `pdm run acceptance-status` updates the README table that follows from it; the
 diff of `expected/fixture.json` is what the review reads. The `Acceptance (live)` workflow runs the
-suite against the live services by hand; its outcomes are not ratcheted. The harness has its own
+suite against the live services by hand and every Monday; its outcomes are not ratcheted, but
+the weekly run fails when a test that passes on the fixtures fails live (upstream drift).
+The harness has its own
 tests (`pdm run acceptance-selftest`, the `selftest` CI jobs). `acceptance/README.md` has the
 detail.
 
@@ -184,8 +189,10 @@ The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for t
    <sha>`. A push after the clearance needs a new one. Wait for CI to finish before asking; never
    hand over on "CI is running".
 10. **After the merge,** confirm CI, Audit, CodeQL and Release on the merge commit, that the
-    issues closed, and that the release was cut; then remove your branches, worktrees, scratch
-    files and any process or wait loop you started.
+    issues closed, and that the release was cut. After confirming every milestone issue is
+    closed, close the milestone explicitly through the GitHub API; GitHub does not close it
+    automatically. Then remove your branches, worktrees, scratch files and any process or
+    wait loop you started.
 
 The `milestone branches` ruleset lets a commit onto `milestone/*` only once CI has passed on it,
 and CI runs on pull requests, so every change reaches the milestone branch through a pull request
@@ -222,9 +229,19 @@ Rules learned the hard way:
 
 ## Architecture in brief
 
-`cli.py` and `server.py` are thin adapters over `service.NCISIService`. A new capability goes into
-the service and is exposed in both adapters; the closed value sets (search modes, directions, edge
-types) live once in `validation.py` and feed the MCP schema and the argparse choices.
+`cli.py` and `server.py` read `registry.SPECS`. Each `ToolSpec` declares its handler, output
+union, cache policy and adapter exposure; the handler signature supplies the shared input model,
+defaults and choices. Business operations live in `handlers.py` and, for the specification's
+content tools, `content.py`, with injectable collaborators in `context.Context`. Closed value
+sets live once in `validation.py`. Profiles select MCP tools only.
+
+Each ToolSpec classifies its parameters as plain or hashed for audit. Undeclared parameters
+default to hashed. `audit.py` emits one JSON completion record per call, including validation
+failures, with correlation, result size, truncation and request counts from the HTTP client's
+per-attempt instrumentation. MCP and registry scopes share the record; concurrent calls do not.
+Free text is SHA-256 hashed to correlate repeated inputs, not to keep guessable text secret.
+All application diagnostics are JSON on stderr; exception messages and upstream bodies are
+not logged. Diagnostic verbosity does not suppress the required completion record.
 
 ### One error path
 
@@ -232,9 +249,10 @@ The error codes are the ten of the specification's error record (`spec/records.y
 `errors.py` as `ErrorCode`. A failure is a `PlatformError`: its code, a message that names the
 caller's next step, and the `details` that code lists in `docs/implementation-plan.md` §3.1. `errors.serialise` is
 the only function that turns one into the result, `{"error": {"code", "message", "details"?,
-"correlationId"}}`; nothing builds that dict by hand. The adapters open `errors.correlated()` once
-per call (the request's `_meta.correlationId`, else generated). Service methods are wrapped by
-`_enveloped`, which converts the expected exception types listed in `_ERROR_CODES` (with the next
+"correlationId"}}`; nothing builds that dict by hand. The audit boundary opens `errors.correlated()` once
+per call (the request's `_meta.correlationId`, else generated) for tools, resources and CLI.
+`registry.invoke` shares that scope and enters `invocation.call` for expected failures.
+It converts the expected exception types listed in `invocation._ERROR_CODES` (with the next
 step appended to their message and their `details` attribute carried over) and logs a warning; an
 exception gets the entry of its nearest listed class. To add a failure mode,
 raise a specific exception type and add it to that table, or raise a `PlatformError` where the
@@ -245,8 +263,8 @@ add broad `except` clauses. An empty result is never an error and an error is ne
 (webMethods `apiResponse.type` `E`, FHIR `OperationOutcome` error, HTML where JSON was asked for)
 as `upstream_unavailable`; every upstream client parses its bodies through it (in `http_client.HttpClient`).
 
-`http_client.HttpClient` is the one HTTP client. It raises the `Upstream*` errors, which
-`EVSClient` turns into the `EVS*` ones in `_evs_error`; its attempts are all counted and reported to
+`http_client.HttpClient` is the one HTTP client. Its `Upstream*` errors reach the invocation
+boundary directly; EVS errors identify only EVS-specific failures. Attempts are counted and reported to
 the `on_request` hook. A credential is a header of one client and goes to that client's origin only;
 it is redacted from every message built from what the platform said.
 
@@ -256,7 +274,7 @@ A 404 from EVS means "no such concept" only for `EVSClient.get_concept`. Every o
 through `_get_existing`, which converts a 404 to `EVSResponseError` (a wrong base URL).
 
 `server.py` turns an error record into a protocol-level error (`CallToolResult(is_error=True)` for
-tools, `ResourceError` for resources). The tool docstrings are the contract sent to MCP clients;
+tools, `ResourceError` for resources). The handler docstrings are the contract sent to MCP clients;
 update them when behaviour changes.
 
 ### Release pinning
@@ -264,16 +282,17 @@ update them when behaviour changes.
 - `release.resolve_evs_release(evs, terminology, channel)` asks EVS for the rows that are `latest`
   and tagged with the channel (`?terminology=…&latest=true&tag=…`) and requires exactly one; any
   other count is `release_not_available`, with no fallback to another channel. EVS sets `latest`
-  per channel, so the unfiltered listing can show two `ncit` rows as latest. The service resolves
-  once per call with `Settings.release_channel` and threads the `ReleaseContext` through that call;
-  nothing keeps it between calls. A 404 `Terminology not found` is `EVSReleaseNotFoundError`
+  per channel, so the unfiltered listing can show two `ncit` rows as latest. `resolve_release`
+  resolves the channel once per call; the content tools pin every request to the caller's
+  `release` argument instead. Either way the `ReleaseContext` lives for one call only.
+  A 404 `Terminology not found` is `EVSReleaseNotFoundError`
   (`release_not_available`).
 - `release.registry_state` is the pure part of the caDSR registry state: no registry identifier is
   ever made up. The `Last-Modified` HEAD request belongs to the caDSR client.
 - Every concept request uses `release.pinned_terminology` (for example `ncit_26.09d`) as the path
   segment, and `evs.verify_release` checks the `version` of each returned concept.
 - `lookup` returns `release_mismatch` when the index holds another release, unless `live_only`. It
-  falls back to the cache only on `EVSUnavailableError`, and marks the result with `fallback`.
+  falls back to the cache only on `UpstreamUnavailableError`, and marks the result with `fallback`.
 - The index holds one release. Indexing a concept of another release replaces everything.
 
 ### Index and search
@@ -298,12 +317,17 @@ megabytes for hub concepts; a batch that exceeds the response limit is halved, a
 concept that still exceeds it is kept unexpanded and counted against the `upstream_cap` bound of
 the walk's `Truncation` record. The state of a walk (limits, emitted nodes and edges) lives in the
 `_Walk` object in `traversal.py`, which also builds the `TraversalProvenance` of each node and edge.
+At the depth limit, forward kinds get a batched continuation check; descendant checks use
+child lists. A reported global node cut skips the check, and kinds already truncated are
+excluded. Selected inverse kinds at any nonempty frontier report depth with `omitted: 0`, `exact: false`
+without fetching their expensive lists just to check continuation. All reads share the request
+budget, and the first bound remains the one reported.
 
 `descendant` edges are opt-in (`edge_types`) and come from one `get_descendants` call per start
 code with `maxLevel = max_depth`. They are bucketed by the `level` EVS assigns and emitted together
 with the other edges reaching that depth. That level can be deeper than the shortest path, so a
 `child` walk of the same depth can reach more concepts (59 against 56 for C3262 at depth 2). The
-service calls `select_edge_types` before resolving the release, so invalid selections never reach
+traversal handler calls `select_edge_types` before resolving the release, so invalid selections never reach
 the network.
 
 ## Tests

@@ -32,7 +32,6 @@ if TYPE_CHECKING:
 
     from nci_si_acceptance.client import Target
     from nci_si_acceptance.fixture_server import FixtureServer
-    from nci_si_acceptance.tools import ToolMap
 
 NOT_ANSWERING = "the server under test does not answer"
 NOT_REACHING = "the server under test does not reach the fixture server"
@@ -70,7 +69,6 @@ def probe(
     url: str,
     authorization: str | None,
     upstream: FixtureServer | None,
-    toolmap: ToolMap,
     pinned: dict[str, str],
     startup: Sequence[dict[str, Any]] = (),
 ) -> None:
@@ -86,7 +84,7 @@ def probe(
 
     refused: list[int] = []
     try:
-        asked = _ask(url, authorization, upstream, toolmap, pinned, refused)
+        asked = _ask(url, authorization, upstream, pinned, refused)
     except Exception as error:  # noqa: BLE001 - the type is shown, the message may hold secrets
         why = f"HTTP {refused[0]}" if refused else type(error).__name__
         pytest.exit(f"{NOT_ANSWERING} ({why})", returncode=1)
@@ -108,14 +106,13 @@ def _ask(
     url: str,
     authorization: str | None,
     upstream: FixtureServer | None,
-    toolmap: ToolMap,
     pinned: dict[str, str],
     refused: list[int],
 ) -> bool:
     """Call resolve_release on the server, where it has the tool; whether it was called."""
 
     with open_remote_session(url, authorization, statuses=refused) as session:
-        tools = Tools(session, toolmap)
+        tools = Tools(session)
         if upstream:
             upstream.reset()
         if not tools.implemented_as(RESOLVE_RELEASE):

@@ -14,14 +14,16 @@ import yaml
 
 from fakes import FakeEVS, concept, release
 from nci_si_mcp.config import Settings
+from nci_si_mcp.context import Context
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.errors import call_correlation_id, correlated
-from nci_si_mcp.evs import EVSResponseTooLargeError, EVSUnavailableError
+from nci_si_mcp.http_client import UpstreamTooLargeError, UpstreamUnavailableError
 from nci_si_mcp.index import EXACT_VECTOR_SCAN_LIMIT, LocalIndex
 from nci_si_mcp.models import NcitConcept, utc_now_iso
-from nci_si_mcp.service import NCISIService
+from nci_si_mcp.registry import invoke
 from nci_si_mcp.traversal import NCIT_EXCLUSION_CODES
 from test_index import synthetic_concepts
+from test_traversal import complete_graph
 
 RECORDS = yaml.safe_load((Path(__file__).parent.parent / "spec/records.yaml").read_text())
 PROVENANCE = RECORDS["provenance"]["fields"]
@@ -69,8 +71,8 @@ class ProvenanceTestCase(unittest.TestCase):
         self.path = Path(directory.name)
         # The tests change the payloads, so each gets its own.
         payloads = [NEOPLASM, KINASE, *(concept(code) for code in ("C2991", "C4741", "C4742"))]
-        self.evs = FakeEVS(deepcopy(payloads))
-        self.service = NCISIService(
+        self.evs = complete_graph(FakeEVS(deepcopy(payloads)))
+        self.context = Context(
             Settings(data_dir=self.path),
             evs=self.evs,
             index=LocalIndex(self.path),
@@ -85,7 +87,8 @@ class ProvenanceTestCase(unittest.TestCase):
 
     def traversal(self, **arguments):
         arguments = {"start_codes": ["C3262"], "max_depth": 1} | arguments
-        result = self.service.traverse(**arguments)
+        complete_graph(self.evs)
+        result = invoke(self.context, "traverse", **arguments)
         self.assertNotIn("error", result, result)
         return result
 
@@ -96,7 +99,7 @@ class ProvenanceTestCase(unittest.TestCase):
 
 class EveryItemCarriesItsProvenanceTest(ProvenanceTestCase):
     def test_a_looked_up_concept_carries_the_provenance_record(self):
-        provenance = self.service.lookup("C3262")["provenance"]
+        provenance = invoke(self.context, "lookup", "C3262")["provenance"]
 
         self.assert_record(provenance, REQUIRED, ALLOWED)
         self.assertEqual(
@@ -110,9 +113,9 @@ class EveryItemCarriesItsProvenanceTest(ProvenanceTestCase):
         self.assertRegex(provenance["retrievedAt"], r"^\d{4}-\d\d-\d\dT[\d:.]+Z$")
 
     def test_every_source_and_way_of_serving_is_a_value_of_the_record(self):
-        self.service.index_codes(["C3262"])
-        live = self.service.lookup("C3262")["provenance"]
-        indexed = self.service.search("neoplasm")["hits"][0]["concept"]["provenance"]
+        invoke(self.context, "index_codes", ["C3262"])
+        live = invoke(self.context, "lookup", "C3262")["provenance"]
+        indexed = invoke(self.context, "search", "neoplasm")["hits"][0]["concept"]["provenance"]
         nodes = self.traversal()["nodes"]
 
         for provenance in (live, indexed, nodes[0]["provenance"]):
@@ -132,17 +135,17 @@ class EveryItemCarriesItsProvenanceTest(ProvenanceTestCase):
             self.assertIn(provenance.get("polarity", "positive"), TRAVERSAL["polarity"]["values"])
 
     def test_a_search_hit_carries_the_record_and_a_result_with_hits_does_not(self):
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
 
-        result = self.service.search("neoplasm")
+        result = invoke(self.context, "search", "neoplasm")
 
         self.assert_record(result["hits"][0]["concept"]["provenance"], REQUIRED, ALLOWED)
         self.assertNotIn("provenance", result)
 
     def test_a_search_without_hits_carries_the_provenance_itself(self):
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
 
-        result = self.service.search("zzzz", mode="bm25")
+        result = invoke(self.context, "search", "zzzz", mode="bm25")
 
         self.assertEqual(result["hits"], [])
         # Nothing was produced from an upstream URL, so there is none to name.
@@ -150,10 +153,17 @@ class EveryItemCarriesItsProvenanceTest(ProvenanceTestCase):
         self.assertEqual(result["provenance"]["servedBy"], "index")
 
     def test_the_release_report_and_the_index_manifest_carry_it(self):
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
 
-        report = self.service.release_info()["provenance"]
-        manifest = self.service.index_manifest()["active_index"]["provenance"]
+        report = invoke(
+            self.context,
+            "release_info",
+        )["provenance"]
+        manifest = invoke(
+            self.context,
+            "index_resource",
+            "active",
+        )["provenance"]
 
         self.assert_record(report, REQUIRED, ALLOWED)
         self.assertEqual(report["release"]["identifier"], "26.06e")
@@ -162,26 +172,27 @@ class EveryItemCarriesItsProvenanceTest(ProvenanceTestCase):
         self.assertEqual((manifest["source"], manifest["servedBy"]), ("evs_index", "index"))
 
     def test_the_release_report_names_no_release_when_evs_selected_none(self):
-        self.evs.errors = {"get_terminologies": EVSUnavailableError("down")}
+        self.evs.errors = {"get_terminologies": UpstreamUnavailableError("down")}
 
-        report = self.service.release_info()
-
-        self.assertEqual(
-            report["selected_monthly_release"]["error"]["code"], "upstream_unavailable"
+        report = invoke(
+            self.context,
+            "release_info",
         )
+
+        self.assertEqual(report["selected_release"]["error"]["code"], "upstream_unavailable")
         self.assertNotIn("provenance", report)
 
 
 class TheReleaseOfAnItemIsTheReleaseServedTest(ProvenanceTestCase):
     def test_every_item_names_the_release_the_call_was_pinned_to(self):
         self.evs.release = release("26.07d", "2026-07-27")
-        for code in ("C3262", "C4741", "C2991", "C4742"):
+        for code in self.evs.concepts:
             self.evs.concepts[code] = dict(
                 self.evs.concepts.get(code, concept(code)), version="26.07d"
             )
         self.evs.concepts["C3262"]["children"] = [child("C4741"), child("C4742")]
 
-        items = [self.service.lookup("C3262")]
+        items = [invoke(self.context, "lookup", "C3262")]
         result = self.traversal()
         items += [*result["nodes"], *result["edges"]]
 
@@ -191,10 +202,10 @@ class TheReleaseOfAnItemIsTheReleaseServedTest(ProvenanceTestCase):
         self.assertEqual({item["provenance"]["release"]["date"] for item in items}, {"2026-07-27"})
 
     def test_an_indexed_concept_names_the_release_it_was_indexed_from(self):
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
         self.evs.release = release("26.07d", "2026-07-27")
 
-        hit = self.service.search("neoplasm")["hits"][0]
+        hit = invoke(self.context, "search", "neoplasm")["hits"][0]
 
         self.assertEqual(hit["concept"]["provenance"]["release"]["identifier"], "26.06e")
         self.assertEqual(
@@ -207,7 +218,7 @@ class CorrelationTest(ProvenanceTestCase):
     def test_every_item_of_a_call_carries_the_calls_identifier(self):
         with correlated("call-42"):
             result = self.traversal(direction="both")
-            lookup = self.service.lookup("C3262")
+            lookup = invoke(self.context, "lookup", "C3262")
 
         items = [lookup, *result["nodes"], *result["edges"]]
         self.assertEqual({item["provenance"]["correlationId"] for item in items}, {"call-42"})
@@ -315,14 +326,14 @@ class AnItemReachedByTraversalSaysHowTest(ProvenanceTestCase):
 
 class UpstreamPassThroughTest(ProvenanceTestCase):
     def test_what_evs_says_of_a_concepts_origin_is_passed_through_unchanged(self):
-        provenance = self.service.lookup("C3262")["provenance"]
+        provenance = invoke(self.context, "lookup", "C3262")["provenance"]
 
         self.assertEqual(provenance["upstream"], {"terminology": "ncit", "version": "26.06e"})
 
     def test_an_indexed_concept_passes_through_what_the_index_stored(self):
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
 
-        provenance = self.service.search("neoplasm")["hits"][0]["concept"]["provenance"]
+        provenance = invoke(self.context, "search", "neoplasm")["hits"][0]["concept"]["provenance"]
 
         self.assertEqual(provenance["upstream"], {"terminology": "ncit", "version": "26.06e"})
 
@@ -366,13 +377,14 @@ class UpstreamPassThroughTest(ProvenanceTestCase):
 
 class RawIsKeptBehindTheFlagTest(ProvenanceTestCase):
     def test_a_result_carries_no_raw_payload_unless_asked_for(self):
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
 
-        self.assertNotIn("raw", self.service.lookup("C3262"))
-        self.assertIn("raw", self.service.lookup("C3262", include_raw=True))
-        self.assertNotIn("raw", self.service.search("neoplasm")["hits"][0]["concept"])
+        self.assertNotIn("raw", invoke(self.context, "lookup", "C3262"))
+        self.assertIn("raw", invoke(self.context, "lookup", "C3262", include_raw=True))
+        self.assertNotIn("raw", invoke(self.context, "search", "neoplasm")["hits"][0]["concept"])
         self.assertIn(
-            "raw", self.service.search("neoplasm", include_raw=True)["hits"][0]["concept"]
+            "raw",
+            invoke(self.context, "search", "neoplasm", include_raw=True)["hits"][0]["concept"],
         )
 
 
@@ -457,10 +469,10 @@ class TruncationTest(ProvenanceTestCase):
         class Hub(FakeEVS):
             def get_concepts_by_codes(self, codes, terminology="ncit", include=""):
                 if include != "minimal":
-                    raise EVSResponseTooLargeError("too large")
+                    raise UpstreamTooLargeError("too large")
                 return super().get_concepts_by_codes(codes, terminology, include)
 
-        self.service.evs = Hub([NEOPLASM])
+        self.context.evs = Hub([NEOPLASM])
         with self.assertLogs("nci_si_mcp.traversal", level="WARNING"):
             truncation = self.traversal(edge_types=["child"])["truncation"]
 
@@ -476,13 +488,23 @@ class TruncationTest(ProvenanceTestCase):
             },
         )
 
-    def test_stopping_at_the_depth_limit_is_no_truncation(self):
-        self.assert_record(self.traversal(max_depth=0)["truncation"], {"occurred": False})
+    def test_depth_zero_reports_the_known_unseen_children(self):
+        self.assert_record(
+            self.traversal(max_depth=0, edge_types=["child"])["truncation"],
+            {
+                "occurred": True,
+                "bound": "depth",
+                "limit": 0,
+                "reached": 0,
+                "omitted": 2,
+                "exact": False,
+            },
+        )
 
     def test_the_search_limit_reports_the_concepts_it_left_out(self):
-        self.service.index_codes(["C3262", "C40704"])
+        invoke(self.context, "index_codes", ["C3262", "C40704"])
 
-        result = self.service.search("tumor", limit=1, mode="vector")
+        result = invoke(self.context, "search", "tumor", limit=1, mode="vector")
 
         # Every concept of a small index is scored, so the count is exact.
         self.assert_record(
@@ -497,7 +519,8 @@ class TruncationTest(ProvenanceTestCase):
             },
         )
         self.assert_record(
-            self.service.search("tumor", mode="vector")["truncation"], {"occurred": False}
+            invoke(self.context, "search", "tumor", mode="vector")["truncation"],
+            {"occurred": False},
         )
 
 
@@ -517,10 +540,14 @@ class Clock:
 
 class NoUpstreamUrlTest(ProvenanceTestCase):
     def test_a_result_no_upstream_url_produced_names_none(self):
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
 
-        empty = self.service.search("zzzz", mode="bm25")["provenance"]
-        manifest = self.service.index_manifest()["active_index"]["provenance"]
+        empty = invoke(self.context, "search", "zzzz", mode="bm25")["provenance"]
+        manifest = invoke(
+            self.context,
+            "index_resource",
+            "active",
+        )["provenance"]
 
         self.assertNotIn("sourceUri", empty)
         self.assertNotIn("sourceUri", manifest)
@@ -528,21 +555,25 @@ class NoUpstreamUrlTest(ProvenanceTestCase):
 
 class RetrievedAtTest(ProvenanceTestCase):
     def test_an_indexed_concept_and_the_manifest_keep_the_time_they_were_stored_with(self):
-        self.service.index_codes(["C3262"])
-        stored = self.service.index.get_concept("C3262").retrieved_at
-        built = self.service.index.get_active_manifest().built_at
+        invoke(self.context, "index_codes", ["C3262"])
+        stored = self.context.index.get_concept("C3262").retrieved_at
+        built = self.context.index.get_active_manifest().built_at
 
-        first = self.service.search("neoplasm")["hits"][0]["concept"]["provenance"]
-        second = self.service.search("neoplasm")["hits"][0]["concept"]["provenance"]
-        manifest = self.service.index_manifest()["active_index"]["provenance"]
-        empty = self.service.search("zzzz", mode="bm25")["provenance"]
+        first = invoke(self.context, "search", "neoplasm")["hits"][0]["concept"]["provenance"]
+        second = invoke(self.context, "search", "neoplasm")["hits"][0]["concept"]["provenance"]
+        manifest = invoke(
+            self.context,
+            "index_resource",
+            "active",
+        )["provenance"]
+        empty = invoke(self.context, "search", "zzzz", mode="bm25")["provenance"]
 
         self.assertEqual((first["retrievedAt"], second["retrievedAt"]), (stored, stored))
         self.assertEqual((manifest["retrievedAt"], empty["retrievedAt"]), (built, built))
 
     def test_a_live_item_was_retrieved_during_its_call(self):
         with Clock() as lookup:
-            concept_provenance = self.service.lookup("C3262")["provenance"]
+            concept_provenance = invoke(self.context, "lookup", "C3262")["provenance"]
         with Clock() as walk:
             result = self.traversal(direction="both")
 
@@ -552,7 +583,10 @@ class RetrievedAtTest(ProvenanceTestCase):
 
     def test_the_release_report_was_retrieved_during_its_call(self):
         with Clock() as call:
-            report = self.service.release_info()["provenance"]
+            report = invoke(
+                self.context,
+                "release_info",
+            )["provenance"]
 
         self.assertTrue(call.holds(report["retrievedAt"]))
         self.assertEqual(
@@ -563,29 +597,44 @@ class RetrievedAtTest(ProvenanceTestCase):
 
 class CorrelationOfEveryResultTest(ProvenanceTestCase):
     def test_every_kind_of_result_carries_the_identifier_of_the_call(self):
-        self.service.index_codes(["C3262"])
-        self.evs.errors = {"get_concept": EVSUnavailableError("down")}
+        invoke(self.context, "index_codes", ["C3262"])
+        self.evs.errors = {"get_concept": UpstreamUnavailableError("down")}
 
-        with correlated("call-42"), self.assertLogs("nci_si_mcp.service", level="WARNING"):
-            fallback = self.service.lookup("C3262")["provenance"]
+        with correlated("call-42"), self.assertLogs("nci_si_mcp", level="WARNING"):
+            fallback = invoke(self.context, "lookup", "C3262")["provenance"]
         with correlated("call-42"):
-            report = self.service.release_info()["provenance"]
-            manifest = self.service.index_manifest()["active_index"]["provenance"]
-            empty = self.service.search("zzzz", mode="bm25")["provenance"]
-            hit = self.service.search("neoplasm")["hits"][0]["concept"]["provenance"]
+            report = invoke(
+                self.context,
+                "release_info",
+            )["provenance"]
+            manifest = invoke(
+                self.context,
+                "index_resource",
+                "active",
+            )["provenance"]
+            empty = invoke(self.context, "search", "zzzz", mode="bm25")["provenance"]
+            hit = invoke(self.context, "search", "neoplasm")["hits"][0]["concept"]["provenance"]
 
         ids = {each["correlationId"] for each in (fallback, report, manifest, empty, hit)}
         self.assertEqual(ids, {"call-42"})
 
     def test_the_manifest_of_a_build_and_of_the_report_carry_the_record_too(self):
-        built = self.service.index_codes(["C3262"])
-        report = self.service.release_info()["active_index"]
+        built = invoke(self.context, "index_codes", ["C3262"])
+        report = invoke(
+            self.context,
+            "release_info",
+        )["active_index"]
 
         for manifest in (built, report):
             self.assertEqual(manifest["provenance"]["source"], "evs_index")
             self.assertEqual(manifest["provenance"]["release"]["identifier"], "26.06e")
         self.assertEqual(
-            self.service.index_manifest()["active_index"]["provenance"]["servedBy"], "index"
+            invoke(
+                self.context,
+                "index_resource",
+                "active",
+            )["provenance"]["servedBy"],
+            "index",
         )
 
 
@@ -604,14 +653,14 @@ class ResultShapesTest(ProvenanceTestCase):
     )
 
     def test_a_concept_item_has_exactly_these_fields(self):
-        self.service.index_codes(["C3262"])
-        self.evs.errors = {"get_concept": EVSUnavailableError("down")}
+        invoke(self.context, "index_codes", ["C3262"])
+        self.evs.errors = {"get_concept": UpstreamUnavailableError("down")}
 
-        with self.assertLogs("nci_si_mcp.service", level="WARNING"):
-            fallback = self.service.lookup("C3262")
-        hit = self.service.search("neoplasm")["hits"][0]
+        with self.assertLogs("nci_si_mcp", level="WARNING"):
+            fallback = invoke(self.context, "lookup", "C3262")
+        hit = invoke(self.context, "search", "neoplasm")["hits"][0]
         del self.evs.errors["get_concept"]
-        live = self.service.lookup("C3262")
+        live = invoke(self.context, "lookup", "C3262")
 
         self.assertEqual(set(live), self.CONCEPT)
         self.assertEqual(set(fallback), self.CONCEPT | {"fallback"})
@@ -619,10 +668,10 @@ class ResultShapesTest(ProvenanceTestCase):
         self.assertEqual(set(hit), {"concept", "score", "rank", "score_components"})
 
     def test_a_search_result_has_exactly_these_fields(self):
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
 
-        found = self.service.search("neoplasm")
-        empty = self.service.search("zzzz", mode="bm25")
+        found = invoke(self.context, "search", "neoplasm")
+        empty = invoke(self.context, "search", "zzzz", mode="bm25")
 
         self.assertEqual(set(found), {"query", "mode", "hits", "truncation"})
         self.assertEqual(set(empty), {"query", "mode", "hits", "truncation", "provenance"})
@@ -695,7 +744,7 @@ class EdgeTypeProvenanceTest(ProvenanceTestCase):
         self.assertEqual({edge["provenance"]["polarity"] for edge in result["edges"]}, {"positive"})
 
     def test_traversal_items_are_live_and_index_items_are_indexed(self):
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
         result = self.traversal(direction="both")
 
         for item in [*result["nodes"], *result["edges"]]:
@@ -704,9 +753,13 @@ class EdgeTypeProvenanceTest(ProvenanceTestCase):
                 ("evs_rest", "live"),
             )
         indexed = [
-            self.service.search("neoplasm")["hits"][0]["concept"]["provenance"],
-            self.service.search("zzzz", mode="bm25")["provenance"],
-            self.service.index_manifest()["active_index"]["provenance"],
+            invoke(self.context, "search", "neoplasm")["hits"][0]["concept"]["provenance"],
+            invoke(self.context, "search", "zzzz", mode="bm25")["provenance"],
+            invoke(
+                self.context,
+                "index_resource",
+                "active",
+            )["provenance"],
         ]
         for provenance in indexed:
             self.assertEqual((provenance["source"], provenance["servedBy"]), ("evs_index", "index"))
