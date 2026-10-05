@@ -230,9 +230,9 @@ class IndexCodesTest(HandlerTestCase):
 
         result = invoke(self.context, "index_codes", ["c3262", "C40704", "C2991", "C3262"])
 
-        self.assertEqual(result["concept_count"], 3)
-        self.assertEqual(result["release_version"], "26.06e")
-        self.assertEqual(result["release_date"], "2026-06-29")
+        self.assertEqual(result["concepts"], 3)
+        self.assertEqual(result["version"], "26.06e")
+        self.assertEqual(result["provenance"]["release"]["date"], "2026-06-29")
         self.assertEqual(
             [call for call in self.evs.calls if call[0] == "get_concepts_by_codes"],
             [
@@ -242,8 +242,8 @@ class IndexCodesTest(HandlerTestCase):
         )
 
     def test_missing_concepts_leave_the_index_unchanged(self):
-        before = self.index("C3262")
-        del before["provenance"]  # built at the call, which this one is not
+        self.index("C3262")
+        before = self.context.index.get_active_manifest().to_dict()
 
         result = invoke(self.context, "index_codes", ["C3262", "C999"])
 
@@ -252,8 +252,8 @@ class IndexCodesTest(HandlerTestCase):
         self.assertEqual(self.context.index.get_active_manifest().to_dict(), before)
 
     def test_payload_from_another_release_than_requested_changes_nothing(self):
-        before = self.index("C3262")
-        del before["provenance"]  # built at the call, which this one is not
+        self.index("C3262")
+        before = self.context.index.get_active_manifest().to_dict()
         self.evs.concepts["C40704"] = dict(KINASE, version="26.07a")
 
         for codes in (["C40704"], ["C3262", "C40704"]):
@@ -475,7 +475,7 @@ class StatusTest(HandlerTestCase):
         self.assertEqual(result["evs_api"], {"version": "test"})
         self.assertEqual(result["selected_release"]["version"], "26.06e")
         self.assertNotIn("raw", result["selected_release"])
-        self.assertEqual(result["active_index"]["concept_count"], 2)
+        self.assertEqual(result["active_index"]["concepts"], 2)
         self.assertEqual(result["embedding"]["provider"], "hashing")
 
     def test_release_info_survives_a_masked_evs_failure(self):
@@ -505,7 +505,7 @@ class StatusTest(HandlerTestCase):
         self.assert_error(result["evs_api"], "upstream_unavailable")
         self.assert_error(result["selected_release"], "release_not_available")
         self.assertIn("2 ncit monthly", result["selected_release"]["error"]["message"])
-        self.assertEqual(result["active_index"]["release_version"], "26.06e")
+        self.assertEqual(result["active_index"]["version"], "26.06e")
 
     def test_evaluate_scores_every_mode_and_names_gold_concepts_that_are_not_indexed(self):
         self.assert_error(
@@ -541,7 +541,7 @@ class StatusTest(HandlerTestCase):
                 self.context,
                 "index_resource",
                 "active",
-            )["concept_count"],
+            )["concepts"],
             2,
         )
 

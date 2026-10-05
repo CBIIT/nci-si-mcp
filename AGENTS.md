@@ -295,17 +295,27 @@ update them when behaviour changes.
   release addressed by their request without inventing upstream version fields.
 - `lookup` returns `release_mismatch` when the index holds another release, unless `live_only`. It
   falls back to the cache only on `UpstreamUnavailableError`, and marks the result with `fallback`.
-- The index holds one release. Indexing a concept of another release replaces everything.
+- Each index build holds one release. Activation retains the previous build for rollback.
 
 ### Index and search
 
 `LocalIndex._connect()` is a context manager that commits or rolls back and then closes; use it for
-every database access. `upsert_concepts` takes the write lock first (`BEGIN IMMEDIATE`), checks
-compatibility, then writes all tables in that one transaction.
+every database access. `upsert_concepts` reads a consistent snapshot and checks
+compatibility before snapshot creation. Embeddings run outside transactions; each
+batch is written in a short transaction under a building manifest. Only completed builds activate.
+Sample activation checks that another writer has not changed the active build in the meantime.
 
-Vector search scans every stored vector up to `EXACT_VECTOR_SCAN_LIMIT` (20,000 concepts). Above
-that it scores only LSH and BM25 candidates, and vector-only recall is poor (measured 17 of 100
-nearest neighbours found on a 3,000-concept synthetic index). The LSH constants and
+Schema 5 stores immutable builds keyed by an internal build id. Name, synonym and definition
+texts are deduplicated within each concept and embedded separately. Activation retains only
+the new build and its predecessor. The next build start removes stale building rows;
+a private SQLite lease distinguishes interrupted builds from concurrently running ones.
+Legacy raw concepts survive migration, but their search requires an explicit offline
+`index-rebuild` and `index-activate`. Full builds reconcile all pinned search pages before writing.
+
+Vector search scans every field vector up to `EXACT_VECTOR_SCAN_LIMIT` (20,000 concepts). Above
+that it scores only LSH and BM25 field candidates, so recall is approximate. The earlier
+concatenated index measured only 17 of 100 nearest neighbours on a synthetic index; that figure
+is not a measurement of the field index. The LSH constants and
 `_projection_sign` are part of the stored format: changing them needs a `SCHEMA_VERSION` bump with
 a migration that rebuilds `vector_lsh`.
 

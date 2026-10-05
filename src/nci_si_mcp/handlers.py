@@ -33,6 +33,7 @@ from .evs import (
     normalize_concept,
 )
 from .http_client import UpstreamError, UpstreamUnavailableError
+from .indexing import full_build
 from .invocation import _envelope
 from .models import (
     IndexManifest,
@@ -233,6 +234,29 @@ def index_codes(context: Context, codes: list[str]) -> dict[str, Any]:
     return manifest.to_result()
 
 
+def index_build(context: Context) -> dict[str, Any]:
+    """Build all NCIt from the configured channel into an inactive snapshot."""
+    built = full_build(context, _release(context))
+    return {"buildId": built.build_id, "manifest": built.to_result()}
+
+
+def index_builds(context: Context) -> dict[str, Any]:
+    """List completed operator snapshots and identify the active build."""
+    return {"builds": [item.to_dict() for item in context.index.list_builds()]}
+
+
+def index_rebuild(context: Context, build_id: str) -> dict[str, Any]:
+    """Rebuild stored raw concepts offline with the configured embedding provider."""
+    built = context.index.rebuild(build_id, context.embedding_provider)
+    return {"buildId": built.build_id, "manifest": built.to_result()}
+
+
+def index_activate(context: Context, build_id: str) -> dict[str, Any]:
+    """Activate a completed build; the replaced build is retained for rollback."""
+    active = context.index.activate(build_id)
+    return {"buildId": active.build_id, "manifest": active.to_result()}
+
+
 def search(
     context: Context,
     query: str,
@@ -243,15 +267,17 @@ def search(
     """Search the locally indexed NCIt concepts by text.
 
     The index holds only the concepts an operator loaded with the
-    `index-sample` CLI command, all from the one NCIt release named
-    in the `provenance.release` of its hits. It is not all of NCIt, and no
+    `index-sample` or `index-build` CLI commands, all from the NCIt release named
+    in the `provenance.release` of its hits. A sample is not all of NCIt; no
     tool here adds to it. `mode` is `hybrid` (0.55 * BM25 + 0.45 * vector), `bm25` or
     `vector`; `limit` is 1 to 100.
 
     Each entry of `score_components` is min-max normalized over the
-    concepts scored for this query: the best is 1.0 however poor the match,
+    fields scored for this query: the best is 1.0 however poor the match,
     the weakest is 0.0 even when it matches, and when only one concept is
-    scored, or all tie, they are all 1.0. A component that was not computed
+    scored, or all tie, they are all 1.0. Exact preferred-name hits score 1
+    and win ties, comparing case-insensitively after NFC and whitespace collapsing.
+    A component that was not computed
     for a concept (the other one in `bm25` or `vector` mode, or `bm25` for
     a concept without a matching term) is 0.0. Scores therefore order the
     hits of one query and are not comparable across queries. `vector` and
@@ -326,7 +352,7 @@ def lookup(
     that check and the fallback."""
 
     code = validate_ncit_code(code)
-    manifest = None if live_only else context.index.get_active_manifest()
+    manifest, cached = (None, None) if live_only else context.index.get_concept_snapshot(code)
     try:
         release = _release(context)
         if manifest and manifest.release_version != release.version:
@@ -341,7 +367,6 @@ def lookup(
             )
         raw = context.evs.get_concept(code, release=release)
     except UpstreamUnavailableError as exc:
-        cached = None if live_only else context.index.get_concept(code)
         if not cached:
             raise
         emit(
@@ -504,12 +529,12 @@ def index_resource(context: Context, version: str) -> dict[str, Any]:
     if not manifest:
         select_cache_hint(resolution=True)
         return {"active_index": None}
-    if version in ("active", manifest["release_version"]):
+    if version in ("active", manifest["version"]):
         select_cache_hint(resolution=version == "active")
         return manifest
     raise PlatformError(
         "release_not_available",
-        f"The local index holds release {manifest['release_version']}, not "
+        f"The local index holds release {manifest['version']}, not "
         f"{version}. Read that release or `active`, or rebuild the index with `index-sample`.",
         requested=version,
         source="index",

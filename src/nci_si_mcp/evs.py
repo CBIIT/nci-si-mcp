@@ -305,6 +305,24 @@ class EVSClient:
         verify_content(rows, release)
         return rows
 
+    def get_index_page(
+        self, release: ReleaseContext, offset: int
+    ) -> tuple[int, list[dict[str, Any]]]:
+        """Read an unfiltered, pinned search page for an operator's full index build."""
+        data = _object(
+            self._get_existing(
+                concept_path(release.pinned_terminology) + "/search",
+                {"include": INDEX_INCLUDE, "pageSize": 1000, "fromRecord": offset},
+            ),
+            "index search page",
+        )
+        total = data.get("total")
+        if type(total) is not int or total < 1:
+            raise EVSResponseError("EVS index search page has no positive integer total")
+        concepts = _object_list(data.get("concepts"), "index search concepts")
+        verify_content(concepts, release)
+        return total, concepts
+
     def get_concept(
         self,
         code: str,

@@ -111,9 +111,17 @@ python -m nci_si_mcp.cli evaluate
 ```
 
 `index-sample` adds concepts to the index while the configured channel's release stays the
-same. After a new release, the next `index-sample` replaces the index
-with the concepts it names. `search` only sees what has been indexed; no MCP
+same. After a new release, the next `index-sample` activates a snapshot
+with the concepts it names. The previous build remains available for rollback.
+`search` only sees what has been indexed; no MCP
 tool builds the index.
+
+For a full release, `index-build` downloads and verifies all pinned NCIt search pages,
+then returns an inactive build id. `index-builds` lists completed builds. Activate one
+with `index-activate BUILD_ID`; activating the previous id rolls back. Every activation
+keeps only the newly active build and the build it replaced. These are operator CLI commands.
+The public manifest contains `terminology`, `version`, `concepts`, `embedding`
+(`provider`, `model`, `dimensions`), `builtAt` and `provenance`.
 
 Until the index is rebuilt after a new release, CLI `search` keeps serving
 the old release (named in the `provenance.release` of each hit), and `lookup` fails with
@@ -140,8 +148,10 @@ python -m nci_si_mcp.cli traverse C3262 \
 
 The index records its embedding provider, model, and dimensions. A runtime with
 different embedding settings cannot search it or add to it. To rebuild with new
-settings, delete `nci_si.sqlite3` in the data directory and run `index-sample`
-again.
+settings, use `index-rebuild BUILD_ID` to rebuild stored raw concepts offline, then
+`index-activate NEW_BUILD_ID`. Schema migration preserves legacy concepts for cached lookup;
+their concatenated vectors require this explicit rebuild before search is available
+(`capability_unavailable`). Opening the index never downloads a model or rebuilds it.
 
 ## Usage examples
 

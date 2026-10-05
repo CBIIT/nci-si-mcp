@@ -661,7 +661,7 @@ class ResultShapesTest(ProvenanceTestCase):
         self.assertEqual(set(live), self.CONCEPT)
         self.assertEqual(set(fallback), self.CONCEPT | {"fallback"})
         self.assertEqual(set(hit["concept"]), self.CONCEPT)
-        self.assertEqual(set(hit), {"concept", "score", "rank", "score_components"})
+        self.assertEqual(set(hit), {"concept", "score", "rank", "score_components", "matched_on"})
 
     def test_a_search_result_has_exactly_these_fields(self):
         invoke(self.context, "index_codes", ["C3262"])

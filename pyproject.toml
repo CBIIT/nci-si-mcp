@@ -182,6 +182,7 @@ min_confidence = 60
 ignore_decorators = ["@mcp.tool", "@tool", "@mcp.resource", "@resource", "@pytest.fixture"]
 ignore_names = [
     "row_factory", "built_at", "index_path", "state",
+    "evaluation_version", "evaluation_score", "synonyms", "matchedOn", "totalKnown", "builtAt",
     "correlationId", "servedBy", "retrievedAt", "sourceUri", "perKind", "nextCursor",
     "semanticType", "sourceCode", "sourceTerminology", "targetCode", "targetTerminology",
     "targetName", "targetTermType", "targetTerminologyVersion",

@@ -5,7 +5,6 @@ from jsonschema import Draft202012Validator
 from fakes import catalogue_rows, concept, release
 from nci_si_mcp.bounds import Budget, current_budget
 from nci_si_mcp.evs import EVSClient
-from nci_si_mcp.models import Truncation
 from nci_si_mcp.registry import invoke
 from test_bounds import BudgetHub
 from test_server import ServerFixture
@@ -136,9 +135,7 @@ class ContentTest(ServerFixture):
 
     def test_empty_search_has_provenance_and_detects_a_replaced_index(self):
         self.index()
-        with patch.object(
-            self.context.index, "search_with_truncation", return_value=([], Truncation(False))
-        ):
+        with patch("nci_si_mcp.index._rank_fields", return_value=[]):
             result = self.content("search_concepts", query="No match", mode="semantic")
             self.assertEqual(result["results"], [])
             self.assertEqual(result["provenance"]["release"]["identifier"], "26.06e")
@@ -148,7 +145,7 @@ class ContentTest(ServerFixture):
             )
             result = self.content("search_concepts", query="No match", mode="semantic")
             self.assertEqual(result["error"]["code"], "release_mismatch")
-            with patch.object(self.context.index, "get_active_manifest", return_value=None):
+            with patch.object(self.context.index, "_active_manifest", return_value=None):
                 result = self.content("search_concepts", query="No match", mode="semantic")
                 self.assertEqual(result["error"]["code"], "capability_unavailable")
 
