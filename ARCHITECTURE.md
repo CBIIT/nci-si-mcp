@@ -260,6 +260,9 @@ for indexing.
 
 MCP tools:
 
+- `resolve_release`
+- `list_terminologies`
+
 - `ncit_search`
 - `ncit_lookup`
 - `ncit_traverse`
@@ -272,8 +275,8 @@ MCP resources:
 - `nci-si://release/ncit/{version}`
 - `nci-si://index/ncit/{version}/manifest`
 
-The `evs` profile exposes the four NCIt tools, `cadsr` exposes the pending status tool,
-and `unified` exposes all five. Each tool has group metadata and read-only, idempotent,
+The `evs` profile exposes the six EVS tools, `cadsr` exposes the pending status tool,
+and `unified` exposes all seven. Each tool has group metadata and read-only, idempotent,
 non-destructive, open-world annotations. Resources are available in every profile.
 
 The CLI additionally exposes sample indexing and retrieval evaluation, which are

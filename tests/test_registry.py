@@ -22,7 +22,14 @@ class Echo(TypedDict):
 
 class RegistryTest(ServerFixture):
     def test_profiles_select_only_the_current_inventory_and_keep_group_metadata(self):
-        evs = {"ncit_search", "ncit_lookup", "ncit_traverse", "ncit_release_info"}
+        evs = {
+            "ncit_search",
+            "ncit_lookup",
+            "ncit_traverse",
+            "ncit_release_info",
+            "resolve_release",
+            "list_terminologies",
+        }
         expected = {"evs": evs, "cadsr": {"cadsr_status"}, "unified": evs | {"cadsr_status"}}
         for profile, names in expected.items():
             with self.subTest(profile=profile):

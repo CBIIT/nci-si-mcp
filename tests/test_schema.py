@@ -28,7 +28,7 @@ class SchemaTest(ServerFixture):
 
     def test_every_schema_is_valid_and_rejects_malformed_errors(self):
         validators = self.validators()
-        self.assertEqual(len(validators), 5)
+        self.assertEqual(len(validators), 7)
         for name, validator in validators.items():
             with self.subTest(tool=name):
                 validator.check_schema(validator.schema)
@@ -50,6 +50,8 @@ class SchemaTest(ServerFixture):
             "ncit_traverse": {"start_codes": ["C3262"], "max_nodes": 1, "max_depth": 1},
             "ncit_release_info": {},
             "cadsr_status": {},
+            "resolve_release": {"terminology": "ncit"},
+            "list_terminologies": {},
         }
         validators = self.validators()
         for name, arguments in calls.items():

@@ -60,7 +60,17 @@ def resolve_evs_release(evs: EVSClient, terminology: str, channel: str) -> Relea
     """
 
     rows = evs.get_terminologies(terminology, latest=True, tag=channel)
-    requested = f"{terminology} {channel}"
+    row = _one_release_row(rows, f"{terminology} {channel}")
+    return ReleaseContext(
+        terminology=terminology,
+        channel=channel,
+        version=str(row["version"]),
+        date=row.get("date"),
+        pinned_terminology=row.get("terminologyVersion") or f"{terminology}_{row['version']}",
+    )
+
+
+def _one_release_row(rows: list[dict[str, Any]], requested: str) -> dict[str, Any]:
     versions = [str(row.get("version") or "") for row in rows]
     if len(rows) != 1:
         found = ", ".join(versions) or "none"
@@ -72,13 +82,33 @@ def resolve_evs_release(evs: EVSClient, terminology: str, channel: str) -> Relea
     (row,) = rows
     if not versions[0]:
         raise _not_available(f"The latest {requested} release has no version", requested)
-    return ReleaseContext(
-        terminology=terminology,
-        channel=channel,
-        version=versions[0],
-        date=row.get("date"),
-        pinned_terminology=row.get("terminologyVersion") or f"{terminology}_{versions[0]}",
-    )
+    return row
+
+
+def current_terminologies(rows: list[dict[str, Any]], channel: str) -> list[dict[str, Any]]:
+    """One current row per terminology; NCIt's latest flag is scoped by channel."""
+
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        terminology = str(row.get("terminology") or "")
+        if not terminology:
+            raise _not_available(
+                "EVS listed a release without a terminology", "terminology listing"
+            )
+        grouped.setdefault(terminology, []).append(row)
+    return [
+        _one_release_row(_current_rows(entries, terminology, channel), terminology)
+        for terminology, entries in grouped.items()
+    ]
+
+
+def _current_rows(
+    rows: list[dict[str, Any]], terminology: str, channel: str
+) -> list[dict[str, Any]]:
+    current = [row for row in rows if row.get("latest") is True]
+    if terminology == "ncit":
+        return [row for row in current if (row.get("tags") or {}).get(channel) == "true"]
+    return current
 
 
 @dataclass(frozen=True, slots=True)

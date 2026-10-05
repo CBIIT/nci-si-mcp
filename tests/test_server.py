@@ -116,10 +116,10 @@ class ServerTest(ServerFixture):
         self.assertEqual((info.name, info.version), ("nci-si-mcp", metadata.version("nci-si-mcp")))
         self.assertEqual(instructions, INSTRUCTIONS)
 
-    def test_five_tools_are_registered_with_descriptions_and_closed_value_sets(self, _):
+    def test_tools_are_registered_with_descriptions_and_closed_value_sets(self, _):
         tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
 
-        self.assertEqual(len(tools), 5)
+        self.assertEqual(len(tools), 7)
         # The closed value sets are advertised in the schemas, wherever the
         # schema generator puts them.
         traverse_schema = json.dumps(tools["ncit_traverse"].input_schema)

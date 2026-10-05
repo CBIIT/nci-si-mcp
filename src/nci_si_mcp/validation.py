@@ -37,6 +37,20 @@ TRAVERSAL_EDGE_TYPES = frozenset(get_args(EdgeType))
 MAX_SEARCH_LIMIT = 100
 
 
+def validate_terminology(terminology: str) -> str:
+    if not isinstance(terminology, str) or not re.fullmatch(r"[a-z][a-z0-9_]*", terminology):
+        raise InputValidationError(
+            "terminology must be a lowercase identifier starting with a letter", "terminology"
+        )
+    return terminology
+
+
+def validate_channel(channel: str) -> str:
+    if channel not in RELEASE_CHANNELS:
+        raise InputValidationError("channel must be monthly or weekly", "channel")
+    return channel
+
+
 def _is_int(value: object) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
