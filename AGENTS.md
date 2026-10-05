@@ -19,7 +19,7 @@ codes), `CONTRIBUTING.md` (how to work on it: commands, gates, standards, releas
 The specification of the required tools and their behaviour is owned by this repository. Its
 source of record is the data in `spec/` (conventions, records, tools, requirements);
 `docs/specification.md` is generated from it with `pdm run spec-render` and is never edited by
-hand. `docs/SPEC.md` is the implementation plan, and `acceptance/` holds the acceptance suite that
+hand. `docs/implementation-plan.md` plans the implementation, and `acceptance/` holds the acceptance suite that
 tests the requirements (its README says how). The programme's other documents (the Statements of
 Work, which frame and bound the scope and are not a specification, and the Platform API
 Specification) live outside this repository; do not rely on them being present.
@@ -229,7 +229,7 @@ types) live once in `validation.py` and feed the MCP schema and the argparse cho
 
 The error codes are the ten of the specification's error record (`spec/records.yaml`), closed in
 `errors.py` as `ErrorCode`. A failure is a `PlatformError`: its code, a message that names the
-caller's next step, and the `details` that code lists in `docs/SPEC.md` §3.1. `errors.serialise` is
+caller's next step, and the `details` that code lists in `docs/implementation-plan.md` §3.1. `errors.serialise` is
 the only function that turns one into the result, `{"error": {"code", "message", "details"?,
 "correlationId"}}`; nothing builds that dict by hand. The adapters open `errors.correlated()` once
 per call (the request's `_meta.correlationId`, else generated). Service methods are wrapped by

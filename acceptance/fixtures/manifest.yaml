@@ -106,7 +106,7 @@ scenarios:
 
 record:
   requests:
-    # Release resolution: the listing, and the one-row query per channel (SPEC §3.3).
+    # Release resolution: the listing, and the one-row query per channel (implementation plan §3.3).
     - fixture: recorded/evs/version.json
       operation: baseline
       rationale: The furnished server's ncit_release_info reads it; no required tool needs it.
