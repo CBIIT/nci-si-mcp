@@ -90,7 +90,7 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 | `context.py` | Holds injectable settings, clients, index and embedding provider shared by a server or CLI invocation. | EVS client, local index, embeddings |
 | `audit.py` | Emits one redacted JSON completion record per invocation, classifies parameters from the registry, counts actual HTTP attempts in request-scoped state, and formats diagnostics. | Correlation context, standard-library logging and SHA-256 |
 | `handlers.py` | Validates inputs, orchestrates use cases, pins EVS requests to the configured release channel, enforces index compatibility and implements lookup fallback. Owns tool contracts and resource content; moving aliases and absent-index reports select status cache policy. | `context.py`, release, traversal, evaluation |
-| `content.py` | Implements the caller-pinned NCIt content surface, projects spec concept/node/edge records, and explicitly refuses unsupported Phase 2 options. Reuses fetched graph payloads and batches missing node status reads within the traversal request budget. Indexed search checks the requested release inside its read transaction. | `context.py`, index, traversal, release, validation |
+| `content.py` | Implements the caller-pinned EVS content surface, projects spec concept/node/edge records, and explicitly refuses unsupported Phase 2 options. Reuses fetched graph payloads and batches missing node status reads within the traversal request budget. Indexed search checks the requested release inside its read transaction. | `context.py`, index, traversal, release, validation |
 | `invocation.py` | Converts expected failures inside the audit correlation context through the single error-code table, preserving details and next steps. Unexpected exceptions propagate. | `errors.py`, upstream and domain exceptions |
 | `upstream.py` | Parses an upstream response body as JSON content, and classifies a failure that arrived as a success (an HTML page, a webMethods `apiResponse.type` `E` envelope, a FHIR `OperationOutcome` error, invalid JSON) as `upstream_unavailable` before any caller sees it. | `errors.py` |
 | `http_client.py` | The one HTTP client for upstream platforms: sends `Accept: application/json`, the call's correlation identifier and the platform's credentials (never to another origin: a redirect elsewhere is refused); retries 5xx, 429 (after its `Retry-After`) and connection failures with jittered backoff, counting every attempt; bounds the response size; classifies the response (through `upstream.py`) before returning it; hands one record per attempt to a request-log hook (a hook that raises is logged by type and ignored). | Python `urllib`, `upstream.py`, `errors.py` |
@@ -319,7 +319,7 @@ MCP resources:
 - `nci-si://release/ncit/{version}`
 - `nci-si://index/ncit/{version}/manifest`
 
-The `evs` and `unified` profiles expose the six EVS tools; `cadsr` currently exposes no tools.
+The `evs` and `unified` profiles expose the seven EVS tools; `cadsr` currently exposes no tools.
 Each tool has group metadata and read-only, idempotent,
 non-destructive, open-world annotations. Resources are available in every profile.
 
@@ -386,3 +386,19 @@ path segment. Licence attribution comes only from the content payload that suppl
 Compact descendant entries do not report a version or terminology. Their provenance names
 the release addressed by the request, with no invented `upstream` version. When a later read
 fetches the full concept for its details, that payload is verified.
+
+### Public concept batches
+
+`get_concepts` makes one nonempty batch request, deduplicating codes on the wire and
+reconciling the unordered reply by code. Both output lists retain input order and duplicate
+occurrences. Unsolicited or duplicate upstream identities fail closed. Empty input makes no
+request; response-size failure returns `bound_exceeded` with `NCI_SI_EVS_MAX_RESPONSE_BYTES`, never a partial batch.
+
+EVS [limits batches to 1000 codes](https://github.com/NCIEVS/evsrestapi/blob/af1b2794ba944dad5c00e7958eaafb90267f2df0/src/main/java/gov/nih/nci/evs/api/controller/ConceptController.java#L177),
+but the deployed URL ceiling is lower. Credential-free IPv4 probes on 5 October 2026, using
+repeated C202904 with minimal detail, returned HTTP 200 at encoded request-target lengths
+5046 and 7546 bytes, HTTP 400 at 8046, and HTTP 414 at 8296 and 10046.
+`bounds.HARD_MAX_BATCH_CODES = 650` and `MAX_BATCH_TARGET_BYTES = 7000` leave 546 bytes
+(7.2%) below the largest successful probe. The byte check uses the actual HTTP URL formatter,
+including the configured base path, pinned release, escaped codes and include fields. The count
+applies before deduplication; either excess is `invalid_request`, without truncation or splitting.

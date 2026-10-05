@@ -104,6 +104,11 @@ class Concept(TypedDict):
     semanticType: NotRequired[list[str]]
 
 
+class ConceptBatch(TypedDict):
+    concepts: list[Concept]
+    missing: list[str]
+
+
 class RankedConcept(TypedDict):
     concept: Concept
     score: float

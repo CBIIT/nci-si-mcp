@@ -1,5 +1,7 @@
 """Shared test doubles. Nothing here touches the network."""
 
+from urllib.parse import urlencode
+
 from nci_si_mcp.evs import INDEX_INCLUDE, LOOKUP_INCLUDE, EVSNotFoundError, verify_content
 from nci_si_mcp.release import ReleaseContext
 
@@ -90,8 +92,9 @@ class FakeEVS:
         self.includes = []
         self.max_response_bytes = 1_000_000
 
-    def uri(self, path):
-        return f"https://evs.test{path}"
+    def uri(self, path, params=None):
+        query = "?" + urlencode(params, doseq=True) if params else ""
+        return f"https://evs.test{path}{query}"
 
     def _record(self, method, terminology=None, argument=None):
         self.calls.append((method, terminology, argument))

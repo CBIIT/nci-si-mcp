@@ -202,10 +202,10 @@ class EVSClient:
     def max_response_bytes(self) -> int:
         return self.http.max_response_bytes
 
-    def uri(self, path: str) -> str:
+    def uri(self, path: str, params: dict[str, Any] | None = None) -> str:
         """The URL of `path`: what a request for it asks, for an item's provenance."""
 
-        return f"{self.http.base_url}{path}"
+        return self.http.url(path, params)
 
     def _get_json(
         self,

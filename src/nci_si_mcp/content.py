@@ -5,12 +5,15 @@ from __future__ import annotations
 from dataclasses import replace
 from itertools import batched
 from typing import Any, NoReturn, get_args
+from urllib.parse import urlsplit
 
 from .bounds import (
+    HARD_MAX_BATCH_CODES,
     HARD_MAX_DEPTH,
     HARD_MAX_EDGES,
     HARD_MAX_NODES,
     HARD_MAX_PER_KIND,
+    MAX_BATCH_TARGET_BYTES,
     Budget,
     RequestBudgetError,
     budgeted,
@@ -103,21 +106,105 @@ def get_concept(
     """
     selected = _pin(context, terminology, release)
     code = _code(code, terminology)
-    sections = list(dict.fromkeys(include or []))
-    for section in sections:
-        validate_choice(section, get_args(ConceptInclude), "include")
-    upstream_sections = ["properties" if item == "semanticType" else item for item in sections]
+    sections, upstream = _includes(include)
     raw = context.evs.get_concept(
         code,
         release=selected,
-        include=",".join(dict.fromkeys(["minimal", *upstream_sections])),
+        include=upstream,
     )
     if raw.get("code") != code:
         raise EVSResponseError("EVS returned a concept other than the one requested")
-    uri = context.evs.uri(concept_path(selected.pinned_terminology, code))
-    concept = normalize_concept(raw, release_date=None, source="live_evs")
+    return _project(context, selected, raw, sections)
+
+
+def _includes(include: list[ConceptInclude] | None) -> tuple[list[ConceptInclude], str]:
+    sections = list(dict.fromkeys(include or []))
+    for section in sections:
+        validate_choice(section, get_args(ConceptInclude), "include")
+    upstream = ["properties" if item == "semanticType" else item for item in sections]
+    return sections, ",".join(dict.fromkeys(["minimal", *upstream]))
+
+
+def _project(
+    context: Context, release: ReleaseContext, raw: dict[str, Any], sections: list[ConceptInclude]
+) -> dict[str, Any]:
+    uri = context.evs.uri(concept_path(release.pinned_terminology, raw["code"]))
+    concept = normalize_concept(raw, release_date=release.date, source="live_evs")
     result = _record(raw, concept.provenance(uri).to_dict())
     return result | {section: _section(raw, section) for section in sections}
+
+
+def get_concepts(
+    context: Context,
+    terminology: str,
+    release: str,
+    codes: list[str],
+    include: list[ConceptInclude] | None = None,
+) -> dict[str, Any]:
+    """Get a batch of concepts in the required release, preserving requested order.
+
+    Returns concepts and missing code lists. Duplicate input occurrences are
+    preserved; the upstream request uses each code once. Empty input returns two
+    empty lists without a request. include selects synonyms, definitions,
+    properties and semanticType, as for get_concept. Each concept carries its
+    verified release, status and live provenance; unknown codes are named in missing.
+    At most 650 supplied codes and a 7000-byte encoded request target are allowed;
+    larger inputs are invalid_request before any upstream call. One nonempty batch
+    is one platform call, with counted HTTP retries; there is no per-code fan-out.
+    An oversized response fails closed with bound_exceeded, never partial concepts.
+    """
+    selected = _pin(context, terminology, release)
+    requested = _batch_codes(codes, terminology)
+    unique = list(dict.fromkeys(requested))
+    sections, upstream = _includes(include)
+    if not unique:
+        return {"concepts": [], "missing": []}
+    _batch_target(context, selected, unique, upstream)
+    raw = context.evs.get_concepts_by_codes(unique, selected, include=upstream)
+    found = _reconcile_batch(raw, set(unique))
+    return {
+        "concepts": [
+            _project(context, selected, found[code], sections)
+            for code in requested
+            if code in found
+        ],
+        "missing": [code for code in requested if code not in found],
+    }
+
+
+def _batch_codes(codes: list[str], terminology: str) -> list[str]:
+    if len(codes) > HARD_MAX_BATCH_CODES:
+        raise InputValidationError(f"codes accepts at most {HARD_MAX_BATCH_CODES} entries", "codes")
+    return [_code(code, terminology) for code in codes]
+
+
+def _batch_target(
+    context: Context, release: ReleaseContext, codes: list[str], include: str
+) -> None:
+    url = urlsplit(
+        context.evs.uri(
+            concept_path(release.pinned_terminology), {"list": ",".join(codes), "include": include}
+        )
+    )
+    target = f"{url.path}?{url.query}"
+    if len(target.encode()) > MAX_BATCH_TARGET_BYTES:
+        raise InputValidationError(
+            f"The encoded batch request exceeds {MAX_BATCH_TARGET_BYTES} bytes; "
+            "request fewer codes",
+            "codes",
+        )
+
+
+def _reconcile_batch(raw: list[dict[str, Any]], requested: set[str]) -> dict[str, dict[str, Any]]:
+    found: dict[str, dict[str, Any]] = {}
+    for item in raw:
+        code = item.get("code")
+        if not isinstance(code, str) or code not in requested or code in found:
+            raise EVSResponseError(
+                "EVS returned a missing, unsolicited or duplicate batch identity"
+            )
+        found[code] = item
+    return found
 
 
 def _section(raw: dict[str, Any], section: str) -> list[Any]:

@@ -325,6 +325,7 @@ def test_paths_to_root(tools):
         "resolve_release": "resolve_release",
         "list_terminologies": "list_terminologies",
         "get_concept": "get_concept",
+        "get_concepts": "get_concepts",
         "search_concepts": "search_concepts",
         "get_concept_hierarchy": "get_concept_hierarchy",
         "get_concept_neighborhood": "get_concept_neighborhood",
