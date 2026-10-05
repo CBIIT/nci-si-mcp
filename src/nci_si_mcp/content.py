@@ -142,6 +142,97 @@ def _includes(include: list[ConceptInclude] | None) -> tuple[list[ConceptInclude
     return sections, ",".join(dict.fromkeys(["minimal", *upstream]))
 
 
+def get_concept_subsets(
+    context: Context, terminology: str, release: str, code: str
+) -> dict[str, Any]:
+    """Read a concept's subset associations in the required caller-selected release.
+
+    Returns subsets in platform order, each with code, terminology, name and
+    live source-release provenance. Selects the exact Concept_In_Subset type,
+    including computed associations without a relationship code. One pinned
+    concept read supplies the associations; malformed content is an error.
+    Empty results carry provenance, and supplied licence text passes through.
+    """
+    rows, provenance = _concept_rows(context, terminology, release, code, "associations")
+    subsets = []
+    for row in rows:
+        if _text_fields(row, ("type",))["type"] == "Concept_In_Subset":
+            fields = _text_fields(row, ("relatedCode", "relatedName"))
+            subsets.append(
+                {
+                    "code": fields["relatedCode"],
+                    "terminology": terminology,
+                    "name": fields["relatedName"],
+                    "provenance": _item_provenance(row, provenance),
+                }
+            )
+    return {"subsets": subsets, "provenance": provenance}
+
+
+def get_concept_mappings(
+    context: Context,
+    terminology: str,
+    release: str,
+    code: str,
+    targetTerminology: str | None = None,  # noqa: N803 - public name specified in tools.yaml.
+) -> dict[str, Any]:
+    """Read maps carried on a concept in the required caller-selected release.
+
+    Returns mappings in platform order, preserving the record's values exactly.
+    targetTerminology matches the platform label exactly, including case.
+    Target version and term type are omitted when absent, null or empty. Extra
+    upstream fields are excluded; missing required fields fail the entire call.
+    One pinned concept read supplies maps and source-release provenance; target
+    versions remain the map's own. Empty results carry provenance and licence
+    text passes through only when supplied by the platform.
+    """
+    rows, provenance = _concept_rows(context, terminology, release, code, "maps")
+    mappings = [_mapping_record(row, provenance) for row in rows]
+    if targetTerminology is not None:
+        mappings = [row for row in mappings if row["targetTerminology"] == targetTerminology]
+    return {"mappings": mappings, "provenance": provenance}
+
+
+def _concept_rows(
+    context: Context, terminology: str, release: str, code: str, section: str
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    selected = _pin(context, terminology, release)
+    code = _code(code, terminology)
+    raw = context.evs.get_concept(code, release=selected, include=f"minimal,{section}")
+    if raw.get("code") != code:
+        raise EVSResponseError("EVS returned a concept other than the one requested")
+    rows = raw.get(section, [])
+    if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+        raise EVSResponseError(f"EVS returned malformed concept {section}")
+    return rows, _project(context, selected, raw, [])["provenance"]
+
+
+def _text_fields(row: dict[str, Any], fields: tuple[str, ...]) -> dict[str, str]:
+    result = {}
+    for field in fields:
+        value = row.get(field)
+        if not isinstance(value, str) or not value:
+            raise EVSResponseError(f"EVS returned a missing or invalid {field}")
+        result[field] = value
+    return result
+
+
+def _item_provenance(row: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
+    return (
+        provenance | {"attribution": row["licenseText"]} if row.get("licenseText") else provenance
+    )
+
+
+def _mapping_record(row: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
+    result: dict[str, Any] = _text_fields(
+        row, ("targetCode", "targetTerminology", "targetName", "type")
+    )
+    for field in ("targetTermType", "targetTerminologyVersion"):
+        if row.get(field) not in (None, ""):
+            result.update(_text_fields(row, (field,)))
+    return result | {"provenance": _item_provenance(row, provenance)}
+
+
 def _project(
     context: Context, release: ReleaseContext, raw: dict[str, Any], sections: list[ConceptInclude]
 ) -> dict[str, Any]:

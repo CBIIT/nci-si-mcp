@@ -21,6 +21,7 @@ OPTIONAL_FIELDS = frozenset(
         "definitions",
         "synonyms",
         "properties",
+        "maps",
         "parents",
         "children",
         "roles",
