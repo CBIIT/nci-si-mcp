@@ -554,12 +554,15 @@ LICENSED_CHILD = LICENSED_CONCEPT | {
 }
 LICENSED_ROOT = "/api/v1/concept/mdr_29_0"
 # The forms besides the concept itself that the licensed tools ask for (X-19), with their
-# answers: the child, a batch and a search (both concepts, whatever is asked: the placeholder
-# set is two concepts), and each concept's children and descendants, so that a walk down
+# answers: the child, exact batch selections, a search over the two placeholders,
+# and each concept's children and descendants, so that a walk down
 # from the concept reaches the child whichever form it uses.
 LICENSED_PATHS = {
     "child": (f"{LICENSED_ROOT}/10000001", LICENSED_CHILD),
     "batch": (LICENSED_ROOT, [LICENSED_CONCEPT, LICENSED_CHILD]),
+    "batch-reversed": (LICENSED_ROOT, [LICENSED_CHILD, LICENSED_CONCEPT]),
+    "batch-root": (LICENSED_ROOT, [LICENSED_CONCEPT]),
+    "batch-child": (LICENSED_ROOT, [LICENSED_CHILD]),
     "search": (
         f"{LICENSED_ROOT}/search",
         {"total": 2, "timeTaken": 1, "concepts": [LICENSED_CONCEPT, LICENSED_CHILD]},
@@ -594,7 +597,7 @@ def license_restricted(recorded: Recorded) -> Documents:
         ),
     }
     for name, (path, body) in LICENSED_PATHS.items():
-        request = _licensed(path)
+        request = _licensed(path, body)
         documents[f"scenarios/license/restricted/{name}.json"] = crafted(
             requirement,
             request,
@@ -602,8 +605,7 @@ def license_restricted(recorded: Recorded) -> Documents:
         )
         documents[f"scenarios/license/restricted/{name}-refused.json"] = crafted(
             "A7.5: EVS refuses every request for mdr without the licence key",
-            {key: value for key, value in request.items() if key != "headers"}
-            | {"ignored": refusal["request"]["ignored"]},
+            {key: value for key, value in request.items() if key != "headers"},
             response=refusal["response"],
         )
     return documents
@@ -636,7 +638,7 @@ def license_attributed(recorded: Recorded) -> Documents:
     for name, (path, body) in forms.items():
         documents[f"scenarios/license/attributed/{name}.json"] = crafted(
             requirement,
-            _licensed(path),
+            _licensed(path, body),
             response={"status": 200, "body": _with_licence(body, text)},
         )
     return documents
@@ -654,16 +656,20 @@ def _with_licence(value: Any, text: str) -> Any:
     return fields | ({LICENCE_FIELD: text} if "code" in value else {})
 
 
-def _licensed(path: str) -> dict[str, Any]:
+def _licensed(path: str, body: Any = None) -> dict[str, Any]:
     """A request for licensed content, made with the licence key."""
 
-    return {
+    request = {
         "surface": "evs",
         "method": "GET",
         "path": path,
         "headers": {"X-EVSRESTAPI-License-Key": LICENCE_KEY},
         "ignored": {"*": "placeholder content answers every projection alike"},
     }
+    if path == LICENSED_ROOT:
+        request["params"] = {"list": [",".join(item["code"] for item in body)]}
+        request["ignored"] = {"include": "placeholder content answers every projection alike"}
+    return request
 
 
 def _cadsr_json(path: str, **request: Any) -> dict[str, Any]:

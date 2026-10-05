@@ -318,6 +318,9 @@ LICENSED_FORMS = {
     f"{ROOT}/10000000?include=summary": {"10000000"},
     f"{ROOT}/10000001?include=minimal": {"10000001"},
     f"{ROOT}?list=10000001,10000000&include=minimal": {"10000000", "10000001"},
+    f"{ROOT}?list=10000000,10000001&include=minimal": {"10000000", "10000001"},
+    f"{ROOT}?list=10000000&include=minimal,children": {"10000000"},
+    f"{ROOT}?list=10000001&include=minimal,children": {"10000001"},
     f"{ROOT}/search?term=placeholder%20licensed&type=contains&include=minimal": {
         "10000000",
         "10000001",

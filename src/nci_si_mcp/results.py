@@ -60,6 +60,8 @@ class TraversalProvenance(Provenance):
     relationship: NotRequired[Relationship]
     direction: NotRequired[Literal["in", "out"]]
     polarity: NotRequired[Polarity]
+    qualifiers: NotRequired[Any]
+    evidence: NotRequired[Any]
 
 
 class Untruncated(TypedDict):
@@ -157,6 +159,8 @@ class Hierarchy(TypedDict):
     nodes: list[Node]
     truncation: Truncation
     provenance: NotRequired[Provenance]
+    paths: NotRequired[list[list[str]]]
+    nextCursor: NotRequired[str]
 
 
 class Neighborhood(Hierarchy):
@@ -190,7 +194,7 @@ class TraversalEdge(TypedDict):
     source_code: str
     target_code: str
     edge_type: EdgeType
-    relationship_name: str
+    relationship_name: NotRequired[str]
     target_name: str
     source_name: str
     provenance: TraversalProvenance

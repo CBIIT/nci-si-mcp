@@ -410,7 +410,7 @@ class TraverseTest(HandlerTestCase):
         self.assertEqual(targets(include_roles=False), (["C4741", "C165258"], False))
         self.assertEqual(targets(include_associations=False), (["C4741", "C12922"], False))
         self.assertEqual(
-            targets(relationship_names=["Disease_Has_Abnormal_Cell"]), (["C12922"], False)
+            targets(relationship_names=["Disease_Has_Abnormal_Cell"]), (["C4741", "C12922"], False)
         )
 
     def test_invalid_selection_is_rejected_before_any_request(self):

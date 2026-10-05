@@ -1,0 +1,177 @@
+from unittest.mock import patch
+
+from fakes import concept, release
+from nci_si_mcp import cursor as cursors
+from nci_si_mcp.bounds import Budget, current_budget
+from nci_si_mcp.evs import EVSReleaseNotFoundError
+from nci_si_mcp.registry import invoke
+from test_server import ServerFixture
+from test_traversal import HubEVS
+
+
+class HierarchyPagingTest(ServerFixture):
+    def setUp(self):
+        super().setUp()
+        self.evs.concepts = {
+            "C1": concept("C1", active=True, children=[{"code": f"C{i}"} for i in range(2, 6)]),
+            **{f"C{i}": concept(f"C{i}", active=True) for i in range(2, 6)},
+        }
+
+    def page(self, **arguments):
+        return invoke(
+            self.context,
+            "get_concept_hierarchy",
+            **(
+                {
+                    "terminology": "ncit",
+                    "release": "26.06e",
+                    "code": "C1",
+                    "direction": "child",
+                    "limit": 2,
+                }
+                | arguments
+            ),
+        )
+
+    def test_historical_pages_continue_without_discovery_and_end_without_cursor(self):
+        self.evs.release = release("new")
+        first = self.page()
+        second = self.page(cursor=first["nextCursor"])
+        self.assertEqual(
+            [[node["code"] for node in page["nodes"]] for page in (first, second)],
+            [["C2", "C3"], ["C4", "C5"]],
+        )
+        self.assertNotIn("nextCursor", second)
+        self.assertEqual(first["truncation"], {"occurred": False})
+        self.assertNotIn("get_terminologies", [call[0] for call in self.evs.calls])
+
+    def test_withdrawn_cursor_resolves_current_only_after_pinned_failure(self):
+        first = self.page()
+        self.evs.release = release("new")
+        self.evs.errors["get_concepts_by_codes"] = EVSReleaseNotFoundError("withdrawn")
+        second = self.page(cursor=first["nextCursor"])
+        self.assertEqual(second["error"]["code"], "cursor_expired")
+        self.assertEqual(
+            second["error"]["details"], {"cursorRelease": "26.06e", "currentRelease": "new"}
+        )
+        self.assertEqual(self.evs.calls[-1], ("get_terminologies", "ncit", (True, "monthly")))
+        self.assertEqual(self.page()["error"]["code"], "release_not_available")
+
+    def test_cursor_rejects_changed_applied_arguments_before_network(self):
+        first = self.page()
+        for changed in (
+            {"limit": 3},
+            {"depth": 2},
+            {"code": "C2"},
+            {"direction": "parent"},
+            {"release": "new"},
+        ):
+            with self.subTest(changed=changed):
+                self.evs.calls.clear()
+                result = self.page(cursor=first["nextCursor"], **changed)
+                self.assertEqual(result["error"]["code"], "invalid_request")
+                self.assertEqual(self.evs.calls, [])
+
+    def test_malformed_cursors_are_invalid_requests(self):
+        for cursor in ("", "broken", "e30=", "W10=", "x" * 9000):
+            with self.subTest(cursor=cursor[:20]):
+                self.assertEqual(self.page(cursor=cursor)["error"]["code"], "invalid_request")
+        self.assertEqual(self.evs.calls, [])
+
+    def test_invalid_positions_cannot_be_used_to_claim_an_empty_last_page(self):
+        arguments = {
+            "terminology": "ncit",
+            "release": "26.06e",
+            "code": "C1",
+            "direction": "child",
+            "depth": 1,
+            "limit": 2,
+        }
+        for offset in (-1, 0, True, 100):
+            with self.subTest(offset=offset):
+                result = self.page(cursor=cursors.encode(arguments, offset))
+                self.assertEqual(result["error"]["code"], "invalid_request")
+                self.assertNotIn("nodes", result)
+
+    def test_defaults_and_clamped_depths_continue_as_the_same_arguments(self):
+        first = self.page()
+        second = self.page(depth=1, cursor=first["nextCursor"])
+        self.assertEqual([node["code"] for node in second["nodes"]], ["C4", "C5"])
+        first = self.page(depth=99)
+        second = self.page(depth=4, cursor=first["nextCursor"])
+        self.assertEqual([node["code"] for node in second["nodes"]], ["C4", "C5"])
+
+    def test_partial_replay_exhaustion_does_not_return_a_short_page(self):
+        first = self.page()
+        fetch = self.evs.get_concepts_by_codes
+
+        def counted(*args, **kwargs):
+            current_budget().request()
+            return fetch(*args, **kwargs)
+
+        with (
+            patch("nci_si_mcp.content.Budget", return_value=Budget(requests=1, paged=True)),
+            patch.object(self.evs, "get_concepts_by_codes", side_effect=counted),
+        ):
+            result = self.page(cursor=first["nextCursor"])
+        self.assertEqual(result["error"]["code"], "bound_exceeded")
+        self.assertNotIn("nodes", result)
+
+    def test_other_terminology_codes_survive_cursor_and_provenance_encoding(self):
+        children = ["B/C?", "name #2"]
+        self.evs.concepts = {
+            code: concept(code, active=True, terminology="other") for code in ["A/B", *children]
+        }
+        self.evs.concepts["A/B"]["children"] = [{"code": code} for code in children]
+        first = self.page(terminology="other", code="A/B", limit=1)
+        second = self.page(terminology="other", code="A/B", limit=1, cursor=first["nextCursor"])
+        self.assertEqual(
+            [node["code"] for page in (first, second) for node in page["nodes"]], children
+        )
+        self.assertTrue(first["nodes"][0]["provenance"]["sourceUri"].endswith("/B%2FC%3F"))
+
+    def test_replay_exhaustion_is_not_a_last_page(self):
+        first = self.page()
+        fetch = self.evs.get_concepts_by_codes
+
+        def exhausted(*args, **kwargs):
+            budget = current_budget()
+            budget.attempts = budget.requests
+            budget.request()
+            return fetch(*args, **kwargs)
+
+        with patch.object(self.evs, "get_concepts_by_codes", side_effect=exhausted):
+            result = self.page(cursor=first["nextCursor"])
+        self.assertEqual(result["error"]["code"], "bound_exceeded")
+        self.assertEqual(result["error"]["details"]["bound"], "requests")
+        self.assertIn("narrow", result["error"]["message"].lower())
+
+    def test_more_than_one_thousand_nodes_can_be_paged(self):
+        children = [concept(f"C{i}", active=True) for i in range(2, 1003)]
+        self.evs.concepts.update({item["code"]: item for item in children})
+        self.evs.concepts["C1"]["children"] = children
+        first = self.page(limit=1000)
+        second = self.page(limit=1000, cursor=first["nextCursor"])
+        self.assertEqual([len(page["nodes"]) for page in (first, second)], [1000, 1])
+        self.assertEqual(second["nodes"][0]["code"], "C1002")
+        self.assertNotIn("nextCursor", second)
+
+    def test_page_window_does_not_hide_a_later_upstream_cap(self):
+        self.context.evs = HubEVS(list(self.evs.concepts.values()))
+        self.context.evs.hubs = frozenset({"C2"})
+        result = self.page(limit=1, depth=2)
+        self.assertEqual([node["code"] for node in result["nodes"]], ["C2"])
+        self.assertIn("nextCursor", result)
+        self.assertEqual(result["truncation"]["bound"], "upstream_cap")
+        self.assertEqual(result["truncation"]["omitted"], 1)
+
+    def test_shared_descendants_and_cycles_are_not_repeated_across_pages(self):
+        self.evs.concepts["C2"]["children"] = [{"code": "C5"}, {"code": "C1"}]
+        self.evs.concepts["C3"]["children"] = [{"code": "C5"}]
+        first = self.page(depth=2)
+        second = self.page(depth=2, cursor=first["nextCursor"])
+        self.assertEqual(
+            [node["code"] for page in (first, second) for node in page["nodes"]],
+            ["C2", "C3", "C4", "C5"],
+        )
+        self.assertNotIn("nextCursor", second)

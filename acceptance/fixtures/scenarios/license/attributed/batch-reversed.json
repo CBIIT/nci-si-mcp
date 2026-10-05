@@ -13,31 +13,13 @@
   },
   "params": {
    "list": [
-    "10000000,10000001"
+    "10000001,10000000"
    ]
   }
  },
  "response": {
   "status": 200,
   "body": [
-   {
-    "code": "10000000",
-    "name": "Placeholder licensed term",
-    "terminology": "mdr",
-    "version": "29_0",
-    "conceptStatus": "DEFAULT",
-    "leaf": false,
-    "active": true,
-    "children": [
-     {
-      "code": "10000001",
-      "name": "Placeholder licensed child",
-      "leaf": true,
-      "licenseText": "The Medical Dictionary for Regulatory Activities (MedDRA) terminology is licensed for NCI work and may be viewed on NCI browsers. All other uses are prohibited, unless covered by separate subscription to MedDRA from the MedDRA MSSO (see http://www.meddra.org) or contact at mssohelp@meddra.org, +1-571-508-1491, or 12975 Worldgate Drive Herndon, VA 20170-6008."
-     }
-    ],
-    "licenseText": "The Medical Dictionary for Regulatory Activities (MedDRA) terminology is licensed for NCI work and may be viewed on NCI browsers. All other uses are prohibited, unless covered by separate subscription to MedDRA from the MedDRA MSSO (see http://www.meddra.org) or contact at mssohelp@meddra.org, +1-571-508-1491, or 12975 Worldgate Drive Herndon, VA 20170-6008."
-   },
    {
     "code": "10000001",
     "name": "Placeholder licensed child",
@@ -52,6 +34,24 @@
       "code": "10000000",
       "name": "Placeholder licensed term",
       "leaf": false,
+      "licenseText": "The Medical Dictionary for Regulatory Activities (MedDRA) terminology is licensed for NCI work and may be viewed on NCI browsers. All other uses are prohibited, unless covered by separate subscription to MedDRA from the MedDRA MSSO (see http://www.meddra.org) or contact at mssohelp@meddra.org, +1-571-508-1491, or 12975 Worldgate Drive Herndon, VA 20170-6008."
+     }
+    ],
+    "licenseText": "The Medical Dictionary for Regulatory Activities (MedDRA) terminology is licensed for NCI work and may be viewed on NCI browsers. All other uses are prohibited, unless covered by separate subscription to MedDRA from the MedDRA MSSO (see http://www.meddra.org) or contact at mssohelp@meddra.org, +1-571-508-1491, or 12975 Worldgate Drive Herndon, VA 20170-6008."
+   },
+   {
+    "code": "10000000",
+    "name": "Placeholder licensed term",
+    "terminology": "mdr",
+    "version": "29_0",
+    "conceptStatus": "DEFAULT",
+    "leaf": false,
+    "active": true,
+    "children": [
+     {
+      "code": "10000001",
+      "name": "Placeholder licensed child",
+      "leaf": true,
       "licenseText": "The Medical Dictionary for Regulatory Activities (MedDRA) terminology is licensed for NCI work and may be viewed on NCI browsers. All other uses are prohibited, unless covered by separate subscription to MedDRA from the MedDRA MSSO (see http://www.meddra.org) or contact at mssohelp@meddra.org, +1-571-508-1491, or 12975 Worldgate Drive Herndon, VA 20170-6008."
      }
     ],

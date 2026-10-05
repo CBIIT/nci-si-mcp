@@ -50,7 +50,7 @@ class RegistryMutationTest(ServerFixture):
             result = invoke(
                 self.context, "traverse", ["C3262"], max_depth=1, relationship_names=names
             )
-        self.assertEqual([edge["target_code"] for edge in result["edges"]], ["C12922"])
+        self.assertEqual([edge["target_code"] for edge in result["edges"]], ["C4741", "C12922"])
         (record,) = records(stream)
         self.assertEqual(record["parameters"]["relationship_names"], digest(names))
         self.assertNotIn(names[0], stream.getvalue())

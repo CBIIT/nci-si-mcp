@@ -300,10 +300,10 @@ def test_parent(tools):
     })
     assert result.tool == "get_concept_hierarchy"
 
-@pytest.mark.tool("get_concept_hierarchy")
-def test_paths_to_root(tools):
-    result = tools.call("get_concept_hierarchy", {
-        "terminology": "ncit", "release": "26.09d", "code": "C3262", "direction": "pathsToRoot"
+@pytest.mark.tool("search_concepts")
+def test_lexical(tools):
+    result = tools.call("search_concepts", {
+        "terminology": "ncit", "release": "26.09d", "query": "neoplasm"
     })
     assert result.is_error
 """
@@ -316,8 +316,9 @@ def test_paths_to_root(tools):
         tools["get_concept_hierarchy"]["counts"],
     ) == (
         "PASS",
-        {"passed": 2},
+        {"passed": 1},
     )
+    assert tools["search_concepts"]["counts"] == {"passed": 1}
     implemented = {
         name: row["implemented_as"] for name, row in tools.items() if row["implemented_as"]
     }

@@ -252,7 +252,7 @@ class TraversalTest(unittest.TestCase):
 
         by_target = {edge.target_code: edge for edge in result.edges}
         self.assertEqual(by_target["C11"].edge_type, "child")
-        self.assertEqual(by_target["C11"].relationship_name, "is_a_child")
+        self.assertEqual(by_target["C11"].relationship_name, "")
         self.assertEqual(by_target["C12"].edge_type, "role")
         self.assertEqual(by_target["C12"].relationship_name, "Disease_Has_Associated_Gene")
         self.assertEqual(by_target["C12"].source_name, "Root")
@@ -325,8 +325,8 @@ class TraversalTest(unittest.TestCase):
         self.assertEqual(
             [(edge.edge_type, edge.relationship_name) for edge in result.edges],
             [
-                ("child", "is_a_child"),
-                ("descendant", "is_a_descendant"),
+                ("child", ""),
+                ("descendant", ""),
                 ("role", "Role_A"),
                 ("role", "Role_B"),
             ],
@@ -772,7 +772,7 @@ class TraversalTest(unittest.TestCase):
 
         self.assertEqual(result.to_dict()["truncation"], {"occurred": False})
 
-    def test_hierarchy_edges_carry_their_documented_names(self):
+    def test_hierarchy_edges_have_no_invented_names(self):
         result = walk(
             complete_graph(star()),
             direction="both",
@@ -785,30 +785,30 @@ class TraversalTest(unittest.TestCase):
                 (edge.edge_type, edge.relationship_name, edge.target_code) for edge in result.edges
             ),
             [
-                ("child", "is_a_child", "C11"),
-                ("descendant", "is_a_descendant", "C11"),
-                ("parent", "is_a_parent", "C10"),
+                ("child", "", "C11"),
+                ("descendant", "", "C11"),
+                ("parent", "", "C10"),
             ],
         )
         filtered = walk(
-            complete_graph(star()), direction="in", max_depth=1, relationship_names=["IS_A_PARENT"]
+            complete_graph(star()), direction="in", max_depth=1, relationship_names=["Some_Role"]
         )
         self.assertEqual(pairs(filtered), [("C1", "C10")])
 
-    def test_name_filter_applies_to_descendant_edges(self):
+    def test_name_filter_does_not_drop_descendant_edges(self):
         by_role = walk(
             complete_graph(star()),
             max_depth=1,
             edge_types=["descendant", "role"],
             relationship_names=["Disease_Has_Finding"],
         )
-        self.assertEqual(pairs(by_role), [("C1", "C13")])
+        self.assertEqual(pairs(by_role), [("C1", "C11"), ("C1", "C13")])
 
         by_descendant = walk(
             complete_graph(star()),
             max_depth=1,
             edge_types=["descendant", "role"],
-            relationship_names=["is_a_descendant"],
+            relationship_names=["Missing_Role"],
         )
         self.assertEqual(pairs(by_descendant), [("C1", "C11")])
 

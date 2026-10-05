@@ -4,9 +4,14 @@
  "request": {
   "surface": "evs",
   "method": "GET",
-  "path": "/api/v1/concept/mdr_29_0/10000000/descendants",
+  "path": "/api/v1/concept/mdr_29_0",
   "ignored": {
-   "*": "placeholder content answers every projection alike"
+   "include": "placeholder content answers every projection alike"
+  },
+  "params": {
+   "list": [
+    "10000001"
+   ]
   }
  },
  "response": {

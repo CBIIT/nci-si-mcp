@@ -238,7 +238,7 @@ The provenance record, with these fields added (A4.2).
 | Field | Content | Rule |
 |---|---|---|
 | `depth` | Steps from the concept the caller asked about; an edge has the depth of the item it reaches | A4.2 |
-| `relationship` | The relationship that brought the item in: { code, name, kind }; the code decides polarity | A5.7 |
+| `relationship` | The relationship that brought the item in: { code?, name, kind }; code is absent where the platform names none, as for computed associations; such a relationship is positive. The code decides polarity. Hierarchy links carry only their kind, with no invented code or name. | A5.7 |
 | `direction` | Whether the assertion points outward from the origin or inward to it | A4.2 |
 | `polarity` | Negative exactly when the relationship's code is in its terminology's exclusion set below, positive otherwise, whatever the relationship is named (A5.7); the set is checked against the release's relationship catalogue (the relationship record): one of `positive`, `negative`; exclusion set of ncit: R135, R136, R137, R138, R139, R140, R141, R142 | A5.6 |
 | `qualifiers` | Any qualifying detail the platform attaches | A4.2 |

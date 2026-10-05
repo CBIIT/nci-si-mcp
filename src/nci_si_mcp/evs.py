@@ -332,3 +332,27 @@ class EVSClient:
             {"maxLevel": max_level},
         )
         return _object_list(data, "descendants response")
+
+    def get_paths_to_root(self, code: str, release: ReleaseContext) -> list[list[dict[str, Any]]]:
+        """Every platform path, in its order; the caller has verified the seed exists."""
+        data = self._get_existing(
+            concept_path(release.pinned_terminology, code) + "/pathsToRoot",
+            {"include": "minimal"},
+        )
+        if not isinstance(data, list):
+            raise EVSResponseError("EVS pathsToRoot was not a list")
+        paths = [_object_list(path, "path to root") for path in data]
+        for path in paths:
+            _verify_path(path, code, release)
+        return paths
+
+
+def _verify_path(path: list[dict[str, Any]], code: str, release: ReleaseContext) -> None:
+    codes = [raw.get("code") for raw in path]
+    if codes[:1] != [code]:
+        raise EVSResponseError("EVS returned a path that does not start with the requested concept")
+    if not all(isinstance(value, str) and value for value in codes):
+        raise EVSResponseError("EVS returned a path without concept codes")
+    if len(set(codes)) != len(codes):
+        raise EVSResponseError("EVS returned a cyclic path to root")
+    verify_content(path, release)

@@ -162,22 +162,11 @@ class ContentTest(ServerFixture):
 
     def test_hierarchy_needing_a_second_page_does_not_claim_completion(self):
         self.evs.concepts["C1"]["children"].append({"code": "C3", "name": "Three"})
+        self.evs.concepts["C3"] = concept("C3", active=True)
         result = self.content("get_concept_hierarchy", code="C1", direction="child", limit=1)
-        self.assertEqual(result["error"]["code"], "capability_unavailable")
-        self.assertEqual(result["error"]["details"], {"capability": "hierarchy paging"})
-
-    def test_hierarchy_maximum_page_excludes_seed_from_its_allowance(self):
-        children = [{"code": f"C{i}", "name": str(i)} for i in range(2, 1002)]
-        self.evs.concepts = {item["code"]: concept(item["code"], active=True) for item in children}
-        self.evs.concepts["C1"] = concept("C1", active=True, children=children)
-        result = self.content("get_concept_hierarchy", code="C1", direction="child", limit=1000)
-        self.assertEqual(
-            {node["code"] for node in result["nodes"]}, set(self.evs.concepts) - {"C1"}
-        )
+        self.assertEqual([node["code"] for node in result["nodes"]], ["C2"])
+        self.assertIn("nextCursor", result)
         self.assertEqual(result["truncation"], {"occurred": False})
-        children.append({"code": "C1002", "name": "Extra"})
-        result = self.content("get_concept_hierarchy", code="C1", direction="child", limit=1000)
-        self.assertEqual(result["error"]["details"], {"capability": "hierarchy paging"})
 
     def test_hierarchy_shared_descendants_do_not_consume_a_hidden_edge_limit(self):
         middle = [{"code": f"C{i}", "name": str(i)} for i in range(2, 36)]
@@ -198,20 +187,21 @@ class ContentTest(ServerFixture):
         )
         self.assertEqual(result["truncation"], {"occurred": False})
 
-    def test_hierarchy_refuses_paging_even_when_an_earlier_bound_wins(self):
+    def test_hierarchy_paging_retains_an_earlier_upstream_bound(self):
         self.context.evs = BudgetHub(
             [
                 concept("C1", active=True, children=[{"code": "C2"}, {"code": "C3"}]),
                 concept("C2", active=True),
                 concept("C3", active=True, children=[{"code": "C4"}, {"code": "C5"}]),
                 concept("C4", active=True),
+                concept("C5", active=True),
             ]
         )
         result = self.content(
             "get_concept_hierarchy", code="C1", direction="child", depth=2, limit=3
         )
-        self.assertEqual(result["error"]["code"], "capability_unavailable")
-        self.assertEqual(result["error"]["details"], {"capability": "hierarchy paging"})
+        self.assertIn("nextCursor", result)
+        self.assertEqual(result["truncation"]["bound"], "upstream_cap")
 
     def test_neighborhood_rejects_empty_kinds_and_nonboolean_negative_flag(self):
         for arguments in (
@@ -353,12 +343,13 @@ class ContentTest(ServerFixture):
         )
         self.assertEqual(result["edges"][0]["provenance"]["relationship"], {"kind": "child"})
 
-    def test_inverse_assertions_reverse_endpoints_and_negative_walk_requires_opt_in(self):
+    def test_inverse_negative_assertions_are_returned_with_reversed_endpoints(self):
         self.evs.concepts["C1"]["inverseRoles"] = [
             {"code": "R135", "type": "Exclusion", "relatedCode": "C2", "relatedName": "Two"}
         ]
-        refused = self.content("get_concept_neighborhood", code="C1", kinds=["inverseRole"])
-        self.assertEqual(refused["error"]["code"], "capability_unavailable")
+        stopped = self.content("get_concept_neighborhood", code="C1", kinds=["inverseRole"])
+        self.assertEqual({node["code"] for node in stopped["nodes"]}, {"C1", "C2"})
+        self.assertEqual(stopped["truncation"], {"occurred": False})
         result = self.content(
             "get_concept_neighborhood", code="C1", kinds=["inverseRole"], includeNegative=True
         )
@@ -442,11 +433,6 @@ class ContentTest(ServerFixture):
         self.assertEqual(result["truncation"]["perKind"]["role"]["bound"], "requests")
         self.assertEqual(result["truncation"]["perKind"]["role"]["omitted"], 1)
         self.assertEqual(result["truncation"]["perKind"]["association"], {"occurred": False})
-
-    def test_paging_and_paths_are_explicitly_unavailable(self):
-        for arguments in ({"direction": "pathsToRoot"}, {"direction": "child", "cursor": "x"}):
-            result = self.content("get_concept_hierarchy", code="C1", **arguments)
-            self.assertEqual(result["error"]["code"], "capability_unavailable")
 
     def test_output_schemas_describe_success_and_failure(self):
         self.index()

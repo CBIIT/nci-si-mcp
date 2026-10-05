@@ -42,6 +42,8 @@ class Budget:
     nodes: int = DEFAULT_MAX_NODES
     edges: int = DEFAULT_MAX_EDGES
     per_kind: int | None = None
+    # Hierarchy uses the node allowance as a page window, not an omission bound.
+    paged: bool = False
     attempts: int = field(default=0, init=False)
     added_by_kind: Counter[str] = field(default_factory=Counter, init=False)
     exhausted: bool = field(default=False, init=False)

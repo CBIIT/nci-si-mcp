@@ -74,7 +74,10 @@ traversal:
       content: Steps from the concept the caller asked about; an edge has the depth of the item it reaches
       of: A4.2
     relationship:
-      content: "The relationship that brought the item in: { code, name, kind }; the code decides polarity"
+      content: >-
+        The relationship that brought the item in: { code?, name, kind }; code is absent where
+        the platform names none, as for computed associations; such a relationship is positive.
+        The code decides polarity. Hierarchy links carry only their kind, with no invented code or name.
       of: A5.7
     direction:
       content: Whether the assertion points outward from the origin or inward to it
