@@ -91,6 +91,7 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 | `audit.py` | Emits one redacted JSON completion record per invocation, classifies parameters from the registry, counts actual HTTP attempts in request-scoped state, and formats diagnostics. | Correlation context, standard-library logging and SHA-256 |
 | `handlers.py` | Validates inputs, orchestrates use cases, pins EVS requests to the configured release channel, enforces index compatibility and implements lookup fallback. Owns tool contracts and resource content; moving aliases and absent-index reports select status cache policy. | `context.py`, release, traversal, evaluation |
 | `catalogue.py` | Reads release-pinned roles and associations once per call, validates row identities and the configured terminology-specific exclusion set, and projects relationship records with polarity by code. Missing exclusions fail the listing and neighborhood call with internal_error and missingCodes; no startup reads or cross-call cache. | EVS client, models, configuration |
+| `cursor.py` | Encodes hierarchy continuation positions with their applied arguments; validates malformed or changed continuations before network access. | standard library, errors |
 | `content.py` | Implements the caller-pinned EVS content surface, projects spec concept/node/edge records, and explicitly refuses unsupported Phase 2 options. Reuses fetched graph payloads and batches missing node status reads within the traversal request budget. Indexed search checks the requested release inside its read transaction. | `context.py`, index, traversal, release, validation |
 | `invocation.py` | Converts expected failures inside the audit correlation context through the single error-code table, preserving details and next steps. Unexpected exceptions propagate. | `errors.py`, upstream and domain exceptions |
 | `upstream.py` | Parses an upstream response body as JSON content, and classifies a failure that arrived as a success (an HTML page, a webMethods `apiResponse.type` `E` envelope, a FHIR `OperationOutcome` error, invalid JSON) as `upstream_unavailable` before any caller sees it. | `errors.py` |
@@ -211,8 +212,22 @@ It returns a specification concept record with upstream name, active/status and 
    and `polarity` of the edge that reached it. Polarity is decided by the relationship's
    code against the NCIt exclusion set, never by its name.
 7. MCP converts the graph to specification concept and edge records, with edges in assertion
-   orientation. Hierarchy excludes the seed; neighborhood includes it. Unsupported paging,
-   paths to root and selective negative expansion are explicitly refused pending #23.
+   orientation. Hierarchy excludes the seed and pages in breadth-first platform order.
+   Its cursor binds the applied arguments and position; each call replays the pinned walk
+   within 200 requests. The page window is not truncation; other bounds still report the
+   first real omission. Exhausted replay is bound_exceeded, never a false final page.
+   A served historical release continues without discovery. Only its withdrawal triggers
+   current-channel discovery and cursor_expired with both release identifiers.
+   pathsToRoot preserves every platform path and projects unique reached nodes; depth,
+   limit and cursor do not apply to that direction.
+8. Neighborhood includes negative targets but expands them only with includeNegative or
+   a positive route. Eligibility is separate from visibility, so an earlier negative
+   arrival cannot suppress later positive expansion, including after per-kind re-admission.
+   Depth follows the eligible route; node provenance retains its first arrival. Upstream
+   relationship codes and names identify edges together, preserving same-named assertions.
+   Missing codes remain absent and positive; qualifiers, evidence and licence text pass
+   through. Legacy CLI name filters leave hierarchy edges intact; their invented names
+   are removed.
 
 ## Provenance
 

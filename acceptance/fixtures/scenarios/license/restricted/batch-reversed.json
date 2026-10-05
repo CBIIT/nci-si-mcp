@@ -13,29 +13,13 @@
   },
   "params": {
    "list": [
-    "10000000,10000001"
+    "10000001,10000000"
    ]
   }
  },
  "response": {
   "status": 200,
   "body": [
-   {
-    "code": "10000000",
-    "name": "Placeholder licensed term",
-    "terminology": "mdr",
-    "version": "29_0",
-    "conceptStatus": "DEFAULT",
-    "leaf": false,
-    "active": true,
-    "children": [
-     {
-      "code": "10000001",
-      "name": "Placeholder licensed child",
-      "leaf": true
-     }
-    ]
-   },
    {
     "code": "10000001",
     "name": "Placeholder licensed child",
@@ -50,6 +34,22 @@
       "code": "10000000",
       "name": "Placeholder licensed term",
       "leaf": false
+     }
+    ]
+   },
+   {
+    "code": "10000000",
+    "name": "Placeholder licensed term",
+    "terminology": "mdr",
+    "version": "29_0",
+    "conceptStatus": "DEFAULT",
+    "leaf": false,
+    "active": true,
+    "children": [
+     {
+      "code": "10000001",
+      "name": "Placeholder licensed child",
+      "leaf": true
      }
     ]
    }

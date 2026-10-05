@@ -261,13 +261,13 @@ Implemented in `catalogue.py`: each call reads the caller-selected release’s r
 
 ### 4.3 Traversal (`evs/traversal.py`)
 
-Implemented: hierarchy and neighborhood are separate tools. Hierarchy excludes the seed from its node allowance and has no edge limit; neighborhood includes the seed and applies both node and edge limits. Both share a request budget and return projected concept records with verified status and traversal provenance. Hierarchy paging and pathsToRoot remain #23; a known node-limit cut refuses paging even when an earlier bound is reported.
+Implemented: hierarchy and neighborhood are separate tools. Hierarchy excludes the seed from its node allowance and has no edge limit; neighborhood includes the seed and applies both node and edge limits. Both share a request budget and return projected concept records with verified status and traversal provenance. Hierarchy paging replays the pinned breadth-first walk with a page window and lookahead under 200 requests; pages can continue past 1,000 total nodes. Page boundaries do not truncate content, and exhausted replay fails with bound_exceeded, asking the caller to narrow the query. pathsToRoot returns all platform paths and unique reached nodes, ignoring depth, limit and cursor.
 
 Each depth is read in batches of 50 concepts, or 10 when inverse relations are followed, asking for minimal content and only the selected relation lists (A5.8). Oversized batches halve; a single oversized concept stays unexpanded and contributes to upstream_cap truncation and a structured diagnostic. Final nodes without fetched payloads are hydrated with minimal content. Descendant edges come from one /descendants request per start code. Limits are claimed nearest first, with per-kind rotation.
 
 The bounded final-frontier check distinguishes depth cuts from leaves and cycles, counting distinct unseen targets one level further with exact=false. Descendant checks read child lists. Selected inverse kinds report unknown continuation at a nonempty final frontier with omitted=0, exact=false, regardless of which kind reached those nodes. Their expensive lists are not fetched solely for this check. A global node cut or a prior kind cut skips the corresponding check.
 
-Negative edges carry polarity by code. Selective expansion beyond their targets with includeNegative=false remains #23 and currently returns capability_unavailable; includeNegative=true follows them. The legacy CLI relationship-name filter remains independent of edge-kind selection.
+Negative edges carry polarity by code. Targets remain visible but are expanded only through positive routes unless includeNegative=true. Re-admitted positive edges can reopen an earlier negative-only target. Expansion depth follows the eligible route; a node retains its first arrival provenance. Computed associations without upstream codes stay positive and retain their name, qualifiers and evidence. The legacy CLI name filter applies only to non-hierarchy assertions; hierarchy pseudo-names are removed.
 
 ### 4.4 Index (`evs/index/`)
 
@@ -296,10 +296,11 @@ the common structured error boundary.
 Live content now supports caller-selected EVS terminologies; the client requires a release
 context and verifies full concept identity. Semantic/hybrid remains NCIt-only. New endpoints
 reuse this contract in their owning issues. Lexical/typeahead search, cursors and retired-only
-selection return `capability_unavailable` pending #27. Hierarchy paths to root, cursors
-and results needing another page, and selective negative expansion, remain #23 and are
-explicitly refused. Until then a neighborhood following beyond negative assertion targets
-requires `includeNegative=true`; assertions reaching the depth bound need no expansion.
+selection return `capability_unavailable` pending #27. Hierarchy paths, paging and
+selective negative expansion are implemented in #23. A hierarchy cursor remains valid
+while its explicit release is served; only a pinned Terminology not found failure means
+supersession, with current-channel discovery then supplying cursor_expired.currentRelease.
+No discovery read runs on normal continuation, including a historical release.
 Depth cuts are reported by the walker (§4.3); legacy MCP names and the tool-map mechanism
 are removed in #18. The descriptions state these interim limits; they do not claim the whole
 Phase 2 contract is implemented.

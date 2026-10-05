@@ -228,7 +228,7 @@ class MainTest(unittest.TestCase):
         )
 
         result, _ = traverse("--relationship-name", "Disease_Has_Abnormal_Cell")
-        self.assertEqual([edge["target_code"] for edge in result["edges"]], ["C12922"])
+        self.assertEqual([edge["target_code"] for edge in result["edges"]], ["C4741", "C12922"])
 
         code, result, _ = self.run_cli("traverse", "C3262", "C40704", "--max-depth", "0")
         self.assertEqual((code, result["start_codes"]), (0, ["C3262", "C40704"]))

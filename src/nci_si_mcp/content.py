@@ -7,6 +7,7 @@ from itertools import batched
 from typing import Any, NoReturn, get_args
 from urllib.parse import urlsplit
 
+from . import cursor as cursors
 from .bounds import (
     HARD_MAX_BATCH_CODES,
     HARD_MAX_DEPTH,
@@ -20,11 +21,19 @@ from .bounds import (
 )
 from .catalogue import exclusion_codes, load_catalogue
 from .context import Context
-from .errors import InputValidationError, NoActiveIndexError, PlatformError
-from .evs import EVSResponseError, concept_path, normalize_concept
+from .errors import InputValidationError, NoActiveIndexError, PlatformError, call_correlation_id
+from .evs import EVSReleaseNotFoundError, EVSResponseError, concept_path, normalize_concept
 from .index import require_index_release
-from .models import TraversalEdge, TraversalResult, Truncation, upstream_origin
-from .release import ReleaseContext
+from .models import (
+    TraversalEdge,
+    TraversalProvenance,
+    TraversalResult,
+    Truncation,
+    release_ref,
+    upstream_origin,
+    utc_now_iso,
+)
+from .release import ReleaseContext, resolve_evs_release
 from .traversal import BATCH_SIZE, traverse_ncit
 from .validation import (
     MAX_INDEX_SEARCH_LIMIT,
@@ -312,8 +321,16 @@ def get_concept_hierarchy(
 
     depth defaults to 1 and clamps at 4; limit defaults to 200 and clamps at
     1000. Each node has live EVS traversal provenance. The call shares 200
-    outbound attempts, retries included. pathsToRoot, cursors and results that
-    need paging are capability_unavailable until hierarchy paging is implemented.
+    outbound attempts, retries included. limit bounds a page; nextCursor continues
+    in breadth-first platform order with the same applied arguments and release.
+    Each continuation replays from the seed within 200 attempts. With batches of
+    50, an ordinary depth-one fanout can reach roughly 9,900 nodes including
+    replay; retries and oversized responses reduce this. If replay cannot reach
+    the page, bound_exceeded asks the caller to narrow the query. A still-served
+    historical release remains valid; withdrawal returns cursor_expired with the
+    pinned and current releases. Only withdrawal triggers channel discovery.
+    pathsToRoot returns every platform path in order and every reached concept
+    once; depth, limit and cursor do not apply to this direction.
     A bounded final-frontier check
     reports depth truncation only when unseen targets remain; leaves and cycles
     to returned nodes are complete. Unknown continuation has exact=false.
@@ -322,25 +339,123 @@ def get_concept_hierarchy(
     selected = _pin(context, terminology, release)
     code = _code(code, terminology)
     validate_choice(direction, get_args(HierarchyDirection), "direction")
+    if direction == "pathsToRoot":
+        return _paths_to_root(context, selected, code)
     depth, limit = bounded(depth, HARD_MAX_DEPTH, "depth"), bounded(limit, HARD_MAX_NODES, "limit")
-    if direction == "pathsToRoot" or cursor is not None:
-        _unavailable("hierarchy pathsToRoot and cursors")
-    budget = Budget(depth=depth, nodes=limit)
-    # Hierarchy pages exclude the seed and return no edges. Allow the seed
-    # separately, and every possible directed pair within that node allowance.
-    budget.nodes += 1
-    budget.edges = budget.nodes**2
-    graph = _graph(context, selected, code, [direction], budget)
-    if graph.node_limit_hit:
-        _unavailable("hierarchy paging")
-    result = _graph_record(graph)
-    hierarchy = {
-        "nodes": [node for node in result["nodes"] if node["code"] != code],
-        "truncation": result["truncation"],
+    arguments = {
+        "terminology": terminology,
+        "release": release,
+        "code": code,
+        "direction": direction,
+        "depth": depth,
+        "limit": limit,
     }
-    if not hierarchy["nodes"]:
-        hierarchy["provenance"] = result["nodes"][0]["provenance"]
-    return hierarchy
+    offset = cursors.decode(cursor, arguments)
+    budget = Budget(depth=depth, paged=True)
+    # The hierarchy has a page allowance, not a total node or edge allowance.
+    # Reserve the seed and a lookahead node; replay remains request-bounded.
+    budget.nodes = offset + limit + 2
+    budget.edges = budget.nodes**2
+    with budgeted(budget):
+        graph = _hierarchy_replay(context, selected, code, direction, budget, cursor)
+    return _hierarchy_page(graph, arguments, offset, limit)
+
+
+def _hierarchy_page(
+    graph: TraversalResult, arguments: dict[str, Any], offset: int, limit: int
+) -> dict[str, Any]:
+    # A hierarchy walk has exactly one seed, emitted first.
+    projected = _graph_record(graph)["nodes"]
+    nodes = projected[1:]
+    if offset and offset >= len(nodes):
+        raise InputValidationError("The cursor position is beyond this hierarchy", "cursor")
+    result: dict[str, Any] = {
+        "nodes": nodes[offset : offset + limit],
+        "truncation": _truncation(graph.truncation),
+    }
+    if len(nodes) > offset + limit:
+        result["nextCursor"] = cursors.encode(arguments, offset + limit)
+    if not nodes:
+        result["provenance"] = projected[0]["provenance"]
+    return result
+
+
+def _hierarchy_replay(
+    context: Context,
+    release: ReleaseContext,
+    code: str,
+    direction: str,
+    budget: Budget,
+    cursor: str | None,
+) -> TraversalResult:
+    try:
+        graph = _graph(context, release, code, [direction], budget)
+        if budget.exhausted:
+            raise RequestBudgetError(budget.requests, budget.attempts)
+        return graph
+    except EVSReleaseNotFoundError:
+        if cursor is None:
+            raise
+        current = resolve_evs_release(context.evs, release.terminology, release.channel)
+        raise PlatformError(
+            "cursor_expired",
+            "EVS no longer serves the cursor release. Restart with the current release.",
+            cursorRelease=release.version,
+            currentRelease=current.version,
+        ) from None
+    except RequestBudgetError as exc:
+        raise PlatformError(
+            "bound_exceeded",
+            "Hierarchy replay exhausted its request budget. Narrow the query with "
+            "a nearer starting concept or smaller depth.",
+            **exc.details,
+        ) from None
+
+
+def _paths_to_root(context: Context, release: ReleaseContext, code: str) -> dict[str, Any]:
+    with budgeted(Budget()):
+        seed = context.evs.get_concept(code, release=release, include="minimal")
+        if seed.get("code") != code:
+            raise EVSResponseError("EVS returned a concept other than the requested path seed")
+        paths = context.evs.get_paths_to_root(code, release=release)
+    uri = context.evs.uri(
+        concept_path(release.pinned_terminology, code) + "/pathsToRoot", {"include": "minimal"}
+    )
+    nodes = _path_nodes(paths, release, uri, code)
+    result: dict[str, Any] = {
+        "nodes": list(nodes.values()),
+        "paths": [[raw["code"] for raw in path] for path in paths],
+        "truncation": {"occurred": False},
+    }
+    if not nodes:
+        result["provenance"] = _record(seed, _path_provenance(release, uri, 0))["provenance"]
+    return result
+
+
+def _path_nodes(
+    paths: list[list[dict[str, Any]]], release: ReleaseContext, uri: str, code: str
+) -> dict[str, dict[str, Any]]:
+    nodes: dict[str, dict[str, Any]] = {}
+    for path in paths:
+        for depth, raw in enumerate(path):
+            if raw["code"] != code and raw["code"] not in nodes:
+                nodes[raw["code"]] = _record(raw, _path_provenance(release, uri, depth))
+    return nodes
+
+
+def _path_provenance(release: ReleaseContext, uri: str, depth: int) -> dict[str, Any]:
+    return TraversalProvenance(
+        release=release_ref(release.terminology, release.version, release.date),
+        source="evs_rest",
+        served_by="live",
+        retrieved_at=utc_now_iso(),
+        correlation_id=call_correlation_id(),
+        source_uri=uri,
+        depth=depth,
+        relationship={"kind": "parent"} if depth else None,
+        direction="out" if depth else None,
+        polarity="positive" if depth else None,
+    ).to_dict()
 
 
 def get_concept_neighborhood(
@@ -370,9 +485,11 @@ def get_concept_neighborhood(
     report depth at any nonempty frontier with omitted=0, exact=false, without reading
     their expensive lists solely to count continuation. Continuation is unknown.
     A reported global node cut skips this check; already-truncated kinds are excluded.
-    Negative assertions are marked; following beyond their targets requires
-    includeNegative=true until selective negative expansion is implemented,
-    otherwise capability_unavailable.
+    Negative assertions and their targets are returned marked, but their targets
+    are not expanded unless includeNegative=true or a positive route reaches
+    them. Expansion depth follows that eligible route; a node keeps its first
+    arrival provenance. Missing upstream relationship codes remain absent and
+    positive; qualifiers and evidence are passed through unchanged.
     Before the walk, the release's role and association catalogues are read once
     in the same budget. Missing configured exclusion codes return internal_error
     with details.missingCodes; no graph is returned and server startup stays offline.
@@ -394,14 +511,16 @@ def get_concept_neighborhood(
         exclusions = exclusion_codes(context.settings, terminology)
         load_catalogue(context.evs, selected, exclusions)
         result = _graph_record(
-            _graph(context, selected, code, selected_kinds, budget, exclusions=exclusions)
+            _graph(
+                context,
+                selected,
+                code,
+                selected_kinds,
+                budget,
+                exclusions=exclusions,
+                include_negative=includeNegative,
+            )
         )
-    if not includeNegative and any(
-        edge["provenance"].get("polarity") == "negative"
-        and edge["provenance"]["depth"] < budget.depth
-        for edge in result["edges"]
-    ):
-        _unavailable("selective negative assertion expansion")
     return result
 
 
@@ -423,9 +542,18 @@ def _graph(
     budget: Budget,
     *,
     exclusions: frozenset[str] = frozenset(),
+    include_negative: bool = True,
 ) -> TraversalResult:
     with budgeted(budget):
-        graph = traverse_ncit(context.evs, [code], release, kinds, budget, exclusions=exclusions)
+        graph = traverse_ncit(
+            context.evs,
+            [code],
+            release,
+            kinds,
+            budget,
+            exclusions=exclusions,
+            include_negative=include_negative,
+        )
         truncation = _hydrate(context, graph, release, budget, kinds)
     return replace(graph, truncation=truncation)
 
@@ -470,7 +598,7 @@ def _hydrate(
 
 def _hydration_cut(graph: TraversalResult, budget: Budget, kinds: list[str]) -> Truncation:
     missing = {node.code for node in graph.nodes} - graph.concepts.keys()
-    record = graph.truncation
+    record = graph.truncation if graph.truncation.occurred else _request_cut(budget, len(missing))
     if len(kinds) > 1:
         per_kind = {kind: _hydration_kind_cut(graph, budget, missing, kind) for kind in kinds}
         record = replace(record, per_kind=per_kind)

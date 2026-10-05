@@ -689,7 +689,6 @@ class ResultShapesTest(ProvenanceTestCase):
                 "source_code",
                 "target_code",
                 "edge_type",
-                "relationship_name",
                 "target_name",
                 "source_name",
                 "provenance",

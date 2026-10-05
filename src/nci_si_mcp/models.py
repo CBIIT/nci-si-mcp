@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from .errors import call_correlation_id
+from .validation import Polarity
 
 
 def utc_now_iso() -> str:
@@ -60,7 +61,9 @@ class TraversalProvenance(ProvenanceEnvelope):
     depth: int
     relationship: dict[str, str] | None = None
     direction: str | None = None
-    polarity: str | None = None
+    polarity: Polarity | None = None
+    qualifiers: Any = None
+    evidence: Any = None
 
     def to_dict(self) -> dict[str, Any]:
         data = super().to_dict()
@@ -69,8 +72,10 @@ class TraversalProvenance(ProvenanceEnvelope):
             "relationship": self.relationship,
             "direction": self.direction,
             "polarity": self.polarity,
+            "qualifiers": self.qualifiers,
+            "evidence": self.evidence,
         }
-        return data | {name: value for name, value in how_reached.items() if value}
+        return data | {name: value for name, value in how_reached.items() if value is not None}
 
 
 @dataclass(frozen=True, slots=True)
@@ -261,7 +266,10 @@ class TraversalEdge:
     source_name: str = ""
 
     def to_dict(self) -> dict[str, Any]:
-        return _with_provenance(self)
+        result = _with_provenance(self)
+        if not self.relationship_name:
+            result.pop("relationship_name")
+        return result
 
 
 @dataclass(frozen=True, slots=True)
@@ -275,13 +283,10 @@ class TraversalResult:
     max_edges: int
     # Minimal payloads already fetched by the walk, for the public concept projection.
     concepts: dict[str, dict[str, Any]] = field(default_factory=dict)
-    # Paging decisions must see a node cut even when an earlier bound is reported.
-    node_limit_hit: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
         data.pop("concepts")
-        data.pop("node_limit_hit")
         data["nodes"] = [node.to_dict() for node in self.nodes]
         data["edges"] = [edge.to_dict() for edge in self.edges]
         data["truncation"] = self.truncation.to_dict()
