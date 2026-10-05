@@ -6,45 +6,43 @@ from unittest.mock import patch
 
 from nci_si_mcp.caching import cache_call, select_cache_hint
 from nci_si_mcp.errors import IndexStorageError
-from nci_si_mcp.evs import EVSUnavailableError
-from nci_si_mcp.server import _cache_results, create_mcp
+from nci_si_mcp.http_client import UpstreamUnavailableError
+from nci_si_mcp.registry import OPERATIONS, SPECS, ToolSpec, invoke
+from nci_si_mcp.server import _cache_results
 from test_server import ServerFixture
 
 
 @patch("nci_si_mcp.server.configure_logging")
 class CachingTest(ServerFixture):
     def test_every_registered_tool_and_resource_declares_a_cache_class(self, _):
-        server = create_mcp(self.settings, service=self.service)
-        # Inspect registrations, not response hints: a new declaration must not be
-        # silently supplied by the middleware's policy for a different producer.
-        registrations = [
-            *server._tool_manager.list_tools(),
-            *server._resource_manager.list_resources(),
-            *server._resource_manager.list_templates(),
-        ]
+        registrations = [spec for spec in SPECS if spec.name or spec.uri]
         self.assertEqual(len(registrations), 8)
-        for registration in registrations:
-            with self.subTest(name=registration.name):
-                self.assertIsInstance(getattr(registration.fn, "__cache_resolution__", None), bool)
+        for spec in registrations:
+            with self.subTest(operation=spec.operation):
+                self.assertIsInstance(spec.resolution, bool)
 
     def test_tool_policy_follows_its_declaration_after_a_rename(self, _):
-        def register(tool, service, tool_result):
-            @tool(resolution=True)
-            def renamed_status() -> dict[str, str]:
-                return {"state": "pending"}
+        def status(context):
+            return {"state": "pending"}
 
-        with patch("nci_si_mcp.server._register_tools", side_effect=register):
+        spec = ToolSpec(status, "evs", dict[str, str], True, name="renamed_status")
+        with (
+            patch("nci_si_mcp.server.SPECS", (spec,)),
+            patch.dict(OPERATIONS, {spec.operation: spec}),
+        ):
             result = self.session(lambda client: client.call_tool("renamed_status"))
         self.assertFalse(result.is_error)
         self.assertEqual((result.meta["ttlMs"], result.meta["cacheScope"]), (0, "public"))
 
     def test_resource_policy_ignores_its_uri_and_payload_shape(self, _):
-        def register(resource, service, resource_result):
-            @resource("nci-si://renamed/{code}", resolution=False)
-            def renamed_content(code: str):
-                return {"code": code, "active_index": None}
+        def content(context, code: str):
+            return {"code": code, "active_index": None}
 
-        with patch("nci_si_mcp.server._register_resources", side_effect=register):
+        spec = ToolSpec(content, "evs", dict, False, uri="nci-si://renamed/{code}")
+        with (
+            patch("nci_si_mcp.server.SPECS", (spec,)),
+            patch.dict(OPERATIONS, {spec.operation: spec}),
+        ):
             result = self.session(lambda client: client.read_resource("nci-si://renamed/C1"))
         self.assertEqual((result.ttl_ms, result.cache_scope), (86_400_000, "public"))
 
@@ -79,7 +77,7 @@ class CachingTest(ServerFixture):
                 self.assertNotIn("cacheScope", wire.get("_meta") or {})
 
     def test_governed_tool_content_has_long_public_protocol_metadata(self, _):
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
         calls = [
             ("ncit_lookup", {"code": "C3262"}),
             ("ncit_search", {"query": "Neoplasm"}),
@@ -101,7 +99,7 @@ class CachingTest(ServerFixture):
                 )
 
     def test_empty_search_is_cacheable_governed_content(self, _):
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
         result = self.session(
             lambda client: client.call_tool("ncit_search", {"query": "zzzz", "mode": "bm25"})
         )
@@ -116,7 +114,7 @@ class CachingTest(ServerFixture):
                 self.assertEqual((result.meta["ttlMs"], result.meta["cacheScope"]), (0, "public"))
 
     def test_failed_release_discovery_is_still_not_cached(self, _):
-        self.evs.errors = {"get_terminologies": EVSUnavailableError("down")}
+        self.evs.errors = {"get_terminologies": UpstreamUnavailableError("down")}
         result = self.session(lambda client: client.call_tool("ncit_release_info"))
         self.assertIn("error", json.loads(result.content[0].text)["selected_monthly_release"])
         self.assertEqual((result.meta["ttlMs"], result.meta["cacheScope"]), (0, "public"))
@@ -138,7 +136,7 @@ class CachingTest(ServerFixture):
 
     def test_error_privacy_overrides_the_resolvers_public_policy(self, _):
         with patch.object(
-            self.service.index, "get_active_manifest", side_effect=IndexStorageError("unreadable")
+            self.context.index, "get_active_manifest", side_effect=IndexStorageError("unreadable")
         ):
             result = self.session(lambda client: client.call_tool("ncit_release_info"))
         self.assertTrue(result.is_error)
@@ -146,7 +144,7 @@ class CachingTest(ServerFixture):
         self.assertEqual((result.meta["ttlMs"], result.meta["cacheScope"]), (0, "private"))
 
     def test_resource_content_and_moving_aliases_have_distinct_result_hints(self, _):
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
         cases = {
             "nci-si://concept/ncit/C3262": 86_400_000,
             "nci-si://release/ncit/26.06e": 86_400_000,

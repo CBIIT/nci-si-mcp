@@ -9,11 +9,7 @@ from typing import Any
 
 from .http_client import (
     HttpClient,
-    UpstreamError,
     UpstreamRejectedError,
-    UpstreamTimeoutError,
-    UpstreamTooLargeError,
-    UpstreamUnavailableError,
 )
 from .models import NcitConcept, utc_now_iso
 
@@ -47,24 +43,12 @@ class EVSError(RuntimeError):
         self.details = details
 
 
-class EVSUnavailableError(EVSError):
-    """EVS could not be reached, or kept failing after the bounded retries."""
-
-
-class EVSTimeoutError(EVSUnavailableError):
-    """EVS did not answer within the timeout on any attempt."""
-
-
 class EVSNotFoundError(EVSError):
     """The requested concept does not exist in the release that was asked for."""
 
 
 class EVSResponseError(EVSError):
-    """EVS rejected the request or answered with something the client cannot use."""
-
-
-class EVSResponseTooLargeError(EVSResponseError):
-    """EVS answered with more bytes than the configured response limit."""
+    """EVS returned unusable content or lacks an endpoint that must exist."""
 
 
 class EVSReleaseMismatchError(EVSResponseError):
@@ -164,27 +148,8 @@ def normalize_concept(
     )
 
 
-# The EVS error of each failure of the HTTP client, nearest class first.
-_EVS_ERRORS: dict[type[UpstreamError], type[EVSError]] = {
-    UpstreamTimeoutError: EVSTimeoutError,
-    UpstreamUnavailableError: EVSUnavailableError,
-    UpstreamTooLargeError: EVSResponseTooLargeError,
-    UpstreamRejectedError: EVSResponseError,
-}
-
-
 # What EVS says of a request pinned to a release it does not serve.
 _UNKNOWN_TERMINOLOGY = re.compile(r"Terminology not found\s*=\s*([^\s)]+)")
-
-
-def _evs_error(exc: UpstreamError) -> EVSError:
-    if exc.details.get("status") == HTTPStatus.NOT_FOUND:
-        unknown = _UNKNOWN_TERMINOLOGY.search(str(exc))
-        if unknown:
-            return EVSReleaseNotFoundError(str(exc), requested=unknown[1], source="evs")
-        return EVSNotFoundError(str(exc), **exc.details)
-    error = next(error for kind, error in _EVS_ERRORS.items() if isinstance(exc, kind))
-    return error(str(exc), **exc.details)
 
 
 class EVSClient:
@@ -234,8 +199,13 @@ class EVSClient:
 
         try:
             return self.http.get_json(path, params)
-        except UpstreamError as exc:
-            raise _evs_error(exc) from exc
+        except UpstreamRejectedError as exc:
+            if exc.details.get("status") != HTTPStatus.NOT_FOUND:
+                raise
+            unknown = _UNKNOWN_TERMINOLOGY.search(str(exc))
+            if unknown:
+                raise EVSReleaseNotFoundError(str(exc), requested=unknown[1], source="evs") from exc
+            raise EVSNotFoundError(str(exc), **exc.details) from exc
 
     def _get_existing(self, path: str, params: dict[str, Any] | None = None) -> Any:
         """GET a document that must exist, so a 404 means a wrong endpoint or release."""

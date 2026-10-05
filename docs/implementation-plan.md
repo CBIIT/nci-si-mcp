@@ -49,7 +49,7 @@ These hold today and continue to hold:
 
 ### 1.4 Ground rules that change
 
-| Today | After |
+| Prototype baseline | Target |
 |---|---|
 | Every concept request addresses `ncit_{release}` of the one current monthly release, and each concept payload's `version` is checked; the terminology and the release cannot be chosen. An unknown release is `evs_invalid_response` on the batch and descendants endpoints but `concept_not_found` on a single-concept lookup (a 404 there cannot be told from an unknown code), and a payload mismatch is `evs_invalid_response` | Every content request addresses `{terminology}_{release}` from the call's `ReleaseContext` explicitly (verified to work and to fail closed with 404 on an unknown release); the payload check becomes a second guard, not the only one; an unknown release is `release_not_available` and a payload mismatch `release_mismatch` (A3.1, A3.4) |
 | Expected exceptions are mapped to codes by one table (`_ERROR_CODES`, applied by `service._enveloped`); with the envelopes that the service, the CLI and the resources build directly, `ErrorCode` has fourteen values | One error model, the error record's closed set of codes (A2.5), one serialisation — every tool returns a structured error through the same path (§3.1) |
@@ -109,7 +109,7 @@ src/nci_si_mcp/
 acceptance/                 separate package, see §9
 ```
 
-`service.py` is retired. Its role — composing clients, index, traversal and adapter — is taken by `platform.registry`, which holds one `ToolSpec` per tool and is the single place `server.py` and `cli.py` read from. The parameter lists that `server.py` and `cli.py` each declare today disappear with it.
+Implemented in the current flat package: `service.py` is retired. `registry.py` holds one `ToolSpec` per operation with its output union, cache class and adapter exposure. Handler signatures supply typed input models, defaults and choices to both adapters. `handlers.py` composes the use cases; `context.py` holds injectable collaborators; `invocation.py` owns correlation and the one expected-error path for tools, resources and CLI. Shared HTTP errors propagate unchanged; EVS exceptions identify domain failures only. The package-layout drawing above remains a target for later modules, not a reason to move existing files.
 
 ---
 
@@ -117,7 +117,7 @@ acceptance/                 separate package, see §9
 
 ### 3.1 Error model (`platform/errors.py`)
 
-Replace the fourteen-value `ErrorCode` literal in `errors.py`, and the `_ERROR_CODES` table in `service.py`, with the codes of the specification's error record (`spec/records.yaml`): each failure carries its `code`, a message, the call's correlation identifier, and the `details` the caller needs for its next step. The prototype's codes map onto them as follows:
+Implemented with the ten-value `ErrorCode` literal in `errors.py` and the `_ERROR_CODES` table at the shared boundary in `invocation.py`, using the codes of the specification's error record (`spec/records.yaml`): each failure carries its `code`, a message, the call's correlation identifier, and the `details` the caller needs for its next step. The prototype's codes map onto them as follows:
 
 | Code | Replaces | `details` carry |
 |---|---|---|
@@ -164,7 +164,7 @@ One client for all surfaces, replacing `EVSClient._get_json` and the per-module 
 
 ### 3.5 Bounds (`platform/bounds.py`)
 
-Implemented in `bounds.py`: the service creates one `Budget`, including depth, from caller limits clamped to the documented maxima and passes it explicitly to the walker. Its context variable is scoped and restored like the correlation context so the HTTP client uses that same instance. The HTTP client counts attempts, including release discovery, retries and split batches, against the 200-request allowance declared for hierarchy and neighborhood. Other calls have no request budget unless their specification declares one. Without graph content exhaustion returns `bound_exceeded`; with graph content it returns a partial graph. The first bound that dropped anything wins, so request exhaustion reports `requests` only when no earlier bound applies. Unknown per-kind omissions use the lower bound zero with `exact: false`.
+Implemented in `bounds.py`: the traversal handler creates one `Budget`, including depth, from caller limits clamped to the documented maxima and passes it explicitly to the walker. Its context variable is scoped and restored like the correlation context so the HTTP client uses that same instance. The HTTP client counts attempts, including release discovery, retries and split batches, against the 200-request allowance declared for hierarchy and neighborhood. Other calls have no request budget unless their specification declares one. Without graph content exhaustion returns `bound_exceeded`; with graph content it returns a partial graph. The first bound that dropped anything wins, so request exhaustion reports `requests` only when no earlier bound applies. Unknown per-kind omissions use the lower bound zero with `exact: false`.
 
 `clamp_limits`, `clamp_edge_limit` and the `HARD_MAX_*` constants now live in `bounds.py`; the defaults and maxima are the tools' `bounds` in `spec/tools.yaml`. The walker rotates relationship kinds across each breadth-first frontier. Starts count against the global node limit; a kind's optional allowance counts only new nodes it admits. Existing-node edges, duplicates and filtered edges spend no node allowance. Truncation includes per-kind records for mixed-kind walks.
 
@@ -197,7 +197,7 @@ ship with #38/#39. Those issue bodies record the requirements; #14 covers cache 
 `outputSchema` is generated by the MCP SDK from the serialized result types in `results.py`,
 success and error shapes alike. Standard-library TypedDicts describe the wire keys separately
 from the stored dataclasses, including optional keys and recursive `perKind`. The adapter
-wraps each tool's success/error return annotation in Pydantic's `RootModel`, imported lazily
+wraps each ToolSpec's success/error output union in Pydantic's `RootModel`, imported lazily
 with MCP: this preserves the object shape where the SDK's bare union support would introduce
 a `result` wrapper. No custom JSON Schema generator or hand-written schema copy is needed.
 
@@ -205,7 +205,8 @@ Unit tests render `tools/list` in every configured profile, validate every schem
 success/error results, and reject malformed records. They assert byte-identical listings
 across release channels, upstream modes, calls and upstream failure (M1.2), and check rendered
 descriptions for unfinished text and unsupported values against behavior (A2.3, A2.4).
-Profile filtering remains #17; tool and field renames remain #18. An input schema states no
+Profiles select the current inventory: four NCIt tools for `evs`, the pending caDSR status
+tool for `cadsr`, all five for `unified`. Tool and field renames remain #18. An input schema states no
 `maximum` for a bounded argument: a value above it is applied as the maximum (the tools'
 `bounds` in `spec/tools.yaml`), and the argument's description states its default and maximum.
 
@@ -459,7 +460,9 @@ Keep `unittest`-style tests under the gates in `CONTRIBUTING.md`. Extend `tests/
 - `test_cadsr_client`, `test_ssis_client`: required-parameter validation; envelope errors; `Accept` header.
 - `test_server`: `tools/list` per profile; `ttlMs`/`cacheScope` on list and discovery results.
 
-`tests/test_service.py` moves to the tool handlers with `service.py`.
+`tests/test_handlers.py` tests the migrated business operations through the registry.
+`tests/test_registry.py` pins shared adapter arguments, profile inventories, annotations
+and upstream error details.
 
 ---
 
@@ -487,7 +490,7 @@ Work proceeds in the order of the table above until award. What remains at the f
 
 ## 12. Removals
 
-- `service.py`, `cadsr.py` (the stub), `include_raw` and `live_only` on the MCP surface.
+- `service.py` is removed. Later tool work removes `cadsr.py` (the stub) and `live_only` from the MCP surface; `include_raw` is already CLI-only.
 - Label-based exclusion detection, wherever it appears.
 - The `is_a_parent` / `is_a_child` / `is_a_descendant` pseudo-relationship names.
 

@@ -7,14 +7,12 @@ from unittest.mock import patch
 from urllib.error import HTTPError, URLError
 
 from nci_si_mcp.errors import PlatformError
-from nci_si_mcp.evs import (
-    EVSClient,
-    EVSNotFoundError,
-    EVSResponseError,
-    EVSResponseTooLargeError,
-    EVSTimeoutError,
-    EVSUnavailableError,
-    concept_path,
+from nci_si_mcp.evs import EVSClient, EVSNotFoundError, EVSResponseError, concept_path
+from nci_si_mcp.http_client import (
+    UpstreamRejectedError,
+    UpstreamTimeoutError,
+    UpstreamTooLargeError,
+    UpstreamUnavailableError,
 )
 
 
@@ -91,7 +89,7 @@ class EVSClientTest(unittest.TestCase):
 
         with (
             self.assertLogs("nci_si_mcp.http_client", level="WARNING"),
-            self.assertRaises(EVSUnavailableError) as raised,
+            self.assertRaises(UpstreamUnavailableError) as raised,
         ):
             self.client(max_attempts=4, retry_backoff_seconds=0.25).get_api_version()
 
@@ -109,7 +107,7 @@ class EVSClientTest(unittest.TestCase):
 
                 with (
                     self.assertLogs("nci_si_mcp.http_client", level="WARNING"),
-                    self.assertRaises(EVSTimeoutError) as raised,
+                    self.assertRaises(UpstreamTimeoutError) as raised,
                 ):
                     self.client(timeout_seconds=7, max_attempts=2).get_api_version()
 
@@ -122,18 +120,18 @@ class EVSClientTest(unittest.TestCase):
 
         with (
             self.assertLogs("nci_si_mcp.http_client", level="WARNING"),
-            self.assertRaises(EVSUnavailableError) as raised,
+            self.assertRaises(UpstreamUnavailableError) as raised,
         ):
             self.client(max_attempts=2).get_api_version()
 
-        self.assertNotIsInstance(raised.exception, EVSTimeoutError)
+        self.assertNotIsInstance(raised.exception, UpstreamTimeoutError)
 
     def test_repeated_server_errors_report_every_attempt_and_the_status(self, urlopen, sleep):
         urlopen.side_effect = [http_error(503), http_error(503), http_error(503)]
 
         with (
             self.assertLogs("nci_si_mcp.http_client", level="WARNING"),
-            self.assertRaises(EVSUnavailableError) as raised,
+            self.assertRaises(UpstreamUnavailableError) as raised,
         ):
             self.client(max_attempts=3).get_api_version()
 
@@ -144,11 +142,11 @@ class EVSClientTest(unittest.TestCase):
 
         with (
             self.assertLogs("nci_si_mcp.http_client", level="WARNING"),
-            self.assertRaises(EVSUnavailableError) as raised,
+            self.assertRaises(UpstreamUnavailableError) as raised,
         ):
             self.client(max_attempts=2).get_api_version()
 
-        self.assertNotIsInstance(raised.exception, EVSTimeoutError)
+        self.assertNotIsInstance(raised.exception, UpstreamTimeoutError)
         self.assertEqual(raised.exception.details, {"surface": "evs", "attempts": 2, "status": 500})
 
     def test_an_unavailable_error_carries_the_status_attempts_and_retry_after(self, urlopen, sleep):
@@ -165,7 +163,7 @@ class EVSClientTest(unittest.TestCase):
 
         for details in expected:
             with self.subTest(details=details):
-                with self.assertRaises(EVSUnavailableError) as raised:
+                with self.assertRaises(UpstreamUnavailableError) as raised:
                     client.get_api_version()
 
                 self.assertEqual(raised.exception.details, details)
@@ -173,7 +171,7 @@ class EVSClientTest(unittest.TestCase):
     def test_a_rejected_request_carries_the_status(self, urlopen, sleep):
         urlopen.side_effect = http_error(403)
 
-        with self.assertRaises(EVSResponseError) as raised:
+        with self.assertRaises(UpstreamRejectedError) as raised:
             self.client().get_api_version()
 
         self.assertEqual(raised.exception.details, {"surface": "evs", "status": 403, "attempts": 1})
@@ -223,7 +221,7 @@ class EVSClientTest(unittest.TestCase):
 
         with (
             self.assertLogs("nci_si_mcp.http_client", level="WARNING"),
-            self.assertRaises(EVSUnavailableError),
+            self.assertRaises(UpstreamUnavailableError),
         ):
             self.client(max_attempts=10, retry_backoff_seconds=3600).get_api_version()
 
@@ -275,7 +273,7 @@ class EVSClientTest(unittest.TestCase):
                     "https://example.invalid", 403, "Forbidden", Message(), body
                 )
 
-                with self.assertRaises(EVSResponseError) as raised:
+                with self.assertRaises(UpstreamRejectedError) as raised:
                     self.client().get_api_version()
 
                 self.assertTrue(str(raised.exception).endswith("HTTP 403 Forbidden"))
@@ -305,7 +303,7 @@ class EVSClientTest(unittest.TestCase):
                 urlopen.reset_mock()
                 urlopen.side_effect = http_error(status, b"<html>")
 
-                with self.assertRaises(EVSResponseError) as raised:
+                with self.assertRaises(UpstreamRejectedError) as raised:
                     self.client().get_api_version()
 
                 self.assertNotIsInstance(raised.exception, EVSNotFoundError)
@@ -314,7 +312,7 @@ class EVSClientTest(unittest.TestCase):
     def test_one_attempt_means_no_retry(self, urlopen, sleep):
         urlopen.side_effect = URLError("down")
 
-        with self.assertRaises(EVSUnavailableError):
+        with self.assertRaises(UpstreamUnavailableError):
             self.client(max_attempts=1).get_api_version()
 
         self.assertEqual(urlopen.call_count, 1)
@@ -352,7 +350,7 @@ class EVSClientTest(unittest.TestCase):
                 urlopen.side_effect = None
                 urlopen.return_value = response
 
-                with self.assertRaises(EVSResponseTooLargeError) as raised:
+                with self.assertRaises(UpstreamTooLargeError) as raised:
                     client.get_api_version()
 
                 self.assertEqual(

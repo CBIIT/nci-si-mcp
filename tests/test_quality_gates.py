@@ -105,7 +105,7 @@ class ComplexityGateTest(GateTestCase):
 
         self.assertLessEqual(
             {
-                "src/nci_si_mcp/service.py",
+                "src/nci_si_mcp/context.py",
                 "scripts/validation/check_complexity.py",
                 "tests/test_quality_gates.py",
             },

@@ -4,14 +4,14 @@ from copy import deepcopy
 from dataclasses import replace
 from itertools import product
 from typing import get_args
-from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
 
 from fakes import release
 from nci_si_mcp.config import BASE_URL_VARIABLES
 from nci_si_mcp.errors import ErrorCode, PlatformError, serialise
-from nci_si_mcp.evs import EVSUnavailableError
+from nci_si_mcp.http_client import UpstreamUnavailableError
+from nci_si_mcp.registry import ToolSpec, invoke
 from nci_si_mcp.validation import PROFILES, RELEASE_CHANNELS, UPSTREAM_MODES
 from test_server import ServerFixture
 
@@ -43,7 +43,7 @@ class SchemaTest(ServerFixture):
                     validator.validate(serialise(PlatformError(code, "Retry", reason="test")))
 
     def test_current_success_shapes_validate_without_rewriting_fields(self):
-        self.service.index_codes(["C3262", "C4741"])
+        invoke(self.context, "index_codes", ["C3262", "C4741"])
         calls = {
             "ncit_lookup": {"code": "C3262"},
             "ncit_search": {"query": "Neoplasm", "limit": 1},
@@ -76,20 +76,20 @@ class SchemaTest(ServerFixture):
         self.assertFalse(validator.is_valid(broken))
 
     def test_empty_search_and_cached_lookup_optional_fields(self):
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
         validators = self.validators()
         empty = self.result("ncit_search", query="zzzzzz", mode="bm25")
         validators["ncit_search"].validate(empty)
         self.assertEqual(empty["hits"], [])
         self.assertIn("provenance", empty)
-        self.evs.errors["get_terminologies"] = EVSUnavailableError("offline")
+        self.evs.errors["get_terminologies"] = UpstreamUnavailableError("offline")
         cached = self.result("ncit_lookup", code="C3262")
         validators["ncit_lookup"].validate(cached)
         self.assertEqual(cached["fallback"]["reason"], "upstream_unavailable")
 
     def test_discovery_nested_errors_and_absent_provenance_validate(self):
-        self.evs.errors["get_terminologies"] = EVSUnavailableError("offline")
-        self.evs.errors["get_api_version"] = EVSUnavailableError("offline")
+        self.evs.errors["get_terminologies"] = UpstreamUnavailableError("offline")
+        self.evs.errors["get_api_version"] = UpstreamUnavailableError("offline")
         data = self.result("ncit_release_info")
         validator = self.validators()["ncit_release_info"]
         validator.validate(data)
@@ -154,7 +154,10 @@ class SchemaTest(ServerFixture):
         )
 
     def test_schema_surface_is_static_in_every_configuration(self):
-        before = self.listing_bytes()
+        before = {}
+        for profile in PROFILES:
+            self.settings = replace(self.settings, profile=profile)
+            before[profile] = self.listing_bytes()
         urls = dict.fromkeys(BASE_URL_VARIABLES, "https://fixture.test")
         for profile, channel, mode in product(PROFILES, RELEASE_CHANNELS, UPSTREAM_MODES):
             with self.subTest(profile=profile, channel=channel, mode=mode):
@@ -166,13 +169,13 @@ class SchemaTest(ServerFixture):
                     **urls,
                 )
                 self.evs.release = release("99.01a", channel=channel)
-                self.assertEqual(self.listing_bytes(), before)
+                self.assertEqual(self.listing_bytes(), before[profile])
 
     def test_schema_surface_is_static_after_calls_and_upstream_failure(self):
         before = self.listing_bytes()
         self.result("ncit_lookup", code="C3262")
         self.assertEqual(self.listing_bytes(), before)
-        self.evs.errors["get_terminologies"] = EVSUnavailableError("offline")
+        self.evs.errors["get_terminologies"] = UpstreamUnavailableError("offline")
         self.result("ncit_lookup", code="C3262")
         self.assertEqual(self.listing_bytes(), before)
 
@@ -193,14 +196,9 @@ class SchemaTest(ServerFixture):
                 )
                 self.assertTrue(response.is_error)
 
-    def test_missing_return_declaration_fails_at_registration(self):
-        def register(tool, service, tool_result):
-            @tool(resolution=False)
-            def undeclared():
-                return {"anything": True}
+    def test_missing_output_declaration_fails_at_registration(self):
+        def undeclared(context):
+            return {"anything": True}
 
-        with (
-            patch("nci_si_mcp.server._register_tools", side_effect=register),
-            self.assertRaisesRegex(KeyError, "return"),
-        ):
-            self.validators()
+        with self.assertRaisesRegex(TypeError, "output"):
+            ToolSpec(handler=undeclared, group="evs", resolution=False)

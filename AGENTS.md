@@ -36,7 +36,7 @@ These are the owner's rules. They apply to every change.
   never write a test whose purpose is the number (no assertion-free tests, no tests that only
   check that a mock was called). CI fails below 90% and warns at or below 95%.
 - **Design: KISS and DRY.** The simplest structure that does the job, one place for each fact,
-  and the established architecture (thin adapters over the service, one error path, closed value
+  and the established architecture (thin adapters over the registry, one error path, closed value
   sets in `validation.py`). No abstraction for a single use.
 - **Readable, maintainable, extendable code.** Small functions (cyclomatic complexity below 8 is
   a gate), names that say what a thing is, comments that give the reason.
@@ -57,7 +57,7 @@ The project is managed with PDM (Python 3.14 or newer); `pdm install` builds `.v
 ```bash
 pdm run test                              # whole suite, with the 90% coverage floor
 pdm run pytest tests/test_index.py        # one file, no coverage floor
-pdm run pytest tests/test_service.py -k LookupTest
+pdm run pytest tests/test_handlers.py -k LookupTest
 pdm run lint                              # ruff check + basedpyright, the fast check
 pdm run fmt                               # ruff format
 pdm run pre-commit run --all-files        # every hook, as the CI quality job runs them
@@ -221,9 +221,10 @@ Rules learned the hard way:
 
 ## Architecture in brief
 
-`cli.py` and `server.py` are thin adapters over `service.NCISIService`. A new capability goes into
-the service and is exposed in both adapters; the closed value sets (search modes, directions, edge
-types) live once in `validation.py` and feed the MCP schema and the argparse choices.
+`cli.py` and `server.py` read `registry.SPECS`. Each `ToolSpec` declares its handler, output
+union, cache policy and adapter exposure; the handler signature supplies the shared input model,
+defaults and choices. Business operations live in `handlers.py`, with injectable collaborators in
+`context.Context`. Closed value sets live once in `validation.py`. Profiles select MCP tools only.
 
 ### One error path
 
@@ -231,9 +232,9 @@ The error codes are the ten of the specification's error record (`spec/records.y
 `errors.py` as `ErrorCode`. A failure is a `PlatformError`: its code, a message that names the
 caller's next step, and the `details` that code lists in `docs/implementation-plan.md` §3.1. `errors.serialise` is
 the only function that turns one into the result, `{"error": {"code", "message", "details"?,
-"correlationId"}}`; nothing builds that dict by hand. The adapters open `errors.correlated()` once
-per call (the request's `_meta.correlationId`, else generated). Service methods are wrapped by
-`_enveloped`, which converts the expected exception types listed in `_ERROR_CODES` (with the next
+"correlationId"}}`; nothing builds that dict by hand. `registry.invoke` enters `invocation.call`, which opens `errors.correlated()` once
+per call (the request's `_meta.correlationId`, else generated) for tools, resources and CLI.
+It converts the expected exception types listed in `invocation._ERROR_CODES` (with the next
 step appended to their message and their `details` attribute carried over) and logs a warning; an
 exception gets the entry of its nearest listed class. To add a failure mode,
 raise a specific exception type and add it to that table, or raise a `PlatformError` where the
@@ -244,8 +245,8 @@ add broad `except` clauses. An empty result is never an error and an error is ne
 (webMethods `apiResponse.type` `E`, FHIR `OperationOutcome` error, HTML where JSON was asked for)
 as `upstream_unavailable`; every upstream client parses its bodies through it (in `http_client.HttpClient`).
 
-`http_client.HttpClient` is the one HTTP client. It raises the `Upstream*` errors, which
-`EVSClient` turns into the `EVS*` ones in `_evs_error`; its attempts are all counted and reported to
+`http_client.HttpClient` is the one HTTP client. Its `Upstream*` errors reach the invocation
+boundary directly; EVS errors identify only EVS-specific failures. Attempts are counted and reported to
 the `on_request` hook. A credential is a header of one client and goes to that client's origin only;
 it is redacted from every message built from what the platform said.
 
@@ -255,7 +256,7 @@ A 404 from EVS means "no such concept" only for `EVSClient.get_concept`. Every o
 through `_get_existing`, which converts a 404 to `EVSResponseError` (a wrong base URL).
 
 `server.py` turns an error record into a protocol-level error (`CallToolResult(is_error=True)` for
-tools, `ResourceError` for resources). The tool docstrings are the contract sent to MCP clients;
+tools, `ResourceError` for resources). The handler docstrings are the contract sent to MCP clients;
 update them when behaviour changes.
 
 ### Release pinning
@@ -263,7 +264,7 @@ update them when behaviour changes.
 - `release.resolve_evs_release(evs, terminology, channel)` asks EVS for the rows that are `latest`
   and tagged with the channel (`?terminology=…&latest=true&tag=…`) and requires exactly one; any
   other count is `release_not_available`, with no fallback to another channel. EVS sets `latest`
-  per channel, so the unfiltered listing can show two `ncit` rows as latest. The service resolves
+  per channel, so the unfiltered listing can show two `ncit` rows as latest. The handler resolves
   once per call with `Settings.release_channel` and threads the `ReleaseContext` through that call;
   nothing keeps it between calls. A 404 `Terminology not found` is `EVSReleaseNotFoundError`
   (`release_not_available`).
@@ -272,7 +273,7 @@ update them when behaviour changes.
 - Every concept request uses `release.pinned_terminology` (for example `ncit_26.09d`) as the path
   segment, and `evs.verify_release` checks the `version` of each returned concept.
 - `lookup` returns `release_mismatch` when the index holds another release, unless `live_only`. It
-  falls back to the cache only on `EVSUnavailableError`, and marks the result with `fallback`.
+  falls back to the cache only on `UpstreamUnavailableError`, and marks the result with `fallback`.
 - The index holds one release. Indexing a concept of another release replaces everything.
 
 ### Index and search
@@ -302,7 +303,7 @@ the walk's `Truncation` record. The state of a walk (limits, emitted nodes and e
 code with `maxLevel = max_depth`. They are bucketed by the `level` EVS assigns and emitted together
 with the other edges reaching that depth. That level can be deeper than the shortest path, so a
 `child` walk of the same depth can reach more concepts (59 against 56 for C3262 at depth 2). The
-service calls `select_edge_types` before resolving the release, so invalid selections never reach
+traversal handler calls `select_edge_types` before resolving the release, so invalid selections never reach
 the network.
 
 ## Tests

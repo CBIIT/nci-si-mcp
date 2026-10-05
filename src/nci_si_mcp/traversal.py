@@ -21,11 +21,11 @@ from .evs import (
     EVSClient,
     EVSNotFoundError,
     EVSResponseError,
-    EVSResponseTooLargeError,
     concept_path,
     object_list,
     verify_release,
 )
+from .http_client import UpstreamTooLargeError
 from .models import (
     TraversalEdge,
     TraversalNode,
@@ -147,7 +147,7 @@ def _fetch_batch(
             batch,
         )
         return
-    except EVSResponseTooLargeError as exc:
+    except UpstreamTooLargeError as exc:
         logger.info("traverse_batch_too_large concepts=%s reason=%s", len(batch), exc)
         if len(batch) == 1:
             # Relations are already lost even if the minimal fallback cannot be sent.
@@ -463,7 +463,7 @@ class _Walk:
                 items = self.client.get_descendants(
                     code, self.budget.depth, terminology=self.release.pinned_terminology
                 )
-            except EVSResponseTooLargeError as exc:
+            except UpstreamTooLargeError as exc:
                 logger.warning("traverse_descendants_too_large code=%s reason=%s", code, exc)
                 self._mark_unexpanded([code], ["descendant"])
                 continue

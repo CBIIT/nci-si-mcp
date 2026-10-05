@@ -16,7 +16,7 @@ from typing import ClassVar
 from unittest.mock import patch
 
 from nci_si_mcp.errors import PlatformError, correlated
-from nci_si_mcp.evs import LICENSE_KEY_HEADER, EVSClient, EVSResponseError
+from nci_si_mcp.evs import LICENSE_KEY_HEADER, EVSClient
 from nci_si_mcp.http_client import (
     MAX_RETRY_DELAY_SECONDS,
     HttpClient,
@@ -570,11 +570,11 @@ class CredentialsStayOutTest(ServerTestCase):
                 chain = [error.__cause__, error.__context__]
                 self.assertEqual([each for each in chain if each and KEY in repr(each)], [])
 
-    def test_the_key_does_not_show_in_the_error_of_the_service(self):
+    def test_the_key_does_not_show_in_the_error_from_evs(self):
         server = self.serve(self.ECHOES["an error status"])
         client = EVSClient(server.url, license_key=KEY)
 
-        with self.assertRaises(EVSResponseError) as raised:
+        with self.assertRaises(UpstreamRejectedError) as raised:
             client.get_api_version()
 
         self.assertEqual(raised.exception.details["status"], 403)
