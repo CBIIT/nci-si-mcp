@@ -20,7 +20,7 @@ pdm run acceptance-expected check acceptance/fixture.json   # a report against t
 pdm run acceptance-expected update acceptance/fixture.json  # rewrite the expected outcomes from a report
 pdm run acceptance-status                            # regenerate the README's status table
 pdm run acceptance-selftest                          # the harness's own tests
-SELFTEST_SHARD=1/2 pdm run acceptance-selftest       # one of two shards, as CI runs them
+SELFTEST_SHARD=1/3 pdm run acceptance-selftest       # one of three shards, as CI runs them
 pdm run acceptance-record                            # re-record fixtures/recorded/ from live
 pdm run acceptance-craft                             # rebuild the crafted scenarios
 pdm run acceptance-register                          # regenerate request-forms/ from the manifest

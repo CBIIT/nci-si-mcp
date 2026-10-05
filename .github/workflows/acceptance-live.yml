@@ -1,11 +1,14 @@
 name: Acceptance (live)
 
-# The acceptance suite against the live services, run by hand: a live run depends on the network
-# it runs from (the EVS host may answer one IP family and not the other), so the run records
-# where it ran. Live outcomes are not ratcheted; the fixture run beside them is what the
-# combined per-tool report needs.
+# The acceptance suite against the live services, by hand and every Monday: a live run depends on
+# the network it runs from (the EVS host may answer one IP family and not the other), so the run
+# records where it ran. Live outcomes are not ratcheted; the fixture run beside them is what the
+# combined per-tool report needs. The weekly run shows upstream drift: it fails when a test that
+# passes on the recorded answers fails against the live service.
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "41 6 * * 1"
 
 permissions:
   contents: read
@@ -20,14 +23,7 @@ jobs:
         with:
           fetch-depth: 0  # the package version is derived from the nearest tag
           persist-credentials: false
-      - uses: pdm-project/setup-pdm@544d7237314ee09c256785bd360f6b30add38b37  # v4.6
-        with:
-          python-version: "3.14"
-          version: "2.29.2"
-          cache: true
-          # An environment built from another lock file may hold packages this one dropped.
-          cache-restore-exact-match: true
-      - run: pdm install --check
+      - uses: $/.github/actions/setup
       # Where the run came from, and which IP family reaches EVS from there. Each probe is
       # recorded and never fails the job; no third-party service is asked for the address.
       - name: Record the network location
@@ -81,6 +77,26 @@ jobs:
             echo "::error title=The live run did not finish::exit status ${status}, or no report."
             exit 1
           fi
+      # Drift: a test that passes on the fixtures and fails live. A test that cannot run live
+      # (not_live) or is skipped there is no drift.
+      - name: Compare the live outcomes with the fixture outcomes
+        run: |
+          pdm run python - <<'PY' > acceptance/drift.md
+          import json
+          fixture = json.load(open("acceptance/fixture.json"))["tests"]
+          live = json.load(open("acceptance/live.json"))["tests"]
+          drift = sorted(
+              test for test, result in fixture.items()
+              if result["outcome"] == "passed" and live.get(test, {}).get("outcome") in ("failed", "error")
+          )
+          print(f"{len(drift)} tests pass on the fixtures and fail live.")
+          print(*(f"- `{test}`" for test in drift), sep="\n")
+          PY
+          { echo "### Upstream drift"; echo; cat acceptance/drift.md; } >> "$GITHUB_STEP_SUMMARY"
+          if ! head -n 1 acceptance/drift.md | grep -q '^0 tests'; then
+            echo "::error title=Upstream drift::$(head -n 1 acceptance/drift.md) See the summary."
+            exit 1
+          fi
       - name: Render the combined per-tool report
         if: always()
         run: |
@@ -99,5 +115,6 @@ jobs:
             acceptance/live.json
             acceptance/report.md
             acceptance/network.md
+            acceptance/drift.md
           if-no-files-found: warn
           retention-days: 30
