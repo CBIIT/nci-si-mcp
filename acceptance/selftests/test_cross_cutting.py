@@ -152,9 +152,10 @@ def test_every_cross_cutting_test_is_a_function_of_the_file_and_in_one_chunk():
     assert sorted(named) == sorted(FUNCTIONS) == sorted(chunked)
 
 
-# The functions in as many nested runs as the self-tests have workers, so that the runs
-# spread over them; each run a subprocess, which costs its start.
-CHUNKS = 4
+# The functions in as many nested runs as the self-tests have workers over all shards (three
+# CI jobs of four), so that the runs spread over them; each run a subprocess, which costs its
+# start.
+CHUNKS = 12
 
 
 def _function_of(case):

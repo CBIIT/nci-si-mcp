@@ -1,0 +1,17 @@
+name: Set up the project
+description: >-
+  Python 3.14 and PDM, and the environment pdm.lock pins. The caller checks the repository out
+  first, with its full history: the package version is derived from the nearest tag.
+runs:
+  using: composite
+  steps:
+    - uses: pdm-project/setup-pdm@544d7237314ee09c256785bd360f6b30add38b37  # v4.6
+      with:
+        python-version: "3.14"
+        version: "2.29.2"
+        cache: true
+        # An environment built from another lock file may hold packages this one dropped.
+        cache-restore-exact-match: true
+    # --check fails on a lock file that no longer matches pyproject.toml.
+    - run: pdm install --check
+      shell: bash
