@@ -119,7 +119,7 @@ class ServerTest(ServerFixture):
     def test_tools_are_registered_with_descriptions_and_closed_value_sets(self, _):
         tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
 
-        self.assertEqual(len(tools), 7)
+        self.assertEqual(len(tools), 11)
         # The closed value sets are advertised in the schemas, wherever the
         # schema generator puts them.
         traverse_schema = json.dumps(tools["ncit_traverse"].input_schema)

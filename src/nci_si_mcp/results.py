@@ -84,6 +84,57 @@ class ConceptResult(TypedDict):
     fallback: NotRequired[Fallback]
 
 
+class Concept(TypedDict):
+    code: str
+    terminology: str
+    name: str
+    active: bool
+    status: NotRequired[str]
+    provenance: Provenance
+    synonyms: NotRequired[list[dict[str, Any]]]
+    definitions: NotRequired[list[dict[str, Any]]]
+    properties: NotRequired[list[dict[str, Any]]]
+    semanticType: NotRequired[list[str]]
+
+
+class RankedConcept(TypedDict):
+    concept: Concept
+    score: float
+
+
+class ConceptSearch(TypedDict):
+    results: list[RankedConcept]
+    truncation: Truncation
+    provenance: NotRequired[Provenance]
+
+
+class Node(TypedDict):
+    code: str
+    terminology: str
+    name: str
+    active: bool
+    status: NotRequired[str]
+    provenance: TraversalProvenance
+
+
+class Edge(TypedDict):
+    sourceCode: str
+    sourceTerminology: str
+    targetCode: str
+    targetTerminology: str
+    provenance: TraversalProvenance
+
+
+class Hierarchy(TypedDict):
+    nodes: list[Node]
+    truncation: Truncation
+    provenance: NotRequired[Provenance]
+
+
+class Neighborhood(Hierarchy):
+    edges: list[Edge]
+
+
 class SearchHit(TypedDict):
     concept: ConceptResult
     score: float

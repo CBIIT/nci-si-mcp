@@ -23,6 +23,10 @@ class Echo(TypedDict):
 class RegistryTest(ServerFixture):
     def test_profiles_select_only_the_current_inventory_and_keep_group_metadata(self):
         evs = {
+            "get_concept",
+            "search_concepts",
+            "get_concept_hierarchy",
+            "get_concept_neighborhood",
             "ncit_search",
             "ncit_lookup",
             "ncit_traverse",

@@ -739,6 +739,15 @@ unknown, its record gives `omitted: 0` and `exact: false`.
 
 ## MCP Tools
 
+- `get_concept`: fetch a caller-pinned NCIt concept with required `terminology`, `release` and `code`. Optional `include` selects synonyms, definitions, properties or semanticType; status is passed through from EVS.
+- `search_concepts`: search the interim NCIt index with required `terminology`, `release` and `query`. `semantic` and `hybrid` modes are supported, with `limit` default 10, maximum 1000; the index must hold the requested release. Default `lexical`, `typeahead`, cursors and `retired: only` return `capability_unavailable` pending #27.
+- `get_concept_hierarchy`: caller-pinned parents or children, excluding the seed. Required `direction`; `depth` defaults to 1, maximum 4; `limit` defaults to 200, maximum 1000. Paths to root and requests needing paging return `capability_unavailable` pending #23.
+- `get_concept_neighborhood`: caller-pinned graph including the seed. `depth` defaults to 2, maximum 4; `maxNodes` 200/1000; `maxEdges` 1000/5000; optional `budgetPerKind` maximum 1000. `kinds` selects among the six relation kinds. Following beyond negative assertion targets currently requires `includeNegative: true`; selective expansion remains #23. Both graph tools share 200 requests per call and fetch final node status in batches. Depth-cut reporting is the next #18 slice.
+
+These four entries require an explicit release and currently support NCIt only; other
+terminologies return `capability_unavailable`. Bounds above their maxima clamp. Invalid
+arguments return `invalid_request`. The legacy entries below remain until the final #18 slice.
+
 - `resolve_release`: resolve a terminology's current monthly or weekly release, with the other served version identifiers in `alternatives`. `terminology` is required; `channel` defaults to `NCI_SI_RELEASE_CHANNEL`. Returns a flat release record with provenance, or a top-level error. CLI: `resolve-release ncit --channel monthly`.
 - `list_terminologies`: list each EVS terminology and its current release with provenance. NCIt uses the configured channel; other terminologies use their sole latest row. CLI: `list-terminologies`. Both discovery tools are resolved afresh and carry `ttlMs: 0`, `cacheScope: public`; failures are private.
 - `ncit_search`: text search over the locally indexed concepts.
@@ -838,8 +847,9 @@ request, or one generated for the call (for a resource read or a CLI command,
 one generated for it). MCP tool results carrying the record are also flagged as
 errors at the protocol level, with the record as their structured content, and
 a failed resource read is a protocol error whose message is the record.
-Arguments that the MCP schema or the CLI argument parser reject (a wrong type,
-an unknown `mode`) are reported by those layers in their own format. An
+Invalid MCP arguments, including wrong types, unknown choices and missing required
+fields, use the same error record. The CLI argument parser reports syntax failures
+in its own format. An
 unexpected exception is a bug and is not converted into a record.
 
 Each message ends with the caller's next step. A query that matches nothing is

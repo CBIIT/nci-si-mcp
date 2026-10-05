@@ -269,6 +269,24 @@ The interim index (M4.1), built from `index.py` / `embeddings.py` / `retrieval.p
 
 Twelve tools, signatures in the specification (`spec/tools.yaml`, group `evs`). Mapping from the current surface:
 
+The second #18 slice adds the four content entries with their complete signatures in
+`content.py`, alongside the temporary legacy MCP entries. NCIt calls pin the caller's
+required release; indexed search checks it inside the read transaction. Concept and node
+records carry EVS's `active` and optional `conceptStatus` as `status`; requested detail is
+passed through, with P106 values supplying `semanticType`. Graph nodes reuse fetched
+payloads and read remaining status in minimal batches under the same request budget.
+Edges use assertion orientation. MCP argument validation uses the registry's fields and
+the common structured error boundary.
+
+Other terminologies remain #20. Lexical/typeahead search, cursors and retired-only
+selection return `capability_unavailable` pending #27. Hierarchy paths to root, cursors
+and results needing another page, and selective negative expansion, remain #23 and are
+explicitly refused. Until then a neighborhood following beyond negative assertion targets
+requires `includeNegative=true`; assertions reaching the depth bound need no expansion.
+Depth-cut reporting and legacy-name/toolmap removal are the next
+two #18 slices. The descriptions state these interim limits; they do not claim the whole
+Phase 2 contract is implemented.
+
 | Current | Becomes | Note |
 |---|---|---|
 | `ncit_release_info` | `resolve_release(terminology, channel?)` + `list_terminologies()` | one row per channel; `ttlMs` 0 |

@@ -290,7 +290,7 @@ def test_absent(tools):
     }
 
 
-def test_the_report_names_the_stand_in_of_each_mapped_tool_with_the_real_map(suite):
+def test_the_report_prefers_direct_tools_over_the_remaining_real_map(suite):
     real = Path(__file__).parent.parent / "fixtures" / "baseline_toolmap.yaml"
     (suite.path / "fixtures" / "baseline_toolmap.yaml").write_text(
         real.read_text(encoding="utf-8"), encoding="utf-8"
@@ -302,26 +302,28 @@ import pytest
 @pytest.mark.tool("get_concept_hierarchy")
 def test_parent(tools):
     result = tools.call("get_concept_hierarchy", {
-        "terminology": "ncit", "code": "C3262", "direction": "parent", "depth": 1
+        "terminology": "ncit", "release": "26.09d", "code": "C3262",
+        "direction": "parent", "depth": 1
     })
-    assert result.tool == "ncit_traverse"
+    assert result.tool == "get_concept_hierarchy"
 
 @pytest.mark.tool("get_concept_hierarchy")
 def test_paths_to_root(tools):
-    tools.call("get_concept_hierarchy", {
-        "terminology": "ncit", "code": "C3262", "direction": "pathsToRoot"
+    result = tools.call("get_concept_hierarchy", {
+        "terminology": "ncit", "release": "26.09d", "code": "C3262", "direction": "pathsToRoot"
     })
+    assert result.is_error
 """
     result = run(suite, test, "--report=report.json")
 
-    result.assert_outcomes(passed=1, skipped=1)
+    result.assert_outcomes(passed=2)
     tools = json.loads((suite.path / "report.json").read_text(encoding="utf-8"))["tools"]
     assert (
         tools["get_concept_hierarchy"]["outcome"],
         tools["get_concept_hierarchy"]["counts"],
     ) == (
-        "INCOMPLETE",
-        {"passed": 1, "not_implemented": 1},
+        "PASS",
+        {"passed": 2},
     )
     implemented = {
         name: row["implemented_as"] for name, row in tools.items() if row["implemented_as"]
@@ -329,9 +331,10 @@ def test_paths_to_root(tools):
     assert implemented == {
         "resolve_release": "resolve_release",
         "list_terminologies": "list_terminologies",
-        "get_concept": "ncit_lookup",
-        "get_concept_hierarchy": "ncit_traverse",
-        "get_concept_neighborhood": "ncit_traverse",
+        "get_concept": "get_concept",
+        "search_concepts": "search_concepts",
+        "get_concept_hierarchy": "get_concept_hierarchy",
+        "get_concept_neighborhood": "get_concept_neighborhood",
     }
 
 

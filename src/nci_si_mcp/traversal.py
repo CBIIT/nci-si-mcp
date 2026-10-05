@@ -268,6 +268,12 @@ def _missing_concepts(release: ReleaseContext, missing: list[str], depth: int) -
     )
 
 
+def _node_payloads(concepts: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    # Retain status, not the potentially megabytes of relation lists already processed.
+    fields = ("code", "name", "active", "conceptStatus", "terminology", "version")
+    return {code: {key: raw[key] for key in fields if key in raw} for code, raw in concepts.items()}
+
+
 @dataclass
 class _Walk:
     """One traversal in progress: its limits and what it has emitted so far."""
@@ -280,6 +286,7 @@ class _Walk:
     retrieved_at: str = field(default_factory=utc_now_iso)
     correlation_id: str = field(default_factory=call_correlation_id)
     nodes: dict[str, TraversalNode] = field(default_factory=dict)
+    concepts: dict[str, dict[str, Any]] = field(default_factory=dict)
     edges: list[TraversalEdge] = field(default_factory=list)
     seen_edges: set[tuple[str, str, str, str]] = field(default_factory=set)
     unexpanded: list[str] = field(default_factory=list)
@@ -441,6 +448,7 @@ class _Walk:
             # Missing start nodes truncate the graph even when no relation kind is read.
             self.bounds_reached.setdefault(("",), "requests")
             self._mark_unread(self.payload_types, "requests")
+        self.concepts.update(_node_payloads(concepts))
         return concepts
 
     def start(self, start_codes: list[str], concepts: dict[str, dict[str, Any]]) -> None:
@@ -592,6 +600,7 @@ class _Walk:
             max_depth=self.budget.depth,
             max_nodes=self.budget.nodes,
             max_edges=self.budget.edges,
+            concepts=self.concepts,
         )
 
 
