@@ -6,7 +6,15 @@ from dataclasses import replace
 from itertools import batched
 from typing import Any, NoReturn, get_args
 
-from .bounds import Budget, RequestBudgetError, budgeted
+from .bounds import (
+    HARD_MAX_DEPTH,
+    HARD_MAX_EDGES,
+    HARD_MAX_NODES,
+    HARD_MAX_PER_KIND,
+    Budget,
+    RequestBudgetError,
+    budgeted,
+)
 from .context import Context
 from .errors import InputValidationError, NoActiveIndexError, PlatformError
 from .evs import EVSResponseError, concept_path, normalize_concept, verify_release
@@ -15,6 +23,7 @@ from .models import TraversalEdge, TraversalResult, Truncation, upstream_origin
 from .release import ReleaseContext
 from .traversal import BATCH_SIZE, traverse_ncit
 from .validation import (
+    MAX_INDEX_SEARCH_LIMIT,
     ConceptInclude,
     HierarchyDirection,
     NeighborhoodKind,
@@ -140,7 +149,7 @@ def search_concepts(
     Other terminologies are capability_unavailable. No live fallback is used.
     """
     _pin(context, terminology, release)
-    limit = bounded(limit, 1000, "limit")
+    limit = bounded(limit, MAX_INDEX_SEARCH_LIMIT, "limit")
     _search_options(query, mode, cursor, retired)
     try:
         hits, truncation = context.index.search_with_truncation(
@@ -204,7 +213,7 @@ def get_concept_hierarchy(
     selected = _pin(context, terminology, release)
     code = _code(code)
     validate_choice(direction, get_args(HierarchyDirection), "direction")
-    depth, limit = bounded(depth, 4, "depth"), bounded(limit, 1000, "limit")
+    depth, limit = bounded(depth, HARD_MAX_DEPTH, "depth"), bounded(limit, HARD_MAX_NODES, "limit")
     if direction == "pathsToRoot" or cursor is not None:
         _unavailable("hierarchy pathsToRoot and cursors")
     budget = Budget(depth=depth, nodes=limit)
@@ -262,10 +271,12 @@ def get_concept_neighborhood(
     if not isinstance(includeNegative, bool):
         raise InputValidationError("includeNegative must be boolean", "includeNegative")
     budget = Budget(
-        depth=bounded(depth, 4, "depth"),
-        nodes=bounded(maxNodes, 1000, "maxNodes"),
-        edges=bounded(maxEdges, 5000, "maxEdges"),
-        per_kind=None if budgetPerKind is None else bounded(budgetPerKind, 1000, "budgetPerKind"),
+        depth=bounded(depth, HARD_MAX_DEPTH, "depth"),
+        nodes=bounded(maxNodes, HARD_MAX_NODES, "maxNodes"),
+        edges=bounded(maxEdges, HARD_MAX_EDGES, "maxEdges"),
+        per_kind=None
+        if budgetPerKind is None
+        else bounded(budgetPerKind, HARD_MAX_PER_KIND, "budgetPerKind"),
     )
     result = _graph_record(_graph(context, selected, code, selected_kinds, budget))
     if not includeNegative and any(

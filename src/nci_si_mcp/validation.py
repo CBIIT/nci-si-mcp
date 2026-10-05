@@ -49,6 +49,7 @@ SEARCH_MODES = frozenset(get_args(SearchMode))
 TRAVERSAL_DIRECTIONS = frozenset(get_args(Direction))
 TRAVERSAL_EDGE_TYPES = frozenset(get_args(EdgeType))
 MAX_SEARCH_LIMIT = 100
+MAX_INDEX_SEARCH_LIMIT = 1000
 
 
 def validate_identifier(value: str, pattern: str, parameter: str) -> str:
