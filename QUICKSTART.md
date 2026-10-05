@@ -535,8 +535,9 @@ The release report's `selected_release` field names the configured channel's rel
 The walk proceeds one depth at a time from the seed, so nearer nodes
 claim the limits first. The result's `truncation` is `{"occurred": false}`, or
 says which bound dropped something and how much (see Provenance and truncation).
-Within each depth, relationship kinds take turns across the whole frontier. The seed
-counts against the global node limit; each kind spends its allowance only on
+Hierarchy excludes the seed from its page limit and has no edge cap; neighborhood
+counts the seed against its global node limit. Within each depth, relationship kinds
+take turns across the whole frontier; each kind spends its allowance only on
 new nodes. Edges to existing nodes do not spend that allowance. Mixed-kind walks
 report `perKind` truncation records when anything is dropped.
 
@@ -554,8 +555,8 @@ An earlier bound still wins; oversized final lists report `upstream_cap`.
 Once a global node cut is reported, the final check is skipped. Otherwise it
 reads only kinds that have no truncation of their own. Status-only reads for
 returned nodes may still be needed; they use the same request budget.
-Inverse lists are never fetched solely to check continuation. An inverse kind
-that reached frontier nodes at the depth limit reports `depth`, `omitted: 0`,
+Inverse lists are never fetched solely to check continuation. At any nonempty final
+frontier, each selected inverse kind without a prior cut reports `depth`, `omitted: 0`,
 `exact: false`: an unknown continuation, without claiming a leaf. Forward kinds
 beside it are still checked. Descendant checks read final child lists only.
 

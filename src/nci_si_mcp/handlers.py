@@ -431,7 +431,7 @@ def traverse(
     The check spends the same request budget; an earlier bound still wins.
     A reported global node cut skips it; kinds already truncated are excluded.
     Descendant checks use final child lists. Inverse kinds never read final lists
-    only to count continuation: an inverse kind reaching that frontier reports
+    only to count continuation: each selected inverse kind at a nonempty frontier reports
     depth with omitted=0 and exact=false, without claiming a leaf or continuation.
     Every edge connects two nodes of the result. Every node and edge
     carries a `provenance` record: the release of the configured channel all data is read

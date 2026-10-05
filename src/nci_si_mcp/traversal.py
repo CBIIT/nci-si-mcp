@@ -711,8 +711,8 @@ def traverse_ncit(
     The last frontier is read with the selected relation lists to detect depth cuts.
     Forward kinds count distinct unseen targets as omitted; leaves and cycles do not.
     Descendant checks use only the last frontier's children. Inverse kinds never fetch
-    final lists solely to check continuation: reaching that frontier through the kind
-    reports depth with omitted=0 and exact=false. Further continuation is unknown.
+    final lists solely to check continuation: any nonempty final frontier reports
+    depth for selected inverse kinds with omitted=0 and exact=false. Continuation is unknown.
     A prior global node cut skips the check; kinds already truncated are excluded.
     """
 
