@@ -8,11 +8,10 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from dataclasses import replace
-from functools import lru_cache
-from itertools import batched, chain
+from itertools import batched, chain, groupby
 from pathlib import Path
 from tempfile import TemporaryFile
 from uuid import uuid4
@@ -27,7 +26,9 @@ from .errors import (
     PlatformError,
 )
 from .evs import normalize_concept
+from .index_scoring import rank_page
 from .index_storage import (
+    FIELD_KINDS,
     SCHEMA_VERSION,
     build_lease,
     clean_stale_builds,
@@ -37,9 +38,9 @@ from .index_storage import (
     fts_table,
     migrate,
     name_key,
+    vector_bytes,
 )
 from .models import IndexManifest, NcitConcept, SearchHit, Truncation, utc_now_iso
-from .retrieval import cosine_similarity, min_max_normalize, tokenize
 from .validation import MAX_INDEX_SEARCH_LIMIT, validate_search
 
 logger = logging.getLogger(__name__)
@@ -59,56 +60,7 @@ def require_index_release(manifest: IndexManifest, requested: str | None) -> Non
 # SQL built with f-strings below interpolates only table names and predicates
 # written in this module, or lists of "?" placeholders; every value is bound.
 
-MAX_FTS_CANDIDATES = 1000
-# A release of up to this many concepts is scored exactly: every stored vector
-# is compared with the query. In pure Python that costs roughly a quarter of a
-# second at the limit with 128-dimension vectors (measured on Python 3.14).
-EXACT_VECTOR_SCAN_LIMIT = 20_000
-# A larger release is narrowed to this many LSH and BM25 candidates first.
-MAX_VECTOR_CANDIDATES = 2000
-# The LSH layout and the sign hash below are part of the stored format: changing
-# them needs a SCHEMA_VERSION bump whose migration rebuilds vector_lsh.
-LSH_BANDS = 4
-LSH_BITS_PER_BAND = 8
 _SQL_CHUNK = 500
-
-
-def _projection_sign(bit: int, dimension: int) -> float:
-    value = ((bit + 1) * 0x9E3779B1) ^ ((dimension + 1) * 0x85EBCA6B)
-    value ^= value >> 16
-    value = (value * 0x7FEB352D) & 0xFFFFFFFF
-    value ^= value >> 15
-    return 1.0 if value & 1 else -1.0
-
-
-@lru_cache(maxsize=8)
-def _projection_signs(dimensions: int) -> tuple[tuple[float, ...], ...]:
-    return tuple(
-        tuple(_projection_sign(bit, dimension) for dimension in range(dimensions))
-        for bit in range(LSH_BANDS * LSH_BITS_PER_BAND)
-    )
-
-
-def vector_lsh_buckets(vector: Sequence[float]) -> list[tuple[int, int]]:
-    """Return one (band, bucket) pair per band from signed random projections.
-
-    Two vectors land in the same bucket of a band only when all of its
-    projection bits agree, so similar vectors share buckets more often.
-    """
-
-    signs = _projection_signs(len(vector))
-    buckets: list[tuple[int, int]] = []
-    for band in range(LSH_BANDS):
-        bucket = 0
-        for offset in range(LSH_BITS_PER_BAND):
-            row = signs[band * LSH_BITS_PER_BAND + offset]
-            if sum(value * sign for value, sign in zip(vector, row, strict=True)) >= 0:
-                bucket |= 1 << offset
-        buckets.append((band, bucket))
-    return buckets
-
-
-_WEIGHTS = {"bm25": (1.0, 0.0), "vector": (0.0, 1.0), "hybrid": (0.55, 0.45)}
 
 
 def _distinct_concepts(
@@ -149,23 +101,7 @@ def _embed(embedding_provider: EmbeddingProvider, texts: list[str]) -> list[list
     return vectors
 
 
-def _fts_candidate_cap(limit: int) -> int:
-    return min(MAX_FTS_CANDIDATES, max(limit * 10, 100))
-
-
-def _complete(manifest: IndexManifest, mode: str, bm25_count: int, limit: int) -> bool:
-    """Whether the concepts scored are every concept that could match the query.
-
-    BM25 reads at most a cap of candidates, and vectors are scored exactly only in an
-    index of up to `EXACT_VECTOR_SCAN_LIMIT` concepts.
-    """
-
-    if mode == "bm25":
-        return bm25_count < _fts_candidate_cap(limit)
-    return manifest.concept_count <= EXACT_VECTOR_SCAN_LIMIT
-
-
-def _results_truncation(scored: int, limit: int, complete: bool) -> Truncation:
+def _results_truncation(scored: int, limit: int) -> Truncation:
     """The truncation record of a search whose `limit` may have left scored concepts out."""
 
     if scored <= limit:
@@ -176,27 +112,8 @@ def _results_truncation(scored: int, limit: int, complete: bool) -> Truncation:
         limit=limit,
         reached=limit,
         omitted=scored - limit,
-        exact=complete,
+        exact=True,
     )
-
-
-def _rank(
-    mode: str, bm25_scores: dict[str, float], vector_scores: dict[str, float]
-) -> list[tuple[str, float, dict[str, float]]]:
-    """Order the scored concepts by the mode's score, best first, ties by code."""
-
-    norm_bm25 = min_max_normalize(bm25_scores)
-    norm_vector = min_max_normalize(vector_scores)
-    # In bm25 and vector mode the other component was not computed, so its
-    # weighted term is exactly zero and the score equals the one component.
-    bm25_weight, vector_weight = _WEIGHTS[mode]
-    ranked = []
-    for code in set(norm_bm25) | set(norm_vector):
-        bm25 = norm_bm25.get(code, 0.0)
-        vector = norm_vector.get(code, 0.0)
-        score = bm25_weight * bm25 + vector_weight * vector
-        ranked.append((code, score, {"bm25": bm25, "vector": vector}))
-    return sorted(ranked, key=lambda item: (-item[1], item[0]))
 
 
 def _query_vector(
@@ -221,19 +138,23 @@ def _store_fields(
     fields: list[tuple[str, str, str]],
     vectors: list[list[float]],
 ) -> None:
-    for (code, kind, text), vector in zip(fields, vectors, strict=True):
-        cursor = conn.execute(
-            "INSERT INTO fields(build_id, code, kind, text, vector) VALUES (?, ?, ?, ?, ?)",
-            (build_id, code, kind, text, json.dumps(vector)),
-        )
-        field_id = cursor.lastrowid
+    paired = zip(fields, vectors, strict=True)
+    for code, items in groupby(paired, lambda item: item[0][0]):
+        kinds, blobs = [], []
+        for position, ((_, kind, text), vector) in enumerate(items):
+            cursor = conn.execute(
+                "INSERT INTO fields(build_id, code, kind, text, position) VALUES (?, ?, ?, ?, ?)",
+                (build_id, code, kind, text, position),
+            )
+            conn.execute(
+                f"INSERT INTO {fts_table(build_id)}(rowid, code, kind, text) VALUES (?, ?, ?, ?)",  # noqa: S608
+                (cursor.lastrowid, code, kind, text),
+            )
+            kinds.append(FIELD_KINDS.index(kind))
+            blobs.append(vector_bytes(vector))
         conn.execute(
-            f"INSERT INTO {fts_table(build_id)}(rowid, code, kind, text) VALUES (?, ?, ?, ?)",  # noqa: S608
-            (field_id, code, kind, text),
-        )
-        conn.executemany(
-            "INSERT INTO vector_lsh VALUES (?, ?, ?, ?)",
-            [(build_id, field_id, band, bucket) for band, bucket in vector_lsh_buckets(vector)],
+            "INSERT INTO concept_vectors VALUES (?, ?, ?, ?)",
+            (build_id, code, bytes(kinds), b"".join(blobs)),
         )
 
 
@@ -264,9 +185,15 @@ def _write_batch(
     vectors: list[list[float]],
 ) -> None:
     conn.executemany(
-        "INSERT INTO concepts VALUES (?, ?, ?, ?)",
+        "INSERT INTO concepts VALUES (?, ?, ?, ?, ?)",
         [
-            (build_id, item.code, json.dumps(item.to_stored()), name_key(item.preferred_name))
+            (
+                build_id,
+                item.code,
+                json.dumps(item.to_stored()),
+                name_key(item.preferred_name),
+                item.raw.get("conceptStatus"),
+            )
             for item in concepts
         ],
     )
@@ -608,37 +535,67 @@ class LocalIndex:
         *,
         requested_release: str | None = None,
     ) -> tuple[list[SearchHit], Truncation, IndexManifest]:
-        """Rank fields, then concepts, in one read snapshot.
+        """Legacy CLI search reports any hits omitted by its one-page limit."""
+        hits, total, manifest = self.search_page(
+            query, embedding_provider, limit, mode, requested_release=requested_release
+        )
+        return hits, _results_truncation(total, limit), manifest
 
-        An exact preferred name ignores case after NFC and whitespace collapsing;
-        it scores 1 and wins ties before other hits. Field ties prefer name,
-        synonym, definition. Other scores use normalized BM25/vector weights.
-        """
+    def search_page(
+        self,
+        query: str,
+        embedding_provider: EmbeddingProvider,
+        limit: int = 10,
+        mode: str = "hybrid",
+        *,
+        requested_release: str | None = None,
+        offset: int = 0,
+        build_id: str | None = None,
+        retired_status: str | None = None,
+    ) -> tuple[list[SearchHit], int, IndexManifest]:
+        """Read the active identity, complete ranking and page in one snapshot."""
         query, limit, mode = validate_search(query, limit, mode, maximum=MAX_INDEX_SEARCH_LIMIT)
         with self._connect() as conn:
+            conn.execute("PRAGMA temp_store = FILE")
             conn.execute("BEGIN")
-            manifest = self._searchable_manifest(conn, embedding_provider)
+            manifest = self._searchable_manifest(
+                conn, embedding_provider, build_id, requested_release
+            )
             require_index_release(manifest, requested_release)
-            bm25 = (
-                self._bm25_scores(conn, manifest.build_id, query, limit) if mode != "vector" else {}
+            vector = _query_vector(embedding_provider, manifest, query) if mode != "bm25" else None
+            ranked, total = rank_page(
+                conn, manifest, query, vector, mode, offset, limit, retired_status
             )
-            vectors = (
-                self._vector_scores(conn, manifest, embedding_provider, query, set(bm25))
-                if mode != "bm25"
-                else {}
-            )
-            hits = _rank_fields(conn, manifest.build_id, query, mode, bm25, vectors)
-            truncation = _results_truncation(
-                len(hits), limit, _complete(manifest, mode, len(bm25), limit)
-            )
-            return hits[:limit], truncation, manifest
+            payloads = _concept_payloads(conn, manifest.build_id, [code for code, _ in ranked])
+            hits = [
+                SearchHit(
+                    concept=payloads[code],
+                    score=field.score,
+                    rank=offset + number,
+                    score_components={"bm25": field.bm25, "vector": field.vector},
+                    matched_on=field.kind,
+                )
+                for number, (code, field) in enumerate(ranked, 1)
+            ]
+            return hits, total, manifest
 
     def _searchable_manifest(
-        self, conn: sqlite3.Connection, provider: EmbeddingProvider
+        self,
+        conn: sqlite3.Connection,
+        provider: EmbeddingProvider,
+        build_id: str | None,
+        requested_release: str | None,
     ) -> IndexManifest:
         manifest = self._active_manifest(conn)
         if manifest is None:
             raise NoActiveIndexError("No active NCIt index is available")
+        if build_id is not None and build_id != manifest.build_id:
+            raise PlatformError(
+                "cursor_expired",
+                "The active index build changed. Restart the search against the active build.",
+                cursorRelease=requested_release or manifest.release_version,
+                currentRelease=manifest.release_version,
+            )
         if manifest.needs_rebuild:
             raise PlatformError(
                 "capability_unavailable",
@@ -651,153 +608,6 @@ class LocalIndex:
             )
         return manifest
 
-    @staticmethod
-    def _bm25_scores(
-        conn: sqlite3.Connection, build: str, query: str, limit: int
-    ) -> dict[str, float]:
-        tokens = tokenize(query)
-        if not tokens:
-            return {}
-        table = fts_table(build)
-        rows = conn.execute(
-            f"SELECT rowid, -bm25({table}) AS score FROM {table} WHERE {table} MATCH ? "  # noqa: S608
-            f"ORDER BY bm25({table}), rowid LIMIT ?",
-            (" OR ".join(f'"{token}"' for token in tokens), _fts_candidate_cap(limit)),
-        )
-        return {str(row["rowid"]): float(row["score"]) for row in rows}
-
-    @staticmethod
-    def _vector_scores(
-        conn: sqlite3.Connection,
-        manifest: IndexManifest,
-        provider: EmbeddingProvider,
-        query: str,
-        bm25_fields: set[str],
-    ) -> dict[str, float]:
-        vector = _query_vector(provider, manifest, query)
-        if manifest.concept_count <= EXACT_VECTOR_SCAN_LIMIT:
-            rows = conn.execute(
-                "SELECT id, vector FROM fields WHERE build_id = ?", (manifest.build_id,)
-            ).fetchall()
-        else:
-            rows = _candidate_vector_rows(conn, manifest.build_id, vector, bm25_fields)
-        scores = {}
-        for row in rows:
-            stored = json.loads(row["vector"])
-            if len(stored) != len(vector):
-                raise IndexCompatibilityError(
-                    "Stored vector dimensions are inconsistent with the active index"
-                )
-            scores[str(row["id"])] = cosine_similarity(vector, stored)
-        return scores
-
-
-def _lsh_candidates(
-    conn: sqlite3.Connection,
-    build: str,
-    vector: list[float],
-    bm25_fields: set[str],
-) -> set[str]:
-    buckets = vector_lsh_buckets(vector)
-    predicates = " OR ".join("(band = ? AND bucket = ?)" for _ in buckets)
-    excluded = ",".join("?" for _ in bm25_fields)
-    rows = conn.execute(
-        f"SELECT field_id FROM vector_lsh WHERE build_id = ? AND ({predicates}) "  # noqa: S608
-        f"AND field_id NOT IN ({excluded}) "
-        "GROUP BY field_id ORDER BY COUNT(*) DESC, field_id LIMIT ?",
-        [
-            build,
-            *(value for pair in buckets for value in pair),
-            *sorted(bm25_fields),
-            max(0, MAX_VECTOR_CANDIDATES - len(bm25_fields)),
-        ],
-    )
-    return bm25_fields | {str(row[0]) for row in rows}
-
-
-def _candidate_vector_rows(
-    conn: sqlite3.Connection, build: str, vector: list[float], bm25_fields: set[str]
-) -> list[sqlite3.Row]:
-    candidates = _lsh_candidates(conn, build, vector, bm25_fields)
-    result = []
-    for chunk in batched(sorted(candidates), _SQL_CHUNK, strict=False):
-        result.extend(
-            conn.execute(
-                "SELECT id, vector FROM fields WHERE build_id = ? "  # noqa: S608
-                f"AND id IN ({','.join('?' for _ in chunk)})",
-                [build, *chunk],
-            ).fetchall()
-        )
-    return result
-
-
-def _rank_fields(
-    conn: sqlite3.Connection,
-    build: str,
-    query: str,
-    mode: str,
-    bm25: dict[str, float],
-    vectors: dict[str, float],
-) -> list[SearchHit]:
-    ranked = _rank(mode, bm25, vectors)
-    by_code: dict[str, tuple[float, dict[str, float], str]] = {}
-    fields = _field_identities(conn, build, [identifier for identifier, _, _ in ranked])
-    priority = {"name": 0, "synonym": 1, "definition": 2}
-    for identifier, score, components in ranked:
-        code, kind = fields[identifier]
-        previous = by_code.get(code)
-        if previous is None or (-score, priority[kind]) < (-previous[0], priority[previous[2]]):
-            by_code[code] = score, components, kind
-    return _rank_concepts(conn, build, query, mode, by_code)
-
-
-def _rank_concepts(
-    conn: sqlite3.Connection,
-    build: str,
-    query: str,
-    mode: str,
-    by_code: dict[str, tuple[float, dict[str, float], str]],
-) -> list[SearchHit]:
-    exact = {
-        row[0]
-        for row in conn.execute(
-            "SELECT code FROM concepts WHERE build_id = ? AND name_key = ?",
-            (build, name_key(query)),
-        )
-    }
-    for code in exact:
-        by_code[code] = (
-            1.0,
-            {"bm25": float(mode != "vector"), "vector": float(mode != "bm25")},
-            "name",
-        )
-    ordered = sorted(by_code, key=lambda code: (-by_code[code][0], code not in exact, code))
-    payloads = _concept_payloads(conn, build, ordered)
-    return [
-        SearchHit(
-            concept=payloads[code],
-            score=by_code[code][0],
-            rank=rank,
-            score_components=by_code[code][1],
-            matched_on=by_code[code][2],
-        )
-        for rank, code in enumerate(ordered, 1)
-    ]
-
-
-def _field_identities(
-    conn: sqlite3.Connection, build: str, identifiers: list[str]
-) -> dict[str, tuple[str, str]]:
-    result = {}
-    for chunk in batched(identifiers, _SQL_CHUNK, strict=False):
-        for row in conn.execute(
-            "SELECT id, code, kind FROM fields WHERE build_id = ? "  # noqa: S608
-            f"AND id IN ({','.join('?' for _ in chunk)})",
-            [build, *chunk],
-        ):
-            result[str(row["id"])] = row["code"], row["kind"]
-    return result
-
 
 def _stored_dimensions(
     conn: sqlite3.Connection, manifest: IndexManifest | None
@@ -805,10 +615,10 @@ def _stored_dimensions(
     if manifest is None or manifest.embedding_dimensions is not None:
         return manifest
     row = conn.execute(
-        "SELECT vector FROM fields WHERE build_id = ? LIMIT 1", (manifest.build_id,)
+        "SELECT vector, kinds FROM concept_vectors WHERE build_id = ? LIMIT 1", (manifest.build_id,)
     ).fetchone()
     if row:
-        return replace(manifest, embedding_dimensions=len(json.loads(row[0])))
+        return replace(manifest, embedding_dimensions=len(row[0]) // (4 * len(row[1])))
     return manifest
 
 

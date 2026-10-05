@@ -99,7 +99,7 @@ class CachingTest(ServerFixture):
 
     def test_empty_search_is_cacheable_governed_content(self, _):
         invoke(self.context, "index_codes", ["C3262"])
-        with patch("nci_si_mcp.index._rank_fields", return_value=[]):
+        with patch("nci_si_mcp.index.rank_page", return_value=([], 0)):
             result = self.session(
                 lambda client: client.call_tool(
                     "search_concepts", pinned(query="zzzz", mode="semantic")

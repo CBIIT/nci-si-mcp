@@ -8,7 +8,6 @@ import tempfile
 import unittest
 from copy import deepcopy
 from pathlib import Path
-from unittest.mock import patch
 
 import yaml
 
@@ -18,7 +17,7 @@ from nci_si_mcp.context import Context
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.errors import call_correlation_id, correlated
 from nci_si_mcp.http_client import UpstreamTooLargeError, UpstreamUnavailableError
-from nci_si_mcp.index import EXACT_VECTOR_SCAN_LIMIT, LocalIndex
+from nci_si_mcp.index import LocalIndex
 from nci_si_mcp.models import NcitConcept, utc_now_iso
 from nci_si_mcp.registry import invoke
 from test_index import synthetic_concepts
@@ -769,22 +768,17 @@ class ExactnessBoundaryTest(ProvenanceTestCase):
         index.upsert_concepts(synthetic_concepts(count), "2026-06-29", HashingEmbeddingProvider())
         return index
 
-    def test_vectors_are_exact_up_to_the_scan_limit_and_not_beyond(self):
+    def test_vector_truncation_counts_every_indexed_concept(self):
         index = self.build(30)
+        truncation = self.search(index, 1, "hybrid")
+        self.assertEqual((truncation.exact, truncation.omitted), (True, 29))
 
-        for limit_of_scan, exact in ((30, True), (29, False)):
-            with self.subTest(scan_limit=limit_of_scan):
-                with patch("nci_si_mcp.index.EXACT_VECTOR_SCAN_LIMIT", limit_of_scan):
-                    truncation = self.search(index, 1, "hybrid")
-                self.assertEqual(truncation.exact, exact)
-        self.assertEqual(EXACT_VECTOR_SCAN_LIMIT, 20_000)
-
-    def test_term_ranking_is_exact_only_below_its_candidate_cap(self):
+    def test_term_truncation_counts_all_matches_across_page_sizes(self):
         index = self.build(1200)
 
-        # 120 concepts name alpha1: a cap of exactly 120 candidates is reached, one of 130 is not.
+        # Every one of the 120 term matches counts, for either page size.
         at_cap = self.search(index, 12, "bm25")
         below_cap = self.search(index, 13, "bm25")
 
-        self.assertFalse(at_cap.exact)
+        self.assertEqual((at_cap.exact, at_cap.omitted), (True, 108))
         self.assertEqual((below_cap.exact, below_cap.omitted), (True, 107))

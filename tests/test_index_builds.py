@@ -8,6 +8,7 @@ from nci_si_mcp.errors import (
     IndexBuildError,
     IndexCompatibilityError,
     IndexStorageError,
+    PlatformError,
     correlated,
 )
 from nci_si_mcp.index import LocalIndex
@@ -15,6 +16,17 @@ from test_index import RAW_CONCEPTS, IndexTestCase
 
 
 class BuildLifecycleTest(IndexTestCase):
+    def test_cursor_expires_before_checking_a_replacement_builds_provider(self):
+        index = self.build()
+        active = index.get_active_manifest()
+        replacement = index.build(RAW_CONCEPTS, None, HashingEmbeddingProvider(dimensions=64))
+        index.activate(replacement.build_id)
+        with self.assertRaises(PlatformError) as raised:
+            index.search_page("cancer", self.provider, build_id=active.build_id)
+        self.assertEqual(raised.exception.code, "cursor_expired")
+        self.assertEqual(raised.exception.details["cursorRelease"], active.release_version)
+        self.assertEqual(raised.exception.details["currentRelease"], replacement.release_version)
+
     def test_unusable_build_lease_reports_storage_error_and_keeps_active_index(self):
         index = self.build()
         active = index.get_active_manifest()

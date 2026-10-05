@@ -27,7 +27,7 @@ flowchart LR
         EVS["EVS client + normalization<br/>evs.py"]
         Http["Instrumented HTTP client<br/>http_client.py"]
         Index["LocalIndex<br/>index.py"]
-        Retrieval["Tokenization + score utilities<br/>retrieval.py"]
+        Retrieval["Exact field scoring<br/>index_scoring.py"]
         Embeddings["Embedding providers<br/>embeddings.py"]
         Traversal["Bounded graph traversal<br/>traversal.py"]
         Models["Shared dataclasses<br/>models.py"]
@@ -99,10 +99,10 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 | `evs.py` | Calls EVS REST endpoints through the HTTP client, classifies EVS-specific failures (missing concept, unknown release, unusable content and release mismatch) while shared HTTP failures propagate unchanged, reads the terminology listing (optionally one channel's `latest` row), and normalizes EVS payloads. | `http_client.py`, shared models, NCI EVS API |
 | `fhir.py` | Reads and verifies the unpinned NCIt value-set expansion, projects members and applies inactive filtering and local offset paging. | `http_client.py`, release, shared models |
 | `release.py` | The release model. `resolve_evs_release` asks EVS for the one row that is latest and tagged with the channel and returns the `ReleaseContext` that one call threads through its requests; zero or several rows are `release_not_available`, with ambiguous versions in `found`. Only terminology, channel, version and date are serialized; the pinned path stays internal. Nothing is kept between calls. `registry_state` builds `published`, optional `identifier`, `generatedAt` and `sourceDistribution` from upstream metadata. Without a registry release, the export's `Last-Modified` supplies the date. Invalid metadata raises `RegistryMetadataError`, mapped to `upstream_unavailable`. | `evs.py`, `errors.py` |
-| `index.py` | Builds inactive field indexes, activates snapshots with rollback retention, and ranks BM25/vector/hybrid results within one read snapshot. | SQLite FTS5, retrieval utilities, embedding provider, `index_storage.py` |
-| `index_storage.py` | Defines schema 5, preserves legacy raw concepts during migration, and manages per-build FTS tables. | SQLite, shared models |
+| `index.py` | Builds inactive field indexes, activates snapshots with rollback retention, and ranks BM25/vector/hybrid results within one read snapshot. | SQLite FTS5, embedding provider, `index_storage.py`, `index_scoring.py` |
+| `index_storage.py` | Defines schema 6 with float32 vector BLOBs, preserves raw concepts and build activation during migration, and manages per-build FTS tables. | SQLite, shared models |
 | `indexing.py` | Reconciles all pinned full-build pages before writing the index; spools raw payloads and logs aggregate progress. | EVS client, local index |
-| `retrieval.py` | Implements tokenization, the dot product used as cosine similarity for unit vectors, and min-max normalization. | Python standard library |
+| `index_scoring.py` | Scores every indexed field in one scan, reduces numeric arrays to each concept's best field, and partitions the requested page with deterministic ties. | SQLite FTS5, optional NumPy |
 | `embeddings.py` | Defines the embedding abstraction, a deterministic local hashing provider, an optional sentence-transformers provider, and the check that provider and model settings agree. | Optional `sentence-transformers` package |
 | `traversal.py` | Resolves which edge types to follow and performs a breadth-first traversal of hierarchy, role, and association relations with deduplication and hard depth/node/edge limits, and gives each node and edge its traversal provenance and the walk its truncation record. | EVS client, shared models |
 | `models.py` | Defines the serializable concept, index, search-hit and traversal dataclasses, and the provenance, traversal provenance and truncation records every result is built from. | `errors.py` |
@@ -141,29 +141,33 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 ### Search
 
 1. The CLI invokes `handlers.search`; MCP invokes `content.search_concepts` through the
-   same registry. The MCP entry pins the caller's release, maps `semantic` to vector search,
-   and refuses lexical/typeahead, cursors and retired-only selection pending #27.
+   same registry. The MCP entry pins the caller's release. Lexical/typeahead search passes
+   EVS order through without scores, preserving only lexical highlights. Semantic/hybrid
+   search uses the exact NCIt index and requires the optional NumPy `index` extra.
 2. `LocalIndex` verifies that the runtime embedding configuration matches the
    manifest. For MCP, it also verifies the requested release inside the read transaction.
-3. BM25 candidates come from SQLite FTS5. For vector scores, a release of up to
-   20,000 concepts is scanned exactly; a larger one is narrowed to at most 2,000
-   field candidates from the LSH buckets and the BM25 hits before scoring. Work for an
-   unused retrieval mode is skipped.
+3. BM25 scores come from SQLite FTS5 without a candidate cap. Each concept's field vectors
+   occupy one float32 BLOB; a single scan scores every field in bounded matrix chunks.
+   Compact per-query numeric arrays retain cosines, concept indices and field kinds.
+   Hybrid scatters matching BM25 scores into those arrays. No vector matrix is cached.
 4. Each component is min-max normalized over the fields scored for the query
    and combined as BM25, vector, or a `0.55 * BM25 + 0.45 * vector` hybrid
    score. Scores order the hits of one query; they are not comparable across
    queries. Each concept appears once with its winning field in `matchedOn`; equal
    scores prefer name, synonym, then definition. An exact preferred name, compared
    case-insensitively after Unicode NFC and whitespace collapsing, scores 1 and wins
-   ties before other concepts. Code orders remaining ties. `totalKnown` is the active
-   snapshot's concept count, read in the same transaction.
+   ties before other concepts. Code orders remaining ties, including ties at a partition
+   boundary. `totalKnown` counts all matches after the retirement filter, in the same
+   snapshot as the page and manifest. Retired-only selection uses the pinned terminology's
+   advertised status; an unsupported selection is invalid, never silently unfiltered.
 5. Ranked `SearchHit` objects are returned. Each hit's concept carries its provenance
    (`source: evs_index`), and raw EVS payloads are left out unless the CLI's
-   `--include-raw` asks for them. `search_with_truncation` also counts the scored
-   concepts that `limit` left out and returns them as the `Truncation` record; its `exact`
-   is true only where every candidate was scored (BM25 below its candidate cap, vectors
-   in an index of up to 20,000 concepts). A search with no hit carries the provenance of
-   the active manifest as its own field.
+   `--include-raw` asks for them. MCP returns `nextCursor` until the final page, without
+   truncation. Cursors bind applied arguments, the pinned release and, for indexed modes,
+   the internal build id. An activation expires indexed cursors even if the release is
+   unchanged. EVS cursors expire when their pinned release is withdrawn. The CLI's one-page
+   `search_with_truncation` instead reports an exact count of omitted concepts.
+   An empty result carries provenance for its selected source.
 
 ### CLI lookup and the concept resource
 
@@ -301,6 +305,7 @@ erDiagram
         text code PK
         text payload "JSON NcitConcept"
         text name_key
+        text status
     }
     FIELDS {
         integer id PK
@@ -308,27 +313,31 @@ erDiagram
         text code
         text kind
         text text
-        text vector
+        integer position
     }
-    VECTOR_LSH {
-        text build_id
-        integer field_id PK
-        integer band PK
-        integer bucket
+    CONCEPT_VECTORS {
+        text build_id PK
+        text code PK
+        blob kinds
+        blob vector "little-endian float32 fields"
     }
     MANIFESTS ||--o{ CONCEPTS : build_id
     CONCEPTS ||--o{ FIELDS : "build_id, code"
-    FIELDS ||--|{ VECTOR_LSH : field_id
+    CONCEPTS ||--|| CONCEPT_VECTORS : "build_id, code"
 ```
 
-Schema 5 retains completed build snapshots. One partial unique index permits only one active
+Schema 6 retains completed build snapshots. One partial unique index permits only one active
 manifest. Each build has its own FTS5 table, keyed by field id, so inactive builds cannot change
 the active BM25 corpus statistics. Activation retains exactly the new active snapshot and
 its predecessor. Embedding runs outside transactions; bounded writes accumulate under a `building` row.
 Only a final completion transaction makes it eligible for activation. The next build start
-removes stale rows, while a separate SQLite lease protects concurrently running builders. The LSH layout remains four bands of eight bits, applied to field vectors.
+removes stale rows, while a separate SQLite lease protects concurrently running builders.
+Field vectors are grouped per concept, with their kinds and positions linking them to FTS.
+The manifest supplies the dimension; malformed BLOB lengths are storage failures.
 
-Migration preserves legacy raw concepts and manifests and marks them rebuild-required.
+Schema-5 migration preserves raw concepts, manifests, activation, FTS ids and retirement status,
+converting its JSON vectors to float32 without embedding again. Earlier-schema migration
+preserves raw concepts and manifests and marks them rebuild-required.
 Their cached lookup remains available; search returns `capability_unavailable` naming
 `index-rebuild`. That command embeds stored payloads into a new inactive build without
 network access; activation is explicit. No embedding runs while opening a database.
@@ -364,14 +373,13 @@ resource aliases are `current` and `latest`. QUICKSTART.md lists the error codes
 
 ## Current boundaries
 
-- NCIt is the only implemented terminology path.
-- User search is local and requires an index. Full builds use the EVS search endpoint.
+- NCIt is the only indexed terminology. Lexical/typeahead search uses EVS directly;
+  semantic/hybrid search requires a matching active index and the optional NumPy extra.
 - Traversal is live against EVS rather than cached in SQLite. Inward walks are
   slower than outward ones because the inverse relations of hub concepts are
   megabytes each.
-- Vector search scans all fields up to 20,000 indexed concepts. Above that it scores
-  only LSH and BM25 field candidates, so recall is approximate. The earlier concatenated
-  index showed poor vector-only recall; that measurement does not describe the field index.
+- Exact vector search scans every field on each page. Per-query numeric score arrays grow
+  with the field count; vectors are processed in chunks and never cached as a full matrix.
 - caDSR/CDE tools are not implemented. Until credentials are issued, their implementation
   uses fixtures crafted from the published contracts; the former status-only stub is removed.
 - Index builds and activation are operator commands. Evaluation gates follow in #29;

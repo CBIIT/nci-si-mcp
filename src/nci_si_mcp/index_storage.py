@@ -3,19 +3,33 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 import sqlite3
+import struct
 import unicodedata
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import replace
+from itertools import groupby
 from pathlib import Path
 from uuid import uuid4
 
 from .errors import IndexCompatibilityError, IndexStorageError
 from .models import IndexManifest, NcitConcept
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
+FIELD_KINDS = ("name", "synonym", "definition")
+
+
+def vector_bytes(vector: list[float]) -> bytes:
+    """Round all providers consistently to the stored little-endian float32 format."""
+    if not all(math.isfinite(value) for value in vector):
+        raise IndexCompatibilityError("An embedding contains non-finite values")
+    try:
+        return struct.pack(f"<{len(vector)}f", *vector)
+    except OverflowError, struct.error:
+        raise IndexCompatibilityError("An embedding value cannot be stored as float32") from None
 
 
 def name_key(text: str) -> str:
@@ -59,14 +73,15 @@ def create_schema(conn: sqlite3.Connection) -> None:
         "CHECK (active = 0 OR state = 'complete'))",
         "CREATE UNIQUE INDEX manifests_single_active ON manifests(active) WHERE active = 1",
         "CREATE TABLE concepts (build_id TEXT NOT NULL, code TEXT NOT NULL, "
-        "payload TEXT NOT NULL, name_key TEXT NOT NULL, PRIMARY KEY (build_id, code))",
+        "payload TEXT NOT NULL, name_key TEXT NOT NULL, status TEXT, PRIMARY KEY (build_id, code))",
         "CREATE INDEX concepts_name ON concepts(build_id, name_key)",
+        "CREATE INDEX concepts_status ON concepts(build_id, status, code)",
         "CREATE TABLE fields (id INTEGER PRIMARY KEY, build_id TEXT NOT NULL, "
-        "code TEXT NOT NULL, kind TEXT NOT NULL, text TEXT NOT NULL, vector TEXT NOT NULL)",
+        "code TEXT NOT NULL, kind TEXT NOT NULL, text TEXT NOT NULL, position INTEGER NOT NULL)",
         "CREATE INDEX fields_concept ON fields(build_id, code)",
-        "CREATE TABLE vector_lsh (build_id TEXT NOT NULL, field_id INTEGER NOT NULL, "
-        "band INTEGER NOT NULL, bucket INTEGER NOT NULL, PRIMARY KEY (field_id, band))",
-        "CREATE INDEX vector_lsh_lookup ON vector_lsh(build_id, band, bucket)",
+        "CREATE TABLE concept_vectors (build_id TEXT NOT NULL, code TEXT NOT NULL, "
+        "kinds BLOB NOT NULL, vector BLOB NOT NULL, PRIMARY KEY (build_id, code))",
+        "CREATE INDEX concept_vectors_scan ON concept_vectors(build_id)",
     )
     for statement in statements:
         conn.execute(statement)
@@ -78,6 +93,14 @@ def migrate(conn: sqlite3.Connection) -> None:
     if not exists:
         create_schema(conn)
         return
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(manifests)")}
+    if "build_id" in columns:
+        _migrate_field_vectors(conn)
+        return
+    _migrate_legacy(conn)
+
+
+def _migrate_legacy(conn: sqlite3.Connection) -> None:
     conn.execute("ALTER TABLE manifests RENAME TO legacy_manifests")
     conn.execute("ALTER TABLE concepts RENAME TO legacy_concepts")
     for name in ("manifests_single_active", "vector_lsh_lookup"):
@@ -97,6 +120,48 @@ def migrate(conn: sqlite3.Connection) -> None:
         )
     conn.execute("DROP TABLE legacy_concepts")
     conn.execute("DROP TABLE legacy_manifests")
+
+
+def _migrate_field_vectors(conn: sqlite3.Connection) -> None:
+    """Preserve schema-5 field ids/FTS, snapshots and activation while changing vector encoding."""
+    conn.execute("ALTER TABLE fields RENAME TO json_fields")
+    conn.execute("DROP INDEX fields_concept")
+    conn.execute(
+        "CREATE TABLE fields (id INTEGER PRIMARY KEY, build_id TEXT NOT NULL, "
+        "code TEXT NOT NULL, kind TEXT NOT NULL, text TEXT NOT NULL, position INTEGER NOT NULL)"
+    )
+    conn.execute(
+        "CREATE TABLE concept_vectors (build_id TEXT NOT NULL, code TEXT NOT NULL, "
+        "kinds BLOB NOT NULL, vector BLOB NOT NULL, PRIMARY KEY (build_id, code))"
+    )
+    conn.execute("CREATE INDEX concept_vectors_scan ON concept_vectors(build_id)")
+    rows = conn.execute("SELECT * FROM json_fields ORDER BY build_id, code, id")
+    for (build, code), fields in groupby(rows, lambda row: (row["build_id"], row["code"])):
+        _migrate_concept_vectors(conn, build, code, list(fields))
+    conn.execute("DROP TABLE json_fields")
+    conn.execute("DROP TABLE vector_lsh")
+    conn.execute("CREATE INDEX fields_concept ON fields(build_id, code)")
+    conn.execute("ALTER TABLE concepts ADD COLUMN status TEXT")
+    conn.execute("UPDATE concepts SET status = json_extract(payload, '$.raw.conceptStatus')")
+    conn.execute("CREATE INDEX concepts_status ON concepts(build_id, status, code)")
+
+
+def _migrate_concept_vectors(
+    conn: sqlite3.Connection,
+    build: str,
+    code: str,
+    rows: list[sqlite3.Row],
+) -> None:
+    vectors = []
+    kinds = []
+    for position, row in enumerate(rows):
+        conn.execute("INSERT INTO fields VALUES (?, ?, ?, ?, ?, ?)", (*tuple(row)[:5], position))
+        vectors.append(vector_bytes(json.loads(row["vector"])))
+        kinds.append(FIELD_KINDS.index(row["kind"]))
+    conn.execute(
+        "INSERT INTO concept_vectors VALUES (?, ?, ?, ?)",
+        (build, code, bytes(kinds), b"".join(vectors)),
+    )
 
 
 def _legacy_active(rows: list[sqlite3.Row]) -> str | None:
@@ -128,13 +193,19 @@ def _migrate_build(conn: sqlite3.Connection, row: sqlite3.Row, active: str | Non
     ):
         payload = json.loads(item["payload"])
         conn.execute(
-            "INSERT INTO concepts VALUES (?, ?, ?, ?)",
-            (manifest.build_id, item["code"], item["payload"], name_key(payload["preferred_name"])),
+            "INSERT INTO concepts VALUES (?, ?, ?, ?, ?)",
+            (
+                manifest.build_id,
+                item["code"],
+                item["payload"],
+                name_key(payload["preferred_name"]),
+                payload.get("raw", {}).get("conceptStatus"),
+            ),
         )
 
 
 def delete_build(conn: sqlite3.Connection, build_id: str) -> None:
-    for table in ("concepts", "fields", "vector_lsh", "manifests"):
+    for table in ("concepts", "fields", "concept_vectors", "manifests"):
         conn.execute(f"DELETE FROM {table} WHERE build_id = ?", (build_id,))  # noqa: S608
     conn.execute(f"DROP TABLE IF EXISTS {fts_table(build_id)}")
 

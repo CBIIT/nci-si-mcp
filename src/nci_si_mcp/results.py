@@ -187,14 +187,14 @@ class RelationshipsResult(TypedDict):
 
 class RankedConcept(TypedDict):
     concept: Concept
-    score: float
-    matchedOn: Literal["name", "synonym", "definition"]
+    score: NotRequired[float]
+    matchedOn: NotRequired[str]
 
 
 class ConceptSearch(TypedDict):
     results: list[RankedConcept]
     totalKnown: int
-    truncation: Truncation
+    nextCursor: NotRequired[str]
     provenance: NotRequired[Provenance]
 
 

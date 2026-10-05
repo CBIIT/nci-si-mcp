@@ -39,7 +39,7 @@ class RegistryMutationTest(ServerFixture):
             result = invoke(
                 self.context, "search_concepts", "ncit", "26.06e", "Neoplasm", cursor=cursor
             )
-        self.assertEqual(result["error"]["code"], "capability_unavailable")
+        self.assertEqual(result["error"]["code"], "invalid_request")
         (record,) = records(stream)
         self.assertEqual(record["parameters"]["cursor"], digest(cursor))
         self.assertNotIn(cursor, stream.getvalue())
