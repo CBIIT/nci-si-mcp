@@ -792,6 +792,18 @@ Stopping at `max_depth` is no truncation.
 - `nci-si://release/ncit/{version}`: `monthly`, `latest`, or `monthly-latest` return the full `ncit_release_info` report for the configured channel, including weekly; the current version returns its `{terminology, channel, version, date}` record. The aliases retain their existing names until #18.
 - `nci-si://index/ncit/{version}/manifest`: `active`, or the release the local index holds, returns its manifest; without an index the result is `{"active_index": null}`.
 
+## MCP caching hints
+
+Tool results carry `ttlMs` and `cacheScope` in protocol `_meta`, separate from their JSON
+content. Lookup, search (including an empty result) and traversal use 86,400,000 ms and
+`public`. Release and caDSR status reports use 0 and `public`; tool errors use 0 and
+`private`. The hints describe freshness and sharing; they do not add a server-side cache.
+
+The four list methods and `server/discover` carry 86,400,000 ms and `public` as result
+fields. Resource reads carry the same fields on the read result: concept content and
+version-addressed release/index content use 86,400,000 ms and `public`. Moving release-report
+aliases, the `active` index alias, and an absent-index report use 0 and `public`.
+
 ## Errors
 
 Every failure the service handles is one error record, and the process exit

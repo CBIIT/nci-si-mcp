@@ -5,11 +5,12 @@ from __future__ import annotations
 import functools
 import inspect
 import json
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from typing import Any, cast
 
 from . import __version__
 from .bounds import DEFAULT_MAX_DEPTH, DEFAULT_MAX_EDGES, DEFAULT_MAX_NODES
+from .caching import LONG_TTL_MS, RELEASE_REPORT_ALIASES, RELEASE_REPORT_URIS, cache_hint
 from .config import Settings, configure_logging
 from .errors import PlatformError, correlated, is_error_record, serialise
 from .service import NCISIService
@@ -32,6 +33,7 @@ INSTRUCTIONS = (
 def create_mcp(settings: Settings | None = None, *, service: NCISIService | None = None):
     # The mcp package is an optional extra, so it is imported only when a server is built.
     try:
+        from mcp.server.caching import CacheHint
         from mcp.server.mcpserver import Context, MCPServer
         from mcp.server.mcpserver.exceptions import ResourceError
         from mcp.types import CallToolResult, TextContent
@@ -44,7 +46,22 @@ def create_mcp(settings: Settings | None = None, *, service: NCISIService | None
     resolved_settings = settings or Settings.from_env()
     configure_logging(resolved_settings.log_level)
     service = service or NCISIService(resolved_settings)
-    mcp = MCPServer("nci-si-mcp", instructions=INSTRUCTIONS, version=__version__)
+    mcp = MCPServer(
+        "nci-si-mcp",
+        instructions=INSTRUCTIONS,
+        version=__version__,
+        cache_hints=dict.fromkeys(
+            (
+                "tools/list",
+                "prompts/list",
+                "resources/list",
+                "resources/templates/list",
+                "server/discover",
+            ),
+            CacheHint(ttl_ms=LONG_TTL_MS, scope="public"),
+        ),
+        middleware=[_cache_results],
+    )
 
     def tool_result(ctx: Any, call: Callable[[], dict[str, Any]]) -> Any:
         """Run one tool call under its correlation identifier (the request's
@@ -79,6 +96,27 @@ def create_mcp(settings: Settings | None = None, *, service: NCISIService | None
     _register_tools(tool, service, tool_result)
     _register_resources(mcp, service, resource_result)
     return mcp
+
+
+async def _cache_results(ctx: Any, call_next: Callable[[Any], Awaitable[Any]]) -> Any:
+    """Keep tool hints in protocol metadata and resource hints on the protocol result."""
+
+    result = await call_next(ctx)
+    if ctx.method == "tools/call":
+        hint = cache_hint(
+            resolution=ctx.params["name"] in {"ncit_release_info", "cadsr_status"},
+            error=result.get("isError", False),
+        )
+        return {**result, "_meta": {**result.get("_meta", {}), **hint}}
+    if ctx.method == "resources/read":
+        content = json.loads(result["contents"][0]["text"])
+        resolution = (
+            ctx.params["uri"] in RELEASE_REPORT_URIS
+            or ctx.params["uri"] == "nci-si://index/ncit/active/manifest"
+            or content.get("active_index", False) is None
+        )
+        return {**result, **cache_hint(resolution=resolution)}
+    return result
 
 
 def _register_tools(
@@ -289,7 +327,7 @@ def _register_resources(
         any other version is an error.
         """
         info = resource_result(service.release_info())
-        if version in ("monthly", "latest", "monthly-latest"):
+        if version in RELEASE_REPORT_ALIASES:
             return info
         selected = resource_result(info["selected_monthly_release"])
         if version == selected["version"]:

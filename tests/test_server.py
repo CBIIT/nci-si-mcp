@@ -55,8 +55,7 @@ class ServerStartupTest(unittest.TestCase):
         self.assertIn(f"Import failed: {raised.exception.__cause__}", str(raised.exception))
 
 
-@patch("nci_si_mcp.server.configure_logging")
-class ServerTest(unittest.TestCase):
+class ServerFixture(unittest.TestCase):
     def setUp(self):
         # Creating an MCPServer installs a root log handler; keep it quiet and
         # take it out again so later tests are not affected.
@@ -103,6 +102,9 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(result.contents[0].mime_type, "application/json")
         return json.loads(result.contents[0].text)
 
+
+@patch("nci_si_mcp.server.configure_logging")
+class ServerTest(ServerFixture):
     def test_server_reports_its_version_and_its_instructions(self, _):
         async def server_info(client):
             return client.server_info, client.instructions
