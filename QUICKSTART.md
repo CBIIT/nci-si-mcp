@@ -74,7 +74,7 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects eight EVS tools, no caDSR tools yet, or the same eight EVS tools, respectively; CLI maintenance commands and resources remain available |
+| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects nine EVS tools, no caDSR tools yet, or the same nine EVS tools, respectively; CLI maintenance commands and resources remain available |
 | `NCI_SI_UPSTREAM_MODE` | `live` | `live` or `fixture`; selects the six base URLs below as a set (next paragraph) |
 | `NCI_SI_EVS_BASE_URL` | `https://api-evsrest.nci.nih.gov` | EVS REST endpoint (`http` or `https`) |
 | `NCI_SI_EVS_FHIR_BASE_URL` | `https://api-evsrest.nci.nih.gov/fhir/r4` | EVS FHIR endpoint |
@@ -515,6 +515,7 @@ unknown, its record gives `omitted: 0` and `exact: false`.
 ## MCP Tools
 
 - `get_concept`: fetch a caller-pinned EVS concept with required `terminology`, `release` and `code`. Optional `include` selects synonyms, definitions, properties or semanticType; status is passed through from EVS.
+- `resolve_retired_code`: fetch a required `terminology`, `release` and `code`, returning upstream `active` and optional `status`, with `replacements` always present. Active concepts return an empty list without a history request. Retired concepts use the pinned single-code history endpoint; each named replacement carries its code, name, terminology and provenance. A history 404 is an upstream error, not an empty result.
 - `list_relationships`: list the pinned release’s roles and associations with code, terminology, name, kind, polarity and provenance. Reads each catalogue once per call; no cross-call cache. Missing configured exclusion codes make this tool and `get_concept_neighborhood` fail with `internal_error`, naming the absent codes in `details.missingCodes`. No network access is needed at startup.
 - `get_concepts`: fetch a caller-pinned batch with required `terminology`, `release` and `codes`. Returns `concepts` and `missing` in input order, preserving duplicate occurrences. Optional `include` works as in `get_concept`. Empty input makes no request. At most 650 supplied codes and a 7000-byte encoded request target are allowed; larger inputs are `invalid_request`. An oversized response is `bound_exceeded` (`NCI_SI_EVS_MAX_RESPONSE_BYTES`), never partial results.
 - `search_concepts`: search the interim NCIt index with required `terminology`, `release` and `query`. `semantic` and `hybrid` modes are supported, with `limit` default 10, maximum 1000; the index must hold the requested release. Default `lexical`, `typeahead`, cursors and `retired: only` return `capability_unavailable` pending #27.
@@ -534,7 +535,7 @@ with no matches still return empty successes; missing current releases retain th
 `release_not_available` behavior.
 
 Each tool description, as sent to MCP clients, states the contract in full. The former
-`ncit_*` tools and `cadsr_status` are removed; use the eight tools above. The caDSR profile
+`ncit_*` tools and `cadsr_status` are removed; use the nine tools above. The caDSR profile
 currently exposes no tools. CLI diagnostics retain `search`, `lookup`, `traverse` and
 `release-info`, including CLI-only options such as `--live-only` and `--include-raw`.
 The release report's `selected_release` field names the configured channel's release.

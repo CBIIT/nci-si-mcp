@@ -335,7 +335,7 @@ MCP resources:
 - `nci-si://release/ncit/{version}`
 - `nci-si://index/ncit/{version}/manifest`
 
-The `evs` and `unified` profiles expose the eight EVS tools; `cadsr` currently exposes no tools.
+The `evs` and `unified` profiles expose the nine EVS tools; `cadsr` currently exposes no tools.
 Each tool has group metadata and read-only, idempotent,
 non-destructive, open-world annotations. Resources are available in every profile.
 
@@ -418,3 +418,14 @@ repeated C202904 with minimal detail, returned HTTP 200 at encoded request-targe
 (7.2%) below the largest successful probe. The byte check uses the actual HTTP URL formatter,
 including the configured base path, pinned release, escaped codes and include fields. The count
 applies before deduplication; either excess is `invalid_request`, without truncation or splitting.
+
+### Retired code resolution
+
+`resolve_retired_code` reads the pinned concept once and uses only its boolean `active` to
+decide whether to read history. Status remains the upstream value. Inactive concepts use
+`/history/{terminology}_{release}/{code}/replacements`; the one-code tool does not need the
+batch endpoint or split/retry logic. A history 404 follows `_get_existing` into an error;
+a successful empty history or a row naming no replacement yields `replacements: []`.
+Replacement codes and names remain unchanged. Their provenance names the history request
+and its pinned release, without inventing the version compact rows do not carry. Any
+optional upstream terminology/version is validated, and supplied licence text passes through.
