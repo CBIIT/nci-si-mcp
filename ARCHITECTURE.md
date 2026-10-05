@@ -99,7 +99,9 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 | `evs.py` | Calls EVS REST endpoints through the HTTP client, classifies EVS-specific failures (missing concept, unknown release, unusable content and release mismatch) while shared HTTP failures propagate unchanged, reads the terminology listing (optionally one channel's `latest` row), and normalizes EVS payloads. | `http_client.py`, shared models, NCI EVS API |
 | `fhir.py` | Reads and verifies the unpinned NCIt value-set expansion, projects members and applies inactive filtering and local offset paging. | `http_client.py`, release, shared models |
 | `release.py` | The release model. `resolve_evs_release` asks EVS for the one row that is latest and tagged with the channel and returns the `ReleaseContext` that one call threads through its requests; zero or several rows are `release_not_available`, with ambiguous versions in `found`. Only terminology, channel, version and date are serialized; the pinned path stays internal. Nothing is kept between calls. `registry_state` builds `published`, optional `identifier`, `generatedAt` and `sourceDistribution` from upstream metadata. Without a registry release, the export's `Last-Modified` supplies the date. Invalid metadata raises `RegistryMetadataError`, mapped to `upstream_unavailable`. | `evs.py`, `errors.py` |
-| `index.py` | Migrates and transactionally maintains the release manifest, normalized concepts, FTS search text, vectors, and vector LSH buckets; performs BM25/vector/hybrid search. | SQLite FTS5, retrieval utilities, embedding provider, `validation.py`, concept normalization in `evs.py` |
+| `index.py` | Builds inactive field indexes, activates snapshots with rollback retention, and ranks BM25/vector/hybrid results within one read snapshot. | SQLite FTS5, retrieval utilities, embedding provider, `index_storage.py` |
+| `index_storage.py` | Defines schema 5, preserves legacy raw concepts during migration, and manages per-build FTS tables. | SQLite, shared models |
+| `indexing.py` | Reconciles all pinned full-build pages before writing the index; spools raw payloads and logs aggregate progress. | EVS client, local index |
 | `retrieval.py` | Implements tokenization, the dot product used as cosine similarity for unit vectors, and min-max normalization. | Python standard library |
 | `embeddings.py` | Defines the embedding abstraction, a deterministic local hashing provider, an optional sentence-transformers provider, and the check that provider and model settings agree. | Optional `sentence-transformers` package |
 | `traversal.py` | Resolves which edge types to follow and performs a breadth-first traversal of hierarchy, role, and association relations with deduplication and hard depth/node/edge limits, and gives each node and edge its traversal provenance and the walk its truncation record. | EVS client, shared models |
@@ -121,10 +123,20 @@ which use the closed value sets in `validation.py` and default limits in `bounds
    code, nothing is indexed.
 3. `LocalIndex` normalizes each concept and verifies the payload release and
    embedding provider/model/dimensions before changing persistent state.
-4. Search text, embeddings, FTS rows, vector LSH buckets, and the manifest are
-   committed in one SQLite transaction. Concepts of the release already indexed
-   are added to it; concepts of another release replace the index. A failure
-   leaves the previous index untouched.
+4. Preferred name, synonyms and definitions become separate field rows, deduplicated
+   by identical text within each concept. Embeddings are computed in batches of 64
+   concepts outside write transactions. Each batch commits under a `building` manifest;
+   a final short transaction marks it complete. Partial builds never serve reads or activate.
+   The next start deletes stale building rows. A small separate SQLite lease distinguishes
+   a running builder from an interrupted one without holding the index write lock.
+5. The developer sample command combines existing same-release concepts and activates
+   the new snapshot. `index-build` instead reads unfiltered pinned search pages of 1000,
+   verifies every release, reconciles totals and unique codes, then builds an inactive snapshot.
+   Temporary spooling bounds download memory. Progress is structured JSON on stderr every
+   ten pages and at completion. HTTP retries remain in the shared client.
+6. `index-activate` changes the active manifest in one transaction and deletes all builds
+   except the new active build and its predecessor. Activating that predecessor is rollback.
+   `index-rebuild` embeds stored payloads offline into an inactive snapshot.
 
 ### Search
 
@@ -135,12 +147,16 @@ which use the closed value sets in `validation.py` and default limits in `bounds
    manifest. For MCP, it also verifies the requested release inside the read transaction.
 3. BM25 candidates come from SQLite FTS5. For vector scores, a release of up to
    20,000 concepts is scanned exactly; a larger one is narrowed to at most 2,000
-   candidates from the LSH buckets and the BM25 hits before scoring. Work for an
+   field candidates from the LSH buckets and the BM25 hits before scoring. Work for an
    unused retrieval mode is skipped.
-4. Each component is min-max normalized over the concepts scored for the query
+4. Each component is min-max normalized over the fields scored for the query
    and combined as BM25, vector, or a `0.55 * BM25 + 0.45 * vector` hybrid
    score. Scores order the hits of one query; they are not comparable across
-   queries.
+   queries. Each concept appears once with its winning field in `matchedOn`; equal
+   scores prefer name, synonym, then definition. An exact preferred name, compared
+   case-insensitively after Unicode NFC and whitespace collapsing, scores 1 and wins
+   ties before other concepts. Code orders remaining ties. `totalKnown` is the active
+   snapshot's concept count, read in the same transaction.
 5. Ranked `SearchHit` objects are returned. Each hit's concept carries its provenance
    (`source: evs_index`), and raw EVS payloads are left out unless the CLI's
    `--include-raw` asks for them. `search_with_truncation` also counts the scored
@@ -275,45 +291,47 @@ adds no persistent audit store, rate limiter or invented upstream audit headers.
 ```mermaid
 erDiagram
     MANIFESTS {
-        text release_version PK
+        text build_id PK
         text payload "JSON IndexManifest"
-        integer active "0 or 1"
+        integer active
+        text state "building or complete"
     }
-
     CONCEPTS {
-        text release_version PK
+        text build_id PK
         text code PK
         text payload "JSON NcitConcept"
-        text search_text
-        text vector "JSON float array"
+        text name_key
     }
-
-    CONCEPTS_FTS {
-        text release_version
+    FIELDS {
+        integer id PK
+        text build_id
         text code
-        text search_text "FTS5 indexed"
+        text kind
+        text text
+        text vector
     }
-
     VECTOR_LSH {
-        text release_version PK
-        text code PK
+        text build_id
+        integer field_id PK
         integer band PK
         integer bucket
     }
-
-    MANIFESTS ||--o{ CONCEPTS : "release_version"
-    CONCEPTS ||--|| CONCEPTS_FTS : "search document"
-    CONCEPTS ||--|{ VECTOR_LSH : "vector buckets"
+    MANIFESTS ||--o{ CONCEPTS : build_id
+    CONCEPTS ||--o{ FIELDS : "build_id, code"
+    FIELDS ||--|{ VECTOR_LSH : field_id
 ```
 
-SQLite holds one release: the concept cache and the search index over it. The
-database does not declare a foreign key, but `release_version` is the logical
-relationship between the tables. `PRAGMA user_version` drives migrations, and a
-partial unique index guarantees that at most one manifest is active. Earlier
-versions kept every release ever indexed; opening such a database (schema
-version below 4) drops all rows except those of the active release. The LSH
-layout (4 bands of 8 bits) and the hashing embedding are part of the stored
-format.
+Schema 5 retains completed build snapshots. One partial unique index permits only one active
+manifest. Each build has its own FTS5 table, keyed by field id, so inactive builds cannot change
+the active BM25 corpus statistics. Activation retains exactly the new active snapshot and
+its predecessor. Embedding runs outside transactions; bounded writes accumulate under a `building` row.
+Only a final completion transaction makes it eligible for activation. The next build start
+removes stale rows, while a separate SQLite lease protects concurrently running builders. The LSH layout remains four bands of eight bits, applied to field vectors.
+
+Migration preserves legacy raw concepts and manifests and marks them rebuild-required.
+Their cached lookup remains available; search returns `capability_unavailable` naming
+`index-rebuild`. That command embeds stored payloads into a new inactive build without
+network access; activation is explicit. No embedding runs while opening a database.
 
 A cached concept keeps the `retrieved_at` time at which it was fetched from EVS
 for indexing.
@@ -347,25 +365,17 @@ resource aliases are `current` and `latest`. QUICKSTART.md lists the error codes
 ## Current boundaries
 
 - NCIt is the only implemented terminology path.
-- Search is local and requires an index; the search endpoint of EVS is not
-  used.
+- User search is local and requires an index. Full builds use the EVS search endpoint.
 - Traversal is live against EVS rather than cached in SQLite. Inward walks are
   slower than outward ones because the inverse relations of hub concepts are
   megabytes each.
-- Vector search is exact up to 20,000 indexed concepts. Beyond that it scores
-  only LSH and BM25 candidates, and vector-only mode then misses most nearest
-  neighbours. One measurement: a synthetic index of 3,000 concepts, each with a
-  four-word name and a twelve-word definition, forced onto this path and
-  queried with 100 of the names, returned the exact nearest neighbour for 17
-  queries in vector mode and 87 in hybrid mode. The figure depends on how much
-  of the indexed text a query repeats. A full-NCIt index would need a real ANN
-  engine.
+- Vector search scans all fields up to 20,000 indexed concepts. Above that it scores
+  only LSH and BM25 field candidates, so recall is approximate. The earlier concatenated
+  index showed poor vector-only recall; that measurement does not describe the field index.
 - caDSR/CDE tools are not implemented. Until credentials are issued, their implementation
   uses fixtures crafted from the published contracts; the former status-only stub is removed.
-- Indexing is manual by supplied codes; there is no complete NCIt-universe build
-  workflow. An index cannot be
-  re-embedded in place: changing the embedding settings means deleting the
-  database file and indexing again.
+- Index builds and activation are operator commands. Evaluation gates follow in #29;
+  the operator runbook follows in #40.
 - The package requires Python 3.14 or newer. The `mcp` package comes with the
   optional `server` extra, which only the `serve` command and the server tests
   need.
@@ -376,7 +386,7 @@ resource aliases are `current` and `latest`. QUICKSTART.md lists the error codes
 - `tests/test_release.py`: one-row release resolution per channel and its failures, the unknown-release 404, the release being resolved afresh in every call, and the caDSR registry state.
 - `tests/test_evs_client.py`: failure classification, response limits, payload shapes, and request URLs through the EVS client.
 - `tests/test_http_client.py`: headers, correlation, counted retries, `Retry-After`, the request-log hook, and credentials (sent to their platform only, in no log, record or error).
-- `tests/test_index.py`: upserts and release replacement, rollback, embedding compatibility, migrations, and BM25/vector/hybrid search.
+- `tests/test_index.py`: sample updates and build retention, rollback, embedding compatibility, migrations, and BM25/vector/hybrid search.
 - `tests/test_handlers.py`: lookup (live, fallback, mismatch, not found), indexing, search, traversal, status, and the mapping of failures to error codes, details and next steps.
 - `tests/test_errors.py`: the error record, its closed set of codes, and the correlation identifier.
 - `tests/test_upstream.py`: failures masked as success responses (HTML, webMethods, FHIR), also through the EVS client.

@@ -115,7 +115,7 @@ class MainTest(unittest.TestCase):
 
     def test_each_command_prints_its_result_and_exits_zero(self, _):
         code, manifest, _ = self.run_cli("index-sample", "C3262")
-        self.assertEqual((code, manifest["concept_count"]), (0, 1))
+        self.assertEqual((code, manifest["concepts"]), (0, 1))
 
         code, lookup, _ = self.run_cli("lookup", "C3262", "--include-raw")
         self.assertEqual((code, lookup["provenance"]["source"]), (0, "evs_rest"))
@@ -128,7 +128,7 @@ class MainTest(unittest.TestCase):
         self.assertEqual((code, traversal["edges"][0]["target_code"]), (0, "C4741"))
 
         code, info, _ = self.run_cli("release-info")
-        self.assertEqual((code, info["active_index"]["release_version"]), (0, "26.06e"))
+        self.assertEqual((code, info["active_index"]["version"]), (0, "26.06e"))
         self.assertEqual(
             info["selected_release"],
             {
@@ -155,7 +155,7 @@ class MainTest(unittest.TestCase):
 
     def test_index_search_and_lookup_options_shape_the_result(self, _):
         code, manifest, _ = self.run_cli("index-sample", "C3262", "C40704")
-        self.assertEqual((code, manifest["concept_count"]), (0, 2))
+        self.assertEqual((code, manifest["concepts"]), (0, 2))
 
         options = ("--limit", "1", "--mode", "vector", "--include-raw")
         _, search, _ = self.run_cli("search", "kinase tumor", *options)

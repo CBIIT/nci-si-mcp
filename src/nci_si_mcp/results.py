@@ -188,10 +188,12 @@ class RelationshipsResult(TypedDict):
 class RankedConcept(TypedDict):
     concept: Concept
     score: float
+    matchedOn: Literal["name", "synonym", "definition"]
 
 
 class ConceptSearch(TypedDict):
     results: list[RankedConcept]
+    totalKnown: int
     truncation: Truncation
     provenance: NotRequired[Provenance]
 
@@ -292,15 +294,10 @@ class TerminologiesResult(TypedDict):
 
 class IndexManifestResult(TypedDict):
     terminology: str
-    release_version: str
-    release_date: str | None
-    embedding_provider: str
-    embedding_model: str
-    concept_count: int
-    built_at: str
-    index_path: str
-    embedding_dimensions: int | None
-    active: bool
+    version: str
+    concepts: int
+    embedding: dict[str, Any]
+    builtAt: str
     provenance: Provenance
 
 

@@ -88,7 +88,7 @@ class RegistryTest(ServerFixture):
                 self.context.settings = replace(self.settings, profile=profile)
                 args = cli.build_parser().parse_args(["index-sample", "C3262"])
                 result = cli._run(self.context, args)
-                self.assertEqual(result["concept_count"], 1)
+                self.assertEqual(result["concepts"], 1)
                 self.assertEqual(cli.build_parser().parse_args(["evaluate"]).operation, "evaluate")
 
     def test_registry_requires_an_explicit_cache_class(self):

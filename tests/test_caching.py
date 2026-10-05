@@ -6,7 +6,6 @@ from unittest.mock import patch
 
 from nci_si_mcp.caching import cache_call, select_cache_hint
 from nci_si_mcp.http_client import UpstreamUnavailableError
-from nci_si_mcp.models import Truncation
 from nci_si_mcp.registry import OPERATIONS, SPECS, ToolSpec, invoke
 from nci_si_mcp.server import _cache_results
 from test_server import ServerFixture, pinned
@@ -100,9 +99,7 @@ class CachingTest(ServerFixture):
 
     def test_empty_search_is_cacheable_governed_content(self, _):
         invoke(self.context, "index_codes", ["C3262"])
-        with patch.object(
-            self.context.index, "search_with_truncation", return_value=([], Truncation(False))
-        ):
+        with patch("nci_si_mcp.index._rank_fields", return_value=[]):
             result = self.session(
                 lambda client: client.call_tool(
                     "search_concepts", pinned(query="zzzz", mode="semantic")

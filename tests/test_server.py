@@ -22,7 +22,6 @@ from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.errors import correlated
 from nci_si_mcp.http_client import UpstreamUnavailableError
 from nci_si_mcp.index import LocalIndex
-from nci_si_mcp.models import Truncation
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.server import INSTRUCTIONS, create_mcp
 from test_docs import QUICKSTART, bullet_names, section
@@ -471,9 +470,7 @@ class ServerTest(ServerFixture):
     def test_a_search_that_finds_nothing_is_a_success_with_no_hits(self, _):
         invoke(self.context, "index_codes", ["C3262"])
 
-        with patch.object(
-            self.context.index, "search_with_truncation", return_value=([], Truncation(False))
-        ):
+        with patch("nci_si_mcp.index._rank_fields", return_value=[]):
             is_error, result = self.call("search_concepts", query="zzzz", mode="semantic")
 
         self.assertFalse(is_error)
@@ -500,7 +497,7 @@ class ServerTest(ServerFixture):
         self.assertEqual(self.read("nci-si://release/ncit/26.06e")["version"], "26.06e")
         for version in ("active", "26.06e"):
             manifest = self.read(f"nci-si://index/ncit/{version}/manifest")
-            self.assertEqual(manifest["concept_count"], 1)
+            self.assertEqual(manifest["concepts"], 1)
 
     def test_concept_resource_is_a_lookup_with_the_default_options(self, _):
         invoke(self.context, "index_codes", ["C3262"])

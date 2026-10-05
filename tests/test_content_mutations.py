@@ -39,13 +39,11 @@ class ContentMutationTest(ServerFixture):
         self.index_concepts(
             [concept("C1", "Kinase", active=True), concept("C2", "Kinase inhibitor", active=True)]
         )
-        original = self.context.index.search_with_truncation
+        original = self.context.index.search_snapshot
         for mode, engine in (("semantic", "vector"), ("hybrid", "hybrid")):
             with (
                 self.subTest(mode=mode),
-                patch.object(
-                    self.context.index, "search_with_truncation", wraps=original
-                ) as search,
+                patch.object(self.context.index, "search_snapshot", wraps=original) as search,
             ):
                 result = self.content("search_concepts", query="Kinase", mode=mode)
                 self.assertEqual(search.call_args.args[3], engine)

@@ -178,6 +178,10 @@ class IndexManifest:
     index_path: str
     embedding_dimensions: int | None = None
     active: bool = False
+    build_id: str = ""
+    needs_rebuild: bool = False
+    evaluation_version: str | None = None
+    evaluation_score: float | None = None
 
     @classmethod
     def from_payload(cls, payload: dict[str, Any]) -> IndexManifest:
@@ -209,7 +213,18 @@ class IndexManifest:
     def to_result(self) -> dict[str, Any]:
         """The manifest as the index_manifest record: its fields and its provenance."""
 
-        return self.to_dict() | {"provenance": self.provenance().to_dict()}
+        return {
+            "terminology": self.terminology,
+            "version": self.release_version,
+            "concepts": self.concept_count,
+            "embedding": {
+                "provider": self.embedding_provider,
+                "model": self.embedding_model,
+                "dimensions": self.embedding_dimensions,
+            },
+            "builtAt": self.built_at,
+            "provenance": self.provenance().to_dict(),
+        }
 
     def provenance(self) -> ProvenanceEnvelope:
         """The provenance of what the index serves: the release it holds, as built."""
@@ -229,6 +244,7 @@ class SearchHit:
     score: float
     rank: int
     score_components: dict[str, float] = field(default_factory=dict)
+    matched_on: str = "name"
 
     def to_dict(self, source_uri: str, include_raw: bool = False) -> dict[str, Any]:
         data = asdict(self)

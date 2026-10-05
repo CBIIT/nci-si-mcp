@@ -101,6 +101,7 @@ class IndexAuditMutationTest(ServerFixture):
                 self.context.index.upsert_concepts(
                     [concept("C1", version=version)], None, self.context.embedding_provider
                 )
-        (record,) = records(stream, "index_release_replaced")
-        self.assertEqual((record["previous"], record["release"]), ("26.06e", "26.07a"))
+        first, second = records(stream, "index_activated")
+        self.assertEqual((first["release"], second["release"]), ("26.06e", "26.07a"))
+        self.assertNotEqual(first["build_id"], second["build_id"])
         self.assertEqual(self.context.index.get_active_manifest().release_version, "26.07a")

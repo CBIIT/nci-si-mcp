@@ -30,7 +30,6 @@ from .evs import (
     normalize_concept,
     replacements_path,
 )
-from .index import require_index_release
 from .models import (
     ProvenanceEnvelope,
     TraversalEdge,
@@ -447,9 +446,12 @@ def search_concepts(
     """Search the interim NCIt index with semantic or hybrid ranking.
 
     release is required and must equal the index's release (release_mismatch
-    otherwise). The index contains only operator-loaded concepts, not all NCIt.
+    otherwise). Operators may load a sample or a full NCIt release.
     limit defaults to 10 and clamps at 1000. Results contain concept records,
-    scores and index provenance, with truncation when scored hits are omitted.
+    scores, matchedOn (name/synonym/definition) and index provenance, with
+    totalKnown naming the indexed concept count and truncation for omitted hits.
+    Exact preferred names ignore case after NFC and whitespace collapsing and
+    win ties before other hits; field ties prefer name, synonym, then definition.
     Scores order this query's hits and are not comparable between queries.
     The default lexical mode, typeahead, cursors and retired only are currently
     capability_unavailable; retired include returns all indexed statuses.
@@ -461,7 +463,7 @@ def search_concepts(
     if terminology != "ncit":
         raise InputValidationError("The interim index supports only ncit", "terminology")
     try:
-        hits, truncation = context.index.search_with_truncation(
+        hits, truncation, manifest = context.index.search_snapshot(
             query,
             context.embedding_provider,
             limit,
@@ -477,14 +479,15 @@ def search_concepts(
             {
                 "concept": _record(hit.concept.raw, hit.concept.provenance(uri).to_dict()),
                 "score": hit.score,
+                "matchedOn": hit.matched_on,
             }
         )
-    result: dict[str, Any] = {"results": results, "truncation": truncation.to_dict()}
+    result: dict[str, Any] = {
+        "results": results,
+        "truncation": truncation.to_dict(),
+        "totalKnown": manifest.concept_count,
+    }
     if not hits:
-        manifest = context.index.get_active_manifest()
-        if manifest is None:
-            _unavailable("semantic/hybrid search without an active NCIt index")
-        require_index_release(manifest, release)
         result["provenance"] = manifest.provenance().to_dict()
     return result
 
