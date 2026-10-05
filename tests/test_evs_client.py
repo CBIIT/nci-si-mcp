@@ -44,6 +44,24 @@ def http_error(status, body=b""):
 @patch("nci_si_mcp.http_client.time.sleep")
 @patch("nci_si_mcp.http_client._open")
 class EVSClientTest(unittest.TestCase):
+    def test_filtered_empty_terminology_queries_remain_empty(self, urlopen, sleep):
+        urlopen.return_value = FakeResponse(b"[]")
+        for arguments in ({"terminology": "unknown"}, {"latest": True}, {"tag": "monthly"}):
+            with self.subTest(arguments=arguments):
+                self.assertEqual(self.client().get_terminologies(**arguments), [])
+
+    def test_empty_authoritative_listing_is_one_unusable_attempt(self, urlopen, sleep):
+        urlopen.return_value = FakeResponse(b"[]")
+        client = self.client()
+        records = []
+        client.http.on_request = records.append
+        with self.assertRaises(UpstreamUnavailableError) as raised:
+            client.get_terminologies()
+        self.assertEqual(raised.exception.details, {"surface": "evs", "status": 200, "attempts": 1})
+        self.assertEqual(
+            [(item.attempt, item.failure) for item in records], [(1, "unusable_response")]
+        )
+
     def client(self, **options):
         client = EVSClient("https://example.invalid/", **options)
         # No jitter: a backoff is waited in full.

@@ -112,7 +112,9 @@ def list_terminologies(context: Context) -> dict[str, Any]:
     because EVS can mark both channels latest. Other terminologies use their
     sole latest row. Each item names its terminology, release and live EVS
     provenance. Ambiguous or missing current releases fail closed. This current
-    listing is resolved anew on every call and is never cached.
+    listing is resolved anew on every call and is never cached. An empty unfiltered
+    upstream listing is unusable metadata (upstream_unavailable), with its actual
+    HTTP status and attempt count; no release is invented for empty provenance.
     """
 
     rows = current_terminologies(context.evs.get_terminologies(), context.settings.release_channel)

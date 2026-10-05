@@ -368,13 +368,25 @@ class HttpClient:
         # HTTP status line can hold anything the platform chose to echo.
         raise failure
 
-    def _attempt(self, request: Request, path: str, number: int) -> Any:
+    def _attempt(
+        self, request: Request, path: str, number: int, reject: Callable[[Any], str | None] | None
+    ) -> Any:
         if budget := current_budget():
             budget.request()
         attempt = _Attempt(number)
         started = time.monotonic()
         try:
-            return self._exchange(request, path, attempt)
+            payload = self._exchange(request, path, attempt)
+            reason = reject(payload) if reject else None
+            if reason is not None:
+                attempt.failure = "unusable_response"
+                raise UpstreamUnavailableError(
+                    self._redact(reason),
+                    surface=self.surface,
+                    status=attempt.status,
+                    attempts=number,
+                )
+            return payload
         finally:
             self._record(request, attempt, time.monotonic() - started)
 
@@ -423,11 +435,19 @@ class HttpClient:
         if delay:
             self.sleep(delay)
 
-    def get_json(self, path: str, params: dict[str, Any] | None = None) -> Any:
+    def get_json(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+        *,
+        reject: Callable[[Any], str | None] | None = None,
+    ) -> Any:
         """GET a JSON document, retrying transport failures, HTTP 429 and HTTP 5xx.
 
         Every attempt is counted: the error reports the number of requests made. Whatever
         the platform answered is classified before it is returned.
+        A request-local reject callback may name unusable domain content. That terminal
+        failure carries this response's status and actual attempt count.
         """
 
         request = self._request(path, params)
@@ -436,7 +456,7 @@ class HttpClient:
         while True:
             attempts += 1
             try:
-                return self._attempt(request, path, attempts)
+                return self._attempt(request, path, attempts, reject)
             except _Transient as failure:
                 timeouts += failure.timed_out
                 last_http = failure.http_details() or last_http

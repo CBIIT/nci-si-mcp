@@ -524,6 +524,11 @@ arguments return `invalid_request`.
 
 - `resolve_release`: resolve a terminology's current monthly or weekly release, with the other served version identifiers in `alternatives`. `terminology` is required; `channel` defaults to `NCI_SI_RELEASE_CHANNEL`. Returns a flat release record with provenance, or a top-level error. CLI: `resolve-release ncit --channel monthly`.
 - `list_terminologies`: list each EVS terminology and its current release with provenance. NCIt uses the configured channel; other terminologies use their sole latest row. CLI: `list-terminologies`. Both discovery tools are resolved afresh and carry `ttlMs: 0`, `cacheScope: public`; failures are private.
+An empty unfiltered EVS terminology listing is unusable metadata and returns
+`upstream_unavailable` with its actual HTTP status and attempt count. Content queries
+with no matches still return empty successes; missing current releases retain their
+`release_not_available` behavior.
+
 Each tool description, as sent to MCP clients, states the contract in full. The former
 `ncit_*` tools and `cadsr_status` are removed; use the six tools above. The caDSR profile
 currently exposes no tools. CLI diagnostics retain `search`, `lookup`, `traverse` and
