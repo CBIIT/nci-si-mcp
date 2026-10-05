@@ -251,7 +251,7 @@ Remaining, around `Budget`:
 - Each visited node fetched **once**, its `summary` in the same batched request as its relation lists (today the walk asks for `minimal` plus the lists); the nodes of the last depth in one `minimal` batch, for their status (the node record, A8.1).
 - `kinds` filter (`parent`, `child`, `role`, `association`, `inverseRole`, `inverseAssociation`) selects edge kinds; `relationshipNames` filters within a kind; neither removes the other. The `is_a_*` pseudo-names go.
 - Every edge carries `TraversalProvenance` with polarity by code (the exclusion set in `spec/records.yaml`). Negative edges and the nodes they reach are returned, marked; with `includeNegative=false` (default) a node only negative edges reach is not followed further.
-- Depth-limit truncation is still due in #18. Depth, node and edge maxima, per-kind rotation and truncation, and the outbound request budget including retries are implemented (§3.5).
+- Depth, node and edge maxima, per-kind rotation and truncation, and the outbound request budget including retries are implemented (§3.5). A bounded final-frontier check distinguishes depth cuts from leaves and cycles, counting distinct unseen targets one level further with `exact: false`. Descendant checks read final child lists. Inverse kinds reaching the final frontier report depth with `omitted: 0`, `exact: false` without fetching their expensive lists solely for the check; a global node cut or a prior kind cut skips the corresponding check.
 
 ### 4.4 Index (`evs/index/`)
 

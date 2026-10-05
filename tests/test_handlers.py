@@ -34,6 +34,7 @@ from nci_si_mcp.http_client import (
 )
 from nci_si_mcp.index import LocalIndex
 from nci_si_mcp.registry import invoke
+from test_traversal import complete_graph
 
 # Two releases that EVS marks latest for the monthly channel at once.
 TWO_LATEST = [terminology_row("26.06e"), terminology_row("26.07a")]
@@ -63,7 +64,7 @@ class HandlerTestCase(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.path = Path(directory.name)
-        self.evs = FakeEVS([NEOPLASM, KINASE])
+        self.evs = complete_graph(FakeEVS([NEOPLASM, KINASE]))
         self.context = self.make_context()
 
     def make_context(self, provider=None, **settings):

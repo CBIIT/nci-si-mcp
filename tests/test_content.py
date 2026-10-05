@@ -249,7 +249,34 @@ class ContentTest(ServerFixture):
             result["nodes"][0]["provenance"]["upstream"],
             {"terminology": "ncit", "version": "26.06e"},
         )
+        self.assertEqual(self.evs.includes, ["minimal,children", "minimal,children"])
+
+    def test_an_edge_stop_still_fetches_the_status_of_returned_nodes(self):
+        self.evs.concepts["C1"]["children"].append({"code": "C3", "name": "Three"})
+        result = self.content(
+            "get_concept_neighborhood", code="C1", kinds=["child"], depth=1, maxEdges=1
+        )
+        self.assertEqual(
+            [(n["code"], n["active"]) for n in result["nodes"]], [("C1", True), ("C2", False)]
+        )
+        self.assertEqual(result["truncation"]["bound"], "edges")
         self.assertEqual(self.evs.includes, ["minimal,children", "minimal"])
+
+    def test_status_fetch_after_an_edge_stop_rejects_missing_or_wrong_release_nodes(self):
+        root = dict(self.evs.concepts["C1"], children=[{"code": "C2"}, {"code": "C3"}])
+        for answer, expected in (
+            ([], "upstream_unavailable"),
+            ([concept("C9")], "upstream_unavailable"),
+            ([concept("C2", version="26.01a")], "release_mismatch"),
+        ):
+            with (
+                self.subTest(expected=expected),
+                patch.object(self.evs, "get_concepts_by_codes", side_effect=[[root], answer]),
+            ):
+                result = self.content(
+                    "get_concept_neighborhood", code="C1", kinds=["child"], depth=1, maxEdges=1
+                )
+                self.assertEqual(result["error"]["code"], expected)
 
     def test_neighborhood_includes_seed_and_edges_follow_assertions(self):
         result = self.content("get_concept_neighborhood", code="C1", kinds=["child"], depth=1)
@@ -304,7 +331,7 @@ class ContentTest(ServerFixture):
         self.assertEqual(result["truncation"]["limit"], 2)
         self.assertEqual([node["code"] for node in result["nodes"]], ["C1"])
 
-    def test_hydration_omissions_are_attributed_to_each_affected_kind(self):
+    def test_an_unread_final_frontier_reports_requests_for_each_selected_kind(self):
         self.evs.concepts["C1"]["roles"] = [
             {"code": "R1", "relatedCode": "C3", "relatedName": "Three"}
         ]
@@ -321,13 +348,15 @@ class ContentTest(ServerFixture):
         ):
             result = self.content("get_concept_neighborhood", code="C1", kinds=kinds)
         cut = result["truncation"]
-        self.assertEqual((cut["bound"], cut["omitted"]), ("requests", 2))
-        self.assertEqual(cut["perKind"]["child"]["omitted"], 1)
-        self.assertEqual(cut["perKind"]["role"]["omitted"], 1)
-        self.assertEqual(cut["perKind"]["association"], {"occurred": False})
+        self.assertEqual((cut["bound"], cut["omitted"]), ("requests", 1))
+        for kind in kinds:
+            self.assertEqual(cut["perKind"][kind]["bound"], "requests")
+            self.assertEqual(cut["perKind"][kind]["omitted"], 0)
+            self.assertFalse(cut["perKind"][kind]["exact"])
 
     def test_hydration_retains_prior_per_kind_cuts(self):
         self.evs.concepts["C1"]["children"].append({"code": "C3", "name": "Three"})
+        self.evs.concepts["C1"]["roles"] = [{"code": "R1", "relatedCode": "C4"}]
         original = self.evs.get_concepts_by_codes
 
         def counted(*args, **kwargs):
@@ -335,13 +364,17 @@ class ContentTest(ServerFixture):
             return original(*args, **kwargs)
 
         with (
-            patch("nci_si_mcp.content.Budget", return_value=Budget(depth=1, nodes=2, requests=1)),
+            patch("nci_si_mcp.content.Budget", return_value=Budget(depth=1, nodes=3, requests=1)),
             patch.object(self.evs, "get_concepts_by_codes", side_effect=counted),
         ):
-            result = self.content("get_concept_neighborhood", code="C1", kinds=["child", "role"])
+            result = self.content(
+                "get_concept_neighborhood", code="C1", kinds=["child", "role", "association"]
+            )
         self.assertEqual(result["truncation"]["bound"], "nodes")
         self.assertEqual(result["truncation"]["perKind"]["child"]["bound"], "nodes")
-        self.assertEqual(result["truncation"]["perKind"]["role"], {"occurred": False})
+        self.assertEqual(result["truncation"]["perKind"]["role"]["bound"], "requests")
+        self.assertEqual(result["truncation"]["perKind"]["role"]["omitted"], 1)
+        self.assertEqual(result["truncation"]["perKind"]["association"], {"occurred": False})
 
     def test_paging_and_paths_are_explicitly_unavailable(self):
         for arguments in ({"direction": "pathsToRoot"}, {"direction": "child", "cursor": "x"}):

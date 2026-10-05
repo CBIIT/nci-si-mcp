@@ -196,7 +196,10 @@ def get_concept_hierarchy(
     1000. Each node has live EVS traversal provenance. The call shares 200
     outbound attempts, retries included. pathsToRoot, cursors and results that
     need paging are capability_unavailable until hierarchy paging is implemented.
-    Other terminologies are capability_unavailable. Depth-cut reporting is pending.
+    Other terminologies are capability_unavailable. A bounded final-frontier check
+    reports depth truncation only when unseen targets remain; leaves and cycles
+    to returned nodes are complete. Unknown continuation has exact=false.
+    A reported global node cut skips this check; already-truncated kinds are excluded.
     """
     selected = _pin(context, terminology, release)
     code = _code(code)
@@ -238,8 +241,13 @@ def get_concept_neighborhood(
     each kind adds, maximum 1000; otherwise kinds take turns within maxNodes.
     Values above maxima clamp. The call shares 200 outbound attempts including
     retries. Nodes and assertion-oriented edges carry live traversal provenance.
-    Truncation reports the first bound that omits content. Depth-cut reporting
-    is pending. Negative assertions are marked; following beyond their targets requires
+    Truncation reports the first bound that omits content. Forward kinds are checked
+    at the final frontier within the request budget: unseen targets imply a depth
+    cut, while leaves and cycles to returned nodes do not. Inverse kinds that
+    reached frontier nodes report depth with omitted=0, exact=false, without reading
+    their expensive lists solely to count continuation. Continuation is unknown.
+    A reported global node cut skips this check; already-truncated kinds are excluded.
+    Negative assertions are marked; following beyond their targets requires
     includeNegative=true until selective negative expansion is implemented,
     otherwise capability_unavailable. Other terminologies are unavailable.
     """
@@ -323,8 +331,6 @@ def _hydrate(
 def _hydration_cut(graph: TraversalResult, budget: Budget, kinds: list[str]) -> Truncation:
     missing = {node.code for node in graph.nodes} - graph.concepts.keys()
     record = graph.truncation
-    if not record.occurred:
-        record = _request_cut(budget, len(missing))
     if len(kinds) > 1:
         per_kind = {kind: _hydration_kind_cut(graph, budget, missing, kind) for kind in kinds}
         record = replace(record, per_kind=per_kind)

@@ -411,14 +411,21 @@ def traverse(
     omitted count of zero with `exact: false` when their relation count is unknown.
     Nearer nodes claim the limits before farther ones. `truncation` is
     `{occurred: false}` unless something was dropped. It then names the
-    first `bound` that still omits something: `nodes`, `edges`, `kind_budget`,
+    first `bound` that still omits something: `depth`, `nodes`, `edges`, `kind_budget`,
     `requests`, or `upstream_cap`, when the relations or descendants of a concept
     were too large for the EVS response limit to read, which raising the
     node and edge limits does not help (for descendants, a smaller
     `max_depth` can). `limit` is that bound's value, `reached` what had
     been counted, and `omitted` a lower bound on nodes, edges or unread work
     left out; `exact` is false, since what lies beyond a dropped
-    item was never read. Stopping at `max_depth` is no truncation.
+    item was never read. A bounded final-frontier check of selected relation lists
+    reports `depth` only when unseen targets remain, counting distinct targets
+    one level further. Leaves and cycles to returned nodes are complete.
+    The check spends the same request budget; an earlier bound still wins.
+    A reported global node cut skips it; kinds already truncated are excluded.
+    Descendant checks use final child lists. Inverse kinds never read final lists
+    only to count continuation: an inverse kind reaching that frontier reports
+    depth with omitted=0 and exact=false, without claiming a leaf or continuation.
     Every edge connects two nodes of the result. Every node and edge
     carries a `provenance` record: the release of the configured channel all data is read
     from, and how the item was reached: its `depth` (an edge has that of

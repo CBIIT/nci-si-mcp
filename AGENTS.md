@@ -299,6 +299,11 @@ megabytes for hub concepts; a batch that exceeds the response limit is halved, a
 concept that still exceeds it is kept unexpanded and counted against the `upstream_cap` bound of
 the walk's `Truncation` record. The state of a walk (limits, emitted nodes and edges) lives in the
 `_Walk` object in `traversal.py`, which also builds the `TraversalProvenance` of each node and edge.
+At the depth limit, forward kinds get a batched continuation check; descendant checks use
+child lists. A reported global node cut skips the check, and kinds already truncated are
+excluded. Inverse kinds reaching that frontier report depth with `omitted: 0`, `exact: false`
+without fetching their expensive lists just to check continuation. All reads share the request
+budget, and the first bound remains the one reported.
 
 `descendant` edges are opt-in (`edge_types`) and come from one `get_descendants` call per start
 code with `maxLevel = max_depth`. They are bucketed by the `level` EVS assigns and emitted together

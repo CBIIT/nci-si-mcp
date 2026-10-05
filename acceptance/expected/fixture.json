@@ -818,7 +818,7 @@
   "tests/test_evs.py::test_a_code_the_platform_leaves_out_of_a_batch_is_named_missing": "not_implemented",
   "tests/test_evs.py::test_a_concept_carries_its_identity_and_the_status_the_platform_publishes[current]": "passed",
   "tests/test_evs.py::test_a_concept_carries_its_identity_and_the_status_the_platform_publishes[retired]": "passed",
-  "tests/test_evs.py::test_a_depth_above_the_maximum_is_applied_as_the_maximum_and_reported": "failed",
+  "tests/test_evs.py::test_a_depth_above_the_maximum_is_applied_as_the_maximum_and_reported": "passed",
   "tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[in-order-associations]": "passed",
   "tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[in-order-roles]": "passed",
   "tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[reversed-associations]": "passed",

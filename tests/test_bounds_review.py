@@ -5,7 +5,7 @@ from fakes import FakeEVS, concept
 from nci_si_mcp.errors import correlated
 from nci_si_mcp.evs import EVSNotFoundError
 from test_bounds import BudgetEVS, BudgetHub
-from test_traversal import child, codes, descendant, related, walk
+from test_traversal import child, codes, complete_graph, descendant, related, walk
 
 
 def roles(*targets):
@@ -23,7 +23,7 @@ class BoundsReviewTest(unittest.TestCase):
 
     def test_global_node_bound_precedes_a_simultaneous_kind_bound(self):
         result = walk(
-            FakeEVS([concept("C1", roles=roles("C2", "C3", "C4"))]),
+            complete_graph(FakeEVS([concept("C1", roles=roles("C2", "C3", "C4"))])),
             max_depth=1,
             max_nodes=3,
             budget_per_kind=2,
@@ -37,7 +37,7 @@ class BoundsReviewTest(unittest.TestCase):
                 concept("C2", associations=[related("a", "C5")]),
             ]
         )
-        result = walk(client, budget_per_kind=1, max_depth=2)
+        result = walk(complete_graph(client), budget_per_kind=1, max_depth=2)
         self.assertIn("C5", codes(result))
 
     def test_request_exhaustion_stops_before_later_descendant_levels(self):
@@ -65,7 +65,7 @@ class BoundsReviewTest(unittest.TestCase):
                 )
             ]
         )
-        result = walk(client, max_depth=1, budget_per_kind=1)
+        result = walk(complete_graph(client), max_depth=1, budget_per_kind=1)
         self.assertEqual(result.truncation.omitted, 1)
 
     def test_per_kind_first_bound_survives_later_global_node_exhaustion(self):
@@ -75,7 +75,7 @@ class BoundsReviewTest(unittest.TestCase):
                 concept("C2", children=[child("C4")], roles=roles("C5")),
             ]
         )
-        result = walk(client, max_depth=2, max_nodes=3, budget_per_kind=1)
+        result = walk(complete_graph(client), max_depth=2, max_nodes=3, budget_per_kind=1)
         self.assertEqual(result.truncation.to_dict()["perKind"]["role"]["bound"], "kind_budget")
 
     def test_reconciliation_refreshes_the_first_kind(self):
@@ -88,7 +88,7 @@ class BoundsReviewTest(unittest.TestCase):
                 )
             ]
         )
-        result = walk(client, budget_per_kind=1, max_depth=1)
+        result = walk(complete_graph(client), budget_per_kind=1, max_depth=1)
         self.assertEqual(result.truncation.omitted, 1)
 
     def test_reconciliation_removes_a_now_present_node_from_omissions(self):
@@ -101,7 +101,7 @@ class BoundsReviewTest(unittest.TestCase):
                 )
             ]
         )
-        result = walk(client, max_nodes=3, budget_per_kind=1, max_depth=1)
+        result = walk(complete_graph(client), max_nodes=3, budget_per_kind=1, max_depth=1)
         self.assertEqual((result.truncation.bound, result.truncation.omitted), ("nodes", 1))
 
     def test_upstream_cap_precedes_later_node_exhaustion(self):
@@ -112,12 +112,14 @@ class BoundsReviewTest(unittest.TestCase):
                 concept("C3", children=[child("C4"), child("C5")]),
             ]
         )
-        result = walk(client, max_nodes=4, max_depth=2)
+        result = walk(complete_graph(client), max_nodes=4, max_depth=2)
         self.assertEqual(result.truncation.bound, "upstream_cap")
 
     def test_per_kind_node_reached_counts_starts_and_not_edges(self):
         result = walk(
-            FakeEVS([concept("C1", roles=roles("C2", "C3", "C4"))]), max_depth=1, max_nodes=3
+            complete_graph(FakeEVS([concept("C1", roles=roles("C2", "C3", "C4"))])),
+            max_depth=1,
+            max_nodes=3,
         )
         self.assertEqual(result.truncation.to_dict()["perKind"]["role"]["reached"], 3)
 
@@ -133,7 +135,7 @@ class BoundsReviewTest(unittest.TestCase):
                 concept("C4", children=[child("C3")]),
             ]
         )
-        result = walk(client, budget_per_kind=1, max_depth=2)
+        result = walk(complete_graph(client), budget_per_kind=1, max_depth=2)
         self.assertEqual(result.truncation.bound, "upstream_cap")
 
     def test_an_oversized_split_precedes_a_later_request_cap_in_the_same_fetch(self):
@@ -150,7 +152,7 @@ class BoundsReviewTest(unittest.TestCase):
                 concept("C4", children=[child("C3"), child("C5")]),
             ]
         )
-        result = walk(client, budget_per_kind=1, max_depth=2)
+        result = walk(complete_graph(client), budget_per_kind=1, max_depth=2)
         self.assertEqual(result.truncation.bound, "upstream_cap")
         self.assertEqual(result.truncation.to_dict()["perKind"]["child"]["bound"], "upstream_cap")
 
@@ -162,7 +164,7 @@ class BoundsReviewTest(unittest.TestCase):
                 concept("C3", roles=roles("C4", "C5")),
             ]
         )
-        result = walk(client, max_nodes=4, max_depth=2)
+        result = walk(complete_graph(client), max_nodes=4, max_depth=2)
         self.assertEqual(result.truncation.to_dict()["perKind"]["role"]["bound"], "upstream_cap")
 
     def test_reconciled_target_still_reports_an_edge_cap(self):
@@ -200,7 +202,7 @@ class BoundsReviewTest(unittest.TestCase):
                 )
             ]
         )
-        result = walk(client, max_depth=1, max_nodes=3, budget_per_kind=1)
+        result = walk(complete_graph(client), max_depth=1, max_nodes=3, budget_per_kind=1)
         self.assertEqual(result.truncation.bound, "kind_budget")
         self.assertEqual(result.truncation.to_dict()["perKind"]["role"]["bound"], "kind_budget")
 
@@ -247,7 +249,7 @@ class BoundsReviewTest(unittest.TestCase):
                 self.assertEqual(record["omitted"], 0)
                 self.assertIs(record["exact"], False)
 
-    def test_edge_stop_at_depth_limit_leaves_undropped_kinds_complete(self):
+    def test_edge_stop_prevents_final_checks_for_other_kinds(self):
         result = walk(
             FakeEVS([concept("C1", children=[child("C2")], roles=roles("C3"))]),
             max_depth=1,
@@ -255,7 +257,9 @@ class BoundsReviewTest(unittest.TestCase):
             edge_types=["child", "role"],
         )
         records = result.truncation.to_dict()["perKind"]
-        self.assertEqual(records["child"], {"occurred": False})
+        self.assertEqual(records["child"]["bound"], "edges")
+        self.assertEqual(records["child"]["omitted"], 0)
+        self.assertFalse(records["child"]["exact"])
         self.assertEqual(records["role"]["bound"], "edges")
         self.assertEqual(codes(result), ["C1", "C2"])
 

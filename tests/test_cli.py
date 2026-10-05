@@ -18,6 +18,7 @@ from nci_si_mcp.context import Context
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.http_client import UpstreamUnavailableError
 from nci_si_mcp.index import LocalIndex
+from test_traversal import complete_graph
 
 NEOPLASM = concept(
     "C3262",
@@ -82,7 +83,7 @@ class MainTest(unittest.TestCase):
     def fake_context(self):
         return Context(
             Settings(data_dir=self.path),
-            evs=FakeEVS([NEOPLASM, KINASE]),
+            evs=complete_graph(FakeEVS([NEOPLASM, KINASE])),
             index=LocalIndex(self.path),
             embedding_provider=HashingEmbeddingProvider(),
         )
@@ -190,6 +191,7 @@ class MainTest(unittest.TestCase):
             {"code": "C2", "name": "Two"},
             {"code": "C3", "name": "Three"},
         ]
+        complete_graph(context.evs)
         code, result, _ = self.run_cli(
             "traverse",
             "C3262",

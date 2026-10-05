@@ -742,7 +742,7 @@ unknown, its record gives `omitted: 0` and `exact: false`.
 - `get_concept`: fetch a caller-pinned NCIt concept with required `terminology`, `release` and `code`. Optional `include` selects synonyms, definitions, properties or semanticType; status is passed through from EVS.
 - `search_concepts`: search the interim NCIt index with required `terminology`, `release` and `query`. `semantic` and `hybrid` modes are supported, with `limit` default 10, maximum 1000; the index must hold the requested release. Default `lexical`, `typeahead`, cursors and `retired: only` return `capability_unavailable` pending #27.
 - `get_concept_hierarchy`: caller-pinned parents or children, excluding the seed. Required `direction`; `depth` defaults to 1, maximum 4; `limit` defaults to 200, maximum 1000. Paths to root and requests needing paging return `capability_unavailable` pending #23.
-- `get_concept_neighborhood`: caller-pinned graph including the seed. `depth` defaults to 2, maximum 4; `maxNodes` 200/1000; `maxEdges` 1000/5000; optional `budgetPerKind` maximum 1000. `kinds` selects among the six relation kinds. Following beyond negative assertion targets currently requires `includeNegative: true`; selective expansion remains #23. Both graph tools share 200 requests per call and fetch final node status in batches. Depth-cut reporting is the next #18 slice.
+- `get_concept_neighborhood`: caller-pinned graph including the seed. `depth` defaults to 2, maximum 4; `maxNodes` 200/1000; `maxEdges` 1000/5000; optional `budgetPerKind` maximum 1000. `kinds` selects among the six relation kinds. Following beyond negative assertion targets currently requires `includeNegative: true`; selective expansion remains #23. Both graph tools share 200 requests per call, including a batched final-frontier check for depth truncation.
 
 These four entries require an explicit release and currently support NCIt only; other
 terminologies return `capability_unavailable`. Bounds above their maxima clamp. Invalid
@@ -795,7 +795,18 @@ anything, using `requests` if no earlier bound was reached. Unread kinds carry
 their own truncation record with `omitted: 0` and `exact: false` when the omitted
 relation count is unknown. An explicit kind allowance uses `kind_budget`
 truncation. These budgets are independent for concurrent calls.
-Stopping at `max_depth` is no truncation.
+At `max_depth`, the walk checks the selected relation lists of the final frontier
+within the same request budget. Unseen targets produce a `depth` cut: `omitted`
+counts distinct targets one level further, with `exact: false` because further
+continuation is unknown. Leaves and cycles to returned nodes are complete.
+An earlier bound still wins; oversized final lists report `upstream_cap`.
+Once a global node cut is reported, the final check is skipped. Otherwise it
+reads only kinds that have no truncation of their own. Status-only reads for
+returned nodes may still be needed; they use the same request budget.
+Inverse lists are never fetched solely to check continuation. An inverse kind
+that reached frontier nodes at the depth limit reports `depth`, `omitted: 0`,
+`exact: false`: an unknown continuation, without claiming a leaf. Forward kinds
+beside it are still checked. Descendant checks read final child lists only.
 
 ## MCP Resources
 
