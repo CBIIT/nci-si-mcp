@@ -190,8 +190,9 @@ The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for t
 The `milestone branches` ruleset lets a commit onto `milestone/*` only once CI has passed on it,
 and CI runs on pull requests, so every change reaches the milestone branch through a pull request
 into it: issue branches, review fixes, and `main` whenever it moves (a pull request from `main`
-into the milestone branch, squash-merged with `gh pr merge N --squash`, never with
-`--delete-branch`). Findings made along the
+into the milestone branch, merged with `gh pr merge N --merge`, never with `--delete-branch`;
+a merge commit records `main` as an ancestor, so the next sync does not conflict again; `main`
+itself accepts squash merges only). Findings made along the
 way are fixed on the branch they belong to; only an unrelated problem gets an issue. Do not change
 the ruleset, repository settings, `spec/`'s conventions or another issue's scope without the
 reviewer's agreement.
