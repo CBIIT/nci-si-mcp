@@ -89,6 +89,7 @@ class DetailKeysTest(HandlerTestCase):
                 lambda client: client.get_concept("C1", release()),
             ),
             self.verify_release_error(),
+            self.missing_exclusions(),
             from_the_client(http_error(429, {"Retry-After": "30"})),
             from_the_client(http_error(403)),
             from_the_client(http_error(404), lambda client: client.get_concept("C1", release())),
@@ -105,6 +106,12 @@ class DetailKeysTest(HandlerTestCase):
             return from_the_record(invoke(self.context, "lookup", "C3262"))
         finally:
             self.evs.rows = None
+
+    def missing_exclusions(self):
+        self.evs.catalogues = {"role": [], "association": []}
+        return from_the_record(
+            invoke(self.context, "list_relationships", terminology="ncit", release="26.06e")
+        )
 
     def verify_release_error(self):
         try:

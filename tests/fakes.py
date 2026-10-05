@@ -2,8 +2,18 @@
 
 from urllib.parse import urlencode
 
+from nci_si_mcp.config import DEFAULT_EXCLUSION_ROLE_CODES
 from nci_si_mcp.evs import INDEX_INCLUDE, LOOKUP_INCLUDE, EVSNotFoundError, verify_content
 from nci_si_mcp.release import ReleaseContext
+
+
+def catalogue_rows(kind, version="26.06e", terminology="ncit"):
+    codes = {"role": DEFAULT_EXCLUSION_ROLE_CODES, "association": ("A1",)}
+    return [
+        {"code": code, "name": code, "terminology": terminology, "version": version}
+        for code in codes[kind]
+    ]
+
 
 # Fields EVS returns only when the `include` parameter asks for them.
 OPTIONAL_FIELDS = frozenset(
@@ -90,6 +100,7 @@ class FakeEVS:
         self.errors = {}
         self.calls = []
         self.includes = []
+        self.catalogues = None
         self.max_response_bytes = 1_000_000
 
     def uri(self, path, params=None):
@@ -111,6 +122,16 @@ class FakeEVS:
     def get_api_version(self):
         self._record("get_api_version")
         return {"version": "test"}
+
+    def get_relationship_catalogue(self, release, kind):
+        self._record("get_relationship_catalogue", release.pinned_terminology, kind)
+        rows = (
+            catalogue_rows(kind, release.version, release.terminology)
+            if self.catalogues is None
+            else self.catalogues[kind]
+        )
+        verify_content(rows, release)
+        return rows
 
     def get_terminologies(self, terminology=None, *, latest=False, tag=None):
         self._record("get_terminologies", terminology, (latest, tag))

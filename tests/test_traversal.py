@@ -16,6 +16,7 @@ from nci_si_mcp.bounds import (
     clamp_edge_limit,
     clamp_limits,
 )
+from nci_si_mcp.config import DEFAULT_EXCLUSION_ROLE_CODES
 from nci_si_mcp.errors import InputValidationError, correlated
 from nci_si_mcp.evs import EVSNotFoundError, EVSResponseError
 from nci_si_mcp.http_client import UpstreamTooLargeError
@@ -142,6 +143,7 @@ def walk(
         per_kind=budget_per_kind,
         requests=requests,
     )
+    options.setdefault("exclusions", frozenset(DEFAULT_EXCLUSION_ROLE_CODES))
     with budgeted(budget):
         return traverse_ncit(client, list(start_codes), release(), selected, budget, **options)
 

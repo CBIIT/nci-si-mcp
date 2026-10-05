@@ -25,6 +25,7 @@ class RegistryTest(ServerFixture):
         evs = {
             "get_concept",
             "get_concepts",
+            "list_relationships",
             "search_concepts",
             "get_concept_hierarchy",
             "get_concept_neighborhood",

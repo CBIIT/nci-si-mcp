@@ -18,6 +18,7 @@ from .bounds import (
     RequestBudgetError,
     budgeted,
 )
+from .catalogue import exclusion_codes, load_catalogue
 from .context import Context
 from .errors import InputValidationError, NoActiveIndexError, PlatformError
 from .evs import EVSResponseError, concept_path, normalize_concept
@@ -213,6 +214,26 @@ def _section(raw: dict[str, Any], section: str) -> list[Any]:
     return raw.get(section, [])
 
 
+def list_relationships(context: Context, terminology: str, release: str) -> dict[str, Any]:
+    """List the roles and associations of the required caller-selected release.
+
+    Each relationship has code, terminology, name, kind, polarity and live provenance.
+    Polarity follows the configured NCIt exclusion codes (R135 to R142 by default),
+    never names; other terminologies have no exclusion set. Each catalogue is read
+    once per call, without a cross-call cache. Missing configured codes fail closed
+    with internal_error and details.missingCodes; other upstream errors stay explicit.
+    All reads are pinned to release and each row's terminology and version are verified.
+    The call shares 200 outbound attempts including retries and the HTTP response-size cap.
+    """
+
+    selected = _pin(context, terminology, release)
+    with budgeted(Budget()):
+        relationships = load_catalogue(
+            context.evs, selected, exclusion_codes(context.settings, terminology)
+        )
+    return {"relationships": relationships}
+
+
 def search_concepts(
     context: Context,
     terminology: str,
@@ -352,6 +373,9 @@ def get_concept_neighborhood(
     Negative assertions are marked; following beyond their targets requires
     includeNegative=true until selective negative expansion is implemented,
     otherwise capability_unavailable.
+    Before the walk, the release's role and association catalogues are read once
+    in the same budget. Missing configured exclusion codes return internal_error
+    with details.missingCodes; no graph is returned and server startup stays offline.
     """
     selected = _pin(context, terminology, release)
     code = _code(code, terminology)
@@ -366,7 +390,12 @@ def get_concept_neighborhood(
         if budgetPerKind is None
         else bounded(budgetPerKind, HARD_MAX_PER_KIND, "budgetPerKind"),
     )
-    result = _graph_record(_graph(context, selected, code, selected_kinds, budget))
+    with budgeted(budget):
+        exclusions = exclusion_codes(context.settings, terminology)
+        load_catalogue(context.evs, selected, exclusions)
+        result = _graph_record(
+            _graph(context, selected, code, selected_kinds, budget, exclusions=exclusions)
+        )
     if not includeNegative and any(
         edge["provenance"].get("polarity") == "negative"
         and edge["provenance"]["depth"] < budget.depth
@@ -387,10 +416,16 @@ def _kinds(kinds: list[NeighborhoodKind] | None) -> list[str]:
 
 
 def _graph(
-    context: Context, release: ReleaseContext, code: str, kinds: list[str], budget: Budget
+    context: Context,
+    release: ReleaseContext,
+    code: str,
+    kinds: list[str],
+    budget: Budget,
+    *,
+    exclusions: frozenset[str] = frozenset(),
 ) -> TraversalResult:
     with budgeted(budget):
-        graph = traverse_ncit(context.evs, [code], release, kinds, budget)
+        graph = traverse_ncit(context.evs, [code], release, kinds, budget, exclusions=exclusions)
         truncation = _hydrate(context, graph, release, budget, kinds)
     return replace(graph, truncation=truncation)
 

@@ -28,6 +28,8 @@ ReleaseChannel = Literal["monthly", "weekly"]
 ConceptInclude = Literal["synonyms", "definitions", "properties", "semanticType"]
 PublicSearchMode = Literal["lexical", "typeahead", "semantic", "hybrid"]
 RetiredSelection = Literal["include", "only"]
+RelationshipKind = Literal["role", "association"]
+Polarity = Literal["positive", "negative"]
 HierarchyDirection = Literal["parent", "child", "pathsToRoot"]
 NeighborhoodKind = Literal[
     "parent", "child", "role", "association", "inverseRole", "inverseAssociation"

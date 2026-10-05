@@ -16,6 +16,7 @@ from .bounds import (
     budgeted,
 )
 from .caching import RELEASE_REPORT_ALIASES, select_cache_hint
+from .catalogue import exclusion_codes
 from .context import Context
 from .errors import (
     NoActiveIndexError,
@@ -451,6 +452,7 @@ def traverse(
             _release(context),
             selected,
             budget,
+            exclusions=exclusion_codes(context.settings, "ncit"),
             relationship_names=relationship_names,
         ).to_dict()
 

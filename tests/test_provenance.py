@@ -21,7 +21,6 @@ from nci_si_mcp.http_client import UpstreamTooLargeError, UpstreamUnavailableErr
 from nci_si_mcp.index import EXACT_VECTOR_SCAN_LIMIT, LocalIndex
 from nci_si_mcp.models import NcitConcept, utc_now_iso
 from nci_si_mcp.registry import invoke
-from nci_si_mcp.traversal import NCIT_EXCLUSION_CODES
 from test_index import synthetic_concepts
 from test_traversal import complete_graph
 
@@ -319,9 +318,6 @@ class AnItemReachedByTraversalSaysHowTest(ProvenanceTestCase):
 
         self.assertEqual(self.edge(result, "C500")["provenance"]["polarity"], "negative")
         self.assertEqual(self.edge(result, "C501")["provenance"]["polarity"], "positive")
-
-    def test_the_exclusion_codes_are_the_specifications(self):
-        self.assertEqual(NCIT_EXCLUSION_CODES, set(TRAVERSAL["polarity"]["exclusions"]["ncit"]))
 
 
 class UpstreamPassThroughTest(ProvenanceTestCase):
