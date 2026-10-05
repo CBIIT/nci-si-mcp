@@ -1,7 +1,7 @@
 """A run of the suite, end to end, from a copy of the suite's conftest and the furnished server.
 
 These check what only a whole run shows: the missing-fixture guard, at startup too, a
-scenario served with its settings to a server process of its own, the tool map, and the
+scenario served with its settings to a server process of its own, direct tool calls, and the
 per-tool report.
 """
 
@@ -16,8 +16,6 @@ from conftest import STAND_IN, stand_in
 pytest_plugins = ["pytester"]
 
 SUITE_CONFTEST = Path(__file__).parent.parent / "tests" / "conftest.py"
-# These probes call discovery directly; remaining stand-ins are checked separately.
-TOOLMAP = "{}\n"
 DISCOVERY_REQUEST = {"surface": "evs", "method": "GET", "path": "/api/v1/metadata/terminologies"}
 
 
@@ -34,10 +32,9 @@ def fixture(directory, name, response, **document):
 
 @pytest.fixture
 def suite(pytester, monkeypatch):
-    """A copy of the suite's conftest, with a tool map and no fixtures yet."""
+    """A copy of the suite's conftest, with no fixtures yet."""
 
-    fixtures = pytester.mkdir("fixtures")
-    (fixtures / "baseline_toolmap.yaml").write_text(TOOLMAP, encoding="utf-8")
+    pytester.mkdir("fixtures")
     tests = pytester.mkdir("tests")
     stand_in(pytester)
     (tests / "conftest.py").write_text(SUITE_CONFTEST.read_text(encoding="utf-8"), encoding="utf-8")
@@ -290,11 +287,7 @@ def test_absent(tools):
     }
 
 
-def test_the_report_prefers_direct_tools_over_the_remaining_real_map(suite):
-    real = Path(__file__).parent.parent / "fixtures" / "baseline_toolmap.yaml"
-    (suite.path / "fixtures" / "baseline_toolmap.yaml").write_text(
-        real.read_text(encoding="utf-8"), encoding="utf-8"
-    )
+def test_the_report_names_direct_tools_including_unsupported_capabilities(suite):
     test = """
 import pytest
 

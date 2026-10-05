@@ -32,8 +32,8 @@ pdm run spec-render                                  # regenerate docs/specifica
 A test calls a required tool by its name, `tools.call("get_concept", {...})`, and names the tool
 it is for with `@pytest.mark.tool("get_concept")`; a protocol gate is marked `gate`. A gate that cannot
 run leaves the module unaccepted, since acceptance needs every gate to pass. When the
-server lacks the tool, the baseline tool map (`fixtures/baseline_toolmap.yaml`) may name a tool
-that stands in for it; otherwise the test is skipped as NOT IMPLEMENTED. Each test asserts only
+server lacks that exact name, the test is skipped as NOT IMPLEMENTED. Calls and arguments
+are sent unchanged; no prototype tool stands in for a required tool. Each test asserts only
 what the specification says.
 
 Each test also cites the requirements it enforces, `@pytest.mark.requirement("X-2")`, by their

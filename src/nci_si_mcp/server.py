@@ -115,7 +115,7 @@ def _callback(
     def callback(**arguments: Any) -> Any:
         return call(spec, arguments)
 
-    parameters = [p for p in spec.parameters if p.name not in spec.cli_only]
+    parameters = list(spec.parameters)
     if context_type is not None:
         parameters.append(Parameter("ctx", Parameter.KEYWORD_ONLY, annotation=context_type))
     update_wrapper(callback, spec.handler)
@@ -160,7 +160,6 @@ def _input_model(spec: ToolSpec) -> Any:
     fields: dict[str, Any] = {
         p.name: (p.annotation, ... if p.default is Parameter.empty else p.default)
         for p in spec.parameters
-        if p.name not in spec.cli_only
     }
     return create_model(
         spec.operation + "Arguments", __config__=ConfigDict(strict=True, extra="forbid"), **fields

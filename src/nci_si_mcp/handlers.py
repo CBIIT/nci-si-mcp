@@ -132,12 +132,12 @@ def release_info(context: Context) -> dict[str, Any]:
     """Report the EVS API version, the configured channel's NCIt release and the local index.
 
     The call succeeds even when EVS cannot be reached: `evs_api` and
-    `selected_monthly_release` (the release the configured channel names, monthly by
+    `selected_release` (the release the configured channel names, monthly by
     default) then hold an error object, and the report has no `provenance`, which
     otherwise names the selected release. A selected release contains `terminology`,
     `channel`, `version` and `date`; its pinned request path is internal. `active_index` is
     null until an index has been built. `embedding.active_index_compatible`
-    says whether `ncit_search` can use the index: it is false when there is
+    says whether the CLI search can use the index: it is false when there is
     none or when it was built with other embedding settings."""
 
     def evs_status(fetch: Callable[[], dict[str, Any]]) -> dict[str, Any]:
@@ -150,7 +150,7 @@ def release_info(context: Context) -> dict[str, Any]:
     selected = evs_status(lambda: _release(context).to_dict())
     report = {
         "evs_api": evs_status(context.evs.get_api_version),
-        "selected_monthly_release": selected,
+        "selected_release": selected,
         "active_index": manifest.to_result() if manifest else None,
         "embedding": {
             "provider": context.embedding_provider.name,
@@ -474,16 +474,8 @@ def evaluate(context: Context) -> dict[str, Any]:
     }
 
 
-def cadsr_status(context: Context) -> dict[str, Any]:
-    """Report that caDSR common data element search is not implemented yet.
-
-    Returns `state: reuse_pending` and the integrations under evaluation.
-    It never returns CDE data."""
-    return context.cadsr.status().to_dict()
-
-
 def concept_resource(context: Context, code: str) -> dict[str, Any]:
-    """One NCIt concept, as returned by the ncit_lookup tool with default options."""
+    """One NCIt concept, as returned by the lookup handler with default options."""
 
     return lookup(context, code)
 
@@ -495,13 +487,13 @@ def release_resource(context: Context, version: str) -> dict[str, Any]:
     if version in RELEASE_REPORT_ALIASES:
         select_cache_hint(resolution=True)
         return info
-    selected = info["selected_monthly_release"]
+    selected = info["selected_release"]
     if is_error_record(selected) or version == selected["version"]:
         return selected
     raise PlatformError(
         "release_not_available",
         f"Release {version} is not served here; the current {selected['channel']} release is "
-        f"{selected['version']}. Read that release, or use `monthly`.",
+        f"{selected['version']}. Read that release, or use `current`.",
         requested=version,
         source="evs",
     )

@@ -21,7 +21,7 @@ The Statements of Work frame and bound the scope; within it, the specification o
 | **caDSR module** | 10 metadata tools over the caDSR Open APIs | `nci_si_mcp.cadsr` |
 | **Cross-domain** | 4 seam tools over the Shared SI Service and the two REST surfaces | `nci_si_mcp.seam` |
 | **Workflow** | 3 composite tools | `nci_si_mcp.workflows` |
-| **Acceptance suite** | Harness, fixture server, fixture set, baseline tool map, per-tool tests | `acceptance/` (separate package in this repository, separately versioned) |
+| **Acceptance suite** | Harness, fixture server, fixture set, direct tool dispatch, per-tool tests | `acceptance/` (separate package in this repository, separately versioned) |
 
 Twenty-nine tools in total, named and typed exactly as in the specification (`spec/tools.yaml`). Three profiles: `evs`, `cadsr`, `unified`. A profile determines which tools `tools/list` returns and nothing else (M1.5); the surface within a profile is static (M1.2).
 
@@ -45,7 +45,7 @@ These hold today and continue to hold:
 - The core has no runtime dependencies. `mcp` and `sentence_transformers` are optional extras, imported lazily; nothing at module level in `server.py` imports `mcp`. The supported Python is 3.14 and newer (owner decision of 3 October 2026, replacing 3.13 and newer of 1 October 2026, which replaced the earlier rule that the core stay importable on Python 3.9).
 - The package version is derived from the git tag at build time and written in no file; `setup.py` is gone.
 - Unit tests are `unittest.TestCase` classes run by pytest, offline, with hand-written doubles, and every change passes the gates in `CONTRIBUTING.md`. The acceptance suite is a separate package with pytest conventions of its own (fixtures, markers, a fixture server), so that the two do not meet.
-- `cadsr.py` must never return fabricated CDE data. That rule survives, restated: **no tool returns content it did not retrieve from a platform or from a fixture that declares itself as such.**
+- The removed caDSR stub never returned fabricated CDE data. That rule survives: **no tool returns content it did not retrieve from a platform or from a fixture that declares itself as such.**
 
 ### 1.4 Ground rules that change
 
@@ -146,7 +146,7 @@ Extend `models.py`'s per-concept fields into one `ProvenanceEnvelope` attached *
 
 `ReleaseContext` is resolved once per tool call and threaded through every upstream request. It is never resolved implicitly inside another tool — `resolve_release` and `resolve_registry_release` are the only discovery operations and the only unversioned upstream calls (A3.2).
 
-**EVS.** `resolve_evs_release(terminology, channel)` calls `/metadata/terminologies?terminology=…&latest=true&tag={channel}` and requires exactly one row. It replaces `select_monthly_ncit_release`; `latest` is channel-scoped, and the one-row query moves the selection upstream. Zero or several rows, or a row without a version, raise `release_not_available`; `requested` names the requested channel and optional `found` lists the ambiguous versions. The serialized release contains `terminology`, `channel`, `version` and `date`; the pinned path stays internal. Content requests address `/concept/{terminology}_{release}/…`; a 404 with `Terminology not found` maps to `release_not_available`. The payload's `version` is compared as a second guard and a mismatch is `release_mismatch`, never silently accepted. The first #18 slice exposes `resolve_release(terminology, channel?)` as the flat release record plus provenance and `alternatives`: other served version identifiers for the same terminology, deduplicated in listing order. The channel query remains authoritative; the unfiltered listing supplies alternatives. `list_terminologies` selects each terminology's sole latest row, scoped to the configured channel for NCIt. Both are uncached status results and report top-level errors. Legacy discovery, key and alias removal remain the final #18 slice.
+**EVS.** `resolve_evs_release(terminology, channel)` calls `/metadata/terminologies?terminology=…&latest=true&tag={channel}` and requires exactly one row. It replaces `select_monthly_ncit_release`; `latest` is channel-scoped, and the one-row query moves the selection upstream. Zero or several rows, or a row without a version, raise `release_not_available`; `requested` names the requested channel and optional `found` lists the ambiguous versions. The serialized release contains `terminology`, `channel`, `version` and `date`; the pinned path stays internal. Content requests address `/concept/{terminology}_{release}/…`; a 404 with `Terminology not found` maps to `release_not_available`. The payload's `version` is compared as a second guard and a mismatch is `release_mismatch`, never silently accepted. The first #18 slice exposes `resolve_release(terminology, channel?)` as the flat release record plus provenance and `alternatives`: other served version identifiers for the same terminology, deduplicated in listing order. The channel query remains authoritative; the unfiltered listing supplies alternatives. `list_terminologies` selects each terminology's sole latest row, scoped to the configured channel for NCIt. Both are uncached status results and report top-level errors. The legacy MCP names are removed. CLI release reports use `selected_release`; moving release resources use `current` and `latest`, with the monthly-named aliases rejected.
 
 **caDSR.** The pure `registry_state(generation_date, upstream_identifier, source_distribution=…)` builds the specification's `registry_release` record: `{published, identifier?, generatedAt, sourceDistribution}`. Without a published release, `published` is false, `identifier` is absent, and the export's `Last-Modified` for `releasedCDEsXML-OD.zip` becomes an ISO-8601 UTC `generatedAt`. When a registry release appears upstream (C-1), `published` is true and its identifier and own ISO-8601 date are passed through unchanged. `sourceDistribution` names the distribution the caller read the date from. A missing or invalid date, blank supplied identifier or missing distribution raises `RegistryMetadataError`; the shared error path reports `upstream_unavailable` with `surface: cadsr`. No identifier or date is invented, and registry reproducibility is not achievable while no registry release is published. The instrumented HEAD request and tool exposure belong to #31.
 
@@ -205,8 +205,8 @@ Unit tests render `tools/list` in every configured profile, validate every schem
 success/error results, and reject malformed records. They assert byte-identical listings
 across release channels, upstream modes, calls and upstream failure (M1.2), and check rendered
 descriptions for unfinished text and unsupported values against behavior (A2.3, A2.4).
-Profiles select the current inventory: six EVS tools for `evs`, the pending caDSR status
-tool for `cadsr`, all seven for `unified` during the staged #18 transition. Tool and field renames remain #18. An input schema states no
+Profiles select the current inventory: six EVS tools for `evs` and `unified`, no tools yet
+for `cadsr`. The legacy MCP names and caDSR stub are removed. An input schema states no
 `maximum` for a bounded argument: a value above it is applied as the maximum (the tools'
 `bounds` in `spec/tools.yaml`), and the argument's description states its default and maximum.
 
@@ -267,10 +267,9 @@ The interim index (M4.1), built from `index.py` / `embeddings.py` / `retrieval.p
 
 ### 4.5 Tools (`evs/tools.py`)
 
-Twelve tools, signatures in the specification (`spec/tools.yaml`, group `evs`). Mapping from the current surface:
+Twelve tools, signatures in the specification (`spec/tools.yaml`, group `evs`). Evolution from the original prototype surface:
 
-The second #18 slice adds the four content entries with their complete signatures in
-`content.py`, alongside the temporary legacy MCP entries. NCIt calls pin the caller's
+The four content entries have their complete signatures in `content.py`. NCIt calls pin the caller's
 required release; indexed search checks it inside the read transaction. Concept and node
 records carry EVS's `active` and optional `conceptStatus` as `status`; requested detail is
 passed through, with P106 values supplying `semanticType`. Graph nodes reuse fetched
@@ -283,11 +282,11 @@ selection return `capability_unavailable` pending #27. Hierarchy paths to root, 
 and results needing another page, and selective negative expansion, remain #23 and are
 explicitly refused. Until then a neighborhood following beyond negative assertion targets
 requires `includeNegative=true`; assertions reaching the depth bound need no expansion.
-Depth-cut reporting and legacy-name/toolmap removal are the next
-two #18 slices. The descriptions state these interim limits; they do not claim the whole
+Depth cuts are reported by the walker (§4.3); legacy MCP names and the tool-map mechanism
+are removed in #18. The descriptions state these interim limits; they do not claim the whole
 Phase 2 contract is implemented.
 
-| Current | Becomes | Note |
+| Original | Specification tool | Note |
 |---|---|---|
 | `ncit_release_info` | `resolve_release(terminology, channel?)` + `list_terminologies()` | one row per channel; `ttlMs` 0 |
 | `ncit_lookup` | `get_concept(terminology, release, code, include[]?)` | `live_only` and `include_raw` removed |
@@ -403,15 +402,14 @@ acceptance/
     record.py               re-records `recorded/` from live against the manifest's pins (`pdm run acceptance-record`)
     craft.py                crafts the scenario fixtures EVS does not produce on demand (`pdm run acceptance-craft`)
     register.py             writes the register of request forms from the manifest (`pdm run acceptance-register`)
-    tools.py                baseline tool map application
+    tools.py                direct tool dispatch and result decoding
     requirements.py         the rule that tests cite `spec/requirements.yaml` and every requirement is cited or planned
-    report.py               per-tool outcome: PASS | PASS (fixture only) | FAIL | NO FIXTURE | INCOMPLETE | NOT IMPLEMENTED | NOT RUN | NO TESTS; marks rows served through the tool map
+    report.py               per-tool outcome: PASS | PASS (fixture only) | FAIL | NO FIXTURE | INCOMPLETE | NOT IMPLEMENTED | NOT RUN | NO TESTS
   fixtures/
     manifest.yaml           pinned NCIt release (caDSR export date and SI graph dates to come), concept rules, the scenarios, the requests recorded
     recorded/<surface>/…    captured responses with the request that produced them
     crafted/<requirement>/… hand-written responses naming the requirement they stand in for
     scenarios/<group>/<name>/ the fixtures of each scenario the manifest describes
-    baseline_toolmap.yaml   required tool → prototype tool + parameter renaming, for the server before Phase 2 (§9.4)
   request-forms/            the register of request forms: a view for each team (EVS, caDSR, Shared SI) and one for all
   tests/
     test_protocol.py        the P requirements (protocol gates)
@@ -431,21 +429,13 @@ The root project installs the package editable (dependency group `acceptance`); 
 
 The fixture server exposes `GET /_log` returning every request it received since `DELETE /_log`, each decoded (surface, path, parameters, body) and as sent (`raw`, the path and query undecoded). Tests use it for: hostile identifiers that reach no request, free text that arrives as one value, a code sent as one encoded path segment; outbound budget including retries; batch endpoint used instead of fan-out; no endpoint called twice with identical parameters in one tool call; `Accept: application/json` present on every caDSR call; licence key present on licensed calls and absent from results.
 
-### 9.4 Baseline tool map
+### 9.4 Direct tool dispatch
 
-The map lets the suite call today's tools under the required names, so the tests of the mapped EVS tools run against an implementation from Phase 0 on instead of reporting NOT IMPLEMENTED; the report marks those rows *implemented under another name*. The harness applies an entry in every run while the required tool is absent from `tools/list`. Written against today's server, which serves NCIt's current monthly release only: every entry checks `terminology` is `ncit` and accepts `release` without passing either on, and any argument an entry does not list is unsupported:
-
-| Required | Prototype | Parameters |
-|---|---|---|
-| `resolve_release` | `ncit_release_info` | `channel` weekly unsupported |
-| `get_concept` | `ncit_lookup` | `code`; `include` unsupported |
-| `get_concept_hierarchy` | `ncit_traverse` | `code` → `start_codes` (a list of one); `direction` → `edge_types` (`parent`, `child`; `pathsToRoot` unsupported) with `direction: both` fixed; `depth` → `max_depth`; `limit` → `max_nodes`; `cursor` unsupported |
-| `get_concept_neighborhood` | `ncit_traverse` | `code` → `start_codes`; `depth` → `max_depth`; `kinds` → `edge_types` (`inverseRole` → `inverse_role`, `inverseAssociation` → `inverse_association`) with `direction: both` fixed; `maxNodes`, `maxEdges` → `max_nodes`, `max_edges`; `budgetPerKind` → `budget_per_kind`; `includeNegative: true` unsupported |
-| all others | — | NOT IMPLEMENTED |
-
-`search_concepts` has no stand-in: the prototype cannot search EVS, and its index search is not exposed as the required tool. The operator's prepare step builds the index the semantic and hybrid tests need (acceptance README). A test that depends on another release than the current one fails against the prototype. An unsupported argument or value is a capability the prototype lacks; a call using it reports NOT IMPLEMENTED rather than a failure. Self-tests check every stand-in, argument and value against the prototype's `tools/list` and make one call through each entry that the prototype must accept.
-
-At the furnished commit (after Phase 3) the map is empty. The owner decided (2 October 2026) that the mechanism goes in the change that removes its last entry.
+The suite calls the specification's exact tool names and arguments. A missing name reports
+NOT IMPLEMENTED; an implemented tool's unsupported capability is tested as its actual result.
+Phase 1 (#18) removed the last baseline-map entries and the translation mechanism together,
+including its prototype-only self-tests. The remaining harness tests cover direct dispatch,
+missing names, results, errors and the per-tool report. No legacy tool is substituted.
 
 ### 9.5 CI
 
@@ -508,7 +498,7 @@ Work proceeds in the order of the table above until award. What remains at the f
 
 ## 12. Removals
 
-- `service.py` is removed. Later tool work removes `cadsr.py` (the stub) and `live_only` from the MCP surface; `include_raw` is already CLI-only.
+- `service.py` and the caDSR stub are removed. `live_only` and `include_raw` are CLI-only; the six public EVS tools use the specification's names and arguments.
 - Label-based exclusion detection, wherever it appears.
 - The `is_a_parent` / `is_a_child` / `is_a_descendant` pseudo-relationship names.
 

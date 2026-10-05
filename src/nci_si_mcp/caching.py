@@ -5,7 +5,7 @@ from contextlib import contextmanager, nullcontext
 from contextvars import ContextVar
 
 LONG_TTL_MS = 86_400_000
-RELEASE_REPORT_ALIASES = frozenset({"monthly", "latest", "monthly-latest"})
+RELEASE_REPORT_ALIASES = frozenset({"current", "latest"})
 _decision: ContextVar[dict[str, int | str]] = ContextVar("cache_decision")
 
 

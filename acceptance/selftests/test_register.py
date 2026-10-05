@@ -117,7 +117,7 @@ def test_the_evs_view_states_the_concept_rules_the_ignored_parameters_and_each_r
     assert "## Concept requests answered by rule" in view
     assert "## Concept requests answered by rule" not in VIEWS["cadsr.md"]
     assert all("| 404; every parameter ignored |" in line for line in unknown if "`GET " in line)
-    assert "| The furnished server's ncit_release_info reads it;" in version
+    assert "| The furnished server's CLI release-info reads it;" in version
 
 
 @pytest.mark.parametrize("change", ["undescribed", "absent"])

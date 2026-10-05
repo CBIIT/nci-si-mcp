@@ -56,7 +56,7 @@ from nci_si_acceptance.suite import (
     skip_unprepared,
     unmatched_requests,
 )
-from nci_si_acceptance.tools import Process, Tools, load_toolmap
+from nci_si_acceptance.tools import Process, Tools
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
@@ -150,9 +150,8 @@ def remote_ready(
         for line in announcement(target, upstream):
             reporter.write_line(line)
     started = state_hook.apply((), {}, fresh=True) if state_hook else ()
-    toolmap = load_toolmap(FIXTURES / "baseline_toolmap.yaml")
     pinned = request.getfixturevalue("pinned")
-    probe(target.url, target.authorization, upstream, toolmap, pinned, started)
+    probe(target.url, target.authorization, upstream, pinned, started)
 
 
 @pytest.fixture(scope="session")
@@ -221,9 +220,8 @@ def server(
 
 
 def _make_tools(session: Session, upstream: FixtureServer | None, process: Process) -> Tools:
-    toolmap = load_toolmap(FIXTURES / "baseline_toolmap.yaml")
     counted = (lambda: len(upstream.log())) if upstream else None
-    return Tools(session, toolmap, process, counted)
+    return Tools(session, process, counted)
 
 
 @contextmanager

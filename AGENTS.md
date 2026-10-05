@@ -6,10 +6,13 @@ detail.
 
 ## What this is
 
-An EVS-first MCP server prototype: NCIt search, lookup and graph traversal over the NCI EVS REST
-API, served over stdio with `mcp` 2.x. caDSR is a stub by design: `cadsr.py` reports `reuse_pending`
-and must never return fabricated CDE data. The goal it grows toward is the shared NCI Semantic
-Infrastructure MCP platform; the milestones and issues on GitHub (Phase 0 to 5) are the plan.
+The government-furnished prototype of the NCI Semantic Infrastructure MCP server, and the
+acceptance suite it and its successors are measured by. Two Statements of Work build on it:
+EVS v2.1 and caDSR v1.1. It is a prototype, not a production service. The server never returns
+caDSR or other upstream content it did not retrieve. Until NCI issues caDSR credentials,
+caDSR behavior is built and tested against fixtures crafted from the published contracts.
+The milestones and issues on GitHub (Phase 0 to 5) are the plan. README.md gives the current
+status per tool group; QUICKSTART.md holds the usage details.
 
 Documentation, from short to detailed: `README.md` (what the repository is, who it is for, the
 status per tool group), `QUICKSTART.md` (install and run; settings, tools, resources, error
@@ -19,10 +22,10 @@ codes), `CONTRIBUTING.md` (how to work on it: commands, gates, standards, releas
 The specification of the required tools and their behaviour is owned by this repository. Its
 source of record is the data in `spec/` (conventions, records, tools, requirements);
 `docs/specification.md` is generated from it with `pdm run spec-render` and is never edited by
-hand. `docs/implementation-plan.md` plans the implementation, and `acceptance/` holds the acceptance suite that
-tests the requirements (its README says how). The programme's other documents (the Statements of
-Work, which frame and bound the scope and are not a specification, and the Platform API
-Specification) live outside this repository; do not rely on them being present.
+hand. `docs/implementation-plan.md` plans the implementation, and `acceptance/` holds the
+acceptance suite that tests the requirements (its README says how). The programme's other
+documents (the Statements of Work, which frame and bound the scope and are not a specification,
+and the Platform API Specification) live outside this repository; do not rely on them being present.
 
 ## Engineering standards
 
@@ -81,7 +84,7 @@ pdm run spec-render                       # regenerate docs/specification.md fro
   environment, so `pdm.lock` decides their versions.
 - `tests/test_docs.py`, `tests/test_server.py` and `tests/test_release_config.py` compare
   QUICKSTART.md, ARCHITECTURE.md and the title check with the code (settings and defaults, error
-  codes, modules, tools, `ncit_traverse` arguments, resources, commit types). Change the document
+  codes, modules, tools, public arguments, resources, commit types). Change the document
   with the code.
 - Do not enable PDM's uv mode (`use_uv`): it rewrites `pyproject.toml` during an install, which
   marks every installed version as locally modified.
@@ -107,7 +110,9 @@ and fails when an outcome differs from the expected one. A change that moves an 
 updates that file in the same pull request, written with `pdm run acceptance-expected update` from
 a fresh report, and `pdm run acceptance-status` updates the README table that follows from it; the
 diff of `expected/fixture.json` is what the review reads. The `Acceptance (live)` workflow runs the
-suite against the live services by hand; its outcomes are not ratcheted. The harness has its own
+suite against the live services by hand and every Monday; its outcomes are not ratcheted, but
+the weekly run fails when a test that passes on the fixtures fails live (upstream drift).
+The harness has its own
 tests (`pdm run acceptance-selftest`, the `selftest` CI jobs). `acceptance/README.md` has the
 detail.
 
@@ -224,8 +229,9 @@ Rules learned the hard way:
 
 `cli.py` and `server.py` read `registry.SPECS`. Each `ToolSpec` declares its handler, output
 union, cache policy and adapter exposure; the handler signature supplies the shared input model,
-defaults and choices. Business operations live in `handlers.py`, with injectable collaborators in
-`context.Context`. Closed value sets live once in `validation.py`. Profiles select MCP tools only.
+defaults and choices. Business operations live in `handlers.py` and, for the specification's
+content tools, `content.py`, with injectable collaborators in `context.Context`. Closed value
+sets live once in `validation.py`. Profiles select MCP tools only.
 
 ### One error path
 
@@ -265,9 +271,10 @@ update them when behaviour changes.
 - `release.resolve_evs_release(evs, terminology, channel)` asks EVS for the rows that are `latest`
   and tagged with the channel (`?terminology=…&latest=true&tag=…`) and requires exactly one; any
   other count is `release_not_available`, with no fallback to another channel. EVS sets `latest`
-  per channel, so the unfiltered listing can show two `ncit` rows as latest. The handler resolves
-  once per call with `Settings.release_channel` and threads the `ReleaseContext` through that call;
-  nothing keeps it between calls. A 404 `Terminology not found` is `EVSReleaseNotFoundError`
+  per channel, so the unfiltered listing can show two `ncit` rows as latest. `resolve_release`
+  resolves the channel once per call; the content tools pin every request to the caller's
+  `release` argument instead. Either way the `ReleaseContext` lives for one call only.
+  A 404 `Terminology not found` is `EVSReleaseNotFoundError`
   (`release_not_available`).
 - `release.registry_state` is the pure part of the caDSR registry state: no registry identifier is
   ever made up. The `Last-Modified` HEAD request belongs to the caDSR client.

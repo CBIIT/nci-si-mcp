@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from .cadsr import CadsrAdapter
 from .config import Settings
 from .embeddings import EmbeddingProvider, create_embedding_provider
 from .evs import EVSClient
@@ -17,7 +16,6 @@ class Context:
         evs: EVSClient | None = None,
         index: LocalIndex | None = None,
         embedding_provider: EmbeddingProvider | None = None,
-        cadsr: CadsrAdapter | None = None,
     ) -> None:
         self.settings = settings
         self.evs = evs or EVSClient(
@@ -32,4 +30,3 @@ class Context:
         self.embedding_provider = embedding_provider or create_embedding_provider(
             settings.embedding_provider, settings.embedding_model
         )
-        self.cadsr = cadsr or CadsrAdapter()

@@ -27,21 +27,17 @@ class RegistryTest(ServerFixture):
             "search_concepts",
             "get_concept_hierarchy",
             "get_concept_neighborhood",
-            "ncit_search",
-            "ncit_lookup",
-            "ncit_traverse",
-            "ncit_release_info",
             "resolve_release",
             "list_terminologies",
         }
-        expected = {"evs": evs, "cadsr": {"cadsr_status"}, "unified": evs | {"cadsr_status"}}
+        expected = {"evs": evs, "cadsr": set(), "unified": evs}
         for profile, names in expected.items():
             with self.subTest(profile=profile):
                 self.settings = replace(self.settings, profile=profile)
                 tools = self.session(lambda client: client.list_tools()).tools
                 self.assertEqual({tool.name for tool in tools}, names)
                 for tool in tools:
-                    self.assertEqual(tool.meta["group"], "evs" if tool.name in evs else "cadsr")
+                    self.assertEqual(tool.meta["group"], "evs")
 
     def test_every_tool_advertises_all_four_read_only_annotations(self):
         tools = self.session(lambda client: client.list_tools()).tools

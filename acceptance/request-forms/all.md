@@ -59,7 +59,7 @@ missing argument with HTTP 200 (X-15).
 
 | Operation | Request | Expected | Made | Rationale | Fixture |
 |---|---|---|---|---|---|
-| baseline | `GET evs /api/v1/version` | 200 | recorded | The furnished server's ncit_release_info reads it; no required tool needs it. | `recorded/evs/version.json` |
+| baseline | `GET evs /api/v1/version` | 200 | recorded | The furnished server's CLI release-info reads it; no required tool needs it. | `recorded/evs/version.json` |
 | OP-E01 | `GET evs /api/v1/metadata/terminologies` | 200 | recorded | The listing behind list_terminologies, and what the furnished server filters today. | `recorded/evs/terminologies.json` |
 | OP-E01 | `GET evs /api/v1/metadata/terminologies?terminology=ncit&latest=true&tag=monthly` | 200 | recorded | The one-row release query: latest is channel-scoped, so the channel is given as a tag (E-1). | `recorded/evs/release-monthly.json` |
 | OP-E01 | `GET evs /api/v1/metadata/terminologies?terminology=ncit&latest=true&tag=weekly` | 200 | recorded | The same query for the weekly channel. | `recorded/evs/release-weekly.json` |

@@ -12,7 +12,6 @@ from .caching import invocation_policy
 from .context import Context
 from .invocation import call
 from .results import (
-    CadsrStatusResult,
     Concept,
     ConceptResult,
     ConceptSearch,
@@ -38,7 +37,6 @@ class ToolSpec:
     name: str | None = None
     command: str | None = None
     uri: str | None = None
-    cli_only: tuple[str, ...] = ()
     input_model: type = field(init=False)
     parameters: tuple[Parameter, ...] = field(init=False)
 
@@ -127,25 +125,20 @@ SPECS = (
         "evs",
         SearchResult | ErrorResult,
         False,
-        name="ncit_search",
         command="search",
-        cli_only=("include_raw",),
     ),
     ToolSpec(
         handlers.lookup,
         "evs",
         ConceptResult | ErrorResult,
         False,
-        name="ncit_lookup",
         command="lookup",
-        cli_only=("include_raw",),
     ),
     ToolSpec(
         handlers.traverse,
         "evs",
         TraversalResult | ErrorResult,
         False,
-        name="ncit_traverse",
         command="traverse",
     ),
     ToolSpec(
@@ -153,12 +146,7 @@ SPECS = (
         "evs",
         ReleaseResult | ErrorResult,
         True,
-        name="ncit_release_info",
         command="release-info",
-    ),
-    # Pending capability status can change independently of a governed release.
-    ToolSpec(
-        handlers.cadsr_status, "cadsr", CadsrStatusResult | ErrorResult, True, name="cadsr_status"
     ),
     ToolSpec(handlers.index_codes, "evs", dict[str, Any], False, command="index-sample"),
     ToolSpec(handlers.evaluate, "evs", dict[str, Any], False, command="evaluate"),
