@@ -14,6 +14,7 @@ from .context import Context
 from .invocation import call
 from .results import (
     Concept,
+    ConceptBatch,
     ConceptResult,
     ConceptSearch,
     ErrorResult,
@@ -88,6 +89,14 @@ def _input_field(parameter: Parameter) -> tuple:
 
 
 SPECS = (
+    ToolSpec(
+        content.get_concepts,
+        "evs",
+        ConceptBatch | ErrorResult,
+        False,
+        name="get_concepts",
+        audit={"terminology": "plain", "release": "plain", "codes": "plain", "include": "plain"},
+    ),
     ToolSpec(
         content.get_concept,
         "evs",

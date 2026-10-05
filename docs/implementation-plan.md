@@ -205,7 +205,7 @@ Unit tests render `tools/list` in every configured profile, validate every schem
 success/error results, and reject malformed records. They assert byte-identical listings
 across release channels, upstream modes, calls and upstream failure (M1.2), and check rendered
 descriptions for unfinished text and unsupported values against behavior (A2.3, A2.4).
-Profiles select the current inventory: six EVS tools for `evs` and `unified`, no tools yet
+Profiles select the current inventory: seven EVS tools for `evs` and `unified`, no tools yet
 for `cadsr`. The legacy MCP names and caDSR stub are removed. An input schema states no
 `maximum` for a bounded argument: a value above it is applied as the maximum (the tools'
 `bounds` in `spec/tools.yaml`), and the argument's description states its default and maximum.
@@ -247,7 +247,7 @@ Delta from `evs.py`:
 | Method | Change |
 |---|---|
 | `get_concept`, `get_concepts_by_codes`, `get_related`, `search` | Address `/concept/{terminology}_{release}/…`; take `ReleaseContext` |
-| `get_concepts_by_codes` | The endpoint omits unresolvable codes silently and keeps no order: mostly lexicographic, but the same request answered in two orders on 2 October 2026. Traversal and indexing already reconcile requested against returned codes by code and request only the relation lists they need through `include=`. Remaining: return `{found: {code: concept}, missing: [codes]}` to the tools, never relying on position (get_concepts-1) |
+| `get_concepts_by_codes` | The endpoint omits unresolvable codes silently and keeps no order: mostly lexicographic, but the same request answered in two orders on 2 October 2026. Traversal and indexing already reconcile requested against returned codes by code and request only the relation lists they need through `include=`. The public `get_concepts` returns `{concepts: [concepts], missing: [codes]}` in input order, preserving duplicate input occurrences while deduplicating the platform request. It rejects more than 650 supplied codes or a request target over 7000 encoded bytes before HTTP; see ARCHITECTURE.md for the measured URL margin (get_concepts-1) |
 | `get_replacements(codes)` | New. `/history/{t}_{r}/replacements?list=` — note it errors the whole batch on one bad code, the opposite of the batch concept endpoint; split and retry per code on error |
 | `get_roles_catalogue(release)`, `get_associations_catalogue(release)` | New; feed `evs/catalogue.py` |
 | `get_subsets`, `get_subset_members`, `get_mapsets`, `get_mapset_maps` | New; the 9 subset/mapset paths and 18 mapsets verified present |
@@ -308,7 +308,7 @@ Phase 2 contract is implemented.
 |---|---|---|
 | `ncit_release_info` | `resolve_release(terminology, channel?)` + `list_terminologies()` | one row per channel; `ttlMs` 0 |
 | `ncit_lookup` | `get_concept(terminology, release, code, include[]?)` | `live_only` and `include_raw` removed |
-| — | `get_concepts(…, codes[], include[]?)` | returns `found` + `missing` |
+| — | `get_concepts(…, codes[], include[]?)` | returns ordered `concepts` + `missing` |
 | `ncit_search` | `search_concepts(…, query, mode?, limit?, cursor?)` | `lexical`/`typeahead` → EVS REST, EVS's highlight as `matchedOn` where it gives one and no score; `semantic`/`hybrid` → index, with a score and the field matched |
 | `ncit_traverse` | `get_concept_hierarchy(…)` and `get_concept_neighborhood(…)` | hierarchy = `parent|child|pathsToRoot` only; neighbourhood = §4.3 |
 | — | `expand_value_set`, `get_concept_subsets`, `get_concept_mappings`, `resolve_retired_code`, `list_relationships` | new |
@@ -480,7 +480,7 @@ Keep `unittest`-style tests under the gates in `CONTRIBUTING.md`. Extend `tests/
 - `test_release`: one-row resolution; 404 → `release_not_available`; payload mismatch → `release_mismatch`; caDSR state never carries a fabricated identifier.
 - `test_bounds`: retries decrement the request budget; per-kind rotation; truncation report fields.
 - `test_catalogue`: polarity by code; a configured code absent from the catalogue fails startup.
-- `test_batch`: `found`/`missing` reconciliation; any return order handled.
+- `test_batch_content`: ordered `concepts`/`missing` reconciliation; any return order handled.
 - `test_index`: atomic activation and rollback; provider/model mismatch rejected; dimension mismatch rejected.
 - `test_schema`: `outputSchema` present and valid for every tool in every profile; surface static across settings; no placeholder text.
 - `test_cadsr_client`, `test_ssis_client`: required-parameter validation; envelope errors; `Accept` header.
@@ -516,7 +516,7 @@ Work proceeds in the order of the table above until award. What remains at the f
 
 ## 12. Removals
 
-- `service.py` and the caDSR stub are removed. `live_only` and `include_raw` are CLI-only; the six public EVS tools use the specification's names and arguments.
+- `service.py` and the caDSR stub are removed. `live_only` and `include_raw` are CLI-only; the public EVS tools use the specification's names and arguments.
 - Label-based exclusion detection, wherever it appears.
 - The `is_a_parent` / `is_a_child` / `is_a_descendant` pseudo-relationship names.
 

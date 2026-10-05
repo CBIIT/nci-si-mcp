@@ -14,6 +14,9 @@ HARD_MAX_NODES = 1000
 HARD_MAX_EDGES = 5000
 MAX_TRAVERSAL_REQUESTS = 200
 HARD_MAX_PER_KIND = 1000
+# EVS accepts 1,000 codes, but its deployed URL ceiling is lower (see ARCHITECTURE.md).
+HARD_MAX_BATCH_CODES = 650
+MAX_BATCH_TARGET_BYTES = 7000
 
 
 def clamp_limits(max_depth: int, max_nodes: int) -> tuple[int, int]:

@@ -591,7 +591,7 @@ A code EVS does not know is left out of a batch. Recorded.
 
 | Operation | Request | Expected | Rationale | Fixture |
 |---|---|---|---|---|
-| OP-E07 | `GET evs /api/v1/concept/ncit_26.09d/CBOGUS999999?include=full` | 404 | A code EVS does not know: a batch leaves it out without a signal (E-5). | `scenarios/batch/silent-drop/concepts/CBOGUS999999.json` |
+| OP-E07 | `GET evs /api/v1/concept/ncit_26.09d/C999999999?include=full` | 404 | A code EVS does not know: a batch leaves it out without a signal (E-5). | `scenarios/batch/silent-drop/concepts/C999999999.json` |
 
 ### `retired/with-replacement`
 

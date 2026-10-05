@@ -63,6 +63,7 @@ get_concept:
 get_concepts:
   group: evs
   inputs: (terminology, release, codes[], include[]?)
+  lists: {codes: 650}
   patterns: {terminology: *terminology, release: *release, codes: *code}
   returns: "{ concepts[], missing[] }"
   items: ["concepts[]"]

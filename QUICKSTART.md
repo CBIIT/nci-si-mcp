@@ -74,7 +74,7 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects six EVS tools, no caDSR tools yet, or the same six EVS tools, respectively; CLI maintenance commands and resources remain available |
+| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects seven EVS tools, no caDSR tools yet, or the same seven EVS tools, respectively; CLI maintenance commands and resources remain available |
 | `NCI_SI_UPSTREAM_MODE` | `live` | `live` or `fixture`; selects the six base URLs below as a set (next paragraph) |
 | `NCI_SI_EVS_BASE_URL` | `https://api-evsrest.nci.nih.gov` | EVS REST endpoint (`http` or `https`) |
 | `NCI_SI_EVS_FHIR_BASE_URL` | `https://api-evsrest.nci.nih.gov/fhir/r4` | EVS FHIR endpoint |
@@ -514,6 +514,7 @@ unknown, its record gives `omitted: 0` and `exact: false`.
 ## MCP Tools
 
 - `get_concept`: fetch a caller-pinned EVS concept with required `terminology`, `release` and `code`. Optional `include` selects synonyms, definitions, properties or semanticType; status is passed through from EVS.
+- `get_concepts`: fetch a caller-pinned batch with required `terminology`, `release` and `codes`. Returns `concepts` and `missing` in input order, preserving duplicate occurrences. Optional `include` works as in `get_concept`. Empty input makes no request. At most 650 supplied codes and a 7000-byte encoded request target are allowed; larger inputs are `invalid_request`. An oversized response is `bound_exceeded` (`NCI_SI_EVS_MAX_RESPONSE_BYTES`), never partial results.
 - `search_concepts`: search the interim NCIt index with required `terminology`, `release` and `query`. `semantic` and `hybrid` modes are supported, with `limit` default 10, maximum 1000; the index must hold the requested release. Default `lexical`, `typeahead`, cursors and `retired: only` return `capability_unavailable` pending #27.
 - `get_concept_hierarchy`: caller-pinned parents or children, excluding the seed. Required `direction`; `depth` defaults to 1, maximum 4; `limit` defaults to 200, maximum 1000. Paths to root and requests needing paging return `capability_unavailable` pending #23.
 - `get_concept_neighborhood`: caller-pinned graph including the seed. `depth` defaults to 2, maximum 4; `maxNodes` 200/1000; `maxEdges` 1000/5000; optional `budgetPerKind` maximum 1000. `kinds` selects among the six relation kinds. Following beyond negative assertion targets currently requires `includeNegative: true`; selective expansion remains #23. Both graph tools share 200 requests per call, including a batched final-frontier check for depth truncation.
@@ -531,7 +532,7 @@ with no matches still return empty successes; missing current releases retain th
 `release_not_available` behavior.
 
 Each tool description, as sent to MCP clients, states the contract in full. The former
-`ncit_*` tools and `cadsr_status` are removed; use the six tools above. The caDSR profile
+`ncit_*` tools and `cadsr_status` are removed; use the seven tools above. The caDSR profile
 currently exposes no tools. CLI diagnostics retain `search`, `lookup`, `traverse` and
 `release-info`, including CLI-only options such as `--live-only` and `--include-raw`.
 The release report's `selected_release` field names the configured channel's release.

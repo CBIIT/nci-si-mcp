@@ -1,10 +1,10 @@
 {
  "kind": "recorded",
- "recorded_on": "2026-10-02",
+ "recorded_on": "2026-10-05",
  "request": {
   "surface": "evs",
   "method": "GET",
-  "path": "/api/v1/concept/ncit_26.09d/CBOGUS999999",
+  "path": "/api/v1/concept/ncit_26.09d/C999999999",
   "params": {
    "include": [
     "full"
@@ -14,11 +14,11 @@
  "response": {
   "status": 404,
   "body": {
-   "timestamp": 1790935886776,
+   "timestamp": 1791220376122,
    "status": 404,
    "error": "Not Found",
-   "message": "CBOGUS999999 not found",
-   "path": "/api/v1/concept/ncit_26.09d/CBOGUS999999"
+   "message": "C999999999 not found",
+   "path": "/api/v1/concept/ncit_26.09d/C999999999"
   }
  }
 }

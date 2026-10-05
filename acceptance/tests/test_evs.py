@@ -24,7 +24,7 @@ RETIRED = "scenarios/retired/with-replacement/concepts/C154421.json"
 # fixture server answers a batch rotated by one (concepts.py), so request order is not its.
 BATCH = ["C4817", "C12578", "C116977"]
 # A code EVS does not know, which a batch leaves out (batch/silent-drop).
-UNKNOWN = "CBOGUS999999"
+UNKNOWN = "C999999999"
 SECTIONS = TOOLS["get_concept"]["values"]["include"]
 # NCIt's semantic-type property, by its code (the concept record's semanticType).
 SEMANTIC_TYPE = "P106"
