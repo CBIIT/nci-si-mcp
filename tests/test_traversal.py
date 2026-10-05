@@ -2,15 +2,17 @@ import unittest
 from unittest.mock import patch
 
 from fakes import FakeEVS, concept, release
-from nci_si_mcp.errors import InputValidationError, correlated
-from nci_si_mcp.evs import EVSNotFoundError, EVSResponseError, EVSResponseTooLargeError
-from nci_si_mcp.traversal import (
+from nci_si_mcp.bounds import (
     HARD_MAX_DEPTH,
     HARD_MAX_EDGES,
     HARD_MAX_NODES,
-    RELATIONS,
     clamp_edge_limit,
     clamp_limits,
+)
+from nci_si_mcp.errors import InputValidationError, correlated
+from nci_si_mcp.evs import EVSNotFoundError, EVSResponseError, EVSResponseTooLargeError
+from nci_si_mcp.traversal import (
+    RELATIONS,
     select_edge_types,
     traverse_ncit,
 )
@@ -244,14 +246,14 @@ class TraversalTest(unittest.TestCase):
 
         result = walk(client, max_depth=1, edge_types=["descendant", "role", "child"])
 
-        # In the order of the edge types as `select_edge_types` lists them, descendants last.
+        # Kinds rotate; parallel edges survive even when another kind admitted their target.
         self.assertEqual(
             [(edge.edge_type, edge.relationship_name) for edge in result.edges],
             [
                 ("child", "is_a_child"),
+                ("descendant", "is_a_descendant"),
                 ("role", "Role_A"),
                 ("role", "Role_B"),
-                ("descendant", "is_a_descendant"),
             ],
         )
         self.assertFalse(result.truncation.occurred)

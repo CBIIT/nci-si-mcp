@@ -407,6 +407,20 @@ class TruncationTest(ProvenanceTestCase):
     def test_the_edge_limit_reports_the_edges_it_dropped(self):
         truncation = self.traversal(edge_types=["child", "role"], max_edges=1)["truncation"]
 
+        per_kind = truncation.pop("perKind")
+        for kind in ("child", "role"):
+            self.assert_record(
+                per_kind[kind],
+                {
+                    "occurred": True,
+                    "bound": "edges",
+                    "limit": 1,
+                    "reached": 1,
+                    "omitted": 1,
+                    "exact": False,
+                },
+            )
+
         self.assert_record(
             truncation,
             {

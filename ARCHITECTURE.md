@@ -78,13 +78,13 @@ flowchart LR
 `errors.py` is used by every layer and is left out of the diagram. Also not
 drawn: `http_client.py` parses its response bodies with `upstream.py`, `index.py` calls the concept normalization in `evs.py`, and the two
 adapters read the closed value sets in `validation.py` and the default limits
-in `traversal.py`, and `validation.py` reads the hard node limit in
-`traversal.py`.
+in `bounds.py`, where `validation.py` also reads the hard node limit.
 
 ## Components
 
 | Component | Responsibility | Main dependencies |
 | --- | --- | --- |
+| `bounds.py` | Owns traversal defaults and maxima and the per-call `Budget`. A context variable shares 200 HTTP attempts, including retries, release discovery and split batches, and restores the previous context on exit. The walker rotates kinds across each breadth-first frontier and counts newly admitted nodes against optional per-kind allowances. Exhaustion preserves partial graphs with truncation; without graph content it raises `RequestBudgetError`, mapped to `bound_exceeded`. | Python standard library |
 | `cli.py` | Defines `serve`, release inspection, sample indexing, search, lookup, traversal, and evaluation commands; reports configuration and startup failures; exits 1 on an error record. | `NCISIService`, `server` |
 | `server.py` | Registers five MCP tools and three MCP resource templates on an `mcp` 2.x `MCPServer` and flags error records as protocol errors. | `NCISIService`, optional `mcp` package |
 | `service.py` | Validates inputs, orchestrates the use cases, pins EVS requests to the release of the configured channel, enforces release consistency with the index, falls back from live EVS to the cache in `lookup`, and maps expected failures to error records. Its collaborators are injectable for testing. | EVS client, local index, traversal, embeddings, evaluation, caDSR adapter |
@@ -100,7 +100,7 @@ in `traversal.py`, and `validation.py` reads the hard node limit in
 | `evaluation.py` | Evaluates BM25, vector, and hybrid retrieval against a small built-in gold-query set. | Local index, embedding provider |
 | `cadsr.py` | Exposes an explicit `reuse_pending` boundary; no caDSR search or fabricated CDE results are implemented. | Shared models |
 | `config.py` | Loads the profile, the upstream mode and the six upstream base URLs (taken as a set: production defaults in live mode, all required in fixture mode), release channel, exclusion role codes, the two credentials (kept out of every string form), timeouts, EVS retry, batching, logging, data-directory and embedding settings from environment variables and validates them; whether the data directory is usable shows only when the index is opened. | Environment, `embeddings.py`, `validation.py` |
-| `validation.py` | Defines the closed value sets (search modes, directions, edge types), normalizes NCIt codes, and validates search and traversal inputs. | Shared errors, hard node limit in `traversal.py` |
+| `validation.py` | Defines the closed value sets (search modes, directions, edge types), normalizes NCIt codes, and validates search and traversal inputs. | Shared errors, limits in `bounds.py` |
 | `errors.py` | Defines the validation and index errors, `PlatformError` with the ten error codes of the specification, the per-call correlation identifier, and `serialise`, the one function that builds the error record. | Python standard library |
 
 ## Primary flows

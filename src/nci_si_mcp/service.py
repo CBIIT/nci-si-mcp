@@ -8,6 +8,14 @@ from collections.abc import Callable, Iterable
 from itertools import batched
 from typing import Any, cast
 
+from .bounds import (
+    DEFAULT_MAX_DEPTH,
+    DEFAULT_MAX_EDGES,
+    DEFAULT_MAX_NODES,
+    Budget,
+    RequestBudgetError,
+    budgeted,
+)
 from .cadsr import CadsrAdapter
 from .config import Settings
 from .embeddings import EmbeddingProvider, create_embedding_provider
@@ -51,13 +59,11 @@ from .models import (
 )
 from .release import RegistryMetadataError, ReleaseContext, resolve_evs_release
 from .traversal import (
-    DEFAULT_MAX_DEPTH,
-    DEFAULT_MAX_EDGES,
-    DEFAULT_MAX_NODES,
     select_edge_types,
     traverse_ncit,
 )
 from .validation import (
+    validate_kind_budget,
     validate_ncit_code,
     validate_ncit_codes,
     validate_search,
@@ -72,6 +78,7 @@ logger = logging.getLogger(__name__)
 # record. Anything else is a bug and propagates. A `PlatformError` is reported as it is,
 # with the message its raiser wrote.
 _ERROR_CODES: dict[type[Exception], tuple[ErrorCode, str]] = {
+    RequestBudgetError: ("bound_exceeded", "Ask for fewer start codes or a smaller traversal."),
     InputValidationError: ("invalid_request", "Correct the argument and call again."),
     EVSNotFoundError: (
         "not_found",
@@ -371,7 +378,9 @@ class NCISIService:
         include_associations: bool = True,
         relationship_names: list[str] | None = None,
         edge_types: list[str] | None = None,
+        budget_per_kind: int | None = None,
     ) -> dict[str, Any]:
+        validate_kind_budget(budget_per_kind)
         start_codes, direction, edge_types, relationship_names = validate_traversal(
             start_codes,
             direction,
@@ -384,16 +393,15 @@ class NCISIService:
         selected = select_edge_types(
             direction, include_hierarchy, include_roles, include_associations, edge_types
         )
-        return traverse_ncit(
-            self.evs,
-            start_codes,
-            self._release(),
-            selected,
-            max_depth=max_depth,
-            max_nodes=max_nodes,
-            max_edges=max_edges,
-            relationship_names=relationship_names,
-        ).to_dict()
+        with budgeted(Budget(nodes=max_nodes, edges=max_edges, per_kind=budget_per_kind)):
+            return traverse_ncit(
+                self.evs,
+                start_codes,
+                self._release(),
+                selected,
+                max_depth=max_depth,
+                relationship_names=relationship_names,
+            ).to_dict()
 
     @_enveloped
     def evaluate(self) -> dict[str, Any]:

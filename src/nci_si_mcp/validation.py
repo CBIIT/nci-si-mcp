@@ -6,8 +6,8 @@ import re
 from collections.abc import Iterable
 from typing import Literal, get_args
 
+from .bounds import HARD_MAX_NODES
 from .errors import InputValidationError
-from .traversal import HARD_MAX_NODES
 
 SearchMode = Literal["hybrid", "bm25", "vector"]
 Direction = Literal["out", "in", "both"]
@@ -39,6 +39,11 @@ MAX_SEARCH_LIMIT = 100
 
 def _is_int(value: object) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
+
+
+def validate_kind_budget(value: int | None) -> None:
+    if value is not None and (not _is_int(value) or value < 1):
+        raise InputValidationError("budget_per_kind must be a positive integer", "budget_per_kind")
 
 
 def validate_ncit_code(code: str, parameter: str = "code") -> str:

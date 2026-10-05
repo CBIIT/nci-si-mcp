@@ -87,9 +87,13 @@ class Truncation:
     reached: int | None = None
     omitted: int | None = None
     exact: bool | None = None
+    per_kind: dict[str, Truncation] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
+        data.pop("per_kind")
+        if self.per_kind is not None:
+            data["perKind"] = {kind: record.to_dict() for kind, record in self.per_kind.items()}
         return {key: value for key, value in data.items() if value is not None}
 
 

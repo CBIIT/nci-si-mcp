@@ -154,6 +154,7 @@ class ServerTest(unittest.TestCase):
                 "max_depth": 2,
                 "max_nodes": 200,
                 "max_edges": 1000,
+                "budget_per_kind": None,
                 "include_hierarchy": True,
                 "include_roles": True,
                 "include_associations": True,
@@ -216,6 +217,23 @@ class ServerTest(unittest.TestCase):
                     self.read(f"nci-si://release/ncit/{alias}")["selected_monthly_release"],
                     expected,
                 )
+
+    def test_kind_budget_limits_nodes_through_the_mcp_adapter(self, _):
+        self.evs.concepts["C3262"] = dict(self.evs.concepts["C3262"])
+        self.evs.concepts["C3262"]["children"] = [
+            {"code": "C2", "name": "Two"},
+            {"code": "C3", "name": "Three"},
+        ]
+        is_error, result = self.call(
+            "ncit_traverse",
+            start_codes=["C3262"],
+            max_depth=1,
+            edge_types=["child"],
+            budget_per_kind=1,
+        )
+        self.assertFalse(is_error)
+        self.assertEqual([node["code"] for node in result["nodes"]], ["C3262", "C2"])
+        self.assertEqual(result["truncation"]["bound"], "kind_budget")
 
     def test_every_tool_argument_shapes_the_result(self, _):
         self.service.index_codes(["C3262", "C4741"])

@@ -748,6 +748,7 @@ Each tool description, as sent to MCP clients, states the contract in full.
 - `start_codes`
 - `direction`: `out` (child, role, association), `in` (parent, inverse role, inverse association), or `both`
 - `max_depth`, `max_nodes`, `max_edges`: clamped to 4, 1,000, and 5,000; the result reports the effective values
+- `budget_per_kind`: optional positive allowance of new nodes per relationship kind, clamped to 1,000; also available as CLI `--budget-per-kind`
 - `include_hierarchy`, `include_roles`, `include_associations`
 - `relationship_names`: keep only edges with these names; hierarchy edges are named `is_a_parent`, `is_a_child`, and `is_a_descendant`
 - `edge_types`: any of `parent`, `child`, `descendant`, `role`, `inverse_role`, `association`, `inverse_association`
@@ -767,6 +768,16 @@ edge type that the direction or the include flags exclude is an
 The walk proceeds one depth at a time over all start codes, so nearer nodes
 claim the limits first. The result's `truncation` is `{"occurred": false}`, or
 says which bound dropped something and how much (see Provenance and truncation).
+Within each depth, relationship kinds take turns across the whole frontier. Start
+nodes count against the global node limit; each kind spends its allowance only on
+new nodes. Edges to existing nodes do not spend that allowance. Mixed-kind walks
+report `perKind` truncation records when anything is dropped.
+
+Each traversal can make at most 200 HTTP attempts, including release discovery,
+retries and split batches. Exhaustion before any graph is available returns
+`bound_exceeded`; otherwise the partial graph carries `requests` truncation with
+a lower bound on the omitted work. An explicit kind allowance uses `kind_budget`
+truncation. These budgets are independent for concurrent calls.
 Stopping at `max_depth` is no truncation.
 
 ## MCP Resources
