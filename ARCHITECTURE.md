@@ -88,6 +88,7 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 | `server.py` | Registers the profile-selected tools and three resource templates from the registry on an `mcp` 2.x `MCPServer`, and flags error records as protocol errors. Middleware carries cache decisions from SDK worker threads into tool `_meta` and resource fields, without inspecting content or matching names. Undeclared successful responses fail. SDK hints cover lists/discovery. | `registry.py`, `caching.py`, optional `mcp` package |
 | `registry.py` | Declares each operation once with its handler, output union, cache class and adapter exposure. Derives input models, CLI arguments and MCP parameters from handler signatures; selects tools by profile and invokes all producers through one boundary. | `handlers.py`, `invocation.py`, `caching.py`, `results.py` |
 | `context.py` | Holds injectable settings, clients, index and embedding provider shared by a server or CLI invocation. | EVS client, local index, embeddings |
+| `audit.py` | Emits one redacted JSON completion record per invocation, classifies parameters from the registry, counts actual HTTP attempts in request-scoped state, and formats diagnostics. | Correlation context, standard-library logging and SHA-256 |
 | `handlers.py` | Validates inputs, orchestrates use cases, pins EVS requests to the configured release channel, enforces index compatibility and implements lookup fallback. Owns tool contracts and resource content; moving aliases and absent-index reports select status cache policy. | `context.py`, release, traversal, evaluation |
 | `content.py` | Implements the caller-pinned NCIt content surface, projects spec concept/node/edge records, and explicitly refuses unsupported Phase 2 options. Reuses fetched graph payloads and batches missing node status reads within the traversal request budget. Indexed search checks the requested release inside its read transaction. | `context.py`, index, traversal, release, validation |
 | `invocation.py` | Gives every tool, resource and CLI call one correlation context and converts expected failures through the single error-code table, preserving details and next steps. Unexpected exceptions propagate. | `errors.py`, upstream and domain exceptions |
@@ -223,6 +224,31 @@ the release report. The correlation identifier is read from
 that every item and error of a call carries the same. The stored form of a concept
 (`NcitConcept.to_stored`) keeps the full EVS payload; the result form leaves it out unless the
 CLI asks.
+
+## Audit and diagnostics
+
+`registry.invoke` opens an `audit.audited` scope for CLI and resource calls. MCP opens the
+same scope before input validation, and the registry invocation shares it. One completion
+record therefore covers successful calls, validation refusals, expected errors and unexpected
+exceptions; unexpected exceptions retain their type and propagate. Each call has its own
+context-variable state. The HTTP client's per-attempt record increments the audit count before
+notifying its optional observer; a request refused by the traversal budget is never counted.
+
+The record carries timestamp, correlationId, tool, supplied parameters, terminology/context
+target, requested release and the distinct release references in result provenance, status,
+responseCode, outboundRequests, resultSize, truncation and elapsedMs. `resultSize` counts
+UTF-8 bytes of compact JSON content, excluding MCP framing; it is null when no structured
+result exists. Result content itself is never logged. Full per-kind truncation is preserved.
+
+Every parameter's plain/hash class is declared beside its ToolSpec. Unknown names and values
+are hashed. SHA-256 hashes correlate repeated inputs; they provide no secrecy for guessable
+public terminology queries. Configured credentials, their Basic encoding and password are
+redacted before a record reaches logging, including accidental echoes in metadata. This takes
+precedence if a caller puts a credential in its correlation identifier. Diagnostic exception
+messages and raw upstream bodies are excluded; external diagnostic messages are hashed.
+All records use JSON on stderr. The diagnostic log-level setting does not suppress completion
+records. The platform still owns authoritative audit, quotas and authorisation; this module
+adds no persistent audit store, rate limiter or invented upstream audit headers.
 
 ## Persistence schema
 

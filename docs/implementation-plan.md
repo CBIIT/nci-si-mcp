@@ -216,7 +216,25 @@ stdio stays. Add the NCI-approved remote transport — streamable HTTP in `mcp>=
 
 ### 3.9 Audit (`platform/audit.py`)
 
-One structured record per tool call: correlation id, timestamp, tool, target (terminology or context), release context, status, outbound request count including retries, latency, truncation. Free text, credentials and licence keys are redacted at the record boundary, not by each tool.
+Phase 1 implements this in `audit.py`: one JSON completion record per call, including MCP
+validation failures, with timestamp, correlationId, tool, safe supplied parameters, target
+(terminology/context), requested/resolved release context, status/responseCode, outboundRequests
+including retries, resultSize, elapsedMs and truncation. Result size is the UTF-8 byte length
+of compact JSON content, excluding protocol framing; no structured result means null. Full
+per-kind truncation is retained, but result content is never logged.
+
+Each parameter's plain/hash class lives in the ToolSpec, beside input/output and cache policy.
+Undeclared fields default to hashed. SHA-256 permits correlating repeated inputs; it does not
+keep guessable public terminology queries secret. Credentials and echoes are redacted at the
+record boundary. Expected errors log their code, unexpected errors their type and propagate;
+exception messages and raw upstream bodies are excluded. All diagnostics are JSON on stderr,
+with hashes for external messages. Diagnostic verbosity does not suppress completion records.
+
+MCP and registry layers share a request-scoped audit context, preventing duplicate records
+and concurrent counter leakage. Actual HTTP attempts feed the count through the existing
+instrumentation, preserving optional observers and the independent traversal budget. No
+local rate limiter, persistent audit store, keyed hash or unapproved platform audit header is
+added; consumer/authentication hooks remain #41.
 
 ---
 

@@ -132,7 +132,8 @@ class LookupTest(HandlerTestCase):
                     {"reason": "upstream_unavailable", "message": "connection refused"},
                 )
                 self.assertNotIn("raw", result)
-                self.assertIn("connection refused", logs.output[0])
+                self.assertIn("UpstreamUnavailableError", logs.output[0])
+                self.assertNotIn("connection refused", logs.output[0])
 
     def test_no_fallback_without_a_cached_copy_or_with_live_only(self):
         self.evs.errors = {"get_concept": UpstreamUnavailableError("connection refused")}

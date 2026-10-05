@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from .audit import JsonFormatter
 from .embeddings import normalize_embedding_settings
 from .validation import PROFILES, RELEASE_CHANNELS, UPSTREAM_MODES
 
@@ -257,8 +258,8 @@ class Settings:
 def configure_logging(level: str) -> None:
     """Configure diagnostics on stderr so MCP stdout remains protocol-only."""
 
-    logging.basicConfig(
-        level=getattr(logging, level.upper()),
-        stream=sys.stderr,
-        format="%(asctime)s %(levelname)s %(name)s %(message)s",
-    )
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(JsonFormatter())
+    logging.basicConfig(level=getattr(logging, level.upper()), handlers=[handler])
+    # Diagnostic verbosity must not disable the required completion record.
+    logging.getLogger("nci_si_mcp.audit").setLevel(logging.INFO)

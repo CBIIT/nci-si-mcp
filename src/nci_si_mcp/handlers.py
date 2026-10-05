@@ -7,6 +7,7 @@ from collections.abc import Callable
 from itertools import batched
 from typing import Any
 
+from .audit import emit
 from .bounds import (
     DEFAULT_MAX_DEPTH,
     DEFAULT_MAX_EDGES,
@@ -232,12 +233,12 @@ def index_codes(context: Context, codes: list[str]) -> dict[str, Any]:
         embedding_provider=context.embedding_provider,
         expected_release_version=release.version,
     )
-    logger.info(
-        "index_build_complete release=%s concepts=%s provider=%s model=%s",
-        manifest.release_version,
-        manifest.concept_count,
-        manifest.embedding_provider,
-        manifest.embedding_model,
+    emit(
+        logger,
+        logging.INFO,
+        "index_build_complete",
+        release=manifest.release_version,
+        concepts=manifest.concept_count,
     )
     return manifest.to_result()
 
@@ -353,7 +354,13 @@ def lookup(
         cached = None if live_only else context.index.get_concept(code)
         if not cached:
             raise
-        logger.warning("lookup_cache_fallback code=%s reason=%s", code, exc)
+        emit(
+            logger,
+            logging.WARNING,
+            "lookup_cache_fallback",
+            code=code,
+            errorType=type(exc).__name__,
+        )
         result = cached.to_dict(_indexed_concept_uri(context, cached), include_raw=include_raw)
         result["fallback"] = {"reason": "upstream_unavailable", "message": str(exc)}
         return result

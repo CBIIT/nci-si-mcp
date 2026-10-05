@@ -189,8 +189,10 @@ The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for t
    <sha>`. A push after the clearance needs a new one. Wait for CI to finish before asking; never
    hand over on "CI is running".
 10. **After the merge,** confirm CI, Audit, CodeQL and Release on the merge commit, that the
-    issues closed, and that the release was cut; then remove your branches, worktrees, scratch
-    files and any process or wait loop you started.
+    issues closed, and that the release was cut. After confirming every milestone issue is
+    closed, close the milestone explicitly through the GitHub API; GitHub does not close it
+    automatically. Then remove your branches, worktrees, scratch files and any process or
+    wait loop you started.
 
 The `milestone branches` ruleset lets a commit onto `milestone/*` only once CI has passed on it,
 and CI runs on pull requests, so every change reaches the milestone branch through a pull request
@@ -232,6 +234,14 @@ union, cache policy and adapter exposure; the handler signature supplies the sha
 defaults and choices. Business operations live in `handlers.py` and, for the specification's
 content tools, `content.py`, with injectable collaborators in `context.Context`. Closed value
 sets live once in `validation.py`. Profiles select MCP tools only.
+
+Each ToolSpec classifies its parameters as plain or hashed for audit. Undeclared parameters
+default to hashed. `audit.py` emits one JSON completion record per call, including validation
+failures, with correlation, result size, truncation and request counts from the HTTP client's
+per-attempt instrumentation. MCP and registry scopes share the record; concurrent calls do not.
+Free text is SHA-256 hashed to correlate repeated inputs, not to keep guessable text secret.
+All application diagnostics are JSON on stderr; exception messages and upstream bodies are
+not logged. Diagnostic verbosity does not suppress the required completion record.
 
 ### One error path
 

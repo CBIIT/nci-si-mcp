@@ -9,6 +9,7 @@ import re
 import sys
 from typing import Any, TextIO
 
+from .audit import emit
 from .config import Settings, configure_logging
 from .context import Context
 from .errors import PlatformError, correlated, is_error_record, serialise, with_next_step
@@ -78,7 +79,7 @@ def _main(args: argparse.Namespace) -> int:
         context = Context(settings)
         mcp = create_mcp(settings, context=context) if serve else None
     except _STARTUP_ERRORS as exc:
-        logger.debug("startup_failed", exc_info=True)
+        emit(logger, logging.DEBUG, "startup_failed", errorType=type(exc).__name__)
         message = with_next_step(f"{type(exc).__name__}: {exc}", "Fix the cause named and rerun.")
         return _print_result(serialise(PlatformError("internal_error", message)), errors)
     if mcp:

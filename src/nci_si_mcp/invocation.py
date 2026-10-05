@@ -6,6 +6,7 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
+from .audit import emit
 from .bounds import (
     RequestBudgetError,
 )
@@ -100,7 +101,7 @@ def _platform_error(exc: Exception) -> PlatformError:
 
 def _envelope(operation: str, exc: Exception) -> dict[str, Any]:
     error = _platform_error(exc)
-    logger.warning("%s_failed error=%s message=%s", operation, error.code, error.message)
+    emit(logger, logging.WARNING, "call_failed", tool=operation, responseCode=error.code)
     return serialise(error)
 
 

@@ -378,8 +378,13 @@ class ProcessTest(unittest.TestCase):
 
         self.assertEqual(process.returncode, 1)
         self.assertEqual(json.loads(process.stdout)["error"]["code"], "invalid_request")
-        self.assertIn("lookup_failed error=invalid_request", process.stderr)
-        self.assertIn("WARNING", process.stderr)
+        records = [json.loads(line) for line in process.stderr.splitlines()]
+        self.assertEqual([record["event"] for record in records], ["call_failed", "call_completed"])
+        self.assertEqual(records[0]["responseCode"], "invalid_request")
+        self.assertEqual(records[0]["level"], "WARNING")
+        self.assertEqual(
+            records[1]["correlationId"], json.loads(process.stdout)["error"]["correlationId"]
+        )
 
 
 if __name__ == "__main__":
