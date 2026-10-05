@@ -134,7 +134,7 @@ class SelectedRelease(TypedDict):
     date: str | None
 
 
-class IndexManifest(TypedDict):
+class IndexManifestResult(TypedDict):
     terminology: str
     release_version: str
     release_date: str | None
@@ -158,7 +158,7 @@ class ReleaseResult(TypedDict):
     # EVS owns the API-version payload; its fields pass through without reinterpretation.
     evs_api: dict[str, Any]
     selected_monthly_release: SelectedRelease | ErrorResult
-    active_index: IndexManifest | None
+    active_index: IndexManifestResult | None
     embedding: EmbeddingStatus
     provenance: NotRequired[Provenance]
 

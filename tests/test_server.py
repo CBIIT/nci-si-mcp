@@ -15,13 +15,15 @@ from mcp.client import Client
 from mcp.shared.exceptions import MCPError
 
 from fakes import FakeEVS, concept, release
+from nci_si_mcp import handlers
 from nci_si_mcp.config import Settings
+from nci_si_mcp.context import Context
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.errors import correlated
-from nci_si_mcp.evs import EVSUnavailableError
+from nci_si_mcp.http_client import UpstreamUnavailableError
 from nci_si_mcp.index import LocalIndex
+from nci_si_mcp.registry import invoke
 from nci_si_mcp.server import INSTRUCTIONS, create_mcp
-from nci_si_mcp.service import NCISIService
 from test_docs import QUICKSTART, bullet_names, section
 
 NEOPLASM = concept(
@@ -68,7 +70,7 @@ class ServerFixture(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         self.settings = Settings(data_dir=Path(directory.name))
         self.evs = FakeEVS([NEOPLASM, MORPHOLOGY])
-        self.service = NCISIService(
+        self.context = Context(
             self.settings,
             evs=self.evs,
             index=LocalIndex(self.settings.data_dir),
@@ -79,7 +81,7 @@ class ServerFixture(unittest.TestCase):
         """Run `interaction(client)` against the server over an in-process MCP session."""
 
         async def run():
-            async with Client(create_mcp(self.settings, service=self.service)) as client:
+            async with Client(create_mcp(self.settings, context=self.context)) as client:
                 return await interaction(client)
 
         return asyncio.run(run())
@@ -178,7 +180,7 @@ class ServerTest(ServerFixture):
             self.assertTrue(template.description)
 
     def test_tools_return_the_service_results(self, _):
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
 
         is_error, lookup = self.call("ncit_lookup", code="C3262")
         self.assertFalse(is_error)
@@ -238,7 +240,7 @@ class ServerTest(ServerFixture):
         self.assertEqual(result["truncation"]["bound"], "kind_budget")
 
     def test_every_tool_argument_shapes_the_result(self, _):
-        self.service.index_codes(["C3262", "C4741"])
+        invoke(self.context, "index_codes", ["C3262", "C4741"])
         arguments = {"query": "neoplasm", "mode": "vector"}
         is_error, search = self.call("ncit_search", **arguments)
         self.assertEqual((is_error, search["mode"], len(search["hits"])), (False, "vector", 2))
@@ -264,7 +266,7 @@ class ServerTest(ServerFixture):
         self.assertEqual([edge["target_code"] for edge in walk["edges"]], ["C4741"])
 
         # With EVS down, a lookup falls back to the index unless live_only forbids it.
-        self.evs.errors = {"get_concept": EVSUnavailableError("down")}
+        self.evs.errors = {"get_concept": UpstreamUnavailableError("down")}
         _, cached = self.call("ncit_lookup", code="C3262")
         self.assertEqual(cached["provenance"]["servedBy"], "index")
         is_error, failed = self.call("ncit_lookup", code="C3262", live_only=True)
@@ -284,7 +286,7 @@ class ServerTest(ServerFixture):
                 self.assertEqual(envelope["error"]["code"], code)
                 self.assertTrue(envelope["error"]["message"])
 
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
         (self.settings.data_dir / "nci_si.sqlite3").write_bytes(b"not a database" * 100)
         is_error, envelope = self.call("ncit_release_info")
         self.assertTrue(is_error)
@@ -325,7 +327,7 @@ class ServerTest(ServerFixture):
                 self.assertEqual(result.structured_content["error"]["correlationId"], "c-1")
 
     def test_every_item_of_a_tool_result_carries_the_correlation_identifier_of_the_call(self, _):
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
         calls = {
             "ncit_lookup": {"code": "C3262"},
             "ncit_search": {"query": "neoplasm"},
@@ -350,7 +352,7 @@ class ServerTest(ServerFixture):
                 self.assertEqual({each["correlationId"] for each in found}, {"c-7"})
 
     def test_no_tool_offers_the_raw_payload_and_no_result_carries_it(self, _):
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
         tools = self.session(lambda client: client.list_tools()).tools
 
         for tool in tools:
@@ -369,7 +371,7 @@ class ServerTest(ServerFixture):
         self.assertEqual(error["details"], {"requested": "99.99z", "source": "evs"})
 
     def test_an_unavailable_release_resource_names_the_configured_weekly_channel(self, _):
-        self.service.settings = replace(self.settings, release_channel="weekly")
+        self.context.settings = replace(self.settings, release_channel="weekly")
         self.evs.release = release("26.07a", "2026-07-06", channel="weekly")
 
         with self.assertRaises(MCPError) as raised:
@@ -381,7 +383,7 @@ class ServerTest(ServerFixture):
         self.assertIn("26.07a", error["message"])
 
     def test_the_index_manifest_of_another_release_is_not_available(self, _):
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
 
         with self.assertRaises(MCPError) as raised:
             self.read("nci-si://index/ncit/99.99z/manifest")
@@ -401,12 +403,12 @@ class ServerTest(ServerFixture):
                 opened.append(value)
                 yield value
 
-        with patch("nci_si_mcp.server.correlated", spy), self.assertRaises(MCPError) as raised:
+        with patch("nci_si_mcp.invocation.correlated", spy), self.assertRaises(MCPError) as raised:
             self.read(uri)
         return json.loads(str(raised.exception))["error"]["correlationId"], opened
 
     def test_each_resource_read_runs_under_one_correlation_identifier(self, _):
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
         for uri in (
             "nci-si://concept/ncit/C999",
             "nci-si://release/ncit/99.99z",
@@ -419,24 +421,24 @@ class ServerTest(ServerFixture):
 
     def test_the_records_of_one_resource_read_share_their_correlation_identifier(self, _):
         self.evs.errors = {
-            "get_api_version": EVSUnavailableError("down"),
-            "get_terminologies": EVSUnavailableError("down"),
+            "get_api_version": UpstreamUnavailableError("down"),
+            "get_terminologies": UpstreamUnavailableError("down"),
         }
         reports = []
-        release_info = self.service.release_info
+        release_info = handlers.release_info
 
-        def recording_release_info():
-            reports.append(release_info())
+        def recording_release_info(context):
+            reports.append(release_info(context))
             return reports[-1]
 
-        with patch.object(self.service, "release_info", recording_release_info):
+        with patch.object(handlers, "release_info", recording_release_info):
             identifier, _opened = self.failing_read_ids("nci-si://release/ncit/26.06e")
 
         nested = [reports[0]["evs_api"]["error"], reports[0]["selected_monthly_release"]["error"]]
         self.assertEqual({error["correlationId"] for error in nested}, {identifier})
 
     def test_a_search_that_finds_nothing_is_a_success_with_no_hits(self, _):
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
 
         is_error, result = self.call("ncit_search", query="zzzz", mode="bm25")
 
@@ -445,8 +447,8 @@ class ServerTest(ServerFixture):
 
     def test_release_info_stays_a_success_when_evs_is_down(self, _):
         self.evs.errors = {
-            "get_api_version": EVSUnavailableError("down"),
-            "get_terminologies": EVSUnavailableError("down"),
+            "get_api_version": UpstreamUnavailableError("down"),
+            "get_terminologies": UpstreamUnavailableError("down"),
         }
 
         is_error, info = self.call("ncit_release_info")
@@ -456,7 +458,7 @@ class ServerTest(ServerFixture):
 
     def test_resources_route_by_version(self, _):
         self.assertEqual(self.read("nci-si://index/ncit/active/manifest"), {"active_index": None})
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
 
         self.assertEqual(self.read("nci-si://concept/ncit/C3262")["provenance"]["servedBy"], "live")
         for alias in ("monthly", "latest", "monthly-latest"):
@@ -467,16 +469,16 @@ class ServerTest(ServerFixture):
             self.assertEqual(manifest["concept_count"], 1)
 
     def test_concept_resource_is_a_lookup_with_the_default_options(self, _):
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
 
         self.assertNotIn("raw", self.read("nci-si://concept/ncit/C3262"))
-        self.evs.errors = {"get_concept": EVSUnavailableError("down")}
+        self.evs.errors = {"get_concept": UpstreamUnavailableError("down")}
         self.assertEqual(
             self.read("nci-si://concept/ncit/C3262")["provenance"]["servedBy"], "index"
         )
 
     def test_resource_failures_are_protocol_errors_carrying_the_envelope(self, _):
-        self.service.index_codes(["C3262"])
+        invoke(self.context, "index_codes", ["C3262"])
         failures = {
             "nci-si://concept/ncit/C999": "not_found",
             "nci-si://release/ncit/99.99z": "release_not_available",
@@ -488,7 +490,7 @@ class ServerTest(ServerFixture):
                     self.read(uri)
                 self.assertEqual(json.loads(str(raised.exception))["error"]["code"], code)
 
-        self.evs.errors = {"get_terminologies": EVSUnavailableError("down")}
+        self.evs.errors = {"get_terminologies": UpstreamUnavailableError("down")}
         with self.assertRaises(MCPError) as raised:
             self.read("nci-si://release/ncit/26.06e")
         envelope = json.loads(str(raised.exception))

@@ -16,7 +16,8 @@ from nci_si_mcp.bounds import (
     clamp_limits,
 )
 from nci_si_mcp.errors import InputValidationError, correlated
-from nci_si_mcp.evs import EVSNotFoundError, EVSResponseError, EVSResponseTooLargeError
+from nci_si_mcp.evs import EVSNotFoundError, EVSResponseError
+from nci_si_mcp.http_client import UpstreamTooLargeError
 from nci_si_mcp.traversal import (
     RELATIONS,
     select_edge_types,
@@ -82,7 +83,7 @@ class HubEVS(FakeEVS):
         codes = list(codes)
         if self.hubs.intersection(codes) and include != "minimal":
             self._record("get_concepts_by_codes", terminology, codes)
-            raise EVSResponseTooLargeError("too large")
+            raise UpstreamTooLargeError("too large")
         return super().get_concepts_by_codes(codes, terminology, include)
 
 
@@ -98,7 +99,7 @@ def walk(
     requests=MAX_TRAVERSAL_REQUESTS,
     **options,
 ):
-    """Select edge types as the service does, then traverse release 26.06e."""
+    """Select edge types as the context does, then traverse release 26.06e."""
 
     selected = select_edge_types(direction, True, True, True, edge_types)
     budget = Budget(
@@ -608,7 +609,7 @@ class TraversalTest(unittest.TestCase):
 
     def test_oversized_descendants_are_reported_and_the_walk_continues(self):
         client = star()
-        client.errors = {"get_descendants": EVSResponseTooLargeError("too large")}
+        client.errors = {"get_descendants": UpstreamTooLargeError("too large")}
 
         with self.assertLogs("nci_si_mcp.traversal", level="WARNING") as logs:
             result = walk(client, max_depth=1, edge_types=["child", "descendant"])
@@ -650,7 +651,7 @@ class TraversalTest(unittest.TestCase):
         class Hub(FakeEVS):
             def get_descendants(self, code, max_level, terminology="ncit"):
                 if code == "C1":
-                    raise EVSResponseTooLargeError("too large")
+                    raise UpstreamTooLargeError("too large")
                 return super().get_descendants(code, max_level, terminology)
 
         client = Hub([concept("C1"), concept("C2")], descendants={"C2": [descendant("C21", 1)]})
@@ -679,7 +680,7 @@ class TraversalTest(unittest.TestCase):
     def test_a_start_code_oversized_in_both_respects_is_listed_once(self):
         client = HubEVS([concept("C1", children=[child("C2")])])
         client.hubs = frozenset({"C1"})
-        client.errors = {"get_descendants": EVSResponseTooLargeError("too large")}
+        client.errors = {"get_descendants": UpstreamTooLargeError("too large")}
 
         with self.assertLogs("nci_si_mcp.traversal", level="WARNING") as logs:
             result = walk(client, max_depth=1, edge_types=["child", "descendant"])

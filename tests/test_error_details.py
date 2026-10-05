@@ -15,12 +15,13 @@ from urllib.error import HTTPError
 
 from fakes import terminology_row
 from nci_si_acceptance.spec import RECORDS
-from nci_si_mcp import service as service_module
+from nci_si_mcp import invocation as invocation_module
 from nci_si_mcp.errors import ErrorCode
 from nci_si_mcp.evs import EVSClient, verify_release
+from nci_si_mcp.registry import invoke
 from test_docs import QUICKSTART, section
 from test_evs_client import FakeResponse
-from test_service import NEOPLASM, ServiceTestCase, release
+from test_handlers import NEOPLASM, HandlerTestCase, release
 
 SPEC_KEYS = {code: set(keys) for code, keys in RECORDS["error"]["detail_keys"].items()}
 # Codes that nothing raises yet; their keys are in the specification for the day something does.
@@ -50,7 +51,7 @@ def from_the_client(answer, call=lambda client: client.get_api_version()):
 
 
 def from_the_exception(error):
-    reported = service_module._platform_error(error)
+    reported = invocation_module._platform_error(error)
     return reported.code, reported.details
 
 
@@ -59,21 +60,27 @@ def from_the_record(result):
     return record["code"], record.get("details", {})
 
 
-class DetailKeysTest(ServiceTestCase):
+class DetailKeysTest(HandlerTestCase):
     def raise_sites(self):
         """(code, details) of an error from each place that raises one with details."""
 
-        self.assertEqual(self.service.index_manifest(), {"active_index": None})
-        no_index = from_the_record(self.service.search("tumor"))
+        self.assertEqual(
+            invoke(
+                self.context,
+                "index_manifest",
+            ),
+            {"active_index": None},
+        )
+        no_index = from_the_record(invoke(self.context, "search", "tumor"))
         self.index()
         self.evs.release = release("26.07d", "2026-07-27")
         self.evs.concepts["C3262"] = dict(NEOPLASM, version="26.07d")
-        mismatch = from_the_record(self.service.lookup("C3262"))
+        mismatch = from_the_record(invoke(self.context, "lookup", "C3262"))
         del self.evs.concepts["C40704"]
         return [
             no_index,
-            from_the_record(self.service.search(" ")),
-            from_the_record(self.service.index_codes(["C3262", "C40704"])),
+            from_the_record(invoke(self.context, "search", " ")),
+            from_the_record(invoke(self.context, "index_codes", ["C3262", "C40704"])),
             mismatch,
             self.unresolved_release(),
             from_the_client(
@@ -94,7 +101,7 @@ class DetailKeysTest(ServiceTestCase):
     def unresolved_release(self):
         self.evs.rows = [terminology_row(), terminology_row("26.07d")]
         try:
-            return from_the_record(self.service.lookup("C3262"))
+            return from_the_record(invoke(self.context, "lookup", "C3262"))
         finally:
             self.evs.rows = None
 

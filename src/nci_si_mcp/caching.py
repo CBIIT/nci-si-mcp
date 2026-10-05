@@ -1,7 +1,7 @@
 """Cache hints for the content and status results the server currently emits."""
 
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from contextvars import ContextVar
 
 LONG_TTL_MS = 86_400_000
@@ -34,3 +34,12 @@ def select_cache_hint(*, resolution: bool) -> None:
     """Declare the current response's class at its producer, never from serialized content."""
 
     _decision.get().update(cache_hint(resolution=resolution))
+
+
+@contextmanager
+def invocation_policy(*, resolution: bool) -> Iterator[None]:
+    """Select the registry policy, also for CLI calls with no protocol middleware."""
+
+    with cache_call() if _decision.get(None) is None else nullcontext():
+        select_cache_hint(resolution=resolution)
+        yield
