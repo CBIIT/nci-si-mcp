@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from fakes import FakeEVS, concept
 from nci_si_mcp.errors import correlated
@@ -225,6 +226,69 @@ class BoundsReviewTest(unittest.TestCase):
                 "limit": 1,
                 "reached": 1,
                 "omitted": 0,
+                "exact": False,
+            },
+        )
+
+    def test_upstream_cap_counts_concepts_but_leaves_kind_omissions_unknown(self):
+        result = walk(
+            BudgetHub([concept("C2")]),
+            start_codes=["C2"],
+            max_depth=1,
+            edge_types=["child", "role"],
+        )
+        self.assertEqual(result.truncation.bound, "upstream_cap")
+        self.assertEqual(result.truncation.omitted, 1)
+        self.assertFalse(result.truncation.exact)
+        for kind in ["child", "role"]:
+            with self.subTest(kind=kind):
+                record = result.truncation.to_dict()["perKind"][kind]
+                self.assertEqual(record["bound"], "upstream_cap")
+                self.assertEqual(record["omitted"], 0)
+                self.assertIs(record["exact"], False)
+
+    def test_edge_stop_at_depth_limit_leaves_undropped_kinds_complete(self):
+        result = walk(
+            FakeEVS([concept("C1", children=[child("C2")], roles=roles("C3"))]),
+            max_depth=1,
+            max_edges=1,
+            edge_types=["child", "role"],
+        )
+        records = result.truncation.to_dict()["perKind"]
+        self.assertEqual(records["child"], {"occurred": False})
+        self.assertEqual(records["role"]["bound"], "edges")
+        self.assertEqual(codes(result), ["C1", "C2"])
+
+    def test_edge_stop_without_new_nodes_leaves_undropped_kinds_complete(self):
+        result = walk(
+            FakeEVS([concept("C1", children=[child("C1")], roles=roles("C1"))]),
+            max_depth=2,
+            max_edges=1,
+            edge_types=["child", "role"],
+        )
+        records = result.truncation.to_dict()["perKind"]
+        self.assertEqual(records["child"], {"occurred": False})
+        self.assertEqual(records["role"]["bound"], "edges")
+        self.assertEqual(codes(result), ["C1"])
+
+    def test_partial_starts_report_requests_without_any_relation_reads(self):
+        with patch("nci_si_mcp.traversal.BATCH_SIZE", 1):
+            result = walk(
+                BudgetEVS([concept("C1"), concept("C2")]),
+                start_codes=["C1", "C2"],
+                max_depth=0,
+                requests=1,
+                edge_types=["descendant"],
+            )
+        self.assertEqual(codes(result), ["C1"])
+        self.assertEqual(
+            result.truncation.to_dict(),
+            {
+                "occurred": True,
+                "bound": "requests",
+                "limit": 1,
+                "reached": 1,
+                "omitted": 1,
                 "exact": False,
             },
         )
