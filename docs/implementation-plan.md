@@ -480,7 +480,7 @@ Keep `unittest`-style tests under the gates in `CONTRIBUTING.md`. Extend `tests/
 - `test_release`: one-row resolution; 404 → `release_not_available`; payload mismatch → `release_mismatch`; caDSR state never carries a fabricated identifier.
 - `test_bounds`: retries decrement the request budget; per-kind rotation; truncation report fields.
 - `test_catalogue`: polarity by code; a configured code absent from the catalogue fails startup.
-- `test_batch`: `found`/`missing` reconciliation; any return order handled.
+- `test_batch_content`: ordered `concepts`/`missing` reconciliation; any return order handled.
 - `test_index`: atomic activation and rollback; provider/model mismatch rejected; dimension mismatch rejected.
 - `test_schema`: `outputSchema` present and valid for every tool in every profile; surface static across settings; no placeholder text.
 - `test_cadsr_client`, `test_ssis_client`: required-parameter validation; envelope errors; `Accept` header.
@@ -516,7 +516,7 @@ Work proceeds in the order of the table above until award. What remains at the f
 
 ## 12. Removals
 
-- `service.py` and the caDSR stub are removed. `live_only` and `include_raw` are CLI-only; the six public EVS tools use the specification's names and arguments.
+- `service.py` and the caDSR stub are removed. `live_only` and `include_raw` are CLI-only; the public EVS tools use the specification's names and arguments.
 - Label-based exclusion detection, wherever it appears.
 - The `is_a_parent` / `is_a_child` / `is_a_descendant` pseudo-relationship names.
 
