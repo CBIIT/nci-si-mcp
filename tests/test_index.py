@@ -386,6 +386,27 @@ class StorageTest(IndexTestCase):
 
 
 class MigrationTest(IndexTestCase):
+    def test_a_second_opener_preserves_the_migration_completed_before_it_gets_the_lock(self):
+        self.legacy_database([("26.06e", RAW_CONCEPTS[0])])
+        connect, directory, completed = sqlite3.connect, self.path, []
+
+        class RacingConnection(sqlite3.Connection):
+            def execute(self, statement, *parameters):
+                if statement == "BEGIN IMMEDIATE":
+                    with patch("nci_si_mcp.index.sqlite3.connect", connect):
+                        completed.append(LocalIndex(directory).get_active_manifest())
+                return super().execute(statement, *parameters)
+
+        with patch(
+            "nci_si_mcp.index.sqlite3.connect",
+            lambda path: connect(path, factory=RacingConnection),
+        ):
+            index = LocalIndex(directory)
+
+        self.assertEqual(index.get_active_manifest(), completed[0])
+        self.assertEqual(index.get_concept("C40704").raw, RAW_CONCEPTS[0])
+        self.assertEqual(len(index.list_builds()), 1)
+
     def legacy_database(self, releases):
         """Write a database in the layout of the first prototype (schema 0)."""
 

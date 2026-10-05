@@ -315,18 +315,22 @@ class LocalIndex:
 
     def _init_db(self) -> None:
         with self._connect() as conn:
-            version = int(conn.execute("PRAGMA user_version").fetchone()[0])
-            if version == SCHEMA_VERSION:
+            if self._schema_current(conn):
                 return
-            if version > SCHEMA_VERSION:
-                raise IndexCompatibilityError(
-                    f"Index schema {version} at {self.db_path} "
-                    f"is newer than supported {SCHEMA_VERSION}"
-                )
             conn.execute("PRAGMA journal_mode = WAL")
             conn.execute("BEGIN IMMEDIATE")
-            migrate(conn)
-            conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+            # Another opener may have migrated while this one waited for the lock.
+            if not self._schema_current(conn):
+                migrate(conn)
+                conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+
+    def _schema_current(self, conn: sqlite3.Connection) -> bool:
+        version = int(conn.execute("PRAGMA user_version").fetchone()[0])
+        if version > SCHEMA_VERSION:
+            raise IndexCompatibilityError(
+                f"Index schema {version} at {self.db_path} is newer than supported {SCHEMA_VERSION}"
+            )
+        return version == SCHEMA_VERSION
 
     @staticmethod
     def _manifest(row: sqlite3.Row) -> IndexManifest:
