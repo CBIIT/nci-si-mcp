@@ -335,7 +335,7 @@ MCP resources:
 - `nci-si://release/ncit/{version}`
 - `nci-si://index/ncit/{version}/manifest`
 
-The `evs` and `unified` profiles expose the nine EVS tools; `cadsr` currently exposes no tools.
+The `evs` and `unified` profiles expose the eleven EVS tools; `cadsr` currently exposes no tools.
 Each tool has group metadata and read-only, idempotent,
 non-destructive, open-world annotations. Resources are available in every profile.
 
@@ -418,6 +418,21 @@ repeated C202904 with minimal detail, returned HTTP 200 at encoded request-targe
 (7.2%) below the largest successful probe. The byte check uses the actual HTTP URL formatter,
 including the configured base path, pinned release, escaped codes and include fields. The count
 applies before deduplication; either excess is `invalid_request`, without truncation or splitting.
+
+### Concept subsets and mappings
+
+`get_concept_subsets` and `get_concept_mappings` each read the pinned concept once with
+`minimal,associations` or `minimal,maps`. They verify the concept identity and release before
+projecting records. Subsets select the exact `Concept_In_Subset` association type, including
+computed associations without a relationship code, and take their terminology from the concept.
+Maps preserve the specified field values and platform order; extra upstream keys are excluded.
+Optional target version and term type are omitted when absent, null or empty. Missing required
+fields fail the entire call, even when a target filter would exclude the malformed map.
+The target filter matches the platform label exactly, including case. Provenance describes
+the source concept and its release; the map's target version remains separate. Supplied licence
+text passes through, with item attribution taking precedence over the source concept's.
+Empty results retain source provenance. Subset membership endpoints and incoming cross-domain
+mapsets are separate capabilities.
 
 ### Retired code resolution
 

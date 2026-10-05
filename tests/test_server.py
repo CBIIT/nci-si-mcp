@@ -99,6 +99,8 @@ class ServerFixture(unittest.TestCase):
             "get_concepts",
             "list_relationships",
             "resolve_retired_code",
+            "get_concept_subsets",
+            "get_concept_mappings",
             "search_concepts",
             "get_concept_hierarchy",
             "get_concept_neighborhood",
@@ -136,7 +138,7 @@ class ServerTest(ServerFixture):
     def test_tools_are_registered_with_descriptions_and_closed_value_sets(self, _):
         tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
 
-        self.assertEqual(len(tools), 9)
+        self.assertEqual(len(tools), 11)
         # The closed value sets are advertised in the schemas, wherever the
         # schema generator puts them.
         traverse_schema = json.dumps(tools["get_concept_neighborhood"].input_schema)

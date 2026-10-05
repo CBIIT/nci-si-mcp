@@ -130,6 +130,33 @@ class RetiredCode(TypedDict):
     provenance: Provenance
 
 
+class Subset(TypedDict):
+    code: str
+    terminology: str
+    name: str
+    provenance: Provenance
+
+
+class SubsetsResult(TypedDict):
+    subsets: list[Subset]
+    provenance: Provenance
+
+
+class Mapping(TypedDict):
+    targetCode: str
+    targetTerminology: str
+    targetName: str
+    type: str
+    targetTermType: NotRequired[str]
+    targetTerminologyVersion: NotRequired[str]
+    provenance: Provenance
+
+
+class MappingsResult(TypedDict):
+    mappings: list[Mapping]
+    provenance: Provenance
+
+
 class CatalogueRelationship(TypedDict):
     code: str
     terminology: str

@@ -19,12 +19,14 @@ from .results import (
     ConceptSearch,
     ErrorResult,
     Hierarchy,
+    MappingsResult,
     Neighborhood,
     RelationshipsResult,
     ReleaseResult,
     ResolvedReleaseResult,
     RetiredCode,
     SearchResult,
+    SubsetsResult,
     TerminologiesResult,
     TraversalResult,
 )
@@ -91,6 +93,27 @@ def _input_field(parameter: Parameter) -> tuple:
 
 
 SPECS = (
+    ToolSpec(
+        content.get_concept_subsets,
+        "evs",
+        SubsetsResult | ErrorResult,
+        False,
+        name="get_concept_subsets",
+        audit={"terminology": "plain", "release": "plain", "code": "plain"},
+    ),
+    ToolSpec(
+        content.get_concept_mappings,
+        "evs",
+        MappingsResult | ErrorResult,
+        False,
+        name="get_concept_mappings",
+        audit={
+            "terminology": "plain",
+            "release": "plain",
+            "code": "plain",
+            "targetTerminology": "plain",
+        },
+    ),
     ToolSpec(
         content.resolve_retired_code,
         "evs",
