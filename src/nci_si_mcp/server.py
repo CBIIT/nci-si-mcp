@@ -16,11 +16,12 @@ from .context import Context
 from .errors import InputValidationError, is_error_record
 from .invocation import call
 from .registry import SPECS, ToolSpec, invoke
+from .results import Untruncated
 
 INSTRUCTIONS = (
     "NCI Thesaurus (NCIt) lookup and relationship traversal against live NCI EVS, "
     "plus text search over a small locally indexed sample of concepts. Every item a tool "
-    "returns carries a provenance record that names the NCIt monthly release it came from, "
+    "returns carries a provenance record that names its terminology and release, "
     "the surface that supplied it and the call's correlationId. A failed tool "
     "call is flagged as an error. Failures the server handles carry the error record "
     "{error: {code, message, details?, correlationId}}: code is one of invalid_request, "
@@ -39,13 +40,15 @@ def create_mcp(settings: Settings | None = None, *, context: Context | None = No
         from mcp.server.mcpserver import MCPServer
         from mcp.server.mcpserver.exceptions import ResourceError
         from mcp.types import CallToolResult, TextContent, ToolAnnotations
-        from pydantic import RootModel
+        from pydantic import RootModel, with_config
     except ImportError as exc:
         raise RuntimeError(
             "The MCP server needs the 'server' extra, which installs mcp>=2,<3 "
             f"(pdm install). Import failed: {exc}"
         ) from exc
 
+    # Only the complete truncation record is closed; upstream dictionaries stay extensible.
+    with_config(extra="forbid")(Untruncated)
     resolved_settings = settings or Settings.from_env()
     configure_logging(resolved_settings.log_level)
     context = context or Context(resolved_settings)

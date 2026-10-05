@@ -318,7 +318,7 @@ the walk's `Truncation` record. The state of a walk (limits, emitted nodes and e
 `_Walk` object in `traversal.py`, which also builds the `TraversalProvenance` of each node and edge.
 At the depth limit, forward kinds get a batched continuation check; descendant checks use
 child lists. A reported global node cut skips the check, and kinds already truncated are
-excluded. Inverse kinds reaching that frontier report depth with `omitted: 0`, `exact: false`
+excluded. Selected inverse kinds at any nonempty frontier report depth with `omitted: 0`, `exact: false`
 without fetching their expensive lists just to check continuation. All reads share the request
 budget, and the first bound remains the one reported.
 

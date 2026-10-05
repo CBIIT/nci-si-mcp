@@ -6,6 +6,7 @@ from fakes import concept, release
 from nci_si_mcp.bounds import Budget, current_budget
 from nci_si_mcp.models import Truncation
 from nci_si_mcp.registry import invoke
+from test_bounds import BudgetHub
 from test_server import ServerFixture
 
 
@@ -164,6 +165,53 @@ class ContentTest(ServerFixture):
         self.assertEqual(result["error"]["code"], "capability_unavailable")
         self.assertEqual(result["error"]["details"], {"capability": "hierarchy paging"})
 
+    def test_hierarchy_maximum_page_excludes_seed_from_its_allowance(self):
+        children = [{"code": f"C{i}", "name": str(i)} for i in range(2, 1002)]
+        self.evs.concepts = {item["code"]: concept(item["code"], active=True) for item in children}
+        self.evs.concepts["C1"] = concept("C1", active=True, children=children)
+        result = self.content("get_concept_hierarchy", code="C1", direction="child", limit=1000)
+        self.assertEqual(
+            {node["code"] for node in result["nodes"]}, set(self.evs.concepts) - {"C1"}
+        )
+        self.assertEqual(result["truncation"], {"occurred": False})
+        children.append({"code": "C1002", "name": "Extra"})
+        result = self.content("get_concept_hierarchy", code="C1", direction="child", limit=1000)
+        self.assertEqual(result["error"]["details"], {"capability": "hierarchy paging"})
+
+    def test_hierarchy_shared_descendants_do_not_consume_a_hidden_edge_limit(self):
+        middle = [{"code": f"C{i}", "name": str(i)} for i in range(2, 36)]
+        leaves = [{"code": f"C{i}", "name": str(i)} for i in range(36, 67)]
+        self.evs.concepts = {item["code"]: concept(item["code"], active=True) for item in leaves}
+        self.evs.concepts.update(
+            {
+                item["code"]: concept(item["code"], active=True, children=list(leaves))
+                for item in middle
+            }
+        )
+        self.evs.concepts["C1"] = concept("C1", active=True, children=middle)
+        self.evs.concepts["C35"]["children"].append({"code": "C67", "name": "Last"})
+        self.evs.concepts["C67"] = concept("C67", active=True)
+        result = self.content("get_concept_hierarchy", code="C1", direction="child", depth=2)
+        self.assertEqual(
+            {node["code"] for node in result["nodes"]}, set(self.evs.concepts) - {"C1"}
+        )
+        self.assertEqual(result["truncation"], {"occurred": False})
+
+    def test_hierarchy_refuses_paging_even_when_an_earlier_bound_wins(self):
+        self.context.evs = BudgetHub(
+            [
+                concept("C1", active=True, children=[{"code": "C2"}, {"code": "C3"}]),
+                concept("C2", active=True),
+                concept("C3", active=True, children=[{"code": "C4"}, {"code": "C5"}]),
+                concept("C4", active=True),
+            ]
+        )
+        result = self.content(
+            "get_concept_hierarchy", code="C1", direction="child", depth=2, limit=3
+        )
+        self.assertEqual(result["error"]["code"], "capability_unavailable")
+        self.assertEqual(result["error"]["details"], {"capability": "hierarchy paging"})
+
     def test_neighborhood_rejects_empty_kinds_and_nonboolean_negative_flag(self):
         for arguments in (
             {"kinds": []},
@@ -209,6 +257,13 @@ class ContentTest(ServerFixture):
         for mode in ("semantic", "hybrid"):
             result = self.content("search_concepts", query="One", mode=mode, limit=9000)
             self.assertEqual({hit["concept"]["code"] for hit in result["results"]}, {"C1", "C2"})
+            self.assertEqual(
+                {
+                    hit["concept"]["code"]: (hit["concept"]["active"], hit["concept"]["status"])
+                    for hit in result["results"]
+                },
+                {"C1": (True, "Header_Concept"), "C2": (False, "Retired_Concept")},
+            )
             self.assertEqual(result["results"][0]["concept"]["provenance"]["servedBy"], "index")
         mismatch = invoke(
             self.context,

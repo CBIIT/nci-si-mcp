@@ -6,6 +6,7 @@ import base64
 import hashlib
 import json
 import logging
+import math
 import time
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
@@ -21,7 +22,25 @@ logger = logging.getLogger(__name__)
 
 
 def compact(value: Any) -> str:
-    return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    return json.dumps(
+        _finite_numbers(value),
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+        allow_nan=False,
+    )
+
+
+def _finite_numbers(value: Any) -> Any:
+    # Valid JSON exponents can overflow during parsing. Preserve their diagnostic
+    # meaning as strings instead of emitting invalid JSON or losing the audit record.
+    if isinstance(value, float) and not math.isfinite(value):
+        return str(value)
+    if isinstance(value, dict):
+        return {key: _finite_numbers(item) for key, item in value.items()}
+    if isinstance(value, list | tuple):
+        return [_finite_numbers(item) for item in value]
+    return value
 
 
 def hashed(value: Any) -> dict[str, str]:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from http import HTTPStatus
 from typing import Any
 
@@ -75,6 +75,10 @@ def object_list(payload: dict[str, Any], key: str) -> list[dict[str, Any]]:
     """Return the list of objects under `key` of an EVS payload; absent means empty."""
 
     return _object_list(payload.get(key) or [], f"field '{key}'")
+
+
+def _empty_terminologies(data: Any) -> str | None:
+    return "EVS listed no terminologies" if data == [] else None
 
 
 def verify_release(concepts: Iterable[dict[str, Any]], release_version: str) -> None:
@@ -190,7 +194,13 @@ class EVSClient:
 
         return f"{self.http.base_url}{path}"
 
-    def _get_json(self, path: str, params: dict[str, Any] | None = None) -> Any:
+    def _get_json(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+        *,
+        reject: Callable[[Any], str | None] | None = None,
+    ) -> Any:
         """GET a JSON document; HTTP 404 raises EVSNotFoundError.
 
         That means "no such concept" only for a single-concept request; the other methods go
@@ -198,7 +208,7 @@ class EVSClient:
         """
 
         try:
-            return self.http.get_json(path, params)
+            return self.http.get_json(path, params, reject=reject)
         except UpstreamRejectedError as exc:
             if exc.details.get("status") != HTTPStatus.NOT_FOUND:
                 raise
@@ -207,11 +217,17 @@ class EVSClient:
                 raise EVSReleaseNotFoundError(str(exc), requested=unknown[1], source="evs") from exc
             raise EVSNotFoundError(str(exc), **exc.details) from exc
 
-    def _get_existing(self, path: str, params: dict[str, Any] | None = None) -> Any:
+    def _get_existing(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+        *,
+        reject: Callable[[Any], str | None] | None = None,
+    ) -> Any:
         """GET a document that must exist, so a 404 means a wrong endpoint or release."""
 
         try:
-            return self._get_json(path, params)
+            return self._get_json(path, params, reject=reject)
         except EVSNotFoundError as exc:
             raise EVSResponseError(
                 f"{exc}; EVS does not serve this endpoint or release, check NCI_SI_EVS_BASE_URL",
@@ -227,8 +243,12 @@ class EVSClient:
         """The terminology rows EVS lists; `latest` and `tag` select a channel's current release."""
 
         params = {"terminology": terminology, "latest": "true" if latest else None, "tag": tag}
+        reject = None
+        if terminology is None and not latest and tag is None:
+            # Unfiltered EVS metadata must name at least one served terminology.
+            reject = _empty_terminologies
         return _object_list(
-            self._get_existing(TERMINOLOGIES_PATH, params),
+            self._get_existing(TERMINOLOGIES_PATH, params, reject=reject),
             "terminology metadata",
         )
 

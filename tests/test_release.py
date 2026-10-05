@@ -1,4 +1,5 @@
 import io
+import json
 import unittest
 from unittest.mock import patch
 from urllib.error import HTTPError
@@ -9,6 +10,7 @@ from nci_si_mcp.evs import EVSClient, EVSNotFoundError, EVSReleaseNotFoundError
 from nci_si_mcp.invocation import call
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.release import registry_state, resolve_evs_release
+from test_evs_client import FakeResponse
 from test_handlers import NEOPLASM, HandlerTestCase
 
 # The weekly build is listed first, as EVS may list it, and both are latest for their channel.
@@ -28,22 +30,6 @@ def fake_with(*rows):
     evs = FakeEVS()
     evs.rows = list(rows)
     return evs
-
-
-class FakeResponse:
-    status = 200
-
-    def __init__(self):
-        self.headers = {}
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *_):
-        return False
-
-    def read(self, limit):
-        return b"[]"[:limit]
 
 
 class ResolveEvsReleaseTest(unittest.TestCase):
@@ -126,7 +112,7 @@ class ResolveEvsReleaseTest(unittest.TestCase):
 
     def test_the_query_names_the_terminology_latest_and_the_channel(self):
         with (
-            patch("nci_si_mcp.http_client._open", return_value=FakeResponse()) as opened,
+            patch("nci_si_mcp.http_client._open", return_value=FakeResponse(b"[]")) as opened,
             self.assertRaises(PlatformError) as raised,
         ):
             resolve_evs_release(EVSClient("https://example.invalid"), "ncit", "weekly")
@@ -140,10 +126,11 @@ class ResolveEvsReleaseTest(unittest.TestCase):
         )
 
     def test_the_unfiltered_listing_sends_no_filter(self):
-        with patch("nci_si_mcp.http_client._open", return_value=FakeResponse()) as opened:
+        response = FakeResponse(json.dumps([MONTHLY]).encode())
+        with patch("nci_si_mcp.http_client._open", return_value=response) as opened:
             rows = EVSClient("https://example.invalid").get_terminologies()
 
-        self.assertEqual(rows, [])
+        self.assertEqual(rows, [MONTHLY])
         self.assertEqual(
             opened.call_args.args[0].full_url,
             "https://example.invalid/api/v1/metadata/terminologies",

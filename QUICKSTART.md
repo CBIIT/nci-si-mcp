@@ -524,6 +524,11 @@ arguments return `invalid_request`.
 
 - `resolve_release`: resolve a terminology's current monthly or weekly release, with the other served version identifiers in `alternatives`. `terminology` is required; `channel` defaults to `NCI_SI_RELEASE_CHANNEL`. Returns a flat release record with provenance, or a top-level error. CLI: `resolve-release ncit --channel monthly`.
 - `list_terminologies`: list each EVS terminology and its current release with provenance. NCIt uses the configured channel; other terminologies use their sole latest row. CLI: `list-terminologies`. Both discovery tools are resolved afresh and carry `ttlMs: 0`, `cacheScope: public`; failures are private.
+An empty unfiltered EVS terminology listing is unusable metadata and returns
+`upstream_unavailable` with its actual HTTP status and attempt count. Content queries
+with no matches still return empty successes; missing current releases retain their
+`release_not_available` behavior.
+
 Each tool description, as sent to MCP clients, states the contract in full. The former
 `ncit_*` tools and `cadsr_status` are removed; use the six tools above. The caDSR profile
 currently exposes no tools. CLI diagnostics retain `search`, `lookup`, `traverse` and
@@ -535,8 +540,9 @@ The release report's `selected_release` field names the configured channel's rel
 The walk proceeds one depth at a time from the seed, so nearer nodes
 claim the limits first. The result's `truncation` is `{"occurred": false}`, or
 says which bound dropped something and how much (see Provenance and truncation).
-Within each depth, relationship kinds take turns across the whole frontier. The seed
-counts against the global node limit; each kind spends its allowance only on
+Hierarchy excludes the seed from its page limit and has no edge cap; neighborhood
+counts the seed against its global node limit. Within each depth, relationship kinds
+take turns across the whole frontier; each kind spends its allowance only on
 new nodes. Edges to existing nodes do not spend that allowance. Mixed-kind walks
 report `perKind` truncation records when anything is dropped.
 
@@ -554,8 +560,8 @@ An earlier bound still wins; oversized final lists report `upstream_cap`.
 Once a global node cut is reported, the final check is skipped. Otherwise it
 reads only kinds that have no truncation of their own. Status-only reads for
 returned nodes may still be needed; they use the same request budget.
-Inverse lists are never fetched solely to check continuation. An inverse kind
-that reached frontier nodes at the depth limit reports `depth`, `omitted: 0`,
+Inverse lists are never fetched solely to check continuation. At any nonempty final
+frontier, each selected inverse kind without a prior cut reports `depth`, `omitted: 0`,
 `exact: false`: an unknown continuation, without claiming a leaf. Forward kinds
 beside it are still checked. Descendant checks read final child lists only.
 
@@ -647,7 +653,7 @@ EVS wraps in a success status but that is an error envelope, an error
 | `release_mismatch` | The local index holds a different release than the requested one, or EVS served a concept of another release than the one requested | `requested`, `served` (a list of releases), `source` |
 | `upstream_unavailable` | EVS could not be reached or kept failing after the retries, rejected the request, or returned something unusable: a malformed, HTML or masked-error body, or a 404 from any request other than a single-concept lookup (check `NCI_SI_EVS_BASE_URL`) | `surface`, `status`, `attempts`, `retryAfter` (`status` and `retryAfter` where known) |
 | `timeout` | Every attempt at an EVS request timed out (`NCI_SI_TIMEOUT_SECONDS`) | `surface`, `seconds`, `attempts` |
-| `bound_exceeded` | An EVS response was larger than `NCI_SI_EVS_MAX_RESPONSE_BYTES` and the call cannot proceed without it | `bound`, `limit`, `reached` (the limit plus one when EVS declared no length) |
+| `bound_exceeded` | An EVS response exceeds `NCI_SI_EVS_MAX_RESPONSE_BYTES`, or the request budget is exhausted before a graph is available | `bound`, `limit`, `reached` (for response size, the limit plus one when EVS declared no length) |
 | `capability_unavailable` | The requested terminology or operation is not supported yet; the MCP tool descriptions name the interim limits | `capability` |
 | `cursor_expired` | Defined by the specification; no tool returns it yet | `cursorRelease`, `currentRelease` |
 | `internal_error` | `search` or `evaluate` was called before an index was built, the index was built with other embedding settings than the runtime uses, SQLite could not open, read or write the index file named in the message, or (CLI only) the index, the embedding model or the MCP package could not be loaded at startup | none |

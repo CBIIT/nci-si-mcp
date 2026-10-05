@@ -112,7 +112,9 @@ def list_terminologies(context: Context) -> dict[str, Any]:
     because EVS can mark both channels latest. Other terminologies use their
     sole latest row. Each item names its terminology, release and live EVS
     provenance. Ambiguous or missing current releases fail closed. This current
-    listing is resolved anew on every call and is never cached.
+    listing is resolved anew on every call and is never cached. An empty unfiltered
+    upstream listing is unusable metadata (upstream_unavailable), with its actual
+    HTTP status and attempt count; no release is invented for empty provenance.
     """
 
     rows = current_terminologies(context.evs.get_terminologies(), context.settings.release_channel)
@@ -253,7 +255,7 @@ def search(
     """Search the locally indexed NCIt concepts by text.
 
     The index holds only the concepts an operator loaded with the
-    `index-sample` CLI command, all from the one NCIt monthly release named
+    `index-sample` CLI command, all from the one NCIt release named
     in the `provenance.release` of its hits. It is not all of NCIt, and no
     tool here adds to it. `mode` is `hybrid` (0.55 * BM25 + 0.45 * vector), `bm25` or
     `vector`; `limit` is 1 to 100.
@@ -431,7 +433,7 @@ def traverse(
     The check spends the same request budget; an earlier bound still wins.
     A reported global node cut skips it; kinds already truncated are excluded.
     Descendant checks use final child lists. Inverse kinds never read final lists
-    only to count continuation: an inverse kind reaching that frontier reports
+    only to count continuation: each selected inverse kind at a nonempty frontier reports
     depth with omitted=0 and exact=false, without claiming a leaf or continuation.
     Every edge connects two nodes of the result. Every node and edge
     carries a `provenance` record: the release of the configured channel all data is read

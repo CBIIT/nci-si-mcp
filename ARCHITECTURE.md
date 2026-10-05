@@ -177,7 +177,9 @@ It returns a specification concept record with upstream name, active/status and 
    nearer nodes claim the limits before farther ones. Each level is read with
    batched concept requests that include the selected relation lists, pinned to
    the release, and every fetched concept is checked against it. Requested
-   limits are clamped to a maximum depth of 4, 1,000 nodes, and 5,000 edges.
+   depth clamps at 4. Neighborhood allows up to 1,000 nodes including the seed
+   and 5,000 edges. Hierarchy allows up to 1,000 returned nodes excluding the
+   seed and has no edge cap; known node cuts refuse unsupported paging.
    Forward lists at the last frontier are also read, within the same request budget, to distinguish
    a depth cut from a leaf or a cycle to returned nodes. Each batch is processed
    before the next request so the first bound reached keeps precedence.
@@ -185,7 +187,7 @@ It returns a specification concept record with upstream name, active/status and 
    A reported global node cut skips this check; otherwise it reads only kinds
    with no prior cut. The content adapter still fetches missing node status
    without relation lists before returning public concept records.
-   An inverse kind reaching the last frontier instead reports a depth cut with
+   Each selected inverse kind without a prior cut reports depth at any nonempty final frontier with
    `omitted: 0`, `exact: false`; its potentially huge lists are never read solely
    for this check. This explicitly leaves continuation unknown. Descendant checks
    read the final nodes' child lists.
@@ -246,7 +248,8 @@ public terminology queries. Configured credentials, their Basic encoding and pas
 redacted before a record reaches logging, including accidental echoes in metadata. This takes
 precedence if a caller puts a credential in its correlation identifier. Diagnostic exception
 messages and raw upstream bodies are excluded; external diagnostic messages are hashed.
-All records use JSON on stderr. The diagnostic log-level setting does not suppress completion
+All records use strict JSON on stderr; nonfinite input numbers are represented as strings
+(`inf`, `-inf`, `nan`) in audit metadata. The diagnostic log-level setting does not suppress completion
 records. The platform still owns authoritative audit, quotas and authorisation; this module
 adds no persistent audit store, rate limiter or invented upstream audit headers.
 
