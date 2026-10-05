@@ -105,7 +105,7 @@ fmt = "ruff format ."
 acceptance = { cmd = "pytest", working_dir = "acceptance" }
 # Four workers: the self-tests wait on server processes, and four overlap those waits on the
 # two-CPU CI runners; more measured no faster.
-acceptance-selftest = { cmd = "pytest selftests -n 4 --cov --cov-report=term-missing", working_dir = "acceptance" }
+acceptance-selftest = { cmd = "pytest selftests -n 4 --dist worksteal --cov --cov-report=term-missing", working_dir = "acceptance" }
 acceptance-record = "python -m nci_si_acceptance.record"
 acceptance-craft = "python -m nci_si_acceptance.craft"
 acceptance-expected = "python -m nci_si_acceptance.expected"
