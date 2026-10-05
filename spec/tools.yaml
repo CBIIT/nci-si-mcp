@@ -111,9 +111,10 @@ expand_value_set:
   patterns: {terminology: *terminology, release: *release, valueSet: *code, code: *code}
   returns: "{ members[], total, truncation }"
   items: ["members[]"]
+  bounds: {count: {default: 200, maximum: 1000}}
+  defaults: {offset: 0, activeOnly: false}
   summary: >-
-    The members of a value set, paged and bounded by the tool itself; $lookup, $validate-code,
-    $subsumes and $translate where a caller asks. It pages by count and offset, as FHIR $expand
+    The members of a value set, paged and bounded by the tool itself. It pages by count and offset, as FHIR $expand
     does, in place of a cursor (the exception to M6.1); activeOnly is false unless given.
 get_concept_neighborhood:
   group: evs

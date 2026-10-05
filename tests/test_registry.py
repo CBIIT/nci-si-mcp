@@ -28,6 +28,7 @@ class RegistryTest(ServerFixture):
             "list_relationships",
             "resolve_retired_code",
             "get_concept_subsets",
+            "expand_value_set",
             "get_concept_mappings",
             "search_concepts",
             "get_concept_hierarchy",

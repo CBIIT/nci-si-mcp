@@ -80,6 +80,15 @@ def validate_terminology(terminology: str) -> str:
     return terminology
 
 
+def validate_expansion_options(count: int, offset: int, active_only: bool) -> int:
+    count = bounded(count, 1000, "count")
+    if type(offset) is not int or offset < 0:
+        raise InputValidationError("offset must be a nonnegative integer", "offset")
+    if not isinstance(active_only, bool):
+        raise InputValidationError("activeOnly must be boolean", "activeOnly")
+    return count
+
+
 def validate_channel(channel: str) -> str:
     if channel not in RELEASE_CHANNELS:
         raise InputValidationError("channel must be monthly or weekly", "channel")
