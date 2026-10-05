@@ -30,7 +30,7 @@ class CachingTest(ServerFixture):
     def test_tool_policy_follows_its_declaration_after_a_rename(self, _):
         def register(tool, service, tool_result):
             @tool(resolution=True)
-            def renamed_status():
+            def renamed_status() -> dict[str, str]:
                 return {"state": "pending"}
 
         with patch("nci_si_mcp.server._register_tools", side_effect=register):

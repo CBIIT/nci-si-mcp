@@ -174,13 +174,17 @@ ignore = [
 # Dead code. The names listed are used in ways vulture cannot see: the MCP SDK
 # calls the decorated tools and resources, pytest its fixtures and hooks, http.server
 # the handler methods, sqlite3 reads `row_factory`, and the dataclass fields named
-# here are only ever serialized.
+# here are only ever serialized. Pydantic reads the wire-record annotations to build
+# schemas, and the MCP SDK reads the tool functions' resolved __annotations__.
 [tool.vulture]
 paths = ["src", "tests", "scripts", "acceptance"]
 min_confidence = 60
 ignore_decorators = ["@mcp.tool", "@tool", "@mcp.resource", "@resource", "@pytest.fixture"]
 ignore_names = [
     "row_factory", "built_at", "index_path", "state", "reuse_targets",
+    "correlationId", "servedBy", "retrievedAt", "sourceUri", "perKind",
+    "active_index_compatible", "evs_api", "selected_monthly_release", "active_index",
+    "__annotations__",
     "pytest_*", "do_*", "log_message", "close_connection",
 ]
 
