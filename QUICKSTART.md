@@ -126,7 +126,7 @@ The public manifest contains `terminology`, `version`, `concepts`, `embedding`
 Until the index is rebuilt after a new release, CLI `search` keeps serving
 the old release (named in the `provenance.release` of each hit), and `lookup` fails with
 `release_mismatch` for every code unless `--live-only` is given.
-MCP `search_concepts` requires the caller's release to match the index; `get_concept`
+MCP `search_concepts` in semantic/hybrid mode requires the caller's release to match the index; `get_concept`
 reads the caller's pinned release directly from EVS.
 
 No MCP result carries the full EVS `raw` payload, to keep MCP context compact. The
@@ -258,19 +258,18 @@ Result:
         },
         "status": "DEFAULT"
       },
-      "score": 0.969251231258575
+      "score": 0.969251231258575,
+      "matchedOn": "definition"
     }
   ],
-  "truncation": {
-    "occurred": true,
-    "bound": "results",
-    "limit": 1,
-    "reached": 1,
-    "omitted": 4,
-    "exact": true
-  }
+  "totalKnown": 5,
+  "nextCursor": "opaque-continuation-token"
 }
 ```
+
+The example token is illustrative. Continue with the actual returned `nextCursor` as `cursor`,
+keeping the other arguments unchanged; the final page has no `nextCursor`. Pages are not
+truncation. An index activation, even for the same release, expires indexed search cursors.
 
 ### List the subtypes of a concept
 
@@ -531,7 +530,7 @@ unknown, its record gives `omitted: 0` and `exact: false`.
 - `get_concept_mappings`: read the required `terminology`, `release` and `code`, returning its maps in platform order. Optional `targetTerminology` matches the platform label exactly, including case. Record values are unchanged; optional target version and term type are omitted when absent, null or empty. Both tools use one pinned concept read, carry provenance on empty results and fail on malformed content.
 - `list_relationships`: list the pinned release’s roles and associations with code, terminology, name, kind, polarity and provenance. Reads each catalogue once per call; no cross-call cache. Missing configured exclusion codes make this tool and `get_concept_neighborhood` fail with `internal_error`, naming the absent codes in `details.missingCodes`. No network access is needed at startup.
 - `get_concepts`: fetch a caller-pinned batch with required `terminology`, `release` and `codes`. Returns `concepts` and `missing` in input order, preserving duplicate occurrences. Optional `include` works as in `get_concept`. Empty input makes no request. At most 650 supplied codes and a 7000-byte encoded request target are allowed; larger inputs are `invalid_request`. An oversized response is `bound_exceeded` (`NCI_SI_EVS_MAX_RESPONSE_BYTES`), never partial results.
-- `search_concepts`: search the interim NCIt index with required `terminology`, `release` and `query`. `semantic` and `hybrid` modes are supported, with `limit` default 10, maximum 1000; the index must hold the requested release. Default `lexical`, `typeahead`, cursors and `retired: only` return `capability_unavailable` pending #27.
+- `search_concepts`: search a pinned terminology with required `terminology`, `release` and `query`. Default `lexical` and `typeahead` use EVS's order; lexical preserves its highlight as `matchedOn`, while typeahead omits it. Neither invents a score. `semantic` and `hybrid` use the exact NCIt index, which must hold the requested release; they require NumPy (`index` extra) and return a score and winning field. `limit` defaults to 10 and clamps to 1000. All modes return `totalKnown` and continue with `cursor` until `nextCursor` is absent. `retired: only` filters using the pinned terminology's advertised retirement status, or returns `invalid_request` if none is selectable; the default `include` keeps active and retired matches.
 - `get_concept_hierarchy`: caller-pinned parents or children, excluding the seed. Required `direction`; `depth` defaults to 1, maximum 4; `limit` defaults to 200, maximum 1000. `nextCursor` continues with the same applied arguments. Paging replays within 200 requests: roughly 9,900 nodes for ordinary depth-one fanout at 50 per batch, fewer with retries or oversized responses. Narrow the starting concept or depth if replay returns `bound_exceeded`. Historical releases continue while served; withdrawal returns `cursor_expired`. `pathsToRoot` returns every platform path and unique reached nodes; depth, limit and cursor do not apply to it.
 - `get_concept_neighborhood`: caller-pinned graph including the seed. `depth` defaults to 2, maximum 4; `maxNodes` 200/1000; `maxEdges` 1000/5000; optional `budgetPerKind` maximum 1000. `kinds` selects among the six relation kinds. Negative assertions and targets are returned marked; their targets expand only with `includeNegative: true` or a positive route. A relationship without an upstream code remains positive, with its name and qualifiers preserved. Both graph tools share 200 requests per call, including a batched final-frontier check for depth truncation.
 

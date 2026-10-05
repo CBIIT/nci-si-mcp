@@ -115,7 +115,7 @@ class SchemaTest(ServerFixture):
     def test_empty_search_and_concept_optional_fields_validate(self):
         invoke(self.context, "index_codes", ["C3262"])
         validators = self.validators()
-        with patch("nci_si_mcp.index._rank_fields", return_value=[]):
+        with patch("nci_si_mcp.index.rank_page", return_value=([], 0)):
             empty = self.result("search_concepts", query="zzzzzz", mode="semantic")
         validators["search_concepts"].validate(empty)
         self.assertEqual(empty["results"], [])

@@ -323,6 +323,41 @@ class EVSClient:
         verify_content(concepts, release)
         return total, concepts
 
+    def search_concepts(
+        self,
+        release: ReleaseContext,
+        query: str,
+        mode: str,
+        offset: int,
+        limit: int,
+        status: str | None = None,
+    ) -> tuple[int, list[dict[str, Any]]]:
+        """Preserve the pinned platform page and validate its declared total."""
+        data = _object(
+            self._get_existing(
+                concept_path(release.pinned_terminology) + "/search",
+                {
+                    "term": query,
+                    "type": "contains" if mode == "lexical" else "startsWith",
+                    "include": "minimal,highlights",
+                    "fromRecord": offset,
+                    "pageSize": limit,
+                    "conceptStatus": status,
+                },
+            ),
+            "search page",
+        )
+        total = data.get("total")
+        if type(total) is not int or total < 0:
+            raise EVSResponseError("EVS search page has no nonnegative integer total")
+        # EVS omits concepts entirely when total is zero; a positive total still
+        # fails the completeness check below if its page is missing.
+        rows = _object_list(data.get("concepts", []), "search concepts")
+        if len(rows) != min(limit, max(0, total - offset)):
+            raise EVSResponseError("EVS search page is incomplete or exceeds its declared total")
+        verify_content(rows, release)
+        return total, rows
+
     def get_concept(
         self,
         code: str,

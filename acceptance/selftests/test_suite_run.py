@@ -301,11 +301,12 @@ def test_parent(tools):
     assert result.tool == "get_concept_hierarchy"
 
 @pytest.mark.tool("search_concepts")
-def test_lexical(tools):
+def test_semantic_without_index(tools):
     result = tools.call("search_concepts", {
-        "terminology": "ncit", "release": "26.09d", "query": "neoplasm"
+        "terminology": "ncit", "release": "26.09d", "query": "neoplasm", "mode": "semantic"
     })
     assert result.is_error
+    assert result.content["error"]["code"] == "capability_unavailable"
 """
     result = run(suite, test, "--report=report.json")
 

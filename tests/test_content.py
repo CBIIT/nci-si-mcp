@@ -135,7 +135,7 @@ class ContentTest(ServerFixture):
 
     def test_empty_search_has_provenance_and_detects_a_replaced_index(self):
         self.index()
-        with patch("nci_si_mcp.index._rank_fields", return_value=[]):
+        with patch("nci_si_mcp.index.rank_page", return_value=([], 0)):
             result = self.content("search_concepts", query="No match", mode="semantic")
             self.assertEqual(result["results"], [])
             self.assertEqual(result["provenance"]["release"]["identifier"], "26.06e")
@@ -268,16 +268,17 @@ class ContentTest(ServerFixture):
         )
         self.assertEqual(self.evs.calls, [])
 
-    def test_search_refuses_unimplemented_options_and_invalid_inputs(self):
+    def test_search_requires_an_index_and_valid_inputs(self):
+        for mode in ("semantic", "hybrid"):
+            result = self.content("search_concepts", query="One", mode=mode)
+            self.assertEqual(result["error"]["code"], "capability_unavailable")
         for arguments in (
-            {},
-            {"mode": "typeahead"},
+            {"limit": 0},
+            {"retired": "exclude"},
+            {"mode": "bm25"},
             {"mode": "hybrid", "cursor": ""},
             {"mode": "semantic", "retired": "only"},
         ):
-            result = self.content("search_concepts", query="One", **arguments)
-            self.assertEqual(result["error"]["code"], "capability_unavailable")
-        for arguments in ({"limit": 0}, {"retired": "exclude"}, {"mode": "bm25"}):
             result = self.content("search_concepts", query="One", **arguments)
             self.assertEqual(result["error"]["code"], "invalid_request")
         result = self.content("search_concepts", query=" ", mode="semantic")

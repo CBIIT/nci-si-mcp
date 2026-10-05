@@ -271,13 +271,14 @@ Negative edges carry polarity by code. Targets remain visible but are expanded o
 
 ### 4.4 Index (`evs/index/`)
 
-The interim index (M4.1), built from `index.py` / `embeddings.py` / `retrieval.py` / `evaluation.py`:
+The interim index (M4.1), built from `index.py` / `index_storage.py` / `index_scoring.py` / `embeddings.py` / `evaluation.py`:
 
 - **Per field (implemented #28):** preferred name, synonyms and definitions are embedded and indexed separately, deduplicating identical text within a concept. The winning field is `matchedOn`; ties prefer name, synonym, definition. Exact preferred-name queries ignore case after Unicode NFC and whitespace collapsing, score 1, and win ties before other concepts.
-- **Build snapshots (schema 5):** internal build ids permit same-release rebuilds beside the active snapshot. Concept/field rows refer to that build. Manifests carry release, embedding configuration and build time, with optional internal evaluation metadata reserved for #29. The public record contains only terminology, version, concepts, embedding, builtAt and provenance. Each build has its own FTS corpus.
+- **Build snapshots (schema 6):** internal build ids permit same-release rebuilds beside the active snapshot. Concept/field rows refer to that build. Manifests carry release, embedding configuration and build time, with optional internal evaluation metadata reserved for #29. The public record contains only terminology, version, concepts, embedding, builtAt and provenance. Each build has its own FTS corpus. Schema-5 migration preserves those identities, activation, FTS ids and retirement status while grouping float32 field vectors into one BLOB per concept.
 - **Atomic activation and rollback:** activation selects a completed build in one transaction and retains only it and its predecessor. Activating that predecessor is rollback. Embedding runs outside transactions; bounded writes use a building state, followed by a short completion transaction. Partial builds cannot activate or serve search; the next start cleans stale builds, distinguished from running builders by a private SQLite lease. Legacy raw concepts/manifests survive migration; legacy search returns capability_unavailable naming the explicit offline rebuild command. No implicit model download or rebuild occurs at open.
 - **Full NCIt build:** unfiltered pinned `/concept/{terminology}/search` pages of 1000, not the batch endpoint (which requires a code list). Every page must preserve the total and pinned release, and all codes must be unique with their final count equal to total. Reconcile the spooled download before writing an inactive snapshot. Log progress every ten pages and at completion; shared HTTP retries apply, but tool-call request budgets do not. `index-sample` remains the developer command; CLI operations add build, list, offline rebuild and activation.
-- **The two traps** — provider selection requires both provider and model to be set, and a mismatch is `invalid_configuration` at startup; `cosine_similarity` normalises, and a dimension mismatch is `index_incompatible`, never `0.0`. Changing provider or model invalidates the manifest. Today: provider and model are validated together at startup (a failure is `invalid_configuration`), and a provider, model or dimension mismatch is refused on every write and search. `cosine_similarity` is a dot product that relies on the providers returning unit vectors, which both do; it does not normalise itself.
+- **Embedding compatibility:** provider and model are validated together at startup. A provider, model or dimension mismatch is refused on every write and search. Vectors and queries round consistently to float32; scoring normalizes them and treats a zero vector as zero cosine. Malformed BLOB lengths and nonfinite stored values raise storage errors.
+- **Exact paged search (implemented #27):** no LSH or candidate cutoff remains. NumPy is lazy and optional through the `index` extra. One scan computes field cosines in bounded chunks; compact numeric arrays provide normalization, sparse BM25 combination, winning fields and exact page partitioning with stable ties. The index retains no matrix cache. A continuation binds the active build id and expires after any replacement, including a same-release rebuild. Counts, hits and identity share one SQLite snapshot.
 - **Evaluation set** (`evaluate.py`): versioned NCIt scenarios with expected concepts and scoring thresholds; run on every build; score recorded in the manifest. This is the retrieval evaluation set in executable form.
 - **Retirement condition**: when EVS exposes a semantic mode (E-9), `search_concepts(mode=semantic|hybrid)` is re-pointed to it behind the same tool and the index is deactivated. The tool surface does not change.
 
@@ -295,8 +296,10 @@ the common structured error boundary.
 
 Live content now supports caller-selected EVS terminologies; the client requires a release
 context and verifies full concept identity. Semantic/hybrid remains NCIt-only. New endpoints
-reuse this contract in their owning issues. Lexical/typeahead search, cursors and retired-only
-selection return `capability_unavailable` pending #27. Hierarchy paths, paging and
+reuse this contract in their owning issues. Lexical/typeahead search preserves EVS order,
+with lexical highlights passed through and no invented scores. Every search mode supports
+cursors and exact filtered counts. Retired-only selection requires the pinned terminology's
+advertised status; unsupported selection is `invalid_request`. Hierarchy paths, paging and
 selective negative expansion are implemented in #23. A hierarchy cursor remains valid
 while its explicit release is served; only a pinned Terminology not found failure means
 supersession, with current-channel discovery then supplying cursor_expired.currentRelease.

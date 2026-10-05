@@ -306,7 +306,7 @@ class ServerTest(ServerFixture):
         failures = (
             ("not_found", "get_concept", {"code": "C999"}),
             ("invalid_request", "get_concept", {"code": "../bad"}),
-            ("capability_unavailable", "search_concepts", {"query": "tumor"}),
+            ("capability_unavailable", "search_concepts", {"query": "tumor", "mode": "semantic"}),
             ("not_found", "get_concept_neighborhood", {"code": "C999"}),
         )
         for code, tool, arguments in failures:
@@ -342,7 +342,7 @@ class ServerTest(ServerFixture):
 
     def test_every_tool_that_can_fail_honours_the_correlation_identifier(self, _):
         calls = {
-            "search_concepts": pinned(query="tumor"),
+            "search_concepts": pinned(query="tumor", mode="semantic"),
             "get_concept_neighborhood": pinned(code="C999"),
         }
         for tool, arguments in calls.items():
@@ -470,7 +470,7 @@ class ServerTest(ServerFixture):
     def test_a_search_that_finds_nothing_is_a_success_with_no_hits(self, _):
         invoke(self.context, "index_codes", ["C3262"])
 
-        with patch("nci_si_mcp.index._rank_fields", return_value=[]):
+        with patch("nci_si_mcp.index.rank_page", return_value=([], 0)):
             is_error, result = self.call("search_concepts", query="zzzz", mode="semantic")
 
         self.assertFalse(is_error)

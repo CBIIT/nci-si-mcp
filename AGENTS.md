@@ -305,19 +305,20 @@ compatibility before snapshot creation. Embeddings run outside transactions; eac
 batch is written in a short transaction under a building manifest. Only completed builds activate.
 Sample activation checks that another writer has not changed the active build in the meantime.
 
-Schema 5 stores immutable builds keyed by an internal build id. Name, synonym and definition
+Schema 6 stores immutable builds keyed by an internal build id. Name, synonym and definition
 texts are deduplicated within each concept and embedded separately. Activation retains only
 the new build and its predecessor. The next build start removes stale building rows;
 a private SQLite lease distinguishes interrupted builds from concurrently running ones.
 Legacy raw concepts survive migration, but their search requires an explicit offline
 `index-rebuild` and `index-activate`. Full builds reconcile all pinned search pages before writing.
 
-Vector search scans every field vector up to `EXACT_VECTOR_SCAN_LIMIT` (20,000 concepts). Above
-that it scores only LSH and BM25 field candidates, so recall is approximate. The earlier
-concatenated index measured only 17 of 100 nearest neighbours on a synthetic index; that figure
-is not a measurement of the field index. The LSH constants and
-`_projection_sign` are part of the stored format: changing them needs a `SCHEMA_VERSION` bump with
-a migration that rebuilds `vector_lsh`.
+Exact indexed search lazily imports NumPy from the `index` extra. Each concept stores its field
+vectors together in a little-endian float32 BLOB, with field-kind bytes; FTS retains individual
+fields and their positions. One scan scores bounded matrix chunks, then compact numeric arrays
+provide normalization, per-concept maxima and exact page selection. No vector matrix is cached.
+Migration from schema 5 preserves builds, activation, FTS and retirement status. Earlier schemas
+retain raw concepts but require an explicit rebuild. Search cursors bind the active build id;
+even a same-release replacement expires them. Count, page and provenance share one read snapshot.
 
 ### Traversal
 

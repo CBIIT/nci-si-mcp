@@ -443,38 +443,71 @@ def search_concepts(
     cursor: str | None = None,
     retired: RetiredSelection = "include",
 ) -> dict[str, Any]:
-    """Search the interim NCIt index with semantic or hybrid ranking.
+    """Search a pinned terminology, a page at a time, in one of four modes.
 
-    release is required and must equal the index's release (release_mismatch
-    otherwise). Operators may load a sample or a full NCIt release.
-    limit defaults to 10 and clamps at 1000. Results contain concept records,
-    scores, matchedOn (name/synonym/definition) and index provenance, with
-    totalKnown naming the indexed concept count and truncation for omitted hits.
-    Exact preferred names ignore case after NFC and whitespace collapsing and
-    win ties before other hits; field ties prefer name, synonym, then definition.
-    Scores order this query's hits and are not comparable between queries.
-    The default lexical mode, typeahead, cursors and retired only are currently
-    capability_unavailable; retired include returns all indexed statuses.
-    An indexed mode for another terminology is invalid_request. No live fallback is used.
+    lexical (default) preserves EVS contains order and highlights as matchedOn;
+    typeahead preserves its startsWith order without matchedOn. Neither has scores.
+    semantic/hybrid rank every concept in the active NCIt index, with scores and
+    matchedOn naming name/synonym/definition. Exact preferred names ignore case
+    after NFC and whitespace collapsing and win ties; field ties prefer name,
+    synonym, definition. Scores are not comparable between queries.
+    limit defaults to 10 and clamps at 1000; nextCursor continues with the same
+    applied arguments. A served historical release stays valid. Withdrawn releases
+    and changed active index builds expire cursors, including same-release rebuilds.
+    retired include (default) keeps all statuses; only uses the pinned listing's
+    selectable retired status. exclude and upstream search-type options are not offered.
+    Missing index or NumPy is capability_unavailable; another index release is
+    release_mismatch; an indexed mode for another terminology is invalid_request.
     """
-    _pin(context, terminology, release)
+    selected = _pin(context, terminology, release)
     limit = bounded(limit, MAX_INDEX_SEARCH_LIMIT, "limit")
-    _search_options(query, mode, cursor, retired)
-    if terminology != "ncit":
+    _search_options(query, mode, retired)
+    indexed = mode in ("semantic", "hybrid")
+    arguments = {
+        "tool": "search_concepts",
+        "terminology": terminology,
+        "release": release,
+        "query": query,
+        "mode": mode,
+        "limit": limit,
+        "retired": retired,
+    }
+    position = cursors.decode(cursor, arguments, indexed=indexed)
+    if indexed and terminology != "ncit":
         raise InputValidationError("The interim index supports only ncit", "terminology")
     try:
-        hits, truncation, manifest = context.index.search_snapshot(
-            query,
+        status = _retired_status(context, selected) if retired == "only" else None
+        handler = _indexed_search if indexed else _live_search
+        return handler(context, selected, arguments, position, status)
+    except EVSReleaseNotFoundError:
+        if cursor is None:
+            raise
+        _expired_release(context, selected)
+
+
+def _indexed_search(
+    context: Context,
+    selected: ReleaseContext,
+    arguments: dict[str, Any],
+    position: cursors.Position,
+    status: str | None,
+) -> dict[str, Any]:
+    try:
+        hits, total, manifest = context.index.search_page(
+            arguments["query"],
             context.embedding_provider,
-            limit,
-            "vector" if mode == "semantic" else "hybrid",
-            requested_release=release,
+            arguments["limit"],
+            "vector" if arguments["mode"] == "semantic" else "hybrid",
+            requested_release=selected.version,
+            offset=position.offset,
+            build_id=position.build_id,
+            retired_status=status,
         )
     except NoActiveIndexError:
         _unavailable("semantic/hybrid search without an active NCIt index")
     results = []
     for hit in hits:
-        uri = context.evs.uri(concept_path(f"ncit_{release}", hit.concept.code))
+        uri = context.evs.uri(concept_path(selected.pinned_terminology, hit.concept.code))
         results.append(
             {
                 "concept": _record(hit.concept.raw, hit.concept.provenance(uri).to_dict()),
@@ -482,23 +515,121 @@ def search_concepts(
                 "matchedOn": hit.matched_on,
             }
         )
-    result: dict[str, Any] = {
-        "results": results,
-        "truncation": truncation.to_dict(),
-        "totalKnown": manifest.concept_count,
-    }
-    if not hits:
+    result = _search_page(results, total, arguments, position, manifest.build_id)
+    if not results:
         result["provenance"] = manifest.provenance().to_dict()
     return result
 
 
-def _search_options(query: str, mode: str, cursor: str | None, retired: str) -> None:
+def _live_search(
+    context: Context,
+    selected: ReleaseContext,
+    arguments: dict[str, Any],
+    position: cursors.Position,
+    status: str | None,
+) -> dict[str, Any]:
+    total, rows = context.evs.search_concepts(
+        selected,
+        arguments["query"],
+        arguments["mode"],
+        position.offset,
+        arguments["limit"],
+        status,
+    )
+    results = [_live_match(context, selected, row, arguments["mode"], status) for row in rows]
+    result = _search_page(results, total, arguments, position)
+    if not rows:
+        result["provenance"] = ProvenanceEnvelope(
+            release=release_ref(selected.terminology, selected.version, selected.date),
+            source="evs_rest",
+            served_by="live",
+            retrieved_at=utc_now_iso(),
+            correlation_id=call_correlation_id(),
+            source_uri=context.evs.uri(concept_path(selected.pinned_terminology) + "/search"),
+        ).to_dict()
+    return result
+
+
+def _live_match(
+    context: Context,
+    selected: ReleaseContext,
+    raw: dict[str, Any],
+    mode: str,
+    status: str | None,
+) -> dict[str, Any]:
+    if not isinstance(raw.get("code"), str) or not raw["code"]:
+        raise EVSResponseError("EVS search returned a concept without its code")
+    if status and (raw.get("conceptStatus") != status or raw.get("active") is not False):
+        raise EVSResponseError("EVS search did not honor the requested retired status")
+    return {"concept": _project(context, selected, raw, [])} | _live_highlight(raw, mode)
+
+
+def _live_highlight(raw: dict[str, Any], mode: str) -> dict[str, str]:
+    if mode == "lexical" and "highlight" in raw:
+        if not isinstance(raw["highlight"], str):
+            raise EVSResponseError("EVS search returned a non-text highlight")
+        return {"matchedOn": raw["highlight"]}
+    return {}
+
+
+def _search_page(
+    results: list[dict[str, Any]],
+    total: int,
+    arguments: dict[str, Any],
+    position: cursors.Position,
+    build_id: str | None = None,
+) -> dict[str, Any]:
+    if position.offset and position.offset >= total:
+        raise InputValidationError("The cursor position is beyond this search", "cursor")
+    result: dict[str, Any] = {"results": results, "totalKnown": total}
+    following = position.offset + len(results)
+    if following < total:
+        result["nextCursor"] = cursors.encode(arguments, following, build_id)
+    return result
+
+
+def _retirement_metadata(context: Context, selected: ReleaseContext) -> dict[str, Any]:
+    rows = [
+        row
+        for row in context.evs.get_terminologies()
+        if row.get("terminology") == selected.terminology and row.get("version") == selected.version
+    ]
+    if not rows:
+        raise EVSReleaseNotFoundError("EVS no longer lists the requested release")
+    if len(rows) != 1:
+        raise EVSResponseError("EVS lists ambiguous retirement metadata for the pinned release")
+    metadata = rows[0].get("metadata", {})
+    if not isinstance(metadata, dict):
+        raise EVSResponseError("EVS returned malformed retirement metadata")
+    return metadata
+
+
+def _retired_status(context: Context, selected: ReleaseContext) -> str:
+    metadata = _retirement_metadata(context, selected)
+    status = metadata.get("retiredStatusValue")
+    choices = metadata.get("conceptStatuses", [])
+    if not isinstance(choices, list):
+        raise EVSResponseError("EVS returned malformed concept status choices")
+    if not isinstance(status, str) or not status or status not in choices:
+        raise InputValidationError("This terminology has no selectable retired status", "retired")
+    return status
+
+
+def _expired_release(context: Context, selected: ReleaseContext) -> NoReturn:
+    current = resolve_evs_release(context.evs, selected.terminology, selected.channel)
+    raise PlatformError(
+        "cursor_expired",
+        "EVS no longer serves the cursor release. Restart with the current release.",
+        cursorRelease=selected.version,
+        currentRelease=current.version,
+    ) from None
+
+
+def _search_options(query: str, mode: str, retired: str) -> None:
     validate_choice(mode, get_args(PublicSearchMode), "mode")
     validate_choice(retired, get_args(RetiredSelection), "retired")
     if not isinstance(query, str) or not query.strip():
         raise InputValidationError("query must not be blank", "query")
-    if mode in ("lexical", "typeahead") or cursor is not None or retired != "include":
-        _unavailable("lexical/typeahead search, search cursors and retired-only selection")
 
 
 def get_concept_hierarchy(
@@ -544,7 +675,7 @@ def get_concept_hierarchy(
         "depth": depth,
         "limit": limit,
     }
-    offset = cursors.decode(cursor, arguments)
+    offset = cursors.decode(cursor, arguments).offset
     budget = Budget(depth=depth, paged=True)
     # The hierarchy has a page allowance, not a total node or edge allowance.
     # Reserve the seed and a lookahead node; replay remains request-bounded.
