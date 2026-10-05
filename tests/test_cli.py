@@ -183,6 +183,28 @@ class MainTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(len({error["correlationId"] for error in nested}), 1)
 
+    def test_kind_budget_limits_nodes_through_the_cli(self, _):
+        service = self.fake_service()
+        service.evs.concepts["C3262"] = dict(service.evs.concepts["C3262"])
+        service.evs.concepts["C3262"]["children"] = [
+            {"code": "C2", "name": "Two"},
+            {"code": "C3", "name": "Three"},
+        ]
+        code, result, _ = self.run_cli(
+            "traverse",
+            "C3262",
+            "--max-depth",
+            "1",
+            "--edge-type",
+            "child",
+            "--budget-per-kind",
+            "1",
+            service=service,
+        )
+        self.assertEqual(code, 0)
+        self.assertEqual([node["code"] for node in result["nodes"]], ["C3262", "C2"])
+        self.assertEqual(result["truncation"]["bound"], "kind_budget")
+
     def test_traverse_options_shape_the_result(self, _):
         def traverse(*options):
             code, result, _ = self.run_cli("traverse", "C3262", "--max-depth", "1", *options)

@@ -26,6 +26,7 @@ from urllib.error import HTTPError
 from urllib.parse import urlencode, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
+from .bounds import current_budget
 from .errors import PlatformError, current_correlation_id
 from .upstream import parse_upstream_json
 
@@ -354,6 +355,8 @@ class HttpClient:
         raise failure
 
     def _attempt(self, request: Request, path: str, number: int) -> Any:
+        if budget := current_budget():
+            budget.request()
         attempt = _Attempt(number)
         started = time.monotonic()
         try:

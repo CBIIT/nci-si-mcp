@@ -50,7 +50,7 @@ get_concept_neighborhood:
       values: {inverseRole: inverse_role, inverseAssociation: inverse_association}
     maxNodes: max_nodes
     maxEdges: max_edges
-    budgetPerKind: null                 # no per-kind budget
+    budgetPerKind: budget_per_kind
     # No polarity: negative edges are neither marked nor withheld, so only the default
     # (false) can be served.
     includeNegative: {values: {true: null}}

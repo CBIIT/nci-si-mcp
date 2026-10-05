@@ -9,11 +9,11 @@ import re
 import sys
 from typing import Any, TextIO
 
+from .bounds import DEFAULT_MAX_DEPTH, DEFAULT_MAX_EDGES, DEFAULT_MAX_NODES
 from .config import Settings, configure_logging
 from .errors import PlatformError, correlated, is_error_record, serialise, with_next_step
 from .server import create_mcp
 from .service import NCISIService
-from .traversal import DEFAULT_MAX_DEPTH, DEFAULT_MAX_EDGES, DEFAULT_MAX_NODES
 from .validation import SEARCH_MODES, TRAVERSAL_DIRECTIONS, TRAVERSAL_EDGE_TYPES
 
 logger = logging.getLogger(__name__)
@@ -58,6 +58,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     traverse.add_argument("--max-nodes", type=int, default=DEFAULT_MAX_NODES, help="at most 1000")
     traverse.add_argument("--max-edges", type=int, default=DEFAULT_MAX_EDGES, help="at most 5000")
+    traverse.add_argument("--budget-per-kind", type=int, help="new nodes per kind, at most 1000")
     traverse.add_argument("--no-hierarchy", action="store_true")
     traverse.add_argument("--no-roles", action="store_true")
     traverse.add_argument("--no-associations", action="store_true")
@@ -116,6 +117,7 @@ def _run(service: NCISIService, args: argparse.Namespace) -> dict[str, Any]:
             max_depth=args.max_depth,
             max_nodes=args.max_nodes,
             max_edges=args.max_edges,
+            budget_per_kind=args.budget_per_kind,
             include_hierarchy=not args.no_hierarchy,
             include_roles=not args.no_roles,
             include_associations=not args.no_associations,

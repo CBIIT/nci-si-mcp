@@ -9,10 +9,10 @@ from collections.abc import Callable
 from typing import Any, cast
 
 from . import __version__
+from .bounds import DEFAULT_MAX_DEPTH, DEFAULT_MAX_EDGES, DEFAULT_MAX_NODES
 from .config import Settings, configure_logging
 from .errors import PlatformError, correlated, is_error_record, serialise
 from .service import NCISIService
-from .traversal import DEFAULT_MAX_DEPTH, DEFAULT_MAX_EDGES, DEFAULT_MAX_NODES
 from .validation import Direction, EdgeType, SearchMode
 
 INSTRUCTIONS = (
@@ -153,6 +153,7 @@ def _register_tools(
         max_depth: int = DEFAULT_MAX_DEPTH,
         max_nodes: int = DEFAULT_MAX_NODES,
         max_edges: int = DEFAULT_MAX_EDGES,
+        budget_per_kind: int | None = None,
         include_hierarchy: bool = True,
         include_roles: bool = True,
         include_associations: bool = True,
@@ -181,15 +182,25 @@ def _register_tools(
 
         Limits are clamped to depth 4, 1,000 nodes and 5,000 edges, and the
         result reports the effective `max_depth`, `max_nodes` and `max_edges`.
+        `budget_per_kind` optionally limits new nodes per relationship kind,
+        clamped to 1,000. Kinds take turns across the whole frontier at each
+        depth; starts count against the global node limit, and edges to
+        existing nodes spend no kind allowance. Mixed-kind truncation includes
+        `perKind` records. A traversal shares 200 HTTP attempts across release
+        discovery, retries and split batches. Exhaustion before any graph is
+        available returns `bound_exceeded`; otherwise it returns a partial graph
+        with `requests` truncation unless an earlier bound already dropped something.
+        An exhausted kind uses `kind_budget`. Unread kinds report a lower-bound
+        omitted count of zero with `exact: false` when their relation count is unknown.
         Nearer nodes claim the limits before farther ones. `truncation` is
         `{occurred: false}` unless something was dropped. It then names the
-        first `bound` that dropped something: `nodes` or `edges` (the limits),
-        or `upstream_cap`, when the relations or descendants of a concept
+        first `bound` that still omits something: `nodes`, `edges`, `kind_budget`,
+        `requests`, or `upstream_cap`, when the relations or descendants of a concept
         were too large for the EVS response limit to read, which raising the
         node and edge limits does not help (for descendants, a smaller
         `max_depth` can). `limit` is that bound's value, `reached` what had
-        been counted, and `omitted` how many nodes, edges or unread concepts
-        were left out; `exact` is false, since what lies beyond a dropped
+        been counted, and `omitted` a lower bound on nodes, edges or unread work
+        left out; `exact` is false, since what lies beyond a dropped
         item was never read. Stopping at `max_depth` is no truncation.
         Every edge connects two nodes of the result. Every node and edge
         carries a `provenance` record: the release of the configured channel all data is read
@@ -209,6 +220,7 @@ def _register_tools(
                 max_depth=max_depth,
                 max_nodes=max_nodes,
                 max_edges=max_edges,
+                budget_per_kind=budget_per_kind,
                 include_hierarchy=include_hierarchy,
                 include_roles=include_roles,
                 include_associations=include_associations,

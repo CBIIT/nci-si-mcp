@@ -56,7 +56,7 @@ These hold today and continue to hold:
 | `include_raw` and `live_only` are MCP tool parameters | Both are removed from the MCP surface. `include_raw` stays on the CLI for debugging; `live_only` becomes the `servedBy` field in provenance, reported rather than requested |
 | Edge types are selected independently of relationship names, but the name filter also applies to hierarchy edges, which carry the pseudo-names `is_a_parent`, `is_a_child`, `is_a_descendant`: a role-name filter drops them unless those names are listed | Edge kinds and relationship names are separate fields, and hierarchy edges carry no invented name; a filter on one never silently removes the other (A5.5) |
 | Exclusion polarity is not represented | Polarity is derived from the relationship **code** against the pinned release's catalogue, never from the label (A5.7) |
-| Traversal bounds nodes and edges, nearest first; outbound requests are not counted | The budget counts outbound requests **including retries** (A5.3), with nodes and edges as additional bounds |
+| Traversal bounds nodes and edges, nearest first | Implemented in §3.5: the budget also counts outbound requests **including retries** (A5.3), with per-kind node allowances |
 | `cadsr_status` is a stub | The caDSR module is real; the stub is deleted |
 
 
@@ -164,7 +164,9 @@ One client for all surfaces, replacing `EVSClient._get_json` and the per-module 
 
 ### 3.5 Bounds (`platform/bounds.py`)
 
-`Budget(requests, nodes, edges, perKind)` is created per tool call from caller limits clamped to documented maxima, decremented by the HTTP client (requests) and the traverser (nodes, edges, per kind), and reported in `Truncation` when any bound is reached. `clamp_limits`, `clamp_edge_limit` and the `HARD_MAX_*` constants move here from `traversal.py`; the defaults and maxima they enforce are the tools' `bounds` in `spec/tools.yaml`. Per-kind budgeting (A5.5) means the walker takes one unit from each relationship kind in rotation until a kind is exhausted, so an ordering never starves a kind.
+Implemented in `bounds.py`: the service creates one `Budget`, including depth, from caller limits clamped to the documented maxima and passes it explicitly to the walker. Its context variable is scoped and restored like the correlation context so the HTTP client uses that same instance. The HTTP client counts attempts, including release discovery, retries and split batches, against the 200-request allowance declared for hierarchy and neighborhood. Other calls have no request budget unless their specification declares one. Without graph content exhaustion returns `bound_exceeded`; with graph content it returns a partial graph. The first bound that dropped anything wins, so request exhaustion reports `requests` only when no earlier bound applies. Unknown per-kind omissions use the lower bound zero with `exact: false`.
+
+`clamp_limits`, `clamp_edge_limit` and the `HARD_MAX_*` constants now live in `bounds.py`; the defaults and maxima are the tools' `bounds` in `spec/tools.yaml`. The walker rotates relationship kinds across each breadth-first frontier. Starts count against the global node limit; a kind's optional allowance counts only new nodes it admits. Existing-node edges, duplicates and filtered edges spend no node allowance. Truncation includes per-kind records for mixed-kind walks.
 
 ### 3.6 Caching hints (`platform/caching.py`)
 
@@ -217,8 +219,7 @@ Remaining, around `Budget`:
 - Each visited node fetched **once**, its `summary` in the same batched request as its relation lists (today the walk asks for `minimal` plus the lists); the nodes of the last depth in one `minimal` batch, for their status (the node record, A8.1).
 - `kinds` filter (`parent`, `child`, `role`, `association`, `inverseRole`, `inverseAssociation`) selects edge kinds; `relationshipNames` filters within a kind; neither removes the other. The `is_a_*` pseudo-names go.
 - Every edge carries `TraversalProvenance` with polarity by code (the exclusion set in `spec/records.yaml`). Negative edges and the nodes they reach are returned, marked; with `includeNegative=false` (default) a node only negative edges reach is not followed further.
-- Per-kind rotation; truncation per kind; outbound budget includes retries.
-- Depth, node and edge limits clamped to the maxima of the tools' `bounds` (`spec/tools.yaml`) and reported; outbound requests, retries included, at most the tool's `requests` there.
+- Depth-limit truncation is still due in #18. Depth, node and edge maxima, per-kind rotation and truncation, and the outbound request budget including retries are implemented (§3.5).
 
 ### 4.4 Index (`evs/index/`)
 
@@ -389,7 +390,7 @@ The map lets the suite call today's tools under the required names, so the tests
 | `resolve_release` | `ncit_release_info` | `channel` weekly unsupported |
 | `get_concept` | `ncit_lookup` | `code`; `include` unsupported |
 | `get_concept_hierarchy` | `ncit_traverse` | `code` → `start_codes` (a list of one); `direction` → `edge_types` (`parent`, `child`; `pathsToRoot` unsupported) with `direction: both` fixed; `depth` → `max_depth`; `limit` → `max_nodes`; `cursor` unsupported |
-| `get_concept_neighborhood` | `ncit_traverse` | `code` → `start_codes`; `depth` → `max_depth`; `kinds` → `edge_types` (`inverseRole` → `inverse_role`, `inverseAssociation` → `inverse_association`) with `direction: both` fixed; `maxNodes`, `maxEdges` → `max_nodes`, `max_edges`; `budgetPerKind` and `includeNegative: true` unsupported |
+| `get_concept_neighborhood` | `ncit_traverse` | `code` → `start_codes`; `depth` → `max_depth`; `kinds` → `edge_types` (`inverseRole` → `inverse_role`, `inverseAssociation` → `inverse_association`) with `direction: both` fixed; `maxNodes`, `maxEdges` → `max_nodes`, `max_edges`; `budgetPerKind` → `budget_per_kind`; `includeNegative: true` unsupported |
 | all others | — | NOT IMPLEMENTED |
 
 `search_concepts` has no stand-in: the prototype cannot search EVS, and its index search is not exposed as the required tool. The operator's prepare step builds the index the semantic and hybrid tests need (acceptance README). A test that depends on another release than the current one fails against the prototype. An unsupported argument or value is a capability the prototype lacks; a call using it reports NOT IMPLEMENTED rather than a failure. Self-tests check every stand-in, argument and value against the prototype's `tools/list` and make one call through each entry that the prototype must accept.

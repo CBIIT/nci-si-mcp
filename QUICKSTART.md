@@ -721,13 +721,17 @@ association also its `code` and `name`; a hierarchy link has only its kind: `par
 `positive`). A node carries the provenance of the edge that first reached it.
 
 A tool that bounds its result returns `truncation`. It is `{"occurred": false}` when nothing
-was cut. Otherwise it holds `bound` (`results`, `nodes`, `edges` or `upstream_cap`), `limit`,
+was cut. Otherwise it holds `bound` (`results`, `nodes`, `edges`, `kind_budget`, `requests` or
+`upstream_cap`), `limit`,
 `reached`, `omitted` (always a number) and `exact` (false where `omitted` is a lower bound). A
 traversal reports the first bound that dropped something; it counts the concepts or edges it
 dropped, not those beyond them, so `exact` is false. `upstream_cap` is a concept whose relations
 or descendants exceeded `NCI_SI_EVS_MAX_RESPONSE_BYTES`: `omitted` counts such concepts, and the
 log names them. A search reports `results` when `limit` left scored concepts out; `exact` is true
 where every candidate was scored.
+`kind_budget` counts new nodes omitted by the first exhausted kind. `requests` counts
+unread work as a lower bound; when the number of relations left out for a kind is
+unknown, its record gives `omitted: 0` and `exact: false`.
 
 ```json
 {"occurred": true, "bound": "nodes", "limit": 3, "reached": 3, "omitted": 2, "exact": false}
@@ -748,6 +752,7 @@ Each tool description, as sent to MCP clients, states the contract in full.
 - `start_codes`
 - `direction`: `out` (child, role, association), `in` (parent, inverse role, inverse association), or `both`
 - `max_depth`, `max_nodes`, `max_edges`: clamped to 4, 1,000, and 5,000; the result reports the effective values
+- `budget_per_kind`: optional positive allowance of new nodes per relationship kind, clamped to 1,000; also available as CLI `--budget-per-kind`
 - `include_hierarchy`, `include_roles`, `include_associations`
 - `relationship_names`: keep only edges with these names; hierarchy edges are named `is_a_parent`, `is_a_child`, and `is_a_descendant`
 - `edge_types`: any of `parent`, `child`, `descendant`, `role`, `inverse_role`, `association`, `inverse_association`
@@ -767,6 +772,18 @@ edge type that the direction or the include flags exclude is an
 The walk proceeds one depth at a time over all start codes, so nearer nodes
 claim the limits first. The result's `truncation` is `{"occurred": false}`, or
 says which bound dropped something and how much (see Provenance and truncation).
+Within each depth, relationship kinds take turns across the whole frontier. Start
+nodes count against the global node limit; each kind spends its allowance only on
+new nodes. Edges to existing nodes do not spend that allowance. Mixed-kind walks
+report `perKind` truncation records when anything is dropped.
+
+Each traversal can make at most 200 HTTP attempts, including release discovery,
+retries and split batches. Exhaustion before any graph is available returns
+`bound_exceeded`; otherwise the partial graph reports the first bound that dropped
+anything, using `requests` if no earlier bound was reached. Unread kinds carry
+their own truncation record with `omitted: 0` and `exact: false` when the omitted
+relation count is unknown. An explicit kind allowance uses `kind_budget`
+truncation. These budgets are independent for concurrent calls.
 Stopping at `max_depth` is no truncation.
 
 ## MCP Resources
