@@ -92,7 +92,7 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 | `NCI_SI_EVS_RETRY_BACKOFF_SECONDS` | `0.25` | Initial exponential backoff, jittered between half and all of it; a single wait is capped at 60 seconds |
 | `NCI_SI_EVS_MAX_RESPONSE_BYTES` | `10485760` | Maximum accepted EVS response, up to 1 GiB |
 | `NCI_SI_INDEX_BATCH_SIZE` | `100` | Codes per EVS indexing request |
-| `NCI_SI_LOG_LEVEL` | `INFO` | Stderr diagnostic level |
+| `NCI_SI_LOG_LEVEL` | `INFO` | Stderr diagnostic level; per-call audit records remain enabled at every level |
 
 The six base URLs are one set. In `live` mode a base URL that is not given takes its production
 default, and one that is given replaces that default. In `fixture` mode every one of the six must be given, so a fixture
@@ -584,6 +584,26 @@ The four list methods and `server/discover` carry 86,400,000 ms and `public` as 
 fields. Resource reads carry the same fields on the read result: concept content and
 version-addressed release/index content use 86,400,000 ms and `public`. Moving release-report
 aliases, the `active` index alias, and an absent-index report use 0 and `public`.
+
+## Audit records
+
+Every tool call writes one JSON `call_completed` record to stderr, including invalid requests
+and failed calls. CLI commands and resource reads use their operation names. Stdout remains
+the MCP transport or CLI result. Diagnostic records use the same JSON format.
+
+The completion record includes the correlation identifier, timestamp, tool, safe supplied
+parameters, target, requested/resolved releases, status and response code, outbound request
+count including retries, result size, elapsed milliseconds and full truncation record. Result
+size is the UTF-8 byte length of compact JSON content, excluding MCP framing; no structured
+result means null. The result's content is not logged.
+
+Parameter audit classes are declared with the tool: identifiers, closed values and limits
+may be recorded; free text and unknown parameters are SHA-256 hashed. Hashes let operators
+correlate repeated inputs. They do **not** keep short, guessable terminology queries secret.
+Credentials and echoed credentials are redacted, even in correlation metadata. Exception
+messages and raw upstream bodies are excluded; external diagnostic messages are hashed.
+The diagnostic log level does not disable audit completion records. The platform remains the
+authority for audit, quotas and authorisation; this prototype adds no audit database.
 
 ## Errors
 

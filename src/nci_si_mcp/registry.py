@@ -8,6 +8,7 @@ from inspect import Parameter, Signature, getdoc, signature
 from typing import Any, Literal, get_args, get_origin, get_type_hints
 
 from . import content, handlers
+from .audit import AuditClass, audited, secrets
 from .caching import invocation_policy
 from .context import Context
 from .invocation import call
@@ -37,6 +38,7 @@ class ToolSpec:
     name: str | None = None
     command: str | None = None
     uri: str | None = None
+    audit: dict[str, AuditClass] = field(default_factory=dict)
     input_model: type = field(init=False)
     parameters: tuple[Parameter, ...] = field(init=False)
 
@@ -86,9 +88,29 @@ def _input_field(parameter: Parameter) -> tuple:
 
 
 SPECS = (
-    ToolSpec(content.get_concept, "evs", Concept | ErrorResult, False, name="get_concept"),
     ToolSpec(
-        content.search_concepts, "evs", ConceptSearch | ErrorResult, False, name="search_concepts"
+        content.get_concept,
+        "evs",
+        Concept | ErrorResult,
+        False,
+        name="get_concept",
+        audit={"terminology": "plain", "release": "plain", "code": "plain", "include": "plain"},
+    ),
+    ToolSpec(
+        content.search_concepts,
+        "evs",
+        ConceptSearch | ErrorResult,
+        False,
+        name="search_concepts",
+        audit={
+            "terminology": "plain",
+            "release": "plain",
+            "query": "hash",
+            "mode": "plain",
+            "limit": "plain",
+            "cursor": "hash",
+            "retired": "plain",
+        },
     ),
     ToolSpec(
         content.get_concept_hierarchy,
@@ -96,6 +118,15 @@ SPECS = (
         Hierarchy | ErrorResult,
         False,
         name="get_concept_hierarchy",
+        audit={
+            "terminology": "plain",
+            "release": "plain",
+            "code": "plain",
+            "direction": "plain",
+            "depth": "plain",
+            "limit": "plain",
+            "cursor": "hash",
+        },
     ),
     ToolSpec(
         content.get_concept_neighborhood,
@@ -103,6 +134,17 @@ SPECS = (
         Neighborhood | ErrorResult,
         False,
         name="get_concept_neighborhood",
+        audit={
+            "terminology": "plain",
+            "release": "plain",
+            "code": "plain",
+            "depth": "plain",
+            "kinds": "plain",
+            "maxNodes": "plain",
+            "maxEdges": "plain",
+            "budgetPerKind": "plain",
+            "includeNegative": "plain",
+        },
     ),
     ToolSpec(
         handlers.resolve_release,
@@ -111,6 +153,7 @@ SPECS = (
         True,
         name="resolve_release",
         command="resolve-release",
+        audit={"terminology": "plain", "channel": "plain"},
     ),
     ToolSpec(
         handlers.list_terminologies,
@@ -126,6 +169,7 @@ SPECS = (
         SearchResult | ErrorResult,
         False,
         command="search",
+        audit={"query": "hash", "limit": "plain", "mode": "plain", "include_raw": "plain"},
     ),
     ToolSpec(
         handlers.lookup,
@@ -133,6 +177,7 @@ SPECS = (
         ConceptResult | ErrorResult,
         False,
         command="lookup",
+        audit={"code": "plain", "live_only": "plain", "include_raw": "plain"},
     ),
     ToolSpec(
         handlers.traverse,
@@ -140,6 +185,19 @@ SPECS = (
         TraversalResult | ErrorResult,
         False,
         command="traverse",
+        audit={
+            "start_codes": "plain",
+            "direction": "plain",
+            "max_depth": "plain",
+            "max_nodes": "plain",
+            "max_edges": "plain",
+            "include_hierarchy": "plain",
+            "include_roles": "plain",
+            "include_associations": "plain",
+            "relationship_names": "hash",
+            "edge_types": "plain",
+            "budget_per_kind": "plain",
+        },
     ),
     ToolSpec(
         handlers.release_info,
@@ -148,7 +206,14 @@ SPECS = (
         True,
         command="release-info",
     ),
-    ToolSpec(handlers.index_codes, "evs", dict[str, Any], False, command="index-sample"),
+    ToolSpec(
+        handlers.index_codes,
+        "evs",
+        dict[str, Any],
+        False,
+        command="index-sample",
+        audit={"codes": "plain"},
+    ),
     ToolSpec(handlers.evaluate, "evs", dict[str, Any], False, command="evaluate"),
     ToolSpec(handlers.index_manifest, "evs", dict[str, Any], True),
     ToolSpec(
@@ -157,6 +222,7 @@ SPECS = (
         ConceptResult | ErrorResult,
         False,
         uri="nci-si://concept/ncit/{code}",
+        audit={"code": "plain"},
     ),
     ToolSpec(
         handlers.release_resource,
@@ -164,6 +230,7 @@ SPECS = (
         dict[str, Any],
         False,
         uri="nci-si://release/ncit/{version}",
+        audit={"version": "plain"},
     ),
     ToolSpec(
         handlers.index_resource,
@@ -171,6 +238,7 @@ SPECS = (
         dict[str, Any],
         False,
         uri="nci-si://index/ncit/{version}/manifest",
+        audit={"version": "plain"},
     ),
 )
 OPERATIONS = {spec.operation: spec for spec in SPECS}
@@ -187,7 +255,12 @@ def invoke(
         with invocation_policy(resolution=spec.resolution):
             return spec.handler(context, **spec.arguments(args, kwargs))
 
-    return call(operation, produce, correlation_id=_correlation_id)
+    arguments = dict(zip((p.name for p in spec.parameters), args, strict=False)) | kwargs
+    hidden = secrets(context.settings.evs_license_key, context.settings.cadsr_credential)
+    with audited(spec.name or operation, arguments, spec.audit, hidden, _correlation_id) as record:
+        result = call(operation, produce, correlation_id=_correlation_id)
+        record.result = result
+        return result
 
 
 # CLI spellings differ from the shared handler fields only in these legacy flags.

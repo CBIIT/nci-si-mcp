@@ -1,3 +1,4 @@
+import json
 import unittest
 from unittest.mock import patch
 
@@ -24,6 +25,11 @@ from nci_si_mcp.traversal import (
     traverse_ncit,
 )
 from nci_si_mcp.validation import TRAVERSAL_EDGE_TYPES
+
+
+def json_logs(logs, event=None):
+    records = [json.loads(record.getMessage()) for record in logs.records]
+    return [record for record in records if event is None or record["event"] == event]
 
 
 def child(code):
@@ -668,7 +674,8 @@ class TraversalTest(unittest.TestCase):
         self.assertEqual(pairs(result), [("C1", "C11")])
         self.assertTrue(result.truncation.occurred)
         self.assertEqual((result.truncation.bound, result.truncation.omitted), ("upstream_cap", 1))
-        self.assertIn("code=C1 reason=too large", logs.output[-1])
+        warning = json.loads(logs.records[-1].getMessage())
+        self.assertEqual((warning["code"], warning["errorType"]), ("C1", "UpstreamTooLargeError"))
 
     def test_every_oversized_concept_of_a_batch_is_reported(self):
         client = HubEVS(
@@ -738,7 +745,9 @@ class TraversalTest(unittest.TestCase):
 
         self.assertEqual((result.truncation.bound, result.truncation.omitted), ("upstream_cap", 1))
         self.assertEqual(pairs(result), [])
-        self.assertIn("reason=too large", logs.output[-1])
+        self.assertEqual(
+            json.loads(logs.records[-1].getMessage())["errorType"], "UpstreamTooLargeError"
+        )
 
     def test_a_relation_without_a_target_code_is_an_invalid_response(self):
         # A role item carries the code of its relationship, which is not a target.
@@ -815,10 +824,12 @@ class TraversalTest(unittest.TestCase):
         # One request for C1, then 8 -> 4 + 4 -> 2 + 2 -> 1 + 1, and the minimal re-read of C17.
         self.assertEqual([len(call[2]) for call in client.calls], [1, 8, 4, 4, 2, 2, 1, 1, 1])
         self.assertEqual((result.truncation.bound, result.truncation.omitted), ("upstream_cap", 1))
-        too_large = [line for line in logs.output if "traverse_batch_too_large" in line]
+        too_large = json_logs(logs, "traverse_batch_too_large")
         self.assertEqual(len(too_large), 4)
-        self.assertIn("concepts=8 reason=too large", too_large[0])
-        self.assertIn("traverse_relations_too_large codes=C17", logs.output[-1])
+        self.assertEqual([record["concepts"] for record in too_large], [8, 4, 2, 1])
+        warning = json.loads(logs.records[-1].getMessage())
+        self.assertEqual(warning["event"], "traverse_relations_too_large")
+        self.assertEqual(warning["codes"], ["C17"])
 
     def test_outward_walks_fetch_fifty_concepts_per_request(self):
         children = [f"C{number}" for number in range(100, 151)]
@@ -926,14 +937,11 @@ class TraversalTest(unittest.TestCase):
         with self.assertLogs("nci_si_mcp.traversal", level="WARNING") as logs:
             walk(complete_graph(client), max_depth=2)
 
-        for code in ("C2", "C4"):
-            self.assertTrue(
-                any(
-                    f"traverse_relations_too_large codes={code} limit=NCI_SI_EVS_MAX_RESPONSE_BYTES"
-                    in line
-                    for line in logs.output
-                )
-            )
+        warnings = json_logs(logs)
+        self.assertEqual({code for record in warnings for code in record["codes"]}, {"C2", "C4"})
+        self.assertTrue(
+            all(record["bound"] == "NCI_SI_EVS_MAX_RESPONSE_BYTES" for record in warnings)
+        )
 
 
 if __name__ == "__main__":

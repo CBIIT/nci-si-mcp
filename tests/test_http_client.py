@@ -469,9 +469,13 @@ class HookTest(ServerTestCase):
 
         self.assertEqual(result, {"ok": True})
         self.assertEqual(len(server.seen), 3)
-        lines = [line for line in logs.output if "hook_failed" in line]
+        lines = [
+            json.loads(record.getMessage())
+            for record in logs.records
+            if "hook_failed" in record.getMessage()
+        ]
         self.assertEqual(len(lines), 3)
-        self.assertTrue(all(line.endswith("error_type=RuntimeError") for line in lines))
+        self.assertEqual([line["errorType"] for line in lines], ["RuntimeError"] * 3)
         self.assertNotIn(KEY, "\n".join(logs.output))
 
     def test_a_hook_that_raises_does_not_replace_the_error_of_a_failing_call(self):
@@ -539,11 +543,17 @@ class CredentialsStayOutTest(ServerTestCase):
         with self.assertLogs("nci_si_mcp", level="DEBUG") as logs:
             error = self.failure(client)
 
-        warnings = [line for line in logs.output if line.startswith("WARNING")]
+        warnings = [
+            json.loads(record.getMessage())
+            for record in logs.records
+            if record.levelname == "WARNING"
+        ]
         self.assertEqual(len(warnings), 2)
         for line in warnings:
-            self.assertIn("surface=evs", line)
-            self.assertRegex(line, r"attempt=[12] max_attempts=3 delay_seconds=")
+            self.assertEqual(line["surface"], "evs")
+            self.assertIn(line["attempt"], (1, 2))
+            self.assertEqual(line["maxAttempts"], 3)
+            self.assertGreater(line["delayMs"], 0)
         everything = [str(error), repr(error.details), repr(records), *logs.output]
         self.assertEqual([text for text in everything if KEY in text], [])
         self.assertIn("Busy [redacted]", str(error))

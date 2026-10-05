@@ -15,6 +15,7 @@ from functools import lru_cache
 from itertools import batched
 from pathlib import Path
 
+from .audit import emit
 from .embeddings import EmbeddingProvider
 from .errors import (
     IndexBuildError,
@@ -456,7 +457,7 @@ class LocalIndex:
             _backfill_search_tables(conn, version)
             conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         if dropped:
-            logger.warning("index_migration_dropped_releases releases=%s", ",".join(dropped))
+            emit(logger, logging.WARNING, "index_migration_dropped_releases", releases=dropped)
 
     @staticmethod
     def _active_manifest(conn: sqlite3.Connection) -> IndexManifest | None:
@@ -529,8 +530,12 @@ class LocalIndex:
         for table in ("concepts", "concepts_fts", "vector_lsh"):
             conn.execute(f"DELETE FROM {table}")  # noqa: S608
         if active:
-            logger.info(
-                "index_release_replaced previous=%s new=%s", active.release_version, release_version
+            emit(
+                logger,
+                logging.INFO,
+                "index_release_replaced",
+                previous=active.release_version,
+                release=release_version,
             )
 
     def _activate(

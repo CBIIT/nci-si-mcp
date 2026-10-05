@@ -9,6 +9,7 @@ from inspect import Parameter, Signature
 from typing import Annotated, Any
 
 from . import __version__
+from .audit import audited, compact, hashed, secrets
 from .caching import LONG_TTL_MS, cache_call, cache_hint
 from .config import Settings, configure_logging
 from .context import Context
@@ -62,7 +63,11 @@ def create_mcp(settings: Settings | None = None, *, context: Context | None = No
             ),
             CacheHint(ttl_ms=LONG_TTL_MS, scope="public"),
         ),
-        middleware=[_cache_results, _validate_inputs(resolved_settings.profile)],
+        middleware=[
+            _cache_results,
+            _audit_tools(context, resolved_settings.profile),
+            _validate_inputs(resolved_settings.profile),
+        ],
     )
 
     def tool_call(spec: ToolSpec, arguments: dict[str, Any]) -> Any:
@@ -123,6 +128,31 @@ def _callback(
     callback.__dict__["__signature__"] = Signature(parameters, return_annotation=output_type)
     callback.__annotations__ = {p.name: p.annotation for p in parameters} | {"return": output_type}
     return callback
+
+
+def _audit_tools(context: Context, profile: str) -> Callable[..., Any]:
+    specs = {spec.name: spec for spec in SPECS if spec.name and spec.visible_in(profile)}
+    hidden = secrets(context.settings.evs_license_key, context.settings.cadsr_credential)
+
+    async def record_call(ctx: Any, call_next: Callable[[Any], Awaitable[Any]]) -> Any:
+        if ctx.method != "tools/call":
+            return await call_next(ctx)
+        params = ctx.params or {}
+        name = params.get("name", "")
+        spec = specs.get(name)
+        arguments = params.get("arguments", {})
+        with audited(
+            name if spec else compact(hashed(name)),
+            arguments if isinstance(arguments, dict) else {"arguments": arguments},
+            spec.audit if spec else {},
+            hidden,
+            (ctx.meta or {}).get("correlationId"),
+        ) as record:
+            result = await call_next(ctx)
+            record.result = result.get("structuredContent")
+            return result
+
+    return record_call
 
 
 def _validate_inputs(profile: str) -> Callable[..., Any]:

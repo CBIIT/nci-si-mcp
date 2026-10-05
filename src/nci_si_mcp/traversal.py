@@ -12,6 +12,7 @@ from dataclasses import dataclass, field, replace
 from itertools import batched, zip_longest
 from typing import Any
 
+from .audit import emit
 from .bounds import (
     Budget,
     RequestBudgetError,
@@ -149,7 +150,13 @@ def _fetch_batch(
         )
         return
     except UpstreamTooLargeError as exc:
-        logger.info("traverse_batch_too_large concepts=%s reason=%s", len(batch), exc)
+        emit(
+            logger,
+            logging.INFO,
+            "traverse_batch_too_large",
+            concepts=len(batch),
+            errorType=type(exc).__name__,
+        )
         if len(batch) == 1:
             # Relations are already lost even if the minimal fallback cannot be sent.
             yield [], list(batch), []
@@ -482,9 +489,12 @@ class _Walk:
             raise _missing_concepts(self.release, missing, depth)
         if oversized:
             # Their relation lists are absent, so no depth claim is made from them.
-            logger.warning(
-                "traverse_relations_too_large codes=%s limit=NCI_SI_EVS_MAX_RESPONSE_BYTES",
-                ",".join(oversized),
+            emit(
+                logger,
+                logging.WARNING,
+                "traverse_relations_too_large",
+                codes=oversized,
+                bound="NCI_SI_EVS_MAX_RESPONSE_BYTES",
             )
             self._mark_unexpanded(oversized, kinds)
         if depth == self.budget.depth:
@@ -527,7 +537,13 @@ class _Walk:
                     code, self.budget.depth, terminology=self.release.pinned_terminology
                 )
             except UpstreamTooLargeError as exc:
-                logger.warning("traverse_descendants_too_large code=%s reason=%s", code, exc)
+                emit(
+                    logger,
+                    logging.WARNING,
+                    "traverse_descendants_too_large",
+                    code=code,
+                    errorType=type(exc).__name__,
+                )
                 self._mark_unexpanded([code], ["descendant"])
                 continue
             except RequestBudgetError:
