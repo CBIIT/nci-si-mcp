@@ -281,7 +281,14 @@ SPECS = (
         command="index-sample",
         audit={"codes": "plain"},
     ),
-    ToolSpec(handlers.evaluate, "evs", dict[str, Any], False, command="evaluate"),
+    ToolSpec(
+        handlers.evaluate,
+        "evs",
+        dict[str, Any],
+        False,
+        command="evaluate",
+        audit={"build_id": "plain"},
+    ),
     ToolSpec(handlers.index_build, "evs", dict[str, Any], False, command="index-build"),
     ToolSpec(handlers.index_builds, "evs", dict[str, Any], False, command="index-builds"),
     ToolSpec(

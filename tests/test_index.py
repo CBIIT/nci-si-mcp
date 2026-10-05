@@ -15,6 +15,8 @@ from nci_si_mcp.errors import (
     NoActiveIndexError,
     PlatformError,
 )
+from nci_si_mcp.evaluation import evaluate_build
+from nci_si_mcp.evaluation_sets import EvaluationSet, GoldQuery, MetricFloor
 from nci_si_mcp.evs import normalize_concept
 from nci_si_mcp.index import SCHEMA_VERSION, LocalIndex
 
@@ -289,6 +291,20 @@ class UpsertTest(IndexTestCase):
 
 
 class StorageTest(IndexTestCase):
+    def test_new_files_use_large_pages_and_existing_files_keep_their_layout(self):
+        index = self.build()
+        with index._connect() as conn:
+            self.assertEqual(conn.execute("PRAGMA page_size").fetchone()[0], 65536)
+            conn.execute("PRAGMA journal_mode=DELETE")
+            conn.execute("PRAGMA page_size=4096")
+            conn.execute("VACUUM")
+            conn.execute("PRAGMA journal_mode=WAL")
+        reopened = LocalIndex(self.path)
+        with reopened._connect() as conn:
+            self.assertEqual(conn.execute("PRAGMA page_size").fetchone()[0], 4096)
+        self.assertEqual(reopened.get_concept("C3262").preferred_name, "Neoplasm")
+        self.assertEqual(reopened.search("Neoplasm", self.provider)[0].concept.code, "C3262")
+
     def test_unusable_database_is_a_storage_error_naming_the_file(self):
         index = self.build()
         index.db_path.write_bytes(b"not a database" * 100)
@@ -466,6 +482,20 @@ class MigrationTest(IndexTestCase):
             self.assertIn("index-rebuild", str(raised.exception))
         rebuilt = index.rebuild(manifest.build_id, self.provider)
         self.assertEqual(index.get_active_manifest(), manifest)
+        with self.assertRaisesRegex(IndexBuildError, "unclassified"):
+            index.activate(rebuilt.build_id)
+        dataset = EvaluationSet(
+            "test-only-legacy-rebuild",
+            (GoldQuery(RAW_CONCEPTS[0]["name"], ("C40704",)),),
+            MetricFloor(1, 1),
+            MetricFloor(1, 1),
+            self.provider.name,
+            self.provider.model,
+            128,
+            "26.06e",
+            True,
+        )
+        evaluate_build(index, self.provider, dataset, rebuilt.build_id)
         index.activate(rebuilt.build_id)
         hit = index.search("kinase", self.provider)[0]
         self.assertEqual(hit.concept.code, "C40704")

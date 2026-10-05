@@ -107,7 +107,8 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 | `traversal.py` | Resolves which edge types to follow and performs a breadth-first traversal of hierarchy, role, and association relations with deduplication and hard depth/node/edge limits, and gives each node and edge its traversal provenance and the walk its truncation record. | EVS client, shared models |
 | `models.py` | Defines the serializable concept, index, search-hit and traversal dataclasses, and the provenance, traversal provenance and truncation records every result is built from. | `errors.py` |
 | `results.py` | Declares the serialized tool records as dependency-free TypedDicts, including optional wire keys and recursive truncation. Registry output declarations combine each success record with the shared error result; the MCP SDK generates their output schemas through a RootModel, preserving the top-level object. | `errors.py`, `validation.py` |
-| `evaluation.py` | Evaluates BM25, vector, and hybrid retrieval against a small built-in gold-query set. | Local index, embedding provider |
+| `evaluation.py` | Reports per-query rankings and Hit@1, Hit@5 and reciprocal-rank metrics for BM25, vector and hybrid search; evaluates inactive candidates and stores build-specific gate evidence. | Local index, embedding provider, evaluation sets |
+| `evaluation_sets.py` | Validates versioned judgments, calibration identity and measured regression floors; distinguishes test-only calibration. | Standard library |
 | `config.py` | Loads the profile, the upstream mode and the six upstream base URLs (taken as a set: production defaults in live mode, all required in fixture mode), release channel, exclusion role codes, the two credentials (kept out of every string form), timeouts, EVS retry, batching, logging, data-directory and embedding settings from environment variables and validates them; whether the data directory is usable shows only when the index is opened. | Environment, `embeddings.py`, `validation.py` |
 | `validation.py` | Defines the closed value sets (search modes, directions, edge types), normalizes NCIt codes, and validates search and traversal inputs. | Shared errors, limits in `bounds.py` |
 | `errors.py` | Defines the validation and index errors, `PlatformError` with the ten error codes of the specification, the per-call correlation identifier, and `serialise`, the one function that builds the error record. | Python standard library |
@@ -330,10 +331,15 @@ Schema 6 retains completed build snapshots. One partial unique index permits onl
 manifest. Each build has its own FTS5 table, keyed by field id, so inactive builds cannot change
 the active BM25 corpus statistics. Activation retains exactly the new active snapshot and
 its predecessor. Embedding runs outside transactions; bounded writes accumulate under a `building` row.
-Only a final completion transaction makes it eligible for activation. The next build start
+Only a final completion transaction makes it eligible for evaluation. Production activation
+also requires a passing report bound to that build, release and embedding configuration;
+samples are exempt. Rebuilt unclassified snapshots become production builds, while their
+originals remain available for rollback. The next build start
 removes stale rows, while a separate SQLite lease protects concurrently running builders.
 Field vectors are grouped per concept, with their kinds and positions linking them to FTS.
 The manifest supplies the dimension; malformed BLOB lengths are storage failures.
+New SQLite files use 64 KiB pages to reduce overflow-page I/O for vector scans. Existing files
+keep their page size; conversion requires an explicit offline `VACUUM` as described in QUICKSTART.
 
 Schema-5 migration preserves raw concepts, manifests, activation, FTS ids and retirement status,
 converting its JSON vectors to float32 without embedding again. Earlier-schema migration

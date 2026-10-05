@@ -14,6 +14,7 @@ from dataclasses import replace
 from itertools import batched, chain, groupby
 from pathlib import Path
 from tempfile import TemporaryFile
+from typing import Any, Literal
 from uuid import uuid4
 
 from .audit import emit
@@ -21,6 +22,7 @@ from .embeddings import EmbeddingProvider
 from .errors import (
     IndexBuildError,
     IndexCompatibilityError,
+    IndexEvaluationError,
     IndexStorageError,
     NoActiveIndexError,
     PlatformError,
@@ -244,6 +246,9 @@ class LocalIndex:
         with self._connect() as conn:
             if self._schema_current(conn):
                 return
+            if conn.execute("PRAGMA page_count").fetchone()[0] == 0:
+                # Larger pages avoid overflow-page reads for per-concept vector BLOBs.
+                conn.execute("PRAGMA page_size = 65536")
             conn.execute("PRAGMA journal_mode = WAL")
             conn.execute("BEGIN IMMEDIATE")
             # Another opener may have migrated while this one waited for the lock.
@@ -286,12 +291,44 @@ class LocalIndex:
                 )
             ]
 
+    def evaluation_inputs(
+        self, build_id: str, expected_codes: set[str]
+    ) -> tuple[IndexManifest, list[str]]:
+        """Read the candidate identity and missing judgments from one database snapshot."""
+        with self._connect() as conn:
+            conn.execute("BEGIN")
+            manifest = _completed_manifest(conn, build_id)
+            present = _concept_payloads(conn, build_id, sorted(expected_codes))
+            return manifest, sorted(expected_codes - present.keys())
+
+    def record_evaluation(self, build_id: str, report: dict[str, Any]) -> IndexManifest:
+        """Persist an evaluation only while the same immutable candidate still exists."""
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            manifest = _completed_manifest(conn, build_id)
+            identity = evaluation_identity(manifest)
+            if any(report.get(key) != value for key, value in identity.items()):
+                raise IndexBuildError("Evaluation identity does not match the candidate build")
+            updated = replace(
+                manifest,
+                evaluation_version=report["evaluation_version"],
+                evaluation_score=report["evaluation_score"],
+                evaluation_report=report,
+            )
+            conn.execute(
+                "UPDATE manifests SET payload = ? WHERE build_id = ?",
+                (json.dumps(updated.to_dict()), build_id),
+            )
+            return updated
+
     def build(
         self,
         raw_concepts: Iterable[dict[str, object]],
         release_date: str | None,
         embedding_provider: EmbeddingProvider,
         expected_release_version: str | None = None,
+        *,
+        build_kind: Literal["sample", "production"] = "sample",
     ) -> IndexManifest:
         """Embed outside transactions; interrupted builds stay hidden until cleaned."""
         concepts = (normalize_concept(raw, release_date, "active_cache") for raw in raw_concepts)
@@ -304,7 +341,11 @@ class LocalIndex:
                 "Concept payload release did not match the selected release"
             )
         return self._build_stream(
-            chain([first], concepts), release_date, embedding_provider, release
+            chain([first], concepts),
+            release_date,
+            embedding_provider,
+            release,
+            build_kind=build_kind,
         )
 
     def _build_stream(
@@ -314,6 +355,9 @@ class LocalIndex:
         provider: EmbeddingProvider,
         release: str,
         compatible: IndexManifest | None = None,
+        *,
+        build_kind: Literal["legacy", "sample", "production"] = "sample",
+        unclassified_source_build: str | None = None,
     ) -> IndexManifest:
         build_id = uuid4().hex
         manifest = IndexManifest(
@@ -326,6 +370,8 @@ class LocalIndex:
             built_at=utc_now_iso(),
             index_path=str(self.db_path),
             build_id=build_id,
+            build_kind=build_kind,
+            unclassified_source_build=unclassified_source_build,
         )
         with build_lease(self.data_dir, build_id):
             self._start_build(manifest)
@@ -393,6 +439,7 @@ class LocalIndex:
                 "Unknown completed build; list available builds with index-builds"
             )
         manifest = LocalIndex._manifest(row)
+        _require_evaluated(manifest)
         if manifest.active:
             return manifest
         previous = conn.execute("SELECT build_id FROM manifests WHERE active = 1").fetchone()
@@ -434,7 +481,16 @@ class LocalIndex:
                     spool.write(item[0] + "\n")
             spool.seek(0)
             concepts = (NcitConcept(**json.loads(line)) for line in spool)
-            return self._build_stream(concepts, old.release_date, provider, old.release_version)
+            return self._build_stream(
+                concepts,
+                old.release_date,
+                provider,
+                old.release_version,
+                build_kind="sample" if old.build_kind == "sample" else "production",
+                unclassified_source_build=(
+                    old.build_id if old.build_kind not in {"sample", "production"} else None
+                ),
+            )
 
     def upsert_concepts(
         self,
@@ -453,6 +509,11 @@ class LocalIndex:
         with self._connect() as conn:
             conn.execute("BEGIN")
             active = _stored_dimensions(conn, self._active_manifest(conn))
+            if active and active.build_kind != "sample":
+                raise IndexEvaluationError(
+                    f"Sample updates cannot modify {active.build_kind} build {active.build_id}; "
+                    "recreate the sample with index-sample in a separate data directory"
+                )
             combined = self._sample_concepts(conn, active, concepts, embedding_provider, release)
         compatible = active if active and active.release_version == release else None
         built = self._build_stream(combined, release_date, embedding_provider, release, compatible)
@@ -562,22 +623,28 @@ class LocalIndex:
                 conn, embedding_provider, build_id, requested_release
             )
             require_index_release(manifest, requested_release)
-            vector = _query_vector(embedding_provider, manifest, query) if mode != "bm25" else None
-            ranked, total = rank_page(
-                conn, manifest, query, vector, mode, offset, limit, retired_status
+            hits, total = _ranked_page(
+                conn, manifest, embedding_provider, query, limit, mode, offset, retired_status
             )
-            payloads = _concept_payloads(conn, manifest.build_id, [code for code, _ in ranked])
-            hits = [
-                SearchHit(
-                    concept=payloads[code],
-                    score=field.score,
-                    rank=offset + number,
-                    score_components={"bm25": field.bm25, "vector": field.vector},
-                    matched_on=field.kind,
-                )
-                for number, (code, field) in enumerate(ranked, 1)
-            ]
             return hits, total, manifest
+
+    def search_build(
+        self,
+        build_id: str,
+        query: str,
+        provider: EmbeddingProvider,
+        limit: int = 10,
+        mode: str = "hybrid",
+    ) -> tuple[list[SearchHit], IndexManifest]:
+        """Evaluate a completed candidate without changing activation or rollback state."""
+        query, limit, mode = validate_search(query, limit, mode, maximum=MAX_INDEX_SEARCH_LIMIT)
+        with self._connect() as conn:
+            conn.execute("PRAGMA temp_store = FILE")
+            conn.execute("BEGIN")
+            manifest = _completed_manifest(conn, build_id)
+            _require_searchable(manifest, provider)
+            hits, _ = _ranked_page(conn, manifest, provider, query, limit, mode)
+            return hits, manifest
 
     def _searchable_manifest(
         self,
@@ -596,17 +663,97 @@ class LocalIndex:
                 cursorRelease=requested_release or manifest.release_version,
                 currentRelease=manifest.release_version,
             )
-        if manifest.needs_rebuild:
-            raise PlatformError(
-                "capability_unavailable",
-                "Run index-rebuild with this build id, then index-activate, "
-                "to enable field search.",
-            )
-        if not manifest.embedding_matches(provider.name, provider.model):
-            raise IndexCompatibilityError(
-                "Active index embedding provider/model does not match runtime configuration"
-            )
+        _require_searchable(manifest, provider)
         return manifest
+
+
+def _require_searchable(manifest: IndexManifest, provider: EmbeddingProvider) -> None:
+    if manifest.needs_rebuild:
+        raise PlatformError(
+            "capability_unavailable",
+            "Run index-rebuild with this build id, then index-activate, to enable field search.",
+        )
+    if not manifest.embedding_matches(provider.name, provider.model):
+        raise IndexCompatibilityError(
+            "Index embedding provider/model does not match runtime configuration"
+        )
+
+
+def evaluation_identity(manifest: IndexManifest) -> dict[str, Any]:
+    return {
+        "build_id": manifest.build_id,
+        "release": manifest.release_version,
+        "embedding_provider": manifest.embedding_provider,
+        "embedding_model": manifest.embedding_model,
+        "embedding_dimensions": manifest.embedding_dimensions,
+        "concept_count": manifest.concept_count,
+    }
+
+
+def _completed_manifest(conn: sqlite3.Connection, build_id: str) -> IndexManifest:
+    row = conn.execute(
+        "SELECT payload, active FROM manifests WHERE build_id = ? AND state = 'complete'",
+        (build_id,),
+    ).fetchone()
+    if row is None:
+        raise IndexEvaluationError("Evaluation build is unavailable; list completed builds")
+    return LocalIndex._manifest(row)
+
+
+def _require_evaluated(manifest: IndexManifest) -> None:
+    if manifest.build_kind in {"sample", "legacy"}:
+        return
+    if manifest.build_kind != "production":
+        raise IndexEvaluationError(
+            f"Build {manifest.build_id} has an unknown classification; rebuild and evaluate it"
+        )
+    if not _has_passing_evaluation(manifest):
+        raise IndexEvaluationError(
+            "Production activation requires a passing evaluation. " + evaluation_next_step(manifest)
+        )
+
+
+def _has_passing_evaluation(manifest: IndexManifest) -> bool:
+    report = manifest.evaluation_report or {}
+    expected = evaluation_identity(manifest) | {"evaluation_version": manifest.evaluation_version}
+    identity_matches = all(report.get(key) == value for key, value in expected.items())
+    return report.get("passed") is True and bool(manifest.evaluation_version) and identity_matches
+
+
+def evaluation_next_step(manifest: IndexManifest) -> str:
+    if manifest.unclassified_source_build:
+        return (
+            f"Snapshot {manifest.unclassified_source_build} is unclassified. "
+            f"Evaluate rebuild {manifest.build_id}, or recreate it with index-sample "
+            "in a separate data directory."
+        )
+    return f"Evaluate build {manifest.build_id} with a matching calibration before activation."
+
+
+def _ranked_page(
+    conn: sqlite3.Connection,
+    manifest: IndexManifest,
+    embedding_provider: EmbeddingProvider,
+    query: str,
+    limit: int,
+    mode: str,
+    offset: int = 0,
+    retired_status: str | None = None,
+) -> tuple[list[SearchHit], int]:
+    vector = _query_vector(embedding_provider, manifest, query) if mode != "bm25" else None
+    ranked, total = rank_page(conn, manifest, query, vector, mode, offset, limit, retired_status)
+    payloads = _concept_payloads(conn, manifest.build_id, [code for code, _ in ranked])
+    hits = [
+        SearchHit(
+            concept=payloads[code],
+            score=field.score,
+            rank=offset + number,
+            score_components={"bm25": field.bm25, "vector": field.vector},
+            matched_on=field.kind,
+        )
+        for number, (code, field) in enumerate(ranked, 1)
+    ]
+    return hits, total
 
 
 def _stored_dimensions(

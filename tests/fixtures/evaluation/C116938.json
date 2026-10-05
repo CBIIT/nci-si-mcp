@@ -1,0 +1,41 @@
+{
+  "source_uri": "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit_26.09d/C116938?include=minimal,synonyms,definitions",
+  "body": {
+    "code": "C116938",
+    "name": "CDK4/6 Inhibition",
+    "terminology": "ncit",
+    "version": "26.09d",
+    "conceptStatus": "DEFAULT",
+    "leaf": true,
+    "active": true,
+    "synonyms": [
+      {
+        "name": "CDK4/6 Inhibition",
+        "termType": "PT",
+        "type": "FULL_SYN",
+        "typeCode": "P90",
+        "source": "NCI"
+      },
+      {
+        "name": "Cyclin-Dependent Kinases 4 and 6 Inhibition",
+        "termType": "SY",
+        "type": "FULL_SYN",
+        "typeCode": "P90",
+        "source": "NCI"
+      },
+      {
+        "name": "CDK4/6 Inhibition",
+        "type": "Preferred_Name",
+        "typeCode": "P108"
+      }
+    ],
+    "definitions": [
+      {
+        "definition": "Inhibition of cyclin-dependent kinases 4 and 6 pathway activity to prevent proliferation of cancer cells and tumor growth.",
+        "code": "P97",
+        "type": "DEFINITION",
+        "source": "NCI"
+      }
+    ]
+  }
+}

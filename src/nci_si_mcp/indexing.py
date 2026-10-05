@@ -32,6 +32,7 @@ def full_build(context: Context, release: ReleaseContext) -> IndexManifest:
             release.date,
             context.embedding_provider,
             expected_release_version=release.version,
+            build_kind="production",
         )
 
 

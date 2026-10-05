@@ -1,0 +1,1008 @@
+{
+  "status": "engineering calibration pending NCI SME validation",
+  "model_revision": "090663c3ae57bf35ffe4d0d468a2a88d03051a4d",
+  "build": {
+    "manifest": {
+      "terminology": "ncit",
+      "release_version": "26.09d",
+      "release_date": "2026-09-28",
+      "embedding_provider": "sentence-transformers",
+      "embedding_model": "cambridgeltl/SapBERT-from-PubMedBERT-fulltext",
+      "concept_count": 213524,
+      "built_at": "2026-10-05T22:41:56.545673Z",
+      "embedding_dimensions": 768,
+      "active": false,
+      "build_id": "ca1181ea3e4e400cb80ed2ea70be8e52",
+      "needs_rebuild": false,
+      "evaluation_version": null,
+      "evaluation_score": null,
+      "build_kind": "legacy",
+      "evaluation_report": null,
+      "unclassified_source_build": null
+    },
+    "fields": 928520,
+    "fields_per_concept": 4.348550982559337,
+    "min_fields_per_concept": 1,
+    "max_fields_per_concept": 89,
+    "vector_bytes": 2852413440,
+    "database_bytes": 4192129024,
+    "build_seconds": 3295.5892939567566,
+    "source_sha256": {
+      "src/nci_si_mcp/index.py": "db17ce3c328659deccb9991dfde83d39a95dd0877dc83a68b601c662fb0e1194",
+      "src/nci_si_mcp/index_scoring.py": "95d1f301889e9391ec57e9b080e6e462d432c1787f8b31597192d9c88c9edf5a",
+      "src/nci_si_mcp/evaluation.py": "fde9e4baea5c9c4d69209890a2cd58409b4d9c1a32acf32a73db998deb88be74"
+    }
+  },
+  "results": [
+    {
+      "mode": "bm25",
+      "query_count": 12,
+      "hit_at_1": 0.9166666666666666,
+      "hit_at_5": 1.0,
+      "mean_reciprocal_rank": 0.9375,
+      "limit": 10,
+      "per_query": [
+        {
+          "query": "kinase inhibition",
+          "category": "furnished",
+          "expected_codes": [
+            "C40704",
+            "C116938"
+          ],
+          "ranked_codes": [
+            "C40704",
+            "C153397",
+            "C69145",
+            "C117963",
+            "C42791",
+            "C116939",
+            "C15486",
+            "C15525",
+            "C15568",
+            "C15780"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "tumor",
+          "category": "furnished",
+          "expected_codes": [
+            "C3262"
+          ],
+          "ranked_codes": [
+            "C159210",
+            "C177519",
+            "C18009",
+            "C3262",
+            "C98275",
+            "C158768",
+            "C158772",
+            "C177394",
+            "C48383",
+            "C48814"
+          ],
+          "first_expected_rank": 4
+        },
+        {
+          "query": "neoplasm",
+          "category": "furnished",
+          "expected_codes": [
+            "C3262"
+          ],
+          "ranked_codes": [
+            "C3262",
+            "C164184",
+            "C6283",
+            "C88025",
+            "C102883",
+            "C103012",
+            "C103013",
+            "C103015",
+            "C103016",
+            "C103017"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Ewing Sarcoma",
+          "category": "preferred-name",
+          "expected_codes": [
+            "C4817"
+          ],
+          "ranked_codes": [
+            "C4817",
+            "C103038",
+            "C132849",
+            "C142853",
+            "C159208",
+            "C172634",
+            "C173175",
+            "C174456",
+            "C178459",
+            "C181977"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Disease or Disorder",
+          "category": "preferred-name",
+          "expected_codes": [
+            "C2991"
+          ],
+          "ranked_codes": [
+            "C2991",
+            "C7057",
+            "C89328",
+            "C62601",
+            "C35760",
+            "C18020",
+            "C26951",
+            "C2959",
+            "C171956",
+            "C213836"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Anemia",
+          "category": "preferred-name",
+          "expected_codes": [
+            "C2869"
+          ],
+          "ranked_codes": [
+            "C2869",
+            "C143283",
+            "C129699",
+            "C197938",
+            "C197967",
+            "C220794",
+            "C220801",
+            "C27947",
+            "C2870",
+            "C2871"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Fever",
+          "category": "preferred-name",
+          "expected_codes": [
+            "C3038"
+          ],
+          "ranked_codes": [
+            "C3038",
+            "C143485",
+            "C104929",
+            "C114374",
+            "C114405",
+            "C128335",
+            "C128418",
+            "C154941",
+            "C173825",
+            "C176080"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "CDK4/6 Inhibition",
+          "category": "preferred-name",
+          "expected_codes": [
+            "C116938"
+          ],
+          "ranked_codes": [
+            "C116938",
+            "C125899",
+            "C138165",
+            "C171344",
+            "C174417",
+            "C175968",
+            "C176509",
+            "C190861",
+            "C192804",
+            "C200556"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Ewing tumor",
+          "category": "synonym",
+          "expected_codes": [
+            "C4817"
+          ],
+          "ranked_codes": [
+            "C4817",
+            "C121799",
+            "C174456",
+            "C4835",
+            "C7135",
+            "C7806",
+            "C9341",
+            "C174261",
+            "C27291",
+            "C153286"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Decreased blood erythrocyte volume",
+          "category": "synonym",
+          "expected_codes": [
+            "C2869"
+          ],
+          "ranked_codes": [
+            "C2869",
+            "C64796",
+            "C12521",
+            "C23455",
+            "C64799",
+            "C35141",
+            "C143494",
+            "C221322",
+            "C50524",
+            "C137835"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Pyrexia",
+          "category": "synonym",
+          "expected_codes": [
+            "C3038"
+          ],
+          "ranked_codes": [
+            "C3038",
+            "C114374",
+            "C114405",
+            "C35367",
+            "C35662"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Tyrosine Kinase Receptor Inhibition",
+          "category": "synonym",
+          "expected_codes": [
+            "C40704"
+          ],
+          "ranked_codes": [
+            "C40704",
+            "C17660",
+            "C28558",
+            "C120406",
+            "C141240",
+            "C156028",
+            "C156029",
+            "C165943",
+            "C17495",
+            "C18509"
+          ],
+          "first_expected_rank": 1
+        }
+      ]
+    },
+    {
+      "mode": "vector",
+      "query_count": 12,
+      "hit_at_1": 0.8333333333333334,
+      "hit_at_5": 0.9166666666666666,
+      "mean_reciprocal_rank": 0.8854166666666666,
+      "limit": 10,
+      "per_query": [
+        {
+          "query": "kinase inhibition",
+          "category": "furnished",
+          "expected_codes": [
+            "C40704",
+            "C116938"
+          ],
+          "ranked_codes": [
+            "C2147",
+            "C1404",
+            "C1967",
+            "C153397",
+            "C61074",
+            "C62721",
+            "C41594",
+            "C40704",
+            "C200085",
+            "C224658"
+          ],
+          "first_expected_rank": 8
+        },
+        {
+          "query": "tumor",
+          "category": "furnished",
+          "expected_codes": [
+            "C3262"
+          ],
+          "ranked_codes": [
+            "C18009",
+            "C3262",
+            "C98275",
+            "C6283",
+            "C88025",
+            "C23988",
+            "C166229",
+            "C19150",
+            "C21188",
+            "C156849"
+          ],
+          "first_expected_rank": 2
+        },
+        {
+          "query": "neoplasm",
+          "category": "furnished",
+          "expected_codes": [
+            "C3262"
+          ],
+          "ranked_codes": [
+            "C3262",
+            "C6283",
+            "C88025",
+            "C23988",
+            "C45315",
+            "C18009",
+            "C98275",
+            "C80359",
+            "C3263",
+            "C18121"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Ewing Sarcoma",
+          "category": "preferred-name",
+          "expected_codes": [
+            "C4817"
+          ],
+          "ranked_codes": [
+            "C4817",
+            "C103038",
+            "C4835",
+            "C178459",
+            "C27291",
+            "C189002",
+            "C7135",
+            "C186611",
+            "C121799",
+            "C174456"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Disease or Disorder",
+          "category": "preferred-name",
+          "expected_codes": [
+            "C2991"
+          ],
+          "ranked_codes": [
+            "C2991",
+            "C7057",
+            "C175249",
+            "C27992",
+            "C93554",
+            "C218503",
+            "C212646",
+            "C43571",
+            "C156809",
+            "C154631"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Anemia",
+          "category": "preferred-name",
+          "expected_codes": [
+            "C2869"
+          ],
+          "ranked_codes": [
+            "C2869",
+            "C143283",
+            "C84484",
+            "C194987",
+            "C220794",
+            "C2870",
+            "C35228",
+            "C61236",
+            "C2871",
+            "C35141"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Fever",
+          "category": "preferred-name",
+          "expected_codes": [
+            "C3038"
+          ],
+          "ranked_codes": [
+            "C3038",
+            "C143485",
+            "C107198",
+            "C144046",
+            "C104929",
+            "C173825",
+            "C118502",
+            "C201985",
+            "C50720",
+            "C26921"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "CDK4/6 Inhibition",
+          "category": "preferred-name",
+          "expected_codes": [
+            "C116938"
+          ],
+          "ranked_codes": [
+            "C116938",
+            "C40552",
+            "C17786",
+            "C192741",
+            "C17784",
+            "C95701",
+            "C125899",
+            "C141430",
+            "C192742",
+            "C49176"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Ewing tumor",
+          "category": "synonym",
+          "expected_codes": [
+            "C4817"
+          ],
+          "ranked_codes": [
+            "C4817",
+            "C27291",
+            "C103038",
+            "C4835",
+            "C121799",
+            "C178459",
+            "C9341",
+            "C189002",
+            "C7135",
+            "C174456"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Decreased blood erythrocyte volume",
+          "category": "synonym",
+          "expected_codes": [
+            "C2869"
+          ],
+          "ranked_codes": [
+            "C2869",
+            "C35141",
+            "C50595",
+            "C96203",
+            "C64802",
+            "C35142",
+            "C37033",
+            "C206312",
+            "C37034",
+            "C34381"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Pyrexia",
+          "category": "synonym",
+          "expected_codes": [
+            "C3038"
+          ],
+          "ranked_codes": [
+            "C3038",
+            "C143485",
+            "C107198",
+            "C50720",
+            "C111817",
+            "C201985",
+            "C173825",
+            "C144046",
+            "C104929",
+            "C26921"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Tyrosine Kinase Receptor Inhibition",
+          "category": "synonym",
+          "expected_codes": [
+            "C40704"
+          ],
+          "ranked_codes": [
+            "C40704",
+            "C42789",
+            "C1967",
+            "C62721",
+            "C2167",
+            "C155765",
+            "C2147",
+            "C213472",
+            "C224658",
+            "C69128"
+          ],
+          "first_expected_rank": 1
+        }
+      ]
+    },
+    {
+      "mode": "hybrid",
+      "query_count": 12,
+      "hit_at_1": 0.9166666666666666,
+      "hit_at_5": 1.0,
+      "mean_reciprocal_rank": 0.9583333333333334,
+      "limit": 10,
+      "per_query": [
+        {
+          "query": "kinase inhibition",
+          "category": "furnished",
+          "expected_codes": [
+            "C40704",
+            "C116938"
+          ],
+          "ranked_codes": [
+            "C40704",
+            "C153397",
+            "C2147",
+            "C41594",
+            "C69145",
+            "C1967",
+            "C41600",
+            "C40577",
+            "C1404",
+            "C42791"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "tumor",
+          "category": "furnished",
+          "expected_codes": [
+            "C3262"
+          ],
+          "ranked_codes": [
+            "C18009",
+            "C3262",
+            "C98275",
+            "C166229",
+            "C19150",
+            "C21188",
+            "C156849",
+            "C14150",
+            "C54705",
+            "C157120"
+          ],
+          "first_expected_rank": 2
+        },
+        {
+          "query": "neoplasm",
+          "category": "furnished",
+          "expected_codes": [
+            "C3262"
+          ],
+          "ranked_codes": [
+            "C3262",
+            "C6283",
+            "C88025",
+            "C7077",
+            "C102883",
+            "C103024",
+            "C103094",
+            "C8509",
+            "C4005",
+            "C9305"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Ewing Sarcoma",
+          "category": "preferred-name",
+          "expected_codes": [
+            "C4817"
+          ],
+          "ranked_codes": [
+            "C4817",
+            "C103038",
+            "C4835",
+            "C178459",
+            "C189002",
+            "C7135",
+            "C186611",
+            "C174456",
+            "C172634",
+            "C159208"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Disease or Disorder",
+          "category": "preferred-name",
+          "expected_codes": [
+            "C2991"
+          ],
+          "ranked_codes": [
+            "C2991",
+            "C7057",
+            "C89328",
+            "C18020",
+            "C35760",
+            "C213836",
+            "C62601",
+            "C102864",
+            "C175885",
+            "C2959"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Anemia",
+          "category": "preferred-name",
+          "expected_codes": [
+            "C2869"
+          ],
+          "ranked_codes": [
+            "C2869",
+            "C143283",
+            "C220794",
+            "C2870",
+            "C2871",
+            "C35141",
+            "C82909",
+            "C35142",
+            "C35228",
+            "C2872"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Fever",
+          "category": "preferred-name",
+          "expected_codes": [
+            "C3038"
+          ],
+          "ranked_codes": [
+            "C3038",
+            "C143485",
+            "C104929",
+            "C173825",
+            "C26921",
+            "C118502",
+            "C35367",
+            "C35662",
+            "C72199",
+            "C35052"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "CDK4/6 Inhibition",
+          "category": "preferred-name",
+          "expected_codes": [
+            "C116938"
+          ],
+          "ranked_codes": [
+            "C116938",
+            "C17786",
+            "C192741",
+            "C40552",
+            "C138165",
+            "C179766",
+            "C17680",
+            "C18250",
+            "C150474",
+            "C190861"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Ewing tumor",
+          "category": "synonym",
+          "expected_codes": [
+            "C4817"
+          ],
+          "ranked_codes": [
+            "C4817",
+            "C121799",
+            "C4835",
+            "C9341",
+            "C7135",
+            "C174456",
+            "C7806",
+            "C27291",
+            "C103038",
+            "C27293"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Decreased blood erythrocyte volume",
+          "category": "synonym",
+          "expected_codes": [
+            "C2869"
+          ],
+          "ranked_codes": [
+            "C2869",
+            "C35141",
+            "C64796",
+            "C12521",
+            "C23455",
+            "C64799",
+            "C50595",
+            "C50524",
+            "C143494",
+            "C221322"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Pyrexia",
+          "category": "synonym",
+          "expected_codes": [
+            "C3038"
+          ],
+          "ranked_codes": [
+            "C3038",
+            "C35367",
+            "C114374",
+            "C114405",
+            "C143485",
+            "C107198",
+            "C50720",
+            "C111817",
+            "C201985",
+            "C173825"
+          ],
+          "first_expected_rank": 1
+        },
+        {
+          "query": "Tyrosine Kinase Receptor Inhibition",
+          "category": "synonym",
+          "expected_codes": [
+            "C40704"
+          ],
+          "ranked_codes": [
+            "C40704",
+            "C42789",
+            "C28558",
+            "C17660",
+            "C213472",
+            "C20719",
+            "C141240",
+            "C2167",
+            "C1967",
+            "C156028"
+          ],
+          "first_expected_rank": 1
+        }
+      ]
+    }
+  ],
+  "embedding_seconds": {
+    "kinase inhibition": 0.08989837497938424,
+    "tumor": 0.012153125018812716,
+    "neoplasm": 0.007954459055326879,
+    "Ewing Sarcoma": 0.00860349996946752,
+    "Disease or Disorder": 0.009075083071365952,
+    "Anemia": 0.007870250032283366,
+    "Fever": 0.007873750058934093,
+    "CDK4/6 Inhibition": 0.008881499990820885,
+    "Ewing tumor": 0.007995749940164387,
+    "Decreased blood erythrocyte volume": 0.007941499934531748,
+    "Pyrexia": 0.007789875031448901,
+    "Tyrosine Kinase Receptor Inhibition": 0.008069875068031251
+  },
+  "device": "mps:0",
+  "thresholds": {
+    "semantic": {
+      "hit_at_5": 0.8333333333333334,
+      "mrr_at_10": 0.8354166666666666
+    },
+    "hybrid": {
+      "hit_at_5": 0.9166666666666666,
+      "mrr_at_10": 0.9083333333333333
+    }
+  },
+  "margins": {
+    "hit_at_5_misses": 1,
+    "mrr_at_10": 0.05
+  },
+  "latency": [
+    {
+      "mode": "vector",
+      "query": "kinase inhibition",
+      "phase": "cold",
+      "seconds": 10.533329166006297,
+      "peak_rss_bytes": 253427712,
+      "ranked_codes": [
+        "C2147",
+        "C1404",
+        "C1967",
+        "C153397",
+        "C61074",
+        "C62721",
+        "C41594",
+        "C40704",
+        "C200085",
+        "C224658"
+      ],
+      "build_id": "ca1181ea3e4e400cb80ed2ea70be8e52",
+      "profile": "profile-vector-0-cold.txt"
+    },
+    {
+      "mode": "vector",
+      "query": "kinase inhibition",
+      "phase": "warm",
+      "seconds": 1.4513957910239697,
+      "peak_rss_bytes": 250413056,
+      "ranked_codes": [
+        "C2147",
+        "C1404",
+        "C1967",
+        "C153397",
+        "C61074",
+        "C62721",
+        "C41594",
+        "C40704",
+        "C200085",
+        "C224658"
+      ],
+      "build_id": "ca1181ea3e4e400cb80ed2ea70be8e52"
+    },
+    {
+      "mode": "hybrid",
+      "query": "kinase inhibition",
+      "phase": "cold",
+      "seconds": 9.45309454202652,
+      "peak_rss_bytes": 253313024,
+      "ranked_codes": [
+        "C40704",
+        "C153397",
+        "C2147",
+        "C41594",
+        "C69145",
+        "C1967",
+        "C41600",
+        "C40577",
+        "C1404",
+        "C42791"
+      ],
+      "build_id": "ca1181ea3e4e400cb80ed2ea70be8e52",
+      "profile": "profile-hybrid-0-cold.txt"
+    },
+    {
+      "mode": "hybrid",
+      "query": "kinase inhibition",
+      "phase": "warm",
+      "seconds": 1.3602146250195801,
+      "peak_rss_bytes": 262668288,
+      "ranked_codes": [
+        "C40704",
+        "C153397",
+        "C2147",
+        "C41594",
+        "C69145",
+        "C1967",
+        "C41600",
+        "C40577",
+        "C1404",
+        "C42791"
+      ],
+      "build_id": "ca1181ea3e4e400cb80ed2ea70be8e52"
+    }
+  ],
+  "latency_method": "Actual precomputed SapBERT query vectors; model loading and embedding excluded and reported separately. NumPy loaded before timing. Cold uses fresh SQLite copy written with macOS F_NOCACHE and fsync; storage-controller cache is not guaranteed cold. Warm uses a fresh process on that same copy. Search timer includes read snapshot, scoring and result projection. Peak RSS is measured before the subsequent warm profile. Benchmark stops after the first cold/warm pair exceeding a target.",
+  "review_comment": "https://github.com/hniedner/nci-si-mcp/issues/29#issuecomment-6005427488",
+  "page64k": {
+    "page_size": 65536,
+    "integrity": "ok",
+    "database_bytes": 4218945536,
+    "latency": [
+      {
+        "mode": "vector",
+        "query": "kinase inhibition",
+        "phase": "cold",
+        "seconds": 2.134416624903679,
+        "peak_rss_bytes": 255770624,
+        "ranked_codes": [
+          "C2147",
+          "C1404",
+          "C1967",
+          "C153397",
+          "C61074",
+          "C62721",
+          "C41594",
+          "C40704",
+          "C200085",
+          "C224658"
+        ],
+        "build_id": "ca1181ea3e4e400cb80ed2ea70be8e52"
+      },
+      {
+        "mode": "vector",
+        "query": "kinase inhibition",
+        "phase": "warm",
+        "seconds": 1.4839539580279961,
+        "peak_rss_bytes": 256376832,
+        "ranked_codes": [
+          "C2147",
+          "C1404",
+          "C1967",
+          "C153397",
+          "C61074",
+          "C62721",
+          "C41594",
+          "C40704",
+          "C200085",
+          "C224658"
+        ],
+        "build_id": "ca1181ea3e4e400cb80ed2ea70be8e52"
+      },
+      {
+        "mode": "hybrid",
+        "query": "kinase inhibition",
+        "phase": "cold",
+        "seconds": 2.278962874901481,
+        "peak_rss_bytes": 268206080,
+        "ranked_codes": [
+          "C40704",
+          "C153397",
+          "C2147",
+          "C41594",
+          "C69145",
+          "C1967",
+          "C41600",
+          "C40577",
+          "C1404",
+          "C42791"
+        ],
+        "build_id": "ca1181ea3e4e400cb80ed2ea70be8e52"
+      },
+      {
+        "mode": "hybrid",
+        "query": "kinase inhibition",
+        "phase": "warm",
+        "seconds": 1.5121623749146238,
+        "peak_rss_bytes": 260751360,
+        "ranked_codes": [
+          "C40704",
+          "C153397",
+          "C2147",
+          "C41594",
+          "C69145",
+          "C1967",
+          "C41600",
+          "C40577",
+          "C1404",
+          "C42791"
+        ],
+        "build_id": "ca1181ea3e4e400cb80ed2ea70be8e52"
+      }
+    ],
+    "all_twelve_query_reports_identical": true
+  },
+  "profiles": {
+    "baseline-profile-vector-0-cold.txt": "         2385126 function calls in 1.617 seconds\n\n   Ordered by: cumulative time\n   List reduced from 131 to 25 due to restriction <25>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.000    0.000    1.617    1.617 index.py:626(search_build)\n        1    0.000    0.000    1.616    1.616 index.py:728(_ranked_page)\n        1    0.001    0.001    1.616    1.616 index_scoring.py:283(rank_page)\n        1    0.066    0.066    1.615    1.615 index_scoring.py:201(_vector_page)\n        1    0.025    0.025    1.515    1.515 index_scoring.py:120(_scan)\n      836    0.729    0.001    0.729    0.001 {method 'fetchmany' of 'sqlite3.Cursor' objects}\n      835    0.074    0.000    0.406    0.000 index_scoring.py:82(_cosines)\n      842    0.058    0.000    0.154    0.000 _linalg.py:2598(norm)\n     1671    0.040    0.000    0.137    0.000 {built-in method numpy.fromiter}\n       11    0.122    0.011    0.122    0.011 {method 'execute' of 'sqlite3.Connection' objects}\n     2515    0.108    0.000    0.108    0.000 {method 'reduce' of 'numpy.ufunc' objects}\n   213524    0.068    0.000    0.101    0.000 index_scoring.py:72(_vector_blob)\n     1670    0.079    0.000    0.090    0.000 {method 'join' of 'bytes' objects}\n      836    0.053    0.000    0.077    0.000 {method 'update' of 'dict' objects}\n   214359    0.059    0.000    0.059    0.000 index_scoring.py:148(<genexpr>)\n   214359    0.021    0.000    0.029    0.000 index_scoring.py:144(<genexpr>)\n   644781    0.025    0.000    0.025    0.000 {built-in method builtins.len}\n   214359    0.024    0.000    0.024    0.000 index_scoring.py:152(<genexpr>)\n   427909    0.017    0.000    0.017    0.000 {built-in method builtins.isinstance}\n        1    0.009    0.009    0.013    0.013 index_scoring.py:173(_winners)\n      836    0.001    0.000    0.011    0.000 {method 'all' of 'numpy.ndarray' objects}\n   214359    0.011    0.000    0.011    0.000 index_scoring.py:150(<genexpr>)\n      836    0.000    0.000    0.010    0.000 _methods.py:64(_all)\n   213525    0.008    0.000    0.008    0.000 index_scoring.py:238(<genexpr>)\n     1675    0.001    0.000    0.007    0.000 fromnumeric.py:48(_wrapfunc)\n\n\n",
+    "baseline-profile-hybrid-0-cold.txt": "         2385125 function calls in 1.571 seconds\n\n   Ordered by: cumulative time\n   List reduced from 134 to 25 due to restriction <25>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.000    0.000    1.571    1.571 index.py:626(search_build)\n        1    0.000    0.000    1.570    1.570 index.py:728(_ranked_page)\n        1    0.001    0.001    1.570    1.570 index_scoring.py:283(rank_page)\n        1    0.064    0.064    1.561    1.561 index_scoring.py:201(_vector_page)\n        1    0.024    0.024    1.466    1.466 index_scoring.py:120(_scan)\n      836    0.701    0.001    0.701    0.001 {method 'fetchmany' of 'sqlite3.Cursor' objects}\n      835    0.070    0.000    0.381    0.000 index_scoring.py:82(_cosines)\n      842    0.055    0.000    0.144    0.000 _linalg.py:2598(norm)\n     1671    0.037    0.000    0.131    0.000 {built-in method numpy.fromiter}\n       12    0.127    0.011    0.127    0.011 {method 'execute' of 'sqlite3.Connection' objects}\n     2515    0.100    0.000    0.100    0.000 {method 'reduce' of 'numpy.ufunc' objects}\n   213524    0.063    0.000    0.094    0.000 index_scoring.py:72(_vector_blob)\n     1670    0.074    0.000    0.084    0.000 {method 'join' of 'bytes' objects}\n      836    0.056    0.000    0.078    0.000 {method 'update' of 'dict' objects}\n   214359    0.060    0.000    0.060    0.000 index_scoring.py:148(<genexpr>)\n   214359    0.020    0.000    0.027    0.000 index_scoring.py:144(<genexpr>)\n   644780    0.023    0.000    0.023    0.000 {built-in method builtins.len}\n   214359    0.023    0.000    0.023    0.000 index_scoring.py:152(<genexpr>)\n   427910    0.015    0.000    0.015    0.000 {built-in method builtins.isinstance}\n        1    0.015    0.015    0.015    0.015 index_scoring.py:158(_scatter_bm25)\n        1    0.008    0.008    0.012    0.012 index_scoring.py:173(_winners)\n      836    0.000    0.000    0.010    0.000 {method 'all' of 'numpy.ndarray' objects}\n      836    0.000    0.000    0.009    0.000 _methods.py:64(_all)\n   214359    0.009    0.000    0.009    0.000 index_scoring.py:150(<genexpr>)\n   213525    0.008    0.000    0.008    0.000 index_scoring.py:238(<genexpr>)\n\n\n"
+  },
+  "approval_comment": "https://github.com/hniedner/nci-si-mcp/issues/29#issuecomment-6005441414",
+  "page64k_comment": "https://github.com/hniedner/nci-si-mcp/issues/29#issuecomment-6005489205",
+  "hardware": {
+    "chip": "Apple M4 Max",
+    "memory_bytes": 137438953472
+  },
+  "runtime": {
+    "python": "3.14.7",
+    "platform": "macOS-27.2-arm64-arm-64bit-Mach-O",
+    "numpy": "2.5.3",
+    "sentence-transformers": "6.1.0",
+    "torch": "2.14.1"
+  },
+  "build_source_commit": "78267b479ee6851cfd4776f4870a9568b2a3c0b0",
+  "measurement_source_note": "The long-running builder loaded the milestone code before issue #29 edits. Evaluation used the explicit-candidate interface added on the issue branch; measured source-file hashes are recorded above."
+}
