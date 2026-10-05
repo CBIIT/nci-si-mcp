@@ -261,15 +261,13 @@ Per release: roles and associations with `code`, `name`, `kind`, and `polarity`.
 
 ### 4.3 Traversal (`evs/traversal.py`)
 
-In place today: each depth is read in batched requests to the batch endpoint (50 concepts a request, 10 when inverse relations are followed), asking only for the selected relation lists (A5.8), with halving on an oversized response; `descendant` edges come from one `/descendants` request per start code; node and edge limits are claimed nearest first; edge types are selected independently of relationship names (the name filter still applies to hierarchy edges); concepts whose relations exceed the response-size limit are reported under `unexpanded_codes`.
+Implemented: hierarchy and neighborhood are separate tools. Hierarchy excludes the seed from its node allowance and has no edge limit; neighborhood includes the seed and applies both node and edge limits. Both share a request budget and return projected concept records with verified status and traversal provenance. Hierarchy paging and pathsToRoot remain #23; a known node-limit cut refuses paging even when an earlier bound is reported.
 
-Remaining, around `Budget`:
+Each depth is read in batches of 50 concepts, or 10 when inverse relations are followed, asking for minimal content and only the selected relation lists (A5.8). Oversized batches halve; a single oversized concept stays unexpanded and contributes to upstream_cap truncation and a structured diagnostic. Final nodes without fetched payloads are hydrated with minimal content. Descendant edges come from one /descendants request per start code. Limits are claimed nearest first, with per-kind rotation.
 
-- `get_concept_hierarchy` (`parent` | `child` | `pathsToRoot`) split from `get_concept_neighborhood`.
-- Each visited node fetched **once**, its `summary` in the same batched request as its relation lists (today the walk asks for `minimal` plus the lists); the nodes of the last depth in one `minimal` batch, for their status (the node record, A8.1).
-- `kinds` filter (`parent`, `child`, `role`, `association`, `inverseRole`, `inverseAssociation`) selects edge kinds; `relationshipNames` filters within a kind; neither removes the other. The `is_a_*` pseudo-names go.
-- Every edge carries `TraversalProvenance` with polarity by code (the exclusion set in `spec/records.yaml`). Negative edges and the nodes they reach are returned, marked; with `includeNegative=false` (default) a node only negative edges reach is not followed further.
-- Depth, node and edge maxima, per-kind rotation and truncation, and the outbound request budget including retries are implemented (§3.5). A bounded final-frontier check distinguishes depth cuts from leaves and cycles, counting distinct unseen targets one level further with `exact: false`. Descendant checks read final child lists. Inverse kinds reaching the final frontier report depth with `omitted: 0`, `exact: false` without fetching their expensive lists solely for the check; a global node cut or a prior kind cut skips the corresponding check.
+The bounded final-frontier check distinguishes depth cuts from leaves and cycles, counting distinct unseen targets one level further with exact=false. Descendant checks read child lists. Selected inverse kinds report unknown continuation at a nonempty final frontier with omitted=0, exact=false, regardless of which kind reached those nodes. Their expensive lists are not fetched solely for this check. A global node cut or a prior kind cut skips the corresponding check.
+
+Negative edges carry polarity by code. Selective expansion beyond their targets with includeNegative=false remains #23 and currently returns capability_unavailable; includeNegative=true follows them. The legacy CLI relationship-name filter remains independent of edge-kind selection.
 
 ### 4.4 Index (`evs/index/`)
 

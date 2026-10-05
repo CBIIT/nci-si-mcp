@@ -11,7 +11,11 @@ from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from threading import Barrier
+from types import SimpleNamespace
 from unittest.mock import patch
+
+from mcp.types import JSONRPCMessage
+from pydantic import TypeAdapter
 
 from fakes import concept
 from nci_si_mcp.audit import JsonFormatter, audited, compact, emit, hashed, secrets
@@ -22,6 +26,7 @@ from nci_si_mcp.errors import current_correlation_id
 from nci_si_mcp.evs import EVSClient
 from nci_si_mcp.http_client import UpstreamUnavailableError
 from nci_si_mcp.registry import SPECS, invoke
+from nci_si_mcp.server import _audit_tools, _validate_inputs
 from test_http_client import Reply, ServerTestCase
 from test_server import ServerFixture, pinned
 
@@ -52,6 +57,10 @@ def records(stream, event="call_completed"):
 
 
 class AuditRecordTest(unittest.TestCase):
+    def test_nonfinite_numbers_are_strings_in_nested_audit_values(self):
+        value = {"numbers": [float("inf"), float("-inf"), float("nan"), 1.5]}
+        self.assertEqual(json.loads(compact(value)), {"numbers": ["inf", "-inf", "nan", 1.5]})
+
     def test_diagnostic_verbosity_does_not_disable_audit_records(self):
         logger = logging.getLogger("nci_si_mcp.audit")
         self.addCleanup(logger.setLevel, logger.level)
@@ -209,6 +218,37 @@ class AuditAdapterTest(ServerFixture):
         self.assertTrue(record["correlationId"])
         self.assertEqual(record["outboundRequests"], 0)
         self.assertEqual(self.evs.calls, [])
+
+    def test_overflowing_json_number_keeps_audit_json_valid(self):
+        wire = (
+            '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":'
+            '{"name":"get_concept_neighborhood","arguments":'
+            '{"terminology":"ncit","release":"26.06e","code":"C1","depth":1e999}}}'
+        )
+        message = TypeAdapter(JSONRPCMessage).validate_json(wire)
+
+        async def run():
+            ctx = SimpleNamespace(method=message.method, params=message.params, meta={})
+
+            async def unexpected_call(ctx):
+                raise AssertionError("Invalid arguments reached the handler")
+
+            async def validate(ctx):
+                return await _validate_inputs("unified")(ctx, unexpected_call)
+
+            return await _audit_tools(self.context, "unified")(ctx, validate)
+
+        def reject_constant(value):
+            raise AssertionError(f"Non-JSON numeric constant: {value}")
+
+        with captured() as stream:
+            result = asyncio.run(run())
+        self.assertEqual(result["structuredContent"]["error"]["code"], "invalid_request")
+        entries = [
+            json.loads(line, parse_constant=reject_constant)
+            for line in stream.getvalue().splitlines()
+        ]
+        self.assertEqual(sum(row["event"] == "call_completed" for row in entries), 1)
 
     def test_expected_error_keeps_its_code_but_logs_no_exception_message(self):
         self.evs.errors["get_concept"] = UpstreamUnavailableError("upstream private canary")

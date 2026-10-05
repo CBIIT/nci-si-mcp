@@ -255,7 +255,11 @@ def _edge(
         source_code=code,
         target_code=target,
         edge_type=edge_type,
-        relationship_name=str(item.get("type") or RELATIONS[edge_type][1]),
+        relationship_name=(
+            RELATIONS[edge_type][1]
+            if hierarchy
+            else str(item.get("type") or RELATIONS[edge_type][1])
+        ),
         provenance=provenance,
         target_name=str(item.get(name_key) or ""),
         source_name=source_name,
@@ -446,9 +450,8 @@ class _Walk:
     def _mark_inverse_depth(self, frontier: list[str], kinds: list[str]) -> None:
         # Hub inverse lists can be megabytes each. Do not fetch them solely to
         # count continuation: zero is an explicit lower bound, not a leaf claim.
-        reached = {edge.edge_type for edge in self.edges if edge.target_code in frontier}
         for kind in kinds:
-            if kind.startswith("inverse") and (kind in reached or self.budget.depth == 0):
+            if kind.startswith("inverse") and frontier:
                 self.bounds_reached.setdefault((kind,), "depth")
 
     @staticmethod
@@ -666,6 +669,7 @@ class _Walk:
 
     def result(self, start_codes: list[str]) -> TraversalResult:
         return TraversalResult(
+            node_limit_hit="nodes" in self.bounds_reached.values(),
             start_codes=start_codes,
             nodes=list(self.nodes.values()),
             edges=self.edges,

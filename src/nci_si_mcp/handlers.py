@@ -253,7 +253,7 @@ def search(
     """Search the locally indexed NCIt concepts by text.
 
     The index holds only the concepts an operator loaded with the
-    `index-sample` CLI command, all from the one NCIt monthly release named
+    `index-sample` CLI command, all from the one NCIt release named
     in the `provenance.release` of its hits. It is not all of NCIt, and no
     tool here adds to it. `mode` is `hybrid` (0.55 * BM25 + 0.45 * vector), `bm25` or
     `vector`; `limit` is 1 to 100.

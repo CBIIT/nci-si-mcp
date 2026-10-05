@@ -207,10 +207,15 @@ def get_concept_hierarchy(
     depth, limit = bounded(depth, 4, "depth"), bounded(limit, 1000, "limit")
     if direction == "pathsToRoot" or cursor is not None:
         _unavailable("hierarchy pathsToRoot and cursors")
-    budget = Budget(depth=depth, nodes=limit + 1)
-    result = _graph(context, selected, code, [direction], budget)
-    if result["truncation"].get("bound") == "nodes":
+    budget = Budget(depth=depth, nodes=limit)
+    # Hierarchy pages exclude the seed and return no edges. Allow the seed
+    # separately, and every possible directed pair within that node allowance.
+    budget.nodes += 1
+    budget.edges = budget.nodes**2
+    graph = _graph(context, selected, code, [direction], budget)
+    if graph.node_limit_hit:
         _unavailable("hierarchy paging")
+    result = _graph_record(graph)
     hierarchy = {
         "nodes": [node for node in result["nodes"] if node["code"] != code],
         "truncation": result["truncation"],
@@ -243,8 +248,8 @@ def get_concept_neighborhood(
     retries. Nodes and assertion-oriented edges carry live traversal provenance.
     Truncation reports the first bound that omits content. Forward kinds are checked
     at the final frontier within the request budget: unseen targets imply a depth
-    cut, while leaves and cycles to returned nodes do not. Inverse kinds that
-    reached frontier nodes report depth with omitted=0, exact=false, without reading
+    cut, while leaves and cycles to returned nodes do not. Selected inverse kinds
+    report depth at any nonempty frontier with omitted=0, exact=false, without reading
     their expensive lists solely to count continuation. Continuation is unknown.
     A reported global node cut skips this check; already-truncated kinds are excluded.
     Negative assertions are marked; following beyond their targets requires
@@ -262,7 +267,7 @@ def get_concept_neighborhood(
         edges=bounded(maxEdges, 5000, "maxEdges"),
         per_kind=None if budgetPerKind is None else bounded(budgetPerKind, 1000, "budgetPerKind"),
     )
-    result = _graph(context, selected, code, selected_kinds, budget)
+    result = _graph_record(_graph(context, selected, code, selected_kinds, budget))
     if not includeNegative and any(
         edge["provenance"].get("polarity") == "negative"
         and edge["provenance"]["depth"] < budget.depth
@@ -284,10 +289,14 @@ def _kinds(kinds: list[NeighborhoodKind] | None) -> list[str]:
 
 def _graph(
     context: Context, release: ReleaseContext, code: str, kinds: list[str], budget: Budget
-) -> dict[str, Any]:
+) -> TraversalResult:
     with budgeted(budget):
         graph = traverse_ncit(context.evs, [code], release, kinds, budget)
         truncation = _hydrate(context, graph, release, budget, kinds)
+    return replace(graph, truncation=truncation)
+
+
+def _graph_record(graph: TraversalResult) -> dict[str, Any]:
     nodes = [
         _record(graph.concepts[node.code], node.provenance.to_dict())
         for node in graph.nodes
@@ -299,7 +308,7 @@ def _graph(
         "edges": [
             _edge(edge) for edge in graph.edges if {edge.source_code, edge.target_code} <= present
         ],
-        "truncation": _truncation(truncation),
+        "truncation": _truncation(graph.truncation),
     }
 
 

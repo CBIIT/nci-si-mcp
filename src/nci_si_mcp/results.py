@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Any, Literal, NotRequired, TypedDict
 
 from .errors import ErrorCode
-from .validation import EdgeType, SearchMode
+from .validation import EdgeType, SearchMode, TruncationBound
 
 
 class ErrorRecord(TypedDict):
@@ -58,7 +58,7 @@ class Untruncated(TypedDict):
 
 class Truncated(TypedDict):
     occurred: Literal[True]
-    bound: str
+    bound: TruncationBound
     limit: int
     reached: int
     omitted: int

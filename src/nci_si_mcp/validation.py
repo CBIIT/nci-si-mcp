@@ -32,6 +32,9 @@ HierarchyDirection = Literal["parent", "child", "pathsToRoot"]
 NeighborhoodKind = Literal[
     "parent", "child", "role", "association", "inverseRole", "inverseAssociation"
 ]
+TruncationBound = Literal[
+    "results", "depth", "nodes", "edges", "kind_budget", "requests", "upstream_cap"
+]
 
 PROFILES = frozenset(get_args(Profile))
 UPSTREAM_MODES = frozenset(get_args(UpstreamMode))

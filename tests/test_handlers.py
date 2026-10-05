@@ -402,7 +402,8 @@ class TraverseTest(HandlerTestCase):
             ]
 
         self.assertEqual(targets(), (["C4741", "C12922", "C165258"], False))
-        self.assertEqual(targets(direction="in"), (["C2991"], False))
+        # Selected inverse kinds remain unread on the parent-reached frontier.
+        self.assertEqual(targets(direction="in"), (["C2991"], True))
         self.assertEqual(targets(max_edges=1), (["C4741"], True))
         self.assertEqual(targets(max_nodes=2), (["C4741"], True))
         self.assertEqual(targets(include_hierarchy=False), (["C12922", "C165258"], False))

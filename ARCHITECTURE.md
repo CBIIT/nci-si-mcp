@@ -246,7 +246,8 @@ public terminology queries. Configured credentials, their Basic encoding and pas
 redacted before a record reaches logging, including accidental echoes in metadata. This takes
 precedence if a caller puts a credential in its correlation identifier. Diagnostic exception
 messages and raw upstream bodies are excluded; external diagnostic messages are hashed.
-All records use JSON on stderr. The diagnostic log-level setting does not suppress completion
+All records use strict JSON on stderr; nonfinite input numbers are represented as strings
+(`inf`, `-inf`, `nan`) in audit metadata. The diagnostic log-level setting does not suppress completion
 records. The platform still owns authoritative audit, quotas and authorisation; this module
 adds no persistent audit store, rate limiter or invented upstream audit headers.
 

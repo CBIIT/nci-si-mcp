@@ -19,6 +19,22 @@ from test_server import ServerFixture, pinned
 
 
 class SchemaTest(ServerFixture):
+    def test_truncation_schema_rejects_unknown_bounds_and_fields_on_complete_results(self):
+        validator = self.validators()["get_concept_hierarchy"]
+        complete = {"nodes": [], "truncation": {"occurred": False}}
+        validator.validate(complete)
+        invalid = dict(complete, truncation={"occurred": False, "bound": "nodes"})
+        self.assertFalse(validator.is_valid(invalid))
+        invalid["truncation"] = {
+            "occurred": True,
+            "bound": "typo",
+            "limit": 1,
+            "reached": 1,
+            "omitted": 1,
+            "exact": False,
+        }
+        self.assertFalse(validator.is_valid(invalid))
+
     def validators(self):
         listing = self.session(lambda client: client.list_tools())
         return {tool.name: Draft202012Validator(tool.output_schema) for tool in listing.tools}

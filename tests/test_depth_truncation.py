@@ -26,6 +26,21 @@ class DepthTruncationTest(unittest.TestCase):
                 self.assertEqual(codes(result), ["C1", "C2"])
                 self.assertEqual(client.includes, ["minimal,children", "minimal,children"])
 
+    def test_hierarchy_edges_have_one_kind_despite_unrelated_upstream_type_fields(self):
+        client = FakeEVS(
+            [
+                concept(
+                    "C1",
+                    children=[child("C2") | {"type": "first"}, child("C2") | {"type": "second"}],
+                ),
+                concept("C2"),
+            ]
+        )
+        result = walk(client, max_depth=1, edge_types=["child"], relationship_names=["is_a_child"])
+        self.assertEqual(codes(result), ["C1", "C2"])
+        self.assertEqual([edge.relationship_name for edge in result.edges], ["is_a_child"])
+        self.assertFalse(result.truncation.occurred)
+
     def test_depth_counts_distinct_unseen_targets_and_preserves_kind_counts(self):
         client = FakeEVS(
             [
@@ -173,6 +188,26 @@ class DepthTruncationTest(unittest.TestCase):
         self.assertEqual(cuts["inverse_association"]["omitted"], 0)
         self.assertEqual(cuts["inverse_association"]["bound"], "depth")
         self.assertFalse(cuts["inverse_association"]["exact"])
+
+    def test_inverse_continuation_is_unknown_when_another_kind_reaches_the_frontier(self):
+        client = FakeEVS(
+            [
+                concept("C1", children=[child("C2")]),
+                concept("C2", inverseRoles=[related("r", "C3")]),
+            ]
+        )
+        result = walk(client, direction="both", max_depth=1, edge_types=["child", "inverse_role"])
+        cuts = result.truncation.to_dict()["perKind"]
+        self.assertEqual(cuts["child"], {"occurred": False})
+        self.assertEqual(
+            (
+                cuts["inverse_role"]["bound"],
+                cuts["inverse_role"]["omitted"],
+                cuts["inverse_role"]["exact"],
+            ),
+            ("depth", 0, False),
+        )
+        self.assertEqual(client.includes, ["minimal,children,inverseRoles", "minimal,children"])
 
     def test_descendant_continuation_uses_only_the_final_child_lists(self):
         client = FakeEVS(

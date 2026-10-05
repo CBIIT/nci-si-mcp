@@ -275,10 +275,13 @@ class TraversalResult:
     max_edges: int
     # Minimal payloads already fetched by the walk, for the public concept projection.
     concepts: dict[str, dict[str, Any]] = field(default_factory=dict)
+    # Paging decisions must see a node cut even when an earlier bound is reported.
+    node_limit_hit: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
         data.pop("concepts")
+        data.pop("node_limit_hit")
         data["nodes"] = [node.to_dict() for node in self.nodes]
         data["edges"] = [edge.to_dict() for edge in self.edges]
         data["truncation"] = self.truncation.to_dict()
