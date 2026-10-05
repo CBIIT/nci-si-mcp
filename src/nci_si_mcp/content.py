@@ -22,9 +22,16 @@ from .bounds import (
 from .catalogue import exclusion_codes, load_catalogue
 from .context import Context
 from .errors import InputValidationError, NoActiveIndexError, PlatformError, call_correlation_id
-from .evs import EVSReleaseNotFoundError, EVSResponseError, concept_path, normalize_concept
+from .evs import (
+    EVSReleaseNotFoundError,
+    EVSResponseError,
+    concept_path,
+    normalize_concept,
+    replacements_path,
+)
 from .index import require_index_release
 from .models import (
+    ProvenanceEnvelope,
     TraversalEdge,
     TraversalProvenance,
     TraversalResult,
@@ -142,6 +149,60 @@ def _project(
     concept = normalize_concept(raw, release_date=release.date, source="live_evs")
     result = _record(raw, concept.provenance(uri).to_dict())
     return result | {section: _section(raw, section) for section in sections}
+
+
+def resolve_retired_code(
+    context: Context, terminology: str, release: str, code: str
+) -> dict[str, Any]:
+    """Resolve an EVS code's retirement status and named replacements in a required release.
+
+    Returns code, terminology, the platform's active boolean and optional status
+    unchanged, replacements and provenance. Active concepts have no replacement
+    and need no history read; status text never determines active. Inactive
+    concepts read the pinned single-code replacement history. Each replacement
+    preserves the platform's code/name and has its terminology and live provenance.
+    A genuine empty history or a retire row naming no replacement yields [].
+    Unknown concepts are not_found; an unavailable history endpoint is an error,
+    never an empty list. Compact history carries the requested release without
+    inventing a self-described upstream version. Supplied licence text passes through.
+    """
+    selected = _pin(context, terminology, release)
+    code = _code(code, terminology)
+    concept = get_concept(context, terminology, release, code)
+    result = {key: value for key, value in concept.items() if key != "name"}
+    result["replacements"] = []
+    if not concept["active"]:
+        rows = context.evs.get_replacements(code, selected)
+        uri = context.evs.uri(replacements_path(selected.pinned_terminology, code))
+        result["replacements"] = [
+            _replacement_record(row, selected, uri) for row in rows if "replacementCode" in row
+        ]
+    return result
+
+
+def _replacement_record(row: dict[str, Any], release: ReleaseContext, uri: str) -> dict[str, Any]:
+    code, name = row.get("replacementCode"), row.get("replacementName")
+    if not isinstance(code, str) or not code:
+        raise EVSResponseError("EVS returned a replacement without its code")
+    if not isinstance(name, str) or not name:
+        raise EVSResponseError("EVS returned a replacement without its name")
+    provenance = ProvenanceEnvelope(
+        release=release_ref(release.terminology, release.version, release.date),
+        source="evs_rest",
+        served_by="live",
+        retrieved_at=utc_now_iso(),
+        correlation_id=call_correlation_id(),
+        source_uri=uri,
+        upstream=upstream_origin(row),
+    ).to_dict()
+    if row.get("licenseText"):
+        provenance["attribution"] = row["licenseText"]
+    return {
+        "code": code,
+        "terminology": release.terminology,
+        "name": name,
+        "provenance": provenance,
+    }
 
 
 def get_concepts(

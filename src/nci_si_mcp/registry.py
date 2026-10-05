@@ -23,6 +23,7 @@ from .results import (
     RelationshipsResult,
     ReleaseResult,
     ResolvedReleaseResult,
+    RetiredCode,
     SearchResult,
     TerminologiesResult,
     TraversalResult,
@@ -90,6 +91,14 @@ def _input_field(parameter: Parameter) -> tuple:
 
 
 SPECS = (
+    ToolSpec(
+        content.resolve_retired_code,
+        "evs",
+        RetiredCode | ErrorResult,
+        False,
+        name="resolve_retired_code",
+        audit={"terminology": "plain", "release": "plain", "code": "plain"},
+    ),
     ToolSpec(
         content.list_relationships,
         "evs",

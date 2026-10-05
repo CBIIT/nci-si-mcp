@@ -38,6 +38,10 @@ def catalogue_path(terminology: str, kind: RelationshipKind) -> str:
     return f"/api/v1/metadata/{quote(terminology, safe='')}/{kind}s"
 
 
+def replacements_path(terminology: str, code: str) -> str:
+    return f"/api/v1/history/{quote(terminology, safe='')}/{quote(code, safe='')}/replacements"
+
+
 def concept_path(terminology: str, code: str = "") -> str:
     """The path of a concept in `terminology`, or of the terminology's concept list."""
 
@@ -333,6 +337,20 @@ class EVSClient:
         )
         return _object_list(data, "descendants response")
 
+    def get_replacements(self, code: str, release: ReleaseContext) -> list[dict[str, Any]]:
+        """Read one verified concept's compact replacement history in the pinned release.
+
+        A history 404 is an upstream failure, not an empty history. Rows need not
+        self-describe their release, but any supplied identity must agree with the pin.
+        """
+        rows = _object_list(
+            self._get_existing(replacements_path(release.pinned_terminology, code)),
+            "replacement history",
+        )
+        for row in rows:
+            _verify_history_row(row, code, release)
+        return rows
+
     def get_paths_to_root(self, code: str, release: ReleaseContext) -> list[list[dict[str, Any]]]:
         """Every platform path, in its order; the caller has verified the seed exists."""
         data = self._get_existing(
@@ -356,3 +374,14 @@ def _verify_path(path: list[dict[str, Any]], code: str, release: ReleaseContext)
     if len(set(codes)) != len(codes):
         raise EVSResponseError("EVS returned a cyclic path to root")
     verify_content(path, release)
+
+
+def _verify_history_row(row: dict[str, Any], code: str, release: ReleaseContext) -> None:
+    if row.get("code") != code:
+        raise EVSResponseError(
+            "EVS returned replacement history for another or missing source code"
+        )
+    if "version" in row:
+        verify_release([row], release.version)
+    if "terminology" in row and row["terminology"] != release.terminology:
+        raise EVSResponseError("EVS returned replacement history of another terminology")

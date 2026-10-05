@@ -114,6 +114,22 @@ class ConceptBatch(TypedDict):
     missing: list[str]
 
 
+class Replacement(TypedDict):
+    code: str
+    terminology: str
+    name: str
+    provenance: Provenance
+
+
+class RetiredCode(TypedDict):
+    code: str
+    terminology: str
+    active: bool
+    status: NotRequired[str]
+    replacements: list[Replacement]
+    provenance: Provenance
+
+
 class CatalogueRelationship(TypedDict):
     code: str
     terminology: str

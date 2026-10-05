@@ -43,7 +43,7 @@ Fixture-mode outcome of each tool, from the expected outcomes of the 939 tests o
 
 | Group | Tools | Outcome of each tool |
 |---|---|---|
-| EVS tools | 12 | FAIL: `resolve_release`, `get_concept`, `get_concepts`, `search_concepts`, `get_concept_hierarchy`, `get_concept_neighborhood`, `list_relationships`, `list_terminologies`<br>NOT IMPLEMENTED: `expand_value_set`, `get_concept_subsets`, `get_concept_mappings`, `resolve_retired_code` |
+| EVS tools | 12 | FAIL: `resolve_release`, `get_concept`, `get_concepts`, `search_concepts`, `get_concept_hierarchy`, `get_concept_neighborhood`, `resolve_retired_code`, `list_relationships`, `list_terminologies`<br>NOT IMPLEMENTED: `expand_value_set`, `get_concept_subsets`, `get_concept_mappings` |
 | caDSR tools | 10 | NOT IMPLEMENTED: `resolve_registry_release`, `get_data_element`, `search_data_elements`, `match_data_elements`, `match_value_meanings`, `get_form`, `get_permissible_value`, `get_code_map`, `list_contexts`, `list_classification_schemes` |
 | Cross-domain tools | 4 | NOT IMPLEMENTED: `find_data_elements_for_concept`, `get_concept_for_permissible_value`, `resolve_stored_value`, `get_release_alignment` |
 | Workflow tools | 3 | NOT IMPLEMENTED: `ground_value`, `expand_cohort`, `harmonize_data_dictionary` |

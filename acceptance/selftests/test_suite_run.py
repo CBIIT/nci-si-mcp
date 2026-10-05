@@ -328,6 +328,7 @@ def test_lexical(tools):
         "get_concept": "get_concept",
         "get_concepts": "get_concepts",
         "list_relationships": "list_relationships",
+        "resolve_retired_code": "resolve_retired_code",
         "search_concepts": "search_concepts",
         "get_concept_hierarchy": "get_concept_hierarchy",
         "get_concept_neighborhood": "get_concept_neighborhood",
