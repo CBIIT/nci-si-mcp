@@ -27,14 +27,7 @@ jobs:
         with:
           fetch-depth: 0  # the package version is derived from the nearest tag
           persist-credentials: false
-      - uses: pdm-project/setup-pdm@544d7237314ee09c256785bd360f6b30add38b37  # v4.6
-        with:
-          python-version: "3.14"
-          version: "2.29.2"
-          cache: true
-          # An environment built from another lock file may hold packages this one dropped.
-          cache-restore-exact-match: true
-      - run: pdm install --check
+      - uses: $/.github/actions/setup
       - name: Audit the runtime dependencies
         run: |
           pdm export -G server -G embeddings --prod --without-hashes -o "$RUNNER_TEMP/requirements.txt"
