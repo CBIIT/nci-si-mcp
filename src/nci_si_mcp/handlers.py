@@ -186,15 +186,6 @@ def _release_provenance(context: Context, selected: dict[str, Any]) -> Provenanc
     )
 
 
-def index_manifest(context: Context) -> dict[str, Any]:
-    """Return the manifest of the local index under `active_index`, or null."""
-
-    manifest = context.index.get_active_manifest()
-    if not manifest:
-        return {"active_index": None}
-    return {"active_index": manifest.to_result()}
-
-
 def _fetch_for_index(
     context: Context, codes: list[str], release: ReleaseContext
 ) -> tuple[list[dict[str, Any]], set[str]]:
@@ -511,11 +502,11 @@ def release_resource(context: Context, version: str) -> dict[str, Any]:
 def index_resource(context: Context, version: str) -> dict[str, Any]:
     """The local index's manifest by version or active alias, or its absent status."""
 
-    result = index_manifest(context)
-    manifest = result["active_index"]
+    active = context.index.get_active_manifest()
+    manifest = active.to_result() if active else None
     if not manifest:
         select_cache_hint(resolution=True)
-        return result
+        return {"active_index": None}
     if version in ("active", manifest["release_version"]):
         select_cache_hint(resolution=version == "active")
         return manifest

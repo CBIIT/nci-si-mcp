@@ -1,4 +1,4 @@
-"""The registry invocation boundary: correlation and one expected-error path."""
+"""The registry's one expected-error path, inside the audit correlation scope."""
 
 from __future__ import annotations
 
@@ -17,8 +17,6 @@ from .errors import (
     InputValidationError,
     NoActiveIndexError,
     PlatformError,
-    correlated,
-    current_correlation_id,
     serialise,
     with_next_step,
 )
@@ -105,14 +103,10 @@ def _envelope(operation: str, exc: Exception) -> dict[str, Any]:
     return serialise(error)
 
 
-def call(
-    operation: str, action: Callable[[], dict[str, Any]], *, correlation_id: object = None
-) -> dict[str, Any]:
-    """The registry's single correlation and expected-failure boundary."""
+def call(operation: str, action: Callable[[], dict[str, Any]]) -> dict[str, Any]:
+    """Serialize expected failures using the correlation scope already established."""
 
-    inherited = current_correlation_id() if correlation_id is None else correlation_id
-    with correlated(inherited):
-        try:
-            return action()
-        except _EXPECTED_ERRORS as exc:
-            return _envelope(operation, exc)
+    try:
+        return action()
+    except _EXPECTED_ERRORS as exc:
+        return _envelope(operation, exc)

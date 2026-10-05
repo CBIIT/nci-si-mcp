@@ -84,7 +84,7 @@ def current_correlation_id() -> str | None:
 def call_correlation_id() -> str:
     """The correlation identifier of the call in progress, for the provenance of its items.
 
-    Every adapter and every service method runs under one, so none means a bug.
+    Every handler runs inside the audit correlation scope, so none means a bug.
     """
 
     value = current_correlation_id()
@@ -98,7 +98,7 @@ def correlated(correlation_id: object = None) -> Iterator[str]:
     """Run one call under its correlation identifier (M7.1).
 
     The caller's identifier is used when it is a non-empty string, otherwise one
-    is generated. The adapters open this once per call; `serialise` reads it.
+    is generated. The audit boundary opens this once per call; `serialise` reads it.
     """
 
     value = correlation_id if isinstance(correlation_id, str) and correlation_id else uuid4().hex

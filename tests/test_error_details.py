@@ -67,7 +67,8 @@ class DetailKeysTest(HandlerTestCase):
         self.assertEqual(
             invoke(
                 self.context,
-                "index_manifest",
+                "index_resource",
+                "active",
             ),
             {"active_index": None},
         )

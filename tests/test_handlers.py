@@ -529,7 +529,8 @@ class StatusTest(HandlerTestCase):
         self.assertEqual(
             invoke(
                 self.context,
-                "index_manifest",
+                "index_resource",
+                "active",
             ),
             {"active_index": None},
         )
@@ -538,8 +539,9 @@ class StatusTest(HandlerTestCase):
         self.assertEqual(
             invoke(
                 self.context,
-                "index_manifest",
-            )["active_index"]["concept_count"],
+                "index_resource",
+                "active",
+            )["concept_count"],
             2,
         )
 
@@ -586,7 +588,7 @@ class FailureHandlingTest(HandlerTestCase):
             "search": lambda: invoke(self.context, "search", "tumor"),
             "lookup": lambda: invoke(self.context, "lookup", "C3262"),
             "release_info": partial(invoke, self.context, "release_info"),
-            "index_manifest": partial(invoke, self.context, "index_manifest"),
+            "index_resource": partial(invoke, self.context, "index_resource", "active"),
             "evaluate": partial(invoke, self.context, "evaluate"),
         }
         for operation, call in calls.items():

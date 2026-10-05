@@ -249,8 +249,9 @@ The error codes are the ten of the specification's error record (`spec/records.y
 `errors.py` as `ErrorCode`. A failure is a `PlatformError`: its code, a message that names the
 caller's next step, and the `details` that code lists in `docs/implementation-plan.md` §3.1. `errors.serialise` is
 the only function that turns one into the result, `{"error": {"code", "message", "details"?,
-"correlationId"}}`; nothing builds that dict by hand. `registry.invoke` enters `invocation.call`, which opens `errors.correlated()` once
+"correlationId"}}`; nothing builds that dict by hand. The audit boundary opens `errors.correlated()` once
 per call (the request's `_meta.correlationId`, else generated) for tools, resources and CLI.
+`registry.invoke` shares that scope and enters `invocation.call` for expected failures.
 It converts the expected exception types listed in `invocation._ERROR_CODES` (with the next
 step appended to their message and their `details` attribute carried over) and logs a warning; an
 exception gets the entry of its nearest listed class. To add a failure mode,
