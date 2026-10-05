@@ -10,7 +10,7 @@ from typing import Any, cast
 
 from . import __version__
 from .bounds import DEFAULT_MAX_DEPTH, DEFAULT_MAX_EDGES, DEFAULT_MAX_NODES
-from .caching import LONG_TTL_MS, RELEASE_REPORT_ALIASES, RELEASE_REPORT_URIS, cache_hint
+from .caching import LONG_TTL_MS, RELEASE_REPORT_ALIASES, cache_call, cache_hint, select_cache_hint
 from .config import Settings, configure_logging
 from .errors import PlatformError, correlated, is_error_record, serialise
 from .service import NCISIService
@@ -80,53 +80,73 @@ def create_mcp(settings: Settings | None = None, *, service: NCISIService | None
             )
         return result
 
-    def resource_result(result: dict[str, Any]) -> dict[str, Any]:
+    def resource_result(
+        result: dict[str, Any], *, resolution: bool | None = None
+    ) -> dict[str, Any]:
         if is_error_record(result):
             raise ResourceError(json.dumps(result))
+        if resolution is not None:
+            select_cache_hint(resolution=resolution)
         return result
 
-    def tool(fn: Callable[..., Any]) -> Callable[..., Any]:
-        """Register a tool whose `ctx` parameter receives the request context."""
+    def tool(*, resolution: bool) -> Callable[..., Any]:
+        """Require a cache class beside every tool registration."""
 
-        # The annotation is set here because `Context` is imported only when a server is built.
-        if "ctx" in inspect.signature(fn).parameters:
-            fn.__annotations__["ctx"] = Context
-        return mcp.tool()(fn)
+        def register(fn: Callable[..., Any]) -> Callable[..., Any]:
+            declared = _declared_cache(fn, resolution=resolution)
+            # Context is imported only when a server is built.
+            if "ctx" in inspect.signature(fn).parameters:
+                declared.__annotations__ = {**fn.__annotations__, "ctx": Context}
+            return mcp.tool()(declared)
+
+        return register
+
+    def resource(uri: str, *, resolution: bool) -> Callable[..., Any]:
+        def register(fn: Callable[..., Any]) -> Callable[..., Any]:
+            return mcp.resource(uri, mime_type="application/json")(
+                _declared_cache(fn, resolution=resolution)
+            )
+
+        return register
 
     _register_tools(tool, service, tool_result)
-    _register_resources(mcp, service, resource_result)
+    _register_resources(resource, service, resource_result)
     return mcp
 
 
 async def _cache_results(ctx: Any, call_next: Callable[[Any], Awaitable[Any]]) -> Any:
     """Keep tool hints in protocol metadata and resource hints on the protocol result."""
 
-    result = await call_next(ctx)
-    if ctx.method == "tools/call":
-        hint = cache_hint(
-            resolution=ctx.params["name"] in {"ncit_release_info", "cadsr_status"},
-            error=result.get("isError", False),
-        )
-        return {**result, "_meta": {**result.get("_meta", {}), **hint}}
-    if ctx.method == "resources/read":
-        content = json.loads(result["contents"][0]["text"])
-        resolution = (
-            ctx.params["uri"] in RELEASE_REPORT_URIS
-            or ctx.params["uri"] == "nci-si://index/ncit/active/manifest"
-            or content.get("active_index", False) is None
-        )
-        return {**result, **cache_hint(resolution=resolution)}
-    return result
+    if ctx.method not in {"tools/call", "resources/read"}:
+        return await call_next(ctx)
+    with cache_call() as decision:
+        result = await call_next(ctx)
+        hint = cache_hint(error=True) if result.get("isError", False) else decision
+        if not hint:
+            raise RuntimeError("A registered tool or resource must declare its cache policy.")
+        if ctx.method == "tools/call":
+            return {**result, "_meta": {**result.get("_meta", {}), **hint}}
+        return {**result, **hint}
+
+
+def _declared_cache(fn: Callable[..., Any], *, resolution: bool) -> Callable[..., Any]:
+    @functools.wraps(fn)
+    def declared(*args: Any, **kwargs: Any) -> Any:
+        select_cache_hint(resolution=declared.__dict__["__cache_resolution__"])
+        return fn(*args, **kwargs)
+
+    declared.__dict__["__cache_resolution__"] = resolution
+    return declared
 
 
 def _register_tools(
-    tool: Callable[[Callable[..., Any]], Callable[..., Any]],
+    tool: Callable[..., Callable[..., Any]],
     service: NCISIService,
     tool_result: Callable[[Any, Callable[[], dict[str, Any]]], Any],
 ) -> None:
     """Register the tools. Their docstrings are the contract sent to MCP clients."""
 
-    @tool
+    @tool(resolution=False)
     def ncit_search(
         query: str,
         limit: int = 10,
@@ -162,7 +182,7 @@ def _register_tools(
         """
         return tool_result(ctx, lambda: service.search(query=query, limit=limit, mode=mode))
 
-    @tool
+    @tool(resolution=False)
     def ncit_lookup(code: str, live_only: bool = False, ctx: Any = None):
         """Look up one NCIt concept by code (C followed by digits) in live EVS.
 
@@ -184,7 +204,7 @@ def _register_tools(
         """
         return tool_result(ctx, lambda: service.lookup(code=code, live_only=live_only))
 
-    @tool
+    @tool(resolution=False)
     def ncit_traverse(
         start_codes: list[str],
         direction: Direction = "out",
@@ -267,7 +287,7 @@ def _register_tools(
             ),
         )
 
-    @tool
+    @tool(resolution=True)
     def ncit_release_info(ctx: Any = None):
         """Report the EVS API version, the configured channel's NCIt release and the local index.
 
@@ -282,7 +302,8 @@ def _register_tools(
         """
         return tool_result(ctx, service.release_info)
 
-    @tool
+    # Pending capability status may change independently of any governed release.
+    @tool(resolution=True)
     def cadsr_status():
         """Report that caDSR common data element search is not implemented yet.
 
@@ -304,19 +325,21 @@ def _per_call[Resource: Callable[..., Any]](resource: Resource) -> Resource:
 
 
 def _register_resources(
-    mcp: Any, service: NCISIService, resource_result: Callable[[dict[str, Any]], dict[str, Any]]
+    resource: Callable[..., Callable[..., Any]],
+    service: NCISIService,
+    resource_result: Callable[..., dict[str, Any]],
 ) -> None:
     def release_not_available(message: str, requested: str, source: str) -> dict[str, Any]:
         error = PlatformError("release_not_available", message, requested=requested, source=source)
         return resource_result(serialise(error))
 
-    @mcp.resource("nci-si://concept/ncit/{code}", mime_type="application/json")
+    @resource("nci-si://concept/ncit/{code}", resolution=False)
     @_per_call
     def ncit_concept_resource(code: str):
         """One NCIt concept, as returned by the `ncit_lookup` tool with default options."""
         return resource_result(service.lookup(code=code))
 
-    @mcp.resource("nci-si://release/ncit/{version}", mime_type="application/json")
+    @resource("nci-si://release/ncit/{version}", resolution=False)
     @_per_call
     def ncit_release_resource(version: str):
         """The current NCIt release of the configured channel (monthly by default).
@@ -328,7 +351,7 @@ def _register_resources(
         """
         info = resource_result(service.release_info())
         if version in RELEASE_REPORT_ALIASES:
-            return info
+            return resource_result(info, resolution=True)
         selected = resource_result(info["selected_monthly_release"])
         if version == selected["version"]:
             return selected
@@ -339,7 +362,7 @@ def _register_resources(
             "evs",
         )
 
-    @mcp.resource("nci-si://index/ncit/{version}/manifest", mime_type="application/json")
+    @resource("nci-si://index/ncit/{version}/manifest", resolution=False)
     @_per_call
     def ncit_index_manifest_resource(version: str):
         """The manifest of the local search index.
@@ -351,9 +374,9 @@ def _register_resources(
         result = resource_result(service.index_manifest())
         manifest = result["active_index"]
         if not manifest:
-            return result
+            return resource_result(result, resolution=True)
         if version in ("active", manifest["release_version"]):
-            return manifest
+            return resource_result(manifest, resolution=version == "active")
         return release_not_available(
             f"The local index holds release {manifest['release_version']}, not "
             f"{version}. Read that release or `active`, or rebuild the index with "

@@ -180,6 +180,10 @@ errors use 0/private. List, discovery and resource-read hints are protocol resul
 tool hints are protocol `_meta`, preserving other metadata. Moving release-report aliases,
 the active index alias and absent-index reports use the resolution policy. CLI content is
 unchanged. Protocol tests exercise the current resource URIs; the spec URI surface remains #30.
+Cache classes are required at tool/resource registration; resource producers explicitly
+select status policy when needed. Response middleware reads a per-call declaration, not
+tool names, URI tables or JSON content. Tests require every registered producer to declare
+its class and check renamed producers, concurrent calls and undeclared-response rejection.
 
 Per the #14 review, cursors ship with their first producers in #23 (hierarchy) and #27
 (search): pin the release, reject supersession with `cursor_expired` and both release

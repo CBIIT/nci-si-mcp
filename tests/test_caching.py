@@ -1,13 +1,66 @@
+import asyncio
 import json
+import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
+from nci_si_mcp.caching import cache_call, select_cache_hint
 from nci_si_mcp.errors import IndexStorageError
 from nci_si_mcp.evs import EVSUnavailableError
+from nci_si_mcp.server import _cache_results, create_mcp
 from test_server import ServerFixture
 
 
 @patch("nci_si_mcp.server.configure_logging")
 class CachingTest(ServerFixture):
+    def test_every_registered_tool_and_resource_declares_a_cache_class(self, _):
+        server = create_mcp(self.settings, service=self.service)
+        # Inspect registrations, not response hints: a new declaration must not be
+        # silently supplied by the middleware's policy for a different producer.
+        registrations = [
+            *server._tool_manager.list_tools(),
+            *server._resource_manager.list_resources(),
+            *server._resource_manager.list_templates(),
+        ]
+        self.assertEqual(len(registrations), 8)
+        for registration in registrations:
+            with self.subTest(name=registration.name):
+                self.assertIsInstance(getattr(registration.fn, "__cache_resolution__", None), bool)
+
+    def test_tool_policy_follows_its_declaration_after_a_rename(self, _):
+        def register(tool, service, tool_result):
+            @tool(resolution=True)
+            def renamed_status():
+                return {"state": "pending"}
+
+        with patch("nci_si_mcp.server._register_tools", side_effect=register):
+            result = self.session(lambda client: client.call_tool("renamed_status"))
+        self.assertFalse(result.is_error)
+        self.assertEqual((result.meta["ttlMs"], result.meta["cacheScope"]), (0, "public"))
+
+    def test_resource_policy_ignores_its_uri_and_payload_shape(self, _):
+        def register(resource, service, resource_result):
+            @resource("nci-si://renamed/{code}", resolution=False)
+            def renamed_content(code: str):
+                return {"code": code, "active_index": None}
+
+        with patch("nci_si_mcp.server._register_resources", side_effect=register):
+            result = self.session(lambda client: client.read_resource("nci-si://renamed/C1"))
+        self.assertEqual((result.ttl_ms, result.cache_scope), (86_400_000, "public"))
+
+    def test_concurrent_status_and_content_calls_keep_separate_hints(self, _):
+        async def calls(client):
+            return await asyncio.gather(
+                client.call_tool("ncit_lookup", {"code": "C3262"}),
+                client.call_tool("ncit_release_info"),
+                client.read_resource("nci-si://release/ncit/26.06e"),
+                client.read_resource("nci-si://release/ncit/monthly"),
+            )
+
+        content, status, pinned, moving = self.session(calls)
+        self.assertEqual([content.meta["ttlMs"], status.meta["ttlMs"]], [86_400_000, 0])
+        self.assertEqual([pinned.ttl_ms, moving.ttl_ms], [86_400_000, 0])
+
     def test_lists_and_discovery_advertise_long_public_result_fields(self, _):
         async def listed(client):
             return [
@@ -118,3 +171,24 @@ class CachingTest(ServerFixture):
         )
         self.assertEqual(json.loads(result.contents[0].text), {"active_index": None})
         self.assertEqual((result.ttl_ms, result.cache_scope), (0, "public"))
+
+
+class CacheDeclarationTest(unittest.TestCase):
+    def test_an_undeclared_successful_producer_cannot_default_to_long_lived(self):
+        async def undeclared(ctx):
+            return {"content": []}
+
+        with self.assertRaisesRegex(RuntimeError, "must declare its cache policy"):
+            asyncio.run(_cache_results(SimpleNamespace(method="tools/call"), undeclared))
+
+    def test_nested_call_restores_the_outer_policy_even_after_failure(self):
+        with cache_call() as outer:
+            select_cache_hint(resolution=False)
+            with self.assertRaisesRegex(ValueError, "failed"), cache_call() as inner:
+                select_cache_hint(resolution=True)
+                raise ValueError("failed")
+            select_cache_hint(resolution=True)
+        self.assertEqual(outer, {"ttlMs": 0, "cacheScope": "public"})
+        self.assertEqual(inner, {"ttlMs": 0, "cacheScope": "public"})
+        with self.assertRaises(LookupError):
+            select_cache_hint(resolution=False)
