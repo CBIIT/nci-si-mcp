@@ -52,7 +52,8 @@ logger = logging.getLogger(__name__)
 RELATIONS: dict[str, tuple[str, str]] = {
     "parent": ("parents", "is_a_parent"),
     "child": ("children", "is_a_child"),
-    "descendant": ("descendants", "is_a_descendant"),
+    # Descendant edges use their own endpoint; the final check needs only children.
+    "descendant": ("children", "is_a_descendant"),
     "role": ("roles", "role"),
     "inverse_role": ("inverseRoles", "inverse_role"),
     "association": ("associations", "association"),
@@ -168,30 +169,27 @@ def _fetch_concepts(
     release: ReleaseContext,
     include: str,
     batch_size: int,
-) -> tuple[dict[str, dict[str, Any]], list[str], list[str]]:
+) -> Iterator[tuple[dict[str, dict[str, Any]], list[str], list[str]]]:
     """Fetch concepts with their relations, pinned to and verified against the release.
 
-    Returns the payloads by code, the codes EVS did not return, and the codes
-    whose relations were too large to read.
+    Yields each successful chunk by code, missing codes and oversized codes.
+    Processing each chunk before the next request preserves limit chronology.
     """
 
     terminology = release.pinned_terminology
-    found: dict[str, dict[str, Any]] = {}
-    oversized: list[str] = []
-    checked: list[str] = []
     try:
         for batch in batched(codes, batch_size, strict=False):
             for concepts, too_large, requested in _fetch_batch(
                 client, list(batch), terminology, include
             ):
                 verify_release(concepts, release.version)
-                found.update(_by_code(concepts))
-                oversized += too_large
-                checked += requested
+                found = _by_code(concepts)
+                if not found.keys() <= set(requested):
+                    raise EVSResponseError("EVS returned a graph concept that was not requested")
+                yield found, [code for code in requested if code not in found], too_large
     except RequestBudgetError:
         # Preserve earlier batches, including the successful half of a split batch.
         pass
-    return found, [code for code in checked if code not in found], oversized
 
 
 def _by_code(concepts: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -283,10 +281,12 @@ class _Walk:
     edge_types: list[str]
     budget: Budget
     name_filter: set[str]
+    starts: set[str]
     retrieved_at: str = field(default_factory=utc_now_iso)
     correlation_id: str = field(default_factory=call_correlation_id)
     nodes: dict[str, TraversalNode] = field(default_factory=dict)
     concepts: dict[str, dict[str, Any]] = field(default_factory=dict)
+    depth_omitted: dict[str, set[str]] = field(default_factory=dict)
     edges: list[TraversalEdge] = field(default_factory=list)
     seen_edges: set[tuple[str, str, str, str]] = field(default_factory=set)
     unexpanded: list[str] = field(default_factory=list)
@@ -381,6 +381,7 @@ class _Walk:
         bound = self.bounds_reached[first]
         first_kind = self._bound_kind(first)
         limit, reached, omitted = {
+            "depth": (self.budget.depth, self.budget.depth, self._depth_count(kind)),
             "nodes": (self.budget.nodes, len(self.nodes), self._kind_omitted(kind, "nodes")),
             "edges": (self.budget.edges, len(self.edges), self._kind_omitted(kind, "edges")),
             "kind_budget": (
@@ -404,6 +405,11 @@ class _Walk:
             exact=False,
         )
 
+    def _depth_count(self, kind: str | None) -> int:
+        if kind is not None:
+            return len(self.depth_omitted.get(kind, set()))
+        return len(set().union(*self.depth_omitted.values()))
+
     @staticmethod
     def _bound_kind(key: tuple[str, ...]) -> str:
         return key[0] if len(key) == 1 else key[2]
@@ -420,36 +426,85 @@ class _Walk:
             return sum(self.bounds_reached[key] == "edges" for key in dropped)
         return len({edge.target_code for edge in dropped.values()} - self.nodes.keys())
 
-    def _needs_fetch(self, frontier: list[str], depth: int) -> bool:
-        # Start codes are always fetched, to name them and to prove they exist.
-        expand = depth < self.budget.depth
-        return depth == 0 or bool(expand and self.payload_types and frontier)
+    def _depth_types(self, frontier: list[str]) -> list[str]:
+        # A depth check cannot improve a bound already reported. An exactly full
+        # result with no dropped node still needs the check to distinguish a leaf.
+        if "nodes" in self.bounds_reached.values():
+            return []
+        truncated = {self._bound_kind(key) for key in self.bounds_reached}
+        kinds = [kind for kind in self.edge_types if kind not in truncated]
+        self._mark_inverse_depth(frontier, kinds)
+        return [kind for kind in kinds if not kind.startswith("inverse")]
+
+    def _mark_inverse_depth(self, frontier: list[str], kinds: list[str]) -> None:
+        # Hub inverse lists can be megabytes each. Do not fetch them solely to
+        # count continuation: zero is an explicit lower bound, not a leaf claim.
+        reached = {edge.edge_type for edge in self.edges if edge.target_code in frontier}
+        for kind in kinds:
+            if kind.startswith("inverse") and (kind in reached or self.budget.depth == 0):
+                self.bounds_reached.setdefault((kind,), "depth")
+
+    @staticmethod
+    def _needs_fetch(frontier: list[str], depth: int, kinds: list[str]) -> bool:
+        # Always verify the starts, including a depth-zero walk.
+        return depth == 0 or bool(kinds and frontier)
 
     def fetch(self, frontier: list[str], depth: int) -> dict[str, dict[str, Any]]:
         """Read the concepts of the frontier, with the relations to follow from them."""
 
-        if not self._needs_fetch(frontier, depth):
+        kinds = self._depth_types(frontier) if depth == self.budget.depth else self.payload_types
+        if not self._needs_fetch(frontier, depth, kinds):
             return {}
-        relations = [RELATIONS[edge_type][0] for edge_type in self.payload_types]
-        include = ",".join(["minimal", *relations]) if depth < self.budget.depth else "minimal"
-        concepts, missing, oversized = _fetch_concepts(
+        relations = list(dict.fromkeys(RELATIONS[edge_type][0] for edge_type in kinds))
+        include = ",".join(["minimal", *relations])
+        concepts: dict[str, dict[str, Any]] = {}
+        for found, missing, oversized in _fetch_concepts(
             self.client, frontier, self.release, include, self.batch_size
-        )
+        ):
+            self._checked_chunk(found, missing, oversized, depth, kinds)
+            concepts.update(found)
+        if self.budget.exhausted:
+            # Missing start nodes truncate the graph even when no relation kind is read.
+            self.bounds_reached.setdefault(("",), "requests")
+            self._mark_unread(kinds, "requests")
+        self.concepts.update(_node_payloads(concepts))
+        return concepts
+
+    def _checked_chunk(
+        self,
+        found: dict[str, dict[str, Any]],
+        missing: list[str],
+        oversized: list[str],
+        depth: int,
+        kinds: list[str],
+    ) -> None:
         if missing:
             raise _missing_concepts(self.release, missing, depth)
         if oversized:
-            # Their relation lists are empty in `concepts`, so they add no edges.
+            # Their relation lists are absent, so no depth claim is made from them.
             logger.warning(
                 "traverse_relations_too_large codes=%s limit=NCI_SI_EVS_MAX_RESPONSE_BYTES",
                 ",".join(oversized),
             )
-            self._mark_unexpanded(oversized, self.payload_types)
-        if self.budget.exhausted:
-            # Missing start nodes truncate the graph even when no relation kind is read.
-            self.bounds_reached.setdefault(("",), "requests")
-            self._mark_unread(self.payload_types, "requests")
-        self.concepts.update(_node_payloads(concepts))
-        return concepts
+            self._mark_unexpanded(oversized, kinds)
+        if depth == self.budget.depth:
+            self._check_depth(found, kinds)
+
+    def _check_depth(self, concepts: dict[str, dict[str, Any]], kinds: list[str]) -> None:
+        for code, kind, item in self._payload_relations(list(concepts), concepts, kinds):
+            provenance = self._provenance(
+                self.budget.depth + 1, self._concept_uri(code), kind, item
+            )
+            edge = _edge(code, str(concepts[code].get("name") or ""), kind, item, provenance)
+            key = (code, edge.target_code, kind, edge.relationship_name)
+            if (
+                edge.target_code in self.nodes
+                or edge.target_code in self.starts
+                or self._skips(edge, key)
+            ):
+                continue
+            self.depth_omitted.setdefault(kind, set()).add(edge.target_code)
+            self.bounds_reached.setdefault((kind,), "depth")
 
     def start(self, start_codes: list[str], concepts: dict[str, dict[str, Any]]) -> None:
         """Emit the start nodes and read their descendants when those are followed."""
@@ -487,7 +542,7 @@ class _Walk:
     ) -> list[tuple[str, str, dict[str, Any]]]:
         """The relation items that lead from the frontier to depth + 1."""
 
-        found = self._payload_relations(frontier, concepts)
+        found = self._payload_relations(frontier, concepts, self.payload_types)
         found += [(code, "descendant", item) for code, item in self.descendants.get(depth + 1, [])]
         grouped: dict[str, list[tuple[str, str, dict[str, Any]]]] = {
             kind: [] for kind in self.edge_types
@@ -496,13 +551,14 @@ class _Walk:
             grouped[item[1]].append(item)
         return _rotate(grouped.values())
 
+    @staticmethod
     def _payload_relations(
-        self, frontier: list[str], concepts: dict[str, dict[str, Any]]
+        frontier: list[str], concepts: dict[str, dict[str, Any]], kinds: list[str]
     ) -> list[tuple[str, str, dict[str, Any]]]:
         return [
             (code, edge_type, item)
             for code in frontier
-            for edge_type in self.payload_types
+            for edge_type in kinds
             for item in object_list(concepts.get(code, {}), RELATIONS[edge_type][0])
         ]
 
@@ -562,10 +618,11 @@ class _Walk:
         return True
 
     def _remaining_kinds(self, frontier: list[str], depth: int) -> list[str]:
-        if depth + 1 >= self.budget.depth:
-            return []
         kinds = list(self.payload_types) if frontier else []
-        if any(level > depth + 1 for level in self.descendants):
+        final_descendants = (
+            frontier and depth + 1 == self.budget.depth and "descendant" in self.edge_types
+        )
+        if final_descendants or any(level > depth + 1 for level in self.descendants):
             kinds.append("descendant")
         return kinds
 
@@ -631,7 +688,12 @@ def traverse_ncit(
     names the first node, edge, kind or response-size bound that dropped something.
     Request exhaustion preserves the graph and reports requests unless an earlier
     bound dropped something; it raises RequestBudgetError when no start was read.
-    Nodes at the depth limit are not expanded; depth-limit truncation is deferred to #18.
+    The last frontier is read with the selected relation lists to detect depth cuts.
+    Forward kinds count distinct unseen targets as omitted; leaves and cycles do not.
+    Descendant checks use only the last frontier's children. Inverse kinds never fetch
+    final lists solely to check continuation: reaching that frontier through the kind
+    reports depth with omitted=0 and exact=false. Further continuation is unknown.
+    A prior global node cut skips the check; kinds already truncated are excluded.
     """
 
     walk = _Walk(
@@ -640,6 +702,7 @@ def traverse_ncit(
         edge_types=edge_types,
         budget=budget,
         name_filter={name.lower() for name in relationship_names or []},
+        starts=set(start_codes),
     )
     return _run_walk(walk, start_codes)
 

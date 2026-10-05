@@ -38,6 +38,33 @@ def descendant(code, level):
     return {"code": code, "name": f"Concept {code}", "level": level}
 
 
+def _related_codes(raw):
+    for key in (
+        "parents",
+        "children",
+        "roles",
+        "inverseRoles",
+        "associations",
+        "inverseAssociations",
+    ):
+        for item in raw.get(key, []):
+            code = item.get("code" if key in ("parents", "children") else "relatedCode")
+            if code:
+                yield code
+
+
+def complete_graph(client):
+    """Supply explicit leaf payloads for graphs whose final neighbours were previously unread.
+
+    Only tests modelling a complete graph opt in; missing-concept tests retain FakeEVS directly.
+    """
+    targets = {code for raw in client.concepts.values() for code in _related_codes(raw)}
+    targets.update(item["code"] for items in client.descendants.values() for item in items)
+    for code in targets:
+        client.concepts.setdefault(code, concept(code, active=True))
+    return client
+
+
 def chain():
     """C1 -> C2 -> C3 -> {C1, C4} over child edges: a cycle with one exit."""
 
@@ -175,16 +202,17 @@ class TraversalTest(unittest.TestCase):
     def test_each_level_is_one_request_pinned_to_the_release(self):
         client = chain()
 
-        result = walk(client, max_depth=2)
+        result = walk(complete_graph(client), max_depth=2)
 
         self.assertEqual(
             client.calls,
             [
                 ("get_concepts_by_codes", "ncit_26.06e", ["C1"]),
                 ("get_concepts_by_codes", "ncit_26.06e", ["C2"]),
+                ("get_concepts_by_codes", "ncit_26.06e", ["C3"]),
             ],
         )
-        self.assertEqual(client.includes, ["minimal,children,roles,associations"] * 2)
+        self.assertEqual(client.includes, ["minimal,children,roles,associations"] * 3)
         self.assertEqual(
             {item.provenance.release["identifier"] for item in [*result.nodes, *result.edges]},
             {"26.06e"},
@@ -201,13 +229,18 @@ class TraversalTest(unittest.TestCase):
         }
         for direction, (include, targets) in expected.items():
             with self.subTest(direction=direction):
-                client = star()
+                client = complete_graph(star())
                 result = walk(client, direction=direction, max_depth=1)
-                self.assertEqual(client.includes, [include])
+                final_include = {
+                    "out": "minimal,children,roles,associations",
+                    "in": "minimal,parents",
+                    "both": "minimal,children,parents,roles,associations",
+                }[direction]
+                self.assertEqual(client.includes, [include, final_include])
                 self.assertEqual({edge.target_code for edge in result.edges}, targets)
 
     def test_edges_carry_type_relationship_name_and_both_concept_names(self):
-        result = walk(star(), max_depth=1, edge_types=["role", "child"])
+        result = walk(complete_graph(star()), max_depth=1, edge_types=["role", "child"])
 
         by_target = {edge.target_code: edge for edge in result.edges}
         self.assertEqual(by_target["C11"].edge_type, "child")
@@ -223,10 +256,16 @@ class TraversalTest(unittest.TestCase):
     def test_relationship_name_filter_ignores_case(self):
         for name in ("Disease_Has_Associated_Gene", "disease_has_associated_gene"):
             with self.subTest(name):
-                result = walk(star(), max_depth=1, edge_types=["role"], relationship_names=[name])
+                result = walk(
+                    complete_graph(star()),
+                    max_depth=1,
+                    edge_types=["role"],
+                    relationship_names=[name],
+                )
                 self.assertEqual(pairs(result), [("C1", "C12")])
 
     def test_depth_bounds_a_walk_through_a_cycle(self):
+        leaf_depth = 3
         expected_edges = {
             0: [],
             1: [("C1", "C2")],
@@ -238,23 +277,23 @@ class TraversalTest(unittest.TestCase):
             with self.subTest(depth=depth):
                 result = walk(chain(), max_depth=depth)
                 self.assertEqual(pairs(result), edges)
-                self.assertFalse(result.truncation.occurred)
+                self.assertEqual(result.truncation.occurred, depth < leaf_depth)
         self.assertEqual(walk(chain(), max_depth=99).max_depth, HARD_MAX_DEPTH)
 
     def test_depth_zero_still_names_and_checks_the_start_codes(self):
         client = chain()
 
-        result = walk(client, max_depth=0)
+        result = walk(complete_graph(client), max_depth=0)
 
         self.assertEqual(
             [(node.code, node.preferred_name) for node in result.nodes], [("C1", "Concept C1")]
         )
-        self.assertEqual(client.includes, ["minimal"])
+        self.assertEqual(client.includes, ["minimal,children,roles,associations"])
 
     def test_duplicate_relation_rows_are_emitted_once(self):
         client = FakeEVS([concept("C1", roles=[related("Disease_Has_Finding", "C2")] * 2)])
 
-        result = walk(client, max_depth=1)
+        result = walk(complete_graph(client), max_depth=1)
 
         self.assertEqual(pairs(result), [("C1", "C2")])
 
@@ -270,7 +309,9 @@ class TraversalTest(unittest.TestCase):
             descendants={"C1": [descendant("C2", 1)]},
         )
 
-        result = walk(client, max_depth=1, edge_types=["descendant", "role", "child"])
+        result = walk(
+            complete_graph(client), max_depth=1, edge_types=["descendant", "role", "child"]
+        )
 
         # Kinds rotate; parallel edges survive even when another kind admitted their target.
         self.assertEqual(
@@ -310,7 +351,8 @@ class TraversalTest(unittest.TestCase):
         self.assertEqual(len(client.calls), 1)
 
     def test_reaching_the_edge_limit_exactly_is_not_truncation(self):
-        result = walk(chain(), max_depth=1, max_edges=1)
+        client = complete_graph(FakeEVS([concept("C1", children=[child("C2")])]))
+        result = walk(client, max_depth=1, max_edges=1)
 
         self.assertEqual(pairs(result), [("C1", "C2")])
         self.assertFalse(result.truncation.occurred)
@@ -343,7 +385,7 @@ class TraversalTest(unittest.TestCase):
             descendants={"C1": [descendant(f"C{level}0", level) for level in range(1, 7)]},
         )
 
-        result = walk(client, max_depth=99, edge_types=["descendant"])
+        result = walk(complete_graph(client), max_depth=99, edge_types=["descendant"])
 
         self.assertIn(("get_descendants", "ncit_26.06e", ("C1", 4)), client.calls)
         self.assertEqual([edge.target_code for edge in result.edges], ["C10", "C20", "C30", "C40"])
@@ -359,7 +401,7 @@ class TraversalTest(unittest.TestCase):
     def test_descendant_edges_link_the_start_code_to_every_level_within_depth(self):
         client = star()
 
-        result = walk(client, max_depth=2, edge_types=["descendant"])
+        result = walk(complete_graph(client), max_depth=2, edge_types=["descendant"])
 
         self.assertEqual(pairs(result), [("C1", "C11"), ("C1", "C21")])
         self.assertEqual({edge.edge_type for edge in result.edges}, {"descendant"})
@@ -368,6 +410,7 @@ class TraversalTest(unittest.TestCase):
             [
                 ("get_concepts_by_codes", "ncit_26.06e", ["C1"]),
                 ("get_descendants", "ncit_26.06e", ("C1", 2)),
+                ("get_concepts_by_codes", "ncit_26.06e", ["C21"]),
             ],
         )
 
@@ -439,8 +482,10 @@ class TraversalTest(unittest.TestCase):
             descendants={"C1": [descendant("C5", 1), descendant("C9", 2)]},
         )
 
-        with_descendants = walk(client, max_depth=2, edge_types=["child", "descendant", "role"])
-        without = walk(client, max_depth=2, edge_types=["child", "role"])
+        with_descendants = walk(
+            complete_graph(client), max_depth=2, edge_types=["child", "descendant", "role"]
+        )
+        without = walk(complete_graph(client), max_depth=2, edge_types=["child", "role"])
 
         self.assertIn(("C9", "C77"), pairs(with_descendants))
         self.assertEqual(set(codes(with_descendants)), set(codes(without)))
@@ -461,7 +506,10 @@ class TraversalTest(unittest.TestCase):
         )
 
         result = walk(
-            client, start_codes=["C1", "C2"], max_depth=2, edge_types=["child", "descendant"]
+            complete_graph(client),
+            start_codes=["C1", "C2"],
+            max_depth=2,
+            edge_types=["child", "descendant"],
         )
 
         self.assertIn(("C9", "C99"), pairs(result))
@@ -481,7 +529,10 @@ class TraversalTest(unittest.TestCase):
         )
 
         result = walk(
-            client, start_codes=["C2", "C1"], max_depth=2, edge_types=["child", "descendant"]
+            complete_graph(client),
+            start_codes=["C2", "C1"],
+            max_depth=2,
+            edge_types=["child", "descendant"],
         )
 
         self.assertIn(("C9", "C99"), pairs(result))
@@ -492,12 +543,12 @@ class TraversalTest(unittest.TestCase):
             descendants={"C1": [descendant("C11", 1), descendant("C21", 2)]},
         )
 
-        result = walk(client, max_depth=3, edge_types=["descendant", "role"])
+        result = walk(complete_graph(client), max_depth=3, edge_types=["descendant", "role"])
 
         self.assertIn(("C21", "C50"), pairs(result))
         self.assertEqual(
             [call[2] for call in client.calls if call[0] == "get_concepts_by_codes"],
-            [["C1"], ["C11"], ["C21"]],
+            [["C1"], ["C11"], ["C21"], ["C50"]],
         )
 
     def test_a_node_reached_by_two_paths_is_fetched_once(self):
@@ -510,9 +561,9 @@ class TraversalTest(unittest.TestCase):
             ]
         )
 
-        result = walk(client, max_depth=3)
+        result = walk(complete_graph(client), max_depth=3)
 
-        self.assertEqual([call[2] for call in client.calls], [["C1"], ["C2", "C3"], ["C4"]])
+        self.assertEqual([call[2] for call in client.calls], [["C1"], ["C2", "C3"], ["C4"], ["C5"]])
         self.assertEqual(
             pairs(result), [("C1", "C2"), ("C1", "C3"), ("C2", "C4"), ("C3", "C4"), ("C4", "C5")]
         )
@@ -600,7 +651,7 @@ class TraversalTest(unittest.TestCase):
         client.hubs = frozenset({"C3"})
 
         with self.assertLogs("nci_si_mcp.traversal", level="WARNING"):
-            result = walk(client, max_depth=2)
+            result = walk(complete_graph(client), max_depth=2)
 
         self.assertEqual(pairs(result), [("C1", "C2"), ("C1", "C3"), ("C2", "C4")])
         self.assertTrue(result.truncation.occurred)
@@ -612,7 +663,7 @@ class TraversalTest(unittest.TestCase):
         client.errors = {"get_descendants": UpstreamTooLargeError("too large")}
 
         with self.assertLogs("nci_si_mcp.traversal", level="WARNING") as logs:
-            result = walk(client, max_depth=1, edge_types=["child", "descendant"])
+            result = walk(complete_graph(client), max_depth=1, edge_types=["child", "descendant"])
 
         self.assertEqual(pairs(result), [("C1", "C11")])
         self.assertTrue(result.truncation.occurred)
@@ -627,7 +678,7 @@ class TraversalTest(unittest.TestCase):
         client.hubs = frozenset({"C2", "C4"})
 
         with self.assertLogs("nci_si_mcp.traversal", level="WARNING"):
-            result = walk(client, max_depth=2)
+            result = walk(complete_graph(client), max_depth=2)
 
         self.assertEqual((result.truncation.bound, result.truncation.omitted), ("upstream_cap", 2))
         self.assertTrue(result.truncation.occurred)
@@ -712,7 +763,10 @@ class TraversalTest(unittest.TestCase):
 
     def test_hierarchy_edges_carry_their_documented_names(self):
         result = walk(
-            star(), direction="both", max_depth=1, edge_types=["parent", "child", "descendant"]
+            complete_graph(star()),
+            direction="both",
+            max_depth=1,
+            edge_types=["parent", "child", "descendant"],
         )
 
         self.assertEqual(
@@ -725,12 +779,14 @@ class TraversalTest(unittest.TestCase):
                 ("parent", "is_a_parent", "C10"),
             ],
         )
-        filtered = walk(star(), direction="in", max_depth=1, relationship_names=["IS_A_PARENT"])
+        filtered = walk(
+            complete_graph(star()), direction="in", max_depth=1, relationship_names=["IS_A_PARENT"]
+        )
         self.assertEqual(pairs(filtered), [("C1", "C10")])
 
     def test_name_filter_applies_to_descendant_edges(self):
         by_role = walk(
-            star(),
+            complete_graph(star()),
             max_depth=1,
             edge_types=["descendant", "role"],
             relationship_names=["Disease_Has_Finding"],
@@ -738,7 +794,7 @@ class TraversalTest(unittest.TestCase):
         self.assertEqual(pairs(by_role), [("C1", "C13")])
 
         by_descendant = walk(
-            star(),
+            complete_graph(star()),
             max_depth=1,
             edge_types=["descendant", "role"],
             relationship_names=["is_a_descendant"],
@@ -790,13 +846,15 @@ class TraversalTest(unittest.TestCase):
         for edge_type, (direction, field) in fields.items():
             with self.subTest(edge_type):
                 client = FakeEVS([concept("C1", **{field: [untyped]})])
-                result = walk(client, direction=direction, max_depth=1, edge_types=[edge_type])
+                result = walk(
+                    complete_graph(client), direction=direction, max_depth=1, edge_types=[edge_type]
+                )
                 self.assertEqual([edge.relationship_name for edge in result.edges], [edge_type])
 
     def test_a_duplicate_row_at_the_edge_limit_is_not_truncation(self):
         client = FakeEVS([concept("C1", roles=[related("Has_Finding", "C2")] * 2)])
 
-        result = walk(client, max_depth=1, max_edges=1)
+        result = walk(complete_graph(client), max_depth=1, max_edges=1)
 
         self.assertEqual(pairs(result), [("C1", "C2")])
         self.assertFalse(result.truncation.occurred)
@@ -813,12 +871,14 @@ class TraversalTest(unittest.TestCase):
         row = dict(related("Has_Finding", "C2"), name="Has Finding (role name)")
         client = FakeEVS([concept("C1", roles=[row])])
 
-        result = walk(client, max_depth=1, edge_types=["role"])
+        result = walk(complete_graph(client), max_depth=1, edge_types=["role"])
 
         self.assertEqual(result.edges[0].target_name, "Concept C2")
 
     def test_every_edge_type_names_its_target(self):
-        result = walk(star(), direction="both", max_depth=1, edge_types=sorted(RELATIONS))
+        result = walk(
+            complete_graph(star()), direction="both", max_depth=1, edge_types=sorted(RELATIONS)
+        )
 
         self.assertEqual(
             sorted((edge.edge_type, edge.target_code, edge.target_name) for edge in result.edges),
@@ -841,7 +901,7 @@ class TraversalTest(unittest.TestCase):
         )
 
     def test_a_descendant_reached_by_no_other_edge_is_named(self):
-        result = walk(star(), max_depth=3, edge_types=["descendant"])
+        result = walk(complete_graph(star()), max_depth=3, edge_types=["descendant"])
 
         self.assertEqual(
             {node.code: node.preferred_name for node in result.nodes},
@@ -852,7 +912,7 @@ class TraversalTest(unittest.TestCase):
         row = {"code": "R1", "type": "Has_Finding", "relatedCode": "C2", "name": "Has Finding"}
         client = FakeEVS([concept("C1", roles=[row])])
 
-        result = walk(client, max_depth=1, edge_types=["role"])
+        result = walk(complete_graph(client), max_depth=1, edge_types=["role"])
 
         self.assertEqual(result.edges[0].target_name, "")
 
@@ -864,12 +924,16 @@ class TraversalTest(unittest.TestCase):
         client.hubs = frozenset({"C2", "C4"})
 
         with self.assertLogs("nci_si_mcp.traversal", level="WARNING") as logs:
-            walk(client, max_depth=2)
+            walk(complete_graph(client), max_depth=2)
 
-        self.assertIn(
-            "traverse_relations_too_large codes=C2,C4 limit=NCI_SI_EVS_MAX_RESPONSE_BYTES",
-            logs.output[-1],
-        )
+        for code in ("C2", "C4"):
+            self.assertTrue(
+                any(
+                    f"traverse_relations_too_large codes={code} limit=NCI_SI_EVS_MAX_RESPONSE_BYTES"
+                    in line
+                    for line in logs.output
+                )
+            )
 
 
 if __name__ == "__main__":

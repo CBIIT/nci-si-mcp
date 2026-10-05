@@ -23,6 +23,7 @@ from nci_si_mcp.models import NcitConcept, utc_now_iso
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.traversal import NCIT_EXCLUSION_CODES
 from test_index import synthetic_concepts
+from test_traversal import complete_graph
 
 RECORDS = yaml.safe_load((Path(__file__).parent.parent / "spec/records.yaml").read_text())
 PROVENANCE = RECORDS["provenance"]["fields"]
@@ -70,7 +71,7 @@ class ProvenanceTestCase(unittest.TestCase):
         self.path = Path(directory.name)
         # The tests change the payloads, so each gets its own.
         payloads = [NEOPLASM, KINASE, *(concept(code) for code in ("C2991", "C4741", "C4742"))]
-        self.evs = FakeEVS(deepcopy(payloads))
+        self.evs = complete_graph(FakeEVS(deepcopy(payloads)))
         self.context = Context(
             Settings(data_dir=self.path),
             evs=self.evs,
@@ -86,6 +87,7 @@ class ProvenanceTestCase(unittest.TestCase):
 
     def traversal(self, **arguments):
         arguments = {"start_codes": ["C3262"], "max_depth": 1} | arguments
+        complete_graph(self.evs)
         result = invoke(self.context, "traverse", **arguments)
         self.assertNotIn("error", result, result)
         return result
@@ -185,7 +187,7 @@ class EveryItemCarriesItsProvenanceTest(ProvenanceTestCase):
 class TheReleaseOfAnItemIsTheReleaseServedTest(ProvenanceTestCase):
     def test_every_item_names_the_release_the_call_was_pinned_to(self):
         self.evs.release = release("26.07d", "2026-07-27")
-        for code in ("C3262", "C4741", "C2991", "C4742"):
+        for code in self.evs.concepts:
             self.evs.concepts[code] = dict(
                 self.evs.concepts.get(code, concept(code)), version="26.07d"
             )
@@ -487,8 +489,18 @@ class TruncationTest(ProvenanceTestCase):
             },
         )
 
-    def test_stopping_at_the_depth_limit_is_no_truncation(self):
-        self.assert_record(self.traversal(max_depth=0)["truncation"], {"occurred": False})
+    def test_depth_zero_reports_the_known_unseen_children(self):
+        self.assert_record(
+            self.traversal(max_depth=0, edge_types=["child"])["truncation"],
+            {
+                "occurred": True,
+                "bound": "depth",
+                "limit": 0,
+                "reached": 0,
+                "omitted": 2,
+                "exact": False,
+            },
+        )
 
     def test_the_search_limit_reports_the_concepts_it_left_out(self):
         invoke(self.context, "index_codes", ["C3262", "C40704"])

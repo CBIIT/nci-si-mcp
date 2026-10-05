@@ -176,6 +176,17 @@ which use the closed value sets in `validation.py` and default limits in `bounds
    batched concept requests that include the selected relation lists, pinned to
    the release, and every fetched concept is checked against it. Requested
    limits are clamped to a maximum depth of 4, 1,000 nodes, and 5,000 edges.
+   Forward lists at the last frontier are also read, within the same request budget, to distinguish
+   a depth cut from a leaf or a cycle to returned nodes. Each batch is processed
+   before the next request so the first bound reached keeps precedence.
+   A depth cut counts distinct unseen targets one level further, with `exact: false`.
+   A reported global node cut skips this check; otherwise it reads only kinds
+   with no prior cut. The content adapter still fetches missing node status
+   without relation lists before returning public concept records.
+   An inverse kind reaching the last frontier instead reports a depth cut with
+   `omitted: 0`, `exact: false`; its potentially huge lists are never read solely
+   for this check. This explicitly leaves continuation unknown. Descendant checks
+   read the final nodes' child lists.
 4. `descendant` edges are followed only on request. They come from one EVS
    request per start code, pinned to the release and limited to `max_depth`
    levels, and each is emitted together with the other edges that reach the

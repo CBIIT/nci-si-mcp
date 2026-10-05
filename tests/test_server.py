@@ -25,6 +25,7 @@ from nci_si_mcp.index import LocalIndex
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.server import INSTRUCTIONS, create_mcp
 from test_docs import QUICKSTART, bullet_names, section
+from test_traversal import complete_graph
 
 NEOPLASM = concept(
     "C3262",
@@ -69,7 +70,7 @@ class ServerFixture(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.settings = Settings(data_dir=Path(directory.name))
-        self.evs = FakeEVS([NEOPLASM, MORPHOLOGY])
+        self.evs = complete_graph(FakeEVS([NEOPLASM, MORPHOLOGY]))
         self.context = Context(
             self.settings,
             evs=self.evs,
@@ -228,6 +229,7 @@ class ServerTest(ServerFixture):
             {"code": "C2", "name": "Two"},
             {"code": "C3", "name": "Three"},
         ]
+        complete_graph(self.evs)
         is_error, result = self.call(
             "ncit_traverse",
             start_codes=["C3262"],

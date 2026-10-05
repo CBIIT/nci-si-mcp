@@ -24,7 +24,7 @@ from nci_si_mcp.evs import EVSNotFoundError
 from nci_si_mcp.registry import invoke
 from test_handlers import HandlerTestCase
 from test_http_client import Reply, ServerTestCase
-from test_traversal import HubEVS, child, codes, descendant, related, walk
+from test_traversal import HubEVS, child, codes, complete_graph, descendant, related, walk
 
 
 class BudgetTest(unittest.TestCase):
@@ -146,7 +146,7 @@ class TraversalBudgetTest(unittest.TestCase):
                 )
             ]
         )
-        result = walk(client, max_depth=1, budget_per_kind=1)
+        result = walk(complete_graph(client), max_depth=1, budget_per_kind=1)
         self.assertEqual(result.truncation.omitted, 1)
         self.assertEqual(result.truncation.to_dict()["perKind"]["role"]["omitted"], 1)
 
@@ -247,7 +247,9 @@ class TraversalBudgetTest(unittest.TestCase):
                 )
             ]
         )
-        result = walk(client, max_depth=1, budget_per_kind=2, relationship_names=["keep"])
+        result = walk(
+            complete_graph(client), max_depth=1, budget_per_kind=2, relationship_names=["keep"]
+        )
         self.assertEqual(codes(result), ["C1", "C2", "C3"])
         self.assertEqual(len(result.edges), 3)
         self.assertEqual(result.truncation.reached, 2)
@@ -260,7 +262,7 @@ class TraversalBudgetTest(unittest.TestCase):
                 concept("C2", associations=[related("assoc", "C5")]),
             ]
         )
-        result = walk(client, start_codes=["C1", "C2"], max_depth=1, max_nodes=4)
+        result = walk(complete_graph(client), start_codes=["C1", "C2"], max_depth=1, max_nodes=4)
         self.assertEqual(set(codes(result)), {"C1", "C2", "C3", "C5"})
         kinds = result.truncation.to_dict()["perKind"]
         self.assertTrue(kinds["role"]["occurred"])
@@ -276,7 +278,7 @@ class TraversalBudgetTest(unittest.TestCase):
                 )
             ]
         )
-        result = walk(client, max_depth=1, budget_per_kind=1)
+        result = walk(complete_graph(client), max_depth=1, budget_per_kind=1)
         self.assertEqual(set(codes(result)), {"C1", "C2", "C3"})
         self.assertEqual(len(result.edges), 4)
         self.assertEqual(result.truncation.to_dict(), {"occurred": False})
@@ -291,7 +293,7 @@ class TraversalBudgetTest(unittest.TestCase):
                 )
             ]
         )
-        result = walk(client, max_depth=1, budget_per_kind=2)
+        result = walk(complete_graph(client), max_depth=1, budget_per_kind=2)
         self.assertEqual(set(codes(result)), {"C1", "C2", "C3", "C9"})
         record = result.truncation.to_dict()["perKind"]["role"]
         self.assertEqual(
