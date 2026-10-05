@@ -792,6 +792,14 @@ Stopping at `max_depth` is no truncation.
 - `nci-si://release/ncit/{version}`: `monthly`, `latest`, or `monthly-latest` return the full `ncit_release_info` report for the configured channel, including weekly; the current version returns its `{terminology, channel, version, date}` record. The aliases retain their existing names until #18.
 - `nci-si://index/ncit/{version}/manifest`: `active`, or the release the local index holds, returns its manifest; without an index the result is `{"active_index": null}`.
 
+## MCP output schemas
+
+Every tool declares an `outputSchema` covering its success object and the shared error
+record. Successful `structuredContent` is validated by the MCP SDK and has the same fields
+as the JSON text content; optional fields remain omitted, and there is no extra `result`
+wrapper. The schema includes the closed error-code set, provenance and recursive truncation
+records. The tool listing stays the same across release channels and upstream availability.
+
 ## MCP caching hints
 
 Tool results carry `ttlMs` and `cacheScope` in protocol `_meta`, separate from their JSON

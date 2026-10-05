@@ -6,13 +6,21 @@ import functools
 import inspect
 import json
 from collections.abc import Awaitable, Callable
-from typing import Any, cast
+from typing import Any, cast, get_type_hints
 
 from . import __version__
 from .bounds import DEFAULT_MAX_DEPTH, DEFAULT_MAX_EDGES, DEFAULT_MAX_NODES
 from .caching import LONG_TTL_MS, RELEASE_REPORT_ALIASES, cache_call, cache_hint, select_cache_hint
 from .config import Settings, configure_logging
 from .errors import PlatformError, correlated, is_error_record, serialise
+from .results import (
+    CadsrStatusResult,
+    ConceptResult,
+    ErrorResult,
+    ReleaseResult,
+    SearchResult,
+    TraversalResult,
+)
 from .service import NCISIService
 from .validation import Direction, EdgeType, SearchMode
 
@@ -37,6 +45,7 @@ def create_mcp(settings: Settings | None = None, *, service: NCISIService | None
         from mcp.server.mcpserver import Context, MCPServer
         from mcp.server.mcpserver.exceptions import ResourceError
         from mcp.types import CallToolResult, TextContent
+        from pydantic import RootModel
     except ImportError as exc:
         raise RuntimeError(
             "The MCP server needs the 'server' extra, which installs mcp>=2,<3 "
@@ -93,11 +102,17 @@ def create_mcp(settings: Settings | None = None, *, service: NCISIService | None
         """Require a cache class beside every tool registration."""
 
         def register(fn: Callable[..., Any]) -> Callable[..., Any]:
-            declared = _declared_cache(fn, resolution=resolution)
+            annotations = get_type_hints(fn)
+            # A bare union gets a synthetic `result` field in the SDK. RootModel keeps
+            # the existing object shape, including omitted TypedDict keys.
+            annotations["return"] = RootModel[annotations["return"]]
             # Context is imported only when a server is built.
             if "ctx" in inspect.signature(fn).parameters:
-                declared.__annotations__ = {**fn.__annotations__, "ctx": Context}
-            return mcp.tool()(declared)
+                annotations["ctx"] = Context
+            fn.__annotations__ = annotations
+            declared = _declared_cache(fn, resolution=resolution)
+            declared.__annotations__ = annotations
+            return mcp.tool(structured_output=True)(declared)
 
         return register
 
@@ -152,7 +167,7 @@ def _register_tools(
         limit: int = 10,
         mode: SearchMode = "hybrid",
         ctx: Any = None,
-    ):
+    ) -> SearchResult | ErrorResult:
         """Search the locally indexed NCIt concepts by text.
 
         The index holds only the concepts an operator loaded with the
@@ -183,7 +198,9 @@ def _register_tools(
         return tool_result(ctx, lambda: service.search(query=query, limit=limit, mode=mode))
 
     @tool(resolution=False)
-    def ncit_lookup(code: str, live_only: bool = False, ctx: Any = None):
+    def ncit_lookup(
+        code: str, live_only: bool = False, ctx: Any = None
+    ) -> ConceptResult | ErrorResult:
         """Look up one NCIt concept by code (C followed by digits) in live EVS.
 
         The request is pinned to the current release of the configured channel
@@ -218,7 +235,7 @@ def _register_tools(
         relationship_names: list[str] | None = None,
         edge_types: list[EdgeType] | None = None,
         ctx: Any = None,
-    ):
+    ) -> TraversalResult | ErrorResult:
         """Walk NCIt relationships breadth-first from the start codes, in live EVS.
 
         `direction` `out` follows `child`, `role` and `association` edges, `in`
@@ -288,7 +305,7 @@ def _register_tools(
         )
 
     @tool(resolution=True)
-    def ncit_release_info(ctx: Any = None):
+    def ncit_release_info(ctx: Any = None) -> ReleaseResult | ErrorResult:
         """Report the EVS API version, the configured channel's NCIt release and the local index.
 
         The call succeeds even when EVS cannot be reached: `evs_api` and
@@ -304,13 +321,13 @@ def _register_tools(
 
     # Pending capability status may change independently of any governed release.
     @tool(resolution=True)
-    def cadsr_status():
+    def cadsr_status(ctx: Any = None) -> CadsrStatusResult | ErrorResult:
         """Report that caDSR common data element search is not implemented yet.
 
         Returns `state: reuse_pending` and the integrations under evaluation.
         It never returns CDE data.
         """
-        return service.cadsr_status()
+        return tool_result(ctx, service.cadsr_status)
 
 
 def _per_call[Resource: Callable[..., Any]](resource: Resource) -> Resource:
