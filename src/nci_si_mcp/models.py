@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field, fields
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 
 from .errors import call_correlation_id
 from .validation import Polarity
@@ -182,6 +182,9 @@ class IndexManifest:
     needs_rebuild: bool = False
     evaluation_version: str | None = None
     evaluation_score: float | None = None
+    build_kind: Literal["legacy", "sample", "production"] = "legacy"
+    evaluation_report: dict[str, Any] | None = None
+    unclassified_source_build: str | None = None
 
     @classmethod
     def from_payload(cls, payload: dict[str, Any]) -> IndexManifest:

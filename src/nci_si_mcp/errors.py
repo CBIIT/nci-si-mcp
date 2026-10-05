@@ -57,6 +57,10 @@ class IndexBuildError(RuntimeError):
     """
 
 
+class IndexEvaluationError(IndexBuildError):
+    """An operator build violates the evaluation or sample-isolation policy."""
+
+
 class NoActiveIndexError(RuntimeError):
     """Raised when a search is attempted before any index has been built."""
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from itertools import batched
-from typing import Any
+from typing import Any, cast
 
 from .audit import emit
 from .bounds import (
@@ -24,7 +24,8 @@ from .errors import (
     call_correlation_id,
     is_error_record,
 )
-from .evaluation import DEFAULT_GOLD_QUERIES, evaluate_retrieval
+from .evaluation import evaluate_build, evaluate_retrieval
+from .evaluation_sets import production_set
 from .evs import (
     TERMINOLOGIES_PATH,
     EVSError,
@@ -235,9 +236,9 @@ def index_codes(context: Context, codes: list[str]) -> dict[str, Any]:
 
 
 def index_build(context: Context) -> dict[str, Any]:
-    """Build all NCIt from the configured channel into an inactive snapshot."""
+    """Build and evaluate all NCIt from the configured channel without activation."""
     built = full_build(context, _release(context))
-    return {"buildId": built.build_id, "manifest": built.to_result()}
+    return _evaluated_build(context, built)
 
 
 def index_builds(context: Context) -> dict[str, Any]:
@@ -246,8 +247,21 @@ def index_builds(context: Context) -> dict[str, Any]:
 
 
 def index_rebuild(context: Context, build_id: str) -> dict[str, Any]:
-    """Rebuild stored raw concepts offline with the configured embedding provider."""
+    """Rebuild stored raw concepts offline; evaluate new production snapshots."""
     built = context.index.rebuild(build_id, context.embedding_provider)
+    return _evaluated_build(context, built)
+
+
+def _evaluated_build(context: Context, built: IndexManifest) -> dict[str, Any]:
+    if built.build_kind == "production":
+        built = evaluate_build(
+            context.index, context.embedding_provider, production_set(), built.build_id
+        )
+        return {
+            "buildId": built.build_id,
+            "manifest": built.to_result(),
+            "evaluation": built.evaluation_report,
+        }
     return {"buildId": built.build_id, "manifest": built.to_result()}
 
 
@@ -482,17 +496,28 @@ def traverse(
         ).to_dict()
 
 
-def evaluate(context: Context) -> dict[str, Any]:
-    """Score BM25, vector and hybrid ranking on the built-in gold queries."""
-
-    results = evaluate_retrieval(context.index, context.embedding_provider)
-    gold_codes = {code for gold in DEFAULT_GOLD_QUERIES for code in gold.expected_codes}
+def evaluate(context: Context, build_id: str | None = None) -> dict[str, Any]:
+    """Score the versioned queries on a candidate or the active build; gate production only."""
+    if build_id is None:
+        active = context.index.get_active_manifest()
+        if active is None:
+            raise NoActiveIndexError("No active NCIt index is available")
+        build_id = active.build_id
+    dataset = production_set()
+    codes = {code for gold in dataset.queries for code in gold.expected_codes}
+    manifest, missing = context.index.evaluation_inputs(build_id, codes)
+    if manifest.build_kind not in {"sample", "legacy"}:
+        evaluated = evaluate_build(context.index, context.embedding_provider, dataset, build_id)
+        return cast("dict[str, Any]", evaluated.evaluation_report)
+    results = evaluate_retrieval(
+        context.index, context.embedding_provider, dataset.queries, build_id=build_id
+    )
     return {
+        "build_id": build_id,
+        "evaluation_version": dataset.version,
+        "gate_applies": False,
         "results": [result.to_dict() for result in results],
-        # A gold concept that is not indexed can never be found.
-        "gold_codes_not_indexed": sorted(
-            code for code in gold_codes if not context.index.get_concept(code)
-        ),
+        "gold_codes_not_indexed": missing,
     }
 
 

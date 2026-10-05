@@ -523,7 +523,12 @@ class StatusTest(HandlerTestCase):
         )
 
         self.assertEqual([item["mode"] for item in result["results"]], ["bm25", "vector", "hybrid"])
-        self.assertEqual(result["gold_codes_not_indexed"], ["C116938"])
+        self.assertEqual(
+            result["gold_codes_not_indexed"],
+            ["C116938", "C2869", "C2991", "C3038", "C4817"],
+        )
+        self.assertEqual(result["results"][0]["query_count"], 12)
+        self.assertFalse(result["gate_applies"])
 
     def test_index_manifest_is_null_until_an_index_exists(self):
         self.assertEqual(

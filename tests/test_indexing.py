@@ -2,13 +2,25 @@ import json
 from unittest.mock import patch
 
 from fakes import concept, release
+from nci_si_mcp.errors import IndexBuildError
+from nci_si_mcp.evaluation import evaluate_build
+from nci_si_mcp.evaluation_sets import parse_set
 from nci_si_mcp.evs import EVSClient, EVSReleaseMismatchError, EVSResponseError
 from nci_si_mcp.indexing import full_build
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.release import ReleaseContext
 from test_audit import captured, records
+from test_evaluation_sets import sample_set_payload
 from test_evs_client import FakeResponse
 from test_server import ServerFixture
+
+
+def fixture_calibration(code, name):
+    payload = sample_set_payload() | {
+        "release": "26.06e",
+        "queries": [{"query": name, "expected_codes": [code], "category": "name"}],
+    }
+    return parse_set(payload)
 
 
 class FullBuildTest(ServerFixture):
@@ -43,6 +55,15 @@ class FullBuildTest(ServerFixture):
         self.assertIn("include=summary%2Cdefinitions%2Csynonyms%2Cproperties", urls[0])
         progress = records(stream, "index_download_progress")
         self.assertEqual([(row["pages"], row["concepts"]) for row in progress], [(2, 1001)])
+        self.assertEqual(built.build_kind, "production")
+        with self.assertRaisesRegex(IndexBuildError, "passing evaluation"):
+            self.context.index.activate(built.build_id)
+        evaluate_build(
+            self.context.index,
+            self.context.embedding_provider,
+            fixture_calibration("C1000", last["name"]),
+            built.build_id,
+        )
         self.context.index.activate(built.build_id)
         self.assertFalse(self.context.index.get_concept("C1000").raw["active"])
 
@@ -109,8 +130,75 @@ class FullBuildTest(ServerFixture):
             FakeResponse(json.dumps([release().to_dict()]).encode()),
             FakeResponse(json.dumps({"total": 1, "concepts": [concept("C1")]}).encode()),
         ]
-        with patch("nci_si_mcp.http_client._open", side_effect=replies) as opened:
+        with (
+            patch("nci_si_mcp.http_client._open", side_effect=replies) as opened,
+            patch(
+                "nci_si_mcp.handlers.production_set", return_value=fixture_calibration("C1", "C1")
+            ),
+        ):
             result = invoke(self.context, "index_build")
         self.assertEqual(opened.call_count, 2)
         self.assertEqual(result["manifest"]["concepts"], 1)
+        self.assertTrue(result["evaluation"]["passed"])
+        self.assertEqual(result["evaluation"]["build_id"], result["buildId"])
         self.assertEqual(self.context.index.get_active_manifest(), self.active)
+
+    def test_unmatched_full_build_calibration_names_candidate_and_blocks_activation(self):
+        replies = [
+            FakeResponse(json.dumps([release().to_dict()]).encode()),
+            FakeResponse(json.dumps({"total": 1, "concepts": [concept("C1")]}).encode()),
+        ]
+        with patch("nci_si_mcp.http_client._open", side_effect=replies):
+            result = invoke(self.context, "index_build")
+        candidate = next(b for b in self.context.index.list_builds() if not b.active)
+        self.assertIn(candidate.build_id, result["error"]["message"])
+        self.assertIn("calibration does not match", result["error"]["message"])
+        with self.assertRaisesRegex(IndexBuildError, "passing evaluation"):
+            self.context.index.activate(candidate.build_id)
+        self.assertEqual(self.context.index.get_active_manifest(), self.active)
+
+    def test_production_rebuild_reports_fresh_failed_evaluation_and_cannot_activate(self):
+        candidate = self.context.index.build(
+            [concept("C1", "Target")],
+            None,
+            self.context.embedding_provider,
+            build_kind="production",
+        )
+        evaluate_build(
+            self.context.index,
+            self.context.embedding_provider,
+            fixture_calibration("C1", "Target"),
+            candidate.build_id,
+        )
+        with patch(
+            "nci_si_mcp.handlers.production_set",
+            return_value=fixture_calibration("C2", "Missing"),
+        ):
+            result = invoke(self.context, "index_rebuild", candidate.build_id)
+        self.assertFalse(result["evaluation"]["passed"])
+        self.assertEqual(result["evaluation"]["gold_codes_not_indexed"], ["C2"])
+        self.assertNotEqual(result["buildId"], candidate.build_id)
+        with self.assertRaisesRegex(IndexBuildError, "passing evaluation"):
+            self.context.index.activate(result["buildId"])
+        self.assertEqual(self.context.index.get_active_manifest(), self.active)
+
+    def test_evaluate_command_records_candidate_pass_without_activation(self):
+        unavailable = invoke(self.context, "evaluate", build_id="missing")
+        self.assertEqual(unavailable["error"]["code"], "internal_error")
+        self.assertIn("unavailable", unavailable["error"]["message"])
+        candidate = self.context.index.build(
+            [concept("C1", "Target")],
+            None,
+            self.context.embedding_provider,
+            build_kind="production",
+        )
+        with patch(
+            "nci_si_mcp.handlers.production_set",
+            return_value=fixture_calibration("C1", "Target"),
+        ):
+            result = invoke(self.context, "evaluate", build_id=candidate.build_id)
+        self.assertTrue(result["passed"])
+        self.assertEqual(result["build_id"], candidate.build_id)
+        self.assertEqual(self.context.index.get_active_manifest(), self.active)
+        self.context.index.activate(candidate.build_id)
+        self.assertEqual(self.context.index.get_active_manifest().evaluation_report, result)

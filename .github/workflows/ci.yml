@@ -45,7 +45,10 @@ jobs:
           persist-credentials: false
       - uses: $/.github/actions/setup
       # The suite with line and branch coverage; it fails below the minimum in pyproject.toml.
-      - run: pdm run test
+      # Includes the recorded retrieval sample and activation gate with a test-only hashing
+      # calibration. It tests execution and arithmetic, not real-model retrieval quality.
+      - name: Test, including recorded retrieval evaluation
+        run: pdm run test
       # Falling short of the aim is reported, not enforced (CONTRIBUTING.md, standard 3).
       - name: Report coverage against the aim
         run: |

@@ -113,11 +113,19 @@ python -m nci_si_mcp.cli evaluate
 `index-sample` adds concepts to the index while the configured channel's release stays the
 same. After a new release, the next `index-sample` activates a snapshot
 with the concepts it names. The previous build remains available for rollback.
+Samples use their own data directory; `index-sample` refuses to modify an active production
+or unclassified build.
 `search` only sees what has been indexed; no MCP
 tool builds the index.
 
 For a full release, `index-build` downloads and verifies all pinned NCIt search pages,
-then returns an inactive build id. `index-builds` lists completed builds. Activate one
+then evaluates the candidate and returns an inactive build id with its evaluation report.
+Production activation requires a passing report. The shipped calibration is for NCIt 26.09d,
+SapBERT (`cambridgeltl/SapBERT-from-PubMedBERT-fulltext`), 768 dimensions; another release or
+model needs a new full-corpus calibration before activation. `evaluate --build-id BUILD_ID`
+repeats evaluation on a completed candidate without activating it. Plain `evaluate` scores
+the active build; samples and older unclassified snapshots report all twelve queries without
+claiming a production pass. `index-builds` lists completed builds. Activate one
 with `index-activate BUILD_ID`; activating the previous id rolls back. Every activation
 keeps only the newly active build and the build it replaced. These are operator CLI commands.
 The public manifest contains `terminology`, `version`, `concepts`, `embedding`
@@ -152,6 +160,18 @@ settings, use `index-rebuild BUILD_ID` to rebuild stored raw concepts offline, t
 `index-activate NEW_BUILD_ID`. Schema migration preserves legacy concepts for cached lookup;
 their concatenated vectors require this explicit rebuild before search is available
 (`capability_unavailable`). Opening the index never downloads a model or rebuilds it.
+Rebuilding an older, unclassified snapshot creates a production build requiring evaluation;
+the original remains available for rollback. For an old developer sample, recreate it with
+`index-sample` in a separate data directory instead. The refusal message identifies the original
+snapshot and both migration paths. See the [retrieval evaluation protocol](docs/retrieval-evaluation.md)
+for metrics, calibration and the distinction between developer checks and production evidence.
+
+New index files use 64 KiB SQLite pages to reduce cold vector-scan I/O. Existing files retain
+their page size. To convert an existing file, stop all processes using it and back it up first;
+in a SQLite connection to that file run `PRAGMA journal_mode=DELETE`,
+`PRAGMA page_size=65536`, `VACUUM`, then `PRAGMA journal_mode=WAL`. This rewrites the file
+and needs temporary disk space; it changes neither vectors nor rankings. Opening the index
+does not perform this conversion automatically.
 
 ## Usage examples
 
@@ -673,7 +693,7 @@ EVS wraps in a success status but that is an error envelope, an error
 | `bound_exceeded` | An EVS response exceeds `NCI_SI_EVS_MAX_RESPONSE_BYTES`, or the request budget is exhausted before a graph is available | `bound`, `limit`, `reached` (for response size, the limit plus one when EVS declared no length) |
 | `capability_unavailable` | The requested terminology or operation is not supported yet; the MCP tool descriptions name the interim limits | `capability` |
 | `cursor_expired` | EVS no longer serves the hierarchy cursor’s release; restart with the current release |  `cursorRelease`, `currentRelease` |
-| `internal_error` | `search` or `evaluate` was called before an index was built, the index was built with other embedding settings than the runtime uses, SQLite could not open, read or write the index file named in the message, (CLI only) the index, the embedding model or the MCP package could not be loaded at startup, or the selected relationship catalogue lacks configured exclusion codes | `missingCodes` for missing exclusions only; absent for other causes |
+| `internal_error` | `search` or `evaluate` was called before an index was built, the index was built with other embedding settings than the runtime uses, SQLite could not open, read or write the index file named in the message, a production evaluation or sample-isolation check refused an operator command, (CLI only) the index, the embedding model or the MCP package could not be loaded at startup, or the selected relationship catalogue lacks configured exclusion codes | `missingCodes` for missing exclusions only; absent for other causes |
 
 The CLI `release-info` command and its moving resource aliases succeed during an EVS outage:
 the `evs_api` and `selected_release` fields then hold an error record

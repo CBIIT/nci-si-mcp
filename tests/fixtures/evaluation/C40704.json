@@ -1,0 +1,41 @@
+{
+  "source_uri": "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit_26.09d/C40704?include=minimal,synonyms,definitions",
+  "body": {
+    "code": "C40704",
+    "name": "Receptor Tyrosine Kinase Inhibition",
+    "terminology": "ncit",
+    "version": "26.09d",
+    "conceptStatus": "DEFAULT",
+    "leaf": true,
+    "active": true,
+    "synonyms": [
+      {
+        "name": "Receptor Tyrosine Kinase Inhibition",
+        "termType": "PT",
+        "type": "FULL_SYN",
+        "typeCode": "P90",
+        "source": "NCI"
+      },
+      {
+        "name": "Tyrosine Kinase Receptor Inhibition",
+        "termType": "SY",
+        "type": "FULL_SYN",
+        "typeCode": "P90",
+        "source": "NCI"
+      },
+      {
+        "name": "Receptor Tyrosine Kinase Inhibition",
+        "type": "Preferred_Name",
+        "typeCode": "P108"
+      }
+    ],
+    "definitions": [
+      {
+        "definition": "A process that negatively regulates the intracellular catalytic activities that originate with the binding of a tyrosine kinase-associated transmembrane receptor with its cognate ligand. This process is involved in regulation of signaling related to cellular division, cellular differentiation and morphogenesis.",
+        "code": "P97",
+        "type": "DEFINITION",
+        "source": "NCI"
+      }
+    ]
+  }
+}

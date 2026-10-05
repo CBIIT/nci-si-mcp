@@ -16,6 +16,50 @@ from test_index import RAW_CONCEPTS, IndexTestCase
 
 
 class BuildLifecycleTest(IndexTestCase):
+    def test_candidate_search_does_not_change_active_build_or_rollback_target(self):
+        index = self.build()
+        active = index.get_active_manifest()
+        candidate = index.build([dict(RAW_CONCEPTS[0], code="C999")], None, self.provider)
+        before = index.list_builds()
+        hits, manifest = index.search_build(candidate.build_id, "neoplasm", self.provider)
+        self.assertEqual([hit.concept.code for hit in hits], ["C999"])
+        self.assertEqual(manifest.build_id, candidate.build_id)
+        self.assertFalse(manifest.active)
+        self.assertEqual(index.get_active_manifest(), active)
+        self.assertEqual(index.list_builds(), before)
+
+    def test_candidate_search_snapshot_survives_concurrent_candidate_removal(self):
+        index = self.build()
+        candidate = index.build([dict(RAW_CONCEPTS[0], code="C999")], None, self.provider)
+        other = index.build([dict(RAW_CONCEPTS[0], code="C888")], None, self.provider)
+        embed = self.provider.embed
+
+        def activate_during_query(texts):
+            index.activate(other.build_id)
+            return embed(texts)
+
+        with patch.object(self.provider, "embed", side_effect=activate_during_query):
+            hits, manifest = index.search_build(candidate.build_id, "neoplasm", self.provider)
+        self.assertEqual([hit.concept.code for hit in hits], ["C999"])
+        self.assertEqual(manifest.build_id, candidate.build_id)
+        self.assertEqual(index.get_active_manifest().build_id, other.build_id)
+        with self.assertRaisesRegex(IndexBuildError, "unavailable"):
+            index.search_build(candidate.build_id, "neoplasm", self.provider)
+
+    def test_candidate_search_requires_completed_compatible_build_without_active_index(self):
+        index = LocalIndex(self.path)
+        candidate = index.build(RAW_CONCEPTS, None, self.provider)
+        hits, manifest = index.search_build(candidate.build_id, "neoplasm", self.provider)
+        self.assertTrue(hits)
+        self.assertEqual(manifest.build_id, candidate.build_id)
+        self.assertIsNone(index.get_active_manifest())
+        with self.assertRaises(IndexCompatibilityError):
+            index.search_build(candidate.build_id, "neoplasm", HashingEmbeddingProvider(64))
+        with index._connect() as conn:
+            conn.execute("UPDATE manifests SET state = 'building'")
+        with self.assertRaisesRegex(IndexBuildError, "unavailable"):
+            index.search_build(candidate.build_id, "neoplasm", self.provider)
+
     def test_cursor_expires_before_checking_a_replacement_builds_provider(self):
         index = self.build()
         active = index.get_active_manifest()
