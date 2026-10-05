@@ -20,12 +20,11 @@ import yaml
 from mcp.client import Client
 
 from nci_si_mcp.cli import build_parser
-from nci_si_mcp.config import Settings
+from nci_si_mcp.config import DEFAULT_EXCLUSION_ROLE_CODES, Settings
 from nci_si_mcp.errors import ErrorCode
 from nci_si_mcp.evs import LICENSE_KEY_HEADER
 from nci_si_mcp.http_client import MAX_RETRY_DELAY_SECONDS
 from nci_si_mcp.server import create_mcp
-from nci_si_mcp.traversal import NCIT_EXCLUSION_CODES
 from nci_si_mcp.validation import PROFILES, RELEASE_CHANNELS, UPSTREAM_MODES
 
 ROOT = Path(__file__).parent.parent
@@ -207,7 +206,9 @@ class DocumentationTest(unittest.TestCase):
         text = section(QUICKSTART, "Provenance and truncation")
         low, high = map(int, re.search(r"R(\d+) to R(\d+)", text).groups())
 
-        self.assertEqual(NCIT_EXCLUSION_CODES, {f"R{number}" for number in range(low, high + 1)})
+        self.assertEqual(
+            set(DEFAULT_EXCLUSION_ROLE_CODES), {f"R{number}" for number in range(low, high + 1)}
+        )
         self.assertIn("--include-raw", QUICKSTART)
         for command in ("search", "lookup"):
             arguments = build_parser().parse_args([command, "x", "--include-raw"])

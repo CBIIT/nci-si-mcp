@@ -20,6 +20,7 @@ from .results import (
     ErrorResult,
     Hierarchy,
     Neighborhood,
+    RelationshipsResult,
     ReleaseResult,
     ResolvedReleaseResult,
     SearchResult,
@@ -89,6 +90,14 @@ def _input_field(parameter: Parameter) -> tuple:
 
 
 SPECS = (
+    ToolSpec(
+        content.list_relationships,
+        "evs",
+        RelationshipsResult | ErrorResult,
+        False,
+        name="list_relationships",
+        audit={"terminology": "plain", "release": "plain"},
+    ),
     ToolSpec(
         content.get_concepts,
         "evs",

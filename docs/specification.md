@@ -592,7 +592,7 @@ The keys of `details` for each code:
 | `bound_exceeded` | `bound`: The name of the bound that was exceeded; `limit`: The value of the bound; `reached`: The amount reached; where a response size is bounded and the platform declared no length, the limit plus one, since reading stops one byte past the bound |
 | `capability_unavailable` | `capability`: The capability that is not yet available |
 | `cursor_expired` | `cursorRelease`: The release the cursor was issued against; `currentRelease`: The current release, which supersedes it |
-| `internal_error` | none |
+| `internal_error` | `missingCodes`: The exclusion codes of the terminology's set that the release's catalogue lacks |
 
 ## 2. Tools
 

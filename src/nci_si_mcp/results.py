@@ -11,7 +11,9 @@ from typing import Any, Literal, NotRequired, TypedDict
 from .errors import ErrorCode
 from .validation import (
     EdgeType,
+    Polarity,
     ProvenanceSource,
+    RelationshipKind,
     ReleaseChannel,
     SearchMode,
     ServedBy,
@@ -44,6 +46,7 @@ class Provenance(TypedDict):
     correlationId: str
     sourceUri: NotRequired[str]
     upstream: NotRequired[dict[str, Any]]
+    attribution: NotRequired[str]
 
 
 class Relationship(TypedDict):
@@ -56,7 +59,7 @@ class TraversalProvenance(Provenance):
     depth: int
     relationship: NotRequired[Relationship]
     direction: NotRequired[Literal["in", "out"]]
-    polarity: NotRequired[Literal["positive", "negative"]]
+    polarity: NotRequired[Polarity]
 
 
 class Untruncated(TypedDict):
@@ -107,6 +110,19 @@ class Concept(TypedDict):
 class ConceptBatch(TypedDict):
     concepts: list[Concept]
     missing: list[str]
+
+
+class CatalogueRelationship(TypedDict):
+    code: str
+    terminology: str
+    name: str
+    kind: RelationshipKind
+    polarity: Polarity
+    provenance: Provenance
+
+
+class RelationshipsResult(TypedDict):
+    relationships: list[CatalogueRelationship]
 
 
 class RankedConcept(TypedDict):

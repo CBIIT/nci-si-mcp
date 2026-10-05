@@ -13,6 +13,7 @@ from .http_client import (
     UpstreamRejectedError,
 )
 from .models import NcitConcept, utc_now_iso
+from .validation import RelationshipKind
 
 if TYPE_CHECKING:
     from .release import ReleaseContext
@@ -31,6 +32,10 @@ LOOKUP_INCLUDE = (
 
 
 TERMINOLOGIES_PATH = "/api/v1/metadata/terminologies"
+
+
+def catalogue_path(terminology: str, kind: RelationshipKind) -> str:
+    return f"/api/v1/metadata/{quote(terminology, safe='')}/{kind}s"
 
 
 def concept_path(terminology: str, code: str = "") -> str:
@@ -283,6 +288,18 @@ class EVSClient:
         concepts = _object_list(data, "concept list response")
         verify_content(concepts, release)
         return concepts
+
+    def get_relationship_catalogue(
+        self, release: ReleaseContext, kind: RelationshipKind
+    ) -> list[dict[str, Any]]:
+        """Read one release's roles or associations, verifying every row's identity."""
+
+        rows = _object_list(
+            self._get_existing(catalogue_path(release.pinned_terminology, kind)),
+            f"{kind} catalogue",
+        )
+        verify_content(rows, release)
+        return rows
 
     def get_concept(
         self,

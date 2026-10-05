@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
 
-from fakes import concept, release
+from fakes import catalogue_rows, concept, release
 from nci_si_mcp.bounds import Budget, current_budget
 from nci_si_mcp.evs import EVSClient
 from nci_si_mcp.models import Truncation
@@ -329,7 +329,16 @@ class ContentTest(ServerFixture):
             with (
                 self.subTest(expected=expected),
                 patch.object(self.context, "evs", client),
-                patch.object(client, "_get_existing", side_effect=[[root], answer]),
+                patch.object(
+                    client,
+                    "_get_existing",
+                    side_effect=[
+                        catalogue_rows("role"),
+                        catalogue_rows("association"),
+                        [root],
+                        answer,
+                    ],
+                ),
             ):
                 result = self.content(
                     "get_concept_neighborhood", code="C1", kinds=["child"], depth=1, maxEdges=1

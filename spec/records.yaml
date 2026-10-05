@@ -840,4 +840,5 @@ error:
     cursor_expired:
       cursorRelease: The release the cursor was issued against
       currentRelease: The current release, which supersedes it
-    internal_error: {}
+    internal_error:
+      missingCodes: The exclusion codes of the terminology's set that the release's catalogue lacks

@@ -17,6 +17,7 @@ from .bounds import (
     Budget,
     RequestBudgetError,
 )
+from .catalogue import polarity
 from .errors import InputValidationError, call_correlation_id
 from .evs import (
     EVSClient,
@@ -60,9 +61,6 @@ RELATIONS: dict[str, tuple[str, str]] = {
     "inverse_association": ("inverseAssociations", "inverse_association"),
 }
 HIERARCHY_EDGE_TYPES = frozenset({"parent", "child", "descendant"})
-# NCIt's exclusion relationships are exactly these eight roles. An assertion is negative by its
-# relationship's code, never by its name (A5.7); `spec/records.yaml` is the source.
-NCIT_EXCLUSION_CODES = frozenset(f"R{number}" for number in range(135, 143))
 
 
 # Edge types in the order they are followed, each with the direction and the
@@ -224,10 +222,6 @@ def _relationship(edge_type: str, item: dict[str, Any]) -> dict[str, str]:
     return relationship | {key: str(value) for key, value in named.items() if value}
 
 
-def _polarity(relationship: dict[str, str]) -> str:
-    return "negative" if relationship.get("code") in NCIT_EXCLUSION_CODES else "positive"
-
-
 def _edge(
     code: str,
     source_name: str,
@@ -288,6 +282,7 @@ class _Walk:
     budget: Budget
     name_filter: set[str]
     starts: set[str]
+    exclusions: frozenset[str]
     retrieved_at: str = field(default_factory=utc_now_iso)
     correlation_id: str = field(default_factory=call_correlation_id)
     nodes: dict[str, TraversalNode] = field(default_factory=dict)
@@ -341,7 +336,7 @@ class _Walk:
             depth=depth,
             relationship=relationship,
             direction=EDGE_DIRECTIONS[edge_type] if edge_type else None,
-            polarity=_polarity(relationship) if relationship else None,
+            polarity=polarity(relationship.get("code"), self.exclusions) if relationship else None,
         )
 
     def _concept_uri(self, code: str) -> str:
@@ -681,6 +676,7 @@ def traverse_ncit(
     edge_types: list[str],
     budget: Budget,
     *,
+    exclusions: frozenset[str],
     relationship_names: list[str] | None = None,
 ) -> TraversalResult:
     """Walk breadth-first from the start codes along the given edge types.
@@ -716,6 +712,7 @@ def traverse_ncit(
         budget=budget,
         name_filter={name.lower() for name in relationship_names or []},
         starts=set(start_codes),
+        exclusions=exclusions,
     )
     return _run_walk(walk, start_codes)
 

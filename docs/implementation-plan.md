@@ -130,7 +130,7 @@ Implemented with the ten-value `ErrorCode` literal in `errors.py` and the `_ERRO
 | `bound_exceeded` | — | bound, limit, reached |
 | `capability_unavailable` | — | the capability |
 | `cursor_expired` | — | the cursor's release, the current one |
-| `internal_error` | `startup_failed`, `no_active_index`, `index_incompatible`, `index_storage_error` | — |
+| `internal_error` | `startup_failed`, `no_active_index`, `index_incompatible`, `index_storage_error`, missing exclusion codes | `missingCodes` only for missing exclusions |
 
 Two rules. **An empty result is never an error**: a tool that matched nothing returns its normal shape with an empty collection and a complete provenance envelope. **A platform failure carried inside a `2xx` body is an error**: the HTTP client (§3.4) recognises the webMethods envelope (`apiResponse.type == "E"`), FHIR `OperationOutcome` with severity `error`, and an HTML body where JSON was requested, and raises `upstream_unavailable` before any tool sees the payload.
 
@@ -205,7 +205,7 @@ Unit tests render `tools/list` in every configured profile, validate every schem
 success/error results, and reject malformed records. They assert byte-identical listings
 across release channels, upstream modes, calls and upstream failure (M1.2), and check rendered
 descriptions for unfinished text and unsupported values against behavior (A2.3, A2.4).
-Profiles select the current inventory: seven EVS tools for `evs` and `unified`, no tools yet
+Profiles select the current inventory: eight EVS tools for `evs` and `unified`, no tools yet
 for `cadsr`. The legacy MCP names and caDSR stub are removed. An input schema states no
 `maximum` for a bounded argument: a value above it is applied as the maximum (the tools'
 `bounds` in `spec/tools.yaml`), and the argument's description states its default and maximum.
@@ -257,7 +257,7 @@ Delta from `evs.py`:
 
 ### 4.2 Relationship catalogue (`evs/catalogue.py`)
 
-Per release: roles and associations with `code`, `name`, `kind`, and `polarity`. Polarity is `negative` for a code in the exclusion set, which is **configured by code** (`R135`–`R142` for current releases) and validated at load against the catalogue: a configured code absent from the release's catalogue is an `internal_error` at startup, not a silent positive. This replaces label matching (design review, Ontoprism's `axes.py` pattern) and is the executable form of E-4 until the catalogue publishes polarity itself.
+Implemented in `catalogue.py`: each call reads the caller-selected release’s roles and associations once, inside its request budget, and verifies every row’s terminology/version and unique code/name identity. `list_relationships` returns code, terminology, name, kind, polarity and provenance. The NCIt exclusion set is configured by code, with defaults pinned by a test to spec/records.yaml (R135–R142); other terminologies use no exclusions today. Listing and neighborhood calls fail closed with `internal_error.details.missingCodes` if configured codes are absent. This check happens before returning content, without startup network access or a cross-call cache. The added error detail key resolves the error/relationship record contradiction in the specification. Traversal receives the same terminology-scoped configured set; names never determine polarity.
 
 ### 4.3 Traversal (`evs/traversal.py`)
 
@@ -285,7 +285,7 @@ The interim index (M4.1), built from `index.py` / `embeddings.py` / `retrieval.p
 
 Twelve tools, signatures in the specification (`spec/tools.yaml`, group `evs`). Evolution from the original prototype surface:
 
-The four content entries have their complete signatures in `content.py`. NCIt calls pin the caller's
+The content entries have their complete signatures in `content.py`. NCIt calls pin the caller's
 required release; indexed search checks it inside the read transaction. Concept and node
 records carry EVS's `active` and optional `conceptStatus` as `status`; requested detail is
 passed through, with P106 values supplying `semanticType`. Graph nodes reuse fetched
@@ -394,7 +394,7 @@ Settings after the change. `NCI_SI_EVS_BASE_URL`, `NCI_SI_TIMEOUT_SECONDS`, `NCI
 | `NCI_SI_SSIS_FACADE_URL`, `NCI_SI_SSIS_SPARQL_URL` | production | |
 | `NCI_SI_UPSTREAM_MODE` | `live` | `live` · `fixture` — selects base URLs as a set so the acceptance suite switches everything with one variable |
 | `NCI_SI_RELEASE_CHANNEL` | `monthly` | |
-| `NCI_SI_EXCLUSION_ROLE_CODES` | `R135,…,R142` | validated against the catalogue at startup |
+| `NCI_SI_EXCLUSION_ROLE_CODES` | `R135,…,R142` | validated against the requested release catalogue per relationship listing or neighborhood call |
 | `NCI_SI_EVS_LICENSE_KEY`, `NCI_SI_CADSR_CREDENTIAL` | unset | never logged |
 | `NCI_SI_EMBEDDING_PROVIDER`, `NCI_SI_EMBEDDING_MODEL` | unset | both required together (today both default to `hashing`) |
 | `NCI_SI_DATA_DIR` | `.nci-si-mcp/` | |
@@ -479,7 +479,7 @@ Keep `unittest`-style tests under the gates in `CONTRIBUTING.md`. Extend `tests/
 - `test_errors`: every `PlatformError` serialises to the error schema; empty results never produce `isError`; the three masked-error shapes are classified.
 - `test_release`: one-row resolution; 404 → `release_not_available`; payload mismatch → `release_mismatch`; caDSR state never carries a fabricated identifier.
 - `test_bounds`: retries decrement the request budget; per-kind rotation; truncation report fields.
-- `test_catalogue`: polarity by code; a configured code absent from the catalogue fails startup.
+- `test_catalogue`: polarity by code; a configured code absent from the requested release catalogue fails the affected call.
 - `test_batch_content`: ordered `concepts`/`missing` reconciliation; any return order handled.
 - `test_index`: atomic activation and rollback; provider/model mismatch rejected; dimension mismatch rejected.
 - `test_schema`: `outputSchema` present and valid for every tool in every profile; surface static across settings; no placeholder text.
