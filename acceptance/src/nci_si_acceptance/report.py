@@ -11,9 +11,9 @@ each required tool one outcome:
     NO FIXTURE       the tool's tests failed only because a request found no fixture:
                      a question for the fixture set, not a defect of the server
     INCOMPLETE       the tool's tests that ran passed, but some could not run: skipped, or
-                     needing a capability the tool (or its stand-in) lacks; a hardening
+                     needing a capability the tool lacks; a hardening
                      candidate, not a pass
-    NOT IMPLEMENTED  the server has the tool neither by name nor through the tool map
+    NOT IMPLEMENTED  the server does not expose the required tool name
     NOT RUN          no test of the tool ran (in live mode: none is live-capable)
     NO TESTS         the suite has no test for the tool: a defect of the suite
 
@@ -186,13 +186,13 @@ class Collector:
 
     def _row(self, name: str, group: str, gates_failed: bool) -> dict[str, Any]:
         counts = Counter(test["outcome"] for test in self.tests.values() if test["tool"] == name)
-        stand_in = (self.implemented_as or {}).get(name)
-        implemented = None if self.implemented_as is None else stand_in is not None
+        served = (self.implemented_as or {}).get(name)
+        implemented = None if self.implemented_as is None else served is not None
         return {
             "group": group,
             "outcome": tool_outcome(counts, gates_failed, implemented),
             "gates_only": gates_failed and not (counts["failed"] or counts["no_fixture"]),
-            "implemented_as": stand_in,
+            "implemented_as": served,
             "counts": dict(counts),
         }
 
@@ -251,10 +251,8 @@ def _row(name: str, row: dict[str, Any], outcome: str, excused: list[str]) -> st
     counts = Counter(row["counts"])
     unrun = sum(counts[kind] for kind in UNRUN)
     tests = f"{counts['passed']} / {counts['failed']} / {counts['no_fixture']} / {unrun}"
-    stand_in = row["implemented_as"] or "—"
-    return (
-        f"| `{name}` | {row['group']} | {outcome} | {tests} | {stand_in} | {', '.join(excused)} |"
-    )
+    served = row["implemented_as"] or "—"
+    return f"| `{name}` | {row['group']} | {outcome} | {tests} | {served} | {', '.join(excused)} |"
 
 
 def _named(combined: dict[str, tuple[str, list[str]]], *kinds: str) -> str:

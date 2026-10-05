@@ -283,14 +283,3 @@ class TraversalResult:
         data["edges"] = [edge.to_dict() for edge in self.edges]
         data["truncation"] = self.truncation.to_dict()
         return data
-
-
-@dataclass(frozen=True, slots=True)
-class CadsrStatus:
-    state: str
-    message: str
-    reuse_targets: list[str]
-    findings: list[str] = field(default_factory=list)
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)

@@ -225,7 +225,7 @@ class ServiceReleaseTest(HandlerTestCase):
         reported = invoke(
             weekly,
             "release_info",
-        )["selected_monthly_release"]
+        )["selected_release"]
         result = invoke(weekly, "lookup", "C3262", live_only=True)
 
         self.assertEqual((reported["channel"], reported["version"]), ("weekly", "26.07a"))

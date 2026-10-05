@@ -223,14 +223,7 @@ class EmbeddingStatus(TypedDict):
 class ReleaseResult(TypedDict):
     # EVS owns the API-version payload; its fields pass through without reinterpretation.
     evs_api: dict[str, Any]
-    selected_monthly_release: SelectedRelease | ErrorResult
+    selected_release: SelectedRelease | ErrorResult
     active_index: IndexManifestResult | None
     embedding: EmbeddingStatus
     provenance: NotRequired[Provenance]
-
-
-class CadsrStatusResult(TypedDict):
-    state: Literal["reuse_pending"]
-    message: str
-    reuse_targets: list[str]
-    findings: list[str]

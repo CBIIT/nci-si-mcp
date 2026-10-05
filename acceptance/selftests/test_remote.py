@@ -447,7 +447,6 @@ def test_the_fixture_server_listens_where_it_is_told(stub):
 
 # ---- the checks before the first test, called directly
 
-TOOLMAP: dict = {}
 PINNED = {"terminology": "ncit"}
 
 
@@ -468,7 +467,7 @@ def test_the_operator_is_told_the_urls_the_server_reaches_the_fixture_server_by(
 
 def test_a_server_that_asks_the_fixture_server_passes_the_probe_and_leaves_its_log_clean(stub):
     with FixtureServer(FixtureSet({}, {}), ("127.0.0.1", stub.fixture_port)) as upstream:
-        probe(stub.url, CREDENTIAL, upstream, TOOLMAP, PINNED)
+        probe(stub.url, CREDENTIAL, upstream, PINNED)
 
         assert upstream.log() == []
 
@@ -478,19 +477,19 @@ def test_a_server_that_asks_nothing_of_the_fixture_server_fails_the_probe(stub):
         FixtureServer(FixtureSet({}, {}), ("127.0.0.1", free_port())) as upstream,
         pytest.raises(pytest.exit.Exception, match="does not reach the fixture server"),
     ):
-        probe(stub.url, CREDENTIAL, upstream, TOOLMAP, PINNED)
+        probe(stub.url, CREDENTIAL, upstream, PINNED)
 
 
 def test_a_server_that_gives_no_answer_fails_the_probe_without_its_message(stub):
     with pytest.raises(pytest.exit.Exception) as ended:
-        probe(f"http://127.0.0.1:{free_port()}/mcp", CREDENTIAL, None, TOOLMAP, PINNED)
+        probe(f"http://127.0.0.1:{free_port()}/mcp", CREDENTIAL, None, PINNED)
 
     assert ended.value.msg.startswith("the server under test does not answer (")
     assert CREDENTIAL not in ended.value.msg
 
 
 def test_without_a_fixture_server_the_probe_asks_only_for_an_answer(stub):
-    assert probe(stub.url, CREDENTIAL, None, TOOLMAP, PINNED) is None
+    assert probe(stub.url, CREDENTIAL, None, PINNED) is None
 
 
 def reached_directly(upstream):
@@ -507,12 +506,12 @@ def test_a_request_to_the_fixture_server_before_the_probe_does_not_pass_it(stub)
         assert reached_directly(upstream)
 
         with pytest.raises(pytest.exit.Exception, match="does not reach the fixture server"):
-            probe(stub.url, CREDENTIAL, upstream, TOOLMAP, PINNED)
+            probe(stub.url, CREDENTIAL, upstream, PINNED)
 
 
 def test_what_the_server_asked_while_it_started_counts_as_reaching_the_fixture_server(stub):
     with FixtureServer(FixtureSet({}, {}), ("127.0.0.1", free_port())) as upstream:
-        probe(stub.url, CREDENTIAL, upstream, TOOLMAP, PINNED, [{"fixture": "recorded/x.json"}])
+        probe(stub.url, CREDENTIAL, upstream, PINNED, [{"fixture": "recorded/x.json"}])
 
         assert upstream.log() == []
 
@@ -522,12 +521,12 @@ def test_requests_without_a_fixture_while_the_server_started_end_the_run_when_pr
         startup = reached_directly(upstream)
 
         with pytest.raises(pytest.exit.Exception, match="without a fixture while the server star"):
-            probe(stub.url, CREDENTIAL, upstream, TOOLMAP, PINNED, startup)
+            probe(stub.url, CREDENTIAL, upstream, PINNED, startup)
 
 
 def test_a_server_that_refuses_the_credential_fails_the_probe_naming_only_the_status(stub):
     with pytest.raises(pytest.exit.Exception) as ended:
-        probe(stub.url, "Bearer wrong", None, TOOLMAP, PINNED)
+        probe(stub.url, "Bearer wrong", None, PINNED)
 
     assert ended.value.msg == "the server under test does not answer (HTTP 401)"
 

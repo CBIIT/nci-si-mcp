@@ -30,7 +30,6 @@ flowchart LR
         Retrieval["Tokenization + score utilities<br/>retrieval.py"]
         Embeddings["Embedding providers<br/>embeddings.py"]
         Traversal["Bounded graph traversal<br/>traversal.py"]
-        Cadsr["caDSR adapter boundary<br/>cadsr.py"]
         Models["Shared dataclasses<br/>models.py"]
     end
 
@@ -38,7 +37,6 @@ flowchart LR
         EVSAPI["NCI EVS REST API"]
         SQLite[("SQLite<br/>nci_si.sqlite3")]
         ST["Optional sentence-transformers model"]
-        FutureCadsr["Future caDSR / CDE integrations"]
         Env["Environment configuration<br/>config.py"]
     end
 
@@ -54,7 +52,6 @@ flowchart LR
     Handlers --> EVS
     Handlers --> Index
     Handlers --> Traversal
-    Handlers --> Cadsr
     Handlers --> Embeddings
     Handlers --> Eval
     Env --> Context
@@ -71,12 +68,10 @@ flowchart LR
     Index --> Embeddings
     Index --> SQLite
     Embeddings -. "optional" .-> ST
-    Cadsr -. "planned only" .-> FutureCadsr
 
     EVS --> Models
     Index --> Models
     Traversal --> Models
-    Cadsr --> Models
 ```
 
 `errors.py` is used by every layer and is left out of the diagram. Also not
@@ -92,7 +87,7 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 | `cli.py` | Builds command arguments and dispatch from the registry; owns `serve` startup, reports configuration failures and exits 1 on an error record. | `registry.py`, `server.py` |
 | `server.py` | Registers the profile-selected tools and three resource templates from the registry on an `mcp` 2.x `MCPServer`, and flags error records as protocol errors. Middleware carries cache decisions from SDK worker threads into tool `_meta` and resource fields, without inspecting content or matching names. Undeclared successful responses fail. SDK hints cover lists/discovery. | `registry.py`, `caching.py`, optional `mcp` package |
 | `registry.py` | Declares each operation once with its handler, output union, cache class and adapter exposure. Derives input models, CLI arguments and MCP parameters from handler signatures; selects tools by profile and invokes all producers through one boundary. | `handlers.py`, `invocation.py`, `caching.py`, `results.py` |
-| `context.py` | Holds injectable settings, clients, index and embedding provider shared by a server or CLI invocation. | EVS client, local index, embeddings, caDSR adapter |
+| `context.py` | Holds injectable settings, clients, index and embedding provider shared by a server or CLI invocation. | EVS client, local index, embeddings |
 | `handlers.py` | Validates inputs, orchestrates use cases, pins EVS requests to the configured release channel, enforces index compatibility and implements lookup fallback. Owns tool contracts and resource content; moving aliases and absent-index reports select status cache policy. | `context.py`, release, traversal, evaluation |
 | `content.py` | Implements the caller-pinned NCIt content surface, projects spec concept/node/edge records, and explicitly refuses unsupported Phase 2 options. Reuses fetched graph payloads and batches missing node status reads within the traversal request budget. Indexed search checks the requested release inside its read transaction. | `context.py`, index, traversal, release, validation |
 | `invocation.py` | Gives every tool, resource and CLI call one correlation context and converts expected failures through the single error-code table, preserving details and next steps. Unexpected exceptions propagate. | `errors.py`, upstream and domain exceptions |
@@ -104,10 +99,9 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 | `retrieval.py` | Implements tokenization, the dot product used as cosine similarity for unit vectors, and min-max normalization. | Python standard library |
 | `embeddings.py` | Defines the embedding abstraction, a deterministic local hashing provider, an optional sentence-transformers provider, and the check that provider and model settings agree. | Optional `sentence-transformers` package |
 | `traversal.py` | Resolves which edge types to follow and performs a breadth-first traversal of hierarchy, role, and association relations with deduplication and hard depth/node/edge limits, and gives each node and edge its traversal provenance and the walk its truncation record. | EVS client, shared models |
-| `models.py` | Defines the serializable concept, index, search-hit, traversal and caDSR status dataclasses, and the provenance, traversal provenance and truncation records every result is built from. | `errors.py` |
+| `models.py` | Defines the serializable concept, index, search-hit and traversal dataclasses, and the provenance, traversal provenance and truncation records every result is built from. | `errors.py` |
 | `results.py` | Declares the serialized tool records as dependency-free TypedDicts, including optional wire keys and recursive truncation. Registry output declarations combine each success record with the shared error result; the MCP SDK generates their output schemas through a RootModel, preserving the top-level object. | `errors.py`, `validation.py` |
 | `evaluation.py` | Evaluates BM25, vector, and hybrid retrieval against a small built-in gold-query set. | Local index, embedding provider |
-| `cadsr.py` | Exposes an explicit `reuse_pending` boundary; no caDSR search or fabricated CDE results are implemented. | Shared models |
 | `config.py` | Loads the profile, the upstream mode and the six upstream base URLs (taken as a set: production defaults in live mode, all required in fixture mode), release channel, exclusion role codes, the two credentials (kept out of every string form), timeouts, EVS retry, batching, logging, data-directory and embedding settings from environment variables and validates them; whether the data directory is usable shows only when the index is opened. | Environment, `embeddings.py`, `validation.py` |
 | `validation.py` | Defines the closed value sets (search modes, directions, edge types), normalizes NCIt codes, and validates search and traversal inputs. | Shared errors, limits in `bounds.py` |
 | `errors.py` | Defines the validation and index errors, `PlatformError` with the ten error codes of the specification, the per-call correlation identifier, and `serialise`, the one function that builds the error record. | Python standard library |
@@ -130,9 +124,11 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 
 ### Search
 
-1. CLI or MCP invokes `handlers.search` through the registry.
+1. The CLI invokes `handlers.search`; MCP invokes `content.search_concepts` through the
+   same registry. The MCP entry pins the caller's release, maps `semantic` to vector search,
+   and refuses lexical/typeahead, cursors and retired-only selection pending #27.
 2. `LocalIndex` verifies that the runtime embedding configuration matches the
-   manifest.
+   manifest. For MCP, it also verifies the requested release inside the read transaction.
 3. BM25 candidates come from SQLite FTS5. For vector scores, a release of up to
    20,000 concepts is scanned exactly; a larger one is narrowed to at most 2,000
    candidates from the LSH buckets and the BM25 hits before scoring. Work for an
@@ -149,7 +145,7 @@ which use the closed value sets in `validation.py` and default limits in `bounds
    in an index of up to 20,000 concepts). A search with no hit carries the provenance of
    the active manifest as its own field.
 
-### Lookup
+### CLI lookup and the concept resource
 
 1. The handler resolves the current release of the configured channel (monthly by
    default) with `resolve_evs_release`, once for this call. If the index holds a
@@ -164,13 +160,18 @@ which use the closed value sets in `validation.py` and default limits in `bounds
    `servedBy: index` and a `fallback` object with the reason. A channel without exactly one latest release is not an
    outage: lookup fails with `release_not_available` and does not use the cache.
 
+The MCP `get_concept` entry instead calls `content.get_concept`, pins the caller's release,
+and requests only the selected sections. It neither consults the index nor falls back to it.
+It returns a specification concept record with upstream name, active/status and provenance.
+
 ### Traverse
 
-1. Direction, the include flags, and `edge_types` select the edge types to
+1. For the CLI, direction, the include flags, and `edge_types` select the edge types to
    follow. A combination that selects nothing, or names an edge type the
    direction excludes, is rejected before any request is made.
-2. The handler resolves the release of the configured channel, once for this call, and
-   calls `traverse_ncit`.
+2. The CLI handler resolves the configured channel once; MCP graph entries instead use
+   the caller's release and select kinds from `kinds` or the hierarchy `direction`.
+   Both call `traverse_ncit` with one shared `Budget`.
 3. The walk is breadth-first, one depth at a time over all start codes, so
    nearer nodes claim the limits before farther ones. Each level is read with
    batched concept requests that include the selected relation lists, pinned to
@@ -205,6 +206,9 @@ which use the closed value sets in `validation.py` and default limits in `bounds
    the item, its `depth`, and for any item but a start code the `relationship`, `direction`
    and `polarity` of the edge that reached it. Polarity is decided by the relationship's
    code against the NCIt exclusion set, never by its name.
+7. MCP converts the graph to specification concept and edge records, with edges in assertion
+   orientation. Hierarchy excludes the seed; neighborhood includes it. Unsupported paging,
+   paths to root and selective negative expansion are explicitly refused pending #23.
 
 ## Provenance
 
@@ -275,11 +279,10 @@ MCP tools:
 - `resolve_release`
 - `list_terminologies`
 
-- `ncit_search`
-- `ncit_lookup`
-- `ncit_traverse`
-- `ncit_release_info`
-- `cadsr_status`
+- `get_concept`
+- `search_concepts`
+- `get_concept_hierarchy`
+- `get_concept_neighborhood`
 
 MCP resources:
 
@@ -287,12 +290,13 @@ MCP resources:
 - `nci-si://release/ncit/{version}`
 - `nci-si://index/ncit/{version}/manifest`
 
-The `evs` profile exposes the six EVS tools, `cadsr` exposes the pending status tool,
-and `unified` exposes all seven. Each tool has group metadata and read-only, idempotent,
+The `evs` and `unified` profiles expose the six EVS tools; `cadsr` currently exposes no tools.
+Each tool has group metadata and read-only, idempotent,
 non-destructive, open-world annotations. Resources are available in every profile.
 
-The CLI additionally exposes sample indexing and retrieval evaluation, which are
-not MCP tools. QUICKSTART.md lists the error codes.
+The CLI retains lookup, indexed search, traversal, release-info, sample indexing and
+retrieval evaluation diagnostics. The release report uses `selected_release`; the moving
+resource aliases are `current` and `latest`. QUICKSTART.md lists the error codes.
 
 ## Current boundaries
 
@@ -310,8 +314,8 @@ not MCP tools. QUICKSTART.md lists the error codes.
   queries in vector mode and 87 in hybrid mode. The figure depends on how much
   of the indexed text a query repeats. A full-NCIt index would need a real ANN
   engine.
-- caDSR/CDE discovery is a status-only adapter until reusable APIs, credentials,
-  schemas, indexes, models, and ranking rules are confirmed.
+- caDSR/CDE tools are not implemented. Until credentials are issued, their implementation
+  uses fixtures crafted from the published contracts; the former status-only stub is removed.
 - Indexing is manual by supplied codes; there is no complete NCIt-universe build
   workflow. An index cannot be
   re-embedded in place: changing the embedding settings means deleting the

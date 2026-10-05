@@ -471,8 +471,8 @@ class StatusTest(HandlerTestCase):
         )
 
         self.assertEqual(result["evs_api"], {"version": "test"})
-        self.assertEqual(result["selected_monthly_release"]["version"], "26.06e")
-        self.assertNotIn("raw", result["selected_monthly_release"])
+        self.assertEqual(result["selected_release"]["version"], "26.06e")
+        self.assertNotIn("raw", result["selected_release"])
         self.assertEqual(result["active_index"]["concept_count"], 2)
         self.assertEqual(result["embedding"]["provider"], "hashing")
 
@@ -487,7 +487,7 @@ class StatusTest(HandlerTestCase):
 
         self.assertFalse(is_error_record(result), result)
         self.assert_error(result["evs_api"], "upstream_unavailable")
-        self.assertEqual(result["selected_monthly_release"]["version"], "26.06e")
+        self.assertEqual(result["selected_release"]["version"], "26.06e")
 
     def test_release_info_survives_an_evs_outage(self):
         self.index("C3262")
@@ -501,8 +501,8 @@ class StatusTest(HandlerTestCase):
 
         self.assertFalse(is_error_record(result), result)
         self.assert_error(result["evs_api"], "upstream_unavailable")
-        self.assert_error(result["selected_monthly_release"], "release_not_available")
-        self.assertIn("2 ncit monthly", result["selected_monthly_release"]["error"]["message"])
+        self.assert_error(result["selected_release"], "release_not_available")
+        self.assertIn("2 ncit monthly", result["selected_release"]["error"]["message"])
         self.assertEqual(result["active_index"]["release_version"], "26.06e")
 
     def test_evaluate_scores_every_mode_and_names_gold_concepts_that_are_not_indexed(self):
@@ -572,15 +572,6 @@ class StatusTest(HandlerTestCase):
 
         self.assertEqual(keyed.evs.http.credentials, {LICENSE_KEY_HEADER: "a-key"})
         self.assertEqual(plain.evs.http.credentials, {})
-
-    def test_cadsr_reports_that_reuse_is_pending(self):
-        status = invoke(
-            self.context,
-            "cadsr_status",
-        )
-
-        self.assertEqual(status["state"], "reuse_pending")
-        self.assertEqual(status["findings"], [])
 
 
 class FailureHandlingTest(HandlerTestCase):

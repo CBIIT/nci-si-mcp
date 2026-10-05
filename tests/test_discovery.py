@@ -66,7 +66,7 @@ class DiscoveryTest(ServerFixture):
                 failed, result = self.call("resolve_release", terminology="ncit")
                 self.assertTrue(failed)
                 self.assertEqual(result["error"]["code"], "release_not_available")
-                self.assertNotIn("selected_monthly_release", result)
+                self.assertNotIn("selected_release", result)
 
     def test_unusable_alternative_is_not_silently_omitted(self):
         self.evs.rows = [terminology_row(), terminology_row("", latest=False)]

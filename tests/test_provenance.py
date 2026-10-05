@@ -178,9 +178,7 @@ class EveryItemCarriesItsProvenanceTest(ProvenanceTestCase):
             "release_info",
         )
 
-        self.assertEqual(
-            report["selected_monthly_release"]["error"]["code"], "upstream_unavailable"
-        )
+        self.assertEqual(report["selected_release"]["error"]["code"], "upstream_unavailable")
         self.assertNotIn("provenance", report)
 
 

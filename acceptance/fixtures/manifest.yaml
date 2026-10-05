@@ -109,7 +109,7 @@ record:
     # Release resolution: the listing, and the one-row query per channel (implementation plan §3.3).
     - fixture: recorded/evs/version.json
       operation: baseline
-      rationale: The furnished server's ncit_release_info reads it; no required tool needs it.
+      rationale: The furnished server's CLI release-info reads it; no required tool needs it.
       surface: evs
       path: /api/v1/version
     - fixture: recorded/evs/terminologies.json

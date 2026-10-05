@@ -130,7 +130,7 @@ class MainTest(unittest.TestCase):
         code, info, _ = self.run_cli("release-info")
         self.assertEqual((code, info["active_index"]["release_version"]), (0, "26.06e"))
         self.assertEqual(
-            info["selected_monthly_release"],
+            info["selected_release"],
             {
                 "terminology": "ncit",
                 "channel": "monthly",
@@ -180,7 +180,7 @@ class MainTest(unittest.TestCase):
 
         code, info, _ = self.run_cli("release-info", context=context)
 
-        nested = [info["evs_api"]["error"], info["selected_monthly_release"]["error"]]
+        nested = [info["evs_api"]["error"], info["selected_release"]["error"]]
         self.assertEqual(code, 0)
         self.assertEqual(len({error["correlationId"] for error in nested}), 1)
 
