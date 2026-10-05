@@ -56,7 +56,7 @@ and the tests of each group follow. The
 ## Start here
 
 - **The EVS, caDSR and Shared SI teams**: [docs/specification.md](docs/specification.md) specifies the
-  required tools and their behaviour (rendered from `spec/`); [docs/SPEC.md](docs/SPEC.md) plans
+  required tools and their behaviour (rendered from `spec/`); [docs/implementation-plan.md](docs/implementation-plan.md) plans
   the work, phase by phase;
   [acceptance/README.md](acceptance/README.md) runs the suite against your server and renders the
   per-tool report; the upstream requests the tools rest on, each with its operation and

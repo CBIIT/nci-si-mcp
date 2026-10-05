@@ -275,6 +275,13 @@ class DocumentationTest(unittest.TestCase):
 
             self.assertEqual(tracked_mentions_of_local_agent_files(root), ["guide.md:2"])
 
+    def test_every_file_in_docs_has_a_lower_case_name(self):
+        # Owner's rule: names in docs/ differ by meaning, never by case alone.
+        names = [path.name for path in (ROOT / "docs").iterdir()]
+
+        self.assertTrue(names)
+        self.assertEqual([name for name in names if name != name.lower()], [])
+
 
 if __name__ == "__main__":
     unittest.main()

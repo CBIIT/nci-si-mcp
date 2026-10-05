@@ -27,7 +27,7 @@ from nci_si_acceptance.register import EVS_SURFACES
 
 CRAFTED = craft(FIXTURES)
 MANIFEST = yaml.safe_load((FIXTURES / "manifest.yaml").read_text(encoding="utf-8"))
-# The hard maximums of a traversal (docs/SPEC.md §4.3).
+# The hard maximums of a traversal (docs/implementation-plan.md §4.3).
 MAX_NODES, MAX_DEPTH = 1000, 4
 PINNED, MISMATCHED_RELEASE = "26.09d", "26.08e"
 CONCEPT = "/api/v1/concept/ncit_26.09d"
