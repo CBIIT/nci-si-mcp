@@ -374,3 +374,15 @@ resource aliases are `current` and `latest`. QUICKSTART.md lists the error codes
 - `tests/test_quality_gates.py`: the complexity and test-quality gates in `scripts/validation`.
 - `tests/test_release_config.py`: the pull request title check against the release configuration.
 - `acceptance/`: the behavioural acceptance suite, which tests the MCP tool surface through a fixture upstream ([acceptance/README.md](acceptance/README.md)).
+
+### EVS content identity
+
+Existing concept, batch and descendant client methods require a `ReleaseContext`; there is no
+unpinned content default. Full concepts must report the requested version and terminology.
+All 33 recorded terminology rows use `{terminology}_{version}` as `terminologyVersion`; a
+fixture-backed test pins that construction. Codes without a stated form are encoded as one
+path segment. Licence attribution comes only from the content payload that supplied it.
+
+Compact descendant entries do not report a version or terminology. Their provenance names
+the release addressed by the request, with no invented `upstream` version. When a later read
+fetches the full concept for its details, that payload is verified.

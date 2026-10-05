@@ -293,7 +293,9 @@ payloads and read remaining status in minimal batches under the same request bud
 Edges use assertion orientation. MCP argument validation uses the registry's fields and
 the common structured error boundary.
 
-Other terminologies remain #20. Lexical/typeahead search, cursors and retired-only
+Live content now supports caller-selected EVS terminologies; the client requires a release
+context and verifies full concept identity. Semantic/hybrid remains NCIt-only. New endpoints
+reuse this contract in their owning issues. Lexical/typeahead search, cursors and retired-only
 selection return `capability_unavailable` pending #27. Hierarchy paths to root, cursors
 and results needing another page, and selective negative expansion, remain #23 and are
 explicitly refused. Until then a neighborhood following beyond negative assertion targets

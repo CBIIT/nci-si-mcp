@@ -5,13 +5,17 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Iterable
 from http import HTTPStatus
-from typing import Any
+from typing import TYPE_CHECKING, Any
+from urllib.parse import quote
 
 from .http_client import (
     HttpClient,
     UpstreamRejectedError,
 )
 from .models import NcitConcept, utc_now_iso
+
+if TYPE_CHECKING:
+    from .release import ReleaseContext
 
 SOURCE_VOCABULARIES = {"ncit": "NCI Thesaurus"}
 
@@ -32,7 +36,9 @@ TERMINOLOGIES_PATH = "/api/v1/metadata/terminologies"
 def concept_path(terminology: str, code: str = "") -> str:
     """The path of a concept in `terminology`, or of the terminology's concept list."""
 
-    return f"/api/v1/concept/{terminology}" + (f"/{code}" if code else "")
+    return f"/api/v1/concept/{quote(terminology, safe='')}" + (
+        f"/{quote(code, safe='')}" if code else ""
+    )
 
 
 class EVSError(RuntimeError):
@@ -93,6 +99,14 @@ def verify_release(concepts: Iterable[dict[str, Any]], release_version: str) -> 
             served=served,
             source="evs",
         )
+
+
+def verify_content(concepts: list[dict[str, Any]], release: ReleaseContext) -> None:
+    """Check self-described concept content against the call's pinned identity."""
+
+    verify_release(concepts, release.version)
+    if any(raw.get("terminology") != release.terminology for raw in concepts):
+        raise EVSResponseError("EVS returned content of another or missing terminology")
 
 
 def _property_values(properties: list[dict[str, Any]], kind: str) -> list[Any]:
@@ -159,9 +173,8 @@ _UNKNOWN_TERMINOLOGY = re.compile(r"Terminology not found\s*=\s*([^\s)]+)")
 class EVSClient:
     """Read-only EVS REST client.
 
-    Concept methods take a `terminology` path segment. Passing a release's
-    `pinned_terminology` (for example `ncit_26.06e`) pins the request to that
-    release; plain `ncit` lets EVS choose.
+    Every content method requires a ReleaseContext and addresses that release.
+    Full concept payloads must describe the same terminology and version.
     """
 
     def __init__(
@@ -255,42 +268,50 @@ class EVSClient:
     def get_concepts_by_codes(
         self,
         codes: Iterable[str],
-        terminology: str = "ncit",
+        release: ReleaseContext,
         include: str = INDEX_INCLUDE,
     ) -> list[dict[str, Any]]:
         """Fetch several concepts in one request; EVS omits codes it does not know."""
 
-        code_list = [code.strip() for code in codes if code and code.strip()]
+        code_list = list(codes)
         if not code_list:
             return []
         data = self._get_existing(
-            concept_path(terminology),
+            concept_path(release.pinned_terminology),
             {"list": ",".join(code_list), "include": include},
         )
-        return _object_list(data, "concept list response")
+        concepts = _object_list(data, "concept list response")
+        verify_content(concepts, release)
+        return concepts
 
     def get_concept(
         self,
         code: str,
-        terminology: str = "ncit",
+        release: ReleaseContext,
         include: str = LOOKUP_INCLUDE,
     ) -> dict[str, Any]:
         try:
-            data = self._get_json(concept_path(terminology, code), {"include": include})
+            data = self._get_json(
+                concept_path(release.pinned_terminology, code), {"include": include}
+            )
         except EVSNotFoundError as exc:
             raise EVSNotFoundError(str(exc), identifiers=[code]) from exc
-        return _object(data, "concept response")
+        concept = _object(data, "concept response")
+        verify_content([concept], release)
+        return concept
 
     def get_descendants(
-        self, code: str, max_level: int, terminology: str = "ncit"
+        self, code: str, max_level: int, release: ReleaseContext
     ) -> list[dict[str, Any]]:
         """Fetch the descendants EVS places within `max_level` levels, each with its `level`.
 
         The concept must be known to exist: a 404 here is not reported as a
-        missing concept.
+        missing concept. Compact entries do not self-describe their release;
+        the pinned path establishes it, and later full concept reads verify it.
         """
 
         data = self._get_existing(
-            f"{concept_path(terminology, code)}/descendants", {"maxLevel": max_level}
+            f"{concept_path(release.pinned_terminology, code)}/descendants",
+            {"maxLevel": max_level},
         )
         return _object_list(data, "descendants response")

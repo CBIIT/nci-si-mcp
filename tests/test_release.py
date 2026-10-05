@@ -149,7 +149,7 @@ class UnknownReleaseTest(HandlerTestCase):
             self.assertRaises(EVSReleaseNotFoundError) as raised,
         ):
             EVSClient("https://example.invalid", max_attempts=1).get_concept(
-                "C4817", terminology="ncit_99.99z"
+                "C4817", release=release("99.99z")
             )
 
         self.assertEqual(raised.exception.details, {"requested": "ncit_99.99z", "source": "evs"})
@@ -159,7 +159,9 @@ class UnknownReleaseTest(HandlerTestCase):
             self.answer_404("C4817 not found"),
             self.assertRaises(EVSNotFoundError),
         ):
-            EVSClient("https://example.invalid", max_attempts=1).get_concept("C4817")
+            EVSClient("https://example.invalid", max_attempts=1).get_concept(
+                "C4817", release=release()
+            )
 
     def test_a_pinned_release_no_longer_served_tells_the_caller_why_to_retry(self):
         self.context.evs = EVSClient("https://example.invalid", max_attempts=1)

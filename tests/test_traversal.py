@@ -112,12 +112,12 @@ class HubEVS(FakeEVS):
 
     hubs = frozenset()
 
-    def get_concepts_by_codes(self, codes, terminology="ncit", include=""):
+    def get_concepts_by_codes(self, codes, release, include=""):
         codes = list(codes)
         if self.hubs.intersection(codes) and include != "minimal":
-            self._record("get_concepts_by_codes", terminology, codes)
+            self._record("get_concepts_by_codes", release.pinned_terminology, codes)
             raise UpstreamTooLargeError("too large")
-        return super().get_concepts_by_codes(codes, terminology, include)
+        return super().get_concepts_by_codes(codes, release, include)
 
 
 def walk(
@@ -458,7 +458,7 @@ class TraversalTest(unittest.TestCase):
     def test_descendant_without_a_usable_level_is_an_evs_fault(self):
         for level in (None, 0, -1, 3, "2", True):
             client = FakeEVS([concept("C1")])
-            client.get_descendants = lambda code, max_level, terminology, level=level: [
+            client.get_descendants = lambda code, max_level, release, level=level: [
                 {"code": "C9", "name": "Concept C9", "level": level}
             ]
             with self.subTest(level=level), self.assertRaises(EVSResponseError):
@@ -707,10 +707,10 @@ class TraversalTest(unittest.TestCase):
 
     def test_oversized_descendants_of_one_start_code_do_not_hide_the_others(self):
         class Hub(FakeEVS):
-            def get_descendants(self, code, max_level, terminology="ncit"):
+            def get_descendants(self, code, max_level, release):
                 if code == "C1":
                     raise UpstreamTooLargeError("too large")
-                return super().get_descendants(code, max_level, terminology)
+                return super().get_descendants(code, max_level, release)
 
         client = Hub([concept("C1"), concept("C2")], descendants={"C2": [descendant("C21", 1)]})
 
@@ -727,10 +727,10 @@ class TraversalTest(unittest.TestCase):
             walk(client, max_depth=1, edge_types=["descendant"])
 
         class RejectsRelations(FakeEVS):
-            def get_concepts_by_codes(self, codes, terminology="ncit", include=""):
+            def get_concepts_by_codes(self, codes, release, include=""):
                 if include != "minimal":
                     raise EVSResponseError("HTTP 400")
-                return super().get_concepts_by_codes(codes, terminology, include)
+                return super().get_concepts_by_codes(codes, release, include)
 
         with self.assertRaises(EVSResponseError):
             walk(RejectsRelations([concept("C1", children=[child("C2")])]), max_depth=1)

@@ -24,7 +24,6 @@ from .evs import (
     EVSResponseError,
     concept_path,
     object_list,
-    verify_release,
 )
 from .http_client import UpstreamTooLargeError
 from .models import (
@@ -133,7 +132,7 @@ def select_edge_types(
 
 
 def _fetch_batch(
-    client: EVSClient, batch: list[str], terminology: str, include: str
+    client: EVSClient, batch: list[str], release: ReleaseContext, include: str
 ) -> Iterator[tuple[list[dict[str, Any]], list[str], list[str]]]:
     """Fetch one batch, halving it while the response is too large.
 
@@ -144,7 +143,7 @@ def _fetch_batch(
 
     try:
         yield (
-            client.get_concepts_by_codes(batch, terminology=terminology, include=include),
+            client.get_concepts_by_codes(batch, release=release, include=include),
             [],
             batch,
         )
@@ -160,14 +159,12 @@ def _fetch_batch(
         if len(batch) == 1:
             # Relations are already lost even if the minimal fallback cannot be sent.
             yield [], list(batch), []
-            minimal = client.get_concepts_by_codes(
-                batch, terminology=terminology, include="minimal"
-            )
+            minimal = client.get_concepts_by_codes(batch, release=release, include="minimal")
             yield minimal, [], batch
             return
     middle = len(batch) // 2
-    yield from _fetch_batch(client, batch[:middle], terminology, include)
-    yield from _fetch_batch(client, batch[middle:], terminology, include)
+    yield from _fetch_batch(client, batch[:middle], release, include)
+    yield from _fetch_batch(client, batch[middle:], release, include)
 
 
 def _fetch_concepts(
@@ -183,13 +180,11 @@ def _fetch_concepts(
     Processing each chunk before the next request preserves limit chronology.
     """
 
-    terminology = release.pinned_terminology
     try:
         for batch in batched(codes, batch_size, strict=False):
             for concepts, too_large, requested in _fetch_batch(
-                client, list(batch), terminology, include
+                client, list(batch), release, include
             ):
-                verify_release(concepts, release.version)
                 found = _by_code(concepts)
                 if not found.keys() <= set(requested):
                     raise EVSResponseError("EVS returned a graph concept that was not requested")
@@ -356,7 +351,7 @@ class _Walk:
         return TraversalNode(
             code=code,
             preferred_name=name,
-            terminology="ncit",
+            terminology=self.release.terminology,
             provenance=provenance,
         )
 
@@ -536,9 +531,7 @@ class _Walk:
     def _read_descendants(self, start_codes: list[str]) -> None:
         for code in start_codes:
             try:
-                items = self.client.get_descendants(
-                    code, self.budget.depth, terminology=self.release.pinned_terminology
-                )
+                items = self.client.get_descendants(code, self.budget.depth, release=self.release)
             except UpstreamTooLargeError as exc:
                 emit(
                     logger,

@@ -367,12 +367,12 @@ class UpstreamPassThroughTest(ProvenanceTestCase):
         for provenance in [*reached, *(edge["provenance"] for edge in result["edges"])]:
             self.assertNotIn("upstream", provenance)
 
-    def test_a_start_code_names_only_the_origin_fields_its_payload_has(self):
+    def test_a_full_start_payload_without_its_terminology_fails_closed(self):
         del self.evs.concepts["C3262"]["terminology"]
 
-        start = self.traversal()["nodes"][0]["provenance"]
+        result = invoke(self.context, "traverse", ["C3262"])
 
-        self.assertEqual(start["upstream"], {"version": "26.06e"})
+        self.assertEqual(result["error"]["code"], "upstream_unavailable")
 
 
 class RawIsKeptBehindTheFlagTest(ProvenanceTestCase):
@@ -467,10 +467,10 @@ class TruncationTest(ProvenanceTestCase):
 
     def test_a_concept_too_large_to_read_is_reported_against_the_upstream_cap(self):
         class Hub(FakeEVS):
-            def get_concepts_by_codes(self, codes, terminology="ncit", include=""):
+            def get_concepts_by_codes(self, codes, release, include=""):
                 if include != "minimal":
                     raise UpstreamTooLargeError("too large")
-                return super().get_concepts_by_codes(codes, terminology, include)
+                return super().get_concepts_by_codes(codes, release, include)
 
         self.context.evs = Hub([NEOPLASM])
         with self.assertLogs("nci_si_mcp.traversal", level="WARNING"):
