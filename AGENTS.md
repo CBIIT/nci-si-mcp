@@ -172,7 +172,7 @@ The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for t
    5. **Comments and documentation:** docstrings, comments and documents say what the code
       does now.
 
-   Fix what is real on the milestone branch, without opening issues (except for work deferred to
+   Fix what is real through pull requests into the milestone branch, without opening issues (except for work deferred to
    a later milestone, recorded in that milestone's issue), and run all five again until a full
    round finds nothing new. Post each round as a short table: finding, pass, fixed or rejected
    (with the reason).
@@ -187,7 +187,10 @@ The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for t
     issues closed, and that the release was cut; then remove your branches, worktrees, scratch
     files and any process or wait loop you started.
 
-When `main` moves during a milestone, merge it into the milestone branch. Findings made along the
+The `milestone branches` ruleset lets a commit onto `milestone/*` only once CI has passed on it,
+and CI runs on pull requests, so every change reaches the milestone branch through a pull request
+into it: issue branches, review fixes, and `main` whenever it moves (a pull request from `main`
+into the milestone branch, merged with `gh pr merge N --merge`). Findings made along the
 way are fixed on the branch they belong to; only an unrelated problem gets an issue. Do not change
 the ruleset, repository settings, `spec/`'s conventions or another issue's scope without the
 reviewer's agreement.
