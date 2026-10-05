@@ -38,9 +38,10 @@ from .models import (
     NcitConcept,
     ProvenanceEnvelope,
     release_ref,
+    upstream_origin,
     utc_now_iso,
 )
-from .release import ReleaseContext, resolve_evs_release
+from .release import ReleaseContext, current_terminologies, resolve_evs_release
 from .traversal import (
     select_edge_types,
     traverse_ncit,
@@ -49,10 +50,12 @@ from .validation import (
     Direction,
     EdgeType,
     SearchMode,
+    validate_channel,
     validate_kind_budget,
     validate_ncit_code,
     validate_ncit_codes,
     validate_search,
+    validate_terminology,
     validate_traversal,
 )
 
@@ -63,6 +66,66 @@ def _release(context: Context) -> ReleaseContext:
     """The NCIt release the configured channel names now: resolved for one call, never kept."""
 
     return resolve_evs_release(context.evs, "ncit", context.settings.release_channel)
+
+
+def resolve_release(
+    context: Context, terminology: str, channel: str | None = None
+) -> dict[str, Any]:
+    """Resolve the current EVS terminology release by its monthly or weekly channel.
+
+    Omitted channel uses NCI_SI_RELEASE_CHANNEL (monthly by default). Exactly one
+    release must be latest within that channel. The result names terminology,
+    channel, version and date; alternatives lists the other versions EVS serves
+    for that terminology. Pass the selected version to subsequent content calls.
+    Provenance identifies the live EVS listing. Discovery is never cached, and
+    an unavailable or ambiguous release is an error rather than a guessed version.
+    """
+
+    terminology = validate_terminology(terminology)
+    channel = validate_channel(context.settings.release_channel if channel is None else channel)
+    selected = resolve_evs_release(context.evs, terminology, channel).to_dict()
+    return selected | {
+        "alternatives": _alternatives(context, selected),
+        "provenance": _release_provenance(context, selected).to_dict(),
+    }
+
+
+def _alternatives(context: Context, selected: dict[str, Any]) -> list[str]:
+    rows = [
+        row
+        for row in context.evs.get_terminologies()
+        if row.get("terminology") == selected["terminology"]
+    ]
+    versions = [str(row.get("version") or "") for row in rows]
+    if not all(versions):
+        raise EVSResponseError("EVS listed an alternative release without a version")
+    alternatives = dict.fromkeys(versions)
+    alternatives.pop(selected["version"], None)
+    return list(alternatives)
+
+
+def list_terminologies(context: Context) -> dict[str, Any]:
+    """List the terminologies EVS serves and each terminology's current release.
+
+    NCIt uses the configured monthly or weekly channel (monthly by default),
+    because EVS can mark both channels latest. Other terminologies use their
+    sole latest row. Each item names its terminology, release and live EVS
+    provenance. Ambiguous or missing current releases fail closed. This current
+    listing is resolved anew on every call and is never cached.
+    """
+
+    rows = current_terminologies(context.evs.get_terminologies(), context.settings.release_channel)
+    return {
+        "terminologies": [
+            {
+                "terminology": row["terminology"],
+                "release": row["version"],
+                "provenance": _release_provenance(context, row).to_dict()
+                | {"upstream": upstream_origin(row)},
+            }
+            for row in rows
+        ]
+    }
 
 
 def release_info(context: Context) -> dict[str, Any]:
@@ -111,7 +174,7 @@ def _release_provenance(context: Context, selected: dict[str, Any]) -> Provenanc
     """The provenance of the release report: the selected release, read from EVS now."""
 
     return ProvenanceEnvelope(
-        release=release_ref(selected["terminology"], selected["version"], selected["date"]),
+        release=release_ref(selected["terminology"], selected["version"], selected.get("date")),
         source="evs_rest",
         served_by="live",
         retrieved_at=utc_now_iso(),

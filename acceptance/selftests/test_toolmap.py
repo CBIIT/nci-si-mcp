@@ -143,5 +143,7 @@ def test_a_call_through_the_map_passes_the_prototypes_validation(prototype, requ
         pytest.fail(f"a supported call was reported {skipped}")
 
     # Offline, the prototype can only fail upstream: never on the arguments it was sent.
-    assert result.tool == TOOLMAP[required]["tool"]
+    available = {tool.name for tool in prototype.list_tools().tools}
+    expected = required if required in available else TOOLMAP[required]["tool"]
+    assert result.tool == expected
     assert not result.is_error or error_code(result) in UPSTREAM_ERRORS, json.dumps(result.content)

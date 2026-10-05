@@ -16,7 +16,9 @@ from .results import (
     ConceptResult,
     ErrorResult,
     ReleaseResult,
+    ResolvedReleaseResult,
     SearchResult,
+    TerminologiesResult,
     TraversalResult,
 )
 
@@ -82,6 +84,22 @@ def _input_field(parameter: Parameter) -> tuple:
 
 
 SPECS = (
+    ToolSpec(
+        handlers.resolve_release,
+        "evs",
+        ResolvedReleaseResult | ErrorResult,
+        True,
+        name="resolve_release",
+        command="resolve-release",
+    ),
+    ToolSpec(
+        handlers.list_terminologies,
+        "evs",
+        TerminologiesResult | ErrorResult,
+        True,
+        name="list_terminologies",
+        command="list-terminologies",
+    ),
     ToolSpec(
         handlers.search,
         "evs",

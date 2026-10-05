@@ -134,6 +134,21 @@ class SelectedRelease(TypedDict):
     date: str | None
 
 
+class ResolvedReleaseResult(SelectedRelease):
+    alternatives: list[str]
+    provenance: Provenance
+
+
+class TerminologyResult(TypedDict):
+    terminology: str
+    release: str
+    provenance: Provenance
+
+
+class TerminologiesResult(TypedDict):
+    terminologies: list[TerminologyResult]
+
+
 class IndexManifestResult(TypedDict):
     terminology: str
     release_version: str

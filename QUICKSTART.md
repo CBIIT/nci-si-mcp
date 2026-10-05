@@ -107,7 +107,7 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects the four NCIt tools, the pending caDSR status tool, or all five, respectively; CLI maintenance commands and resources remain available |
+| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects the six EVS tools, the pending caDSR status tool, or all seven, respectively; CLI maintenance commands and resources remain available |
 | `NCI_SI_UPSTREAM_MODE` | `live` | `live` or `fixture`; selects the six base URLs below as a set (next paragraph) |
 | `NCI_SI_EVS_BASE_URL` | `https://api-evsrest.nci.nih.gov` | EVS REST endpoint (`http` or `https`) |
 | `NCI_SI_EVS_FHIR_BASE_URL` | `https://api-evsrest.nci.nih.gov/fhir/r4` | EVS FHIR endpoint |
@@ -739,6 +739,8 @@ unknown, its record gives `omitted: 0` and `exact: false`.
 
 ## MCP Tools
 
+- `resolve_release`: resolve a terminology's current monthly or weekly release, with the other served version identifiers in `alternatives`. `terminology` is required; `channel` defaults to `NCI_SI_RELEASE_CHANNEL`. Returns a flat release record with provenance, or a top-level error. CLI: `resolve-release ncit --channel monthly`.
+- `list_terminologies`: list each EVS terminology and its current release with provenance. NCIt uses the configured channel; other terminologies use their sole latest row. CLI: `list-terminologies`. Both discovery tools are resolved afresh and carry `ttlMs: 0`, `cacheScope: public`; failures are private.
 - `ncit_search`: text search over the locally indexed concepts.
 - `ncit_lookup`: one concept from live EVS. When EVS is unreachable and the concept is in the local index, it is served from there and marked as a fallback.
 - `ncit_traverse`: breadth-first walk over hierarchy, role, and association edges in live EVS.
