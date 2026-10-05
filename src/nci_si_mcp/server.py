@@ -12,7 +12,8 @@ from . import __version__
 from .caching import LONG_TTL_MS, cache_call, cache_hint
 from .config import Settings, configure_logging
 from .context import Context
-from .errors import is_error_record
+from .errors import InputValidationError, is_error_record
+from .invocation import call
 from .registry import SPECS, ToolSpec, invoke
 
 INSTRUCTIONS = (
@@ -25,7 +26,7 @@ INSTRUCTIONS = (
     "not_found, release_not_available, release_mismatch, upstream_unavailable, timeout, "
     "bound_exceeded, capability_unavailable, cursor_expired or internal_error, and message "
     "names the next step; correlationId echoes the _meta.correlationId of the call, or is "
-    "generated; arguments rejected by the tool schema are reported as plain text."
+    "generated. Invalid tool arguments use the same error record."
 )
 
 
@@ -61,7 +62,7 @@ def create_mcp(settings: Settings | None = None, *, context: Context | None = No
             ),
             CacheHint(ttl_ms=LONG_TTL_MS, scope="public"),
         ),
-        middleware=[_cache_results],
+        middleware=[_cache_results, _validate_inputs(resolved_settings.profile)],
     )
 
     def tool_call(spec: ToolSpec, arguments: dict[str, Any]) -> Any:
@@ -122,6 +123,60 @@ def _callback(
     callback.__dict__["__signature__"] = Signature(parameters, return_annotation=output_type)
     callback.__annotations__ = {p.name: p.annotation for p in parameters} | {"return": output_type}
     return callback
+
+
+def _validate_inputs(profile: str) -> Callable[..., Any]:
+    # The SDK renders argument-validation failures as plain text. Validate the same
+    # registry fields first so invalid requests use the platform's one error path.
+    from mcp.types import CallToolResult, TextContent
+
+    models = {
+        spec.name: _input_model(spec) for spec in SPECS if spec.name and spec.visible_in(profile)
+    }
+
+    async def validate(ctx: Any, call_next: Callable[[Any], Awaitable[Any]]) -> Any:
+        params = ctx.params or {}
+        model = models.get(params.get("name", "")) if ctx.method == "tools/call" else None
+        if model is not None:
+            result = call(
+                params["name"],
+                lambda: _check_arguments(model, params.get("arguments", {})),
+                correlation_id=(ctx.meta or {}).get("correlationId"),
+            )
+            if is_error_record(result):
+                return CallToolResult(
+                    is_error=True,
+                    structured_content=result,
+                    content=[TextContent(type="text", text=json.dumps(result))],
+                ).model_dump(by_alias=True, exclude_none=True)
+        return await call_next(ctx)
+
+    return validate
+
+
+def _input_model(spec: ToolSpec) -> Any:
+    from pydantic import ConfigDict, create_model
+
+    fields: dict[str, Any] = {
+        p.name: (p.annotation, ... if p.default is Parameter.empty else p.default)
+        for p in spec.parameters
+        if p.name not in spec.cli_only
+    }
+    return create_model(
+        spec.operation + "Arguments", __config__=ConfigDict(strict=True, extra="forbid"), **fields
+    )
+
+
+def _check_arguments(model: Any, arguments: Any) -> dict[str, Any]:
+    from pydantic import ValidationError
+
+    try:
+        model.model_validate(arguments)
+    except ValidationError as exc:
+        error = exc.errors(include_input=False)[0]
+        parameter = str(error["loc"][0]) if error["loc"] else "arguments"
+        raise InputValidationError(error["msg"], parameter) from None
+    return {}
 
 
 async def _cache_results(ctx: Any, call_next: Callable[[Any], Awaitable[Any]]) -> Any:

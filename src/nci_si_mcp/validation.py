@@ -25,6 +25,13 @@ EdgeType = Literal[
 Profile = Literal["evs", "cadsr", "unified"]
 UpstreamMode = Literal["live", "fixture"]
 ReleaseChannel = Literal["monthly", "weekly"]
+ConceptInclude = Literal["synonyms", "definitions", "properties", "semanticType"]
+PublicSearchMode = Literal["lexical", "typeahead", "semantic", "hybrid"]
+RetiredSelection = Literal["include", "only"]
+HierarchyDirection = Literal["parent", "child", "pathsToRoot"]
+NeighborhoodKind = Literal[
+    "parent", "child", "role", "association", "inverseRole", "inverseAssociation"
+]
 
 PROFILES = frozenset(get_args(Profile))
 UPSTREAM_MODES = frozenset(get_args(UpstreamMode))
@@ -35,6 +42,24 @@ SEARCH_MODES = frozenset(get_args(SearchMode))
 TRAVERSAL_DIRECTIONS = frozenset(get_args(Direction))
 TRAVERSAL_EDGE_TYPES = frozenset(get_args(EdgeType))
 MAX_SEARCH_LIMIT = 100
+
+
+def validate_identifier(value: str, pattern: str, parameter: str) -> str:
+    if not isinstance(value, str) or not re.fullmatch(pattern, value):
+        raise InputValidationError(f"{parameter} must match {pattern}", parameter)
+    return value
+
+
+def validate_choice(value: str, choices: tuple[str, ...], parameter: str) -> str:
+    if value not in choices:
+        raise InputValidationError(f"{parameter} must be one of: {', '.join(choices)}", parameter)
+    return value
+
+
+def bounded(value: int, maximum: int, parameter: str) -> int:
+    if not _is_int(value) or value < 1:
+        raise InputValidationError(f"{parameter} must be a positive integer", parameter)
+    return min(value, maximum)
 
 
 def validate_terminology(terminology: str) -> str:
@@ -77,14 +102,14 @@ def validate_ncit_codes(codes: Iterable[str], parameter: str = "codes") -> list[
     return normalized
 
 
-def validate_search(query: str, limit: int, mode: str) -> tuple[str, int, str]:
+def validate_search(
+    query: str, limit: int, mode: str, *, maximum: int = MAX_SEARCH_LIMIT
+) -> tuple[str, int, str]:
     normalized_query = str(query or "").strip()
     if not normalized_query:
         raise InputValidationError("Search query must not be blank", "query")
-    if not _is_int(limit) or not 1 <= limit <= MAX_SEARCH_LIMIT:
-        raise InputValidationError(
-            f"Search limit must be between 1 and {MAX_SEARCH_LIMIT}", "limit"
-        )
+    if not _is_int(limit) or not 1 <= limit <= maximum:
+        raise InputValidationError(f"Search limit must be between 1 and {maximum}", "limit")
     normalized_mode = str(mode or "").lower()
     if normalized_mode not in SEARCH_MODES:
         allowed = ", ".join(sorted(SEARCH_MODES))

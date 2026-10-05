@@ -119,12 +119,14 @@ CALLS = {
     "get_concept": {"terminology": "ncit", "release": "26.09d", "code": "C3262"},
     "get_concept_hierarchy": {
         "terminology": "ncit",
+        "release": "26.09d",
         "code": "C3262",
         "direction": "parent",
         "depth": 1,
     },
     "get_concept_neighborhood": {
         "terminology": "ncit",
+        "release": "26.09d",
         "code": "C3262",
         "depth": 1,
         "kinds": ["role", "inverseRole"],

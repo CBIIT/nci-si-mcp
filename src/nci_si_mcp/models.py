@@ -273,9 +273,12 @@ class TraversalResult:
     max_depth: int
     max_nodes: int
     max_edges: int
+    # Minimal payloads already fetched by the walk, for the public concept projection.
+    concepts: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
+        data.pop("concepts")
         data["nodes"] = [node.to_dict() for node in self.nodes]
         data["edges"] = [edge.to_dict() for edge in self.edges]
         data["truncation"] = self.truncation.to_dict()

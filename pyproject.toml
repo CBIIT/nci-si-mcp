@@ -183,6 +183,7 @@ ignore_decorators = ["@mcp.tool", "@tool", "@mcp.resource", "@resource", "@pytes
 ignore_names = [
     "row_factory", "built_at", "index_path", "state", "reuse_targets",
     "correlationId", "servedBy", "retrievedAt", "sourceUri", "perKind",
+    "semanticType", "sourceCode", "sourceTerminology", "targetCode", "targetTerminology",
     "active_index_compatible", "evs_api", "selected_monthly_release", "active_index",
     "__annotations__",
     "pytest_*", "do_*", "log_message", "close_connection",

@@ -7,14 +7,18 @@ from dataclasses import asdict, dataclass, field, make_dataclass
 from inspect import Parameter, Signature, getdoc, signature
 from typing import Any, Literal, get_args, get_origin, get_type_hints
 
-from . import handlers
+from . import content, handlers
 from .caching import invocation_policy
 from .context import Context
 from .invocation import call
 from .results import (
     CadsrStatusResult,
+    Concept,
     ConceptResult,
+    ConceptSearch,
     ErrorResult,
+    Hierarchy,
+    Neighborhood,
     ReleaseResult,
     ResolvedReleaseResult,
     SearchResult,
@@ -84,6 +88,24 @@ def _input_field(parameter: Parameter) -> tuple:
 
 
 SPECS = (
+    ToolSpec(content.get_concept, "evs", Concept | ErrorResult, False, name="get_concept"),
+    ToolSpec(
+        content.search_concepts, "evs", ConceptSearch | ErrorResult, False, name="search_concepts"
+    ),
+    ToolSpec(
+        content.get_concept_hierarchy,
+        "evs",
+        Hierarchy | ErrorResult,
+        False,
+        name="get_concept_hierarchy",
+    ),
+    ToolSpec(
+        content.get_concept_neighborhood,
+        "evs",
+        Neighborhood | ErrorResult,
+        False,
+        name="get_concept_neighborhood",
+    ),
     ToolSpec(
         handlers.resolve_release,
         "evs",
