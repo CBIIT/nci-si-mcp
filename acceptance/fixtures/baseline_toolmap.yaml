@@ -1,4 +1,4 @@
-# The baseline tool map (docs/SPEC.md §9.4): the prototype tools that stand in for required
+# The baseline tool map (docs/implementation-plan.md §9.4): the prototype tools that stand in for required
 # tools while the server lacks them, and how their arguments translate (tools.py). An entry
 # applies only while its required tool is absent; the mechanism goes in the change that
 # removes the last entry (owner decision, 2 October 2026).

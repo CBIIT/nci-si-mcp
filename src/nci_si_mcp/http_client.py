@@ -1,4 +1,4 @@
-"""The one HTTP client for the upstream platforms (docs/SPEC.md section 3.4).
+"""The one HTTP client for the upstream platforms (docs/implementation-plan.md section 3.4).
 
 Every request carries `Accept: application/json` and the correlation identifier of the call in
 progress (M7.1). A 5xx, a 429 and a connection failure are retried with jittered backoff, a 429

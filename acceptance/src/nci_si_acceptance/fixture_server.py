@@ -99,8 +99,8 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
 
-# The server's upstream settings (docs/SPEC.md §8) and the fixture surface each one names:
-# the path prefix the fixture server serves it under.
+# The server's upstream settings (docs/implementation-plan.md §8) and the fixture surface each one
+# names: the path prefix the fixture server serves it under.
 UPSTREAM_VARIABLES = {
     "NCI_SI_EVS_BASE_URL": "evs",
     "NCI_SI_EVS_FHIR_BASE_URL": "evs-fhir",

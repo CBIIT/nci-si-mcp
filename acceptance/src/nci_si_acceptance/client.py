@@ -94,7 +94,8 @@ READ_TIMEOUT_SECONDS = 60
 
 type Transport = Literal["stdio", "streamable-http"]
 
-# Credentials for licensed upstream content (docs/SPEC.md §8), used in live mode only.
+# Credentials for licensed upstream content (docs/implementation-plan.md §8), used in live mode
+# only.
 CREDENTIAL_VARIABLES = ("NCI_SI_EVS_LICENSE_KEY", "NCI_SI_CADSR_CREDENTIAL")
 
 

@@ -73,7 +73,7 @@ def test_in_fixture_mode_every_upstream_names_the_fixture_server(monkeypatch, tm
 
     environment = server_environment("fixture", tmp_path, "http://127.0.0.1:9")
 
-    # The upstream settings of docs/SPEC.md §8, each naming its fixture surface.
+    # The upstream settings of docs/implementation-plan.md §8, each naming its fixture surface.
     assert {name: environment[name] for name in UPSTREAM_VARIABLES} == {
         "NCI_SI_EVS_BASE_URL": "http://127.0.0.1:9/evs",
         "NCI_SI_EVS_FHIR_BASE_URL": "http://127.0.0.1:9/evs-fhir",
@@ -91,7 +91,7 @@ def test_in_fixture_mode_every_upstream_names_the_fixture_server(monkeypatch, tm
 
 def test_in_live_mode_the_server_keeps_its_upstream_and_gets_the_credentials(monkeypatch, tmp_path):
     monkeypatch.setenv("NCI_SI_EVS_BASE_URL", "https://developer.example")
-    # The credentials of docs/SPEC.md §8.
+    # The credentials of docs/implementation-plan.md §8.
     credentials = {"NCI_SI_EVS_LICENSE_KEY": "evs key", "NCI_SI_CADSR_CREDENTIAL": "cadsr key"}
     for name, value in credentials.items():
         monkeypatch.setenv(name, value)
