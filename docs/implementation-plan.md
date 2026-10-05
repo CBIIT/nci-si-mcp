@@ -109,7 +109,7 @@ src/nci_si_mcp/
 acceptance/                 separate package, see §9
 ```
 
-Implemented in the current flat package: `service.py` is retired. `registry.py` holds one `ToolSpec` per operation with its output union, cache class and adapter exposure. Handler signatures supply typed input models, defaults and choices to both adapters. `handlers.py` composes the use cases; `context.py` holds injectable collaborators; `invocation.py` owns correlation and the one expected-error path for tools, resources and CLI. Shared HTTP errors propagate unchanged; EVS exceptions identify domain failures only. The package-layout drawing above remains a target for later modules, not a reason to move existing files.
+Implemented in the current flat package: `service.py` is retired. `registry.py` holds one `ToolSpec` per operation with its output union, cache class and adapter exposure. Handler signatures supply typed input models, defaults and choices to both adapters. `handlers.py` composes the use cases; `context.py` holds injectable collaborators; `audit.py` owns the correlation scope; `invocation.py` owns the one expected-error path for tools, resources and CLI. Shared HTTP errors propagate unchanged; EVS exceptions identify domain failures only. The package-layout drawing above remains a target for later modules, not a reason to move existing files.
 
 ---
 

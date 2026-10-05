@@ -215,7 +215,6 @@ SPECS = (
         audit={"codes": "plain"},
     ),
     ToolSpec(handlers.evaluate, "evs", dict[str, Any], False, command="evaluate"),
-    ToolSpec(handlers.index_manifest, "evs", dict[str, Any], True),
     ToolSpec(
         handlers.concept_resource,
         "evs",
@@ -258,7 +257,7 @@ def invoke(
     arguments = dict(zip((p.name for p in spec.parameters), args, strict=False)) | kwargs
     hidden = secrets(context.settings.evs_license_key, context.settings.cadsr_credential)
     with audited(spec.name or operation, arguments, spec.audit, hidden, _correlation_id) as record:
-        result = call(operation, produce, correlation_id=_correlation_id)
+        result = call(operation, produce)
         record.result = result
         return result
 

@@ -428,7 +428,7 @@ class ServerTest(ServerFixture):
                 opened.append(value)
                 yield value
 
-        with patch("nci_si_mcp.invocation.correlated", spy), self.assertRaises(MCPError) as raised:
+        with patch("nci_si_mcp.audit.correlated", spy), self.assertRaises(MCPError) as raised:
             self.read(uri)
         return json.loads(str(raised.exception))["error"]["correlationId"], opened
 

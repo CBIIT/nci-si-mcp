@@ -9,7 +9,7 @@ import logging
 import math
 import time
 from collections.abc import Iterator, Mapping
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -38,7 +38,7 @@ def _finite_numbers(value: Any) -> Any:
         return str(value)
     if isinstance(value, dict):
         return {key: _finite_numbers(item) for key, item in value.items()}
-    if isinstance(value, list | tuple):
+    if isinstance(value, list):
         return [_finite_numbers(item) for item in value]
     return value
 
@@ -201,7 +201,7 @@ def audited(
     # MCP owns the scope before validation; its registry invocation shares that scope.
     active = _active.get()
     inherited = current_correlation_id() if correlation_id is None else correlation_id
-    with correlated(inherited):
+    with nullcontext() if active else correlated(inherited):
         record = active or Audit(tool, arguments, classes, hidden)
         token = _active.set(record)
         try:

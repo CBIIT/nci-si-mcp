@@ -91,7 +91,7 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 | `audit.py` | Emits one redacted JSON completion record per invocation, classifies parameters from the registry, counts actual HTTP attempts in request-scoped state, and formats diagnostics. | Correlation context, standard-library logging and SHA-256 |
 | `handlers.py` | Validates inputs, orchestrates use cases, pins EVS requests to the configured release channel, enforces index compatibility and implements lookup fallback. Owns tool contracts and resource content; moving aliases and absent-index reports select status cache policy. | `context.py`, release, traversal, evaluation |
 | `content.py` | Implements the caller-pinned NCIt content surface, projects spec concept/node/edge records, and explicitly refuses unsupported Phase 2 options. Reuses fetched graph payloads and batches missing node status reads within the traversal request budget. Indexed search checks the requested release inside its read transaction. | `context.py`, index, traversal, release, validation |
-| `invocation.py` | Gives every tool, resource and CLI call one correlation context and converts expected failures through the single error-code table, preserving details and next steps. Unexpected exceptions propagate. | `errors.py`, upstream and domain exceptions |
+| `invocation.py` | Converts expected failures inside the audit correlation context through the single error-code table, preserving details and next steps. Unexpected exceptions propagate. | `errors.py`, upstream and domain exceptions |
 | `upstream.py` | Parses an upstream response body as JSON content, and classifies a failure that arrived as a success (an HTML page, a webMethods `apiResponse.type` `E` envelope, a FHIR `OperationOutcome` error, invalid JSON) as `upstream_unavailable` before any caller sees it. | `errors.py` |
 | `http_client.py` | The one HTTP client for upstream platforms: sends `Accept: application/json`, the call's correlation identifier and the platform's credentials (never to another origin: a redirect elsewhere is refused); retries 5xx, 429 (after its `Retry-After`) and connection failures with jittered backoff, counting every attempt; bounds the response size; classifies the response (through `upstream.py`) before returning it; hands one record per attempt to a request-log hook (a hook that raises is logged by type and ignored). | Python `urllib`, `upstream.py`, `errors.py` |
 | `evs.py` | Calls EVS REST endpoints through the HTTP client, classifies EVS-specific failures (missing concept, unknown release, unusable content and release mismatch) while shared HTTP failures propagate unchanged, reads the terminology listing (optionally one channel's `latest` row), and normalizes EVS payloads. | `http_client.py`, shared models, NCI EVS API |
@@ -222,7 +222,7 @@ record). Each item is given its envelope where it is built: `NcitConcept.provena
 looked-up or indexed concept, the `_Walk` for traversal nodes and edges, `IndexManifest.to_result`
 for the index (the same record in `index-sample` and in the release report), and the handlers for
 the release report. The correlation identifier is read from
-`errors.call_correlation_id`; `invocation.call` supplies one at the shared registry boundary, so
+`errors.call_correlation_id`; the audit boundary supplies one shared by registry invocation, so
 that every item and error of a call carries the same. The stored form of a concept
 (`NcitConcept.to_stored`) keeps the full EVS payload; the result form leaves it out unless the
 CLI asks.

@@ -161,8 +161,9 @@ class EveryItemCarriesItsProvenanceTest(ProvenanceTestCase):
         )["provenance"]
         manifest = invoke(
             self.context,
-            "index_manifest",
-        )["active_index"]["provenance"]
+            "index_resource",
+            "active",
+        )["provenance"]
 
         self.assert_record(report, REQUIRED, ALLOWED)
         self.assertEqual(report["release"]["identifier"], "26.06e")
@@ -544,8 +545,9 @@ class NoUpstreamUrlTest(ProvenanceTestCase):
         empty = invoke(self.context, "search", "zzzz", mode="bm25")["provenance"]
         manifest = invoke(
             self.context,
-            "index_manifest",
-        )["active_index"]["provenance"]
+            "index_resource",
+            "active",
+        )["provenance"]
 
         self.assertNotIn("sourceUri", empty)
         self.assertNotIn("sourceUri", manifest)
@@ -561,8 +563,9 @@ class RetrievedAtTest(ProvenanceTestCase):
         second = invoke(self.context, "search", "neoplasm")["hits"][0]["concept"]["provenance"]
         manifest = invoke(
             self.context,
-            "index_manifest",
-        )["active_index"]["provenance"]
+            "index_resource",
+            "active",
+        )["provenance"]
         empty = invoke(self.context, "search", "zzzz", mode="bm25")["provenance"]
 
         self.assertEqual((first["retrievedAt"], second["retrievedAt"]), (stored, stored))
@@ -606,8 +609,9 @@ class CorrelationOfEveryResultTest(ProvenanceTestCase):
             )["provenance"]
             manifest = invoke(
                 self.context,
-                "index_manifest",
-            )["active_index"]["provenance"]
+                "index_resource",
+                "active",
+            )["provenance"]
             empty = invoke(self.context, "search", "zzzz", mode="bm25")["provenance"]
             hit = invoke(self.context, "search", "neoplasm")["hits"][0]["concept"]["provenance"]
 
@@ -627,8 +631,9 @@ class CorrelationOfEveryResultTest(ProvenanceTestCase):
         self.assertEqual(
             invoke(
                 self.context,
-                "index_manifest",
-            )["active_index"]["provenance"]["servedBy"],
+                "index_resource",
+                "active",
+            )["provenance"]["servedBy"],
             "index",
         )
 
@@ -752,8 +757,9 @@ class EdgeTypeProvenanceTest(ProvenanceTestCase):
             invoke(self.context, "search", "zzzz", mode="bm25")["provenance"],
             invoke(
                 self.context,
-                "index_manifest",
-            )["active_index"]["provenance"],
+                "index_resource",
+                "active",
+            )["provenance"],
         ]
         for provenance in indexed:
             self.assertEqual((provenance["source"], provenance["servedBy"]), ("evs_index", "index"))

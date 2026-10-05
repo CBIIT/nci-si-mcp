@@ -36,7 +36,6 @@ def create_mcp(settings: Settings | None = None, *, context: Context | None = No
     # Optional dependencies are imported only when building the MCP adapter.
     try:
         from mcp.server.caching import CacheHint
-        from mcp.server.mcpserver import Context as MCPContext
         from mcp.server.mcpserver import MCPServer
         from mcp.server.mcpserver.exceptions import ResourceError
         from mcp.types import CallToolResult, TextContent, ToolAnnotations
@@ -74,11 +73,7 @@ def create_mcp(settings: Settings | None = None, *, context: Context | None = No
     )
 
     def tool_call(spec: ToolSpec, arguments: dict[str, Any]) -> Any:
-        ctx = arguments.pop("ctx")
-        meta = ctx.request_context.meta or {}
-        result = invoke(
-            context, spec.operation, _correlation_id=meta.get("correlationId"), **arguments
-        )
+        result = invoke(context, spec.operation, **arguments)
         return CallToolResult(
             content=[TextContent(type="text", text=json.dumps(result, indent=2))],
             structured_content=result,
@@ -96,7 +91,7 @@ def create_mcp(settings: Settings | None = None, *, context: Context | None = No
             # The SDK wraps a bare union in a synthetic result field. RootModel keeps
             # the existing top-level object and all optional wire fields unchanged.
             output = Annotated[CallToolResult, RootModel[spec.output]]
-            fn = _callback(spec, tool_call, context_type=MCPContext, output_type=output)
+            fn = _callback(spec, tool_call, output_type=output)
             mcp.add_tool(
                 fn,
                 name=spec.name,
@@ -117,15 +112,12 @@ def _callback(
     spec: ToolSpec,
     call: Callable[..., Any],
     *,
-    context_type: Any = None,
     output_type: Any = dict[str, Any],
 ) -> Callable[..., Any]:
     def callback(**arguments: Any) -> Any:
         return call(spec, arguments)
 
     parameters = list(spec.parameters)
-    if context_type is not None:
-        parameters.append(Parameter("ctx", Parameter.KEYWORD_ONLY, annotation=context_type))
     update_wrapper(callback, spec.handler)
     callback.__name__ = spec.name or spec.operation
     callback.__dict__["__signature__"] = Signature(parameters, return_annotation=output_type)
@@ -174,7 +166,6 @@ def _validate_inputs(profile: str) -> Callable[..., Any]:
             result = call(
                 params["name"],
                 lambda: _check_arguments(model, params.get("arguments", {})),
-                correlation_id=(ctx.meta or {}).get("correlationId"),
             )
             if is_error_record(result):
                 return CallToolResult(
