@@ -1,6 +1,6 @@
 """Shared test doubles. Nothing here touches the network."""
 
-from nci_si_mcp.evs import INDEX_INCLUDE, LOOKUP_INCLUDE, EVSNotFoundError
+from nci_si_mcp.evs import INDEX_INCLUDE, LOOKUP_INCLUDE, EVSNotFoundError, verify_content
 from nci_si_mcp.release import ReleaseContext
 
 # Fields EVS returns only when the `include` parameter asks for them.
@@ -19,13 +19,13 @@ OPTIONAL_FIELDS = frozenset(
 )
 
 
-def release(version="26.06e", date="2026-06-29", channel="monthly"):
+def release(version="26.06e", date="2026-06-29", channel="monthly", terminology="ncit"):
     return ReleaseContext(
-        terminology="ncit",
+        terminology=terminology,
         channel=channel,
         version=version,
         date=date,
-        pinned_terminology=f"ncit_{version}",
+        pinned_terminology=f"{terminology}_{version}",
     )
 
 
@@ -121,22 +121,25 @@ class FakeEVS:
         matching = (terminology_row_matches(row, terminology, latest, tag) for row in rows)
         return [row for row, kept in zip(rows, matching, strict=True) if kept]
 
-    def get_concept(self, code, terminology="ncit", include=LOOKUP_INCLUDE):
-        self._record("get_concept", terminology, code)
+    def get_concept(self, code, release, include=LOOKUP_INCLUDE):
+        self._record("get_concept", release.pinned_terminology, code)
         self.includes.append(include)
         if code not in self.concepts:
             raise EVSNotFoundError(f"{code} not found")
-        return self._concept(code, include)
+        raw = self._concept(code, include)
+        verify_content([raw], release)
+        return raw
 
-    def get_concepts_by_codes(self, codes, terminology="ncit", include=INDEX_INCLUDE):
+    def get_concepts_by_codes(self, codes, release, include=INDEX_INCLUDE):
         codes = list(codes)
-        self._record("get_concepts_by_codes", terminology, codes)
+        self._record("get_concepts_by_codes", release.pinned_terminology, codes)
         self.includes.append(include)
         known = [
             self._concept(code, include) for code in dict.fromkeys(codes) if code in self.concepts
         ]
+        verify_content(known, release)
         return known[1:] + known[:1]
 
-    def get_descendants(self, code, max_level, terminology="ncit"):
-        self._record("get_descendants", terminology, (code, max_level))
+    def get_descendants(self, code, max_level, release):
+        self._record("get_descendants", release.pinned_terminology, (code, max_level))
         return [item for item in self.descendants.get(code, []) if item["level"] <= max_level]

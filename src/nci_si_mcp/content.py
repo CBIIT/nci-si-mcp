@@ -1,4 +1,4 @@
-"""Caller-pinned EVS content entries over the existing NCIt retrieval engines."""
+"""Caller-pinned EVS content entries and the interim NCIt index."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from .bounds import (
 )
 from .context import Context
 from .errors import InputValidationError, NoActiveIndexError, PlatformError
-from .evs import EVSResponseError, concept_path, normalize_concept, verify_release
+from .evs import EVSResponseError, concept_path, normalize_concept
 from .index import require_index_release
 from .models import TraversalEdge, TraversalResult, Truncation, upstream_origin
 from .release import ReleaseContext
@@ -47,24 +47,24 @@ def _unavailable(capability: str) -> NoReturn:
 def _pin(context: Context, terminology: str, release: str) -> ReleaseContext:
     validate_terminology(terminology)
     validate_identifier(release, r"[A-Za-z0-9][A-Za-z0-9._-]*", "release")
-    if terminology != "ncit":
-        _unavailable("content for terminologies other than ncit")
     return ReleaseContext(
-        terminology, context.settings.release_channel, release, None, f"ncit_{release}"
+        terminology, context.settings.release_channel, release, None, f"{terminology}_{release}"
     )
 
 
-def _code(code: str) -> str:
-    return validate_identifier(code, r"C[1-9][0-9]*", "code")
+def _code(code: str, terminology: str) -> str:
+    if terminology == "ncit":
+        return validate_identifier(code, r"C[1-9][0-9]*", "code")
+    return code
 
 
 def _record(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
-    if raw.get("terminology") != "ncit":
-        raise EVSResponseError("EVS returned a concept from another terminology")
     if not isinstance(raw.get("active"), bool):
         raise EVSResponseError("EVS returned a concept without its boolean active status")
     if not raw.get("code") or not raw.get("name"):
         raise EVSResponseError("EVS returned a concept without its code or name")
+    if raw.get("licenseText"):
+        provenance = provenance | {"attribution": raw["licenseText"]}
     result = {
         "code": raw["code"],
         "terminology": raw["terminology"],
@@ -93,26 +93,25 @@ def get_concept(
     code: str,
     include: list[ConceptInclude] | None = None,
 ) -> dict[str, Any]:
-    """Get one NCIt concept in the required caller-selected release.
+    """Get one EVS concept in the required caller-selected release.
 
     Returns code, terminology, name, active, upstream status when supplied, and
     live EVS provenance. include optionally selects synonyms, definitions,
     properties and semanticType; without it only the base record is returned.
     Every request is pinned to release and its returned version is checked.
-    Other terminologies are capability_unavailable; an absent code is not_found.
+    Codes follow their terminology; an absent code is not_found.
     """
     selected = _pin(context, terminology, release)
-    code = _code(code)
+    code = _code(code, terminology)
     sections = list(dict.fromkeys(include or []))
     for section in sections:
         validate_choice(section, get_args(ConceptInclude), "include")
     upstream_sections = ["properties" if item == "semanticType" else item for item in sections]
     raw = context.evs.get_concept(
         code,
-        terminology=selected.pinned_terminology,
+        release=selected,
         include=",".join(dict.fromkeys(["minimal", *upstream_sections])),
     )
-    verify_release([raw], release)
     if raw.get("code") != code:
         raise EVSResponseError("EVS returned a concept other than the one requested")
     uri = context.evs.uri(concept_path(selected.pinned_terminology, code))
@@ -146,11 +145,13 @@ def search_concepts(
     Scores order this query's hits and are not comparable between queries.
     The default lexical mode, typeahead, cursors and retired only are currently
     capability_unavailable; retired include returns all indexed statuses.
-    Other terminologies are capability_unavailable. No live fallback is used.
+    An indexed mode for another terminology is invalid_request. No live fallback is used.
     """
     _pin(context, terminology, release)
     limit = bounded(limit, MAX_INDEX_SEARCH_LIMIT, "limit")
     _search_options(query, mode, cursor, retired)
+    if terminology != "ncit":
+        raise InputValidationError("The interim index supports only ncit", "terminology")
     try:
         hits, truncation = context.index.search_with_truncation(
             query,
@@ -199,19 +200,19 @@ def get_concept_hierarchy(
     limit: int = 200,
     cursor: str | None = None,
 ) -> dict[str, Any]:
-    """Get NCIt parents or children in the required release, excluding the seed.
+    """Get concept parents or children in the required release, excluding the seed.
 
     depth defaults to 1 and clamps at 4; limit defaults to 200 and clamps at
     1000. Each node has live EVS traversal provenance. The call shares 200
     outbound attempts, retries included. pathsToRoot, cursors and results that
     need paging are capability_unavailable until hierarchy paging is implemented.
-    Other terminologies are capability_unavailable. A bounded final-frontier check
+    A bounded final-frontier check
     reports depth truncation only when unseen targets remain; leaves and cycles
     to returned nodes are complete. Unknown continuation has exact=false.
     A reported global node cut skips this check; already-truncated kinds are excluded.
     """
     selected = _pin(context, terminology, release)
-    code = _code(code)
+    code = _code(code, terminology)
     validate_choice(direction, get_args(HierarchyDirection), "direction")
     depth, limit = bounded(depth, HARD_MAX_DEPTH, "depth"), bounded(limit, HARD_MAX_NODES, "limit")
     if direction == "pathsToRoot" or cursor is not None:
@@ -246,7 +247,7 @@ def get_concept_neighborhood(
     budgetPerKind: int | None = None,  # noqa: N803
     includeNegative: bool = False,  # noqa: N803
 ) -> dict[str, Any]:
-    """Walk NCIt relationships in the required release, including the seed at depth 0.
+    """Walk terminology relationships in the required release, including the seed at depth 0.
 
     kinds selects parent, child, role, association, inverseRole or
     inverseAssociation (all six by default). depth defaults to 2, maximum 4;
@@ -263,10 +264,10 @@ def get_concept_neighborhood(
     A reported global node cut skips this check; already-truncated kinds are excluded.
     Negative assertions are marked; following beyond their targets requires
     includeNegative=true until selective negative expansion is implemented,
-    otherwise capability_unavailable. Other terminologies are unavailable.
+    otherwise capability_unavailable.
     """
     selected = _pin(context, terminology, release)
-    code = _code(code)
+    code = _code(code, terminology)
     selected_kinds = _kinds(kinds)
     if not isinstance(includeNegative, bool):
         raise InputValidationError("includeNegative must be boolean", "includeNegative")
@@ -333,14 +334,11 @@ def _hydrate(
     missing = [node.code for node in graph.nodes if node.code not in graph.concepts]
     for batch in batched(missing, BATCH_SIZE, strict=False):
         try:
-            raw = context.evs.get_concepts_by_codes(
-                batch, terminology=release.pinned_terminology, include="minimal"
-            )
+            raw = context.evs.get_concepts_by_codes(batch, release=release, include="minimal")
         except RequestBudgetError:
             # Returning relation names as full concepts would invent their active status.
             # The caller gets the verified portion, with the first omission retained.
             return _hydration_cut(graph, budget, kinds)
-        verify_release(raw, release.version)
         by_code = {item["code"]: item for item in raw}
         if set(by_code) != set(batch):
             raise EVSResponseError("EVS did not return exactly the requested graph concepts")
@@ -394,8 +392,8 @@ def _edge(edge: TraversalEdge) -> dict[str, Any]:
         source, target = target, source
     return {
         "sourceCode": source,
-        "sourceTerminology": "ncit",
+        "sourceTerminology": edge.provenance.release["terminology"],
         "targetCode": target,
-        "targetTerminology": "ncit",
+        "targetTerminology": edge.provenance.release["terminology"],
         "provenance": _provenance(edge.provenance.to_dict()),
     }

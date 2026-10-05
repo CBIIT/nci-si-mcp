@@ -1,10 +1,10 @@
 """The release model: which release a call reads, resolved once and threaded through it.
 
 A `ReleaseContext` names the EVS release every request of one call is pinned to. It is resolved
-by `resolve_evs_release` at the start of a call and never kept between calls, so a release that
-EVS has since superseded is never served from memory (A3.1, A3.2). `registry_state` is the
-caDSR counterpart: caDSR publishes no registry release, so the state is the export's date and
-never an invented identifier (A3.8).
+explicitly by `resolve_evs_release` for discovery; content calls construct it from the supplied
+terminology and release. Discovery results are never cached across calls (A3.1, A3.2).
+`registry_state` is the caDSR counterpart: caDSR publishes no registry release, so the state
+is the export's date and never an invented identifier (A3.8).
 """
 
 from __future__ import annotations

@@ -4,6 +4,7 @@ from jsonschema import Draft202012Validator
 
 from fakes import concept, release
 from nci_si_mcp.bounds import Budget, current_budget
+from nci_si_mcp.evs import EVSClient
 from nci_si_mcp.models import Truncation
 from nci_si_mcp.registry import invoke
 from test_bounds import BudgetHub
@@ -92,10 +93,10 @@ class ContentTest(ServerFixture):
                 self.assertEqual(result["error"]["code"], "upstream_unavailable")
                 self.evs.concepts["C1"][field] = original
 
-    def test_unsupported_terminology_is_an_explicit_capability_error(self):
+    def test_an_absent_code_of_another_terminology_is_not_found(self):
         result = invoke(self.context, "get_concept", terminology="other", release="v1", code="X")
-        self.assertEqual(result["error"]["code"], "capability_unavailable")
-        self.assertEqual(self.evs.calls, [])
+        self.assertEqual(result["error"]["code"], "not_found")
+        self.assertEqual(self.evs.calls, [("get_concept", "other_v1", "X")])
 
     def test_required_release_and_wrong_types_are_correlated_protocol_errors(self):
         calls = [
@@ -319,6 +320,7 @@ class ContentTest(ServerFixture):
 
     def test_status_fetch_after_an_edge_stop_rejects_missing_or_wrong_release_nodes(self):
         root = dict(self.evs.concepts["C1"], children=[{"code": "C2"}, {"code": "C3"}])
+        client = EVSClient("https://example.invalid")
         for answer, expected in (
             ([], "upstream_unavailable"),
             ([concept("C9")], "upstream_unavailable"),
@@ -326,7 +328,8 @@ class ContentTest(ServerFixture):
         ):
             with (
                 self.subTest(expected=expected),
-                patch.object(self.evs, "get_concepts_by_codes", side_effect=[[root], answer]),
+                patch.object(self.context, "evs", client),
+                patch.object(client, "_get_existing", side_effect=[[root], answer]),
             ):
                 result = self.content(
                     "get_concept_neighborhood", code="C1", kinds=["child"], depth=1, maxEdges=1

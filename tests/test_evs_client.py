@@ -6,6 +6,7 @@ from http.client import IncompleteRead
 from unittest.mock import patch
 from urllib.error import HTTPError, URLError
 
+from fakes import concept, release
 from nci_si_mcp.errors import PlatformError
 from nci_si_mcp.evs import EVSClient, EVSNotFoundError, EVSResponseError, concept_path
 from nci_si_mcp.http_client import (
@@ -198,7 +199,7 @@ class EVSClientTest(unittest.TestCase):
         urlopen.side_effect = http_error(404, b'{"message": "C1 not found"}')
 
         with self.assertRaises(EVSNotFoundError) as raised:
-            self.client().get_concept("C1")
+            self.client().get_concept("C1", release=release())
 
         self.assertEqual(raised.exception.details, {"identifiers": ["C1"]})
 
@@ -211,10 +212,12 @@ class EVSClientTest(unittest.TestCase):
         self.assertEqual(raised.exception.details, {"surface": "evs", "status": 404, "attempts": 1})
 
     def test_the_uri_of_a_concept_is_the_url_its_request_goes_to(self, urlopen, sleep):
-        urlopen.side_effect = lambda request, timeout: FakeResponse(b'{"code": "C3262"}')
+        urlopen.side_effect = lambda request, timeout: FakeResponse(
+            json.dumps(concept("C3262")).encode()
+        )
         client = self.client(max_response_bytes=4096)
 
-        client.get_concept("C3262", terminology="ncit_26.06e")
+        client.get_concept("C3262", release=release("26.06e"))
 
         (request,) = [call.args[0] for call in urlopen.call_args_list]
         uri = client.uri(concept_path("ncit_26.06e", "C3262"))
@@ -250,8 +253,8 @@ class EVSClientTest(unittest.TestCase):
         calls = {
             "version": client.get_api_version,
             "terminologies": client.get_terminologies,
-            "batch": lambda: client.get_concepts_by_codes(["C1"]),
-            "descendants": lambda: client.get_descendants("C1", 1),
+            "batch": lambda: client.get_concepts_by_codes(["C1"], release=release()),
+            "descendants": lambda: client.get_descendants("C1", 1, release=release()),
         }
         for label, call in calls.items():
             with self.subTest(label):
@@ -262,7 +265,7 @@ class EVSClientTest(unittest.TestCase):
                 self.assertIn("NCI_SI_EVS_BASE_URL", str(raised.exception))
         urlopen.side_effect = http_error(404, b'{"message": "C1 not found"}')
         with self.assertRaises(EVSNotFoundError):
-            client.get_concept("C1")
+            client.get_concept("C1", release=release())
 
     def test_an_error_without_a_usable_body_is_described_by_its_status(self, urlopen, sleep):
         class BrokenBody(io.BytesIO):
@@ -309,7 +312,7 @@ class EVSClientTest(unittest.TestCase):
         urlopen.side_effect = http_error(404, b'{"status": 404, "message": "C999 not found"}')
 
         with self.assertRaises(EVSNotFoundError) as raised:
-            self.client().get_concept("C999")
+            self.client().get_concept("C999", release=release())
 
         self.assertEqual(urlopen.call_count, 1)
         self.assertIn("HTTP 404", str(raised.exception))
@@ -403,8 +406,8 @@ class EVSClientTest(unittest.TestCase):
         calls = {
             "version": lambda client: client.get_api_version(),
             "terminologies": lambda client: client.get_terminologies(),
-            "a concept": lambda client: client.get_concept("C1"),
-            "descendants": lambda client: client.get_descendants("C1", 1),
+            "a concept": lambda client: client.get_concept("C1", release=release()),
+            "descendants": lambda client: client.get_descendants("C1", 1, release=release()),
         }
         for label, body in masked.items():
             for name, call in calls.items():
@@ -422,9 +425,15 @@ class EVSClientTest(unittest.TestCase):
             "version as list": (b"[]", client.get_api_version),
             "terminologies as object": (b"{}", client.get_terminologies),
             "terminologies of strings": (b'["ncit"]', client.get_terminologies),
-            "concept as list": (b"[]", lambda: client.get_concept("C1")),
-            "concept list as object": (b"{}", lambda: client.get_concepts_by_codes(["C1"])),
-            "descendants as object": (b"{}", lambda: client.get_descendants("C1", 1)),
+            "concept as list": (b"[]", lambda: client.get_concept("C1", release=release())),
+            "concept list as object": (
+                b"{}",
+                lambda: client.get_concepts_by_codes(["C1"], release=release()),
+            ),
+            "descendants as object": (
+                b"{}",
+                lambda: client.get_descendants("C1", 1, release=release()),
+            ),
         }
         for label, (body, call) in calls.items():
             with self.subTest(label):
@@ -436,31 +445,32 @@ class EVSClientTest(unittest.TestCase):
         client = self.client()
         calls = {
             "/api/v1/concept/ncit_26.06e/C1?include=minimal": (
-                b"{}",
-                lambda: client.get_concept("C1", terminology="ncit_26.06e", include="minimal"),
+                json.dumps(concept("C1")).encode(),
+                lambda: client.get_concept("C1", release=release("26.06e"), include="minimal"),
             ),
             "/api/v1/concept/ncit_26.06e?list=C1%2CC2&include=minimal": (
                 b"[]",
                 lambda: client.get_concepts_by_codes(
-                    ["C1", " C2 ", ""], terminology="ncit_26.06e", include="minimal"
+                    ["C1", "C2"], release=release("26.06e"), include="minimal"
                 ),
             ),
             "/api/v1/concept/ncit_26.06e/C1/descendants?maxLevel=2": (
                 b"[]",
-                lambda: client.get_descendants("C1", 2, terminology="ncit_26.06e"),
+                lambda: client.get_descendants("C1", 2, release=release("26.06e")),
             ),
-            "/api/v1/concept/ncit/C1/descendants?maxLevel=1": (
+            "/api/v1/concept/ncit_26.06e/C1/descendants?maxLevel=1": (
                 b"[]",
-                lambda: client.get_descendants("C1", 1),
+                lambda: client.get_descendants("C1", 1, release=release()),
             ),
-            "/api/v1/concept/ncit?list=C1&include=summary%2Cdefinitions%2Csynonyms%2Cproperties": (
+            "/api/v1/concept/ncit_26.06e?list=C1&include=summary%2Cdefinitions"
+            "%2Csynonyms%2Cproperties": (
                 b"[]",
-                lambda: client.get_concepts_by_codes(["C1"]),
+                lambda: client.get_concepts_by_codes(["C1"], release=release()),
             ),
-            "/api/v1/concept/ncit/C1?include=summary%2Cdefinitions%2Csynonyms%2Cproperties"
+            "/api/v1/concept/ncit_26.06e/C1?include=summary%2Cdefinitions%2Csynonyms%2Cproperties"
             "%2Cparents%2Cchildren%2Croles%2CinverseRoles%2Cassociations%2CinverseAssociations": (
-                b"{}",
-                lambda: client.get_concept("C1"),
+                json.dumps(concept("C1")).encode(),
+                lambda: client.get_concept("C1", release=release()),
             ),
         }
         for path, (body, call) in calls.items():
@@ -472,7 +482,7 @@ class EVSClientTest(unittest.TestCase):
                 self.assertEqual(request.get_header("Accept"), "application/json")
 
     def test_no_codes_means_no_request(self, urlopen, sleep):
-        self.assertEqual(self.client().get_concepts_by_codes([" ", ""]), [])
+        self.assertEqual(self.client().get_concepts_by_codes([], release=release()), [])
         urlopen.assert_not_called()
 
     def test_an_empty_body_without_a_declared_length_is_invalid_not_retried(self, urlopen, sleep):

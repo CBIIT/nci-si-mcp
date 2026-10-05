@@ -214,8 +214,8 @@ class LookupTest(HandlerTestCase):
 class IndexCodesTest(HandlerTestCase):
     def test_every_returned_payload_is_validated_even_a_repeated_one(self):
         class RepeatingEVS(FakeEVS):
-            def get_concepts_by_codes(self, codes, terminology="ncit", include=""):
-                found = super().get_concepts_by_codes(codes, terminology, include)
+            def get_concepts_by_codes(self, codes, release, include=""):
+                found = super().get_concepts_by_codes(codes, release, include)
                 return [dict(found[0], properties="not a list"), *found]
 
         self.evs = RepeatingEVS([NEOPLASM])
@@ -263,8 +263,8 @@ class IndexCodesTest(HandlerTestCase):
 
     def test_concept_that_was_not_requested_is_an_evs_fault(self):
         class ExtraEVS(FakeEVS):
-            def get_concepts_by_codes(self, codes, terminology="ncit", include=""):
-                found = super().get_concepts_by_codes(codes, terminology, include)
+            def get_concepts_by_codes(self, codes, release, include=""):
+                found = super().get_concepts_by_codes(codes, release, include)
                 return [*found, concept("", "No Code")]
 
         self.evs = ExtraEVS([NEOPLASM])

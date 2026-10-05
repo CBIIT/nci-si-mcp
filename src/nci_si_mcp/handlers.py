@@ -30,7 +30,6 @@ from .evs import (
     EVSResponseError,
     concept_path,
     normalize_concept,
-    verify_release,
 )
 from .http_client import UpstreamError, UpstreamUnavailableError
 from .invocation import _envelope
@@ -196,10 +195,7 @@ def _fetch_for_index(
 
     raw_concepts: list[dict[str, Any]] = []
     for batch in batched(codes, context.settings.index_batch_size, strict=False):
-        raw_concepts.extend(
-            context.evs.get_concepts_by_codes(batch, terminology=release.pinned_terminology)
-        )
-    verify_release(raw_concepts, release.version)
+        raw_concepts.extend(context.evs.get_concepts_by_codes(batch, release=release))
     returned_codes = {str(raw.get("code") or "") for raw in raw_concepts}
     if not returned_codes <= set(codes):
         raise EVSResponseError("EVS returned a concept that was not requested")
@@ -342,7 +338,7 @@ def lookup(
                 served=[manifest.release_version],
                 source="index",
             )
-        raw = context.evs.get_concept(code, terminology=release.pinned_terminology)
+        raw = context.evs.get_concept(code, release=release)
     except UpstreamUnavailableError as exc:
         cached = None if live_only else context.index.get_concept(code)
         if not cached:
@@ -358,7 +354,6 @@ def lookup(
         result["fallback"] = {"reason": "upstream_unavailable", "message": str(exc)}
         return result
 
-    verify_release([raw], release.version)
     concept = normalize_concept(raw, release_date=release.date, source="live_evs")
     uri = _concept_uri(context, concept.code, release.pinned_terminology)
     return concept.to_dict(uri, include_raw=include_raw)

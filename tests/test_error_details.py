@@ -86,12 +86,12 @@ class DetailKeysTest(HandlerTestCase):
             self.unresolved_release(),
             from_the_client(
                 http_error(404, body=b'{"message": "Terminology not found = ncit_9"}'),
-                lambda client: client.get_concept("C1"),
+                lambda client: client.get_concept("C1", release()),
             ),
             self.verify_release_error(),
             from_the_client(http_error(429, {"Retry-After": "30"})),
             from_the_client(http_error(403)),
-            from_the_client(http_error(404), lambda client: client.get_concept("C1")),
+            from_the_client(http_error(404), lambda client: client.get_concept("C1", release())),
             from_the_client(TimeoutError("timed out")),
             from_the_client(FakeResponse(b'{"a": 1}')),
             from_the_client(

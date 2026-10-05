@@ -513,14 +513,15 @@ unknown, its record gives `omitted: 0` and `exact: false`.
 
 ## MCP Tools
 
-- `get_concept`: fetch a caller-pinned NCIt concept with required `terminology`, `release` and `code`. Optional `include` selects synonyms, definitions, properties or semanticType; status is passed through from EVS.
+- `get_concept`: fetch a caller-pinned EVS concept with required `terminology`, `release` and `code`. Optional `include` selects synonyms, definitions, properties or semanticType; status is passed through from EVS.
 - `search_concepts`: search the interim NCIt index with required `terminology`, `release` and `query`. `semantic` and `hybrid` modes are supported, with `limit` default 10, maximum 1000; the index must hold the requested release. Default `lexical`, `typeahead`, cursors and `retired: only` return `capability_unavailable` pending #27.
 - `get_concept_hierarchy`: caller-pinned parents or children, excluding the seed. Required `direction`; `depth` defaults to 1, maximum 4; `limit` defaults to 200, maximum 1000. Paths to root and requests needing paging return `capability_unavailable` pending #23.
 - `get_concept_neighborhood`: caller-pinned graph including the seed. `depth` defaults to 2, maximum 4; `maxNodes` 200/1000; `maxEdges` 1000/5000; optional `budgetPerKind` maximum 1000. `kinds` selects among the six relation kinds. Following beyond negative assertion targets currently requires `includeNegative: true`; selective expansion remains #23. Both graph tools share 200 requests per call, including a batched final-frontier check for depth truncation.
 
-These four entries require an explicit release and currently support NCIt only; other
-terminologies return `capability_unavailable`. Bounds above their maxima clamp. Invalid
-arguments return `invalid_request`.
+These four entries require an explicit release. Live concept and graph reads support EVS
+terminologies; NCIt codes follow their stated C-number form, and other codes are encoded as
+one path segment. Semantic/hybrid search remains NCIt-only; another terminology is
+`invalid_request`. Bounds above their maxima clamp. Invalid arguments return `invalid_request`.
 
 - `resolve_release`: resolve a terminology's current monthly or weekly release, with the other served version identifiers in `alternatives`. `terminology` is required; `channel` defaults to `NCI_SI_RELEASE_CHANNEL`. Returns a flat release record with provenance, or a top-level error. CLI: `resolve-release ncit --channel monthly`.
 - `list_terminologies`: list each EVS terminology and its current release with provenance. NCIt uses the configured channel; other terminologies use their sole latest row. CLI: `list-terminologies`. Both discovery tools are resolved afresh and carry `ttlMs: 0`, `cacheScope: public`; failures are private.

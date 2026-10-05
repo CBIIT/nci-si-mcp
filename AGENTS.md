@@ -290,7 +290,9 @@ update them when behaviour changes.
 - `release.registry_state` is the pure part of the caDSR registry state: no registry identifier is
   ever made up. The `Last-Modified` HEAD request belongs to the caDSR client.
 - Every concept request uses `release.pinned_terminology` (for example `ncit_26.09d`) as the path
-  segment, and `evs.verify_release` checks the `version` of each returned concept.
+  segment, and `evs.verify_content` checks the terminology and version of each full concept at the client
+  boundary. Content methods require a `ReleaseContext`; compact descendant entries name the
+  release addressed by their request without inventing upstream version fields.
 - `lookup` returns `release_mismatch` when the index holds another release, unless `live_only`. It
   falls back to the cache only on `UpstreamUnavailableError`, and marks the result with `fallback`.
 - The index holds one release. Indexing a concept of another release replaces everything.
