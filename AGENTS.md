@@ -161,6 +161,22 @@ Findings made along the way are fixed on the same branch when they belong to the
 unrelated problem gets an issue. Do not change the ruleset, repository settings, `spec/`'s
 conventions or another issue's scope without the reviewer's agreement.
 
+Before you mark a pull request ready, review it yourself in five passes, each a separate agent
+or a separate fresh pass over the whole diff, with one focus each:
+
+1. **Code review:** the engineering standards above, the architecture, and the issue's scope.
+2. **Silent failures:** swallowed exceptions, broad `except`, fallbacks that hide an error,
+   results that look complete but are not.
+3. **Tests:** every behaviour the change adds is asserted and could fail on a regression;
+   edge cases and error paths are covered.
+4. **Types and records:** invariants are expressed in the types, and records match `spec/`.
+5. **Comments and documentation:** docstrings, comments and documents say what the code does
+   now.
+
+Fix what is real on the branch and run all five again, until a full round finds nothing new
+that is real. Post each round in a PR comment as a short table: finding, pass, fixed or rejected
+(with the reason). Then mark the PR ready.
+
 The reviewer runs an independent mutation review of each pull request and posts the surviving
 mutants; close each real gap with a test that fails without the fix, and say which you judged
 equivalent and why.
