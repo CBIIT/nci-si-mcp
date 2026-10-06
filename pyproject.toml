@@ -194,6 +194,9 @@ ignore_names = [
     "__annotations__",
     "pytest_*", "do_*", "log_message", "close_connection",
     "handle_starttag", "handle_endtag", "handle_data",
+    "registry", "generatedAt", "sourceDistribution", "conceptCode", "valueMeaning",
+    "workflowStatus", "registrationStatus", "dateCreated", "dateModified", "permissibleValues",
+    "valueDomain", "conceptAssociations", "alternateNames", "classificationSchemes", "dataElement",
 ]
 
 [tool.basedpyright]

@@ -82,10 +82,10 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 
 | Component | Responsibility | Main dependencies |
 | --- | --- | --- |
-| `caching.py` | Defines the hints for current producers: governed release-pinned content and the static server surface (86,400,000 ms/public), resolution/status (0/public), and errors (0/private). It contains no data cache or unused future policy classes. | Python standard library |
+| `caching.py` | Defines producer-selected hints: release-pinned content and the static server surface (86,400,000 ms/public), unpinned caDSR content (3,600,000/public), resolution/status (0/public), and errors (0/private). It contains no data cache. | Python standard library |
 | `bounds.py` | Owns traversal defaults and maxima and the per-call `Budget`. A context variable shares 200 HTTP attempts, including retries, release discovery and split batches, and restores the previous context on exit. The walker rotates kinds across each breadth-first frontier and counts newly admitted nodes against optional per-kind allowances. Neighborhood and CLI traversal preserve partial graphs on exhaustion; without graph content they raise `RequestBudgetError`, mapped to `bound_exceeded`. Hierarchy page replay always fails with `bound_exceeded` on request exhaustion. | Python standard library |
 | `cli.py` | Builds command arguments and dispatch from the registry; owns `serve` startup, reports configuration failures and exits 1 on an error record. | `registry.py`, `server.py` |
-| `server.py` | Registers the profile-selected tools and three resource templates from the registry on an `mcp` 2.x `MCPServer`, and flags error records as protocol errors. Middleware carries cache decisions from SDK worker threads into tool `_meta` and resource fields, without inspecting content or matching names. Undeclared successful responses fail. SDK hints cover lists/discovery. | `registry.py`, `caching.py`, optional `mcp` package |
+| `server.py` | Registers profile-selected tools, five resource templates and one concrete resource from the registry on an `mcp` 2.x `MCPServer`, and flags error records as protocol errors. Middleware carries cache decisions from SDK worker threads into tool `_meta` and resource fields, without inspecting content or matching names. Undeclared successful responses fail. SDK hints cover lists/discovery. | `registry.py`, `caching.py`, optional `mcp` package |
 | `registry.py` | Declares each operation once with its handler, output union, cache class and adapter exposure. Derives input models, CLI arguments and MCP parameters from handler signatures; selects tools by profile and invokes all producers through one boundary. | `handlers.py`, `invocation.py`, `caching.py`, `results.py` |
 | `context.py` | Holds injectable settings, clients, index and embedding provider shared by a server or CLI invocation. | EVS client, local index, embeddings |
 | `audit.py` | Emits one redacted JSON completion record per invocation, classifies parameters from the registry, counts actual HTTP attempts in request-scoped state, and formats diagnostics. | Correlation context, standard-library logging and SHA-256 |
@@ -97,7 +97,8 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 | `upstream.py` | Parses an upstream response body as JSON content, and classifies a failure that arrived as a success (an HTML page, a webMethods `apiResponse.type` `E` envelope, a FHIR `OperationOutcome` error, invalid JSON) as `upstream_unavailable` before any caller sees it. | `errors.py` |
 | `http_client.py` | The one HTTP client for upstream platforms: supports JSON GET/POST and explicitly requested bounded export text; sends the call's correlation identifier and the platform's credentials (never to another origin: a redirect elsewhere is refused); retries 5xx, 429 (after its `Retry-After`) and connection failures with jittered backoff, counting every attempt; bounds the response size; classifies the response (through `upstream.py`) before returning it; hands one record per attempt to a request-log hook (a hook that raises is logged by type and ignored). | Python `urllib`, `upstream.py`, `errors.py` |
 | `evs.py` | Calls EVS REST endpoints through the HTTP client, classifies EVS-specific failures (missing concept, unknown release, unusable content and release mismatch) while shared HTTP failures propagate unchanged, reads the terminology listing (optionally one channel's `latest` row), and normalizes EVS payloads. | `http_client.py`, shared models, NCI EVS API |
-| `cadsr.py` | Injectable caDSR client for data elements, forms, context names, crosswalks, matching and registry metadata. JSON contracts govern API shapes; keyword search is the requested OP-C03 operation, currently unserved. Match POSTs use a separate 45-second transport; only API transports hold Basic auth. Export listing reads are credential-free and parse the exact distribution row without guessing a timezone. Public tools arrive separately. | `http_client.py`, `release.py`, `config.py` |
+| `cadsr.py` | Injectable caDSR client for data elements, forms, context names, crosswalks, matching and registry metadata. JSON contracts govern API shapes; keyword search is the requested OP-C03 operation, currently unserved. Match POSTs use a separate 45-second transport; only API transports hold Basic auth. Export listing reads are credential-free and parse the exact distribution row without guessing a timezone. Future verified registry pins must be echoed by content responses. | `http_client.py`, `release.py`, `config.py` |
+| `cadsr_content.py` | Five lookup/registry tools and their resources: validates selectors and pins, projects only requested record sections, pages retrieved lists with argument-bound cursors, emits per-item provenance and selects the actual cache class. Unsupported capabilities fail explicitly. | `cadsr.py`, `release.py`, `cursor.py`, `caching.py`, `models.py` |
 | `fhir.py` | Reads and verifies the unpinned NCIt value-set expansion, projects members and applies inactive filtering and local offset paging. | `http_client.py`, release, shared models |
 | `release.py` | The release model. `resolve_evs_release` asks EVS for the one row that is latest and tagged with the channel and returns the `ReleaseContext` that one call threads through its requests; zero or several rows are `release_not_available`, with ambiguous versions in `found`. Only terminology, channel, version and date are serialized; the pinned path stays internal. Nothing is kept between calls. `registry_state` builds `published`, optional `identifier`, `generatedAt` and `sourceDistribution` from upstream metadata. Without a registry release, the export folder supplies its local date-time, at minute precision without a timezone; it is preserved without an offset. Invalid metadata raises `RegistryMetadataError`, mapped to `upstream_unavailable`. | `evs.py`, `errors.py` |
 | `index.py` | Builds inactive field indexes, activates snapshots with rollback retention, and ranks BM25/vector/hybrid results within one read snapshot. | SQLite FTS5, embedding provider, `index_storage.py`, `index_scoring.py` |
@@ -376,10 +377,12 @@ MCP resources:
 - `ncit://release/{version}`
 - `ncit://index/manifest/{release}`
 
-The `evs` and `unified` profiles expose the twelve EVS tools; `cadsr` currently exposes no tools.
+The `evs` profile exposes twelve EVS tools; `cadsr` exposes five lookup and registry tools;
+`unified` exposes both. caDSR data-element resources (latest or named item version) and the
+concrete registry-state resource carry unpinned provenance and a short public cache hint.
 Each tool has group metadata and read-only, idempotent,
 non-destructive, open-world annotations. EVS resources are available in `evs` and `unified`
-only. Every resource is release-pinned; concept reads use `get_concept` with every supported
+only. Every EVS resource is release-pinned; concept reads use `get_concept` with every supported
 section, release reads use the requested served version's metadata, and index reads serve only
 the active matching manifest, with `source: evs_index` and `servedBy: index` provenance.
 
@@ -396,8 +399,10 @@ aliases are removed. QUICKSTART.md lists the error codes.
   megabytes each.
 - Exact vector search scans every field on each page. Per-query numeric score arrays grow
   with the field count; vectors are processed in chunks and never cached as a full matrix.
-- caDSR/CDE tools are not implemented; the client is tested offline against contract-crafted fixtures. Until credentials are issued, their implementation
-  uses fixtures crafted from the published contracts; the former status-only stub is removed.
+- caDSR lookup/registry tools are implemented against contract-crafted fixtures; no credentials
+  have been issued. Matching and form/crosswalk tools follow in #34/#35. Keyword search remains
+  a requested upstream operation; type-E responses retain upstream_unavailable with fixed
+  per-tool guidance. Filters, semantic/hybrid search and standalone classifications are unavailable.
 - Index builds and activation are operator commands. Production activation requires a
   persisted passing evaluation for that build; the operator runbook follows in #40.
 - The package requires Python 3.14 or newer. The `mcp` package comes with the

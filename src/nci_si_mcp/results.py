@@ -10,6 +10,7 @@ from typing import Any, Literal, NotRequired, TypedDict
 
 from .errors import ErrorCode
 from .validation import (
+    DataElementConceptRole,
     EdgeType,
     Polarity,
     ProvenanceSource,
@@ -38,8 +39,14 @@ class ReleaseReference(TypedDict):
     date: NotRequired[str]
 
 
+class RegistryReference(TypedDict):
+    registry: Literal["cadsr"]
+    identifier: NotRequired[str]
+    date: NotRequired[str]
+
+
 class Provenance(TypedDict):
-    release: ReleaseReference
+    release: ReleaseReference | RegistryReference
     source: ProvenanceSource
     servedBy: ServedBy
     retrievedAt: str
@@ -94,6 +101,94 @@ class ConceptResult(TypedDict):
     evidence: dict[str, Any]
     provenance: Provenance
     fallback: NotRequired[Fallback]
+
+
+class RegistryReleaseResult(TypedDict):
+    published: bool
+    identifier: NotRequired[str]
+    generatedAt: str
+    sourceDistribution: str
+    provenance: NotRequired[Provenance]
+
+
+class RegistryItemIdentity(TypedDict):
+    publicId: str
+    version: str
+    longName: str | None
+
+
+class ValueMeaningConcept(TypedDict):
+    conceptCode: str
+    longName: str | None
+    primary: bool
+
+
+class ValueMeaning(RegistryItemIdentity):
+    concepts: list[ValueMeaningConcept]
+
+
+class PermissibleValue(TypedDict):
+    publicId: str
+    value: str
+    valueMeaning: ValueMeaning
+    provenance: Provenance
+
+
+class ClassificationScheme(RegistryItemIdentity):
+    context: str | None
+    items: list[RegistryItemIdentity]
+    provenance: Provenance
+
+
+class ConceptAssociation(TypedDict):
+    conceptCode: str
+    longName: str | None
+    role: DataElementConceptRole
+
+
+class DataElement(RegistryItemIdentity):
+    context: str | None
+    workflowStatus: str | None
+    registrationStatus: str | None
+    dateCreated: str | None
+    dateModified: str | None
+    provenance: Provenance
+    permissibleValues: NotRequired[list[PermissibleValue]]
+    valueDomain: NotRequired[dict[str, Any]]
+    conceptAssociations: NotRequired[list[ConceptAssociation]]
+    alternateNames: NotRequired[list[dict[str, Any]]]
+    classificationSchemes: NotRequired[list[ClassificationScheme]]
+
+
+class DataElementHit(TypedDict):
+    dataElement: DataElement
+    score: NotRequired[float]
+    matchedOn: NotRequired[str]
+
+
+class DataElementSearch(TypedDict):
+    results: list[DataElementHit]
+    nextCursor: NotRequired[str]
+    totalKnown: NotRequired[int]
+    truncation: Truncation
+    provenance: NotRequired[Provenance]
+
+
+class RegistryContext(TypedDict):
+    name: str
+    provenance: Provenance
+
+
+class ContextsResult(TypedDict):
+    contexts: list[RegistryContext]
+    nextCursor: NotRequired[str]
+    provenance: NotRequired[Provenance]
+
+
+class ClassificationSchemesResult(TypedDict):
+    classificationSchemes: list[ClassificationScheme]
+    nextCursor: NotRequired[str]
+    provenance: NotRequired[Provenance]
 
 
 class Concept(TypedDict):

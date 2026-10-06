@@ -52,7 +52,7 @@ class SchemaTest(ServerFixture):
 
     def test_every_schema_is_valid_and_rejects_malformed_errors(self):
         validators = self.validators()
-        self.assertEqual(len(validators), 12)
+        self.assertEqual(len(validators), 17)
         for name, validator in validators.items():
             with self.subTest(tool=name):
                 validator.check_schema(validator.schema)
