@@ -214,7 +214,7 @@ def _declared_length(response: Any) -> int:
 
 
 class HttpClient:
-    """Read JSON, post JSON, or explicitly read bounded export text under one base URL.
+    """Read JSON, post JSON/forms, or read bounded export text under one base URL.
 
     `credentials` are headers sent on every request of this client and to no other host: a
     redirect to another origin is refused. `on_request`, `sleep` and `jitter` are public so
@@ -532,6 +532,16 @@ class HttpClient:
         """Read an explicitly textual export listing with the same bounds and audit."""
         request = self._request(path, None, headers={"Accept": "text/html"})
         return self._run(request, path, json_response=False)
+
+    def post_form(self, path: str, fields: Mapping[str, str], *, accept: str) -> Any:
+        """POST an encoded form for a JSON response; retries preserve its exact bytes."""
+        request = self._request(
+            path,
+            None,
+            data=urlencode(fields).encode("utf-8"),
+            headers={"Content-Type": "application/x-www-form-urlencoded", "Accept": accept},
+        )
+        return self._run(request, path)
 
     def _run(
         self,
