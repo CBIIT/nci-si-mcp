@@ -99,7 +99,7 @@ def create_mcp(settings: Settings | None = None, *, context: Context | None = No
                 meta={"group": spec.group},
                 structured_output=True,
             )
-        if spec.uri:
+        if spec.uri and spec.visible_in(resolved_settings.profile):
             fn = _callback(spec, resource_call)
             mcp.resource(spec.uri, mime_type="application/json")(fn)
 

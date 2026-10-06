@@ -530,14 +530,14 @@ class StatusTest(HandlerTestCase):
         self.assertEqual(result["results"][0]["query_count"], 12)
         self.assertFalse(result["gate_applies"])
 
-    def test_index_manifest_is_null_until_an_index_exists(self):
-        self.assertEqual(
+    def test_index_manifest_requires_an_active_index(self):
+        self.assert_error(
             invoke(
                 self.context,
                 "index_resource",
-                "active",
+                "26.06e",
             ),
-            {"active_index": None},
+            "capability_unavailable",
         )
         self.index()
 
@@ -545,7 +545,7 @@ class StatusTest(HandlerTestCase):
             invoke(
                 self.context,
                 "index_resource",
-                "active",
+                "26.06e",
             )["concepts"],
             2,
         )
@@ -593,7 +593,7 @@ class FailureHandlingTest(HandlerTestCase):
             "search": lambda: invoke(self.context, "search", "tumor"),
             "lookup": lambda: invoke(self.context, "lookup", "C3262"),
             "release_info": partial(invoke, self.context, "release_info"),
-            "index_resource": partial(invoke, self.context, "index_resource", "active"),
+            "index_resource": partial(invoke, self.context, "index_resource", "26.06e"),
             "evaluate": partial(invoke, self.context, "evaluate"),
         }
         for operation, call in calls.items():

@@ -16,6 +16,7 @@ from typing import Any
 
 from .errors import PlatformError, with_next_step
 from .evs import EVSClient
+from .validation import RELEASE_CHANNELS
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,6 +69,49 @@ def resolve_evs_release(evs: EVSClient, terminology: str, channel: str) -> Relea
         date=row.get("date"),
         pinned_terminology=row.get("terminologyVersion") or f"{terminology}_{row['version']}",
     )
+
+
+def served_evs_release(
+    rows: list[dict[str, Any]], terminology: str, version: str, preferred_channel: str
+) -> ReleaseContext:
+    """Select an explicitly requested served version, without resolving a moving alias."""
+    matching = [
+        row
+        for row in rows
+        if row.get("terminology") == terminology and row.get("version") == version
+    ]
+    if len(matching) != 1:
+        raise PlatformError(
+            "release_not_available",
+            "EVS does not uniquely name this release. Read resolve_release for served versions.",
+            requested=version,
+            source="evs",
+        )
+    row = matching[0]
+    channel = _served_channel(row, version, preferred_channel)
+    return ReleaseContext(
+        terminology,
+        channel,
+        version,
+        row.get("date"),
+        row.get("terminologyVersion") or f"{terminology}_{version}",
+    )
+
+
+def _served_channel(row: dict[str, Any], version: str, preferred: str) -> str:
+    tags = row.get("tags")
+    tags = tags if isinstance(tags, dict) else {}
+    channels = {channel for channel in RELEASE_CHANNELS if tags.get(channel) == "true"}
+    if preferred in channels:
+        return preferred
+    if len(channels) != 1:
+        raise PlatformError(
+            "release_not_available",
+            "EVS does not identify this release's channel. Retry after its metadata is corrected.",
+            requested=version,
+            source="evs",
+        )
+    return channels.pop()
 
 
 def _one_release_row(rows: list[dict[str, Any]], requested: str) -> dict[str, Any]:

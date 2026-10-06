@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from itertools import batched
-from typing import Any, cast
+from typing import Any, cast, get_args
 
 from .audit import emit
 from .bounds import (
@@ -15,8 +15,8 @@ from .bounds import (
     Budget,
     budgeted,
 )
-from .caching import RELEASE_REPORT_ALIASES, select_cache_hint
 from .catalogue import exclusion_codes
+from .content import get_concept
 from .context import Context
 from .errors import (
     NoActiveIndexError,
@@ -34,6 +34,7 @@ from .evs import (
     normalize_concept,
 )
 from .http_client import UpstreamError, UpstreamUnavailableError
+from .index import require_index_release
 from .indexing import full_build
 from .invocation import _envelope
 from .models import (
@@ -44,12 +45,13 @@ from .models import (
     upstream_origin,
     utc_now_iso,
 )
-from .release import ReleaseContext, current_terminologies, resolve_evs_release
+from .release import ReleaseContext, current_terminologies, resolve_evs_release, served_evs_release
 from .traversal import (
     select_edge_types,
     traverse_ncit,
 )
 from .validation import (
+    ConceptInclude,
     Direction,
     EdgeType,
     SearchMode,
@@ -88,17 +90,13 @@ def resolve_release(
     channel = validate_channel(context.settings.release_channel if channel is None else channel)
     selected = resolve_evs_release(context.evs, terminology, channel).to_dict()
     return selected | {
-        "alternatives": _alternatives(context, selected),
+        "alternatives": _alternatives(context.evs.get_terminologies(), selected),
         "provenance": _release_provenance(context, selected).to_dict(),
     }
 
 
-def _alternatives(context: Context, selected: dict[str, Any]) -> list[str]:
-    rows = [
-        row
-        for row in context.evs.get_terminologies()
-        if row.get("terminology") == selected["terminology"]
-    ]
+def _alternatives(rows: list[dict[str, Any]], selected: dict[str, Any]) -> list[str]:
+    rows = [row for row in rows if row.get("terminology") == selected["terminology"]]
     versions = [str(row.get("version") or "") for row in rows]
     if not all(versions):
         raise EVSResponseError("EVS listed an alternative release without a version")
@@ -521,46 +519,29 @@ def evaluate(context: Context, build_id: str | None = None) -> dict[str, Any]:
     }
 
 
-def concept_resource(context: Context, code: str) -> dict[str, Any]:
-    """One NCIt concept, as returned by the lookup handler with default options."""
-
-    return lookup(context, code)
+def concept_resource(context: Context, release: str, code: str) -> dict[str, Any]:
+    """One NCIt concept pinned to release, with all get_concept content sections."""
+    return get_concept(context, "ncit", release, code, include=list(get_args(ConceptInclude)))
 
 
 def release_resource(context: Context, version: str) -> dict[str, Any]:
-    """The current channel's release, or the full status report for a moving alias."""
-
-    info = release_info(context)
-    if version in RELEASE_REPORT_ALIASES:
-        select_cache_hint(resolution=True)
-        return info
-    selected = info["selected_release"]
-    if is_error_record(selected) or version == selected["version"]:
-        return selected
-    raise PlatformError(
-        "release_not_available",
-        f"Release {version} is not served here; the current {selected['channel']} release is "
-        f"{selected['version']}. Read that release, or use `current`.",
-        requested=version,
-        source="evs",
-    )
+    """One served NCIt version with its upstream channel, date, alternatives and provenance."""
+    rows = context.evs.get_terminologies()
+    selected = served_evs_release(rows, "ncit", version, context.settings.release_channel).to_dict()
+    return selected | {
+        "alternatives": _alternatives(rows, selected),
+        "provenance": _release_provenance(context, selected).to_dict(),
+    }
 
 
-def index_resource(context: Context, version: str) -> dict[str, Any]:
-    """The local index's manifest by version or active alias, or its absent status."""
-
+def index_resource(context: Context, release: str) -> dict[str, Any]:
+    """The active NCIt index manifest, only when it holds the requested release."""
     active = context.index.get_active_manifest()
-    manifest = active.to_result() if active else None
-    if not manifest:
-        select_cache_hint(resolution=True)
-        return {"active_index": None}
-    if version in ("active", manifest["version"]):
-        select_cache_hint(resolution=version == "active")
-        return manifest
-    raise PlatformError(
-        "release_not_available",
-        f"The local index holds release {manifest['version']}, not "
-        f"{version}. Read that release or `active`, or rebuild the index with `index-sample`.",
-        requested=version,
-        source="index",
-    )
+    if active is None:
+        raise PlatformError(
+            "capability_unavailable",
+            "No active NCIt index is available. Run index-build and index-activate first.",
+            capability="NCIt index",
+        )
+    require_index_release(active, release)
+    return active.to_result()

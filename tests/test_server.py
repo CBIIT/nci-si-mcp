@@ -15,7 +15,6 @@ from mcp.client import Client
 from mcp.shared.exceptions import MCPError
 
 from fakes import FakeEVS, concept, release
-from nci_si_mcp import handlers
 from nci_si_mcp.config import Settings
 from nci_si_mcp.context import Context
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
@@ -221,34 +220,31 @@ class ServerTest(ServerFixture):
             },
         )
 
-    def test_release_resources_emit_the_same_fields_as_the_cli_report(self, _):
-        info = invoke(self.context, "release_info")
-        expected = info["selected_release"]
-
-        self.assertEqual(self.read("nci-si://release/ncit/26.06e"), expected)
-        for alias in ("current", "latest"):
-            with self.subTest(alias=alias):
-                self.assertEqual(
-                    self.read(f"nci-si://release/ncit/{alias}")["selected_release"],
-                    expected,
-                )
+    def test_release_resources_emit_the_resolver_record_for_the_requested_version(self, _):
+        expected = invoke(self.context, "resolve_release", "ncit")
+        result = self.read("ncit://release/26.06e")
+        self.assertEqual(
+            {key: value for key, value in result.items() if key != "provenance"},
+            {key: value for key, value in expected.items() if key != "provenance"},
+        )
+        self.assertEqual(result["provenance"]["release"], expected["provenance"]["release"])
 
     def test_removed_monthly_aliases_are_refused(self, _):
-        for alias in ("monthly", "monthly-latest"):
+        for alias in ("monthly", "monthly-latest", "current", "latest"):
             with self.subTest(alias), self.assertRaises(MCPError) as raised:
-                self.read(f"nci-si://release/ncit/{alias}")
+                self.read(f"ncit://release/{alias}")
             error = json.loads(str(raised.exception))["error"]
             self.assertEqual(error["code"], "release_not_available")
             self.assertEqual(error["details"], {"requested": alias, "source": "evs"})
 
-    def test_current_resource_honors_the_configured_weekly_channel(self, _):
+    def test_pinned_resource_reports_its_weekly_channel(self, _):
         self.context.settings = replace(self.settings, release_channel="weekly")
         self.evs.release = release("26.07a", "2026-07-06", channel="weekly")
 
-        report = self.read("nci-si://release/ncit/current")
+        report = self.read("ncit://release/26.07a")
 
-        self.assertEqual(report["selected_release"]["channel"], "weekly")
-        self.assertEqual(report["selected_release"]["version"], "26.07a")
+        self.assertEqual(report["channel"], "weekly")
+        self.assertEqual(report["version"], "26.07a")
         self.assertNotIn("selected_monthly_release", report)
 
     def test_cli_only_lookup_flags_are_rejected_by_the_public_tool(self, _):
@@ -394,33 +390,35 @@ class ServerTest(ServerFixture):
 
     def test_a_resource_error_carries_a_correlation_identifier_and_details(self, _):
         with self.assertRaises(MCPError) as raised:
-            self.read("nci-si://release/ncit/99.99z")
+            self.read("ncit://release/99.99z")
 
         error = json.loads(str(raised.exception))["error"]
         self.assertTrue(error["correlationId"])
         self.assertEqual(error["details"], {"requested": "99.99z", "source": "evs"})
 
-    def test_an_unavailable_release_resource_names_the_configured_weekly_channel(self, _):
+    def test_an_unavailable_release_resource_names_the_next_discovery_step(self, _):
         self.context.settings = replace(self.settings, release_channel="weekly")
         self.evs.release = release("26.07a", "2026-07-06", channel="weekly")
 
         with self.assertRaises(MCPError) as raised:
-            self.read("nci-si://release/ncit/99.99z")
+            self.read("ncit://release/99.99z")
 
         error = json.loads(str(raised.exception))["error"]
         self.assertEqual(error["code"], "release_not_available")
-        self.assertIn("current weekly release", error["message"])
-        self.assertIn("26.07a", error["message"])
+        self.assertIn("resolve_release", error["message"])
+        self.assertEqual(error["details"], {"requested": "99.99z", "source": "evs"})
 
     def test_the_index_manifest_of_another_release_is_not_available(self, _):
         invoke(self.context, "index_codes", ["C3262"])
 
         with self.assertRaises(MCPError) as raised:
-            self.read("nci-si://index/ncit/99.99z/manifest")
+            self.read("ncit://index/manifest/99.99z")
 
         error = json.loads(str(raised.exception))["error"]
-        self.assertEqual(error["code"], "release_not_available")
-        self.assertEqual(error["details"], {"requested": "99.99z", "source": "index"})
+        self.assertEqual(error["code"], "release_mismatch")
+        self.assertEqual(
+            error["details"], {"requested": "99.99z", "served": ["26.06e"], "source": "index"}
+        )
 
     def failing_read_ids(self, uri):
         """The correlation identifier of a failing resource read, and those it opened."""
@@ -440,32 +438,14 @@ class ServerTest(ServerFixture):
     def test_each_resource_read_runs_under_one_correlation_identifier(self, _):
         invoke(self.context, "index_codes", ["C3262"])
         for uri in (
-            "nci-si://concept/ncit/C999",
-            "nci-si://release/ncit/99.99z",
-            "nci-si://index/ncit/99.99z/manifest",
+            "ncit://concept/26.06e/C999",
+            "ncit://release/99.99z",
+            "ncit://index/manifest/99.99z",
         ):
             with self.subTest(uri):
                 identifier, opened = self.failing_read_ids(uri)
 
                 self.assertEqual(opened, [identifier])
-
-    def test_the_records_of_one_resource_read_share_their_correlation_identifier(self, _):
-        self.evs.errors = {
-            "get_api_version": UpstreamUnavailableError("down"),
-            "get_terminologies": UpstreamUnavailableError("down"),
-        }
-        reports = []
-        release_info = handlers.release_info
-
-        def recording_release_info(context):
-            reports.append(release_info(context))
-            return reports[-1]
-
-        with patch.object(handlers, "release_info", recording_release_info):
-            identifier, _opened = self.failing_read_ids("nci-si://release/ncit/26.06e")
-
-        nested = [reports[0]["evs_api"]["error"], reports[0]["selected_release"]["error"]]
-        self.assertEqual({error["correlationId"] for error in nested}, {identifier})
 
     def test_a_search_that_finds_nothing_is_a_success_with_no_hits(self, _):
         invoke(self.context, "index_codes", ["C3262"])
@@ -488,32 +468,35 @@ class ServerTest(ServerFixture):
         self.assertEqual(info["error"]["code"], "upstream_unavailable")
 
     def test_resources_route_by_version(self, _):
-        self.assertEqual(self.read("nci-si://index/ncit/active/manifest"), {"active_index": None})
-        invoke(self.context, "index_codes", ["C3262"])
-
-        self.assertEqual(self.read("nci-si://concept/ncit/C3262")["provenance"]["servedBy"], "live")
-        for alias in ("current", "latest"):
-            self.assertIn("active_index", self.read(f"nci-si://release/ncit/{alias}"))
-        self.assertEqual(self.read("nci-si://release/ncit/26.06e")["version"], "26.06e")
-        for version in ("active", "26.06e"):
-            manifest = self.read(f"nci-si://index/ncit/{version}/manifest")
-            self.assertEqual(manifest["concepts"], 1)
-
-    def test_concept_resource_is_a_lookup_with_the_default_options(self, _):
-        invoke(self.context, "index_codes", ["C3262"])
-
-        self.assertNotIn("raw", self.read("nci-si://concept/ncit/C3262"))
-        self.evs.errors = {"get_concept": UpstreamUnavailableError("down")}
+        with self.assertRaises(MCPError) as raised:
+            self.read("ncit://index/manifest/26.06e")
         self.assertEqual(
-            self.read("nci-si://concept/ncit/C3262")["provenance"]["servedBy"], "index"
+            json.loads(str(raised.exception))["error"]["code"], "capability_unavailable"
         )
+        invoke(self.context, "index_codes", ["C3262"])
+
+        self.assertEqual(self.read("ncit://concept/26.06e/C3262")["provenance"]["servedBy"], "live")
+        self.assertEqual(self.read("ncit://release/26.06e")["version"], "26.06e")
+        manifest = self.read("ncit://index/manifest/26.06e")
+        self.assertEqual(manifest["concepts"], 1)
+        self.assertEqual(manifest["provenance"]["source"], "evs_index")
+        self.assertEqual(manifest["provenance"]["servedBy"], "index")
+
+    def test_concept_resource_does_not_fall_back_to_the_sample_index(self, _):
+        invoke(self.context, "index_codes", ["C3262"])
+
+        self.assertNotIn("raw", self.read("ncit://concept/26.06e/C3262"))
+        self.evs.errors = {"get_concept": UpstreamUnavailableError("down")}
+        with self.assertRaises(MCPError) as raised:
+            self.read("ncit://concept/26.06e/C3262")
+        self.assertEqual(json.loads(str(raised.exception))["error"]["code"], "upstream_unavailable")
 
     def test_resource_failures_are_protocol_errors_carrying_the_envelope(self, _):
         invoke(self.context, "index_codes", ["C3262"])
         failures = {
-            "nci-si://concept/ncit/C999": "not_found",
-            "nci-si://release/ncit/99.99z": "release_not_available",
-            "nci-si://index/ncit/99.99z/manifest": "release_not_available",
+            "ncit://concept/26.06e/C999": "not_found",
+            "ncit://release/99.99z": "release_not_available",
+            "ncit://index/manifest/99.99z": "release_mismatch",
         }
         for uri, code in failures.items():
             with self.subTest(uri):
@@ -523,7 +506,7 @@ class ServerTest(ServerFixture):
 
         self.evs.errors = {"get_terminologies": UpstreamUnavailableError("down")}
         with self.assertRaises(MCPError) as raised:
-            self.read("nci-si://release/ncit/26.06e")
+            self.read("ncit://release/26.06e")
         envelope = json.loads(str(raised.exception))
         self.assertEqual(
             (envelope["error"]["code"], envelope["error"]["message"]),
@@ -531,7 +514,7 @@ class ServerTest(ServerFixture):
         )
 
         (self.settings.data_dir / "nci_si.sqlite3").write_bytes(b"not a database" * 100)
-        for uri in ("nci-si://index/ncit/active/manifest", "nci-si://release/ncit/current"):
+        for uri in ("ncit://index/manifest/26.06e",):
             with self.subTest(uri):
                 with self.assertRaises(MCPError) as raised:
                     self.read(uri)
