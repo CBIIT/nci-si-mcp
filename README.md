@@ -49,8 +49,9 @@ Fixture-mode outcome of each tool, from the expected outcomes of the 944 tests o
 | Workflow tools | 3 | PASS: `ground_value`, `expand_cohort`, `harmonize_data_dictionary` |
 <!-- acceptance-status:end -->
 
-The acceptance suite comes first (Phase 0): its mechanics and the EVS fixture set are in place,
-and the tests of each group follow. The
+The [validation and benchmark evidence](docs/benchmark.md) separates fixture acceptance,
+live protocol coverage and representative live tool measurements. caDSR credentialed content
+remains contract-fixture evidence until credentials are issued. The
 [milestones](https://github.com/hniedner/nci-si-mcp/milestones) track the phases.
 
 ## Start here

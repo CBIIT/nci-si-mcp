@@ -128,12 +128,13 @@ def test_every_upstream_request_of_the_server_under_test_is_recorded(tmp_path):
     assert all(entry["fixture"] is None for entry in log)
 
 
-def test_a_session_lists_and_gets_prompts_and_lists_and_reads_resources(tmp_path):
+def test_a_session_lists_and_gets_prompts_and_lists_and_reads_resources(tmp_path, monkeypatch):
+    monkeypatch.setattr(client, "READ_TIMEOUT_SECONDS", 0.001)
     command = [sys.executable, str(COMPLIANT_SERVER)]
     with FixtureServer(FixtureSet({}, {})) as upstream:
         environment = server_environment("fixture", tmp_path, upstream.url)
         environment |= {"COMPLIANT_SERVER_PROFILE": "unified"}
-        with open_session(command, environment) as session:
+        with open_session(command, environment, timeout=30) as session:
             prompts = session.list_prompts().prompts
             got = session.get_prompt("crdc_model_alignment", {"field": "f", "commons": "GDC"})
             resources = session.list_resources().resources

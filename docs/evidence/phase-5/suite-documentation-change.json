@@ -1,0 +1,8 @@
+{
+  "benchmarkSuiteDigest": "a1e3ceeabb3bc0beffeb686a5786e28d1e395259fefc3a6aeda96093ab52a29b",
+  "finalSuiteDigest": "7f435ac6463e3aaca174f367cf55a9e6f9213509109bb75e7d4c4fe6742675d5",
+  "changedPath": "acceptance/fixtures/README.md",
+  "before": "to the requirement and names it, and the live run shows the gap.",
+  "after": "to the requirement and names it. A live run exposes that gap only when the affected test is\nlive-capable; otherwise the live report records it as unrun.",
+  "scope": "Documentation only; no test, request, fixture response, harness or server code changed."
+}
