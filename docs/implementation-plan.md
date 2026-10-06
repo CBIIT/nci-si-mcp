@@ -109,7 +109,7 @@ src/nci_si_mcp/
 acceptance/                 separate package, see §9
 ```
 
-Implemented in the current flat package: `service.py` is retired. `registry.py` holds one `ToolSpec` per operation with its output union, cache class and adapter exposure. Handler signatures supply typed input models, defaults and choices to both adapters. `handlers.py` composes the use cases; `context.py` holds injectable collaborators; `audit.py` owns the correlation scope; `invocation.py` owns the one expected-error path for tools, resources and CLI. Shared HTTP errors propagate unchanged; EVS exceptions identify domain failures only. The package-layout drawing above remains a target for later modules, not a reason to move existing files.
+Implemented in the current flat package: `service.py` is retired. `registry.py` holds one `ToolSpec` per operation with its output union, cache default and adapter exposure. The four cross-domain tools omit that default because their handlers select the complete policy. Handler signatures supply typed input models, defaults and choices to both adapters. `handlers.py` composes the use cases; `context.py` holds injectable collaborators; `audit.py` owns the correlation scope; `invocation.py` owns the one expected-error path for tools, resources and CLI. Shared HTTP errors propagate unchanged; EVS exceptions identify domain failures only. The package-layout drawing above remains a target for later modules, not a reason to move existing files.
 
 ---
 
@@ -180,9 +180,10 @@ errors and implicit NCIt calls use 0/private. List, discovery and resource-read 
 tool hints are protocol `_meta`, preserving other metadata. All EVS resource URIs are
 release-pinned and use the content policy. Missing indexes and mismatched releases are
 protocol errors, not status content. CLI release reports remain status results.
-Cache classes are required at tool/resource registration. Response middleware reads a per-call declaration, not
-tool names, URI tables or JSON content. Tests require every registered producer to declare
-its class and check renamed producers, concurrent calls and undeclared-response rejection.
+Registration supplies an optional cache default; when omitted, the handler owns the complete
+policy. Response middleware reads the per-call declaration, not tool names, URI tables or JSON
+content. Tests check handler-owned policies, renamed producers, concurrent calls and rejection
+of successful responses without a declared policy.
 
 Per the #14 review, cursors ship with their first producers in #23 (hierarchy) and #27
 (search): pin the release, reject supersession with `cursor_expired` and both release

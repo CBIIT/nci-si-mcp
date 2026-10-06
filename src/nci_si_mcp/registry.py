@@ -59,7 +59,8 @@ class ToolSpec:
     handler: Callable[..., dict[str, Any]]
     group: str
     output: Any
-    resolution: bool
+    # None means the handler supplies the whole policy, without a registry default.
+    resolution: bool | None = None
     name: str | None = None
     command: str | None = None
     uri: str | None = None
@@ -117,7 +118,6 @@ SPECS = (
         seam.resolve_stored_value,
         "cross-domain",
         StoredValuesResult | ErrorResult,
-        False,
         name="resolve_stored_value",
         command="resolve-stored-value",
         audit={
@@ -131,7 +131,6 @@ SPECS = (
         seam.get_release_alignment,
         "cross-domain",
         ReleaseAlignment | ErrorResult,
-        True,
         name="get_release_alignment",
         command="get-release-alignment",
         audit={"maxIntervalDays": "plain"},
@@ -140,7 +139,6 @@ SPECS = (
         seam.find_data_elements_for_concept,
         "cross-domain",
         DataElementUses | ErrorResult,
-        False,
         name="find_data_elements_for_concept",
         command="find-data-elements-for-concept",
         audit={
@@ -157,7 +155,6 @@ SPECS = (
         seam.get_concept_for_permissible_value,
         "cross-domain",
         PermissibleValueConcept | ErrorResult,
-        False,
         name="get_concept_for_permissible_value",
         command="get-concept-for-permissible-value",
         audit={

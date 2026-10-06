@@ -9,7 +9,7 @@ from nci_si_mcp.errors import PlatformError, is_error_record, serialise
 from nci_si_mcp.evs import EVSClient, EVSNotFoundError, EVSReleaseNotFoundError
 from nci_si_mcp.invocation import call
 from nci_si_mcp.registry import invoke
-from nci_si_mcp.release import registry_state, resolve_evs_release
+from nci_si_mcp.release import registry_state, resolve_evs_release, served_evs_release
 from test_evs_client import FakeResponse
 from test_handlers import NEOPLASM, HandlerTestCase
 
@@ -33,6 +33,14 @@ def fake_with(*rows):
 
 
 class ResolveEvsReleaseTest(unittest.TestCase):
+    def test_explicit_served_identity_keeps_its_channel_date_and_pinned_path(self):
+        resolved = served_evs_release([WEEKLY, MONTHLY], "ncit", "26.09c", "monthly")
+        self.assertEqual(
+            resolved.to_dict(),
+            {"terminology": "ncit", "channel": "weekly", "version": "26.09c", "date": "2026-09-21"},
+        )
+        self.assertEqual(resolved.pinned_terminology, "ncit_26.09c")
+
     def test_the_one_row_a_channel_names_is_the_release(self):
         resolved = resolve_evs_release(fake_with(MONTHLY), "ncit", "monthly")
 

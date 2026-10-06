@@ -4,13 +4,14 @@ from typing import Literal, TypedDict
 from unittest.mock import patch
 
 from nci_si_mcp import cli
+from nci_si_mcp.caching import cache_call, select_cache_hint
 from nci_si_mcp.http_client import (
     UpstreamRejectedError,
     UpstreamTimeoutError,
     UpstreamTooLargeError,
     UpstreamUnavailableError,
 )
-from nci_si_mcp.registry import OPERATIONS, SPECS, ToolSpec, invoke
+from nci_si_mcp.registry import OPERATIONS, ToolSpec, invoke
 from test_server import ServerFixture
 
 
@@ -114,9 +115,17 @@ class RegistryTest(ServerFixture):
                 self.assertEqual(result["concepts"], 1)
                 self.assertEqual(cli.build_parser().parse_args(["evaluate"]).operation, "evaluate")
 
-    def test_registry_requires_an_explicit_cache_class(self):
-        with self.assertRaisesRegex(TypeError, "resolution"):
-            ToolSpec(handler=SPECS[0].handler, group="evs", output=Echo)
+    def test_handler_owned_cache_policy_has_no_registry_default(self):
+        def content(context):
+            before = dict(hint)
+            select_cache_hint(resolution=False, unpinned=True)
+            return {"before": before}
+
+        spec = ToolSpec(content, "cross-domain", dict)
+        with cache_call() as hint, patch.dict(OPERATIONS, {spec.operation: spec}):
+            result = invoke(self.context, spec.operation)
+        self.assertEqual(result, {"before": {}})
+        self.assertEqual(hint, {"ttlMs": 3_600_000, "cacheScope": "public"})
 
     def test_upstream_details_survive_the_boundary_without_an_evs_bridge(self):
         failures = {
