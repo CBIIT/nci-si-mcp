@@ -199,6 +199,8 @@ ignore_names = [
     "valueDomain", "conceptAssociations", "alternateNames", "classificationSchemes", "dataElement",
     "userTip", "valueDomainType", "classificationScheme", "matchedText", "itemType", "evsSource",
     "crdcName", "usedBy", "valueLevelBinding", "coverage", "codeMaps",
+    "conceptTerminology", "dataElements", "permissibleValue", "storedValues", "confidence",
+    "intervalDays",
 ]
 
 [tool.basedpyright]

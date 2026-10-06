@@ -129,7 +129,7 @@ def get_concept(
     )
     if raw.get("code") != code:
         raise EVSResponseError("EVS returned a concept other than the one requested")
-    return _project(context, selected, raw, sections)
+    return project_concept(context, selected, raw, sections)
 
 
 def _includes(include: list[ConceptInclude] | None) -> tuple[list[ConceptInclude], str]:
@@ -251,7 +251,7 @@ def _concept_rows(
     rows = raw.get(section, [])
     if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
         raise EVSResponseError(f"EVS returned malformed concept {section}")
-    return rows, _project(context, selected, raw, [])["provenance"]
+    return rows, project_concept(context, selected, raw, [])["provenance"]
 
 
 def _text_fields(row: dict[str, Any], fields: tuple[str, ...]) -> dict[str, str]:
@@ -280,9 +280,10 @@ def _mapping_record(row: dict[str, Any], provenance: dict[str, Any]) -> dict[str
     return result | {"provenance": _item_provenance(row, provenance)}
 
 
-def _project(
+def project_concept(
     context: Context, release: ReleaseContext, raw: dict[str, Any], sections: list[ConceptInclude]
 ) -> dict[str, Any]:
+    """Project retrieved concept content without changing the call's release selection."""
     uri = context.evs.uri(concept_path(release.pinned_terminology, raw["code"]))
     concept = normalize_concept(raw, release_date=release.date, source="live_evs")
     result = _record(raw, concept.provenance(uri).to_dict())
@@ -382,7 +383,7 @@ def get_concepts(
     found = _reconcile_batch(raw, set(unique))
     result = {
         "concepts": [
-            _project(context, selected, found[code], sections)
+            project_concept(context, selected, found[code], sections)
             for code in requested
             if code in found
         ],
@@ -612,7 +613,7 @@ def _live_match(
         raise EVSResponseError("EVS search returned a concept without its code")
     if status and (raw.get("conceptStatus") != status or raw.get("active") is not False):
         raise EVSResponseError("EVS search did not honor the requested retired status")
-    return {"concept": _project(context, selected, raw, [])} | _live_highlight(raw, mode)
+    return {"concept": project_concept(context, selected, raw, [])} | _live_highlight(raw, mode)
 
 
 def _live_highlight(raw: dict[str, Any], mode: str) -> dict[str, str]:

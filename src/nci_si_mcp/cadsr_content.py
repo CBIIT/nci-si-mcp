@@ -655,7 +655,7 @@ def get_code_map(
     }
     position = cursors.decode(cursor, args)
     release = _pin(context, registryRelease)
-    maps, provenance = _map_records(context, release, registryRelease)
+    maps, provenance = read_code_maps(context, release, registryRelease)
     selected = _select_maps(maps, targetContext, dataElementId)
     select_cache_hint(resolution=False, unpinned=registryRelease is None)
     return _page(selected, "codeMaps", position.offset, size, args, provenance)
@@ -674,7 +674,7 @@ def _select_maps(
 
 def crosswalk_resource(context: Context) -> dict[str, Any]:
     """The CRDC crosswalk at its 1,000-map maximum, with explicit truncation if larger."""
-    maps, provenance = _map_records(context, {"registry": "cadsr"}, None)
+    maps, provenance = read_code_maps(context, {"registry": "cadsr"}, None)
     result: dict[str, Any] = {"codeMaps": maps[:_CODE_MAP_LIMIT]}
     if len(maps) > _CODE_MAP_LIMIT:
         result["truncation"] = Truncation(
@@ -686,9 +686,10 @@ def crosswalk_resource(context: Context) -> dict[str, Any]:
     return result
 
 
-def _map_records(
+def read_code_maps(
     context: Context, release: dict[str, str], pin: str | None
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Read and project the crosswalk once, before a caller filters or pages it."""
     rows = context.cadsr.get_crdc_list(registry_release=pin)
     provenance = _provenance(
         context, release, f"{DATA_API}/DataElements/getCRDCList", {"registryRelease": pin}

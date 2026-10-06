@@ -15,12 +15,12 @@ from test_server import ServerFixture, pinned
 
 @patch("nci_si_mcp.server.configure_logging")
 class CachingTest(ServerFixture):
-    def test_every_registered_tool_and_resource_declares_a_cache_class(self, _):
+    def test_registered_cache_defaults_allow_explicit_handler_ownership(self, _):
         registrations = [spec for spec in SPECS if spec.name or spec.uri]
-        self.assertEqual(len(registrations), 29)
+        self.assertEqual(len(registrations), 33)
         for spec in registrations:
             with self.subTest(operation=spec.operation):
-                self.assertIsInstance(spec.resolution, bool)
+                self.assertIsInstance(spec.resolution, (bool, type(None)))
 
     def test_tool_policy_follows_its_declaration_after_a_rename(self, _):
         def status(context):

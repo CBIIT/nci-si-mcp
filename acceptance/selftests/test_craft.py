@@ -4,6 +4,7 @@ import base64
 import json
 import shutil
 from http import HTTPStatus
+from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
@@ -150,11 +151,13 @@ def ordinary_requests():
 
 
 IDENTITIES = "recorded/ssis-sparql/graph-identities.json"
+BOUNDED_IDENTITIES = "crafted/ssis-sparql/graph-identities-bounded.json"
 
 
-def test_mismatch_names_another_release_for_the_shared_si_ncit_graph():
-    recorded = json.loads((FIXTURES / IDENTITIES).read_text(encoding="utf-8"))
-    crafted = CRAFTED["scenarios/release/mismatch/ssis-sparql-graph-identities.json"]
+@pytest.mark.parametrize("file", [IDENTITIES, BOUNDED_IDENTITIES])
+def test_mismatch_names_another_release_for_the_shared_si_ncit_graph(file):
+    recorded = json.loads((FIXTURES / file).read_text(encoding="utf-8"))
+    crafted = CRAFTED[f"scenarios/release/mismatch/ssis-sparql-{Path(file).name}"]
 
     def versions(document):
         rows = document["response"]["body"]["results"]["bindings"]
@@ -186,7 +189,7 @@ def test_mismatch_serves_another_release_wherever_the_pinned_one_is_reported(ups
 
     assert set(reporting) - DISCOVERY == set(mismatched(Recorded(FIXTURES))) - {
         f"recorded/evs/concepts/{code}.json" for code in concepts
-    } - {IDENTITIES}
+    } - {IDENTITIES, BOUNDED_IDENTITIES}
     assert {fixture: PINNED in releases for fixture, releases in served.items()} == {
         fixture: fixture in DISCOVERY for fixture in served
     }

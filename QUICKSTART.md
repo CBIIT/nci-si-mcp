@@ -521,7 +521,7 @@ not. The same fields everywhere:
 | `correlationId` | The call's `_meta.correlationId`, or one the server generated; the same in every item of the call and in the error record |
 | `upstream` | Origin fields the platform supplied, unchanged: REST `terminology` and `version`, or FHIR value-set `url` and `version`. Omitted where the returned item carried none; hydrated concepts retain their own origin fields |
 | `attribution` | Licence or copyright text supplied upstream for that item. Omitted when none was supplied; an edge's licence is not copied onto its target concept |
-| `graphs`, `registry` | Not yet supplied: these belong to the Shared SI Service and caDSR content |
+| `graphs`, `registry` | The two graph-joined tools name both graph identities; cross-domain results include `registry` where caDSR content participates. An unpublished registry has no invented release identifier |
 
 An item reached by traversal adds `depth` (an edge has that of the node it reaches; the start
 codes have 0); and, for any item but a start code, `relationship` (`kind`; for a role or
@@ -603,6 +603,17 @@ the configured upstream, never from a built-in fixture.
 - `get_code_map`: optional `sourceSystem` (CRDC only, the default), `targetContext`, `dataElementId`, `limit` (100/1000), `cursor` and `registryRelease`. One map per CRDC data element, preserving values and colon-joined concept codes; targetContext matches exact comma-split Used By names. Coverage counts values with concept codes. Missing binding is explicit as valueLevelBinding false and values empty. Cursors bind all arguments, and verified pins must be confirmed upstream. CLI: `get-code-map --target-context GDC`.
 - `match_data_elements`: required `entities` (1–10 objects with `name`, optional `userTip` and `permissibleValues` strings). Optional `matchLimit` (10/100), `filters` and `registryRelease`. Optional `modelVariant` and `similarityThreshold` are rejected with `invalid_request`, citing C-6. Filters accept context, workflowStatus, registrationStatus and valueDomainType as text, and classificationScheme as `{publicId, version}` with both required. One object is sent per entity, matches retain entity/platform order with the platform's score, rule and matched text. Any failure fails the whole call. CLI: `match-data-elements '{"name":"Patient Gender"}'`; `--filters` takes a JSON object.
 - `match_value_meanings`: required `values` (1–10 strings), optional `strictness` (restricted by default, or unrestricted), `terminologyScope` (list of code-system codes) and `registryRelease`. Matches retain platform order, type, rule, identity, context and workflowStatus; a missing concept/source, registrationStatus, score or empty/NA crosswalk is omitted. CLI: `match-value-meanings Male Female --strictness unrestricted`; repeat `--terminology-scope` for multiple codes.
+
+The cross-domain tools are available in `unified`:
+
+- `find_data_elements_for_concept`: required `conceptCode`; optional `terminology` (ncit), `release`, `expandDescendants`, `includePermissibleValues`, `limit` (100/1000) and `cursor`. Verifies both graph identities and the NCIt version. One page limit and 1,000-result cap cover data-element uses first, then value uses. Requested `permissibleValues` stays present, possibly empty. Cursors expire when content changes; a sentinel cut is inexact truncation, ordinary paging is not. CLI: `find-data-elements-for-concept C17357 --include-permissible-values`.
+- `get_concept_for_permissible_value`: `dataElementId` with exact `value`, or `permissibleValueId` (unavailable, OP-C10); optional `release`. Selects the latest numeric item version first, then the matching value's main concept. Minor concepts are qualifiers; conflicting or missing main concepts report ambiguous registry data. Value text is matched locally, never interpolated into SPARQL. CLI: `get-concept-for-permissible-value --data-element-id 2200604 --value Male`.
+- `resolve_stored_value`: required `conceptCode` and `commons`; optional `release` and `dataElementId`. GDC uses exact-code mapset matches and verifies its version; other commons use exact CRDC context membership and value bindings. `dataElementId` restricts CRDC and is explicitly unsupported for GDC. Missing bindings return no values with evidence and coverage zero. CLI: `resolve-stored-value C4817 GDC`.
+- `get_release_alignment`: optional nonnegative `maxIntervalDays` (31). Reads NCIt, both Shared SI graphs and the caDSR export; reports their ISO dates and largest interval, warning strictly above the threshold. TTL 0/public. CLI: `get-release-alignment --max-interval-days 31`.
+
+Cross-domain content uses the call/session NCIt pin when `release` is omitted, with TTL
+0/private. Explicit content has a short public TTL because the joined sources remain
+unpinned. Graph content has no REST fallback that cannot verify its NCIt release.
 
 Matching results, including empty ones, use TTL 0/private. Calls use
 `NCI_SI_MATCH_TIMEOUT_SECONDS` (45 seconds by default); timeouts are errors, never empty

@@ -227,6 +227,29 @@ class EVSClient:
 
         return self.http.url(path, params)
 
+    def get_gdc_mapset(self, release: ReleaseContext) -> dict[str, Any]:
+        """Read the unpinned mapset and verify its self-described release."""
+        data = self._get_existing("/api/v1/mapset/NCIt_Maps_To_GDC")
+        if not isinstance(data, dict) or data.get("code") != "NCIt_Maps_To_GDC":
+            raise EVSResponseError("EVS returned a malformed GDC mapset identity")
+        verify_release([data], release.version)
+        return data
+
+    def get_gdc_maps(self, code: str, offset: int = 0) -> tuple[list[dict[str, Any]], int]:
+        """Read one ten-row term-search page; callers must filter exact source codes."""
+        data = self._get_existing(
+            "/api/v1/mapset/NCIt_Maps_To_GDC/maps",
+            {"term": code, "fromRecord": offset, "pageSize": 10},
+        )
+        if not isinstance(data, dict):
+            raise EVSResponseError("EVS returned a malformed GDC mapping page")
+        total = data.get("total")
+        # The recorded no-match answer omits maps and explicitly declares total zero.
+        rows = _object_list(data.get("maps", [] if total == 0 else None), "GDC maps")
+        if type(total) is not int or total < 0 or len(rows) != min(10, max(0, total - offset)):
+            raise EVSResponseError("EVS returned an incomplete GDC mapping page")
+        return rows, total
+
     def _get_json(
         self,
         path: str,

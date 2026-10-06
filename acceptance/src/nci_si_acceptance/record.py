@@ -320,7 +320,11 @@ def _derived(entry: dict[str, Any], source: dict[str, Any]) -> dict[str, Any]:
     """A crafted fixture: the request a requirement prescribes, a recording's answer."""
 
     path, params = _split(entry["path"])
-    request: dict[str, Any] = {"surface": source["request"]["surface"], "method": "GET"}
+    request: dict[str, Any] = {
+        "surface": source["request"]["surface"],
+        "method": entry.get("method", "GET"),
+    }
+    request.update({key: entry[key] for key in ("headers", "form") if key in entry})
     request["path"] = path
     if params:
         request["params"] = params

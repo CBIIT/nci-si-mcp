@@ -58,9 +58,10 @@ def select_cache_hint(
 
 
 @contextmanager
-def invocation_policy(*, resolution: bool) -> Iterator[None]:
-    """Select the registry policy, also for CLI calls with no protocol middleware."""
+def invocation_policy(*, resolution: bool | None) -> Iterator[None]:
+    """Open a cache scope; None leaves policy entirely to the handler."""
 
     with cache_call() if _decision.get(None) is None else nullcontext():
-        select_cache_hint(resolution=resolution)
+        if resolution is not None:
+            select_cache_hint(resolution=resolution)
         yield

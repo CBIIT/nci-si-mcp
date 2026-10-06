@@ -1,6 +1,7 @@
 """POST and explicit export text use the existing bounded, audited HTTP path."""
 
 import json
+from urllib.parse import parse_qs
 
 from nci_si_mcp.errors import PlatformError, correlated
 from nci_si_mcp.http_client import (
@@ -12,6 +13,58 @@ from test_http_client import Reply, ServerTestCase
 
 
 class HttpContentTest(ServerTestCase):
+    def test_form_retries_preserve_encoding_headers_and_request_accounting(self):
+        server = self.serve(Reply(503), Reply(body=b'{"results": {"bindings": []}}'))
+        client = self.client(server)
+        records = []
+        client.on_request = records.append
+        query = 'SELECT ?x WHERE { ?x ?p "alpha & beta / λ + %" } LIMIT 2'
+        with correlated("form-call"):
+            result = client.post_form(
+                "/sparql", {"query": query}, accept="application/sparql-results+json"
+            )
+        self.assertEqual(result, {"results": {"bindings": []}})
+        self.assertEqual(server.bodies[0], server.bodies[1])
+        self.assertEqual(parse_qs(server.bodies[0].decode()), {"query": [query]})
+        self.assertEqual([(r.method, r.attempt) for r in records], [("POST", 1), ("POST", 2)])
+        for _, headers in server.seen:
+            self.assertEqual(headers["content-type"], "application/x-www-form-urlencoded")
+            self.assertEqual(headers["accept"], "application/sparql-results+json")
+            self.assertEqual(headers["x-correlation-id"], "form-call")
+
+    def test_form_redirect_never_forwards_credentials_or_changes_method(self):
+        target = self.serve(Reply(body=b"{}"))
+        for location in ("/other", target.url + "/other"):
+            with self.subTest(location=location):
+                server = self.serve(Reply(302, headers={"Location": location}))
+                client = self.client(server)
+                client.credentials = {"Authorization": "fixture-only"}
+                with self.assertRaises(UpstreamRejectedError) as raised:
+                    client.post_form(
+                        "/sparql",
+                        {"query": "SELECT * {} LIMIT 2"},
+                        accept="application/sparql-results+json",
+                    )
+                self.assertEqual(raised.exception.details["status"], 302)
+                self.assertEqual(len(server.bodies), 1)
+                self.assertEqual(target.seen, [])
+
+    def test_form_responses_keep_the_size_bound_and_masked_errors(self):
+        for reply, error in (
+            (Reply(body=b"x" * 1001), UpstreamTooLargeError),
+            (Reply(body=b'{"apiResponse":{"type":"E"}}'), PlatformError),
+        ):
+            with self.subTest(error=error):
+                server = self.serve(reply)
+                with self.assertRaises(error) as raised:
+                    self.client(server).post_form(
+                        "/sparql",
+                        {"query": "SELECT * {} LIMIT 2"},
+                        accept="application/sparql-results+json",
+                    )
+                self.assertTrue(raised.exception.details)
+                self.assertEqual(len(server.bodies), 1)
+
     def test_post_redirect_never_changes_the_method_or_resubmits_the_body(self):
         for status in (301, 302, 303, 307, 308):
             with self.subTest(status=status):

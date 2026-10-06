@@ -9,7 +9,7 @@ from dataclasses import asdict, dataclass, field, make_dataclass
 from inspect import Parameter, Signature, getdoc, signature
 from typing import Any, Literal, get_args, get_origin, get_type_hints, is_typeddict
 
-from . import cadsr_content, cadsr_matching, content, handlers
+from . import cadsr_content, cadsr_matching, content, handlers, seam
 from .audit import AuditClass, audited, secrets
 from .caching import invocation_policy
 from .context import Context
@@ -27,6 +27,7 @@ from .results import (
     DataElement,
     DataElementMatches,
     DataElementSearch,
+    DataElementUses,
     ErrorResult,
     Form,
     Hierarchy,
@@ -34,12 +35,15 @@ from .results import (
     MappingsResult,
     Neighborhood,
     PermissibleValue,
+    PermissibleValueConcept,
     RegistryReleaseResult,
     RelationshipsResult,
+    ReleaseAlignment,
     ReleaseResult,
     ResolvedReleaseResult,
     RetiredCode,
     SearchResult,
+    StoredValuesResult,
     SubsetsResult,
     TerminologiesResult,
     TraversalResult,
@@ -55,7 +59,8 @@ class ToolSpec:
     handler: Callable[..., dict[str, Any]]
     group: str
     output: Any
-    resolution: bool
+    # None means the handler supplies the whole policy, without a registry default.
+    resolution: bool | None = None
     name: str | None = None
     command: str | None = None
     uri: str | None = None
@@ -109,6 +114,56 @@ def _input_field(parameter: Parameter) -> tuple:
 
 
 SPECS = (
+    ToolSpec(
+        seam.resolve_stored_value,
+        "cross-domain",
+        StoredValuesResult | ErrorResult,
+        name="resolve_stored_value",
+        command="resolve-stored-value",
+        audit={
+            "conceptCode": "plain",
+            "commons": "hash",
+            "release": "plain",
+            "dataElementId": "plain",
+        },
+    ),
+    ToolSpec(
+        seam.get_release_alignment,
+        "cross-domain",
+        ReleaseAlignment | ErrorResult,
+        name="get_release_alignment",
+        command="get-release-alignment",
+        audit={"maxIntervalDays": "plain"},
+    ),
+    ToolSpec(
+        seam.find_data_elements_for_concept,
+        "cross-domain",
+        DataElementUses | ErrorResult,
+        name="find_data_elements_for_concept",
+        command="find-data-elements-for-concept",
+        audit={
+            "conceptCode": "plain",
+            "terminology": "plain",
+            "release": "plain",
+            "expandDescendants": "plain",
+            "includePermissibleValues": "plain",
+            "limit": "plain",
+            "cursor": "hash",
+        },
+    ),
+    ToolSpec(
+        seam.get_concept_for_permissible_value,
+        "cross-domain",
+        PermissibleValueConcept | ErrorResult,
+        name="get_concept_for_permissible_value",
+        command="get-concept-for-permissible-value",
+        audit={
+            "permissibleValueId": "plain",
+            "dataElementId": "plain",
+            "value": "hash",
+            "release": "plain",
+        },
+    ),
     ToolSpec(
         cadsr_content.get_form,
         "cadsr",

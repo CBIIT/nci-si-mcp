@@ -157,7 +157,12 @@ class LiveSearchTest(ServerFixture):
         )
 
     def test_lexical_pages_preserve_order_highlights_and_stop_at_the_last_page(self):
-        first = concept("C2", active=True, highlight="<em>kinase</em> & text")
+        first = concept(
+            "C2",
+            active=True,
+            highlight="<em>kinase</em> & text",
+            synonyms=[{"name": "Protein kinase", "source": "NCI"}],
+        )
         second = concept("C1", active=False, conceptStatus="Retired_Concept")
         with self.replies(
             [{"total": 2, "concepts": [first]}, {"total": 2, "concepts": [second]}]
@@ -166,6 +171,11 @@ class LiveSearchTest(ServerFixture):
             last = self.search(limit=1, cursor=page["nextCursor"])
         self.assertEqual([p["results"][0]["concept"]["code"] for p in (page, last)], ["C2", "C1"])
         self.assertEqual(page["results"][0]["matchedOn"], first["highlight"])
+        self.assertTrue(
+            {"synonyms", "definitions", "properties", "semanticType"}.isdisjoint(
+                page["results"][0]["concept"]
+            )
+        )
         self.assertNotIn("score", page["results"][0])
         self.assertNotIn("matchedOn", last["results"][0])
         self.assertNotIn("nextCursor", last)
