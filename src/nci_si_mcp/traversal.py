@@ -307,7 +307,6 @@ class _Walk:
     )
     # Insertion order is the chronology of unresolved omissions. Four-part keys
     # identify dropped edges; one-part keys identify a kind whose lists went unread.
-    # An empty kind records incomplete concept fetching independently of relation lists.
     bounds_reached: dict[tuple[str, ...], str] = field(default_factory=dict)
     # Descendants of the start codes by level; level n is emitted with the
     # other edges that reach depth n.
@@ -485,8 +484,6 @@ class _Walk:
             self._checked_chunk(found, missing, oversized, depth, kinds)
             concepts.update(found)
         if self.budget.exhausted:
-            # Missing start nodes truncate the graph even when no relation kind is read.
-            self.bounds_reached.setdefault(("",), "requests")
             self._mark_unread(kinds, "requests")
         self.concepts.update(_node_payloads(concepts))
         return concepts
