@@ -16,6 +16,11 @@ on:
   # does not fire, the release is lost while main stays green, and only a manual
   # run (or another commit) recovers it.
   workflow_dispatch:
+    inputs:
+      retry_image_tag:
+        description: Existing release tag at main to retry image publication after a failed image job
+        required: false
+        type: string
 
   # zizmor: ignore[dangerous-triggers] the job runs no code from a pull request: it
   # checks out main and releases only the commit that the CI run validated.
@@ -40,6 +45,9 @@ jobs:
        github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      image_tag: ${{ steps.image.outputs.tag }}
+      image_sha: ${{ steps.image.outputs.sha }}
     permissions:
       contents: write  # push the tag and create the GitHub release
     steps:
@@ -106,3 +114,44 @@ jobs:
               echo "No release: no \`feat\`, \`fix\`, \`perf\` or breaking (\`!\`) commit since the last tag."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Select the exact released commit for image publication
+        id: image
+        if: steps.guard.outputs.skip == 'false'
+        env:
+          RELEASED: ${{ steps.release.outputs.released }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RETRY_TAG: ${{ inputs.retry_image_tag }}
+        run: |
+          tag=""
+          if [ "$RELEASED" = "true" ]; then tag="$RELEASE_TAG"; fi
+          if [ -n "$RETRY_TAG" ]; then tag="$RETRY_TAG"; fi
+          if [ -z "$tag" ]; then exit 0; fi
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then exit 1; fi
+          git fetch origin "refs/tags/$tag:refs/tags/$tag"
+          sha="$(git rev-parse "$tag^{commit}")"
+          test "$sha" = "$(git rev-parse HEAD)"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+  image:
+    name: release image
+    needs: release
+    if: needs.release.outputs.image_tag != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ needs.release.outputs.image_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: $/.github/actions/image
+      - name: Publish the verified image and security evidence
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.release.outputs.image_tag }}
+        run: pdm run python scripts/image_publish.py "$RELEASE_TAG"

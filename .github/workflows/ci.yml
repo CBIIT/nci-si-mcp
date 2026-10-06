@@ -16,6 +16,17 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  image:
+    name: container (amd64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: $/.github/actions/image
+
   # The pre-commit hooks, on all files. A commit checks only the files it changes,
   # so this also catches a file that a change elsewhere (a rule, a pin) put in breach.
   quality:

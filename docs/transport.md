@@ -16,7 +16,9 @@ withdrawal of that release asks the caller to start a new session or name a rele
 Route a known `Mcp-Session-Id` to its owning process. Another replica returns HTTP 404 with
 the SDK's `Session not found` error; it does not accept the ID as a new session. Use one
 worker per replica and session affinity when choosing this mode. The SDK expires idle
-sessions after 30 minutes and caps each process at 10,000 sessions. Restarting the process
+sessions after 30 minutes and caps each process at 10,000 sessions (`session_idle_timeout`
+and `max_sessions`, passed explicitly). A client returning after expiry gets HTTP 404.
+Restarting the process
 also loses its sessions. Reinitialize after session loss; the new session can select a newer
 implicit release. There is no distributed session store or transparent session migration.
 
@@ -48,6 +50,8 @@ the configured embedding provider before the HTTP app can serve. If deployment s
 index, set `NCI_SI_HTTP_REQUIRE_INDEX=1`: readiness also requires its active completed build
 and validates compatibility with the runtime embedding provider/model and field-search schema.
 Checks run locally on each readiness probe, so activation or storage failures are reflected.
+The first failing probe and each transition from ready to not ready emit one JSON
+`http_not_ready` diagnostic naming only the error class. Repeated failing probes do not log.
 With the setting at 0, an absent active index permits live tools; indexed tools still fail
 explicitly when unavailable. An existing active build is always verified. Readiness does not
 claim that upstream services are currently reachable.

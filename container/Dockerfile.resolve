@@ -1,0 +1,6 @@
+# Regenerate on Linux amd64, with the same Python as the dependency builder.
+FROM docker.io/library/python@sha256:f85c5697265c178cc6887276c55fe16cf3d14ca35c3df6a5eab3b360534a55d2 AS resolve
+COPY constraints.txt roots.txt /build/
+RUN python -m pip install --dry-run --ignore-installed --only-binary=:all: --report /resolution.json -r /build/roots.txt -c /build/constraints.txt
+FROM scratch AS report
+COPY --from=resolve /resolution.json /resolution.json

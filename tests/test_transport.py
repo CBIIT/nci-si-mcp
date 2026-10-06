@@ -244,6 +244,31 @@ class HTTPTest(ServerFixture):
         self.assertEqual(corrupt.json(), {"status": "not_ready"})
         self.assertEqual(self.evs.calls, [])
 
+    def test_readiness_logs_only_failure_transitions_without_exception_messages(self):
+        settings = replace(self.settings, http_require_index=1)
+
+        async def scenario():
+            async with http_app(settings, self.context) as client:
+                missing = await client.get("/ready")
+                await client.get("/ready")
+                invoke(self.context, "index_codes", ["C3262"])
+                recovered = await client.get("/ready")
+                self.context.embedding_provider = HashingEmbeddingProvider(32)
+                incompatible = await client.get("/ready")
+                await client.get("/ready")
+                return [r.status_code for r in (missing, recovered, incompatible)]
+
+        logging.disable(logging.NOTSET)
+        with self.assertLogs("nci_si_mcp.transport", level="WARNING") as logs:
+            self.assertEqual(asyncio.run(scenario()), [503, 200, 503])
+        records = [json.loads(JsonFormatter().format(record)) for record in logs.records]
+        self.assertEqual(len(records), 2)
+        self.assertEqual(
+            [record["errorType"] for record in records],
+            ["NoActiveIndexError", "IndexCompatibilityError"],
+        )
+        self.assertNotIn(str(self.context.index.db_path), json.dumps(records))
+
     def test_host_and_origin_allow_lists_cover_health_and_mcp_even_on_wildcard_bind(self):
         settings = replace(self.settings, http_host="0.0.0.0")  # noqa: S104 - ASGI test, no socket
 
