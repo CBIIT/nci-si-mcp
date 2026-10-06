@@ -1,0 +1,105 @@
+{
+  "version": "test-only-ncit-v1",
+  "queries": [
+    {
+      "query": "kinase inhibition",
+      "category": "furnished",
+      "expected_codes": [
+        "C40704",
+        "C116938"
+      ]
+    },
+    {
+      "query": "tumor",
+      "category": "furnished",
+      "expected_codes": [
+        "C3262"
+      ]
+    },
+    {
+      "query": "neoplasm",
+      "category": "furnished",
+      "expected_codes": [
+        "C3262"
+      ]
+    },
+    {
+      "query": "Ewing Sarcoma",
+      "category": "preferred-name",
+      "expected_codes": [
+        "C4817"
+      ]
+    },
+    {
+      "query": "Disease or Disorder",
+      "category": "preferred-name",
+      "expected_codes": [
+        "C2991"
+      ]
+    },
+    {
+      "query": "Anemia",
+      "category": "preferred-name",
+      "expected_codes": [
+        "C2869"
+      ]
+    },
+    {
+      "query": "Fever",
+      "category": "preferred-name",
+      "expected_codes": [
+        "C3038"
+      ]
+    },
+    {
+      "query": "CDK4/6 Inhibition",
+      "category": "preferred-name",
+      "expected_codes": [
+        "C116938"
+      ]
+    },
+    {
+      "query": "Ewing tumor",
+      "category": "synonym",
+      "expected_codes": [
+        "C4817"
+      ]
+    },
+    {
+      "query": "Decreased blood erythrocyte volume",
+      "category": "synonym",
+      "expected_codes": [
+        "C2869"
+      ]
+    },
+    {
+      "query": "Pyrexia",
+      "category": "synonym",
+      "expected_codes": [
+        "C3038"
+      ]
+    },
+    {
+      "query": "Tyrosine Kinase Receptor Inhibition",
+      "category": "synonym",
+      "expected_codes": [
+        "C40704"
+      ]
+    }
+  ],
+  "thresholds": {
+    "semantic": {
+      "hit_at_5": 0.8333333333333334,
+      "mrr_at_10": 0.8
+    },
+    "hybrid": {
+      "hit_at_5": 0.8333333333333334,
+      "mrr_at_10": 0.8
+    }
+  },
+  "embedding_provider": "hashing",
+  "embedding_model": "hashing-128",
+  "release": "26.09d",
+  "test_only": true,
+  "embedding_dimensions": 128
+}

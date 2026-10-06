@@ -1,0 +1,652 @@
+{
+  "manifest": {
+    "terminology": "ncit",
+    "release_version": "26.09d",
+    "release_date": null,
+    "embedding_provider": "sentence-transformers",
+    "embedding_model": "cambridgeltl/SapBERT-from-PubMedBERT-fulltext",
+    "concept_count": 146,
+    "built_at": "2026-10-05T22:29:10.751736Z",
+    "embedding_dimensions": 768,
+    "active": false,
+    "build_id": "54041996a64c4fd9a290715c9414ac31",
+    "needs_rebuild": false,
+    "evaluation_version": null,
+    "evaluation_score": null
+  },
+  "corpus_sha256": "a5c52fe1d1b8e22b1c2df5e1795d517085ff0258c4d849f6a02df872708ab5f5",
+  "queries": [
+    {
+      "query": "kinase inhibition",
+      "expected_codes": [
+        "C40704",
+        "C116938"
+      ],
+      "category": "furnished",
+      "modes": {
+        "bm25": {
+          "ranked_codes": [
+            "C40704",
+            "C116938"
+          ],
+          "first_expected_rank": 1
+        },
+        "vector": {
+          "ranked_codes": [
+            "C40704",
+            "C116938",
+            "C36184",
+            "C97482",
+            "C20139",
+            "C41259",
+            "C12922",
+            "C91852",
+            "C21050",
+            "C126659"
+          ],
+          "first_expected_rank": 1
+        },
+        "hybrid": {
+          "ranked_codes": [
+            "C40704",
+            "C116938",
+            "C36184",
+            "C97482",
+            "C20139",
+            "C41259",
+            "C12922",
+            "C91852",
+            "C21050",
+            "C126659"
+          ],
+          "first_expected_rank": 1
+        }
+      }
+    },
+    {
+      "query": "tumor",
+      "expected_codes": [
+        "C3262"
+      ],
+      "category": "furnished",
+      "modes": {
+        "bm25": {
+          "ranked_codes": [
+            "C12922",
+            "C177615",
+            "C4817",
+            "C9292",
+            "C12917",
+            "C36122",
+            "C9118",
+            "C172980",
+            "C174456",
+            "C4835"
+          ],
+          "first_expected_rank": null
+        },
+        "vector": {
+          "ranked_codes": [
+            "C3262",
+            "C3263",
+            "C12922",
+            "C177615",
+            "C9305",
+            "C12917",
+            "C9292",
+            "C7062",
+            "C36779",
+            "C9118"
+          ],
+          "first_expected_rank": 1
+        },
+        "hybrid": {
+          "ranked_codes": [
+            "C12922",
+            "C177615",
+            "C9292",
+            "C12917",
+            "C36122",
+            "C9118",
+            "C4817",
+            "C172980",
+            "C4835",
+            "C174456"
+          ],
+          "first_expected_rank": null
+        }
+      }
+    },
+    {
+      "query": "neoplasm",
+      "expected_codes": [
+        "C3262"
+      ],
+      "category": "furnished",
+      "modes": {
+        "bm25": {
+          "ranked_codes": [
+            "C3262",
+            "C3264",
+            "C9292",
+            "C9305",
+            "C3263",
+            "C126659",
+            "C7062",
+            "C3810",
+            "C9118",
+            "C4817"
+          ],
+          "first_expected_rank": 1
+        },
+        "vector": {
+          "ranked_codes": [
+            "C3262",
+            "C3263",
+            "C7062",
+            "C9305",
+            "C12922",
+            "C9292",
+            "C12917",
+            "C9118",
+            "C177615",
+            "C36779"
+          ],
+          "first_expected_rank": 1
+        },
+        "hybrid": {
+          "ranked_codes": [
+            "C3262",
+            "C9305",
+            "C3263",
+            "C9292",
+            "C7062",
+            "C3264",
+            "C126659",
+            "C3810",
+            "C9118",
+            "C4817"
+          ],
+          "first_expected_rank": 1
+        }
+      }
+    },
+    {
+      "query": "Ewing Sarcoma",
+      "expected_codes": [
+        "C4817"
+      ],
+      "category": "preferred-name",
+      "modes": {
+        "bm25": {
+          "ranked_codes": [
+            "C4817",
+            "C132849",
+            "C142853",
+            "C174456",
+            "C189002",
+            "C4835",
+            "C7135",
+            "C7806",
+            "C7807",
+            "C7808"
+          ],
+          "first_expected_rank": 1
+        },
+        "vector": {
+          "ranked_codes": [
+            "C4817",
+            "C4835",
+            "C27291",
+            "C189002",
+            "C7135",
+            "C174456",
+            "C7806",
+            "C202904",
+            "C7807",
+            "C18322"
+          ],
+          "first_expected_rank": 1
+        },
+        "hybrid": {
+          "ranked_codes": [
+            "C4817",
+            "C4835",
+            "C189002",
+            "C7135",
+            "C174456",
+            "C7806",
+            "C27291",
+            "C7807",
+            "C132849",
+            "C7808"
+          ],
+          "first_expected_rank": 1
+        }
+      }
+    },
+    {
+      "query": "Disease or Disorder",
+      "expected_codes": [
+        "C2991"
+      ],
+      "category": "preferred-name",
+      "modes": {
+        "bm25": {
+          "ranked_codes": [
+            "C2991",
+            "C7057",
+            "C27551",
+            "C27574",
+            "C118168",
+            "C165258",
+            "C138188",
+            "C138190",
+            "C3038",
+            "C41259"
+          ],
+          "first_expected_rank": 1
+        },
+        "vector": {
+          "ranked_codes": [
+            "C2991",
+            "C7057",
+            "C27551",
+            "C3262",
+            "C27574",
+            "C118168",
+            "C165258",
+            "C7062",
+            "C3038",
+            "C177621"
+          ],
+          "first_expected_rank": 1
+        },
+        "hybrid": {
+          "ranked_codes": [
+            "C2991",
+            "C7057",
+            "C27551",
+            "C27574",
+            "C118168",
+            "C165258",
+            "C138188",
+            "C138190",
+            "C12922",
+            "C32725"
+          ],
+          "first_expected_rank": 1
+        }
+      }
+    },
+    {
+      "query": "Anemia",
+      "expected_codes": [
+        "C2869"
+      ],
+      "category": "preferred-name",
+      "modes": {
+        "bm25": {
+          "ranked_codes": [
+            "C2869",
+            "C4835"
+          ],
+          "first_expected_rank": 1
+        },
+        "vector": {
+          "ranked_codes": [
+            "C2869",
+            "C32725",
+            "C227412",
+            "C35380",
+            "C13206",
+            "C18322",
+            "C18321",
+            "C41259",
+            "C178487",
+            "C3038"
+          ],
+          "first_expected_rank": 1
+        },
+        "hybrid": {
+          "ranked_codes": [
+            "C2869",
+            "C32725",
+            "C227412",
+            "C35380",
+            "C13206",
+            "C18322",
+            "C18321",
+            "C41259",
+            "C178487",
+            "C3038"
+          ],
+          "first_expected_rank": 1
+        }
+      }
+    },
+    {
+      "query": "Fever",
+      "expected_codes": [
+        "C3038"
+      ],
+      "category": "preferred-name",
+      "modes": {
+        "bm25": {
+          "ranked_codes": [
+            "C3038",
+            "C4835"
+          ],
+          "first_expected_rank": 1
+        },
+        "vector": {
+          "ranked_codes": [
+            "C3038",
+            "C2991",
+            "C7057",
+            "C118464",
+            "C172980",
+            "C27551",
+            "C36184",
+            "C227412",
+            "C35380",
+            "C189762"
+          ],
+          "first_expected_rank": 1
+        },
+        "hybrid": {
+          "ranked_codes": [
+            "C3038",
+            "C2991",
+            "C7057",
+            "C118464",
+            "C172980",
+            "C27551",
+            "C36184",
+            "C227412",
+            "C35380",
+            "C189762"
+          ],
+          "first_expected_rank": 1
+        }
+      }
+    },
+    {
+      "query": "CDK4/6 Inhibition",
+      "expected_codes": [
+        "C116938"
+      ],
+      "category": "preferred-name",
+      "modes": {
+        "bm25": {
+          "ranked_codes": [
+            "C116938",
+            "C40704",
+            "C3038",
+            "C178488",
+            "C99262",
+            "C99202"
+          ],
+          "first_expected_rank": 1
+        },
+        "vector": {
+          "ranked_codes": [
+            "C116938",
+            "C40704",
+            "C8495",
+            "C97482",
+            "C97876",
+            "C24378",
+            "C18321",
+            "C116977",
+            "C97912",
+            "C172980"
+          ],
+          "first_expected_rank": 1
+        },
+        "hybrid": {
+          "ranked_codes": [
+            "C116938",
+            "C40704",
+            "C8495",
+            "C97482",
+            "C97876",
+            "C24378",
+            "C18321",
+            "C116977",
+            "C97912",
+            "C172980"
+          ],
+          "first_expected_rank": 1
+        }
+      }
+    },
+    {
+      "query": "Ewing tumor",
+      "expected_codes": [
+        "C4817"
+      ],
+      "category": "synonym",
+      "modes": {
+        "bm25": {
+          "ranked_codes": [
+            "C4817",
+            "C174456",
+            "C4835",
+            "C7135",
+            "C7806",
+            "C27291",
+            "C36367",
+            "C12922",
+            "C177615",
+            "C9292"
+          ],
+          "first_expected_rank": 1
+        },
+        "vector": {
+          "ranked_codes": [
+            "C4817",
+            "C27291",
+            "C4835",
+            "C189002",
+            "C7135",
+            "C174456",
+            "C7806",
+            "C202904",
+            "C7807",
+            "C37231"
+          ],
+          "first_expected_rank": 1
+        },
+        "hybrid": {
+          "ranked_codes": [
+            "C4817",
+            "C4835",
+            "C7135",
+            "C174456",
+            "C7806",
+            "C27291",
+            "C36367",
+            "C189002",
+            "C37231",
+            "C37230"
+          ],
+          "first_expected_rank": 1
+        }
+      }
+    },
+    {
+      "query": "Decreased blood erythrocyte volume",
+      "expected_codes": [
+        "C2869"
+      ],
+      "category": "synonym",
+      "modes": {
+        "bm25": {
+          "ranked_codes": [
+            "C2869",
+            "C32725",
+            "C9118",
+            "C41165",
+            "C9292"
+          ],
+          "first_expected_rank": 1
+        },
+        "vector": {
+          "ranked_codes": [
+            "C2869",
+            "C35380",
+            "C227412",
+            "C97482",
+            "C177537",
+            "C53667",
+            "C36184",
+            "C32725",
+            "C12922",
+            "C165258"
+          ],
+          "first_expected_rank": 1
+        },
+        "hybrid": {
+          "ranked_codes": [
+            "C2869",
+            "C32725",
+            "C35380",
+            "C227412",
+            "C97482",
+            "C177537",
+            "C53667",
+            "C36184",
+            "C12922",
+            "C165258"
+          ],
+          "first_expected_rank": 1
+        }
+      }
+    },
+    {
+      "query": "Pyrexia",
+      "expected_codes": [
+        "C3038"
+      ],
+      "category": "synonym",
+      "modes": {
+        "bm25": {
+          "ranked_codes": [
+            "C3038"
+          ],
+          "first_expected_rank": 1
+        },
+        "vector": {
+          "ranked_codes": [
+            "C3038",
+            "C2991",
+            "C189762",
+            "C118464",
+            "C177621",
+            "C168662",
+            "C168658",
+            "C36184",
+            "C4835",
+            "C138190"
+          ],
+          "first_expected_rank": 1
+        },
+        "hybrid": {
+          "ranked_codes": [
+            "C3038",
+            "C2991",
+            "C189762",
+            "C118464",
+            "C177621",
+            "C168662",
+            "C168658",
+            "C36184",
+            "C4835",
+            "C138190"
+          ],
+          "first_expected_rank": 1
+        }
+      }
+    },
+    {
+      "query": "Tyrosine Kinase Receptor Inhibition",
+      "expected_codes": [
+        "C40704"
+      ],
+      "category": "synonym",
+      "modes": {
+        "bm25": {
+          "ranked_codes": [
+            "C40704",
+            "C116938",
+            "C20139"
+          ],
+          "first_expected_rank": 1
+        },
+        "vector": {
+          "ranked_codes": [
+            "C40704",
+            "C116938",
+            "C126659",
+            "C20139",
+            "C172980",
+            "C2869",
+            "C12922",
+            "C18127",
+            "C142853",
+            "C20737"
+          ],
+          "first_expected_rank": 1
+        },
+        "hybrid": {
+          "ranked_codes": [
+            "C40704",
+            "C116938",
+            "C126659",
+            "C20139",
+            "C172980",
+            "C2869",
+            "C12922",
+            "C18127",
+            "C142853",
+            "C20737"
+          ],
+          "first_expected_rank": 1
+        }
+      }
+    }
+  ],
+  "metrics": {
+    "bm25": {
+      "hit_at_1": 0.9166666666666666,
+      "hit_at_5": 0.9166666666666666,
+      "mrr_at_10": 0.9166666666666666
+    },
+    "vector": {
+      "hit_at_1": 1.0,
+      "hit_at_5": 1.0,
+      "mrr_at_10": 1.0
+    },
+    "hybrid": {
+      "hit_at_1": 0.9166666666666666,
+      "hit_at_5": 0.9166666666666666,
+      "mrr_at_10": 0.9166666666666666
+    }
+  },
+  "purpose": "Developer baseline only; not production gate calibration",
+  "model_revision": "090663c3ae57bf35ffe4d0d468a2a88d03051a4d",
+  "source_commit": "78267b479ee6851cfd4776f4870a9568b2a3c0b0",
+  "corpus": "144 acceptance/fixtures/recorded/evs/concepts payloads plus the two pinned EVS reads retained in tests/fixtures/evaluation",
+  "limitations": [
+    "Small sample with incomplete fields; C3262 contains no synonyms",
+    "Engineering judgments pending NCI SME validation",
+    "Production floors must be measured on the full build"
+  ],
+  "runtime": {
+    "python": "3.14.7",
+    "sentence_transformers": "6.1.0",
+    "numpy": "2.5.3",
+    "device": "mps:0"
+  }
+}

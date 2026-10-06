@@ -132,7 +132,7 @@ A code EVS does not know is left out of a batch. Recorded.
 
 | Operation | Request | Expected | Rationale | Fixture |
 |---|---|---|---|---|
-| OP-E07 | `GET evs /api/v1/concept/ncit_26.09d/CBOGUS999999?include=full` | 404 | A code EVS does not know: a batch leaves it out without a signal (E-5). | `scenarios/batch/silent-drop/concepts/CBOGUS999999.json` |
+| OP-E07 | `GET evs /api/v1/concept/ncit_26.09d/C999999999?include=full` | 404 | A code EVS does not know: a batch leaves it out without a signal (E-5). | `scenarios/batch/silent-drop/concepts/C999999999.json` |
 
 ### `retired/with-replacement`
 
@@ -176,7 +176,7 @@ Every upstream request, whatever its surface and path, gets a closed connection,
 
 ### `license/restricted`
 
-403 without the licence key; invented content with it. Recorded. Crafted, 7 fixtures, for A7.5: EVS refuses every request for mdr without the licence key. Crafted, 8 fixtures, for E-7, A7.5: the licence key sent from configuration.
+403 without the licence key; invented content with it. Recorded. Crafted, 10 fixtures, for A7.5: EVS refuses every request for mdr without the licence key. Crafted, 11 fixtures, for E-7, A7.5: the licence key sent from configuration.
 
 | Operation | Request | Expected | Rationale | Fixture |
 |---|---|---|---|---|
@@ -192,4 +192,4 @@ The lexical search for "ewing sarcoma" with Disease or Disorder (C2991) put firs
 
 ### `license/attributed`
 
-The invented licensed content of license/restricted, each concept carrying the terminology's licence text as EVS is asked to send it (#42). Crafted, 8 fixtures, for A7.3, X-19: the licence text given with the content, in `licenseText` on each concept, as asked of EVS (#42).
+The invented licensed content of license/restricted, each concept carrying the terminology's licence text as EVS is asked to send it (#42). Crafted, 11 fixtures, for A7.3, X-19: the licence text given with the content, in `licenseText` on each concept, as asked of EVS (#42).

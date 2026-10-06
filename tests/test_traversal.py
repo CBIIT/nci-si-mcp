@@ -16,6 +16,7 @@ from nci_si_mcp.bounds import (
     clamp_edge_limit,
     clamp_limits,
 )
+from nci_si_mcp.config import DEFAULT_EXCLUSION_ROLE_CODES
 from nci_si_mcp.errors import InputValidationError, correlated
 from nci_si_mcp.evs import EVSNotFoundError, EVSResponseError
 from nci_si_mcp.http_client import UpstreamTooLargeError
@@ -112,12 +113,12 @@ class HubEVS(FakeEVS):
 
     hubs = frozenset()
 
-    def get_concepts_by_codes(self, codes, terminology="ncit", include=""):
+    def get_concepts_by_codes(self, codes, release, include=""):
         codes = list(codes)
         if self.hubs.intersection(codes) and include != "minimal":
-            self._record("get_concepts_by_codes", terminology, codes)
+            self._record("get_concepts_by_codes", release.pinned_terminology, codes)
             raise UpstreamTooLargeError("too large")
-        return super().get_concepts_by_codes(codes, terminology, include)
+        return super().get_concepts_by_codes(codes, release, include)
 
 
 def walk(
@@ -142,6 +143,7 @@ def walk(
         per_kind=budget_per_kind,
         requests=requests,
     )
+    options.setdefault("exclusions", frozenset(DEFAULT_EXCLUSION_ROLE_CODES))
     with budgeted(budget):
         return traverse_ncit(client, list(start_codes), release(), selected, budget, **options)
 
@@ -250,7 +252,7 @@ class TraversalTest(unittest.TestCase):
 
         by_target = {edge.target_code: edge for edge in result.edges}
         self.assertEqual(by_target["C11"].edge_type, "child")
-        self.assertEqual(by_target["C11"].relationship_name, "is_a_child")
+        self.assertEqual(by_target["C11"].relationship_name, "")
         self.assertEqual(by_target["C12"].edge_type, "role")
         self.assertEqual(by_target["C12"].relationship_name, "Disease_Has_Associated_Gene")
         self.assertEqual(by_target["C12"].source_name, "Root")
@@ -323,8 +325,8 @@ class TraversalTest(unittest.TestCase):
         self.assertEqual(
             [(edge.edge_type, edge.relationship_name) for edge in result.edges],
             [
-                ("child", "is_a_child"),
-                ("descendant", "is_a_descendant"),
+                ("child", ""),
+                ("descendant", ""),
                 ("role", "Role_A"),
                 ("role", "Role_B"),
             ],
@@ -458,7 +460,7 @@ class TraversalTest(unittest.TestCase):
     def test_descendant_without_a_usable_level_is_an_evs_fault(self):
         for level in (None, 0, -1, 3, "2", True):
             client = FakeEVS([concept("C1")])
-            client.get_descendants = lambda code, max_level, terminology, level=level: [
+            client.get_descendants = lambda code, max_level, release, level=level: [
                 {"code": "C9", "name": "Concept C9", "level": level}
             ]
             with self.subTest(level=level), self.assertRaises(EVSResponseError):
@@ -707,10 +709,10 @@ class TraversalTest(unittest.TestCase):
 
     def test_oversized_descendants_of_one_start_code_do_not_hide_the_others(self):
         class Hub(FakeEVS):
-            def get_descendants(self, code, max_level, terminology="ncit"):
+            def get_descendants(self, code, max_level, release):
                 if code == "C1":
                     raise UpstreamTooLargeError("too large")
-                return super().get_descendants(code, max_level, terminology)
+                return super().get_descendants(code, max_level, release)
 
         client = Hub([concept("C1"), concept("C2")], descendants={"C2": [descendant("C21", 1)]})
 
@@ -727,10 +729,10 @@ class TraversalTest(unittest.TestCase):
             walk(client, max_depth=1, edge_types=["descendant"])
 
         class RejectsRelations(FakeEVS):
-            def get_concepts_by_codes(self, codes, terminology="ncit", include=""):
+            def get_concepts_by_codes(self, codes, release, include=""):
                 if include != "minimal":
                     raise EVSResponseError("HTTP 400")
-                return super().get_concepts_by_codes(codes, terminology, include)
+                return super().get_concepts_by_codes(codes, release, include)
 
         with self.assertRaises(EVSResponseError):
             walk(RejectsRelations([concept("C1", children=[child("C2")])]), max_depth=1)
@@ -770,7 +772,7 @@ class TraversalTest(unittest.TestCase):
 
         self.assertEqual(result.to_dict()["truncation"], {"occurred": False})
 
-    def test_hierarchy_edges_carry_their_documented_names(self):
+    def test_hierarchy_edges_have_no_invented_names(self):
         result = walk(
             complete_graph(star()),
             direction="both",
@@ -783,30 +785,30 @@ class TraversalTest(unittest.TestCase):
                 (edge.edge_type, edge.relationship_name, edge.target_code) for edge in result.edges
             ),
             [
-                ("child", "is_a_child", "C11"),
-                ("descendant", "is_a_descendant", "C11"),
-                ("parent", "is_a_parent", "C10"),
+                ("child", "", "C11"),
+                ("descendant", "", "C11"),
+                ("parent", "", "C10"),
             ],
         )
         filtered = walk(
-            complete_graph(star()), direction="in", max_depth=1, relationship_names=["IS_A_PARENT"]
+            complete_graph(star()), direction="in", max_depth=1, relationship_names=["Some_Role"]
         )
         self.assertEqual(pairs(filtered), [("C1", "C10")])
 
-    def test_name_filter_applies_to_descendant_edges(self):
+    def test_name_filter_does_not_drop_descendant_edges(self):
         by_role = walk(
             complete_graph(star()),
             max_depth=1,
             edge_types=["descendant", "role"],
             relationship_names=["Disease_Has_Finding"],
         )
-        self.assertEqual(pairs(by_role), [("C1", "C13")])
+        self.assertEqual(pairs(by_role), [("C1", "C11"), ("C1", "C13")])
 
         by_descendant = walk(
             complete_graph(star()),
             max_depth=1,
             edge_types=["descendant", "role"],
-            relationship_names=["is_a_descendant"],
+            relationship_names=["Missing_Role"],
         )
         self.assertEqual(pairs(by_descendant), [("C1", "C11")])
 

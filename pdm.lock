@@ -2,10 +2,10 @@
 # It is not intended for manual editing.
 
 [metadata]
-groups = ["default", "acceptance", "audit", "embeddings", "lint", "server", "test"]
+groups = ["default", "acceptance", "audit", "embeddings", "index", "lint", "server", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.1"
-content_hash = "sha256:b1dcc068cd74e28eb9f787bf74ad05b32b8dc952f84510ead174dfa8d5c0b610"
+content_hash = "sha256:c4252ab9de76773401cec422ba417ed43ad9e309da8c5587f30fc07e982a7aab"
 
 [[metadata.targets]]
 requires_python = ">=3.14"
@@ -1258,7 +1258,7 @@ name = "numpy"
 version = "2.5.3"
 requires_python = ">=3.12"
 summary = "Fundamental package for array computing in Python"
-groups = ["embeddings"]
+groups = ["embeddings", "index"]
 files = [
     {file = "numpy-2.5.3-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:66a78fe4556c60aceda5916f9eacd638b18e9e681016ec302dcb4682d6d4d034"},
     {file = "numpy-2.5.3-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:92f30e89b8ee0ecf363033576c422b2f58fed6a80bed0aa48dff6d14c654663e"},

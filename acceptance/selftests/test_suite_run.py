@@ -300,12 +300,13 @@ def test_parent(tools):
     })
     assert result.tool == "get_concept_hierarchy"
 
-@pytest.mark.tool("get_concept_hierarchy")
-def test_paths_to_root(tools):
-    result = tools.call("get_concept_hierarchy", {
-        "terminology": "ncit", "release": "26.09d", "code": "C3262", "direction": "pathsToRoot"
+@pytest.mark.tool("search_concepts")
+def test_semantic_without_index(tools):
+    result = tools.call("search_concepts", {
+        "terminology": "ncit", "release": "26.09d", "query": "neoplasm", "mode": "semantic"
     })
     assert result.is_error
+    assert result.content["error"]["code"] == "capability_unavailable"
 """
     result = run(suite, test, "--report=report.json")
 
@@ -316,8 +317,9 @@ def test_paths_to_root(tools):
         tools["get_concept_hierarchy"]["counts"],
     ) == (
         "PASS",
-        {"passed": 2},
+        {"passed": 1},
     )
+    assert tools["search_concepts"]["counts"] == {"passed": 1}
     implemented = {
         name: row["implemented_as"] for name, row in tools.items() if row["implemented_as"]
     }
@@ -325,6 +327,12 @@ def test_paths_to_root(tools):
         "resolve_release": "resolve_release",
         "list_terminologies": "list_terminologies",
         "get_concept": "get_concept",
+        "get_concepts": "get_concepts",
+        "list_relationships": "list_relationships",
+        "resolve_retired_code": "resolve_retired_code",
+        "get_concept_subsets": "get_concept_subsets",
+        "expand_value_set": "expand_value_set",
+        "get_concept_mappings": "get_concept_mappings",
         "search_concepts": "search_concepts",
         "get_concept_hierarchy": "get_concept_hierarchy",
         "get_concept_neighborhood": "get_concept_neighborhood",

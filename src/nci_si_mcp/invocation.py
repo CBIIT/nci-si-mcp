@@ -13,6 +13,8 @@ from .bounds import (
 from .errors import (
     ErrorCode,
     IndexCompatibilityError,
+    IndexEvaluationError,
+    IndexStateError,
     IndexStorageError,
     InputValidationError,
     NoActiveIndexError,
@@ -77,9 +79,18 @@ _ERROR_CODES: dict[type[Exception], tuple[ErrorCode, str]] = {
         "Retry later; no registry state is used without usable metadata.",
     ),
     NoActiveIndexError: ("internal_error", "Build the index with `index-sample` first."),
+    IndexEvaluationError: (
+        "internal_error",
+        "Inspect `index-builds` and resolve the reported evaluation problem before retrying.",
+    ),
+    IndexStateError: (
+        "internal_error",
+        "Inspect `index-builds` and retry against an available completed build.",
+    ),
     IndexCompatibilityError: (
         "internal_error",
-        "Rebuild the index with `index-sample`, or use the embedding settings it was built with.",
+        "Use the original embedding settings, or run `index-rebuild` and activate its "
+        "evaluated build with `index-activate`.",
     ),
     IndexStorageError: (
         "internal_error",

@@ -36,9 +36,9 @@ class DepthTruncationTest(unittest.TestCase):
                 concept("C2"),
             ]
         )
-        result = walk(client, max_depth=1, edge_types=["child"], relationship_names=["is_a_child"])
+        result = walk(client, max_depth=1, edge_types=["child"], relationship_names=["Some_Role"])
         self.assertEqual(codes(result), ["C1", "C2"])
-        self.assertEqual([edge.relationship_name for edge in result.edges], ["is_a_child"])
+        self.assertEqual([edge.relationship_name for edge in result.edges], [""])
         self.assertFalse(result.truncation.occurred)
 
     def test_depth_counts_distinct_unseen_targets_and_preserves_kind_counts(self):

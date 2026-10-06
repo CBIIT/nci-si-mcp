@@ -16,6 +16,9 @@ dependencies = []
 server = [
     "mcp>=2.0,<3",
 ]
+index = [
+    "numpy>=2.5,<3",
+]
 embeddings = [
     "sentence-transformers>=3.0.0",
 ]
@@ -53,12 +56,12 @@ acceptance = [
     "-e file:///${PROJECT_ROOT}/acceptance#egg=nci-si-acceptance",
 ]
 
-# `pdm install` and `pdm sync` always include the server extra, which the server
-# tests need, and never the embeddings extra unless it is named. `pdm lock`
+# `pdm install` and `pdm sync` include the server and index extras used by the
+# offline tests, but never the embeddings extra unless it is named. `pdm lock`
 # covers every group.
 [tool.pdm.options]
-install = ["-G", "server"]
-sync = ["-G", "server"]
+install = ["-G", "server", "-G", "index"]
+sync = ["-G", "server", "-G", "index"]
 lock = ["-G", ":all"]
 
 # The version is the nearest `vX.Y.Z` tag, or a development version after it.
@@ -166,6 +169,7 @@ ignore = [
 # Optional extras (mcp, sentence-transformers) are imported where they are first needed.
 "src/nci_si_mcp/embeddings.py" = ["PLC0415"]
 "src/nci_si_mcp/server.py" = ["PLC0415"]
+"src/nci_si_mcp/index_scoring.py" = ["PLC0415"]
 # The gate scripts report on the terminal.
 "scripts/**/*.py" = ["T20"]
 # The acceptance suite is written in pytest's style, which asserts with `assert`.
@@ -182,8 +186,10 @@ min_confidence = 60
 ignore_decorators = ["@mcp.tool", "@tool", "@mcp.resource", "@resource", "@pytest.fixture"]
 ignore_names = [
     "row_factory", "built_at", "index_path", "state",
-    "correlationId", "servedBy", "retrievedAt", "sourceUri", "perKind",
+    "evaluation_version", "evaluation_score", "synonyms", "matchedOn", "totalKnown", "builtAt",
+    "correlationId", "servedBy", "retrievedAt", "sourceUri", "perKind", "nextCursor",
     "semanticType", "sourceCode", "sourceTerminology", "targetCode", "targetTerminology",
+    "targetName", "targetTermType", "targetTerminologyVersion",
     "active_index_compatible", "evs_api", "selected_release", "active_index",
     "__annotations__",
     "pytest_*", "do_*", "log_message", "close_connection",

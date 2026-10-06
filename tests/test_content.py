@@ -2,15 +2,30 @@ from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
 
-from fakes import concept, release
+from fakes import catalogue_rows, concept, release
 from nci_si_mcp.bounds import Budget, current_budget
-from nci_si_mcp.models import Truncation
+from nci_si_mcp.evs import EVSClient
 from nci_si_mcp.registry import invoke
 from test_bounds import BudgetHub
 from test_server import ServerFixture
 
 
 class ContentTest(ServerFixture):
+    def test_neighborhood_preserves_supplied_edge_attribution(self):
+        edge = self.evs.concepts["C1"]["children"][0]
+        edge["licenseText"] = "Platform edge licence"
+        result = self.content("get_concept_neighborhood", code="C1", kinds=["child"])
+        self.assertEqual(result["edges"][0]["provenance"]["attribution"], "Platform edge licence")
+        target = next(node for node in result["nodes"] if node["code"] == "C2")
+        self.assertNotIn("attribution", target["provenance"])
+        self.evs.concepts["C2"]["licenseText"] = "Platform concept licence"
+        result = self.content("get_concept_neighborhood", code="C1", kinds=["child"])
+        target = next(node for node in result["nodes"] if node["code"] == "C2")
+        self.assertEqual(target["provenance"]["attribution"], "Platform concept licence")
+        del edge["licenseText"]
+        result = self.content("get_concept_neighborhood", code="C1", kinds=["child"])
+        self.assertNotIn("attribution", result["edges"][0]["provenance"])
+
     def setUp(self):
         super().setUp()
         self.evs.concepts = {
@@ -92,10 +107,10 @@ class ContentTest(ServerFixture):
                 self.assertEqual(result["error"]["code"], "upstream_unavailable")
                 self.evs.concepts["C1"][field] = original
 
-    def test_unsupported_terminology_is_an_explicit_capability_error(self):
+    def test_an_absent_code_of_another_terminology_is_not_found(self):
         result = invoke(self.context, "get_concept", terminology="other", release="v1", code="X")
-        self.assertEqual(result["error"]["code"], "capability_unavailable")
-        self.assertEqual(self.evs.calls, [])
+        self.assertEqual(result["error"]["code"], "not_found")
+        self.assertEqual(self.evs.calls, [("get_concept", "other_v1", "X")])
 
     def test_required_release_and_wrong_types_are_correlated_protocol_errors(self):
         calls = [
@@ -135,9 +150,7 @@ class ContentTest(ServerFixture):
 
     def test_empty_search_has_provenance_and_detects_a_replaced_index(self):
         self.index()
-        with patch.object(
-            self.context.index, "search_with_truncation", return_value=([], Truncation(False))
-        ):
+        with patch("nci_si_mcp.index.rank_page", return_value=([], 0)):
             result = self.content("search_concepts", query="No match", mode="semantic")
             self.assertEqual(result["results"], [])
             self.assertEqual(result["provenance"]["release"]["identifier"], "26.06e")
@@ -147,7 +160,7 @@ class ContentTest(ServerFixture):
             )
             result = self.content("search_concepts", query="No match", mode="semantic")
             self.assertEqual(result["error"]["code"], "release_mismatch")
-            with patch.object(self.context.index, "get_active_manifest", return_value=None):
+            with patch.object(self.context.index, "_active_manifest", return_value=None):
                 result = self.content("search_concepts", query="No match", mode="semantic")
                 self.assertEqual(result["error"]["code"], "capability_unavailable")
 
@@ -161,22 +174,11 @@ class ContentTest(ServerFixture):
 
     def test_hierarchy_needing_a_second_page_does_not_claim_completion(self):
         self.evs.concepts["C1"]["children"].append({"code": "C3", "name": "Three"})
+        self.evs.concepts["C3"] = concept("C3", active=True)
         result = self.content("get_concept_hierarchy", code="C1", direction="child", limit=1)
-        self.assertEqual(result["error"]["code"], "capability_unavailable")
-        self.assertEqual(result["error"]["details"], {"capability": "hierarchy paging"})
-
-    def test_hierarchy_maximum_page_excludes_seed_from_its_allowance(self):
-        children = [{"code": f"C{i}", "name": str(i)} for i in range(2, 1002)]
-        self.evs.concepts = {item["code"]: concept(item["code"], active=True) for item in children}
-        self.evs.concepts["C1"] = concept("C1", active=True, children=children)
-        result = self.content("get_concept_hierarchy", code="C1", direction="child", limit=1000)
-        self.assertEqual(
-            {node["code"] for node in result["nodes"]}, set(self.evs.concepts) - {"C1"}
-        )
+        self.assertEqual([node["code"] for node in result["nodes"]], ["C2"])
+        self.assertIn("nextCursor", result)
         self.assertEqual(result["truncation"], {"occurred": False})
-        children.append({"code": "C1002", "name": "Extra"})
-        result = self.content("get_concept_hierarchy", code="C1", direction="child", limit=1000)
-        self.assertEqual(result["error"]["details"], {"capability": "hierarchy paging"})
 
     def test_hierarchy_shared_descendants_do_not_consume_a_hidden_edge_limit(self):
         middle = [{"code": f"C{i}", "name": str(i)} for i in range(2, 36)]
@@ -197,20 +199,21 @@ class ContentTest(ServerFixture):
         )
         self.assertEqual(result["truncation"], {"occurred": False})
 
-    def test_hierarchy_refuses_paging_even_when_an_earlier_bound_wins(self):
+    def test_hierarchy_paging_retains_an_earlier_upstream_bound(self):
         self.context.evs = BudgetHub(
             [
                 concept("C1", active=True, children=[{"code": "C2"}, {"code": "C3"}]),
                 concept("C2", active=True),
                 concept("C3", active=True, children=[{"code": "C4"}, {"code": "C5"}]),
                 concept("C4", active=True),
+                concept("C5", active=True),
             ]
         )
         result = self.content(
             "get_concept_hierarchy", code="C1", direction="child", depth=2, limit=3
         )
-        self.assertEqual(result["error"]["code"], "capability_unavailable")
-        self.assertEqual(result["error"]["details"], {"capability": "hierarchy paging"})
+        self.assertIn("nextCursor", result)
+        self.assertEqual(result["truncation"]["bound"], "upstream_cap")
 
     def test_neighborhood_rejects_empty_kinds_and_nonboolean_negative_flag(self):
         for arguments in (
@@ -280,16 +283,17 @@ class ContentTest(ServerFixture):
         )
         self.assertEqual(self.evs.calls, [])
 
-    def test_search_refuses_unimplemented_options_and_invalid_inputs(self):
+    def test_search_requires_an_index_and_valid_inputs(self):
+        for mode in ("semantic", "hybrid"):
+            result = self.content("search_concepts", query="One", mode=mode)
+            self.assertEqual(result["error"]["code"], "capability_unavailable")
         for arguments in (
-            {},
-            {"mode": "typeahead"},
+            {"limit": 0},
+            {"retired": "exclude"},
+            {"mode": "bm25"},
             {"mode": "hybrid", "cursor": ""},
             {"mode": "semantic", "retired": "only"},
         ):
-            result = self.content("search_concepts", query="One", **arguments)
-            self.assertEqual(result["error"]["code"], "capability_unavailable")
-        for arguments in ({"limit": 0}, {"retired": "exclude"}, {"mode": "bm25"}):
             result = self.content("search_concepts", query="One", **arguments)
             self.assertEqual(result["error"]["code"], "invalid_request")
         result = self.content("search_concepts", query=" ", mode="semantic")
@@ -319,6 +323,7 @@ class ContentTest(ServerFixture):
 
     def test_status_fetch_after_an_edge_stop_rejects_missing_or_wrong_release_nodes(self):
         root = dict(self.evs.concepts["C1"], children=[{"code": "C2"}, {"code": "C3"}])
+        client = EVSClient("https://example.invalid")
         for answer, expected in (
             ([], "upstream_unavailable"),
             ([concept("C9")], "upstream_unavailable"),
@@ -326,7 +331,17 @@ class ContentTest(ServerFixture):
         ):
             with (
                 self.subTest(expected=expected),
-                patch.object(self.evs, "get_concepts_by_codes", side_effect=[[root], answer]),
+                patch.object(self.context, "evs", client),
+                patch.object(
+                    client,
+                    "_get_existing",
+                    side_effect=[
+                        catalogue_rows("role"),
+                        catalogue_rows("association"),
+                        [root],
+                        answer,
+                    ],
+                ),
             ):
                 result = self.content(
                     "get_concept_neighborhood", code="C1", kinds=["child"], depth=1, maxEdges=1
@@ -341,12 +356,13 @@ class ContentTest(ServerFixture):
         )
         self.assertEqual(result["edges"][0]["provenance"]["relationship"], {"kind": "child"})
 
-    def test_inverse_assertions_reverse_endpoints_and_negative_walk_requires_opt_in(self):
+    def test_inverse_negative_assertions_are_returned_with_reversed_endpoints(self):
         self.evs.concepts["C1"]["inverseRoles"] = [
             {"code": "R135", "type": "Exclusion", "relatedCode": "C2", "relatedName": "Two"}
         ]
-        refused = self.content("get_concept_neighborhood", code="C1", kinds=["inverseRole"])
-        self.assertEqual(refused["error"]["code"], "capability_unavailable")
+        stopped = self.content("get_concept_neighborhood", code="C1", kinds=["inverseRole"])
+        self.assertEqual({node["code"] for node in stopped["nodes"]}, {"C1", "C2"})
+        self.assertEqual(stopped["truncation"], {"occurred": False})
         result = self.content(
             "get_concept_neighborhood", code="C1", kinds=["inverseRole"], includeNegative=True
         )
@@ -430,11 +446,6 @@ class ContentTest(ServerFixture):
         self.assertEqual(result["truncation"]["perKind"]["role"]["bound"], "requests")
         self.assertEqual(result["truncation"]["perKind"]["role"]["omitted"], 1)
         self.assertEqual(result["truncation"]["perKind"]["association"], {"occurred": False})
-
-    def test_paging_and_paths_are_explicitly_unavailable(self):
-        for arguments in ({"direction": "pathsToRoot"}, {"direction": "child", "cursor": "x"}):
-            result = self.content("get_concept_hierarchy", code="C1", **arguments)
-            self.assertEqual(result["error"]["code"], "capability_unavailable")
 
     def test_output_schemas_describe_success_and_failure(self):
         self.index()

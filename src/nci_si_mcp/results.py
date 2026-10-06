@@ -11,7 +11,9 @@ from typing import Any, Literal, NotRequired, TypedDict
 from .errors import ErrorCode
 from .validation import (
     EdgeType,
+    Polarity,
     ProvenanceSource,
+    RelationshipKind,
     ReleaseChannel,
     SearchMode,
     ServedBy,
@@ -44,6 +46,7 @@ class Provenance(TypedDict):
     correlationId: str
     sourceUri: NotRequired[str]
     upstream: NotRequired[dict[str, Any]]
+    attribution: NotRequired[str]
 
 
 class Relationship(TypedDict):
@@ -56,7 +59,9 @@ class TraversalProvenance(Provenance):
     depth: int
     relationship: NotRequired[Relationship]
     direction: NotRequired[Literal["in", "out"]]
-    polarity: NotRequired[Literal["positive", "negative"]]
+    polarity: NotRequired[Polarity]
+    qualifiers: NotRequired[Any]
+    evidence: NotRequired[Any]
 
 
 class Untruncated(TypedDict):
@@ -104,14 +109,94 @@ class Concept(TypedDict):
     semanticType: NotRequired[list[str]]
 
 
+class ConceptBatch(TypedDict):
+    concepts: list[Concept]
+    missing: list[str]
+    provenance: NotRequired[Provenance]
+
+
+class Replacement(TypedDict):
+    code: str
+    terminology: str
+    name: str
+    provenance: Provenance
+
+
+class RetiredCode(TypedDict):
+    code: str
+    terminology: str
+    active: bool
+    status: NotRequired[str]
+    replacements: list[Replacement]
+    provenance: Provenance
+
+
+class Subset(TypedDict):
+    code: str
+    terminology: str
+    name: str
+    provenance: Provenance
+
+
+class SubsetsResult(TypedDict):
+    subsets: list[Subset]
+    provenance: NotRequired[Provenance]
+
+
+class ValueSetMember(TypedDict):
+    code: str
+    terminology: str
+    name: str
+    inactive: NotRequired[Literal[True]]
+    provenance: Provenance
+
+
+class ValueSetExpansion(TypedDict):
+    members: list[ValueSetMember]
+    total: int
+    truncation: Truncation
+    provenance: NotRequired[Provenance]
+
+
+class Mapping(TypedDict):
+    targetCode: str
+    targetTerminology: str
+    targetName: str
+    type: str
+    targetTermType: NotRequired[str]
+    targetTerminologyVersion: NotRequired[str]
+    provenance: Provenance
+
+
+class MappingsResult(TypedDict):
+    mappings: list[Mapping]
+    provenance: NotRequired[Provenance]
+
+
+class CatalogueRelationship(TypedDict):
+    code: str
+    terminology: str
+    name: str
+    kind: RelationshipKind
+    polarity: Polarity
+    provenance: Provenance
+
+
+class RelationshipsResult(TypedDict):
+    relationships: list[CatalogueRelationship]
+    provenance: NotRequired[Provenance]
+
+
 class RankedConcept(TypedDict):
     concept: Concept
-    score: float
+    score: NotRequired[float]
+    matchedOn: NotRequired[str]
 
 
 class ConceptSearch(TypedDict):
     results: list[RankedConcept]
-    truncation: Truncation
+    totalKnown: int
+    nextCursor: NotRequired[str]
     provenance: NotRequired[Provenance]
 
 
@@ -136,6 +221,8 @@ class Hierarchy(TypedDict):
     nodes: list[Node]
     truncation: Truncation
     provenance: NotRequired[Provenance]
+    paths: NotRequired[list[list[str]]]
+    nextCursor: NotRequired[str]
 
 
 class Neighborhood(Hierarchy):
@@ -169,7 +256,7 @@ class TraversalEdge(TypedDict):
     source_code: str
     target_code: str
     edge_type: EdgeType
-    relationship_name: str
+    relationship_name: NotRequired[str]
     target_name: str
     source_name: str
     provenance: TraversalProvenance
@@ -209,15 +296,10 @@ class TerminologiesResult(TypedDict):
 
 class IndexManifestResult(TypedDict):
     terminology: str
-    release_version: str
-    release_date: str | None
-    embedding_provider: str
-    embedding_model: str
-    concept_count: int
-    built_at: str
-    index_path: str
-    embedding_dimensions: int | None
-    active: bool
+    version: str
+    concepts: int
+    embedding: dict[str, Any]
+    builtAt: str
     provenance: Provenance
 
 

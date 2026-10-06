@@ -245,16 +245,21 @@ class HttpClient:
             text = text.replace(secret, "[redacted]")
         return text
 
-    def _request(self, path: str, params: dict[str, Any] | None) -> Request:
+    def url(self, path: str, params: dict[str, Any] | None = None) -> str:
+        """Build the exact encoded URL used by a request, without sending it."""
+
         query = ""
         if params:
             filtered = {key: value for key, value in params.items() if value is not None}
             query = "?" + urlencode(filtered, doseq=True) if filtered else ""
+        return f"{self.base_url}{path}{query}"
+
+    def _request(self, path: str, params: dict[str, Any] | None) -> Request:
         headers = {"Accept": "application/json", **self.credentials}
         if correlation_id := current_correlation_id():
             headers[CORRELATION_HEADER] = correlation_id
         # The base URL comes from Settings, which accepts only http and https.
-        return Request(f"{self.base_url}{path}{query}", headers=headers)  # noqa: S310
+        return Request(self.url(path, params), headers=headers)  # noqa: S310
 
     def _record(self, request: Request, attempt: _Attempt, elapsed: float) -> None:
         requested()

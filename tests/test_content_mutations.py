@@ -33,19 +33,17 @@ class ContentMutationTest(ServerFixture):
                     "search_concepts", query="Kinase", mode="semantic", limit=limit
                 )
                 self.assertEqual(len(result["results"]), 150)
-                self.assertEqual(result["truncation"], {"occurred": False})
+                self.assertNotIn("nextCursor", result)
 
     def test_search_modes_scores_and_source_uris_describe_the_selected_engine(self):
         self.index_concepts(
             [concept("C1", "Kinase", active=True), concept("C2", "Kinase inhibitor", active=True)]
         )
-        original = self.context.index.search_with_truncation
+        original = self.context.index.search_page
         for mode, engine in (("semantic", "vector"), ("hybrid", "hybrid")):
             with (
                 self.subTest(mode=mode),
-                patch.object(
-                    self.context.index, "search_with_truncation", wraps=original
-                ) as search,
+                patch.object(self.context.index, "search_page", wraps=original) as search,
             ):
                 result = self.content("search_concepts", query="Kinase", mode=mode)
                 self.assertEqual(search.call_args.args[3], engine)
@@ -63,14 +61,14 @@ class ContentMutationTest(ServerFixture):
 
     def test_unsupported_search_options_are_refused_even_with_a_usable_index(self):
         self.index_concepts([concept("C1", "Kinase", active=True)])
-        options = ({"mode": "typeahead"}, {"cursor": "cursor"}, {"retired": "only"})
+        options = ({"mode": "bm25"}, {"cursor": "cursor"}, {"retired": "only"})
         for option in options:
             with self.subTest(option=option):
                 result = self.content(
                     "search_concepts", **({"query": "Kinase", "mode": "semantic"} | option)
                 )
                 self.assertIn("error", result)
-                self.assertEqual(result["error"]["code"], "capability_unavailable")
+                self.assertEqual(result["error"]["code"], "invalid_request")
 
     def test_hierarchy_default_depth_is_one_and_large_depth_clamps_to_four(self):
         self.evs.concepts = {

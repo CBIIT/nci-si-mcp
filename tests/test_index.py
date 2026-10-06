@@ -13,16 +13,17 @@ from nci_si_mcp.errors import (
     IndexStorageError,
     InputValidationError,
     NoActiveIndexError,
+    PlatformError,
 )
+from nci_si_mcp.evaluation import evaluate_build
+from nci_si_mcp.evaluation_sets import EvaluationSet, GoldQuery, MetricFloor
 from nci_si_mcp.evs import normalize_concept
-from nci_si_mcp.index import (
-    LSH_BANDS,
-    SCHEMA_VERSION,
-    LocalIndex,
-    concept_search_text,
-    vector_lsh_buckets,
-)
-from nci_si_mcp.retrieval import min_max_normalize
+from nci_si_mcp.index import SCHEMA_VERSION, LocalIndex
+
+
+def concept_search_text(concept):
+    return concept.preferred_name
+
 
 RAW_CONCEPTS = [
     {
@@ -91,10 +92,13 @@ class IndexTestCase(unittest.TestCase):
 
     def counts(self, index):
         with index._connect() as conn:
+            active = index.get_active_manifest().build_id
             return tuple(
-                # The table names are the literals below.
-                conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]  # noqa: S608
-                for table in ("concepts", "concepts_fts", "vector_lsh", "manifests")
+                conn.execute(
+                    f"SELECT COUNT(*) FROM {table} WHERE build_id = ?",  # noqa: S608
+                    (active,),
+                ).fetchone()[0]
+                for table in ("concepts", "fields", "manifests")
             )
 
 
@@ -107,7 +111,7 @@ class UpsertTest(IndexTestCase):
         self.assertEqual(manifest.concept_count, 2)
         self.assertEqual(manifest.embedding_dimensions, 128)
         self.assertEqual(index.get_active_manifest(), manifest)
-        self.assertEqual(self.counts(index), (2, 2, 2 * LSH_BANDS, 1))
+        self.assertEqual(self.counts(index), (2, 6, 1))
 
         cached = index.get_concept("C3262")
         self.assertEqual(cached.source, "active_cache")
@@ -135,7 +139,7 @@ class UpsertTest(IndexTestCase):
         )
 
         self.assertEqual(manifest.concept_count, 2)
-        self.assertEqual(self.counts(index), (2, 2, 2 * LSH_BANDS, 1))
+        self.assertEqual(self.counts(index), (2, 4, 1))
         self.assertEqual(index.get_concept("C3262").preferred_name, "Renamed Growth")
         for mode in ("bm25", "vector"):
             hits = index.search("renamed", self.provider, mode=mode)
@@ -144,25 +148,22 @@ class UpsertTest(IndexTestCase):
         self.assertGreater(hits[0].score, hits[1].score)
         self.assertEqual(index.search("tumor", self.provider, mode="bm25"), [])
 
-    def test_upsert_holds_the_write_lock_while_it_checks_compatibility(self):
+    def test_sample_does_not_overwrite_an_activation_during_embedding(self):
         index = self.build()
-        observed = []
-        read_manifest = LocalIndex._active_manifest
+        other = index.build([dict(RAW_CONCEPTS[1], version="other")], None, self.provider)
+        embed = self.provider.embed
 
-        def competing_writer(conn):
-            other = sqlite3.connect(str(index.db_path), timeout=0)
-            try:
-                other.execute("BEGIN IMMEDIATE")
-            except sqlite3.OperationalError as error:
-                observed.append(str(error))
-            finally:
-                other.close()
-            return read_manifest(conn)
+        def activate_during_embedding(texts):
+            index.activate(other.build_id)
+            return embed(texts)
 
-        with patch.object(LocalIndex, "_active_manifest", staticmethod(competing_writer)):
-            index.upsert_concepts([RAW_CONCEPTS[0]], "2026-06-29", self.provider)
-
-        self.assertEqual(observed, ["database is locked"])
+        with (
+            patch.object(self.provider, "embed", side_effect=activate_during_embedding),
+            self.assertRaisesRegex(IndexBuildError, "active index changed"),
+        ):
+            index.upsert_concepts([RAW_CONCEPTS[0]], None, self.provider)
+        self.assertEqual(index.get_active_manifest().build_id, other.build_id)
+        self.assertEqual(index.get_concept("C3262").release_version, "other")
 
     def test_indexing_another_release_replaces_the_previous_one(self):
         index = self.build()
@@ -174,7 +175,7 @@ class UpsertTest(IndexTestCase):
 
         self.assertEqual(manifest.release_version, "26.07d")
         self.assertEqual(manifest.concept_count, 1)
-        self.assertEqual(self.counts(index), (1, 1, LSH_BANDS, 1))
+        self.assertEqual(self.counts(index), (1, 3, 1))
         self.assertIsNone(index.get_concept("C40704"))
         self.assertEqual(index.get_concept("C3262").release_version, "26.07d")
         self.assertEqual(index.search("kinase", self.provider, mode="bm25"), [])
@@ -192,7 +193,7 @@ class UpsertTest(IndexTestCase):
             )
 
         self.assertEqual(index.get_active_manifest(), before)
-        self.assertEqual(self.counts(index), (2, 2, 2 * LSH_BANDS, 1))
+        self.assertEqual(self.counts(index), (2, 6, 1))
 
     def test_unusable_batches_are_rejected(self):
         index = LocalIndex(self.path)
@@ -215,34 +216,18 @@ class UpsertTest(IndexTestCase):
         )
 
         self.assertEqual(manifest.concept_count, 1)
-        self.assertEqual(self.counts(index), (1, 1, LSH_BANDS, 1))
+        self.assertEqual(self.counts(index), (1, 3, 1))
         self.assertEqual(index.get_concept("C3262").preferred_name, "Later Name")
 
     def test_count_and_search_ignore_rows_of_an_inactive_release(self):
         index = self.build()
-        stale = normalize_concept(
-            concept("C9999", "Tumor Marker", version="26.99z"), None, "active_cache"
-        )
-        text = concept_search_text(stale)
-        with index._connect() as conn:
-            conn.execute(
-                "INSERT INTO concepts VALUES ('26.99z', 'C9999', ?, ?, ?)",
-                (
-                    json.dumps(stale.to_stored()),
-                    text,
-                    json.dumps(self.provider.embed([text])[0]),
-                ),
-            )
-            conn.execute("INSERT INTO concepts_fts VALUES ('26.99z', 'C9999', ?)", (text,))
-
-        manifest = index.upsert_concepts([RAW_CONCEPTS[0]], "2026-06-29", self.provider)
-
-        self.assertEqual(manifest.concept_count, 2)
+        index.build([concept("C9999", "Tumor Marker", version="26.99z")], None, self.provider)
+        self.assertEqual(index.get_active_manifest().concept_count, 2)
         self.assertIsNone(index.get_concept("C9999"))
         for mode in ("bm25", "vector", "hybrid"):
-            hits = index.search("tumor marker", self.provider, limit=10, mode=mode)
-            self.assertNotIn("C9999", [hit.concept.code for hit in hits], mode)
-            self.assertEqual({hit.concept.release_version for hit in hits}, {"26.06e"}, mode)
+            hits = index.search("tumor marker", self.provider, mode=mode)
+            self.assertNotIn("C9999", [hit.concept.code for hit in hits])
+            self.assertEqual({hit.concept.release_version for hit in hits}, {"26.06e"})
 
     def test_failed_write_rolls_back_every_table_and_keeps_the_previous_release(self):
         index = self.build()
@@ -261,7 +246,7 @@ class UpsertTest(IndexTestCase):
             )
 
         self.assertEqual(index.get_active_manifest(), before)
-        self.assertEqual(self.counts(index), (2, 2, 2 * LSH_BANDS, 1))
+        self.assertEqual(self.counts(index), (2, 6, 1))
         self.assertEqual(index.get_concept("C40704").release_version, "26.06e")
 
     def test_a_different_embedding_space_cannot_join_the_active_release(self):
@@ -306,6 +291,20 @@ class UpsertTest(IndexTestCase):
 
 
 class StorageTest(IndexTestCase):
+    def test_new_files_use_large_pages_and_existing_files_keep_their_layout(self):
+        index = self.build()
+        with index._connect() as conn:
+            self.assertEqual(conn.execute("PRAGMA page_size").fetchone()[0], 65536)
+            conn.execute("PRAGMA journal_mode=DELETE")
+            conn.execute("PRAGMA page_size=4096")
+            conn.execute("VACUUM")
+            conn.execute("PRAGMA journal_mode=WAL")
+        reopened = LocalIndex(self.path)
+        with reopened._connect() as conn:
+            self.assertEqual(conn.execute("PRAGMA page_size").fetchone()[0], 4096)
+        self.assertEqual(reopened.get_concept("C3262").preferred_name, "Neoplasm")
+        self.assertEqual(reopened.search("Neoplasm", self.provider)[0].concept.code, "C3262")
+
     def test_unusable_database_is_a_storage_error_naming_the_file(self):
         index = self.build()
         index.db_path.write_bytes(b"not a database" * 100)
@@ -361,7 +360,7 @@ class StorageTest(IndexTestCase):
         reopened = LocalIndex(self.path)
 
         self.assertEqual(reopened.get_active_manifest(), manifest)
-        self.assertEqual(self.counts(reopened), (2, 2, 2 * LSH_BANDS, 1))
+        self.assertEqual(self.counts(reopened), (2, 6, 1))
         self.assertEqual(
             reopened.search("tumor", self.provider, mode="bm25")[0].concept.code, "C3262"
         )
@@ -397,6 +396,27 @@ class StorageTest(IndexTestCase):
 
 
 class MigrationTest(IndexTestCase):
+    def test_a_second_opener_preserves_the_migration_completed_before_it_gets_the_lock(self):
+        self.legacy_database([("26.06e", RAW_CONCEPTS[0])])
+        connect, directory, completed = sqlite3.connect, self.path, []
+
+        class RacingConnection(sqlite3.Connection):
+            def execute(self, statement, *parameters):
+                if statement == "BEGIN IMMEDIATE":
+                    with patch("nci_si_mcp.index.sqlite3.connect", connect):
+                        completed.append(LocalIndex(directory).get_active_manifest())
+                return super().execute(statement, *parameters)
+
+        with patch(
+            "nci_si_mcp.index.sqlite3.connect",
+            lambda path: connect(path, factory=RacingConnection),
+        ):
+            index = LocalIndex(directory)
+
+        self.assertEqual(index.get_active_manifest(), completed[0])
+        self.assertEqual(index.get_concept("C40704").raw, RAW_CONCEPTS[0])
+        self.assertEqual(len(index.list_builds()), 1)
+
     def legacy_database(self, releases):
         """Write a database in the layout of the first prototype (schema 0)."""
 
@@ -449,78 +469,48 @@ class MigrationTest(IndexTestCase):
         conn.close()
         return vectors
 
-    def test_legacy_database_is_backfilled(self):
-        vectors = self.legacy_database([("26.06e", RAW_CONCEPTS[0])])
-
+    def test_legacy_database_preserves_payloads_and_requires_explicit_rebuild(self):
+        self.legacy_database([("26.06e", RAW_CONCEPTS[0])])
         index = LocalIndex(self.path)
-
-        with index._connect() as conn:
-            self.assertEqual(conn.execute("PRAGMA user_version").fetchone()[0], SCHEMA_VERSION)
-            self.assertEqual(conn.execute("SELECT COUNT(*) FROM concepts_fts").fetchone()[0], 1)
-            buckets = conn.execute("SELECT band, bucket FROM vector_lsh ORDER BY band").fetchall()
-        self.assertEqual([tuple(row) for row in buckets], vector_lsh_buckets(vectors["26.06e"]))
-        self.assertIsNone(index.get_active_manifest().embedding_dimensions)
-        for mode in ("bm25", "vector"):
-            self.assertEqual(
-                index.search("kinase", self.provider, mode=mode)[0].concept.code, "C40704"
-            )
-
-    def test_several_active_manifests_are_reduced_to_one(self):
-        self.legacy_database([("26.05d", RAW_CONCEPTS[0]), ("26.06e", RAW_CONCEPTS[1])])
-
-        index = LocalIndex(self.path)
-
-        self.assertEqual(index.get_active_manifest().release_version, "26.06e")
-        self.assertEqual(self.counts(index), (1, 1, LSH_BANDS, 1))
-        self.assertIsNone(index.get_concept("C40704"))
+        manifest = index.get_active_manifest()
+        self.assertTrue(manifest.needs_rebuild)
+        self.assertEqual(index.get_concept("C40704").raw, RAW_CONCEPTS[0])
         for mode in ("bm25", "vector", "hybrid"):
-            hits = index.search("kinase inhibition tumor", self.provider, mode=mode)
-            self.assertEqual([hit.concept.code for hit in hits], ["C3262"], mode)
+            with self.subTest(mode=mode), self.assertRaises(PlatformError) as raised:
+                index.search("kinase", self.provider, mode=mode)
+            self.assertEqual(raised.exception.code, "capability_unavailable")
+            self.assertIn("index-rebuild", str(raised.exception))
+        rebuilt = index.rebuild(manifest.build_id, self.provider)
+        self.assertEqual(index.get_active_manifest(), manifest)
+        with self.assertRaisesRegex(IndexBuildError, "unclassified"):
+            index.activate(rebuilt.build_id)
+        dataset = EvaluationSet(
+            "test-only-legacy-rebuild",
+            (GoldQuery(RAW_CONCEPTS[0]["name"], ("C40704",)),),
+            MetricFloor(1, 1),
+            MetricFloor(1, 1),
+            self.provider.name,
+            self.provider.model,
+            128,
+            "26.06e",
+            True,
+        )
+        evaluate_build(index, self.provider, dataset, rebuilt.build_id)
+        index.activate(rebuilt.build_id)
+        hit = index.search("kinase", self.provider)[0]
+        self.assertEqual(hit.concept.code, "C40704")
+        self.assertIn(hit.matched_on, ("name", "definition"))
 
-    def test_releases_left_behind_by_earlier_versions_are_dropped_with_a_warning(self):
-        index = self.build()
-        with index._connect() as conn:
-            conn.execute(
-                "INSERT INTO concepts "
-                "SELECT '26.05d', code, payload, search_text, vector FROM concepts"
-            )
-            conn.execute(
-                "INSERT INTO concepts_fts SELECT '26.05d', code, search_text FROM concepts_fts"
-            )
-            conn.execute(
-                "INSERT INTO vector_lsh SELECT '26.05d', code, band, bucket FROM vector_lsh"
-            )
-            conn.execute("INSERT INTO manifests VALUES ('26.05d', '{}', 0)")
-            conn.execute("PRAGMA user_version = 3")
-
-        with self.assertLogs("nci_si_mcp.index", level="WARNING") as logs:
-            migrated = LocalIndex(self.path)
-
-        self.assertIn("26.05d", logs.output[0])
-        self.assertEqual(self.counts(migrated), (2, 2, 2 * LSH_BANDS, 1))
-        self.assertEqual(migrated.get_active_manifest().release_version, "26.06e")
-
-    def test_schema_one_database_gains_the_search_rows(self):
-        index = self.build()
-        with index._connect() as conn:
-            conn.execute("DELETE FROM concepts_fts")
-            conn.execute("PRAGMA user_version = 1")
-
-        migrated = LocalIndex(self.path)
-
-        self.assertEqual(self.counts(migrated), (2, 2, 2 * LSH_BANDS, 1))
-        hits = migrated.search("kinase", self.provider, mode="bm25")
-        self.assertEqual([hit.concept.code for hit in hits], ["C40704"])
-
-    def test_schema_two_database_gains_the_lsh_table(self):
-        index = self.build()
-        with index._connect() as conn:
-            conn.execute("DROP TABLE vector_lsh")
-            conn.execute("PRAGMA user_version = 2")
-
-        migrated = LocalIndex(self.path)
-
-        self.assertEqual(self.counts(migrated), (2, 2, 2 * LSH_BANDS, 1))
+    def test_several_legacy_active_manifests_keep_data_with_one_active(self):
+        self.legacy_database([("26.05d", RAW_CONCEPTS[0]), ("26.06e", RAW_CONCEPTS[1])])
+        index = LocalIndex(self.path)
+        self.assertEqual(index.get_active_manifest().release_version, "26.06e")
+        builds = index.list_builds()
+        self.assertEqual({item.release_version for item in builds}, {"26.05d", "26.06e"})
+        older = next(item for item in builds if item.release_version == "26.05d")
+        index.activate(older.build_id)
+        self.assertEqual(index.get_concept("C40704").release_version, "26.05d")
+        self.assertIsNone(index.get_concept("C3262"))
 
 
 class SearchTest(IndexTestCase):
@@ -558,25 +548,17 @@ class SearchTest(IndexTestCase):
         )
         self.assertEqual(everything.to_dict(), {"occurred": False})
 
-    def test_a_term_ranking_stopped_at_its_candidate_cap_reports_a_lower_bound(self):
+    def test_all_term_matches_are_counted_beyond_the_former_candidate_cap(self):
         index = self.build(synthetic_concepts(1200))
 
         hits, truncation = index.search_with_truncation(
             "alpha1", self.provider, limit=10, mode="bm25"
         )
 
-        # A tenth of the concepts name alpha1, but only the cap of 100 candidates were scored.
+        # All 120 concepts naming alpha1 count, even beyond the former 100-candidate cap.
         self.assertEqual(len(hits), 10)
-        self.assertEqual(truncation.to_dict()["omitted"], 90)
-        self.assertFalse(truncation.exact)
-
-    def test_scores_are_min_max_normalized(self):
-        self.assertEqual(
-            min_max_normalize({"a": 2.0, "b": 3.0, "c": 4.0}), {"a": 0.0, "b": 0.5, "c": 1.0}
-        )
-        self.assertEqual(min_max_normalize({"a": -1.0, "b": 0.0}), {"a": 0.0, "b": 1.0})
-        self.assertEqual(min_max_normalize({"a": 2.0, "b": 2.0}), {"a": 1.0, "b": 1.0})
-        self.assertEqual(min_max_normalize({}), {})
+        self.assertEqual(truncation.to_dict()["omitted"], 110)
+        self.assertTrue(truncation.exact)
 
     def test_concept_without_a_matching_term_has_a_zero_bm25_component(self):
         index = self.build()
@@ -603,33 +585,6 @@ class SearchTest(IndexTestCase):
         )
         self.assertEqual(
             [hit.score for hit in hits], sorted((hit.score for hit in hits), reverse=True)
-        )
-
-    def test_search_text_holds_code_name_synonyms_definitions_types_and_sources(self):
-        raw = dict(
-            RAW_CONCEPTS[1],
-            properties=[
-                {"type": "Semantic_Type", "value": "Neoplastic Process"},
-                {"type": "Contributing_Source", "value": "GDC"},
-            ],
-        )
-
-        text = concept_search_text(normalize_concept(raw, release_date=None, source="active_cache"))
-
-        self.assertEqual(
-            text, "C3262 Neoplasm Tumor A benign or malignant tissue growth. Neoplastic Process GDC"
-        )
-
-    def test_stored_formats_are_stable(self):
-        # Stored vectors and LSH buckets depend on these; a change needs a migration.
-        vector = HashingEmbeddingProvider(8).embed(["tumor growth factor tumor"])[0]
-        self.assertEqual(
-            [round(value, 6) for value in vector],
-            [-0.316228, 0.0, 0.0, 0.0, 0.0, -0.948683, 0.0, 0.0],
-        )
-        self.assertEqual(
-            vector_lsh_buckets(self.provider.embed(["neoplasm tumor growth"])[0]),
-            [(0, 235), (1, 12), (2, 219), (3, 64)],
         )
 
     def test_search_without_an_index_is_refused(self):
@@ -676,7 +631,7 @@ class SearchTest(IndexTestCase):
             del payload["embedding_dimensions"]
             conn.execute("UPDATE manifests SET payload = ?", (json.dumps(payload),))
 
-        with self.assertRaises(IndexCompatibilityError):
+        with self.assertRaises(IndexStorageError):
             index.search("tumor", RenamedProvider(dimensions=64), mode="vector")
 
     def test_bm25_mode_does_not_compute_embeddings(self):
@@ -710,7 +665,7 @@ class SearchTest(IndexTestCase):
                 index.search(query, self.provider, mode="bm25")
         self.assertEqual(index.search("!!!", self.provider, mode="bm25"), [])
 
-    def test_vector_search_is_exact_when_the_release_fits_the_scan_limit(self):
+    def test_vector_search_finds_preferred_names_across_the_index(self):
         concepts = synthetic_concepts(200)
         index = self.build(concepts)
 
@@ -731,16 +686,11 @@ class SearchTest(IndexTestCase):
         concepts = synthetic_concepts(60)
         index = self.build(concepts)
 
-        with (
-            patch("nci_si_mcp.index.EXACT_VECTOR_SCAN_LIMIT", 20),
-            patch("nci_si_mcp.index.MAX_VECTOR_CANDIDATES", 20),
-        ):
-            # The stored search text of a concept lands in all of its own buckets.
-            own_text = concept_search_text(
-                normalize_concept(concepts[7], release_date=None, source="active_cache")
-            )
-            vector_hits = index.search(own_text, self.provider, limit=60, mode="vector")
-            hybrid_hits = index.search("garnet1", self.provider, limit=60, mode="hybrid")
+        own_text = concept_search_text(
+            normalize_concept(concepts[7], release_date=None, source="active_cache")
+        )
+        vector_hits = index.search(own_text, self.provider, limit=60, mode="vector")
+        hybrid_hits = index.search("garnet1", self.provider, limit=60, mode="hybrid")
 
         self.assertEqual(vector_hits[0].concept.code, "C7")
         bm25_matches = {f"C{number}" for number in range(6, 60, 10)}
@@ -748,33 +698,6 @@ class SearchTest(IndexTestCase):
         self.assertTrue(bm25_matches <= set(by_code))
         # A BM25 candidate is given a vector score too, not only its BM25 score.
         self.assertTrue(any(by_code[code].score_components["vector"] > 0 for code in bm25_matches))
-
-    def test_large_release_scores_at_most_the_candidate_cap(self):
-        concepts = synthetic_concepts(200)
-        index = self.build(concepts)
-        own_text = concept_search_text(
-            normalize_concept(concepts[7], release_date=None, source="active_cache")
-        )
-
-        with (
-            patch("nci_si_mcp.index.EXACT_VECTOR_SCAN_LIMIT", 20),
-            patch("nci_si_mcp.index.MAX_VECTOR_CANDIDATES", 5),
-            patch("nci_si_mcp.index.MAX_FTS_CANDIDATES", 3),
-        ):
-            vector_hits = index.search(own_text, self.provider, limit=100, mode="vector")
-            # Three BM25 candidates leave room for two LSH candidates.
-            hybrid_hits = index.search(
-                "C7 harbor1 alpha10 alpha100", self.provider, limit=100, mode="hybrid"
-            )
-
-        # Of the many concepts sharing a band, those sharing the most are kept.
-        self.assertEqual(len(vector_hits), 5)
-        self.assertEqual(vector_hits[0].concept.code, "C7")
-        self.assertLessEqual(len(hybrid_hits), 5)
-        self.assertGreater(len(hybrid_hits), 3)
-
-    def test_zero_projection_falls_in_the_set_bit(self):
-        self.assertEqual(vector_lsh_buckets([0.0] * 8), [(0, 255), (1, 255), (2, 255), (3, 255)])
 
     def test_search_only_returns_the_active_release(self):
         index = self.build()

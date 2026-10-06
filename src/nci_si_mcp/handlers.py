@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from itertools import batched
-from typing import Any
+from typing import Any, cast, get_args
 
 from .audit import emit
 from .bounds import (
@@ -15,7 +15,8 @@ from .bounds import (
     Budget,
     budgeted,
 )
-from .caching import RELEASE_REPORT_ALIASES, select_cache_hint
+from .catalogue import exclusion_codes
+from .content import get_concept
 from .context import Context
 from .errors import (
     NoActiveIndexError,
@@ -23,16 +24,18 @@ from .errors import (
     call_correlation_id,
     is_error_record,
 )
-from .evaluation import DEFAULT_GOLD_QUERIES, evaluate_retrieval
+from .evaluation import evaluate_build, evaluate_retrieval
+from .evaluation_sets import production_set
 from .evs import (
     TERMINOLOGIES_PATH,
     EVSError,
     EVSResponseError,
     concept_path,
     normalize_concept,
-    verify_release,
 )
 from .http_client import UpstreamError, UpstreamUnavailableError
+from .index import require_index_release
+from .indexing import full_build
 from .invocation import _envelope
 from .models import (
     IndexManifest,
@@ -42,12 +45,13 @@ from .models import (
     upstream_origin,
     utc_now_iso,
 )
-from .release import ReleaseContext, current_terminologies, resolve_evs_release
+from .release import ReleaseContext, current_terminologies, resolve_evs_release, served_evs_release
 from .traversal import (
     select_edge_types,
     traverse_ncit,
 )
 from .validation import (
+    ConceptInclude,
     Direction,
     EdgeType,
     SearchMode,
@@ -86,17 +90,13 @@ def resolve_release(
     channel = validate_channel(context.settings.release_channel if channel is None else channel)
     selected = resolve_evs_release(context.evs, terminology, channel).to_dict()
     return selected | {
-        "alternatives": _alternatives(context, selected),
+        "alternatives": _alternatives(context.evs.get_terminologies(), selected),
         "provenance": _release_provenance(context, selected).to_dict(),
     }
 
 
-def _alternatives(context: Context, selected: dict[str, Any]) -> list[str]:
-    rows = [
-        row
-        for row in context.evs.get_terminologies()
-        if row.get("terminology") == selected["terminology"]
-    ]
+def _alternatives(rows: list[dict[str, Any]], selected: dict[str, Any]) -> list[str]:
+    rows = [row for row in rows if row.get("terminology") == selected["terminology"]]
     versions = [str(row.get("version") or "") for row in rows]
     if not all(versions):
         raise EVSResponseError("EVS listed an alternative release without a version")
@@ -196,10 +196,7 @@ def _fetch_for_index(
 
     raw_concepts: list[dict[str, Any]] = []
     for batch in batched(codes, context.settings.index_batch_size, strict=False):
-        raw_concepts.extend(
-            context.evs.get_concepts_by_codes(batch, terminology=release.pinned_terminology)
-        )
-    verify_release(raw_concepts, release.version)
+        raw_concepts.extend(context.evs.get_concepts_by_codes(batch, release=release))
     returned_codes = {str(raw.get("code") or "") for raw in raw_concepts}
     if not returned_codes <= set(codes):
         raise EVSResponseError("EVS returned a concept that was not requested")
@@ -236,6 +233,42 @@ def index_codes(context: Context, codes: list[str]) -> dict[str, Any]:
     return manifest.to_result()
 
 
+def index_build(context: Context) -> dict[str, Any]:
+    """Build and evaluate all NCIt from the configured channel without activation."""
+    built = full_build(context, _release(context))
+    return _evaluated_build(context, built)
+
+
+def index_builds(context: Context) -> dict[str, Any]:
+    """List completed operator snapshots and identify the active build."""
+    return {"builds": [item.to_dict() for item in context.index.list_builds()]}
+
+
+def index_rebuild(context: Context, build_id: str) -> dict[str, Any]:
+    """Rebuild stored raw concepts offline; evaluate new production snapshots."""
+    built = context.index.rebuild(build_id, context.embedding_provider)
+    return _evaluated_build(context, built)
+
+
+def _evaluated_build(context: Context, built: IndexManifest) -> dict[str, Any]:
+    if built.build_kind == "production":
+        built = evaluate_build(
+            context.index, context.embedding_provider, production_set(), built.build_id
+        )
+        return {
+            "buildId": built.build_id,
+            "manifest": built.to_result(),
+            "evaluation": built.evaluation_report,
+        }
+    return {"buildId": built.build_id, "manifest": built.to_result()}
+
+
+def index_activate(context: Context, build_id: str) -> dict[str, Any]:
+    """Activate a completed build; the replaced build is retained for rollback."""
+    active = context.index.activate(build_id)
+    return {"buildId": active.build_id, "manifest": active.to_result()}
+
+
 def search(
     context: Context,
     query: str,
@@ -246,15 +279,17 @@ def search(
     """Search the locally indexed NCIt concepts by text.
 
     The index holds only the concepts an operator loaded with the
-    `index-sample` CLI command, all from the one NCIt release named
-    in the `provenance.release` of its hits. It is not all of NCIt, and no
+    `index-sample` or `index-build` CLI commands, all from the NCIt release named
+    in the `provenance.release` of its hits. A sample is not all of NCIt; no
     tool here adds to it. `mode` is `hybrid` (0.55 * BM25 + 0.45 * vector), `bm25` or
     `vector`; `limit` is 1 to 100.
 
     Each entry of `score_components` is min-max normalized over the
-    concepts scored for this query: the best is 1.0 however poor the match,
-    the weakest is 0.0 even when it matches, and when only one concept is
-    scored, or all tie, they are all 1.0. A component that was not computed
+    fields scored for this query: the best is 1.0 however poor the match,
+    the weakest is 0.0 even when it matches, and when only one field is
+    scored, or all tie, they are all 1.0. Exact preferred-name hits score 1
+    and win ties, comparing case-insensitively after NFC and whitespace collapsing.
+    A component that was not computed
     for a concept (the other one in `bm25` or `vector` mode, or `bm25` for
     a concept without a matching term) is 0.0. Scores therefore order the
     hits of one query and are not comparable across queries. `vector` and
@@ -270,7 +305,7 @@ def search(
     out; it then names the `results` bound and how many were `omitted`,
     `exact` where that is a count and not a lower bound."""
     query, limit, normalized_mode = validate_search(query, limit, mode)
-    hits, truncation = context.index.search_with_truncation(
+    hits, truncation, manifest = context.index.search_snapshot(
         query, context.embedding_provider, limit=limit, mode=normalized_mode
     )
     result: dict[str, Any] = {
@@ -284,15 +319,8 @@ def search(
     }
     # A result with no item has none to carry the provenance (M3.2).
     if not hits:
-        result["provenance"] = _active_manifest(context).provenance().to_dict()
+        result["provenance"] = manifest.provenance().to_dict()
     return result
-
-
-def _active_manifest(context: Context) -> IndexManifest:
-    manifest = context.index.get_active_manifest()
-    if not manifest:
-        raise NoActiveIndexError("No active NCIt index is available")
-    return manifest
 
 
 def _concept_uri(context: Context, code: str, pinned_terminology: str) -> str:
@@ -329,22 +357,22 @@ def lookup(
     that check and the fallback."""
 
     code = validate_ncit_code(code)
-    manifest = None if live_only else context.index.get_active_manifest()
+    manifest, cached = (None, None) if live_only else context.index.get_concept_snapshot(code)
     try:
         release = _release(context)
         if manifest and manifest.release_version != release.version:
             raise PlatformError(
                 "release_mismatch",
                 f"The current {release.channel} release is {release.version} but the active "
-                f"index holds {manifest.release_version}. Rebuild the index with "
-                "`index-sample`, or use live_only to read live EVS without consulting it.",
+                f"index holds {manifest.release_version}. Build the current release with "
+                "`index-build` and activate its passing build with `index-activate`, "
+                "or use live_only to read live EVS without consulting the index.",
                 requested=release.version,
                 served=[manifest.release_version],
                 source="index",
             )
-        raw = context.evs.get_concept(code, terminology=release.pinned_terminology)
+        raw = context.evs.get_concept(code, release=release)
     except UpstreamUnavailableError as exc:
-        cached = None if live_only else context.index.get_concept(code)
         if not cached:
             raise
         emit(
@@ -358,7 +386,6 @@ def lookup(
         result["fallback"] = {"reason": "upstream_unavailable", "message": str(exc)}
         return result
 
-    verify_release([raw], release.version)
     concept = normalize_concept(raw, release_date=release.date, source="live_evs")
     uri = _concept_uri(context, concept.code, release.pinned_terminology)
     return concept.to_dict(uri, include_raw=include_raw)
@@ -393,9 +420,9 @@ def traverse(
     that a `child` walk of the same depth reaches: up to a few percent at
     depth 2, and up to a third at depth 3 or 4, depending on the concept.
     Use `child` edges when every concept within `max_depth` is needed.
-    `relationship_names` keeps only edges with those names, ignoring case:
-    role and association names such as `Disease_Has_Finding`, or
-    `is_a_parent`, `is_a_child` and `is_a_descendant` for hierarchy edges.
+    `relationship_names` filters role and association edges by name, ignoring
+    case, for example `Disease_Has_Finding`. Hierarchy edges remain included
+    and carry no invented relationship name.
 
     Limits are clamped to depth 4, 1,000 nodes and 5,000 edges, and the
     result reports the effective `max_depth`, `max_nodes` and `max_edges`.
@@ -431,10 +458,10 @@ def traverse(
     from, and how the item was reached: its `depth` (an edge has that of
     the node it reaches), and for any item but the start codes the
     `relationship` `{kind, code?, name?}` (a role or association has a
-    code and name, a hierarchy link only its kind), the `direction` in
-    which that edge type is followed and the `polarity`, `negative` for
-    the exclusion roles R135 to R142 by code. A start code that release
-    does not contain returns `not_found`."""
+    name and a code when upstream supplies one, a hierarchy link only its kind),
+    the `direction` in which that edge type is followed and the `polarity`,
+    `negative` for configured NCIt exclusion roles by code (R135 to R142 by
+    default). A start code that release does not contain returns `not_found`."""
     validate_kind_budget(budget_per_kind)
     start_codes, normalized_direction, selected_types, relationship_names = validate_traversal(
         start_codes,
@@ -456,64 +483,59 @@ def traverse(
             _release(context),
             selected,
             budget,
+            exclusions=exclusion_codes(context.settings, "ncit"),
             relationship_names=relationship_names,
         ).to_dict()
 
 
-def evaluate(context: Context) -> dict[str, Any]:
-    """Score BM25, vector and hybrid ranking on the built-in gold queries."""
-
-    results = evaluate_retrieval(context.index, context.embedding_provider)
-    gold_codes = {code for gold in DEFAULT_GOLD_QUERIES for code in gold.expected_codes}
+def evaluate(context: Context, build_id: str | None = None) -> dict[str, Any]:
+    """Score the versioned queries on a candidate or the active build; gate production only."""
+    if build_id is None:
+        active = context.index.get_active_manifest()
+        if active is None:
+            raise NoActiveIndexError("No active NCIt index is available")
+        build_id = active.build_id
+    dataset = production_set()
+    codes = {code for gold in dataset.queries for code in gold.expected_codes}
+    manifest, missing = context.index.evaluation_inputs(build_id, codes)
+    if manifest.build_kind not in {"sample", "legacy"}:
+        evaluated = evaluate_build(context.index, context.embedding_provider, dataset, build_id)
+        return cast("dict[str, Any]", evaluated.evaluation_report)
+    results = evaluate_retrieval(
+        context.index, context.embedding_provider, dataset.queries, build_id=build_id
+    )
     return {
+        "build_id": build_id,
+        "evaluation_version": dataset.version,
+        "gate_applies": False,
         "results": [result.to_dict() for result in results],
-        # A gold concept that is not indexed can never be found.
-        "gold_codes_not_indexed": sorted(
-            code for code in gold_codes if not context.index.get_concept(code)
-        ),
+        "gold_codes_not_indexed": missing,
     }
 
 
-def concept_resource(context: Context, code: str) -> dict[str, Any]:
-    """One NCIt concept, as returned by the lookup handler with default options."""
-
-    return lookup(context, code)
+def concept_resource(context: Context, release: str, code: str) -> dict[str, Any]:
+    """One NCIt concept pinned to release, with all get_concept content sections."""
+    return get_concept(context, "ncit", release, code, include=list(get_args(ConceptInclude)))
 
 
 def release_resource(context: Context, version: str) -> dict[str, Any]:
-    """The current channel's release, or the full status report for a moving alias."""
-
-    info = release_info(context)
-    if version in RELEASE_REPORT_ALIASES:
-        select_cache_hint(resolution=True)
-        return info
-    selected = info["selected_release"]
-    if is_error_record(selected) or version == selected["version"]:
-        return selected
-    raise PlatformError(
-        "release_not_available",
-        f"Release {version} is not served here; the current {selected['channel']} release is "
-        f"{selected['version']}. Read that release, or use `current`.",
-        requested=version,
-        source="evs",
-    )
+    """One served NCIt version with its upstream channel, date, alternatives and provenance."""
+    rows = context.evs.get_terminologies()
+    selected = served_evs_release(rows, "ncit", version, context.settings.release_channel).to_dict()
+    return selected | {
+        "alternatives": _alternatives(rows, selected),
+        "provenance": _release_provenance(context, selected).to_dict(),
+    }
 
 
-def index_resource(context: Context, version: str) -> dict[str, Any]:
-    """The local index's manifest by version or active alias, or its absent status."""
-
+def index_resource(context: Context, release: str) -> dict[str, Any]:
+    """The active NCIt index manifest, only when it holds the requested release."""
     active = context.index.get_active_manifest()
-    manifest = active.to_result() if active else None
-    if not manifest:
-        select_cache_hint(resolution=True)
-        return {"active_index": None}
-    if version in ("active", manifest["release_version"]):
-        select_cache_hint(resolution=version == "active")
-        return manifest
-    raise PlatformError(
-        "release_not_available",
-        f"The local index holds release {manifest['release_version']}, not "
-        f"{version}. Read that release or `active`, or rebuild the index with `index-sample`.",
-        requested=version,
-        source="index",
-    )
+    if active is None:
+        raise PlatformError(
+            "capability_unavailable",
+            "No active NCIt index is available. Run index-build and index-activate first.",
+            capability="NCIt index",
+        )
+    require_index_release(active, release)
+    return active.to_result()

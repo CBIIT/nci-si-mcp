@@ -8,7 +8,6 @@ import tempfile
 import unittest
 from copy import deepcopy
 from pathlib import Path
-from unittest.mock import patch
 
 import yaml
 
@@ -18,10 +17,9 @@ from nci_si_mcp.context import Context
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.errors import call_correlation_id, correlated
 from nci_si_mcp.http_client import UpstreamTooLargeError, UpstreamUnavailableError
-from nci_si_mcp.index import EXACT_VECTOR_SCAN_LIMIT, LocalIndex
+from nci_si_mcp.index import LocalIndex
 from nci_si_mcp.models import NcitConcept, utc_now_iso
 from nci_si_mcp.registry import invoke
-from nci_si_mcp.traversal import NCIT_EXCLUSION_CODES
 from test_index import synthetic_concepts
 from test_traversal import complete_graph
 
@@ -162,7 +160,7 @@ class EveryItemCarriesItsProvenanceTest(ProvenanceTestCase):
         manifest = invoke(
             self.context,
             "index_resource",
-            "active",
+            "26.06e",
         )["provenance"]
 
         self.assert_record(report, REQUIRED, ALLOWED)
@@ -320,9 +318,6 @@ class AnItemReachedByTraversalSaysHowTest(ProvenanceTestCase):
         self.assertEqual(self.edge(result, "C500")["provenance"]["polarity"], "negative")
         self.assertEqual(self.edge(result, "C501")["provenance"]["polarity"], "positive")
 
-    def test_the_exclusion_codes_are_the_specifications(self):
-        self.assertEqual(NCIT_EXCLUSION_CODES, set(TRAVERSAL["polarity"]["exclusions"]["ncit"]))
-
 
 class UpstreamPassThroughTest(ProvenanceTestCase):
     def test_what_evs_says_of_a_concepts_origin_is_passed_through_unchanged(self):
@@ -367,12 +362,12 @@ class UpstreamPassThroughTest(ProvenanceTestCase):
         for provenance in [*reached, *(edge["provenance"] for edge in result["edges"])]:
             self.assertNotIn("upstream", provenance)
 
-    def test_a_start_code_names_only_the_origin_fields_its_payload_has(self):
+    def test_a_full_start_payload_without_its_terminology_fails_closed(self):
         del self.evs.concepts["C3262"]["terminology"]
 
-        start = self.traversal()["nodes"][0]["provenance"]
+        result = invoke(self.context, "traverse", ["C3262"])
 
-        self.assertEqual(start["upstream"], {"version": "26.06e"})
+        self.assertEqual(result["error"]["code"], "upstream_unavailable")
 
 
 class RawIsKeptBehindTheFlagTest(ProvenanceTestCase):
@@ -467,10 +462,10 @@ class TruncationTest(ProvenanceTestCase):
 
     def test_a_concept_too_large_to_read_is_reported_against_the_upstream_cap(self):
         class Hub(FakeEVS):
-            def get_concepts_by_codes(self, codes, terminology="ncit", include=""):
+            def get_concepts_by_codes(self, codes, release, include=""):
                 if include != "minimal":
                     raise UpstreamTooLargeError("too large")
-                return super().get_concepts_by_codes(codes, terminology, include)
+                return super().get_concepts_by_codes(codes, release, include)
 
         self.context.evs = Hub([NEOPLASM])
         with self.assertLogs("nci_si_mcp.traversal", level="WARNING"):
@@ -546,7 +541,7 @@ class NoUpstreamUrlTest(ProvenanceTestCase):
         manifest = invoke(
             self.context,
             "index_resource",
-            "active",
+            "26.06e",
         )["provenance"]
 
         self.assertNotIn("sourceUri", empty)
@@ -564,7 +559,7 @@ class RetrievedAtTest(ProvenanceTestCase):
         manifest = invoke(
             self.context,
             "index_resource",
-            "active",
+            "26.06e",
         )["provenance"]
         empty = invoke(self.context, "search", "zzzz", mode="bm25")["provenance"]
 
@@ -610,7 +605,7 @@ class CorrelationOfEveryResultTest(ProvenanceTestCase):
             manifest = invoke(
                 self.context,
                 "index_resource",
-                "active",
+                "26.06e",
             )["provenance"]
             empty = invoke(self.context, "search", "zzzz", mode="bm25")["provenance"]
             hit = invoke(self.context, "search", "neoplasm")["hits"][0]["concept"]["provenance"]
@@ -632,7 +627,7 @@ class CorrelationOfEveryResultTest(ProvenanceTestCase):
             invoke(
                 self.context,
                 "index_resource",
-                "active",
+                "26.06e",
             )["provenance"]["servedBy"],
             "index",
         )
@@ -665,7 +660,7 @@ class ResultShapesTest(ProvenanceTestCase):
         self.assertEqual(set(live), self.CONCEPT)
         self.assertEqual(set(fallback), self.CONCEPT | {"fallback"})
         self.assertEqual(set(hit["concept"]), self.CONCEPT)
-        self.assertEqual(set(hit), {"concept", "score", "rank", "score_components"})
+        self.assertEqual(set(hit), {"concept", "score", "rank", "score_components", "matched_on"})
 
     def test_a_search_result_has_exactly_these_fields(self):
         invoke(self.context, "index_codes", ["C3262"])
@@ -693,7 +688,6 @@ class ResultShapesTest(ProvenanceTestCase):
                 "source_code",
                 "target_code",
                 "edge_type",
-                "relationship_name",
                 "target_name",
                 "source_name",
                 "provenance",
@@ -758,7 +752,7 @@ class EdgeTypeProvenanceTest(ProvenanceTestCase):
             invoke(
                 self.context,
                 "index_resource",
-                "active",
+                "26.06e",
             )["provenance"],
         ]
         for provenance in indexed:
@@ -774,22 +768,17 @@ class ExactnessBoundaryTest(ProvenanceTestCase):
         index.upsert_concepts(synthetic_concepts(count), "2026-06-29", HashingEmbeddingProvider())
         return index
 
-    def test_vectors_are_exact_up_to_the_scan_limit_and_not_beyond(self):
+    def test_vector_truncation_counts_every_indexed_concept(self):
         index = self.build(30)
+        truncation = self.search(index, 1, "hybrid")
+        self.assertEqual((truncation.exact, truncation.omitted), (True, 29))
 
-        for limit_of_scan, exact in ((30, True), (29, False)):
-            with self.subTest(scan_limit=limit_of_scan):
-                with patch("nci_si_mcp.index.EXACT_VECTOR_SCAN_LIMIT", limit_of_scan):
-                    truncation = self.search(index, 1, "hybrid")
-                self.assertEqual(truncation.exact, exact)
-        self.assertEqual(EXACT_VECTOR_SCAN_LIMIT, 20_000)
-
-    def test_term_ranking_is_exact_only_below_its_candidate_cap(self):
+    def test_term_truncation_counts_all_matches_across_page_sizes(self):
         index = self.build(1200)
 
-        # 120 concepts name alpha1: a cap of exactly 120 candidates is reached, one of 130 is not.
+        # Every one of the 120 term matches counts, for either page size.
         at_cap = self.search(index, 12, "bm25")
         below_cap = self.search(index, 13, "bm25")
 
-        self.assertFalse(at_cap.exact)
+        self.assertEqual((at_cap.exact, at_cap.omitted), (True, 108))
         self.assertEqual((below_cap.exact, below_cap.omitted), (True, 107))

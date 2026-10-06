@@ -4,9 +4,10 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from mcp.shared.exceptions import MCPError
+
 from nci_si_mcp.caching import cache_call, select_cache_hint
 from nci_si_mcp.http_client import UpstreamUnavailableError
-from nci_si_mcp.models import Truncation
 from nci_si_mcp.registry import OPERATIONS, SPECS, ToolSpec, invoke
 from nci_si_mcp.server import _cache_results
 from test_server import ServerFixture, pinned
@@ -16,7 +17,7 @@ from test_server import ServerFixture, pinned
 class CachingTest(ServerFixture):
     def test_every_registered_tool_and_resource_declares_a_cache_class(self, _):
         registrations = [spec for spec in SPECS if spec.name or spec.uri]
-        self.assertEqual(len(registrations), 9)
+        self.assertEqual(len(registrations), 15)
         for spec in registrations:
             with self.subTest(operation=spec.operation):
                 self.assertIsInstance(spec.resolution, bool)
@@ -51,13 +52,13 @@ class CachingTest(ServerFixture):
             return await asyncio.gather(
                 client.call_tool("get_concept", pinned(code="C3262")),
                 client.call_tool("resolve_release", {"terminology": "ncit"}),
-                client.read_resource("nci-si://release/ncit/26.06e"),
-                client.read_resource("nci-si://release/ncit/current"),
+                client.read_resource("ncit://release/26.06e"),
+                client.read_resource("ncit://concept/26.06e/C3262"),
             )
 
-        content, status, pinned_result, moving = self.session(calls)
+        content, status, pinned_result, concept = self.session(calls)
         self.assertEqual([content.meta["ttlMs"], status.meta["ttlMs"]], [86_400_000, 0])
-        self.assertEqual([pinned_result.ttl_ms, moving.ttl_ms], [86_400_000, 0])
+        self.assertEqual([pinned_result.ttl_ms, concept.ttl_ms], [86_400_000, 86_400_000])
 
     def test_lists_and_discovery_advertise_long_public_result_fields(self, _):
         async def listed(client):
@@ -100,9 +101,7 @@ class CachingTest(ServerFixture):
 
     def test_empty_search_is_cacheable_governed_content(self, _):
         invoke(self.context, "index_codes", ["C3262"])
-        with patch.object(
-            self.context.index, "search_with_truncation", return_value=([], Truncation(False))
-        ):
+        with patch("nci_si_mcp.index.rank_page", return_value=([], 0)):
             result = self.session(
                 lambda client: client.call_tool(
                     "search_concepts", pinned(query="zzzz", mode="semantic")
@@ -123,11 +122,11 @@ class CachingTest(ServerFixture):
                 self.assertFalse(result.is_error)
                 self.assertEqual((result.meta["ttlMs"], result.meta["cacheScope"]), (0, "public"))
 
-    def test_failed_discovery_in_the_status_resource_is_still_not_cached(self, _):
+    def test_failed_release_read_is_a_protocol_error_not_cacheable_content(self, _):
         self.evs.errors = {"get_terminologies": UpstreamUnavailableError("down")}
-        result = self.session(lambda client: client.read_resource("nci-si://release/ncit/current"))
-        self.assertIn("error", json.loads(result.contents[0].text)["selected_release"])
-        self.assertEqual((result.ttl_ms, result.cache_scope), (0, "public"))
+        with self.assertRaises(MCPError) as raised:
+            self.read("ncit://release/26.06e")
+        self.assertEqual(json.loads(str(raised.exception))["error"]["code"], "upstream_unavailable")
 
     def test_tool_errors_are_private_and_preserve_correlation(self, _):
         result = self.session(
@@ -153,15 +152,12 @@ class CachingTest(ServerFixture):
         self.assertEqual(result.structured_content["error"]["code"], "upstream_unavailable")
         self.assertEqual((result.meta["ttlMs"], result.meta["cacheScope"]), (0, "private"))
 
-    def test_resource_content_and_moving_aliases_have_distinct_result_hints(self, _):
+    def test_pinned_resource_content_has_long_public_result_hints(self, _):
         invoke(self.context, "index_codes", ["C3262"])
         cases = {
-            "nci-si://concept/ncit/C3262": 86_400_000,
-            "nci-si://release/ncit/26.06e": 86_400_000,
-            "nci-si://index/ncit/26.06e/manifest": 86_400_000,
-            "nci-si://index/ncit/active/manifest": 0,
-            "nci-si://release/ncit/current": 0,
-            "nci-si://release/ncit/latest": 0,
+            "ncit://concept/26.06e/C3262": 86_400_000,
+            "ncit://release/26.06e": 86_400_000,
+            "ncit://index/manifest/26.06e": 86_400_000,
         }
         for uri, ttl in cases.items():
             with self.subTest(uri=uri):
@@ -172,12 +168,12 @@ class CachingTest(ServerFixture):
                 self.assertNotIn("cacheScope", wire.get("_meta") or {})
                 self.assertNotIn("ttlMs", json.loads(result.contents[0].text))
 
-    def test_absent_index_is_a_status_result_without_a_release_to_cache(self, _):
-        result = self.session(
-            lambda client: client.read_resource("nci-si://index/ncit/26.06e/manifest")
+    def test_absent_index_is_a_protocol_error_not_cacheable_content(self, _):
+        with self.assertRaises(MCPError) as raised:
+            self.read("ncit://index/manifest/26.06e")
+        self.assertEqual(
+            json.loads(str(raised.exception))["error"]["code"], "capability_unavailable"
         )
-        self.assertEqual(json.loads(result.contents[0].text), {"active_index": None})
-        self.assertEqual((result.ttl_ms, result.cache_scope), (0, "public"))
 
 
 class CacheDeclarationTest(unittest.TestCase):

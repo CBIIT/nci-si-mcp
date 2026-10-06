@@ -6,7 +6,7 @@
   "method": "GET",
   "path": "/api/v1/concept/mdr_29_0/10000000/descendants",
   "ignored": {
-   "*": "Verified 2 October 2026: EVS refuses every request for mdr without the licence key (403), whatever the path or parameters"
+   "*": "placeholder content answers every projection alike"
   }
  },
  "response": {

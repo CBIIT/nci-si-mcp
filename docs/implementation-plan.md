@@ -130,7 +130,7 @@ Implemented with the ten-value `ErrorCode` literal in `errors.py` and the `_ERRO
 | `bound_exceeded` | — | bound, limit, reached |
 | `capability_unavailable` | — | the capability |
 | `cursor_expired` | — | the cursor's release, the current one |
-| `internal_error` | `startup_failed`, `no_active_index`, `index_incompatible`, `index_storage_error` | — |
+| `internal_error` | `startup_failed`, `no_active_index`, `index_incompatible`, `index_storage_error`, missing exclusion codes | `missingCodes` only for missing exclusions |
 
 Two rules. **An empty result is never an error**: a tool that matched nothing returns its normal shape with an empty collection and a complete provenance envelope. **A platform failure carried inside a `2xx` body is an error**: the HTTP client (§3.4) recognises the webMethods envelope (`apiResponse.type == "E"`), FHIR `OperationOutcome` with severity `error`, and an HTML body where JSON was requested, and raises `upstream_unavailable` before any tool sees the payload.
 
@@ -144,9 +144,9 @@ Extend `models.py`'s per-concept fields into one `ProvenanceEnvelope` attached *
 
 ### 3.3 Release model (`platform/release.py`)
 
-`ReleaseContext` is resolved once per tool call and threaded through every upstream request. It is never resolved implicitly inside another tool — `resolve_release` and `resolve_registry_release` are the only discovery operations and the only unversioned upstream calls (A3.2).
+`ReleaseContext` is resolved once per tool call and threaded through every upstream request. It is never resolved implicitly inside another tool. `resolve_release` and `resolve_registry_release` are discovery operations; where a content operation has no pinned form, A3.2 also permits its unpinned form with exact payload-release verification before content is returned, as for FHIR expansion.
 
-**EVS.** `resolve_evs_release(terminology, channel)` calls `/metadata/terminologies?terminology=…&latest=true&tag={channel}` and requires exactly one row. It replaces `select_monthly_ncit_release`; `latest` is channel-scoped, and the one-row query moves the selection upstream. Zero or several rows, or a row without a version, raise `release_not_available`; `requested` names the requested channel and optional `found` lists the ambiguous versions. The serialized release contains `terminology`, `channel`, `version` and `date`; the pinned path stays internal. Content requests address `/concept/{terminology}_{release}/…`; a 404 with `Terminology not found` maps to `release_not_available`. The payload's `version` is compared as a second guard and a mismatch is `release_mismatch`, never silently accepted. The first #18 slice exposes `resolve_release(terminology, channel?)` as the flat release record plus provenance and `alternatives`: other served version identifiers for the same terminology, deduplicated in listing order. The channel query remains authoritative; the unfiltered listing supplies alternatives. `list_terminologies` selects each terminology's sole latest row, scoped to the configured channel for NCIt. Both are uncached status results and report top-level errors. The legacy MCP names are removed. CLI release reports use `selected_release`; moving release resources use `current` and `latest`, with the monthly-named aliases rejected.
+**EVS.** `resolve_evs_release(terminology, channel)` calls `/metadata/terminologies?terminology=…&latest=true&tag={channel}` and requires exactly one row. It replaces `select_monthly_ncit_release`; `latest` is channel-scoped, and the one-row query moves the selection upstream. Zero or several rows, or a row without a version, raise `release_not_available`; `requested` names the requested channel and optional `found` lists the ambiguous versions. The serialized release contains `terminology`, `channel`, `version` and `date`; the pinned path stays internal. Content requests address `/concept/{terminology}_{release}/…`; a 404 with `Terminology not found` maps to `release_not_available`. The payload's `version` is compared as a second guard and a mismatch is `release_mismatch`, never silently accepted. The first #18 slice exposes `resolve_release(terminology, channel?)` as the flat release record plus provenance and `alternatives`: other served version identifiers for the same terminology, deduplicated in listing order. The channel query remains authoritative; the unfiltered listing supplies alternatives. `list_terminologies` selects each terminology's sole latest row, scoped to the configured channel for NCIt. Both are uncached status results and report top-level errors. The legacy MCP names are removed. CLI release reports use `selected_release`; resources require explicit versions, with all moving aliases removed.
 
 **caDSR.** The pure `registry_state(generation_date, upstream_identifier, source_distribution=…)` builds the specification's `registry_release` record: `{published, identifier?, generatedAt, sourceDistribution}`. Without a published release, `published` is false, `identifier` is absent, and the export's `Last-Modified` for `releasedCDEsXML-OD.zip` becomes an ISO-8601 UTC `generatedAt`. When a registry release appears upstream (C-1), `published` is true and its identifier and own ISO-8601 date are passed through unchanged. `sourceDistribution` names the distribution the caller read the date from. A missing or invalid date, blank supplied identifier or missing distribution raises `RegistryMetadataError`; the shared error path reports `upstream_unavailable` with `surface: cadsr`. No identifier or date is invented, and registry reproducibility is not achievable while no registry release is published. The instrumented HEAD request and tool exposure belong to #31.
 
@@ -164,7 +164,7 @@ One client for all surfaces, replacing `EVSClient._get_json` and the per-module 
 
 ### 3.5 Bounds (`platform/bounds.py`)
 
-Implemented in `bounds.py`: the traversal handler creates one `Budget`, including depth, from caller limits clamped to the documented maxima and passes it explicitly to the walker. Its context variable is scoped and restored like the correlation context so the HTTP client uses that same instance. The HTTP client counts attempts, including release discovery, retries and split batches, against the 200-request allowance declared for hierarchy and neighborhood. Other calls have no request budget unless their specification declares one. Without graph content exhaustion returns `bound_exceeded`; with graph content it returns a partial graph. The first bound that dropped anything wins, so request exhaustion reports `requests` only when no earlier bound applies. Unknown per-kind omissions use the lower bound zero with `exact: false`.
+Implemented in `bounds.py`: the traversal handler creates one `Budget`, including depth, from caller limits clamped to the documented maxima and passes it explicitly to the walker. Its context variable is scoped and restored like the correlation context so the HTTP client uses that same instance. The HTTP client counts attempts, including release discovery, retries and split batches, against the 200-request allowance declared for hierarchy and neighborhood. Other calls have no request budget unless their specification declares one. For neighborhood and CLI traversal, exhaustion without graph content returns `bound_exceeded`; with graph content it returns a partial graph. The first bound that dropped anything wins, so request exhaustion reports `requests` only when no earlier bound applies. Hierarchy page replay instead fails with `bound_exceeded` whenever its request budget exhausts, asking the caller to narrow the query. Unknown per-kind omissions use the lower bound zero with `exact: false`.
 
 `clamp_limits`, `clamp_edge_limit` and the `HARD_MAX_*` constants now live in `bounds.py`; the defaults and maxima are the tools' `bounds` in `spec/tools.yaml`. The walker rotates relationship kinds across each breadth-first frontier. Starts count against the global node limit; a kind's optional allowance counts only new nodes it admits. Existing-node edges, duplicates and filtered edges spend no node allowance. Truncation includes per-kind records for mixed-kind walks.
 
@@ -177,11 +177,10 @@ A tool result carries both in its `_meta` (M2.5). A cursor encodes the release i
 Implemented for current producers in `caching.py` and the MCP adapter: pinned content and
 the list/discovery surface use 86,400,000/public, resolution/status uses 0/public, and tool
 errors use 0/private. List, discovery and resource-read hints are protocol result fields;
-tool hints are protocol `_meta`, preserving other metadata. Moving release-report aliases,
-the active index alias and absent-index reports use the resolution policy. CLI content is
-unchanged. Protocol tests exercise the current resource URIs; the spec URI surface remains #30.
-Cache classes are required at tool/resource registration; resource producers explicitly
-select status policy when needed. Response middleware reads a per-call declaration, not
+tool hints are protocol `_meta`, preserving other metadata. All EVS resource URIs are
+release-pinned and use the content policy. Missing indexes and mismatched releases are
+protocol errors, not status content. CLI release reports remain status results.
+Cache classes are required at tool/resource registration. Response middleware reads a per-call declaration, not
 tool names, URI tables or JSON content. Tests require every registered producer to declare
 its class and check renamed producers, concurrent calls and undeclared-response rejection.
 
@@ -205,7 +204,7 @@ Unit tests render `tools/list` in every configured profile, validate every schem
 success/error results, and reject malformed records. They assert byte-identical listings
 across release channels, upstream modes, calls and upstream failure (M1.2), and check rendered
 descriptions for unfinished text and unsupported values against behavior (A2.3, A2.4).
-Profiles select the current inventory: six EVS tools for `evs` and `unified`, no tools yet
+Profiles select the current inventory: twelve EVS tools for `evs` and `unified`, no tools yet
 for `cadsr`. The legacy MCP names and caDSR stub are removed. An input schema states no
 `maximum` for a bounded argument: a value above it is applied as the maximum (the tools'
 `bounds` in `spec/tools.yaml`), and the argument's description states its default and maximum.
@@ -247,45 +246,46 @@ Delta from `evs.py`:
 | Method | Change |
 |---|---|
 | `get_concept`, `get_concepts_by_codes`, `get_related`, `search` | Address `/concept/{terminology}_{release}/…`; take `ReleaseContext` |
-| `get_concepts_by_codes` | The endpoint omits unresolvable codes silently and keeps no order: mostly lexicographic, but the same request answered in two orders on 2 October 2026. Traversal and indexing already reconcile requested against returned codes by code and request only the relation lists they need through `include=`. Remaining: return `{found: {code: concept}, missing: [codes]}` to the tools, never relying on position (get_concepts-1) |
-| `get_replacements(codes)` | New. `/history/{t}_{r}/replacements?list=` — note it errors the whole batch on one bad code, the opposite of the batch concept endpoint; split and retry per code on error |
+| `get_concepts_by_codes` | The endpoint omits unresolvable codes silently and keeps no order: mostly lexicographic, but the same request answered in two orders on 2 October 2026. Traversal and indexing already reconcile requested against returned codes by code and request only the relation lists they need through `include=`. The public `get_concepts` returns `{concepts: [concepts], missing: [codes]}` in input order, preserving duplicate input occurrences while deduplicating the platform request. It rejects more than 650 supplied codes or a request target over 7000 encoded bytes before HTTP; see ARCHITECTURE.md for the measured URL margin (get_concepts-1) |
+| `get_replacements(code, release)` | Implemented for the single-code `resolve_retired_code`: `/history/{t}_{r}/{code}/replacements`. Active is taken only from the verified concept boolean, with status unchanged; active concepts need no history request. A history 404 is an error; only a successful empty list or rows with no replacement code yield no replacements. Compact rows carry request-pinned provenance and validate any optional upstream terminology/version. The batch endpoint errors the whole batch on one bad code, the opposite of batch concept lookup; no unused batch/split/retry layer is built for this one-code tool |
 | `get_roles_catalogue(release)`, `get_associations_catalogue(release)` | New; feed `evs/catalogue.py` |
-| `get_subsets`, `get_subset_members`, `get_mapsets`, `get_mapset_maps` | New; the 9 subset/mapset paths and 18 mapsets verified present |
-| `fhir_expand`, `fhir_lookup`, `fhir_validate_code`, `fhir_subsumes`, `fhir_translate` | New; R4. **`$expand` ignores `count` and rejects `_count`** (verified), so `expand_value_set` applies its own bound to the full expansion and reports truncation itself |
+| `get_concept` for subsets/maps | `get_concept_subsets` reads `minimal,associations` and selects `Concept_In_Subset`; `get_concept_mappings` reads `minimal,maps`, preserving record values and order with an exact target-label filter. No subset/mapset wrappers are needed for these tools. Cross-domain mapset reads belong to #38; the 9 subset/mapset paths and 18 mapsets remain endpoint evidence, not these tools' contract |
+| FHIR expansion | Implemented through the shared HTTP client: EVS's unpinned R4 `$expand` is verified against the requested release under A3.2. NCIt subsets only; count (default 200, maximum 1000), offset (default 0) and activeOnly (default false) apply locally. Offset-continuable pages are not truncation, including when count is clamped. The recorded C85492 expansion has 534 members. `$lookup`, `$validate-code`, `$subsumes` and `$translate` need a caller contract (tool name, inputs and record) before implementation; no unused wrappers are built |
 | `search` | `type` restricted to the seven documented values; `exact` is accepted upstream but behaves as `OR` and is **not** exposed |
 | licence-restricted terminologies | `X-EVSRESTAPI-License-Key` from configuration when the terminology requires it; the 403 message is mapped to `invalid_request` with the terminology named |
 
 ### 4.2 Relationship catalogue (`evs/catalogue.py`)
 
-Per release: roles and associations with `code`, `name`, `kind`, and `polarity`. Polarity is `negative` for a code in the exclusion set, which is **configured by code** (`R135`–`R142` for current releases) and validated at load against the catalogue: a configured code absent from the release's catalogue is an `internal_error` at startup, not a silent positive. This replaces label matching (design review, Ontoprism's `axes.py` pattern) and is the executable form of E-4 until the catalogue publishes polarity itself.
+Implemented in `catalogue.py`: each call reads the caller-selected release’s roles and associations once, inside its request budget, and verifies every row’s terminology/version and unique code/name identity. `list_relationships` returns code, terminology, name, kind, polarity and provenance. The NCIt exclusion set is configured by code, with defaults pinned by a test to spec/records.yaml (R135–R142); other terminologies use no exclusions today. Listing and neighborhood calls fail closed with `internal_error.details.missingCodes` if configured codes are absent. This check happens before returning content, without startup network access or a cross-call cache. The added error detail key resolves the error/relationship record contradiction in the specification. Traversal receives the same terminology-scoped configured set; names never determine polarity.
 
 ### 4.3 Traversal (`evs/traversal.py`)
 
-Implemented: hierarchy and neighborhood are separate tools. Hierarchy excludes the seed from its node allowance and has no edge limit; neighborhood includes the seed and applies both node and edge limits. Both share a request budget and return projected concept records with verified status and traversal provenance. Hierarchy paging and pathsToRoot remain #23; a known node-limit cut refuses paging even when an earlier bound is reported.
+Implemented: hierarchy and neighborhood are separate tools. Hierarchy excludes the seed from its node allowance and has no edge limit; neighborhood includes the seed and applies both node and edge limits. Both share a request budget and return projected concept records with verified status and traversal provenance. Hierarchy paging replays the pinned breadth-first walk with a page window and lookahead under 200 requests; pages can continue past 1,000 total nodes. Page boundaries do not truncate content, and exhausted replay fails with bound_exceeded, asking the caller to narrow the query. pathsToRoot returns all platform paths and unique reached nodes, ignoring depth, limit and cursor.
 
 Each depth is read in batches of 50 concepts, or 10 when inverse relations are followed, asking for minimal content and only the selected relation lists (A5.8). Oversized batches halve; a single oversized concept stays unexpanded and contributes to upstream_cap truncation and a structured diagnostic. Final nodes without fetched payloads are hydrated with minimal content. Descendant edges come from one /descendants request per start code. Limits are claimed nearest first, with per-kind rotation.
 
 The bounded final-frontier check distinguishes depth cuts from leaves and cycles, counting distinct unseen targets one level further with exact=false. Descendant checks read child lists. Selected inverse kinds report unknown continuation at a nonempty final frontier with omitted=0, exact=false, regardless of which kind reached those nodes. Their expensive lists are not fetched solely for this check. A global node cut or a prior kind cut skips the corresponding check.
 
-Negative edges carry polarity by code. Selective expansion beyond their targets with includeNegative=false remains #23 and currently returns capability_unavailable; includeNegative=true follows them. The legacy CLI relationship-name filter remains independent of edge-kind selection.
+Negative edges carry polarity by code. Targets remain visible but are expanded only through positive routes unless includeNegative=true. Re-admitted positive edges can reopen an earlier negative-only target. Expansion depth follows the eligible route; a node retains its first arrival provenance. Computed associations without upstream codes stay positive and retain their name, qualifiers and evidence. The legacy CLI name filter applies only to non-hierarchy assertions; hierarchy pseudo-names are removed.
 
 ### 4.4 Index (`evs/index/`)
 
-The interim index (M4.1), built from `index.py` / `embeddings.py` / `retrieval.py` / `evaluation.py`:
+The interim index (M4.1), built from `index.py` / `index_storage.py` / `index_scoring.py` / `embeddings.py` / `evaluation.py`:
 
-- **Per field**: the preferred name, each synonym and each definition are indexed as texts of their own, so that a search names the field it matched (`matchedOn`) and a query equal to a preferred name scores that name highest under any model (search_concepts-3). Today the index embeds one concatenated text per concept, and the -3 tests fail until #28 rebuilds it.
-- **Per-release tables**, keyed `(release, code)`, plus a `manifests` table carrying release, embedding provider, model, dimension, build timestamp, evaluation-set version and score, and `active` flag. Today the index holds exactly one release (schema 4), and indexing another release replaces it in place.
-- **Atomic activation and rollback**: a build writes under a new manifest; activation flips `active` in one transaction; rollback flips it back. `search_concepts` reads only the active manifest's release and refuses with `release_mismatch` if it differs from the requested release.
-- **Full NCIt build** from the batch endpoint in pages of 1,000 (the enforced `pageSize` maximum), release-pinned; the current `index-sample` stays as a developer command.
-- **The two traps** — provider selection requires both provider and model to be set, and a mismatch is `invalid_configuration` at startup; `cosine_similarity` normalises, and a dimension mismatch is `index_incompatible`, never `0.0`. Changing provider or model invalidates the manifest. Today: provider and model are validated together at startup (a failure is `invalid_configuration`), and a provider, model or dimension mismatch is refused on every write and search. `cosine_similarity` is a dot product that relies on the providers returning unit vectors, which both do; it does not normalise itself.
-- **Evaluation set** (`evaluate.py`): versioned NCIt scenarios with expected concepts and scoring thresholds; run on every build; score recorded in the manifest. This is the retrieval evaluation set in executable form.
+- **Per field (implemented #28):** preferred name, synonyms and definitions are embedded and indexed separately, deduplicating identical text within a concept. The winning field is `matchedOn`; ties prefer name, synonym, definition. Exact preferred-name queries ignore case after Unicode NFC and whitespace collapsing, score 1, and win ties before other concepts.
+- **Build snapshots (schema 6):** internal build ids permit same-release rebuilds beside the active snapshot. Concept/field rows refer to that build. Manifests carry release, embedding configuration, build time, build classification and internal evaluation reports. The public record contains only terminology, version, concepts, embedding, builtAt and provenance. Each build has its own FTS corpus. Schema-5 migration preserves those identities, activation, FTS ids and retirement status while grouping float32 field vectors into one BLOB per concept.
+- **Atomic activation and rollback:** activation selects a completed build in one transaction and retains only it and its predecessor. Activating that predecessor is rollback. Embedding runs outside transactions; bounded writes use a building state, followed by a short completion transaction. Partial builds cannot activate or serve search; the next start cleans stale builds, distinguished from running builders by a private SQLite lease. Legacy raw concepts/manifests survive migration; legacy search returns capability_unavailable naming the explicit offline rebuild command. No implicit model download or rebuild occurs at open.
+- **Full NCIt build:** unfiltered pinned `/concept/{terminology}/search` pages of 1000, not the batch endpoint (which requires a code list). Every page must preserve the total and pinned release, and all codes must be unique with their final count equal to total. Reconcile the spooled download before writing an inactive snapshot. Log progress every ten pages and at completion; shared HTTP retries apply, but tool-call request budgets do not. `index-sample` remains the developer command; CLI operations add build, list, offline rebuild and activation.
+- **Embedding compatibility:** provider and model are validated together at startup. A provider, model or dimension mismatch is refused on every write and search. Vectors and queries round consistently to float32; scoring normalizes them and treats a zero vector as zero cosine. Malformed BLOB lengths and nonfinite stored values raise storage errors.
+- **Exact paged search (implemented #27):** no LSH or candidate cutoff remains. NumPy is lazy and optional through the `index` extra. One scan computes field cosines in bounded chunks; compact numeric arrays provide normalization, sparse BM25 combination, winning fields and exact page partitioning with stable ties. The index retains no matrix cache. A continuation binds the active build id and expires after any replacement, including a same-release rebuild. Counts, hits and identity share one SQLite snapshot.
+- **Evaluation set** (`evaluation.py`, `evaluation_sets.py`): versioned NCIt scenarios with expected concepts and measured scoring thresholds. New production builds and production rebuilds require a passing evaluation before activation; developer samples are exempt. Rebuilding an unclassified legacy snapshot creates a production build, while the original snapshot remains available for rollback. The internal manifest retains the score and complete report, including per-query rankings and missing expected codes. Production thresholds come from the full corpus with the real embedding model; CI exercises the gate with explicitly test-only thresholds. See [the evaluation and SME validation protocol](retrieval-evaluation.md).
 - **Retirement condition**: when EVS exposes a semantic mode (E-9), `search_concepts(mode=semantic|hybrid)` is re-pointed to it behind the same tool and the index is deactivated. The tool surface does not change.
 
 ### 4.5 Tools (`evs/tools.py`)
 
 Twelve tools, signatures in the specification (`spec/tools.yaml`, group `evs`). Evolution from the original prototype surface:
 
-The four content entries have their complete signatures in `content.py`. NCIt calls pin the caller's
+The content entries have their complete signatures in `content.py`. NCIt calls pin the caller's
 required release; indexed search checks it inside the read transaction. Concept and node
 records carry EVS's `active` and optional `conceptStatus` as `status`; requested detail is
 passed through, with P106 values supplying `semanticType`. Graph nodes reuse fetched
@@ -293,11 +293,16 @@ payloads and read remaining status in minimal batches under the same request bud
 Edges use assertion orientation. MCP argument validation uses the registry's fields and
 the common structured error boundary.
 
-Other terminologies remain #20. Lexical/typeahead search, cursors and retired-only
-selection return `capability_unavailable` pending #27. Hierarchy paths to root, cursors
-and results needing another page, and selective negative expansion, remain #23 and are
-explicitly refused. Until then a neighborhood following beyond negative assertion targets
-requires `includeNegative=true`; assertions reaching the depth bound need no expansion.
+Live content now supports caller-selected EVS terminologies; the client requires a release
+context and verifies full concept identity. Semantic/hybrid remains NCIt-only. New endpoints
+reuse this contract in their owning issues. Lexical/typeahead search preserves EVS order,
+with lexical highlights passed through and no invented scores. Every search mode supports
+cursors and exact filtered counts. Retired-only selection requires the pinned terminology's
+advertised status; unsupported selection is `invalid_request`. Hierarchy paths, paging and
+selective negative expansion are implemented in #23. A hierarchy cursor remains valid
+while its explicit release is served; only a pinned Terminology not found failure means
+supersession, with current-channel discovery then supplying cursor_expired.currentRelease.
+No discovery read runs on normal continuation, including a historical release.
 Depth cuts are reported by the walker (§4.3); legacy MCP names and the tool-map mechanism
 are removed in #18. The descriptions state these interim limits; they do not claim the whole
 Phase 2 contract is implemented.
@@ -306,14 +311,14 @@ Phase 2 contract is implemented.
 |---|---|---|
 | `ncit_release_info` | `resolve_release(terminology, channel?)` + `list_terminologies()` | one row per channel; `ttlMs` 0 |
 | `ncit_lookup` | `get_concept(terminology, release, code, include[]?)` | `live_only` and `include_raw` removed |
-| — | `get_concepts(…, codes[], include[]?)` | returns `found` + `missing` |
+| — | `get_concepts(…, codes[], include[]?)` | returns ordered `concepts` + `missing` |
 | `ncit_search` | `search_concepts(…, query, mode?, limit?, cursor?)` | `lexical`/`typeahead` → EVS REST, EVS's highlight as `matchedOn` where it gives one and no score; `semantic`/`hybrid` → index, with a score and the field matched |
 | `ncit_traverse` | `get_concept_hierarchy(…)` and `get_concept_neighborhood(…)` | hierarchy = `parent|child|pathsToRoot` only; neighbourhood = §4.3 |
 | — | `expand_value_set`, `get_concept_subsets`, `get_concept_mappings`, `resolve_retired_code`, `list_relationships` | new |
 
 ### 4.6 Resources
 
-The furnished resources, EVS and caDSR, and the prompt templates are specified in `spec/resources.yaml` and `spec/prompts.yaml` (rendered in `docs/specification.md`, section 3). Today's templates are `nci-si://concept/ncit/{code}`, `nci-si://release/ncit/{version}` and `nci-si://index/ncit/{version}/manifest`. They become `ncit://concept/{release}/{code}` (the release is mandatory for every concept read), `ncit://release/{version}` and `ncit://index/manifest/{release}`. The caDSR module adds `cadsr://data-element/{publicId}` and `cadsr://data-element/{publicId}/{version}`, `cadsr://registry/release` and `cadsr://crosswalk/crdc`. Every `resources/read` result carries `ttlMs` / `cacheScope` per §3.6, of the class §3.6 gives what the resource holds, and a provenance record; its content is compared with the answer of the tool it names on identity and release, not section by section. The acceptance suite tests all of this at protocol level (P-8, P-9).
+The furnished resources, EVS and caDSR, and the prompt templates are specified in `spec/resources.yaml` and `spec/prompts.yaml` (rendered in `docs/specification.md`, section 3). The implemented EVS templates are `ncit://concept/{release}/{code}` (the release is mandatory for every concept read), `ncit://release/{version}` and `ncit://index/manifest/{release}`. Only EVS and unified profiles expose these templates. Concept reads request every get_concept section. Release reads select the requested served version, preferring the configured channel among its upstream tags and rejecting absent or ambiguous metadata. Index reads serve only the active matching manifest: no active index is capability_unavailable, and another active release is release_mismatch. The caDSR module adds `cadsr://data-element/{publicId}` and `cadsr://data-element/{publicId}/{version}`, `cadsr://registry/release` and `cadsr://crosswalk/crdc`. Every `resources/read` result carries `ttlMs` / `cacheScope` per §3.6, of the class §3.6 gives what the resource holds, and a provenance record; its content is compared with the answer of the tool it names on identity and release, not section by section. The acceptance suite tests all of this at protocol level (P-8, P-9).
 
 ---
 
@@ -392,7 +397,7 @@ Settings after the change. `NCI_SI_EVS_BASE_URL`, `NCI_SI_TIMEOUT_SECONDS`, `NCI
 | `NCI_SI_SSIS_FACADE_URL`, `NCI_SI_SSIS_SPARQL_URL` | production | |
 | `NCI_SI_UPSTREAM_MODE` | `live` | `live` · `fixture` — selects base URLs as a set so the acceptance suite switches everything with one variable |
 | `NCI_SI_RELEASE_CHANNEL` | `monthly` | |
-| `NCI_SI_EXCLUSION_ROLE_CODES` | `R135,…,R142` | validated against the catalogue at startup |
+| `NCI_SI_EXCLUSION_ROLE_CODES` | `R135,…,R142` | validated against the requested release catalogue per relationship listing or neighborhood call |
 | `NCI_SI_EVS_LICENSE_KEY`, `NCI_SI_CADSR_CREDENTIAL` | unset | never logged |
 | `NCI_SI_EMBEDDING_PROVIDER`, `NCI_SI_EMBEDDING_MODEL` | unset | both required together (today both default to `hashing`) |
 | `NCI_SI_DATA_DIR` | `.nci-si-mcp/` | |
@@ -477,8 +482,8 @@ Keep `unittest`-style tests under the gates in `CONTRIBUTING.md`. Extend `tests/
 - `test_errors`: every `PlatformError` serialises to the error schema; empty results never produce `isError`; the three masked-error shapes are classified.
 - `test_release`: one-row resolution; 404 → `release_not_available`; payload mismatch → `release_mismatch`; caDSR state never carries a fabricated identifier.
 - `test_bounds`: retries decrement the request budget; per-kind rotation; truncation report fields.
-- `test_catalogue`: polarity by code; a configured code absent from the catalogue fails startup.
-- `test_batch`: `found`/`missing` reconciliation; any return order handled.
+- `test_catalogue`: polarity by code; a configured code absent from the requested release catalogue fails the affected call.
+- `test_batch_content`: ordered `concepts`/`missing` reconciliation; any return order handled.
 - `test_index`: atomic activation and rollback; provider/model mismatch rejected; dimension mismatch rejected.
 - `test_schema`: `outputSchema` present and valid for every tool in every profile; surface static across settings; no placeholder text.
 - `test_cadsr_client`, `test_ssis_client`: required-parameter validation; envelope errors; `Accept` header.
@@ -514,7 +519,7 @@ Work proceeds in the order of the table above until award. What remains at the f
 
 ## 12. Removals
 
-- `service.py` and the caDSR stub are removed. `live_only` and `include_raw` are CLI-only; the six public EVS tools use the specification's names and arguments.
+- `service.py` and the caDSR stub are removed. `live_only` and `include_raw` are CLI-only; the public EVS tools use the specification's names and arguments.
 - Label-based exclusion detection, wherever it appears.
 - The `is_a_parent` / `is_a_child` / `is_a_descendant` pseudo-relationship names.
 

@@ -290,22 +290,35 @@ update them when behaviour changes.
 - `release.registry_state` is the pure part of the caDSR registry state: no registry identifier is
   ever made up. The `Last-Modified` HEAD request belongs to the caDSR client.
 - Every concept request uses `release.pinned_terminology` (for example `ncit_26.09d`) as the path
-  segment, and `evs.verify_release` checks the `version` of each returned concept.
+  segment, and `evs.verify_content` checks the terminology and version of each full concept at the client
+  boundary. Content methods require a `ReleaseContext`; compact descendant entries name the
+  release addressed by their request without inventing upstream version fields.
 - `lookup` returns `release_mismatch` when the index holds another release, unless `live_only`. It
   falls back to the cache only on `UpstreamUnavailableError`, and marks the result with `fallback`.
-- The index holds one release. Indexing a concept of another release replaces everything.
+- Each index build holds one release. Activation retains the previous build for rollback.
 
 ### Index and search
 
 `LocalIndex._connect()` is a context manager that commits or rolls back and then closes; use it for
-every database access. `upsert_concepts` takes the write lock first (`BEGIN IMMEDIATE`), checks
-compatibility, then writes all tables in that one transaction.
+every database access. `upsert_concepts` reads a consistent snapshot and checks
+compatibility before snapshot creation. Embeddings run outside transactions; each
+batch is written in a short transaction under a building manifest. Only completed builds activate.
+Sample activation checks that another writer has not changed the active build in the meantime.
 
-Vector search scans every stored vector up to `EXACT_VECTOR_SCAN_LIMIT` (20,000 concepts). Above
-that it scores only LSH and BM25 candidates, and vector-only recall is poor (measured 17 of 100
-nearest neighbours found on a 3,000-concept synthetic index). The LSH constants and
-`_projection_sign` are part of the stored format: changing them needs a `SCHEMA_VERSION` bump with
-a migration that rebuilds `vector_lsh`.
+Schema 6 stores immutable builds keyed by an internal build id. Name, synonym and definition
+texts are deduplicated within each concept and embedded separately. Activation retains only
+the new build and its predecessor. The next build start removes stale building rows;
+a private SQLite lease distinguishes interrupted builds from concurrently running ones.
+Legacy raw concepts survive migration, but their search requires an explicit offline
+`index-rebuild` and `index-activate`. Full builds reconcile all pinned search pages before writing.
+
+Exact indexed search lazily imports NumPy from the `index` extra. Each concept stores its field
+vectors together in a little-endian float32 BLOB, with field-kind bytes; FTS retains individual
+fields and their positions. One scan scores bounded matrix chunks, then compact numeric arrays
+provide normalization, per-concept maxima and exact page selection. No vector matrix is cached.
+Migration from schema 5 preserves builds, activation, FTS and retirement status. Earlier schemas
+retain raw concepts but require an explicit rebuild. Search cursors bind the active build id;
+even a same-release replacement expires them. Count, page and provenance share one read snapshot.
 
 ### Traversal
 

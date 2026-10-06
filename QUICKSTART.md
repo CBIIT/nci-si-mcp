@@ -14,8 +14,8 @@ pdm run nci-si-mcp serve
 ```
 
 `pdm install` creates `.venv` from `pdm.lock` and installs the package in editable mode with
-the test and lint tools and the `server` extra (the `mcp` package, which the `serve` command
-and the server tests need). The commands below are written as `python -m nci_si_mcp.cli ...`:
+the test and lint tools, the `server` extra (MCP), and the `index` extra (NumPy for exact
+indexed search). The commands below are written as `python -m nci_si_mcp.cli ...`:
 run them inside the environment (`eval $(pdm venv activate)`) or prefix them with `pdm run`.
 
 To run a released version without a checkout, install it from its tag; the
@@ -74,7 +74,7 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects six EVS tools, no caDSR tools yet, or the same six EVS tools, respectively; CLI maintenance commands and resources remain available |
+| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects twelve EVS tools, no caDSR tools yet, or the same twelve EVS tools, respectively; EVS resources are available in `evs` and `unified`. CLI maintenance commands remain available in every profile |
 | `NCI_SI_UPSTREAM_MODE` | `live` | `live` or `fixture`; selects the six base URLs below as a set (next paragraph) |
 | `NCI_SI_EVS_BASE_URL` | `https://api-evsrest.nci.nih.gov` | EVS REST endpoint (`http` or `https`) |
 | `NCI_SI_EVS_FHIR_BASE_URL` | `https://api-evsrest.nci.nih.gov/fhir/r4` | EVS FHIR endpoint |
@@ -83,14 +83,14 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 | `NCI_SI_SSIS_FACADE_URL` | `https://cadsrapi.cancer.gov` | Shared Semantic Infrastructure façade |
 | `NCI_SI_SSIS_SPARQL_URL` | `https://shared.semantics.cancer.gov` | Shared Semantic Infrastructure SPARQL endpoint |
 | `NCI_SI_RELEASE_CHANNEL` | `monthly` | The default channel for discovery and CLI diagnostics: `monthly` or `weekly`. The release is the one EVS row that is latest and tagged with the channel; with none or several the call fails with a release-not-available error. MCP content tools use the release the caller supplies |
-| `NCI_SI_EXCLUSION_ROLE_CODES` | `R135,R136,R137,R138,R139,R140,R141,R142` | NCIt exclusion roles, a comma-separated list of codes (`R` and digits) |
+| `NCI_SI_EXCLUSION_ROLE_CODES` | `R135,R136,R137,R138,R139,R140,R141,R142` | NCIt exclusion roles, a comma-separated list of codes (`R` and digits); checked against the requested release catalogue on each relationship listing or neighborhood call |
 | `NCI_SI_EVS_LICENSE_KEY` | unset | EVS licence key, sent as the `X-EVSRESTAPI-License-Key` header on EVS requests and to no other host. A credential: never logged, in no error message or string form |
 | `NCI_SI_CADSR_CREDENTIAL` | unset | caDSR credential as `user:password`; handled like the licence key |
 | `NCI_SI_TIMEOUT_SECONDS` | `30` | Per-request timeout |
 | `NCI_SI_MATCH_TIMEOUT_SECONDS` | `45` | Timeout of a caDSR match request |
 | `NCI_SI_EVS_MAX_ATTEMPTS` | `3` | Request attempts, 1 to 10. Only a 5xx, a 429 and a connection failure are retried; a 429 waits for its `Retry-After` (a platform that asks for more than 60 seconds is not asked again) |
 | `NCI_SI_EVS_RETRY_BACKOFF_SECONDS` | `0.25` | Initial exponential backoff, jittered between half and all of it; a single wait is capped at 60 seconds |
-| `NCI_SI_EVS_MAX_RESPONSE_BYTES` | `10485760` | Maximum accepted EVS response, up to 1 GiB |
+| `NCI_SI_EVS_MAX_RESPONSE_BYTES` | `10485760` | Maximum accepted EVS REST or FHIR response, up to 1 GiB |
 | `NCI_SI_INDEX_BATCH_SIZE` | `100` | Codes per EVS indexing request |
 | `NCI_SI_LOG_LEVEL` | `INFO` | Stderr diagnostic level; per-call audit records remain enabled at every level |
 
@@ -111,14 +111,30 @@ python -m nci_si_mcp.cli evaluate
 ```
 
 `index-sample` adds concepts to the index while the configured channel's release stays the
-same. After a new release, the next `index-sample` replaces the index
-with the concepts it names. `search` only sees what has been indexed; no MCP
+same. After a new release, the next `index-sample` activates a snapshot
+with the concepts it names. The previous build remains available for rollback.
+Samples use their own data directory; `index-sample` refuses to modify an active production
+or unclassified build.
+`search` only sees what has been indexed; no MCP
 tool builds the index.
+
+For a full release, `index-build` downloads and verifies all pinned NCIt search pages,
+then evaluates the candidate and returns an inactive build id with its evaluation report.
+Production activation requires a passing report. The shipped calibration is for NCIt 26.09d,
+SapBERT (`cambridgeltl/SapBERT-from-PubMedBERT-fulltext`), 768 dimensions; another release or
+model needs a new full-corpus calibration before activation. `evaluate --build-id BUILD_ID`
+repeats evaluation on a completed candidate without activating it. Plain `evaluate` scores
+the active build; samples and older unclassified snapshots report all twelve queries without
+claiming a production pass. `index-builds` lists completed builds. Activate one
+with `index-activate BUILD_ID`; activating the previous id rolls back. Every activation
+keeps only the newly active build and the build it replaced. These are operator CLI commands.
+The public manifest contains `terminology`, `version`, `concepts`, `embedding`
+(`provider`, `model`, `dimensions`), `builtAt` and `provenance`.
 
 Until the index is rebuilt after a new release, CLI `search` keeps serving
 the old release (named in the `provenance.release` of each hit), and `lookup` fails with
 `release_mismatch` for every code unless `--live-only` is given.
-MCP `search_concepts` requires the caller's release to match the index; `get_concept`
+MCP `search_concepts` in semantic/hybrid mode requires the caller's release to match the index; `get_concept`
 reads the caller's pinned release directly from EVS.
 
 No MCP result carries the full EVS `raw` payload, to keep MCP context compact. The
@@ -140,8 +156,22 @@ python -m nci_si_mcp.cli traverse C3262 \
 
 The index records its embedding provider, model, and dimensions. A runtime with
 different embedding settings cannot search it or add to it. To rebuild with new
-settings, delete `nci_si.sqlite3` in the data directory and run `index-sample`
-again.
+settings, use `index-rebuild BUILD_ID` to rebuild stored raw concepts offline, then
+`index-activate NEW_BUILD_ID`. Schema migration preserves legacy concepts for cached lookup;
+their concatenated vectors require this explicit rebuild before search is available
+(`capability_unavailable`). Opening the index never downloads a model or rebuilds it.
+Rebuilding an older, unclassified snapshot creates a production build requiring evaluation;
+the original remains available for rollback. For an old developer sample, recreate it with
+`index-sample` in a separate data directory instead. The refusal message identifies the original
+snapshot and both migration paths. See the [retrieval evaluation protocol](docs/retrieval-evaluation.md)
+for metrics, calibration and the distinction between developer checks and production evidence.
+
+New index files use 64 KiB SQLite pages to reduce cold vector-scan I/O. Existing files retain
+their page size. To convert an existing file, stop all processes using it and back it up first;
+in a SQLite connection to that file run `PRAGMA journal_mode=DELETE`,
+`PRAGMA page_size=65536`, `VACUUM`, then `PRAGMA journal_mode=WAL`. This rewrites the file
+and needs temporary disk space; it changes neither vectors nor rankings. Opening the index
+does not perform this conversion automatically.
 
 ## Usage examples
 
@@ -248,19 +278,18 @@ Result:
         },
         "status": "DEFAULT"
       },
-      "score": 0.969251231258575
+      "score": 0.969251231258575,
+      "matchedOn": "definition"
     }
   ],
-  "truncation": {
-    "occurred": true,
-    "bound": "results",
-    "limit": 1,
-    "reached": 1,
-    "omitted": 4,
-    "exact": true
-  }
+  "totalKnown": 5,
+  "nextCursor": "opaque-continuation-token"
 }
 ```
+
+The example token is illustrative. Continue with the actual returned `nextCursor` as `cursor`,
+keeping the other arguments unchanged; the final page has no `nextCursor`. Pages are not
+truncation. An index activation, even for the same release, expires indexed search cursors.
 
 ### List the subtypes of a concept
 
@@ -478,21 +507,23 @@ not. The same fields everywhere:
 
 | Field | Value |
 | --- | --- |
-| `release` | `{terminology, identifier, date}` of the NCIt release the item was read from; `date` is left out when EVS gave none |
-| `source` | `evs_rest` for live EVS, `evs_index` for the local index |
+| `release` | `{terminology, identifier, date}` of the terminology release the item was read from; `date` is left out when EVS gave none |
+| `source` | `evs_rest` for EVS REST, `evs_fhir` for EVS FHIR expansion, `evs_index` for the local NCIt index |
 | `servedBy` | `live` or `index` |
 | `retrievedAt` | When the item was retrieved; for an indexed concept, when it was indexed |
-| `sourceUri` | The EVS URL of the resource that holds the item, without query: the concept, or for a descendant edge its start code's `descendants`. Left out of a search that found nothing, which no upstream URL produced |
+| `sourceUri` | The upstream URL used for the item: a concept, relationship catalogue, traversal endpoint or FHIR expansion. It may include query parameters, such as the expansion's canonical value-set URL. Optional on empty results; absent for a local search with no hits |
 | `correlationId` | The call's `_meta.correlationId`, or one the server generated; the same in every item of the call and in the error record |
-| `upstream` | What EVS said of the item's origin, unchanged: its `terminology` and `version`. Present for a concept and for a traversal start code, whose payload was read in full; left out where EVS said nothing (a node named by a relation list, an edge) |
-| `graphs`, `registry`, `attribution` | Never supplied: they belong to the Shared SI Service, to caDSR content and to answers that carry licence text |
+| `upstream` | Origin fields the platform supplied, unchanged: REST `terminology` and `version`, or FHIR value-set `url` and `version`. Omitted where the returned item carried none; hydrated concepts retain their own origin fields |
+| `attribution` | Licence or copyright text supplied upstream for that item. Omitted when none was supplied; an edge's licence is not copied onto its target concept |
+| `graphs`, `registry` | Not yet supplied: these belong to the Shared SI Service and caDSR content |
 
 An item reached by traversal adds `depth` (an edge has that of the node it reaches; the start
 codes have 0); and, for any item but a start code, `relationship` (`kind`; for a role or
-association also its `code` and `name`; a hierarchy link has only its kind: `parent`, `child` or
+association its `name` and its `code` when upstream supplied one; a hierarchy link has only its kind: `parent`, `child` or
 `descendant`), `direction` (`out` or `in`, the way the edge type is followed) and `polarity`
-(`negative` exactly for the exclusion roles R135 to R142 by relationship code, otherwise
-`positive`). A node carries the provenance of the edge that first reached it.
+(`negative` for configured NCIt exclusion roles, R135 to R142 by default, otherwise
+`positive`). Polarity follows the relationship code. Other terminologies have no exclusion
+set today. A node carries the provenance of the edge that first reached it.
 
 A tool that bounds its result returns `truncation`. It is `{"occurred": false}` when nothing
 was cut. Otherwise it holds `bound` (`results`, `depth`, `nodes`, `edges`, `kind_budget`, `requests` or
@@ -501,8 +532,8 @@ was cut. Otherwise it holds `bound` (`results`, `depth`, `nodes`, `edges`, `kind
 traversal reports the first bound that dropped something; it counts the concepts or edges it
 dropped, not those beyond them, so `exact` is false. `upstream_cap` is a concept whose relations
 or descendants exceeded `NCI_SI_EVS_MAX_RESPONSE_BYTES`: `omitted` counts such concepts, and the
-log names them. A search reports `results` when `limit` left scored concepts out; `exact` is true
-where every candidate was scored.
+log names them. CLI search reports `results` when `limit` left scored concepts out; `exact` is true
+where every candidate was scored. MCP search pages with `nextCursor` instead of truncating.
 `kind_budget` counts new nodes omitted by the first exhausted kind. `requests` counts
 unread work as a lower bound; when the number of relations left out for a kind is
 unknown, its record gives `omitted: 0` and `exact: false`.
@@ -513,14 +544,21 @@ unknown, its record gives `omitted: 0` and `exact: false`.
 
 ## MCP Tools
 
-- `get_concept`: fetch a caller-pinned NCIt concept with required `terminology`, `release` and `code`. Optional `include` selects synonyms, definitions, properties or semanticType; status is passed through from EVS.
-- `search_concepts`: search the interim NCIt index with required `terminology`, `release` and `query`. `semantic` and `hybrid` modes are supported, with `limit` default 10, maximum 1000; the index must hold the requested release. Default `lexical`, `typeahead`, cursors and `retired: only` return `capability_unavailable` pending #27.
-- `get_concept_hierarchy`: caller-pinned parents or children, excluding the seed. Required `direction`; `depth` defaults to 1, maximum 4; `limit` defaults to 200, maximum 1000. Paths to root and requests needing paging return `capability_unavailable` pending #23.
-- `get_concept_neighborhood`: caller-pinned graph including the seed. `depth` defaults to 2, maximum 4; `maxNodes` 200/1000; `maxEdges` 1000/5000; optional `budgetPerKind` maximum 1000. `kinds` selects among the six relation kinds. Following beyond negative assertion targets currently requires `includeNegative: true`; selective expansion remains #23. Both graph tools share 200 requests per call, including a batched final-frontier check for depth truncation.
+- `get_concept`: fetch a caller-pinned EVS concept with required `terminology`, `release` and `code`. Optional `include` selects synonyms, definitions, properties or semanticType; status is passed through from EVS.
+- `resolve_retired_code`: fetch a required `terminology`, `release` and `code`, returning upstream `active` and optional `status`, with `replacements` always present. Active concepts return an empty list without a history request. Retired concepts use the pinned single-code history endpoint; each named replacement carries its code, name, terminology and provenance. A history 404 is an upstream error, not an empty result.
+- `get_concept_subsets`: read the required `terminology`, `release` and `code`, returning its `Concept_In_Subset` associations as subset code, terminology, name and provenance, in platform order.
+- `expand_value_set`: expand an NCIt subset with required `terminology`, `release` and exactly one of `valueSet` or `code`. `count` defaults to 200 and clamps to 1000; `offset` defaults to 0. `activeOnly` defaults to false; when true, inactive members are removed before paging and `total` counts those kept. Members retain platform order and FHIR provenance, with `inactive` only when true. Pages, including clamped and empty pages, are not truncation. EVS's unpinned expansion must report exactly the requested release or the call fails with `release_mismatch`; historical expansion is not guaranteed. Other terminologies return `capability_unavailable` without a request.
+- `get_concept_mappings`: read the required `terminology`, `release` and `code`, returning its maps in platform order. Optional `targetTerminology` matches the platform label exactly, including case. Record values are unchanged; optional target version and term type are omitted when absent, null or empty. Both tools use one pinned concept read, carry provenance on empty results and fail on malformed content.
+- `list_relationships`: list the pinned release’s roles and associations with code, terminology, name, kind, polarity and provenance. Reads each catalogue once per call; no cross-call cache. Missing configured exclusion codes make this tool and `get_concept_neighborhood` fail with `internal_error`, naming the absent codes in `details.missingCodes`. No network access is needed at startup.
+- `get_concepts`: fetch a caller-pinned batch with required `terminology`, `release` and `codes`. Returns `concepts` and `missing` in input order, preserving duplicate occurrences. Optional `include` works as in `get_concept`. Empty input makes no request. At most 650 supplied codes and a 7000-byte encoded request target are allowed; larger inputs are `invalid_request`. An oversized response is `bound_exceeded` (`NCI_SI_EVS_MAX_RESPONSE_BYTES`), never partial results.
+- `search_concepts`: search a pinned terminology with required `terminology`, `release` and `query`. Default `lexical` and `typeahead` use EVS's order; lexical preserves its highlight as `matchedOn`, while typeahead omits it. Neither invents a score. `semantic` and `hybrid` use the exact NCIt index, which must hold the requested release; they require NumPy (`index` extra) and return a score and winning field. `limit` defaults to 10 and clamps to 1000. All modes return `totalKnown` and continue with `cursor` until `nextCursor` is absent. `retired: only` filters using the pinned terminology's advertised retirement status, or returns `invalid_request` if none is selectable; the default `include` keeps active and retired matches.
+- `get_concept_hierarchy`: caller-pinned parents or children, excluding the seed. Required `direction`; `depth` defaults to 1, maximum 4; `limit` defaults to 200, maximum 1000. `nextCursor` continues with the same applied arguments. Paging replays within 200 requests: roughly 9,900 nodes for ordinary depth-one fanout at 50 per batch, fewer with retries or oversized responses. Narrow the starting concept or depth if replay returns `bound_exceeded`. Historical releases continue while served; withdrawal returns `cursor_expired`. `pathsToRoot` returns every platform path and unique reached nodes; depth, limit and cursor do not apply to it.
+- `get_concept_neighborhood`: caller-pinned graph including the seed. `depth` defaults to 2, maximum 4; `maxNodes` 200/1000; `maxEdges` 1000/5000; optional `budgetPerKind` maximum 1000. `kinds` selects among the six relation kinds. Negative assertions and targets are returned marked; their targets expand only with `includeNegative: true` or a positive route. A relationship without an upstream code remains positive, with its name and qualifiers preserved. Both graph tools share 200 requests per call, including a batched final-frontier check for depth truncation.
 
-These four entries require an explicit release and currently support NCIt only; other
-terminologies return `capability_unavailable`. Bounds above their maxima clamp. Invalid
-arguments return `invalid_request`.
+These content entries require an explicit release. Live concept and graph reads support EVS
+terminologies; NCIt codes follow their stated C-number form, and other codes are encoded as
+one path segment. Semantic/hybrid search remains NCIt-only; another terminology is
+`invalid_request`. Bounds above their maxima clamp. Invalid arguments return `invalid_request`.
 
 - `resolve_release`: resolve a terminology's current monthly or weekly release, with the other served version identifiers in `alternatives`. `terminology` is required; `channel` defaults to `NCI_SI_RELEASE_CHANNEL`. Returns a flat release record with provenance, or a top-level error. CLI: `resolve-release ncit --channel monthly`.
 - `list_terminologies`: list each EVS terminology and its current release with provenance. NCIt uses the configured channel; other terminologies use their sole latest row. CLI: `list-terminologies`. Both discovery tools are resolved afresh and carry `ttlMs: 0`, `cacheScope: public`; failures are private.
@@ -530,7 +568,7 @@ with no matches still return empty successes; missing current releases retain th
 `release_not_available` behavior.
 
 Each tool description, as sent to MCP clients, states the contract in full. The former
-`ncit_*` tools and `cadsr_status` are removed; use the six tools above. The caDSR profile
+`ncit_*` tools and `cadsr_status` are removed; use the twelve tools above. The caDSR profile
 currently exposes no tools. CLI diagnostics retain `search`, `lookup`, `traverse` and
 `release-info`, including CLI-only options such as `--live-only` and `--include-raw`.
 The release report's `selected_release` field names the configured channel's release.
@@ -546,9 +584,11 @@ take turns across the whole frontier; each kind spends its allowance only on
 new nodes. Edges to existing nodes do not spend that allowance. Mixed-kind walks
 report `perKind` truncation records when anything is dropped.
 
-Each traversal can make at most 200 HTTP attempts, including retries, split batches and status hydration. Exhaustion before any graph is available returns
-`bound_exceeded`; otherwise the partial graph reports the first bound that dropped
-anything, using `requests` if no earlier bound was reached. Unread kinds carry
+Each traversal can make at most 200 HTTP attempts, including retries, split batches and status hydration.
+Hierarchy paging replays the pinned walk; exhausting its request budget returns
+`bound_exceeded` and asks the caller to narrow the query. Neighborhood and CLI traversal
+return `bound_exceeded` before any graph is available; otherwise the partial graph reports
+the first bound that dropped anything, using `requests` if no earlier bound was reached. Unread kinds carry
 their own truncation record with `omitted: 0` and `exact: false` when the omitted
 relation count is unknown. An explicit kind allowance uses `kind_budget`
 truncation. These budgets are independent for concurrent calls.
@@ -567,9 +607,15 @@ beside it are still checked. Descendant checks read final child lists only.
 
 ## MCP Resources
 
-- `nci-si://concept/ncit/{code}`: the CLI lookup result with default options, including indexed fallback during an upstream outage.
-- `nci-si://release/ncit/{version}`: `current` and `latest` return the full CLI `release-info` report for the configured channel, including weekly; the current version returns its `{terminology, channel, version, date}` record. The old `monthly` and `monthly-latest` aliases are rejected. Resource-template replacement remains #30.
-- `nci-si://index/ncit/{version}/manifest`: `active`, or the release the local index holds, returns its manifest; without an index the result is `{"active_index": null}`.
+- `ncit://concept/{release}/{code}`: the pinned `get_concept` record, with synonyms, definitions, properties and semanticType. The release is required; an upstream failure remains an error.
+- `ncit://release/{version}`: a served NCIt version with terminology, channel, version, date, alternatives and provenance. Historical versions use their upstream tags; the configured channel is preferred when both monthly and weekly are present.
+- `ncit://index/manifest/{release}`: the active index's manifest only when its release matches. No active index is `capability_unavailable`; another active release is `release_mismatch`. An inactive matching build is not served.
+
+These JSON resources appear only in the `evs` and `unified` profiles. Successful reads carry
+release-pinned public caching hints on the protocol result. Failed reads are protocol errors;
+handler failures carry the shared error envelope. The old `nci-si://` URIs and moving
+`current`, `latest` and `active` aliases are removed. Use `resolve_release` to discover a
+version, then put that version in the resource URI. CLI `release-info` remains the status report.
 
 ## MCP output schemas
 
@@ -588,8 +634,7 @@ content. Lookup, search (including an empty result) and traversal use 86,400,000
 
 The four list methods and `server/discover` carry 86,400,000 ms and `public` as result
 fields. Resource reads carry the same fields on the read result: concept content and
-version-addressed release/index content use 86,400,000 ms and `public`. Moving release-report
-aliases, the `active` index alias, and an absent-index report use 0 and `public`.
+version-addressed release/index content use 86,400,000 ms and `public`.
 
 ## Audit records
 
@@ -649,15 +694,15 @@ EVS wraps in a success status but that is an error envelope, an error
 | --- | --- | --- |
 | `invalid_request` | An argument is missing, malformed, out of range, or contradicts another; CLI only: an environment variable is invalid | `parameter`, `reason` |
 | `not_found` | The requested release has no concept with that code, or `index-sample` named codes the release does not contain (nothing was indexed) | `identifiers` |
-| `release_not_available` | EVS did not name exactly one latest NCIt release for the channel (`requested` names the requested channel; optional `found` lists versions when several rows were returned), EVS no longer serves the pinned release, or a resource names a release that is not current (or not the one the index holds) | `requested`, `source`, `found` |
+| `release_not_available` | EVS did not name exactly one latest NCIt release for the channel (`requested` names the requested channel; optional `found` lists versions when several rows were returned), EVS no longer serves the pinned release, or a release resource names an unserved version or one with absent/ambiguous channel metadata | `requested`, `source`, `found` |
 | `release_mismatch` | The local index holds a different release than the requested one, or EVS served a concept of another release than the one requested | `requested`, `served` (a list of releases), `source` |
 | `upstream_unavailable` | EVS could not be reached or kept failing after the retries, rejected the request, or returned something unusable: a malformed, HTML or masked-error body, or a 404 from any request other than a single-concept lookup (check `NCI_SI_EVS_BASE_URL`) | `surface`, `status`, `attempts`, `retryAfter` (`status` and `retryAfter` where known) |
 | `timeout` | Every attempt at an EVS request timed out (`NCI_SI_TIMEOUT_SECONDS`) | `surface`, `seconds`, `attempts` |
-| `bound_exceeded` | An EVS response exceeds `NCI_SI_EVS_MAX_RESPONSE_BYTES`, or the request budget is exhausted before a graph is available | `bound`, `limit`, `reached` (for response size, the limit plus one when EVS declared no length) |
-| `capability_unavailable` | The requested terminology or operation is not supported yet; the MCP tool descriptions name the interim limits | `capability` |
-| `cursor_expired` | Defined by the specification; no tool returns it yet | `cursorRelease`, `currentRelease` |
-| `internal_error` | `search` or `evaluate` was called before an index was built, the index was built with other embedding settings than the runtime uses, SQLite could not open, read or write the index file named in the message, or (CLI only) the index, the embedding model or the MCP package could not be loaded at startup | none |
+| `bound_exceeded` | An EVS response exceeds `NCI_SI_EVS_MAX_RESPONSE_BYTES`, the request budget is exhausted before a graph is available, or hierarchy page replay exhausts its request budget | `bound`, `limit`, `reached` (for response size, the limit plus one when EVS declared no length) |
+| `capability_unavailable` | The requested terminology or operation is not supported yet, or an index resource has no active index; the MCP tool descriptions name the interim limits | `capability` |
+| `cursor_expired` | EVS no longer serves a hierarchy or live-search cursor’s release, or the active indexed-search build changed; restart the query. Same-release build replacement also expires a cursor, with equal release identifiers | `cursorRelease`, `currentRelease` |
+| `internal_error` | `search` or `evaluate` was called before an index was built, the index was built with other embedding settings than the runtime uses, SQLite could not open, read or write the index file named in the message, a production evaluation or sample-isolation check refused an operator command, the selected build is unavailable or a concurrent writer changed the active build, (CLI only) the index, the embedding model or the MCP package could not be loaded at startup, or the selected relationship catalogue lacks configured exclusion codes | `missingCodes` for missing exclusions only; absent for other causes |
 
-The CLI `release-info` command and its moving resource aliases succeed during an EVS outage:
+The CLI `release-info` command succeeds during an EVS outage:
 the `evs_api` and `selected_release` fields then hold an error record
 next to the local index manifest.

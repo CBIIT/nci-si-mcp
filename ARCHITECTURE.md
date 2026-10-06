@@ -27,7 +27,7 @@ flowchart LR
         EVS["EVS client + normalization<br/>evs.py"]
         Http["Instrumented HTTP client<br/>http_client.py"]
         Index["LocalIndex<br/>index.py"]
-        Retrieval["Tokenization + score utilities<br/>retrieval.py"]
+        Retrieval["Exact field scoring<br/>index_scoring.py"]
         Embeddings["Embedding providers<br/>embeddings.py"]
         Traversal["Bounded graph traversal<br/>traversal.py"]
         Models["Shared dataclasses<br/>models.py"]
@@ -83,26 +83,32 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 | Component | Responsibility | Main dependencies |
 | --- | --- | --- |
 | `caching.py` | Defines the hints for current producers: governed release-pinned content and the static server surface (86,400,000 ms/public), resolution/status (0/public), and errors (0/private). It contains no data cache or unused future policy classes. | Python standard library |
-| `bounds.py` | Owns traversal defaults and maxima and the per-call `Budget`. A context variable shares 200 HTTP attempts, including retries, release discovery and split batches, and restores the previous context on exit. The walker rotates kinds across each breadth-first frontier and counts newly admitted nodes against optional per-kind allowances. Exhaustion preserves partial graphs with truncation; without graph content it raises `RequestBudgetError`, mapped to `bound_exceeded`. | Python standard library |
+| `bounds.py` | Owns traversal defaults and maxima and the per-call `Budget`. A context variable shares 200 HTTP attempts, including retries, release discovery and split batches, and restores the previous context on exit. The walker rotates kinds across each breadth-first frontier and counts newly admitted nodes against optional per-kind allowances. Neighborhood and CLI traversal preserve partial graphs on exhaustion; without graph content they raise `RequestBudgetError`, mapped to `bound_exceeded`. Hierarchy page replay always fails with `bound_exceeded` on request exhaustion. | Python standard library |
 | `cli.py` | Builds command arguments and dispatch from the registry; owns `serve` startup, reports configuration failures and exits 1 on an error record. | `registry.py`, `server.py` |
 | `server.py` | Registers the profile-selected tools and three resource templates from the registry on an `mcp` 2.x `MCPServer`, and flags error records as protocol errors. Middleware carries cache decisions from SDK worker threads into tool `_meta` and resource fields, without inspecting content or matching names. Undeclared successful responses fail. SDK hints cover lists/discovery. | `registry.py`, `caching.py`, optional `mcp` package |
 | `registry.py` | Declares each operation once with its handler, output union, cache class and adapter exposure. Derives input models, CLI arguments and MCP parameters from handler signatures; selects tools by profile and invokes all producers through one boundary. | `handlers.py`, `invocation.py`, `caching.py`, `results.py` |
 | `context.py` | Holds injectable settings, clients, index and embedding provider shared by a server or CLI invocation. | EVS client, local index, embeddings |
 | `audit.py` | Emits one redacted JSON completion record per invocation, classifies parameters from the registry, counts actual HTTP attempts in request-scoped state, and formats diagnostics. | Correlation context, standard-library logging and SHA-256 |
-| `handlers.py` | Validates inputs, orchestrates use cases, pins EVS requests to the configured release channel, enforces index compatibility and implements lookup fallback. Owns tool contracts and resource content; moving aliases and absent-index reports select status cache policy. | `context.py`, release, traversal, evaluation |
-| `content.py` | Implements the caller-pinned NCIt content surface, projects spec concept/node/edge records, and explicitly refuses unsupported Phase 2 options. Reuses fetched graph payloads and batches missing node status reads within the traversal request budget. Indexed search checks the requested release inside its read transaction. | `context.py`, index, traversal, release, validation |
+| `handlers.py` | Validates inputs, orchestrates use cases, pins EVS requests to the configured release channel, enforces index compatibility and implements lookup fallback. Owns tool contracts and pinned resource content; absent and mismatched indexes are explicit errors. | `context.py`, release, traversal, evaluation |
+| `catalogue.py` | Reads release-pinned roles and associations once per call, validates row identities and the configured terminology-specific exclusion set, and projects relationship records with polarity by code. Missing exclusions fail the listing and neighborhood call with internal_error and missingCodes; no startup reads or cross-call cache. | EVS client, models, configuration |
+| `cursor.py` | Encodes hierarchy continuation positions with their applied arguments; validates malformed or changed continuations before network access. | standard library, errors |
+| `content.py` | Implements the caller-pinned EVS content surface, projects spec concept/node/edge records, and explicitly refuses unsupported Phase 2 options. Reuses fetched graph payloads and batches missing node status reads within the traversal request budget. Indexed search checks the requested release inside its read transaction. | `context.py`, index, traversal, release, validation |
 | `invocation.py` | Converts expected failures inside the audit correlation context through the single error-code table, preserving details and next steps. Unexpected exceptions propagate. | `errors.py`, upstream and domain exceptions |
 | `upstream.py` | Parses an upstream response body as JSON content, and classifies a failure that arrived as a success (an HTML page, a webMethods `apiResponse.type` `E` envelope, a FHIR `OperationOutcome` error, invalid JSON) as `upstream_unavailable` before any caller sees it. | `errors.py` |
 | `http_client.py` | The one HTTP client for upstream platforms: sends `Accept: application/json`, the call's correlation identifier and the platform's credentials (never to another origin: a redirect elsewhere is refused); retries 5xx, 429 (after its `Retry-After`) and connection failures with jittered backoff, counting every attempt; bounds the response size; classifies the response (through `upstream.py`) before returning it; hands one record per attempt to a request-log hook (a hook that raises is logged by type and ignored). | Python `urllib`, `upstream.py`, `errors.py` |
 | `evs.py` | Calls EVS REST endpoints through the HTTP client, classifies EVS-specific failures (missing concept, unknown release, unusable content and release mismatch) while shared HTTP failures propagate unchanged, reads the terminology listing (optionally one channel's `latest` row), and normalizes EVS payloads. | `http_client.py`, shared models, NCI EVS API |
+| `fhir.py` | Reads and verifies the unpinned NCIt value-set expansion, projects members and applies inactive filtering and local offset paging. | `http_client.py`, release, shared models |
 | `release.py` | The release model. `resolve_evs_release` asks EVS for the one row that is latest and tagged with the channel and returns the `ReleaseContext` that one call threads through its requests; zero or several rows are `release_not_available`, with ambiguous versions in `found`. Only terminology, channel, version and date are serialized; the pinned path stays internal. Nothing is kept between calls. `registry_state` builds `published`, optional `identifier`, `generatedAt` and `sourceDistribution` from upstream metadata. Without a registry release, the export's `Last-Modified` supplies the date. Invalid metadata raises `RegistryMetadataError`, mapped to `upstream_unavailable`. | `evs.py`, `errors.py` |
-| `index.py` | Migrates and transactionally maintains the release manifest, normalized concepts, FTS search text, vectors, and vector LSH buckets; performs BM25/vector/hybrid search. | SQLite FTS5, retrieval utilities, embedding provider, `validation.py`, concept normalization in `evs.py` |
-| `retrieval.py` | Implements tokenization, the dot product used as cosine similarity for unit vectors, and min-max normalization. | Python standard library |
+| `index.py` | Builds inactive field indexes, activates snapshots with rollback retention, and ranks BM25/vector/hybrid results within one read snapshot. | SQLite FTS5, embedding provider, `index_storage.py`, `index_scoring.py` |
+| `index_storage.py` | Defines schema 6 with float32 vector BLOBs, preserves raw concepts and build activation during migration, and manages per-build FTS tables. | SQLite, shared models |
+| `indexing.py` | Reconciles all pinned full-build pages before writing the index; spools raw payloads and logs aggregate progress. | EVS client, local index |
+| `index_scoring.py` | Scores every indexed field in one scan, reduces numeric arrays to each concept's best field, and partitions the requested page with deterministic ties. | SQLite FTS5, optional NumPy |
 | `embeddings.py` | Defines the embedding abstraction, a deterministic local hashing provider, an optional sentence-transformers provider, and the check that provider and model settings agree. | Optional `sentence-transformers` package |
 | `traversal.py` | Resolves which edge types to follow and performs a breadth-first traversal of hierarchy, role, and association relations with deduplication and hard depth/node/edge limits, and gives each node and edge its traversal provenance and the walk its truncation record. | EVS client, shared models |
 | `models.py` | Defines the serializable concept, index, search-hit and traversal dataclasses, and the provenance, traversal provenance and truncation records every result is built from. | `errors.py` |
 | `results.py` | Declares the serialized tool records as dependency-free TypedDicts, including optional wire keys and recursive truncation. Registry output declarations combine each success record with the shared error result; the MCP SDK generates their output schemas through a RootModel, preserving the top-level object. | `errors.py`, `validation.py` |
-| `evaluation.py` | Evaluates BM25, vector, and hybrid retrieval against a small built-in gold-query set. | Local index, embedding provider |
+| `evaluation.py` | Reports per-query rankings and Hit@1, Hit@5 and reciprocal-rank metrics for BM25, vector and hybrid search; evaluates inactive candidates and stores build-specific gate evidence. | Local index, embedding provider, evaluation sets |
+| `evaluation_sets.py` | Validates versioned judgments, calibration identity and measured regression floors; distinguishes test-only calibration. | Standard library |
 | `config.py` | Loads the profile, the upstream mode and the six upstream base URLs (taken as a set: production defaults in live mode, all required in fixture mode), release channel, exclusion role codes, the two credentials (kept out of every string form), timeouts, EVS retry, batching, logging, data-directory and embedding settings from environment variables and validates them; whether the data directory is usable shows only when the index is opened. | Environment, `embeddings.py`, `validation.py` |
 | `validation.py` | Defines the closed value sets (search modes, directions, edge types), normalizes NCIt codes, and validates search and traversal inputs. | Shared errors, limits in `bounds.py` |
 | `errors.py` | Defines the validation and index errors, `PlatformError` with the ten error codes of the specification, the per-call correlation identifier, and `serialise`, the one function that builds the error record. | Python standard library |
@@ -118,33 +124,51 @@ which use the closed value sets in `validation.py` and default limits in `bounds
    code, nothing is indexed.
 3. `LocalIndex` normalizes each concept and verifies the payload release and
    embedding provider/model/dimensions before changing persistent state.
-4. Search text, embeddings, FTS rows, vector LSH buckets, and the manifest are
-   committed in one SQLite transaction. Concepts of the release already indexed
-   are added to it; concepts of another release replace the index. A failure
-   leaves the previous index untouched.
+4. Preferred name, synonyms and definitions become separate field rows, deduplicated
+   by identical text within each concept. Embeddings are computed in batches of 64
+   concepts outside write transactions. Each batch commits under a `building` manifest;
+   a final short transaction marks it complete. Partial builds never serve reads or activate.
+   The next start deletes stale building rows. A small separate SQLite lease distinguishes
+   a running builder from an interrupted one without holding the index write lock.
+5. The developer sample command combines existing same-release concepts and activates
+   the new snapshot. `index-build` instead reads unfiltered pinned search pages of 1000,
+   verifies every release, reconciles totals and unique codes, then builds an inactive snapshot.
+   Temporary spooling bounds download memory. Progress is structured JSON on stderr every
+   ten pages and at completion. HTTP retries remain in the shared client.
+6. `index-activate` changes the active manifest in one transaction and deletes all builds
+   except the new active build and its predecessor. Activating that predecessor is rollback.
+   `index-rebuild` embeds stored payloads offline into an inactive snapshot.
 
 ### Search
 
 1. The CLI invokes `handlers.search`; MCP invokes `content.search_concepts` through the
-   same registry. The MCP entry pins the caller's release, maps `semantic` to vector search,
-   and refuses lexical/typeahead, cursors and retired-only selection pending #27.
+   same registry. The MCP entry pins the caller's release. Lexical/typeahead search passes
+   EVS order through without scores, preserving only lexical highlights. Semantic/hybrid
+   search uses the exact NCIt index and requires the optional NumPy `index` extra.
 2. `LocalIndex` verifies that the runtime embedding configuration matches the
    manifest. For MCP, it also verifies the requested release inside the read transaction.
-3. BM25 candidates come from SQLite FTS5. For vector scores, a release of up to
-   20,000 concepts is scanned exactly; a larger one is narrowed to at most 2,000
-   candidates from the LSH buckets and the BM25 hits before scoring. Work for an
-   unused retrieval mode is skipped.
-4. Each component is min-max normalized over the concepts scored for the query
+3. BM25 scores come from SQLite FTS5 without a candidate cap. Each concept's field vectors
+   occupy one float32 BLOB; a single scan scores every field in bounded matrix chunks.
+   Compact per-query numeric arrays retain cosines, concept indices and field kinds.
+   Hybrid scatters matching BM25 scores into those arrays. No vector matrix is cached.
+4. Each component is min-max normalized over the fields scored for the query
    and combined as BM25, vector, or a `0.55 * BM25 + 0.45 * vector` hybrid
    score. Scores order the hits of one query; they are not comparable across
-   queries.
+   queries. Each concept appears once with its winning field in `matchedOn`; equal
+   scores prefer name, synonym, then definition. An exact preferred name, compared
+   case-insensitively after Unicode NFC and whitespace collapsing, scores 1 and wins
+   ties before other concepts. Code orders remaining ties, including ties at a partition
+   boundary. `totalKnown` counts all matches after the retirement filter, in the same
+   snapshot as the page and manifest. Retired-only selection uses the pinned terminology's
+   advertised status; an unsupported selection is invalid, never silently unfiltered.
 5. Ranked `SearchHit` objects are returned. Each hit's concept carries its provenance
    (`source: evs_index`), and raw EVS payloads are left out unless the CLI's
-   `--include-raw` asks for them. `search_with_truncation` also counts the scored
-   concepts that `limit` left out and returns them as the `Truncation` record; its `exact`
-   is true only where every candidate was scored (BM25 below its candidate cap, vectors
-   in an index of up to 20,000 concepts). A search with no hit carries the provenance of
-   the active manifest as its own field.
+   `--include-raw` asks for them. MCP returns `nextCursor` until the final page, without
+   truncation. Cursors bind applied arguments, the pinned release and, for indexed modes,
+   the internal build id. An activation expires indexed cursors even if the release is
+   unchanged. EVS cursors expire when their pinned release is withdrawn. The CLI's one-page
+   `search_with_truncation` instead reports an exact count of omitted concepts.
+   An empty result carries provenance for its selected source.
 
 ### CLI lookup and the concept resource
 
@@ -178,8 +202,8 @@ It returns a specification concept record with upstream name, active/status and 
    batched concept requests that include the selected relation lists, pinned to
    the release, and every fetched concept is checked against it. Requested
    depth clamps at 4. Neighborhood allows up to 1,000 nodes including the seed
-   and 5,000 edges. Hierarchy allows up to 1,000 returned nodes excluding the
-   seed and has no edge cap; known node cuts refuse unsupported paging.
+   and 5,000 edges. Hierarchy allows up to 1,000 returned nodes per page excluding the
+   seed and has no edge cap; continuation replays the pinned walk within the request budget.
    Forward lists at the last frontier are also read, within the same request budget, to distinguish
    a depth cut from a leaf or a cycle to returned nodes. Each batch is processed
    before the next request so the first bound reached keeps precedence.
@@ -210,8 +234,22 @@ It returns a specification concept record with upstream name, active/status and 
    and `polarity` of the edge that reached it. Polarity is decided by the relationship's
    code against the NCIt exclusion set, never by its name.
 7. MCP converts the graph to specification concept and edge records, with edges in assertion
-   orientation. Hierarchy excludes the seed; neighborhood includes it. Unsupported paging,
-   paths to root and selective negative expansion are explicitly refused pending #23.
+   orientation. Hierarchy excludes the seed and pages in breadth-first platform order.
+   Its cursor binds the applied arguments and position; each call replays the pinned walk
+   within 200 requests. The page window is not truncation; other bounds still report the
+   first real omission. Exhausted replay is bound_exceeded, never a false final page.
+   A served historical release continues without discovery. Only its withdrawal triggers
+   current-channel discovery and cursor_expired with both release identifiers.
+   pathsToRoot preserves every platform path and projects unique reached nodes; depth,
+   limit and cursor do not apply to that direction.
+8. Neighborhood includes negative targets but expands them only with includeNegative or
+   a positive route. Eligibility is separate from visibility, so an earlier negative
+   arrival cannot suppress later positive expansion, including after per-kind re-admission.
+   Depth follows the eligible route; node provenance retains its first arrival. Upstream
+   relationship codes and names identify edges together, preserving same-named assertions.
+   Missing codes remain absent and positive; qualifiers, evidence and licence text pass
+   through. Legacy CLI name filters leave hierarchy edges intact; their invented names
+   are removed.
 
 ## Provenance
 
@@ -258,45 +296,57 @@ adds no persistent audit store, rate limiter or invented upstream audit headers.
 ```mermaid
 erDiagram
     MANIFESTS {
-        text release_version PK
+        text build_id PK
         text payload "JSON IndexManifest"
-        integer active "0 or 1"
+        integer active
+        text state "building or complete"
     }
-
     CONCEPTS {
-        text release_version PK
+        text build_id PK
         text code PK
         text payload "JSON NcitConcept"
-        text search_text
-        text vector "JSON float array"
+        text name_key
+        text status
     }
-
-    CONCEPTS_FTS {
-        text release_version
+    FIELDS {
+        integer id PK
+        text build_id
         text code
-        text search_text "FTS5 indexed"
+        text kind
+        text text
+        integer position
     }
-
-    VECTOR_LSH {
-        text release_version PK
+    CONCEPT_VECTORS {
+        text build_id PK
         text code PK
-        integer band PK
-        integer bucket
+        blob kinds
+        blob vector "little-endian float32 fields"
     }
-
-    MANIFESTS ||--o{ CONCEPTS : "release_version"
-    CONCEPTS ||--|| CONCEPTS_FTS : "search document"
-    CONCEPTS ||--|{ VECTOR_LSH : "vector buckets"
+    MANIFESTS ||--o{ CONCEPTS : build_id
+    CONCEPTS ||--o{ FIELDS : "build_id, code"
+    CONCEPTS ||--|| CONCEPT_VECTORS : "build_id, code"
 ```
 
-SQLite holds one release: the concept cache and the search index over it. The
-database does not declare a foreign key, but `release_version` is the logical
-relationship between the tables. `PRAGMA user_version` drives migrations, and a
-partial unique index guarantees that at most one manifest is active. Earlier
-versions kept every release ever indexed; opening such a database (schema
-version below 4) drops all rows except those of the active release. The LSH
-layout (4 bands of 8 bits) and the hashing embedding are part of the stored
-format.
+Schema 6 retains completed build snapshots. One partial unique index permits only one active
+manifest. Each build has its own FTS5 table, keyed by field id, so inactive builds cannot change
+the active BM25 corpus statistics. Activation retains exactly the new active snapshot and
+its predecessor. Embedding runs outside transactions; bounded writes accumulate under a `building` row.
+Only a final completion transaction makes it eligible for evaluation. Production activation
+also requires a passing report bound to that build, release and embedding configuration;
+samples are exempt. Rebuilt unclassified snapshots become production builds, while their
+originals remain available for rollback. The next build start
+removes stale rows, while a separate SQLite lease protects concurrently running builders.
+Field vectors are grouped per concept, with their kinds and positions linking them to FTS.
+The manifest supplies the dimension; malformed BLOB lengths are storage failures.
+New SQLite files use 64 KiB pages to reduce overflow-page I/O for vector scans. Existing files
+keep their page size; conversion requires an explicit offline `VACUUM` as described in QUICKSTART.
+
+Schema-5 migration preserves raw concepts, manifests, activation, FTS ids and retirement status,
+converting its JSON vectors to float32 without embedding again. Earlier-schema migration
+preserves raw concepts and manifests and marks them rebuild-required.
+Their cached lookup remains available; search returns `capability_unavailable` naming
+`index-rebuild`. That command embeds stored payloads into a new inactive build without
+network access; activation is explicit. No embedding runs while opening a database.
 
 A cached concept keeps the `retrieved_at` time at which it was fetched from EVS
 for indexing.
@@ -309,46 +359,46 @@ MCP tools:
 - `list_terminologies`
 
 - `get_concept`
+- `get_concepts`
+- `list_relationships`
+- `resolve_retired_code`
+- `get_concept_subsets`
+- `get_concept_mappings`
+- `expand_value_set`
 - `search_concepts`
 - `get_concept_hierarchy`
 - `get_concept_neighborhood`
 
 MCP resources:
 
-- `nci-si://concept/ncit/{code}`
-- `nci-si://release/ncit/{version}`
-- `nci-si://index/ncit/{version}/manifest`
+- `ncit://concept/{release}/{code}`
+- `ncit://release/{version}`
+- `ncit://index/manifest/{release}`
 
-The `evs` and `unified` profiles expose the six EVS tools; `cadsr` currently exposes no tools.
+The `evs` and `unified` profiles expose the twelve EVS tools; `cadsr` currently exposes no tools.
 Each tool has group metadata and read-only, idempotent,
-non-destructive, open-world annotations. Resources are available in every profile.
+non-destructive, open-world annotations. EVS resources are available in `evs` and `unified`
+only. Every resource is release-pinned; concept reads use `get_concept` with every supported
+section, release reads use the requested served version's metadata, and index reads serve only
+the active matching manifest, with `source: evs_index` and `servedBy: index` provenance.
 
 The CLI retains lookup, indexed search, traversal, release-info, sample indexing and
-retrieval evaluation diagnostics. The release report uses `selected_release`; the moving
-resource aliases are `current` and `latest`. QUICKSTART.md lists the error codes.
+retrieval evaluation diagnostics. The release report uses `selected_release`; moving resource
+aliases are removed. QUICKSTART.md lists the error codes.
 
 ## Current boundaries
 
-- NCIt is the only implemented terminology path.
-- Search is local and requires an index; the search endpoint of EVS is not
-  used.
+- NCIt is the only indexed terminology. Lexical/typeahead search uses EVS directly;
+  semantic/hybrid search requires a matching active index and the optional NumPy extra.
 - Traversal is live against EVS rather than cached in SQLite. Inward walks are
   slower than outward ones because the inverse relations of hub concepts are
   megabytes each.
-- Vector search is exact up to 20,000 indexed concepts. Beyond that it scores
-  only LSH and BM25 candidates, and vector-only mode then misses most nearest
-  neighbours. One measurement: a synthetic index of 3,000 concepts, each with a
-  four-word name and a twelve-word definition, forced onto this path and
-  queried with 100 of the names, returned the exact nearest neighbour for 17
-  queries in vector mode and 87 in hybrid mode. The figure depends on how much
-  of the indexed text a query repeats. A full-NCIt index would need a real ANN
-  engine.
+- Exact vector search scans every field on each page. Per-query numeric score arrays grow
+  with the field count; vectors are processed in chunks and never cached as a full matrix.
 - caDSR/CDE tools are not implemented. Until credentials are issued, their implementation
   uses fixtures crafted from the published contracts; the former status-only stub is removed.
-- Indexing is manual by supplied codes; there is no complete NCIt-universe build
-  workflow. An index cannot be
-  re-embedded in place: changing the embedding settings means deleting the
-  database file and indexing again.
+- Index builds and activation are operator commands. Production activation requires a
+  persisted passing evaluation for that build; the operator runbook follows in #40.
 - The package requires Python 3.14 or newer. The `mcp` package comes with the
   optional `server` extra, which only the `serve` command and the server tests
   need.
@@ -359,7 +409,7 @@ resource aliases are `current` and `latest`. QUICKSTART.md lists the error codes
 - `tests/test_release.py`: one-row release resolution per channel and its failures, the unknown-release 404, the release being resolved afresh in every call, and the caDSR registry state.
 - `tests/test_evs_client.py`: failure classification, response limits, payload shapes, and request URLs through the EVS client.
 - `tests/test_http_client.py`: headers, correlation, counted retries, `Retry-After`, the request-log hook, and credentials (sent to their platform only, in no log, record or error).
-- `tests/test_index.py`: upserts and release replacement, rollback, embedding compatibility, migrations, and BM25/vector/hybrid search.
+- `tests/test_index.py`: sample updates and build retention, rollback, embedding compatibility, migrations, and BM25/vector/hybrid search.
 - `tests/test_handlers.py`: lookup (live, fallback, mismatch, not found), indexing, search, traversal, status, and the mapping of failures to error codes, details and next steps.
 - `tests/test_errors.py`: the error record, its closed set of codes, and the correlation identifier.
 - `tests/test_upstream.py`: failures masked as success responses (HTML, webMethods, FHIR), also through the EVS client.
@@ -374,3 +424,79 @@ resource aliases are `current` and `latest`. QUICKSTART.md lists the error codes
 - `tests/test_quality_gates.py`: the complexity and test-quality gates in `scripts/validation`.
 - `tests/test_release_config.py`: the pull request title check against the release configuration.
 - `acceptance/`: the behavioural acceptance suite, which tests the MCP tool surface through a fixture upstream ([acceptance/README.md](acceptance/README.md)).
+
+### EVS content identity
+
+Existing concept, batch and descendant client methods require a `ReleaseContext`; there is no
+unpinned content default. Full concepts must report the requested version and terminology.
+All 33 recorded terminology rows use `{terminology}_{version}` as `terminologyVersion`; a
+fixture-backed test pins that construction. Codes without a stated form are encoded as one
+path segment. Licence attribution comes only from the content payload that supplied it.
+
+Compact descendant entries do not report a version or terminology. Their provenance names
+the release addressed by the request, with no invented `upstream` version. When a later read
+fetches the full concept for its details, that payload is verified.
+
+### Public concept batches
+
+`get_concepts` makes one nonempty batch request, deduplicating codes on the wire and
+reconciling the unordered reply by code. Both output lists retain input order and duplicate
+occurrences. Unsolicited or duplicate upstream identities fail closed. Empty input makes no
+request; response-size failure returns `bound_exceeded` with `NCI_SI_EVS_MAX_RESPONSE_BYTES`, never a partial batch.
+
+EVS [limits batches to 1000 codes](https://github.com/NCIEVS/evsrestapi/blob/af1b2794ba944dad5c00e7958eaafb90267f2df0/src/main/java/gov/nih/nci/evs/api/controller/ConceptController.java#L177),
+but the deployed URL ceiling is lower. Credential-free IPv4 probes on 5 October 2026, using
+repeated C202904 with minimal detail, returned HTTP 200 at encoded request-target lengths
+5046 and 7546 bytes, HTTP 400 at 8046, and HTTP 414 at 8296 and 10046.
+`bounds.HARD_MAX_BATCH_CODES = 650` and `MAX_BATCH_TARGET_BYTES = 7000` leave 546 bytes
+(7.2%) below the largest successful probe. The byte check uses the actual HTTP URL formatter,
+including the configured base path, pinned release, escaped codes and include fields. The count
+applies before deduplication; either excess is `invalid_request`, without truncation or splitting.
+
+### FHIR value-set expansion
+
+`expand_value_set` accepts exactly one of `valueSet` or `code`, with required terminology
+and release. EVS enumerates NCIt subsets only; other terminologies return
+`capability_unavailable` after argument validation and without a request. The FHIR client uses
+`NCI_SI_EVS_FHIR_BASE_URL` and shares REST's timeout, retry, licence-key and
+`NCI_SI_EVS_MAX_RESPONSE_BYTES` settings through `HttpClient`.
+
+The recorded platform rejects `system-version`, and its subset enumeration uses latest monthly.
+Under A3.2 the client requests the unpinned expansion directly, verifies its identity and exact
+`ValueSet.version` before projecting members, and returns `release_mismatch` on a difference.
+No version normalization, pinned probe, cross-call cache or historical expansion claim is made.
+Verified results advertise the pinned-content cache hint; mismatches are private with zero TTL.
+
+The complete flat expansion is checked against its reported total before inactive members are
+filtered and offset/count applied locally. Nested, incomplete or malformed answers fail closed.
+Count defaults to 200 and clamps to 1000; offset defaults to 0 and activeOnly to false. Paging,
+including clamped paging, is not truncation; offset at or beyond total returns an empty page.
+Every member carries source-release provenance with the actual FHIR url/version; copyright text
+passes through only when supplied. Inactive appears only when true. Oversized responses fail
+through the shared byte-cap error, never as partial expansion data.
+
+### Concept subsets and mappings
+
+`get_concept_subsets` and `get_concept_mappings` each read the pinned concept once with
+`minimal,associations` or `minimal,maps`. They verify the concept identity and release before
+projecting records. Subsets select the exact `Concept_In_Subset` association type, including
+computed associations without a relationship code, and take their terminology from the concept.
+Maps preserve the specified field values and platform order; extra upstream keys are excluded.
+Optional target version and term type are omitted when absent, null or empty. Missing required
+fields fail the entire call, even when a target filter would exclude the malformed map.
+The target filter matches the platform label exactly, including case. Provenance describes
+the source concept and its release; the map's target version remains separate. Supplied licence
+text passes through, with item attribution taking precedence over the source concept's.
+Empty results retain source provenance. Subset membership endpoints and incoming cross-domain
+mapsets are separate capabilities.
+
+### Retired code resolution
+
+`resolve_retired_code` reads the pinned concept once and uses only its boolean `active` to
+decide whether to read history. Status remains the upstream value. Inactive concepts use
+`/history/{terminology}_{release}/{code}/replacements`; the one-code tool does not need the
+batch endpoint or split/retry logic. A history 404 follows `_get_existing` into an error;
+a successful empty history or a row naming no replacement yields `replacements: []`.
+Replacement codes and names remain unchanged. Their provenance names the history request
+and its pinned release, without inventing the version compact rows do not carry. Any
+optional upstream terminology/version is validated, and supplied licence text passes through.

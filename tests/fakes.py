@@ -1,7 +1,19 @@
 """Shared test doubles. Nothing here touches the network."""
 
-from nci_si_mcp.evs import INDEX_INCLUDE, LOOKUP_INCLUDE, EVSNotFoundError
+from urllib.parse import urlencode
+
+from nci_si_mcp.config import DEFAULT_EXCLUSION_ROLE_CODES
+from nci_si_mcp.evs import INDEX_INCLUDE, LOOKUP_INCLUDE, EVSNotFoundError, verify_content
 from nci_si_mcp.release import ReleaseContext
+
+
+def catalogue_rows(kind, version="26.06e", terminology="ncit"):
+    codes = {"role": DEFAULT_EXCLUSION_ROLE_CODES, "association": ("A1",)}
+    return [
+        {"code": code, "name": code, "terminology": terminology, "version": version}
+        for code in codes[kind]
+    ]
+
 
 # Fields EVS returns only when the `include` parameter asks for them.
 OPTIONAL_FIELDS = frozenset(
@@ -9,6 +21,7 @@ OPTIONAL_FIELDS = frozenset(
         "definitions",
         "synonyms",
         "properties",
+        "maps",
         "parents",
         "children",
         "roles",
@@ -19,13 +32,13 @@ OPTIONAL_FIELDS = frozenset(
 )
 
 
-def release(version="26.06e", date="2026-06-29", channel="monthly"):
+def release(version="26.06e", date="2026-06-29", channel="monthly", terminology="ncit"):
     return ReleaseContext(
-        terminology="ncit",
+        terminology=terminology,
         channel=channel,
         version=version,
         date=date,
-        pinned_terminology=f"ncit_{version}",
+        pinned_terminology=f"{terminology}_{version}",
     )
 
 
@@ -88,10 +101,12 @@ class FakeEVS:
         self.errors = {}
         self.calls = []
         self.includes = []
+        self.catalogues = None
         self.max_response_bytes = 1_000_000
 
-    def uri(self, path):
-        return f"https://evs.test{path}"
+    def uri(self, path, params=None):
+        query = "?" + urlencode(params, doseq=True) if params else ""
+        return f"https://evs.test{path}{query}"
 
     def _record(self, method, terminology=None, argument=None):
         self.calls.append((method, terminology, argument))
@@ -109,6 +124,16 @@ class FakeEVS:
         self._record("get_api_version")
         return {"version": "test"}
 
+    def get_relationship_catalogue(self, release, kind):
+        self._record("get_relationship_catalogue", release.pinned_terminology, kind)
+        rows = (
+            catalogue_rows(kind, release.version, release.terminology)
+            if self.catalogues is None
+            else self.catalogues[kind]
+        )
+        verify_content(rows, release)
+        return rows
+
     def get_terminologies(self, terminology=None, *, latest=False, tag=None):
         self._record("get_terminologies", terminology, (latest, tag))
         rows = self.rows
@@ -121,22 +146,25 @@ class FakeEVS:
         matching = (terminology_row_matches(row, terminology, latest, tag) for row in rows)
         return [row for row, kept in zip(rows, matching, strict=True) if kept]
 
-    def get_concept(self, code, terminology="ncit", include=LOOKUP_INCLUDE):
-        self._record("get_concept", terminology, code)
+    def get_concept(self, code, release, include=LOOKUP_INCLUDE):
+        self._record("get_concept", release.pinned_terminology, code)
         self.includes.append(include)
         if code not in self.concepts:
             raise EVSNotFoundError(f"{code} not found")
-        return self._concept(code, include)
+        raw = self._concept(code, include)
+        verify_content([raw], release)
+        return raw
 
-    def get_concepts_by_codes(self, codes, terminology="ncit", include=INDEX_INCLUDE):
+    def get_concepts_by_codes(self, codes, release, include=INDEX_INCLUDE):
         codes = list(codes)
-        self._record("get_concepts_by_codes", terminology, codes)
+        self._record("get_concepts_by_codes", release.pinned_terminology, codes)
         self.includes.append(include)
         known = [
             self._concept(code, include) for code in dict.fromkeys(codes) if code in self.concepts
         ]
+        verify_content(known, release)
         return known[1:] + known[:1]
 
-    def get_descendants(self, code, max_level, terminology="ncit"):
-        self._record("get_descendants", terminology, (code, max_level))
+    def get_descendants(self, code, max_level, release):
+        self._record("get_descendants", release.pinned_terminology, (code, max_level))
         return [item for item in self.descendants.get(code, []) if item["level"] <= max_level]

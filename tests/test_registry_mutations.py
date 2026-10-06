@@ -39,7 +39,7 @@ class RegistryMutationTest(ServerFixture):
             result = invoke(
                 self.context, "search_concepts", "ncit", "26.06e", "Neoplasm", cursor=cursor
             )
-        self.assertEqual(result["error"]["code"], "capability_unavailable")
+        self.assertEqual(result["error"]["code"], "invalid_request")
         (record,) = records(stream)
         self.assertEqual(record["parameters"]["cursor"], digest(cursor))
         self.assertNotIn(cursor, stream.getvalue())
@@ -50,21 +50,21 @@ class RegistryMutationTest(ServerFixture):
             result = invoke(
                 self.context, "traverse", ["C3262"], max_depth=1, relationship_names=names
             )
-        self.assertEqual([edge["target_code"] for edge in result["edges"]], ["C12922"])
+        self.assertEqual([edge["target_code"] for edge in result["edges"]], ["C4741", "C12922"])
         (record,) = records(stream)
         self.assertEqual(record["parameters"]["relationship_names"], digest(names))
         self.assertNotIn(names[0], stream.getvalue())
 
     def test_incompatible_index_error_names_the_rebuild_next_step(self):
         with patch.object(
-            self.context.index, "search_with_truncation", side_effect=IndexCompatibilityError("bad")
+            self.context.index, "search_snapshot", side_effect=IndexCompatibilityError("bad")
         ):
             result = invoke(self.context, "search", "Neoplasm")
         self.assertEqual(result["error"]["code"], "internal_error")
         self.assertTrue(
             result["error"]["message"].endswith(
-                "Rebuild the index with `index-sample`, or use the embedding settings "
-                "it was built with."
+                "Use the original embedding settings, or run `index-rebuild` and activate its "
+                "evaluated build with `index-activate`."
             )
         )
 

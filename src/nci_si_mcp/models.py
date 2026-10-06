@@ -9,9 +9,10 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field, fields
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 
 from .errors import call_correlation_id
+from .validation import Polarity
 
 
 def utc_now_iso() -> str:
@@ -34,6 +35,7 @@ class ProvenanceEnvelope:
     correlation_id: str
     source_uri: str | None = None
     upstream: dict[str, Any] | None = None
+    attribution: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
@@ -47,6 +49,8 @@ class ProvenanceEnvelope:
             data["sourceUri"] = self.source_uri
         if self.upstream:
             data["upstream"] = self.upstream
+        if self.attribution:
+            data["attribution"] = self.attribution
         return data
 
 
@@ -60,7 +64,9 @@ class TraversalProvenance(ProvenanceEnvelope):
     depth: int
     relationship: dict[str, str] | None = None
     direction: str | None = None
-    polarity: str | None = None
+    polarity: Polarity | None = None
+    qualifiers: Any = None
+    evidence: Any = None
 
     def to_dict(self) -> dict[str, Any]:
         data = super().to_dict()
@@ -69,8 +75,10 @@ class TraversalProvenance(ProvenanceEnvelope):
             "relationship": self.relationship,
             "direction": self.direction,
             "polarity": self.polarity,
+            "qualifiers": self.qualifiers,
+            "evidence": self.evidence,
         }
-        return data | {name: value for name, value in how_reached.items() if value}
+        return data | {name: value for name, value in how_reached.items() if value is not None}
 
 
 @dataclass(frozen=True, slots=True)
@@ -173,6 +181,13 @@ class IndexManifest:
     index_path: str
     embedding_dimensions: int | None = None
     active: bool = False
+    build_id: str = ""
+    needs_rebuild: bool = False
+    evaluation_version: str | None = None
+    evaluation_score: float | None = None
+    build_kind: Literal["legacy", "sample", "production"] = "legacy"
+    evaluation_report: dict[str, Any] | None = None
+    unclassified_source_build: str | None = None
 
     @classmethod
     def from_payload(cls, payload: dict[str, Any]) -> IndexManifest:
@@ -204,7 +219,18 @@ class IndexManifest:
     def to_result(self) -> dict[str, Any]:
         """The manifest as the index_manifest record: its fields and its provenance."""
 
-        return self.to_dict() | {"provenance": self.provenance().to_dict()}
+        return {
+            "terminology": self.terminology,
+            "version": self.release_version,
+            "concepts": self.concept_count,
+            "embedding": {
+                "provider": self.embedding_provider,
+                "model": self.embedding_model,
+                "dimensions": self.embedding_dimensions,
+            },
+            "builtAt": self.built_at,
+            "provenance": self.provenance().to_dict(),
+        }
 
     def provenance(self) -> ProvenanceEnvelope:
         """The provenance of what the index serves: the release it holds, as built."""
@@ -223,6 +249,7 @@ class SearchHit:
     concept: NcitConcept
     score: float
     rank: int
+    matched_on: str
     score_components: dict[str, float] = field(default_factory=dict)
 
     def to_dict(self, source_uri: str, include_raw: bool = False) -> dict[str, Any]:
@@ -261,7 +288,10 @@ class TraversalEdge:
     source_name: str = ""
 
     def to_dict(self) -> dict[str, Any]:
-        return _with_provenance(self)
+        result = _with_provenance(self)
+        if not self.relationship_name:
+            result.pop("relationship_name")
+        return result
 
 
 @dataclass(frozen=True, slots=True)
@@ -275,13 +305,10 @@ class TraversalResult:
     max_edges: int
     # Minimal payloads already fetched by the walk, for the public concept projection.
     concepts: dict[str, dict[str, Any]] = field(default_factory=dict)
-    # Paging decisions must see a node cut even when an earlier bound is reported.
-    node_limit_hit: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
         data.pop("concepts")
-        data.pop("node_limit_hit")
         data["nodes"] = [node.to_dict() for node in self.nodes]
         data["edges"] = [edge.to_dict() for edge in self.edges]
         data["truncation"] = self.truncation.to_dict()

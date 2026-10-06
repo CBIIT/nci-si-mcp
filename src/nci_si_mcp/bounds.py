@@ -14,6 +14,9 @@ HARD_MAX_NODES = 1000
 HARD_MAX_EDGES = 5000
 MAX_TRAVERSAL_REQUESTS = 200
 HARD_MAX_PER_KIND = 1000
+# EVS accepts 1,000 codes, but its deployed URL ceiling is lower (see ARCHITECTURE.md).
+HARD_MAX_BATCH_CODES = 650
+MAX_BATCH_TARGET_BYTES = 7000
 
 
 def clamp_limits(max_depth: int, max_nodes: int) -> tuple[int, int]:
@@ -39,6 +42,8 @@ class Budget:
     nodes: int = DEFAULT_MAX_NODES
     edges: int = DEFAULT_MAX_EDGES
     per_kind: int | None = None
+    # Hierarchy uses the node allowance as a page window, not an omission bound.
+    paged: bool = False
     attempts: int = field(default=0, init=False)
     added_by_kind: Counter[str] = field(default_factory=Counter, init=False)
     exhausted: bool = field(default=False, init=False)

@@ -28,6 +28,8 @@ ReleaseChannel = Literal["monthly", "weekly"]
 ConceptInclude = Literal["synonyms", "definitions", "properties", "semanticType"]
 PublicSearchMode = Literal["lexical", "typeahead", "semantic", "hybrid"]
 RetiredSelection = Literal["include", "only"]
+RelationshipKind = Literal["role", "association"]
+Polarity = Literal["positive", "negative"]
 HierarchyDirection = Literal["parent", "child", "pathsToRoot"]
 NeighborhoodKind = Literal[
     "parent", "child", "role", "association", "inverseRole", "inverseAssociation"
@@ -76,6 +78,15 @@ def validate_terminology(terminology: str) -> str:
             "terminology must be a lowercase identifier starting with a letter", "terminology"
         )
     return terminology
+
+
+def validate_expansion_options(count: int, offset: int, active_only: bool) -> int:
+    count = bounded(count, 1000, "count")
+    if type(offset) is not int or offset < 0:
+        raise InputValidationError("offset must be a nonnegative integer", "offset")
+    if not isinstance(active_only, bool):
+        raise InputValidationError("activeOnly must be boolean", "activeOnly")
+    return count
 
 
 def validate_channel(channel: str) -> str:

@@ -24,8 +24,8 @@ from test_evs_client import FakeResponse
 from test_handlers import NEOPLASM, HandlerTestCase, release
 
 SPEC_KEYS = {code: set(keys) for code, keys in RECORDS["error"]["detail_keys"].items()}
-# Codes that nothing raises yet; their keys are in the specification for the day something does.
-UNRAISED = {"capability_unavailable", "cursor_expired"}
+# Codes not exercised by these raise sites; cursor tests cover cursor_expired separately.
+UNRAISED = {"cursor_expired"}
 
 
 def http_error(status, headers=None, body=b""):
@@ -64,14 +64,7 @@ class DetailKeysTest(HandlerTestCase):
     def raise_sites(self):
         """(code, details) of an error from each place that raises one with details."""
 
-        self.assertEqual(
-            invoke(
-                self.context,
-                "index_resource",
-                "active",
-            ),
-            {"active_index": None},
-        )
+        absent_manifest = from_the_record(invoke(self.context, "index_resource", "26.06e"))
         no_index = from_the_record(invoke(self.context, "search", "tumor"))
         self.index()
         self.evs.release = release("26.07d", "2026-07-27")
@@ -79,6 +72,7 @@ class DetailKeysTest(HandlerTestCase):
         mismatch = from_the_record(invoke(self.context, "lookup", "C3262"))
         del self.evs.concepts["C40704"]
         return [
+            absent_manifest,
             no_index,
             from_the_record(invoke(self.context, "search", " ")),
             from_the_record(invoke(self.context, "index_codes", ["C3262", "C40704"])),
@@ -86,12 +80,13 @@ class DetailKeysTest(HandlerTestCase):
             self.unresolved_release(),
             from_the_client(
                 http_error(404, body=b'{"message": "Terminology not found = ncit_9"}'),
-                lambda client: client.get_concept("C1"),
+                lambda client: client.get_concept("C1", release()),
             ),
             self.verify_release_error(),
+            self.missing_exclusions(),
             from_the_client(http_error(429, {"Retry-After": "30"})),
             from_the_client(http_error(403)),
-            from_the_client(http_error(404), lambda client: client.get_concept("C1")),
+            from_the_client(http_error(404), lambda client: client.get_concept("C1", release())),
             from_the_client(TimeoutError("timed out")),
             from_the_client(FakeResponse(b'{"a": 1}')),
             from_the_client(
@@ -105,6 +100,12 @@ class DetailKeysTest(HandlerTestCase):
             return from_the_record(invoke(self.context, "lookup", "C3262"))
         finally:
             self.evs.rows = None
+
+    def missing_exclusions(self):
+        self.evs.catalogues = {"role": [], "association": []}
+        return from_the_record(
+            invoke(self.context, "list_relationships", terminology="ncit", release="26.06e")
+        )
 
     def verify_release_error(self):
         try:

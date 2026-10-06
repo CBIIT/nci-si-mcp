@@ -24,6 +24,12 @@ class RegistryTest(ServerFixture):
     def test_profiles_select_only_the_current_inventory_and_keep_group_metadata(self):
         evs = {
             "get_concept",
+            "get_concepts",
+            "list_relationships",
+            "resolve_retired_code",
+            "get_concept_subsets",
+            "expand_value_set",
+            "get_concept_mappings",
             "search_concepts",
             "get_concept_hierarchy",
             "get_concept_neighborhood",
@@ -82,7 +88,7 @@ class RegistryTest(ServerFixture):
                 self.context.settings = replace(self.settings, profile=profile)
                 args = cli.build_parser().parse_args(["index-sample", "C3262"])
                 result = cli._run(self.context, args)
-                self.assertEqual(result["concept_count"], 1)
+                self.assertEqual(result["concepts"], 1)
                 self.assertEqual(cli.build_parser().parse_args(["evaluate"]).operation, "evaluate")
 
     def test_registry_requires_an_explicit_cache_class(self):

@@ -1,0 +1,42 @@
+{
+ "kind": "crafted",
+ "requirement": "E-7, A7.5: the licence key sent from configuration",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/mdr_29_0",
+  "headers": {
+   "X-EVSRESTAPI-License-Key": "acceptance-licence-key"
+  },
+  "ignored": {
+   "include": "placeholder content answers every projection alike"
+  },
+  "params": {
+   "list": [
+    "10000001"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": [
+   {
+    "code": "10000001",
+    "name": "Placeholder licensed child",
+    "terminology": "mdr",
+    "version": "29_0",
+    "conceptStatus": "DEFAULT",
+    "leaf": true,
+    "active": true,
+    "children": [],
+    "parents": [
+     {
+      "code": "10000000",
+      "name": "Placeholder licensed term",
+      "leaf": false
+     }
+    ]
+   }
+  ]
+ }
+}

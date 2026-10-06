@@ -6,6 +6,7 @@ grows with the number of nodes expanded rather than with the number of edges.
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
@@ -17,6 +18,7 @@ from .bounds import (
     Budget,
     RequestBudgetError,
 )
+from .catalogue import polarity
 from .errors import InputValidationError, call_correlation_id
 from .evs import (
     EVSClient,
@@ -24,7 +26,6 @@ from .evs import (
     EVSResponseError,
     concept_path,
     object_list,
-    verify_release,
 )
 from .http_client import UpstreamTooLargeError
 from .models import (
@@ -51,19 +52,16 @@ logger = logging.getLogger(__name__)
 # Edge type -> (key of the relation list in an EVS concept payload, name given
 # to edges that carry no relationship name of their own).
 RELATIONS: dict[str, tuple[str, str]] = {
-    "parent": ("parents", "is_a_parent"),
-    "child": ("children", "is_a_child"),
+    "parent": ("parents", ""),
+    "child": ("children", ""),
     # Descendant edges use their own endpoint; the final check needs only children.
-    "descendant": ("children", "is_a_descendant"),
+    "descendant": ("children", ""),
     "role": ("roles", "role"),
     "inverse_role": ("inverseRoles", "inverse_role"),
     "association": ("associations", "association"),
     "inverse_association": ("inverseAssociations", "inverse_association"),
 }
 HIERARCHY_EDGE_TYPES = frozenset({"parent", "child", "descendant"})
-# NCIt's exclusion relationships are exactly these eight roles. An assertion is negative by its
-# relationship's code, never by its name (A5.7); `spec/records.yaml` is the source.
-NCIT_EXCLUSION_CODES = frozenset(f"R{number}" for number in range(135, 143))
 
 
 # Edge types in the order they are followed, each with the direction and the
@@ -133,7 +131,7 @@ def select_edge_types(
 
 
 def _fetch_batch(
-    client: EVSClient, batch: list[str], terminology: str, include: str
+    client: EVSClient, batch: list[str], release: ReleaseContext, include: str
 ) -> Iterator[tuple[list[dict[str, Any]], list[str], list[str]]]:
     """Fetch one batch, halving it while the response is too large.
 
@@ -144,7 +142,7 @@ def _fetch_batch(
 
     try:
         yield (
-            client.get_concepts_by_codes(batch, terminology=terminology, include=include),
+            client.get_concepts_by_codes(batch, release=release, include=include),
             [],
             batch,
         )
@@ -160,14 +158,12 @@ def _fetch_batch(
         if len(batch) == 1:
             # Relations are already lost even if the minimal fallback cannot be sent.
             yield [], list(batch), []
-            minimal = client.get_concepts_by_codes(
-                batch, terminology=terminology, include="minimal"
-            )
+            minimal = client.get_concepts_by_codes(batch, release=release, include="minimal")
             yield minimal, [], batch
             return
     middle = len(batch) // 2
-    yield from _fetch_batch(client, batch[:middle], terminology, include)
-    yield from _fetch_batch(client, batch[middle:], terminology, include)
+    yield from _fetch_batch(client, batch[:middle], release, include)
+    yield from _fetch_batch(client, batch[middle:], release, include)
 
 
 def _fetch_concepts(
@@ -183,13 +179,11 @@ def _fetch_concepts(
     Processing each chunk before the next request preserves limit chronology.
     """
 
-    terminology = release.pinned_terminology
     try:
         for batch in batched(codes, batch_size, strict=False):
             for concepts, too_large, requested in _fetch_batch(
-                client, list(batch), terminology, include
+                client, list(batch), release, include
             ):
-                verify_release(concepts, release.version)
                 found = _by_code(concepts)
                 if not found.keys() <= set(requested):
                     raise EVSResponseError("EVS returned a graph concept that was not requested")
@@ -227,10 +221,6 @@ def _relationship(edge_type: str, item: dict[str, Any]) -> dict[str, str]:
     relationship = {"kind": "role" if "role" in edge_type else "association"}
     named = {"code": item.get("code"), "name": item.get("type")}
     return relationship | {key: str(value) for key, value in named.items() if value}
-
-
-def _polarity(relationship: dict[str, str]) -> str:
-    return "negative" if relationship.get("code") in NCIT_EXCLUSION_CODES else "positive"
 
 
 def _edge(
@@ -279,8 +269,16 @@ def _missing_concepts(release: ReleaseContext, missing: list[str], depth: int) -
 
 def _node_payloads(concepts: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
     # Retain status, not the potentially megabytes of relation lists already processed.
-    fields = ("code", "name", "active", "conceptStatus", "terminology", "version")
+    fields = ("code", "name", "active", "conceptStatus", "terminology", "version", "licenseText")
     return {code: {key: raw[key] for key in fields if key in raw} for code, raw in concepts.items()}
+
+
+def _edge_key(edge: TraversalEdge) -> tuple[str, str, str, str]:
+    # Names can collide, including across positive and negative relationship codes.
+    identity = json.dumps(
+        [(edge.provenance.relationship or {}).get("code"), edge.relationship_name]
+    )
+    return edge.source_code, edge.target_code, edge.edge_type, identity
 
 
 @dataclass
@@ -293,6 +291,9 @@ class _Walk:
     budget: Budget
     name_filter: set[str]
     starts: set[str]
+    exclusions: frozenset[str]
+    include_negative: bool = True
+    expandable: set[str] = field(default_factory=set)
     retrieved_at: str = field(default_factory=utc_now_iso)
     correlation_id: str = field(default_factory=call_correlation_id)
     nodes: dict[str, TraversalNode] = field(default_factory=dict)
@@ -306,7 +307,6 @@ class _Walk:
     )
     # Insertion order is the chronology of unresolved omissions. Four-part keys
     # identify dropped edges; one-part keys identify a kind whose lists went unread.
-    # An empty kind records incomplete concept fetching independently of relation lists.
     bounds_reached: dict[tuple[str, ...], str] = field(default_factory=dict)
     # Descendants of the start codes by level; level n is emitted with the
     # other edges that reach depth n.
@@ -317,6 +317,7 @@ class _Walk:
     batch_size: int = field(init=False)
 
     def __post_init__(self) -> None:
+        self.expandable.update(self.starts)
         self.payload_types = [
             edge_type for edge_type in self.edge_types if edge_type != "descendant"
         ]
@@ -334,7 +335,8 @@ class _Walk:
         """The provenance of an item at `depth`, read from `uri`; `edge_type` and `item` name
         the relation that brought it in, and the concept asked about has none."""
 
-        relationship = _relationship(edge_type, item or {}) if edge_type else None
+        item = item or {}
+        relationship = _relationship(edge_type, item) if edge_type else None
         return TraversalProvenance(
             release=release_ref(self.release.terminology, self.release.version, self.release.date),
             source="evs_rest",
@@ -343,10 +345,13 @@ class _Walk:
             correlation_id=self.correlation_id,
             source_uri=uri,
             upstream=upstream,
+            attribution=item.get("licenseText"),
             depth=depth,
             relationship=relationship,
             direction=EDGE_DIRECTIONS[edge_type] if edge_type else None,
-            polarity=_polarity(relationship) if relationship else None,
+            polarity=polarity(relationship.get("code"), self.exclusions) if relationship else None,
+            qualifiers=item.get("qualifiers"),
+            evidence=item.get("evidence"),
         )
 
     def _concept_uri(self, code: str) -> str:
@@ -356,7 +361,7 @@ class _Walk:
         return TraversalNode(
             code=code,
             preferred_name=name,
-            terminology="ncit",
+            terminology=self.release.terminology,
             provenance=provenance,
         )
 
@@ -384,7 +389,7 @@ class _Walk:
 
     def _bound_record(self, kind: str | None = None) -> Truncation:
         first = next(
-            (key for key in self.bounds_reached if kind is None or self._bound_kind(key) == kind),
+            (key for key in self.bounds_reached if self._reportable(key, kind)),
             None,
         )
         if first is None:
@@ -414,6 +419,11 @@ class _Walk:
             reached=reached,
             omitted=omitted,
             exact=False,
+        )
+
+    def _reportable(self, key: tuple[str, ...], kind: str | None) -> bool:
+        return (kind is None or self._bound_kind(key) == kind) and (
+            not self.budget.paged or self.bounds_reached[key] != "nodes"
         )
 
     def _depth_count(self, kind: str | None) -> int:
@@ -474,8 +484,6 @@ class _Walk:
             self._checked_chunk(found, missing, oversized, depth, kinds)
             concepts.update(found)
         if self.budget.exhausted:
-            # Missing start nodes truncate the graph even when no relation kind is read.
-            self.bounds_reached.setdefault(("",), "requests")
             self._mark_unread(kinds, "requests")
         self.concepts.update(_node_payloads(concepts))
         return concepts
@@ -509,7 +517,7 @@ class _Walk:
                 self.budget.depth + 1, self._concept_uri(code), kind, item
             )
             edge = _edge(code, str(concepts[code].get("name") or ""), kind, item, provenance)
-            key = (code, edge.target_code, kind, edge.relationship_name)
+            key = _edge_key(edge)
             if (
                 edge.target_code in self.nodes
                 or edge.target_code in self.starts
@@ -536,9 +544,7 @@ class _Walk:
     def _read_descendants(self, start_codes: list[str]) -> None:
         for code in start_codes:
             try:
-                items = self.client.get_descendants(
-                    code, self.budget.depth, terminology=self.release.pinned_terminology
-                )
+                items = self.client.get_descendants(code, self.budget.depth, release=self.release)
             except UpstreamTooLargeError as exc:
                 emit(
                     logger,
@@ -584,13 +590,17 @@ class _Walk:
     def _skips(self, edge: TraversalEdge, key: tuple[str, str, str, str]) -> bool:
         """Whether the name filter excludes the edge or it was emitted before."""
 
-        filtered = self.name_filter and edge.relationship_name.lower() not in self.name_filter
+        filtered = (
+            edge.edge_type not in HIERARCHY_EDGE_TYPES
+            and self.name_filter
+            and edge.relationship_name.lower() not in self.name_filter
+        )
         return bool(filtered) or key in self.seen_edges
 
     def _add(self, edge: TraversalEdge) -> bool:
-        """Emit the edge unless a filter or a limit drops it; whether it reached a new node."""
+        """Emit an allowed edge; return whether its target newly qualifies for expansion."""
 
-        key = (edge.source_code, edge.target_code, edge.edge_type, edge.relationship_name)
+        key = _edge_key(edge)
         if self._skips(edge, key):
             return False
         new_node = edge.target_code not in self.nodes
@@ -600,9 +610,15 @@ class _Walk:
         self.edges.append(edge)
         if new_node:
             self.budget.added_by_kind[edge.edge_type] += 1
-            held = replace(edge.provenance, source_uri=self._concept_uri(edge.target_code))
+            held = replace(
+                edge.provenance, source_uri=self._concept_uri(edge.target_code), attribution=None
+            )
             self.nodes[edge.target_code] = self._node(edge.target_code, edge.target_name, held)
-        return new_node
+        eligible = self.include_negative or edge.provenance.polarity != "negative"
+        if eligible and edge.target_code not in self.expandable:
+            self.expandable.add(edge.target_code)
+            return True
+        return False
 
     def _drops(self, edge: TraversalEdge, key: tuple[str, str, str, str], new: bool) -> bool:
         bound = self.budget.node_bound(len(self.nodes), edge.edge_type) if new else None
@@ -616,15 +632,18 @@ class _Walk:
         self.bounds_reached.setdefault(key, bound)
         return True
 
-    def _reconcile_edges(self) -> None:
+    def _reconcile_edges(self) -> list[str]:
         """Another kind may have admitted a target whose earlier edge hit its kind budget."""
 
+        reached = []
         for dropped in self.dropped_by_kind.values():
             for key, edge in list(dropped.items()):
-                self._add(edge)
+                if self._add(edge):
+                    reached.append(edge.target_code)
                 if key in self.seen_edges:
                     del dropped[key]
                     self.bounds_reached.pop(key)
+        return reached
 
     def stopped(self, frontier: list[str], depth: int) -> bool:
         if self.budget.exhausted:
@@ -654,7 +673,7 @@ class _Walk:
     def follow(
         self, frontier: list[str], concepts: dict[str, dict[str, Any]], depth: int
     ) -> list[str]:
-        """Emit the edges that leave the frontier and return the nodes they newly reach."""
+        """Emit frontier edges and return newly eligible expansion targets."""
 
         reached: list[str] = []
         for code, edge_type, item in self._found(frontier, concepts, depth):
@@ -664,12 +683,11 @@ class _Walk:
             edge = _edge(code, self.nodes[code].preferred_name, edge_type, item, provenance)
             if self._add(edge):
                 reached.append(edge.target_code)
-        self._reconcile_edges()
+        reached.extend(self._reconcile_edges())
         return reached
 
     def result(self, start_codes: list[str]) -> TraversalResult:
         return TraversalResult(
-            node_limit_hit="nodes" in self.bounds_reached.values(),
             start_codes=start_codes,
             nodes=list(self.nodes.values()),
             edges=self.edges,
@@ -688,7 +706,9 @@ def traverse_ncit(
     edge_types: list[str],
     budget: Budget,
     *,
+    exclusions: frozenset[str],
     relationship_names: list[str] | None = None,
+    include_negative: bool = True,
 ) -> TraversalResult:
     """Walk breadth-first from the start codes along the given edge types.
 
@@ -723,6 +743,8 @@ def traverse_ncit(
         budget=budget,
         name_filter={name.lower() for name in relationship_names or []},
         starts=set(start_codes),
+        exclusions=exclusions,
+        include_negative=include_negative,
     )
     return _run_walk(walk, start_codes)
 

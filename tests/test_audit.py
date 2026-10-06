@@ -17,7 +17,7 @@ from unittest.mock import patch
 from mcp.types import JSONRPCMessage
 from pydantic import TypeAdapter
 
-from fakes import concept
+from fakes import catalogue_rows, concept
 from nci_si_mcp.audit import JsonFormatter, audited, compact, emit, hashed, secrets
 from nci_si_mcp.bounds import Budget, RequestBudgetError, budgeted
 from nci_si_mcp.config import Settings, configure_logging
@@ -328,7 +328,7 @@ class AuditAdapterTest(ServerFixture):
 
         with captured() as stream:
             self.session(calls)
-            resource = self.read("nci-si://concept/ncit/C3262")
+            resource = self.read("ncit://concept/26.06e/C3262")
 
         found = records(stream)
         self.assertEqual(len(found), 3)
@@ -346,6 +346,8 @@ class AuditHttpTest(ServerTestCase):
             children=[{"code": "C2", "name": "Two"}, {"code": "C3", "name": "Three"}],
         )
         server = self.serve(
+            Reply(body=json.dumps(catalogue_rows("role")).encode()),
+            Reply(body=json.dumps(catalogue_rows("association")).encode()),
             Reply(body=json.dumps([root]).encode()),
             Reply(body=b"x" * 2000),
             Reply(body=json.dumps([concept("C2", active=True)]).encode()),
@@ -365,8 +367,8 @@ class AuditHttpTest(ServerTestCase):
 
         (record,) = records(stream)
         self.assertEqual([node["code"] for node in result["nodes"]], ["C1", "C2", "C3"])
-        self.assertEqual(record["outboundRequests"], 4)
-        self.assertEqual(len(server.seen), 4)
+        self.assertEqual(record["outboundRequests"], 6)
+        self.assertEqual(len(server.seen), 6)
         self.assertTrue(
             all(
                 headers["x-correlation-id"] == record["correlationId"] for _, headers in server.seen

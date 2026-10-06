@@ -12,7 +12,6 @@ from fakes import release
 from nci_si_mcp.config import BASE_URL_VARIABLES
 from nci_si_mcp.errors import ErrorCode, PlatformError, serialise
 from nci_si_mcp.http_client import UpstreamUnavailableError
-from nci_si_mcp.models import Truncation
 from nci_si_mcp.registry import ToolSpec, invoke
 from nci_si_mcp.validation import PROFILES, RELEASE_CHANNELS, UPSTREAM_MODES
 from test_server import ServerFixture, pinned
@@ -53,7 +52,7 @@ class SchemaTest(ServerFixture):
 
     def test_every_schema_is_valid_and_rejects_malformed_errors(self):
         validators = self.validators()
-        self.assertEqual(len(validators), 6)
+        self.assertEqual(len(validators), 12)
         for name, validator in validators.items():
             with self.subTest(tool=name):
                 validator.check_schema(validator.schema)
@@ -116,9 +115,7 @@ class SchemaTest(ServerFixture):
     def test_empty_search_and_concept_optional_fields_validate(self):
         invoke(self.context, "index_codes", ["C3262"])
         validators = self.validators()
-        with patch.object(
-            self.context.index, "search_with_truncation", return_value=([], Truncation(False))
-        ):
+        with patch("nci_si_mcp.index.rank_page", return_value=([], 0)):
             empty = self.result("search_concepts", query="zzzzzz", mode="semantic")
         validators["search_concepts"].validate(empty)
         self.assertEqual(empty["results"], [])

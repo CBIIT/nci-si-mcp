@@ -306,11 +306,11 @@ record:
     - {<<: *unknown, fixture: scenarios/release/unknown/descendants.json, path: "/api/v1/concept/ncit_99.99z/C4817/descendants?maxLevel=4"}
     - {<<: *unknown, fixture: scenarios/release/unknown/property-catalogue.json, path: /api/v1/metadata/ncit_99.99z/properties}
     # batch/silent-drop: a code EVS does not know, which a batch leaves out (E-5).
-    - fixture: scenarios/batch/silent-drop/concepts/CBOGUS999999.json
+    - fixture: scenarios/batch/silent-drop/concepts/C999999999.json
       operation: OP-E07
       rationale: 'A code EVS does not know: a batch leaves it out without a signal (E-5).'
       surface: evs
-      path: /api/v1/concept/ncit_26.09d/CBOGUS999999?include=full
+      path: /api/v1/concept/ncit_26.09d/C999999999?include=full
       status: 404
     # retired/with-replacement: C154421, retired with a replacement (A8), and a batch
     # that one unknown code fails as a whole.
