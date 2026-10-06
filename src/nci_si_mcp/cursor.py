@@ -38,6 +38,25 @@ def decode(token: str | None, arguments: dict[str, Any], *, indexed: bool = Fals
     return Position(offset, _build_id(payload, indexed))
 
 
+def validate_before_selection(
+    token: str | None, arguments: dict[str, Any], *, indexed: bool = False
+) -> None:
+    """Check a continuation locally before discovering an omitted release.
+
+    Only release equality waits for discovery; the cursor never selects that release.
+    The caller must decode again with the independently selected effective release.
+    """
+    if token is None:
+        return
+    if arguments.get("release") is None:
+        recorded = _payload(token).get("arguments")
+        release = recorded.get("release") if isinstance(recorded, dict) else None
+        if not isinstance(release, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", release):
+            raise InputValidationError("The cursor has no valid release identity", "cursor")
+        arguments = arguments | {"release": release}
+    decode(token, arguments, indexed=indexed)
+
+
 def _build_id(payload: dict[str, Any], indexed: bool) -> str | None:
     build = payload.get("build")
     if indexed:

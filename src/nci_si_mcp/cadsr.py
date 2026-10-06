@@ -290,10 +290,15 @@ class CaDSRClient:
         return _items(response, "matchResults")
 
     def get_registry_releases(self) -> list[dict[str, Any]]:
+        """Only the recorded empty 404 denotes the currently unserved release listing.
+
+        A wrong base URL returning the same empty 404 is indistinguishable; nonempty
+        errors remain failures, and no response body is retained in error metadata.
+        """
         try:
             response = self.http.get_json(f"{DATA_API}/registry/releases")
         except UpstreamRejectedError as exc:
-            if exc.details.get("status") != HTTPStatus.NOT_FOUND:
+            if exc.details.get("status") != HTTPStatus.NOT_FOUND or not exc._empty_body:
                 raise
             return []
         return _items(response, "registryReleases")

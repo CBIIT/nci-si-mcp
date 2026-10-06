@@ -84,8 +84,8 @@ class MatchedRegistryItem(TypedDict):
     name: str
     concept: NotRequired[str]
     evsSource: NotRequired[str]
-    context: NotRequired[str]
-    workflowStatus: NotRequired[str]
+    context: str
+    workflowStatus: str
     registrationStatus: NotRequired[str]
     provenance: Provenance
 

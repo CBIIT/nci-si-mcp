@@ -222,7 +222,9 @@ def _vm_item(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
     records._identity(item)
     item["itemType"] = raw["itemType"]
     item["name"] = _required_text(raw, "matchedName")
-    for key in ("concept", "evsSource", "context", "workflowStatus", "registrationStatus"):
+    for key in ("context", "workflowStatus"):
+        item[key] = _required_text(raw, key)
+    for key in ("concept", "evsSource", "registrationStatus"):
         if raw.get(key) is not None:
             item[key] = _required_text(raw, key)
     item["provenance"] = records._item_provenance(raw, provenance) | {

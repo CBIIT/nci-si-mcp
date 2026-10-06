@@ -62,6 +62,8 @@ class UpstreamTimeoutError(UpstreamUnavailableError):
 class UpstreamRejectedError(UpstreamError):
     """The platform refused the request with a status that a retry cannot change."""
 
+    _empty_body = False
+
 
 class UpstreamTooLargeError(UpstreamError):
     """The platform answered with more bytes than the configured response limit."""
@@ -157,14 +159,18 @@ def _open(request: Request, timeout: float) -> Any:
     return _OPENER.open(request, timeout=timeout)
 
 
-def _error_detail(exc: HTTPError) -> str:
+def _error_detail(exc: HTTPError) -> tuple[str, bool]:
     """The reason the platform gives in the body of an error response, if it gives one."""
 
     try:
-        body = json.loads(exc.read(4096).decode("utf-8"))
-    except OSError, ValueError, HTTPException:
-        return ""
-    return str(body.get("message") or "") if isinstance(body, dict) else ""
+        payload = exc.read(4096)
+    except OSError, HTTPException:
+        return "", False
+    try:
+        body = json.loads(payload.decode("utf-8"))
+    except ValueError:
+        return "", not payload
+    return (str(body.get("message") or "") if isinstance(body, dict) else ""), False
 
 
 def _retry_after_seconds(value: str | None) -> float | None:
@@ -371,7 +377,7 @@ class HttpClient:
     def _http_failure(self, exc: HTTPError, path: str, attempt: _Attempt) -> Exception:
         """The failure an HTTP error status stands for: to retry, or to report as it is."""
 
-        detail = _error_detail(exc)
+        detail, empty_body = _error_detail(exc)
         reason = " ".join(
             part
             for part in (f"HTTP {exc.code}", str(exc.reason or ""), f"({detail})" if detail else "")
@@ -383,9 +389,11 @@ class HttpClient:
         exc.close()
         if exc.code == HTTPStatus.TOO_MANY_REQUESTS or exc.code >= HTTPStatus.INTERNAL_SERVER_ERROR:
             return _Transient(message, status=exc.code, retry_after=retry_after)
-        return UpstreamRejectedError(
+        failure = UpstreamRejectedError(
             message, surface=self.surface, status=exc.code, attempts=attempt.number
         )
+        failure._empty_body = empty_body
+        return failure
 
     def _exchange(self, request: Request, path: str, attempt: _Attempt) -> Any:
         try:

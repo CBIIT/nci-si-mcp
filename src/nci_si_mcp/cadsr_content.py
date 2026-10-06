@@ -327,8 +327,8 @@ def search_data_elements(
     Semantic/hybrid modes and filters are unavailable until their upstream contracts exist.
     A successful upstream list is paged in platform order; 1,000 rows report upstream_cap,
     omitted at least one and exact false. Only a platform count becomes totalKnown.
-    Type-E upstream failures stay errors: retrying cannot add the missing operation;
-    use get_data_element by public id or question text meanwhile. Cursors bind all applied
+    Upstream failures stay errors. Persistent failures may reflect the missing operation;
+    get_data_element by public id or question text remains available. Cursors bind all applied
     arguments, including verified registry pins. Unpinned content has a short public TTL.
     """
     _search_options(query, mode, filters)
@@ -458,6 +458,8 @@ def list_classification_schemes(
     Use get_data_element with include classificationSchemes for an element's schemes
     and their nested items. No standalone result or synthetic definition is returned.
     """
+    if context is not None and (not isinstance(context, str) or not context.strip()):
+        raise InputValidationError("context must be nonblank text", "context")
     size = bounded(limit, 1000, "limit")
     cursors.decode(
         cursor,
