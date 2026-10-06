@@ -14,6 +14,58 @@ from test_server import ServerFixture
 
 @patch("nci_si_mcp.server.configure_logging")
 class CaDSRProtocolTest(ServerFixture):
+    def test_cadsr_licence_text_is_preserved_or_rejected_before_mcp_serialization(self, _):
+        for licence in ("", "Upstream attribution", 7, {"unexpected": "object"}):
+            with (
+                self.subTest(licence=licence),
+                patch.object(
+                    self.context.cadsr,
+                    "get_data_element",
+                    return_value=data_element(licenseText=licence),
+                ),
+            ):
+                result = self.session(
+                    lambda client: client.call_tool("get_data_element", {"publicId": "123"})
+                )
+                if isinstance(licence, str):
+                    self.assertFalse(result.is_error)
+                    self.assertEqual(
+                        result.structured_content["provenance"]["attribution"], licence
+                    )
+                else:
+                    self.assertTrue(result.is_error)
+                    self.assertIsNotNone(result.structured_content)
+                    self.assertEqual(
+                        result.structured_content["error"]["code"], "upstream_unavailable"
+                    )
+
+    def test_real_mcp_preserves_large_integer_matching_scores(self, _):
+        score = 10**400
+
+        async def calls(client):
+            return await asyncio.gather(
+                client.call_tool("match_data_elements", {"entities": [{"name": "Q"}]}),
+                client.call_tool("match_value_meanings", {"values": ["Q"]}),
+            )
+
+        with (
+            patch.object(
+                self.context.cadsr,
+                "match_data_element",
+                return_value=cde_response(matches=[cde_row(score=score)])["matchResults"],
+            ),
+            patch.object(
+                self.context.cadsr,
+                "match_value_meanings",
+                return_value=vm_response(matches=[vm_row(score=score)])["matchResults"],
+            ),
+        ):
+            results = self.session(calls)
+        for result in results:
+            with self.subTest(result=result):
+                self.assertFalse(result.is_error)
+                self.assertEqual(result.structured_content["matches"][0]["score"], score)
+
     def test_form_and_crosswalk_resource_keep_governed_policy_alongside_matching(self, _):
         async def calls(client):
             return await asyncio.gather(
@@ -171,6 +223,24 @@ class CaDSRProtocolTest(ServerFixture):
         self.assertFalse(result.is_error)
         self.assertEqual((result.meta["ttlMs"], result.meta["cacheScope"]), (86_400_000, "public"))
         self.assertEqual(result.structured_content["provenance"]["release"]["identifier"], "known")
+
+    def test_registry_resource_names_only_a_published_release_in_its_provenance(self, _):
+        for identifier in (None, "known"):
+            state = RegistryState(identifier, "2026-07-01T22:19", "distribution")
+            with (
+                self.subTest(identifier=identifier),
+                patch.object(self.context.cadsr, "resolve_registry_release", return_value=state),
+            ):
+                resource = self.session(
+                    lambda client: client.read_resource("cadsr://registry/release")
+                )
+                result = json.loads(resource.contents[0].text)
+                expected = {"registry": "cadsr"}
+                if identifier is not None:
+                    expected |= {"identifier": identifier, "date": state.generated_at}
+                self.assertEqual(result["provenance"]["release"], expected)
+                self.assertEqual(result["published"], identifier is not None)
+                self.assertEqual(resource.ttl_ms, 3_600_000)
 
     def test_invalid_and_unavailable_calls_are_uncached_private_protocol_errors(self, _):
         for tool, arguments, code in (

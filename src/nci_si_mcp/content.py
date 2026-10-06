@@ -1,4 +1,4 @@
-"""Caller-pinned EVS content entries and the interim NCIt index."""
+"""Effective-release EVS content entries and the interim NCIt index."""
 
 from __future__ import annotations
 
@@ -363,7 +363,7 @@ def get_concepts(
     properties and semanticType, as for get_concept. Each concept carries its
     verified release, status and live provenance; unknown codes are named in missing.
     At most 650 supplied codes and a 7000-byte encoded request target are allowed;
-    larger inputs are invalid_request before any upstream call. One nonempty batch
+    larger inputs are invalid_request before a content request. One nonempty batch
     is one platform call, with counted HTTP retries; there is no per-code fan-out.
     An oversized response fails closed with bound_exceeded, never partial concepts.
 
@@ -491,8 +491,10 @@ def search_concepts(
     after NFC and whitespace collapsing and win ties; field ties prefer name,
     synonym, definition. Scores are not comparable between queries.
     limit defaults to 10 and clamps at 1000; nextCursor continues with the same
-    applied arguments. A served historical release stays valid. Withdrawn releases
-    and changed active index builds expire cursors, including same-release rebuilds.
+    applied arguments. A served historical release stays valid. Withdrawal expires
+    explicit-release cursors; implicit session pins instead fail with
+    release_not_available, asking for a new session or a named release. Changed active
+    index builds expire cursors, including same-release rebuilds.
     retired include (default) keeps all statuses; only uses the pinned listing's
     selectable retired status. exclude and upstream search-type options are not offered.
     Missing index or NumPy is capability_unavailable; another index release is

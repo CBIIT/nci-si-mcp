@@ -97,7 +97,12 @@ class CaDSRContentTest(CaDSRFixture):
         message = result["error"]["message"]
         self.assertIn("OP-C03", message)
         self.assertIn("get_data_element", message)
-        self.assertNotIn("untrusted wording", message)
+        self.assertTrue(
+            message.endswith(
+                "Retrying will not help until caDSR adds it. Use get_data_element by public "
+                "id or question text meanwhile."
+            )
+        )
         self.assertEqual(len(server.seen), 1)
 
     def test_unsupported_filters_never_reach_upstream(self):
@@ -107,6 +112,54 @@ class CaDSRContentTest(CaDSRFixture):
         )
         self.assertEqual(result["error"]["code"], "capability_unavailable")
         self.assertEqual(server.seen, [])
+
+    def test_search_keeps_the_actual_failure_alongside_the_static_platform_note(self):
+        row = {"identifier": "known", "generatedAt": "2026-07-01T22:19"}
+        for response, arguments, diagnostic in (
+            (Reply(401), {}, "credentials"),
+            (reply({"DataElements": [element()], "numRecords": 0}), {}, "malformed search count"),
+            (
+                reply({"registryReleases": [row, row]}),
+                {"registryRelease": "known"},
+                "more than once",
+            ),
+        ):
+            with self.subTest(diagnostic=diagnostic):
+                server = self.serve(response)
+                result = self.call(server, "search_data_elements", query="patient", **arguments)
+                self.assertEqual(result["error"]["code"], "upstream_unavailable")
+                self.assertIn(diagnostic, result["error"]["message"])
+                self.assertIn("OP-C03", result["error"]["message"])
+                self.assertIn("get_data_element", result["error"]["message"])
+                self.assertEqual(len(server.seen), 1)
+
+    def test_question_search_and_contexts_require_the_verified_pin_echo(self):
+        row = {"identifier": "known", "generatedAt": "2026-07-01T22:19"}
+        for operation, arguments, payload in (
+            ("get_data_element", {"questionText": "Q"}, {"DataElements": [{"publicId": "123"}]}),
+            ("search_data_elements", {"query": "Q"}, {"DataElements": [element()]}),
+            ("list_contexts", {}, {"contextNames": ["TEST"]}),
+        ):
+            for echo, served in (
+                ({}, []),
+                ({"registryRelease": "other"}, ["other"]),
+                ({"registryRelease": 42}, []),
+                ({"registryRelease": ""}, []),
+            ):
+                with self.subTest(operation=operation, echo=echo):
+                    server = self.serve(reply({"registryReleases": [row]}), reply(payload | echo))
+                    result = self.call(server, operation, registryRelease="known", **arguments)
+                    self.assertEqual(result["error"]["code"], "release_mismatch")
+                    self.assertEqual(
+                        result["error"]["details"],
+                        {
+                            "requested": "known",
+                            "served": served,
+                            "source": "cadsr",
+                        },
+                    )
+                    self.assertEqual(set(result), {"error"})
+                    self.assertEqual(len(server.seen), 2)
 
     def test_capped_search_continues_without_inventing_a_count(self):
         rows = [element(str(1000 + i)) for i in range(1000)]
@@ -261,6 +314,7 @@ class CaDSRContentTest(CaDSRFixture):
             with self.subTest(args=args):
                 result = self.call(self.serve(reply(body)), **args)
                 self.assertEqual(result["error"]["code"], "not_found")
+                self.assertEqual(result["error"]["details"], {"identifiers": list(args.values())})
 
     def test_wrong_item_identity_or_version_is_never_returned(self):
         for raw in (

@@ -67,7 +67,7 @@ class CodeMapResource(CodeMapsResult):
 class DataElementMatch(TypedDict):
     entity: str
     dataElement: DataElement
-    score: float
+    score: int | float
     rule: str
     matchedText: str
 
@@ -98,7 +98,7 @@ class MatchCrosswalk(TypedDict):
 class ValueMeaningMatch(TypedDict):
     item: MatchedRegistryItem
     rule: str
-    score: NotRequired[float]
+    score: NotRequired[int | float]
     crosswalk: NotRequired[MatchCrosswalk]
 
 

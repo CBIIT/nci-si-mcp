@@ -177,6 +177,27 @@ class MatchingTest(ServerTestCase):
         self.assertIn("requirements package C-6", result["error"]["message"])
         self.assertEqual(server.seen, [])
 
+    def test_same_name_with_different_descriptions_uses_distinct_matching_requests(self):
+        entities = [
+            {"name": "Q", "userTip": "first", "permissibleValues": ["A"]},
+            {"name": "Q", "userTip": "second", "permissibleValues": ["A"]},
+            {"name": "Q", "userTip": "second", "permissibleValues": ["B"]},
+        ]
+        identifiers = ["123", "124", "125"]
+        server = self.serve(*(reply(cde_response(matches=[cde_row(code)])) for code in identifiers))
+        result = self.call(server, entities=entities)
+        self.assertEqual(
+            [match["dataElement"]["publicId"] for match in result["matches"]], identifiers
+        )
+        self.assertEqual(
+            [json.loads(body) for body in server.bodies],
+            [
+                {"entity": "Q", "entityUserTip": "first", "pvvmData": [{"name": "A"}]},
+                {"entity": "Q", "entityUserTip": "second", "pvvmData": [{"name": "A"}]},
+                {"entity": "Q", "entityUserTip": "second", "pvvmData": [{"name": "B"}]},
+            ],
+        )
+
     def test_a_later_entity_failure_is_not_a_partial_success(self):
         server = self.serve(
             reply(cde_response("Q", [cde_row()])), reply({"apiResponse": {"type": "E"}})
@@ -222,6 +243,40 @@ class MatchingTest(ServerTestCase):
         self.assertEqual(match["item"]["provenance"]["upstream"], {"itemId": "123", "version": "2"})
         self.assertEqual(match["item"]["workflowStatus"], "RETIRED ARCHIVED")
         self.assertNotIn("registrationStatus", match["item"])
+
+    def test_matching_preserves_finite_integer_scores_without_float_conversion(self):
+        score = 10**400
+        for operation, args, response in (
+            (
+                "match_data_elements",
+                {"entities": [{"name": "Q"}]},
+                cde_response(matches=[cde_row(score=score)]),
+            ),
+            ("match_value_meanings", {"values": ["Q"]}, vm_response(matches=[vm_row(score=score)])),
+        ):
+            with self.subTest(operation=operation):
+                result = self.call(self.serve(reply(response)), operation, **args)
+                self.assertEqual(result["matches"][0]["score"], score)
+
+    def test_nonfinite_scores_fail_the_whole_matching_result(self):
+        for score in (float("nan"), float("inf"), float("-inf")):
+            for operation, args, response in (
+                (
+                    "match_data_elements",
+                    {"entities": [{"name": "Q"}]},
+                    cde_response(matches=[cde_row(), cde_row(score=score)]),
+                ),
+                (
+                    "match_value_meanings",
+                    {"values": ["Q"]},
+                    vm_response(matches=[vm_row(), vm_row(score=score)]),
+                ),
+            ):
+                with self.subTest(operation=operation, score=score):
+                    result = self.call(self.serve(reply(response)), operation, **args)
+                    self.assertIn("error", result)
+                    self.assertEqual(result["error"]["code"], "upstream_unavailable")
+                    self.assertNotIn("matches", result)
 
     def test_vm_absent_concepts_scores_and_na_crosswalks_remain_absent(self):
         rows = [vm_row(), vm_row(itemType="ValueMeaning", concept=None, evsSource=None)]

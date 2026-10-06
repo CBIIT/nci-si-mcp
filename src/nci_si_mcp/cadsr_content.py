@@ -122,8 +122,11 @@ def _provenance(
 def _item_provenance(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
     origin = {key: raw[key] for key in ("publicId", "version", "dateModified") if key in raw}
     result = provenance | ({"upstream": origin} if origin else {})
-    if raw.get("licenseText"):
-        result = result | {"attribution": raw["licenseText"]}
+    attribution = raw.get("licenseText")
+    if attribution is not None:
+        if not isinstance(attribution, str):
+            _malformed("licence text")
+        result = result | {"attribution": attribution}
     return result
 
 
@@ -245,8 +248,7 @@ def _question_id(context: Context, text: str, pin: str | None) -> str:
         raise PlatformError(
             "not_found",
             "No data element has that preferred question text. Check the text or use a public id.",
-            identifier=text,
-            source="cadsr",
+            identifiers=[text],
         )
     if len(identifiers) != 1:
         raise InputValidationError(
@@ -295,8 +297,7 @@ def get_data_element(
         raise PlatformError(
             "not_found",
             "No data element has that public id and version. Check the identifier or version.",
-            identifier=identifier,
-            source="cadsr",
+            identifiers=[identifier],
         )
     _verify_item(raw, identifier, version)
     select_cache_hint(resolution=False, unpinned=registryRelease is None)
@@ -495,8 +496,11 @@ def data_element_version_resource(context: Context, publicId: str, version: str)
 def registry_resource(context: Context) -> dict[str, Any]:
     """The registry state, with source provenance and a short public resource TTL."""
     state = context.cadsr.resolve_registry_release()
+    release = {"registry": "cadsr"}
+    if state.identifier is not None:
+        release |= {"identifier": state.identifier, "date": state.generated_at}
     provenance = ProvenanceEnvelope(
-        release={"registry": "cadsr"},
+        release=release,
         source="cadsr_rest" if state.identifier else "cadsr_export",
         served_by="live",
         retrieved_at=utc_now_iso(),
@@ -539,8 +543,7 @@ def get_form(
         raise PlatformError(
             "not_found",
             "No form has that identifier and version. Check the public id or version.",
-            identifier=publicId,
-            source="cadsr",
+            identifiers=[identifier],
         )
     item = raw | {"publicId": raw.get("publicID")}
     _verify_item(item, identifier, version)

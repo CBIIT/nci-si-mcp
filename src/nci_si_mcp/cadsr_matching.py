@@ -140,7 +140,9 @@ def _required_text(raw: dict[str, Any], key: str) -> str:
 
 def _score(raw: dict[str, Any]) -> int | float:
     value = raw.get("score")
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        records._malformed("match score")
+    if isinstance(value, float) and not math.isfinite(value):
         records._malformed("match score")
     return value
 

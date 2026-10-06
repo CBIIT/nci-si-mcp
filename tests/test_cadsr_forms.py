@@ -86,7 +86,7 @@ class FormsTest(CaDSRFixture):
         )
         result = self.call(server, "get_form", publicId="123")
         self.assertEqual(result["error"]["code"], "not_found")
-        self.assertEqual(result["error"]["details"]["identifier"], "123")
+        self.assertEqual(result["error"]["details"], {"identifiers": ["123"]})
         self.assertEqual(len(server.seen), 1)
 
     def test_other_form_error_shapes_and_statuses_stay_upstream_failures(self):
@@ -115,6 +115,7 @@ class FormsTest(CaDSRFixture):
             publicId="123",
         )
         self.assertEqual(result["error"]["code"], "not_found")
+        self.assertEqual(result["error"]["details"], {"identifiers": ["123"]})
         raw = form()
         del raw["modules"]
         for response in (form(publicID="124"), form(version="3"), raw):

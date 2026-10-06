@@ -170,13 +170,13 @@ Implemented in `bounds.py`: the traversal handler creates one `Budget`, includin
 
 ### 3.6 Caching hints (`platform/caching.py`)
 
-The values are the specification's M2.2 and M2.3 (`spec/conventions.yaml`): release-pinned content 86,400,000 and public; governed content no release pins (caDSR content while caDSR publishes no registry release) short and positive, at most 3,600,000, public; results computed from caller-supplied values 0 and private; the resolve tools 0 and public; `tools/list` long and public.
+The values are the specification's M2.2 and M2.3 (`spec/conventions.yaml`): explicitly release-pinned content 86,400,000 and public; implicit NCIt calls 0 and private; governed content no release pins (caDSR content while caDSR publishes no registry release) short and positive, at most 3,600,000, public; results computed from caller-supplied values 0 and private; the resolve tools 0 and public; `tools/list` long and public.
 
-A tool result carries both in its `_meta` (M2.5). A cursor encodes the release it was issued against; presenting it after that release is superseded returns `cursor_expired` (M2.4).
+A tool result carries both in its `_meta` (M2.5). A cursor binds the effective release. Explicit-release cursors continue while EVS serves that release; withdrawal expires them. An implicit session pin instead fails with `release_not_available` and asks for a new session or a named release, without rediscovery (X-22). Replacing an active index build expires its cursors even at the same release.
 
-Implemented for current producers in `caching.py` and the MCP adapter: pinned content and
+Implemented for current producers in `caching.py` and the MCP adapter: explicitly pinned content and
 the list/discovery surface use 86,400,000/public, resolution/status uses 0/public, and tool
-errors use 0/private. List, discovery and resource-read hints are protocol result fields;
+errors and implicit NCIt calls use 0/private. List, discovery and resource-read hints are protocol result fields;
 tool hints are protocol `_meta`, preserving other metadata. All EVS resource URIs are
 release-pinned and use the content policy. Missing indexes and mismatched releases are
 protocol errors, not status content. CLI release reports remain status results.
@@ -204,8 +204,8 @@ Unit tests render `tools/list` in every configured profile, validate every schem
 success/error results, and reject malformed records. They assert byte-identical listings
 across release channels, upstream modes, calls and upstream failure (M1.2), and check rendered
 descriptions for unfinished text and unsupported values against behavior (A2.3, A2.4).
-Profiles select the current inventory: twelve EVS tools for `evs` and `unified`, no tools yet
-for `cadsr`. The legacy MCP names and caDSR stub are removed. An input schema states no
+Profiles select the current inventory: twelve tools for `evs`, ten for `cadsr`, and all
+twenty-two for `unified`. The legacy MCP names and caDSR stub are removed. An input schema states no
 `maximum` for a bounded argument: a value above it is applied as the maximum (the tools'
 `bounds` in `spec/tools.yaml`), and the argument's description states its default and maximum.
 
@@ -342,23 +342,24 @@ only those needed by this phase are implemented, and requested upstream operatio
 |---|---|---|
 | data element by public id | `GET /rad/NCIAPI/1.0/api/DataElement/{id}` | `version` is the **item's** version, exposed as such |
 | data elements by concept | `GET /rad/NCIAPI/1.0/api/DataElements/Concept?conceptCode=&headerOnly=true` | single concept only; 9.7–20 s measured — tool declares a 30 s timeout |
-| CRDC crosswalk | `GET …/DataElements/getCRDCList` | unparameterised; cached per export date |
+| CRDC crosswalk | `GET …/DataElements/getCRDCList` | filters and paging apply locally; short public hint when unpinned, with no export date on content provenance or server-side cache |
 | data element search | `GET …/DataElement/search?keyword={q}&pageSize={n}` | **Requested OP-C03, not served today (C-3).** Tested against crafted OP-C03 fixtures; no filter parameters, fallback route or synthetic result. A verified future C-1 registry pin is sent as `registryRelease`, as on every content request. The live type-E answer stays `upstream_unavailable` with fixed per-tool guidance: retrying cannot add keyword search; use data-element lookup by public id or question text. The 1,000 cap belongs to the documented filtered list paths, not a served search. |
 | contexts, item types, workflow statuses | `GET /rad/NCILovAPI/1.0/api/getContextNames` etc. | enumerations; definitions are absent upstream and the result says so |
 | classification schemes | from the data-element payload's `ClassificationSchemes[]` with nested items | first-class objects |
 | forms | `GET /rad/NCIFormAPI.v2_0:NciFormApiRad/Form/{publicId}` and `/Form/query` | keyword search requires `publicId` or `protocolId` upstream; a keyword-only request is `invalid_request` with that stated |
-| models and crosswalk mappings | `GET /rad/NCIModelAPI/1.0/api/Models`, `/CrossWalkMappings/Download` | feed `get_code_map` |
+| models and crosswalk mappings | `GET /rad/NCIModelAPI/1.0/api/Models`, `/CrossWalkMappings/Download` | client operations only; `get_code_map` uses the CRDC list, with no Model API fanout |
 | CDE Match | `POST /rad/NCIAPI.v2_0.cdeMatch.api:cdeMatch_rad/cdeMatch` | built from the **JSON** contract, not the documentation page (which declares a dev host); 28.9 s measured — 45 s timeout, structured timeout error |
 | VM Match | `POST /rad/vmMatch/v1/vmMatch` | 15.5 s measured; same handling |
 | export date | `GET https://cadsr.nci.nih.gov/ftp/caDSR_Downloads/CDE/XML/` | Exact `releasedCDEsXML-OD.zip` link row → local ISO date-time, minute precision, no offset; no HEAD fallback |
 
 Matching credentials stay server-side. CDE Match sends one `apiinput` object per entity, never an array fallback; transport retries repeat the identical request. VM Match sends the contract array with `matchType`, `function` and optional `evsTerminologyCodes` headers. A 401 propagates explicitly. CDE Match and LOV now refuse anonymous calls in the recorded evidence; this is not a claim that either operation is public. The #35 Form-by-ID interpretation of the recorded unknown-form envelope is specified below; it never matches message text or alters other operations.
 
-### 5.2 Tools (`cadsr_content.py`)
+### 5.2 Tools (`cadsr_content.py`, `cadsr_matching.py`)
 
-Ten planned tools, signatures in the specification (group `cadsr`). The five lookup and
-registry tools are implemented in the flat package through the shared registry, along with
-data-element and registry resources. Matching and forms/crosswalks follow in #34/#35.
+All ten caDSR tools are registered through the shared registry, alongside data-element,
+registry-state and CRDC crosswalk resources. Unsupported platform capabilities return explicit
+errors; they never substitute empty or fabricated content. Signatures are in the specification
+(group `cadsr`).
 
 Content requests without `registryRelease` carry none and have provenance `{registry: cadsr}`.
 For a requested pin, discovery must list exactly one matching identifier with a valid date;
@@ -395,7 +396,7 @@ Errors remain 0/private. Specific behaviours:
 
 ### 6.2 Tools (`seam/tools.py`)
 
-- `find_data_elements_for_concept` → SPARQL join with optional subsumption expansion (bounded, per `Budget`); falls back to caDSR REST `/DataElements/Concept` with its timeout when SSIS is unavailable, except where a release is given (REST cannot name the NCIt release: `release_not_available`) or `includePermissibleValues` asks for the reverse lookup (REST has none: `capability_unavailable`); both release identities recorded (`provenance.release` and `provenance.registry`).
+- `find_data_elements_for_concept` → SPARQL join with optional subsumption expansion (bounded, per `Budget`); the surface must name the effective NCIt release, whether explicit or implicitly selected (X-22). caDSR REST cannot confirm that release and therefore cannot serve as a content fallback: `release_not_available`. REST also lacks the reverse permissible-value lookup (`capability_unavailable`). Both content states are recorded (`provenance.release` and `provenance.registry`).
 - `get_concept_for_permissible_value` → SPARQL lookup of a data element's value; the concept record of the pinned release from EVS; by `permissibleValueId` `capability_unavailable` (OP-C10).
 - `resolve_stored_value` → GDC via `NCIt_Maps_To_GDC` (mapset and FHIR ConceptMap agree; the mapset is named in provenance); other commons via `getCRDCList`; `confidence` asserted or none, `evidence` naming each source; no stored value with a coverage statement otherwise. Never returns the preferred term as a stored value.
 - `get_release_alignment(maxIntervalDays = 31)` → NCIt release, caDSR export date, SI graph dates, `intervalDays`, and a warning naming the threshold when `intervalDays` exceeds it; `ttlMs` 0.
