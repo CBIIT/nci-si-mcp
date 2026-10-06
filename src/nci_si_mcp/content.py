@@ -93,7 +93,7 @@ def _record(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
         "active": raw["active"],
         "provenance": _provenance(provenance) | {"upstream": upstream_origin(raw)},
     }
-    if "conceptStatus" in raw:
+    if raw.get("conceptStatus") not in (None, ""):
         result["status"] = raw["conceptStatus"]
     return result
 
