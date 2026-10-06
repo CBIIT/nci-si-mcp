@@ -16,6 +16,15 @@ from test_server import ServerFixture
 
 
 class CatalogueTest(ServerFixture):
+    def test_empty_catalogue_has_release_provenance(self):
+        self.evs.catalogues = {"role": [], "association": []}
+        result = self.listing(terminology="other", release="v1")
+        self.assertEqual(result["relationships"], [])
+        self.assertEqual(
+            result["provenance"]["release"], {"terminology": "other", "identifier": "v1"}
+        )
+        self.assertEqual(result["provenance"]["source"], "evs_rest")
+
     def setUp(self):
         super().setUp()
         self.evs.catalogues = {kind: catalogue_rows(kind) for kind in ("role", "association")}
@@ -116,7 +125,7 @@ class CatalogueTest(ServerFixture):
         result = self.listing(terminology="other")
         self.assertEqual({row["polarity"] for row in result["relationships"]}, {"positive"})
         self.evs.catalogues["role"] = []
-        self.assertEqual(self.listing(terminology="other"), {"relationships": []})
+        self.assertEqual(self.listing(terminology="other")["relationships"], [])
 
     def test_invalid_identifiers_are_rejected_before_metadata_reads(self):
         for arguments in ({"terminology": "../ncit"}, {"release": "old\n"}):

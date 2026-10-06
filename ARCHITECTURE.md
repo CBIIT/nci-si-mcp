@@ -83,7 +83,7 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 | Component | Responsibility | Main dependencies |
 | --- | --- | --- |
 | `caching.py` | Defines the hints for current producers: governed release-pinned content and the static server surface (86,400,000 ms/public), resolution/status (0/public), and errors (0/private). It contains no data cache or unused future policy classes. | Python standard library |
-| `bounds.py` | Owns traversal defaults and maxima and the per-call `Budget`. A context variable shares 200 HTTP attempts, including retries, release discovery and split batches, and restores the previous context on exit. The walker rotates kinds across each breadth-first frontier and counts newly admitted nodes against optional per-kind allowances. Exhaustion preserves partial graphs with truncation; without graph content it raises `RequestBudgetError`, mapped to `bound_exceeded`. | Python standard library |
+| `bounds.py` | Owns traversal defaults and maxima and the per-call `Budget`. A context variable shares 200 HTTP attempts, including retries, release discovery and split batches, and restores the previous context on exit. The walker rotates kinds across each breadth-first frontier and counts newly admitted nodes against optional per-kind allowances. Neighborhood and CLI traversal preserve partial graphs on exhaustion; without graph content they raise `RequestBudgetError`, mapped to `bound_exceeded`. Hierarchy page replay always fails with `bound_exceeded` on request exhaustion. | Python standard library |
 | `cli.py` | Builds command arguments and dispatch from the registry; owns `serve` startup, reports configuration failures and exits 1 on an error record. | `registry.py`, `server.py` |
 | `server.py` | Registers the profile-selected tools and three resource templates from the registry on an `mcp` 2.x `MCPServer`, and flags error records as protocol errors. Middleware carries cache decisions from SDK worker threads into tool `_meta` and resource fields, without inspecting content or matching names. Undeclared successful responses fail. SDK hints cover lists/discovery. | `registry.py`, `caching.py`, optional `mcp` package |
 | `registry.py` | Declares each operation once with its handler, output union, cache class and adapter exposure. Derives input models, CLI arguments and MCP parameters from handler signatures; selects tools by profile and invokes all producers through one boundary. | `handlers.py`, `invocation.py`, `caching.py`, `results.py` |
@@ -202,8 +202,8 @@ It returns a specification concept record with upstream name, active/status and 
    batched concept requests that include the selected relation lists, pinned to
    the release, and every fetched concept is checked against it. Requested
    depth clamps at 4. Neighborhood allows up to 1,000 nodes including the seed
-   and 5,000 edges. Hierarchy allows up to 1,000 returned nodes excluding the
-   seed and has no edge cap; known node cuts refuse unsupported paging.
+   and 5,000 edges. Hierarchy allows up to 1,000 returned nodes per page excluding the
+   seed and has no edge cap; continuation replays the pinned walk within the request budget.
    Forward lists at the last frontier are also read, within the same request budget, to distinguish
    a depth cut from a leaf or a cycle to returned nodes. Each batch is processed
    before the next request so the first bound reached keeps precedence.
@@ -359,6 +359,12 @@ MCP tools:
 - `list_terminologies`
 
 - `get_concept`
+- `get_concepts`
+- `list_relationships`
+- `resolve_retired_code`
+- `get_concept_subsets`
+- `get_concept_mappings`
+- `expand_value_set`
 - `search_concepts`
 - `get_concept_hierarchy`
 - `get_concept_neighborhood`
@@ -391,8 +397,8 @@ aliases are removed. QUICKSTART.md lists the error codes.
   with the field count; vectors are processed in chunks and never cached as a full matrix.
 - caDSR/CDE tools are not implemented. Until credentials are issued, their implementation
   uses fixtures crafted from the published contracts; the former status-only stub is removed.
-- Index builds and activation are operator commands. Evaluation gates follow in #29;
-  the operator runbook follows in #40.
+- Index builds and activation are operator commands. Production activation requires a
+  persisted passing evaluation for that build; the operator runbook follows in #40.
 - The package requires Python 3.14 or newer. The `mcp` package comes with the
   optional `server` extra, which only the `serve` command and the server tests
   need.

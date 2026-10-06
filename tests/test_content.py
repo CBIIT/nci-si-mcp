@@ -11,6 +11,21 @@ from test_server import ServerFixture
 
 
 class ContentTest(ServerFixture):
+    def test_neighborhood_preserves_supplied_edge_attribution(self):
+        edge = self.evs.concepts["C1"]["children"][0]
+        edge["licenseText"] = "Platform edge licence"
+        result = self.content("get_concept_neighborhood", code="C1", kinds=["child"])
+        self.assertEqual(result["edges"][0]["provenance"]["attribution"], "Platform edge licence")
+        target = next(node for node in result["nodes"] if node["code"] == "C2")
+        self.assertNotIn("attribution", target["provenance"])
+        self.evs.concepts["C2"]["licenseText"] = "Platform concept licence"
+        result = self.content("get_concept_neighborhood", code="C1", kinds=["child"])
+        target = next(node for node in result["nodes"] if node["code"] == "C2")
+        self.assertEqual(target["provenance"]["attribution"], "Platform concept licence")
+        del edge["licenseText"]
+        result = self.content("get_concept_neighborhood", code="C1", kinds=["child"])
+        self.assertNotIn("attribution", result["edges"][0]["provenance"])
+
     def setUp(self):
         super().setUp()
         self.evs.concepts = {

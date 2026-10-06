@@ -35,6 +35,7 @@ class ProvenanceEnvelope:
     correlation_id: str
     source_uri: str | None = None
     upstream: dict[str, Any] | None = None
+    attribution: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
@@ -48,6 +49,8 @@ class ProvenanceEnvelope:
             data["sourceUri"] = self.source_uri
         if self.upstream:
             data["upstream"] = self.upstream
+        if self.attribution:
+            data["attribution"] = self.attribution
         return data
 
 

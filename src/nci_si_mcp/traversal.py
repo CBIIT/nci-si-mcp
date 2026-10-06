@@ -336,7 +336,8 @@ class _Walk:
         """The provenance of an item at `depth`, read from `uri`; `edge_type` and `item` name
         the relation that brought it in, and the concept asked about has none."""
 
-        relationship = _relationship(edge_type, item or {}) if edge_type else None
+        item = item or {}
+        relationship = _relationship(edge_type, item) if edge_type else None
         return TraversalProvenance(
             release=release_ref(self.release.terminology, self.release.version, self.release.date),
             source="evs_rest",
@@ -345,12 +346,13 @@ class _Walk:
             correlation_id=self.correlation_id,
             source_uri=uri,
             upstream=upstream,
+            attribution=item.get("licenseText"),
             depth=depth,
             relationship=relationship,
             direction=EDGE_DIRECTIONS[edge_type] if edge_type else None,
             polarity=polarity(relationship.get("code"), self.exclusions) if relationship else None,
-            qualifiers=(item or {}).get("qualifiers"),
-            evidence=(item or {}).get("evidence"),
+            qualifiers=item.get("qualifiers"),
+            evidence=item.get("evidence"),
         )
 
     def _concept_uri(self, code: str) -> str:
@@ -611,7 +613,9 @@ class _Walk:
         self.edges.append(edge)
         if new_node:
             self.budget.added_by_kind[edge.edge_type] += 1
-            held = replace(edge.provenance, source_uri=self._concept_uri(edge.target_code))
+            held = replace(
+                edge.provenance, source_uri=self._concept_uri(edge.target_code), attribution=None
+            )
             self.nodes[edge.target_code] = self._node(edge.target_code, edge.target_name, held)
         eligible = self.include_negative or edge.provenance.polarity != "negative"
         if eligible and edge.target_code not in self.expandable:

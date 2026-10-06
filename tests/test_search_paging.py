@@ -131,6 +131,14 @@ class IndexedSearchTest(ServerFixture):
 
 
 class LiveSearchTest(ServerFixture):
+    def test_duplicate_search_identities_fail_instead_of_concealing_missing_matches(self):
+        row = concept("C1", active=True)
+        for mode in ("lexical", "typeahead"):
+            with self.subTest(mode=mode), self.replies([{"total": 2, "concepts": [row, row]}]):
+                result = self.search(mode=mode)
+                self.assertEqual(result["error"]["code"], "upstream_unavailable")
+                self.assertNotIn("results", result)
+
     def setUp(self):
         super().setUp()
         self.context.evs = EVSClient("https://evs.invalid", max_attempts=1)

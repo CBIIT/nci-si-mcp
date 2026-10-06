@@ -43,7 +43,7 @@ The [developer baseline](evaluation/ncit-v1-developer-baseline.json) used SapBER
 Its incomplete recorded fields make it unsuitable for production calibration. In particular,
 the Neoplasm payload lacks synonyms: BM25 and hybrid miss `tumor` in the first ten results,
 while semantic search ranks Neoplasm first. Production calibration therefore uses the subsequent
-[full-corpus evidence](evaluation/ncit-v1-full-corpus.json) supplies version
+[full-corpus evidence](evaluation/ncit-v1-full-corpus.json) for version
 `ncit-26.09d-sapbert-v1`: semantic Hit@5 ≥ 10/12 and MRR@10 ≥ 0.8354166666666666;
 hybrid Hit@5 ≥ 11/12 and MRR@10 ≥ 0.9083333333333333. BM25 and Hit@1 are reported but
 not gated. The sample-derived semantic MRR floor of 0.95 would have refused this full build.

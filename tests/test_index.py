@@ -686,7 +686,6 @@ class SearchTest(IndexTestCase):
         concepts = synthetic_concepts(60)
         index = self.build(concepts)
 
-        # The stored search text of a concept lands in all of its own buckets.
         own_text = concept_search_text(
             normalize_concept(concepts[7], release_date=None, source="active_cache")
         )

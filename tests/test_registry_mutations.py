@@ -57,14 +57,14 @@ class RegistryMutationTest(ServerFixture):
 
     def test_incompatible_index_error_names_the_rebuild_next_step(self):
         with patch.object(
-            self.context.index, "search_with_truncation", side_effect=IndexCompatibilityError("bad")
+            self.context.index, "search_snapshot", side_effect=IndexCompatibilityError("bad")
         ):
             result = invoke(self.context, "search", "Neoplasm")
         self.assertEqual(result["error"]["code"], "internal_error")
         self.assertTrue(
             result["error"]["message"].endswith(
-                "Rebuild the index with `index-sample`, or use the embedding settings "
-                "it was built with."
+                "Use the original embedding settings, or run `index-rebuild` and activate its "
+                "evaluated build with `index-activate`."
             )
         )
 

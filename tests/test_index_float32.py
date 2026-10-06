@@ -108,6 +108,18 @@ class Float32MigrationTest(IndexTestCase):
 
 
 class VectorIntegrityTest(IndexTestCase):
+    def test_cosine_ranking_ignores_unequal_stored_vector_magnitudes(self):
+        provider = HashingEmbeddingProvider(dimensions=2)
+        values = {"Alpha": [1.0, 0.0], "Beta": [10.0, 10.0], "query": [1.0, 0.0]}
+        with patch.object(
+            provider, "embed", side_effect=lambda texts: [values[text] for text in texts]
+        ):
+            index = LocalIndex(self.path)
+            index.upsert_concepts([concept("C1", "Alpha"), concept("C2", "Beta")], None, provider)
+            hits = index.search("query", provider, mode="vector")
+        self.assertEqual([hit.concept.code for hit in hits], ["C1", "C2"])
+        self.assertGreater(hits[0].score, hits[1].score)
+
     def test_unstorable_embeddings_cannot_replace_the_active_build(self):
         index = self.build()
         active = index.get_active_manifest()

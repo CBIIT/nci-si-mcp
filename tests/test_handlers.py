@@ -293,6 +293,24 @@ class IndexCodesTest(HandlerTestCase):
 
 
 class SearchTest(HandlerTestCase):
+    def test_empty_search_keeps_its_release_during_concurrent_activation(self):
+        self.index()
+        replacement = self.context.index.build(
+            [dict(KINASE, version="26.07a")], None, self.context.embedding_provider
+        )
+        search_page = self.context.index.search_page
+
+        def activate_after_search(*args, **kwargs):
+            result = search_page(*args, **kwargs)
+            self.context.index.activate(replacement.build_id)
+            return result
+
+        with patch.object(self.context.index, "search_page", side_effect=activate_after_search):
+            result = invoke(self.context, "search", "zzzz", mode="bm25")
+        self.assertEqual(result["hits"], [])
+        self.assertEqual(result["provenance"]["release"]["identifier"], "26.06e")
+        self.assertEqual(self.context.index.get_active_manifest().release_version, "26.07a")
+
     def test_search_returns_ranked_hits_of_the_indexed_release(self):
         self.index()
 
@@ -367,13 +385,6 @@ class SearchTest(HandlerTestCase):
                 "release_info",
             )["embedding"]["active_index_compatible"]
         )
-
-    def test_a_search_without_hits_needs_the_manifest_it_names_the_release_from(self):
-        self.index()
-        with patch.object(self.context.index, "get_active_manifest", return_value=None):
-            result = invoke(self.context, "search", "zzzz", mode="bm25")
-
-        self.assert_error(result, "internal_error")
 
 
 class TraverseTest(HandlerTestCase):
@@ -584,6 +595,32 @@ class StatusTest(HandlerTestCase):
 
 
 class FailureHandlingTest(HandlerTestCase):
+    def test_unknown_build_operations_return_actionable_error_records(self):
+        for operation in ("index_activate", "index_rebuild"):
+            with self.subTest(operation=operation):
+                result = invoke(self.context, operation, "missing-build")
+                self.assert_error(result, "internal_error")
+                self.assertIn("index-builds", result["error"]["message"])
+                self.assertTrue(result["error"]["correlationId"])
+        self.assertIsNone(self.context.index.get_active_manifest())
+
+    def test_sample_activation_conflict_is_reported_and_keeps_the_other_writer(self):
+        self.index()
+        replacement = self.context.index.build([KINASE], None, self.context.embedding_provider)
+        build = self.context.index._build_stream
+
+        def activate_after_build(*args, **kwargs):
+            candidate = build(*args, **kwargs)
+            self.context.index.activate(replacement.build_id)
+            return candidate
+
+        with patch.object(self.context.index, "_build_stream", side_effect=activate_after_build):
+            result = invoke(self.context, "index_codes", ["C3262"])
+        self.assert_error(result, "internal_error")
+        self.assertIn("retry the sample", result["error"]["message"])
+        self.assertEqual(self.context.index.get_active_manifest().build_id, replacement.build_id)
+        self.assertIsNone(self.context.index.get_concept("C3262"))
+
     def test_unusable_database_is_reported_with_its_path(self):
         self.index()
         database = self.path / "nci_si.sqlite3"
@@ -675,7 +712,7 @@ class ErrorModelTest(HandlerTestCase):
                 {"parameter": "code", "reason": "bad"},
             ),
             (NoActiveIndexError("none"), "internal_error", "index-sample", None),
-            (IndexCompatibilityError("other model"), "internal_error", "Rebuild the index", None),
+            (IndexCompatibilityError("other model"), "internal_error", "index-rebuild", None),
             (IndexStorageError("locked"), "internal_error", "readable and writable", None),
         )
         for exception, code, step, details in failures:
@@ -724,7 +761,7 @@ class ErrorModelTest(HandlerTestCase):
 
         message = invoke(self.context, "lookup", "C3262")["error"]["message"]
 
-        for expected in ("26.07d", "26.06e", "index-sample", "live_only"):
+        for expected in ("26.07d", "26.06e", "index-build", "index-activate", "live_only"):
             self.assertIn(expected, message)
 
     def test_ambiguous_monthly_releases_are_listed_in_the_error(self):
