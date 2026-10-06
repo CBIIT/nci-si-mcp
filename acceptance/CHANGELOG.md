@@ -14,6 +14,13 @@ Changes until then are development under the plan and need no approval reference
 under construction: the per-tool tests, the protocol gates, the prompts and resources, and the
 fixture set pinned to NCIt 26.09d.
 
+- Phase 5 #41 (A11.1–A11.2): allow the stdio client helper's caller to select its read
+  timeout, retaining 60 seconds for acceptance tests. The benchmark uses 300 seconds so
+  upstream retries can finish and provide their actual audit counts. A real-session
+  self-test verifies the override; no assertion, request form or fixture outcome changes.
+  Correct the fixture README's claim of live verification for credentialed content: the
+  current live-capable tests cover protocol behavior only.
+
 <!-- The shape of a release, from the furnished tag on:
 
 ## v1.0.0: <date>

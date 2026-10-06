@@ -323,7 +323,11 @@ class Session:
 
 @contextmanager
 def open_session(
-    command: list[str], environment: dict[str, str], errlog: TextIO = sys.stderr
+    command: list[str],
+    environment: dict[str, str],
+    errlog: TextIO = sys.stderr,
+    *,
+    timeout: float | None = None,
 ) -> Iterator[Session]:
     """Start the server's command, its standard error going to `errlog`, and hold one MCP
     session with it."""
@@ -334,7 +338,11 @@ def open_session(
         start_blocking_portal() as portal,
         portal.wrap_async_context_manager(
             # No response cache: each tools/list must reach the server (P-6).
-            Client(transport, read_timeout_seconds=READ_TIMEOUT_SECONDS, cache=None)
+            Client(
+                transport,
+                read_timeout_seconds=READ_TIMEOUT_SECONDS if timeout is None else timeout,
+                cache=None,
+            )
         ) as client,
     ):
         yield Session(portal, client)
