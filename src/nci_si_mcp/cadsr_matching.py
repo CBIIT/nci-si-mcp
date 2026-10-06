@@ -237,7 +237,7 @@ def _vm_match(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]
     result = {"item": _vm_item(raw, provenance), "rule": _required_text(raw, "ruleDescription")}
     if raw.get("score") is not None:
         result["score"] = _score(raw)
-    if raw.get("crosswalkCode") not in (None, "NA"):
+    if raw.get("crosswalkCode") not in (None, "", "NA"):
         result["crosswalk"] = {
             "code": _required_text(raw, "crosswalkCode"),
             "description": _required_text(raw, "crosswalkDescription"),
@@ -270,7 +270,7 @@ def match_value_meanings(
 
     strictness is restricted (default) or unrestricted, sent as matchType;
     terminologyScope selects EVS code systems. Preserve rules, optional concept/source
-    and real crosswalks; NA means no crosswalk and unscored matches have no score.
+    and real crosswalks; empty or NA means no crosswalk and unscored matches have no score.
     Matching uses the configured match timeout (45 seconds by default); failures are
     errors, never empty successes. Results are computed, 0/private. Registry pins fail
     closed because matching cannot yet address published registry releases (C-1).

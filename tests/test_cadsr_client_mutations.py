@@ -2,6 +2,7 @@
 
 import base64
 import unittest
+from http.client import HTTPException
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -17,11 +18,35 @@ from nci_si_mcp.http_client import (
 )
 from nci_si_mcp.release import RegistryMetadataError, resolve_evs_release
 from test_cadsr_client import LISTING, reply
+from test_evs_client import http_error
 from test_http_client import Reply, ServerTestCase
 from test_release import MONTHLY
 
 
 class ClientBoundaryTest(ServerTestCase):
+    def test_empty_client_errors_never_mean_an_unpublished_registry(self):
+        for status in (400, 401, 403):
+            with self.subTest(status=status):
+                server = self.serve(Reply(status, body=b""), Reply(body=LISTING.encode()))
+                with self.assertRaises(UpstreamRejectedError) as raised:
+                    self.cadsr(server).resolve_registry_release()
+                self.assertEqual(raised.exception.details["status"], status)
+                self.assertEqual(len(server.seen), 1)
+
+    def test_unreadable_404_body_is_not_an_empty_registry_response(self):
+        client = self.cadsr(self.serve())
+        for failure in (OSError("unreadable"), HTTPException("incomplete")):
+            error = http_error(404)
+            with (
+                self.subTest(failure=type(failure).__name__),
+                patch.object(error, "read", side_effect=failure),
+                patch("nci_si_mcp.http_client._open", side_effect=error) as opened,
+                self.assertRaises(UpstreamRejectedError) as raised,
+            ):
+                client.resolve_registry_release()
+            self.assertEqual(raised.exception.details["status"], 404)
+            self.assertEqual(opened.call_count, 1)
+
     def cadsr(self, server, **options):
         client = CaDSRClient(
             Settings(cadsr_base_url=server.url, cadsr_ftp_url=server.url, **options)
