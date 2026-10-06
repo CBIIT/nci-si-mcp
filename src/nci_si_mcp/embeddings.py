@@ -11,6 +11,7 @@ import hashlib
 import math
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
+from pathlib import Path
 
 
 class EmbeddingProvider(ABC):
@@ -47,7 +48,8 @@ class HashingEmbeddingProvider(EmbeddingProvider):
 
 
 class SentenceTransformersProvider(EmbeddingProvider):
-    def __init__(self, model_name: str) -> None:
+    def __init__(self, model_name: str, *, local_files_only: bool = False) -> None:
+        resolved_name = _local_model(model_name) if local_files_only else model_name
         # An optional extra with heavy dependencies, imported only when configured.
         try:
             from sentence_transformers import (  # pyright: ignore[reportMissingImports]
@@ -60,11 +62,29 @@ class SentenceTransformersProvider(EmbeddingProvider):
             ) from exc
         self.name = "sentence-transformers"
         self.model = model_name
-        self._model = SentenceTransformer(model_name)
+        self._model = (
+            SentenceTransformer(resolved_name, local_files_only=True)
+            if local_files_only
+            else SentenceTransformer(model_name)
+        )
 
     def embed(self, texts: Iterable[str]) -> list[list[float]]:
-        vectors = self._model.encode(list(texts), normalize_embeddings=True)
+        vectors = self._model.encode(
+            list(texts), normalize_embeddings=True, show_progress_bar=False
+        )
         return [list(map(float, row)) for row in vectors]
+
+
+def _local_model(model_name: str) -> str:
+    """Check supplied assets before the embedding library emits startup diagnostics."""
+    path = Path(model_name)
+    if path.is_dir():
+        return str(path)
+    if path.is_absolute():
+        raise FileNotFoundError("Supply the external model directory")
+    from huggingface_hub import snapshot_download  # pyright: ignore[reportMissingImports]
+
+    return snapshot_download(model_name, local_files_only=True)
 
 
 def normalize_embedding_settings(provider: str, model: str) -> tuple[str, str]:

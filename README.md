@@ -43,14 +43,15 @@ Fixture-mode outcome of each tool, from the expected outcomes of the 944 tests o
 
 | Group | Tools | Outcome of each tool |
 |---|---|---|
-| EVS tools | 12 | FAIL: `resolve_release`, `get_concept`, `get_concepts`, `search_concepts`, `get_concept_hierarchy`, `expand_value_set`, `get_concept_neighborhood`, `get_concept_subsets`, `get_concept_mappings`, `resolve_retired_code`, `list_relationships`, `list_terminologies` |
-| caDSR tools | 10 | FAIL: `resolve_registry_release`, `get_data_element`, `search_data_elements`, `match_data_elements`, `match_value_meanings`, `get_form`, `get_permissible_value`, `get_code_map`, `list_contexts`, `list_classification_schemes` |
-| Cross-domain tools | 4 | FAIL: `find_data_elements_for_concept`, `get_concept_for_permissible_value`, `resolve_stored_value`, `get_release_alignment` |
-| Workflow tools | 3 | NOT IMPLEMENTED: `ground_value`, `expand_cohort`, `harmonize_data_dictionary` |
+| EVS tools | 12 | PASS: `resolve_release`, `get_concept`, `get_concepts`, `search_concepts`, `get_concept_hierarchy`, `expand_value_set`, `get_concept_neighborhood`, `get_concept_subsets`, `get_concept_mappings`, `resolve_retired_code`, `list_relationships`, `list_terminologies` |
+| caDSR tools | 10 | PASS: `resolve_registry_release`, `get_data_element`, `search_data_elements`, `match_data_elements`, `match_value_meanings`, `get_form`, `get_permissible_value`, `get_code_map`, `list_contexts`, `list_classification_schemes` |
+| Cross-domain tools | 4 | PASS: `find_data_elements_for_concept`, `get_concept_for_permissible_value`, `resolve_stored_value`, `get_release_alignment` |
+| Workflow tools | 3 | PASS: `ground_value`, `expand_cohort`, `harmonize_data_dictionary` |
 <!-- acceptance-status:end -->
 
-The acceptance suite comes first (Phase 0): its mechanics and the EVS fixture set are in place,
-and the tests of each group follow. The
+The [validation and benchmark evidence](docs/benchmark.md) separates fixture acceptance,
+live protocol coverage and representative live tool measurements. caDSR credentialed content
+remains contract-fixture evidence until credentials are issued. The
 [milestones](https://github.com/hniedner/nci-si-mcp/milestones) track the phases.
 
 ## Start here
@@ -63,6 +64,8 @@ and the tests of each group follow. The
   rationale, are listed for [EVS](acceptance/request-forms/evs.md), for
   [caDSR](acceptance/request-forms/cadsr.md), for the
   [Shared SI Service](acceptance/request-forms/ssis.md) and for [all](acceptance/request-forms/all.md).
+  [Upstream requirements](docs/upstream/README.md) link the remaining platform requests to
+  their evidence, affected tests, workarounds and acceptance criteria.
 - **NCI reviewers and the suite's maintainers**: [acceptance/README.md](acceptance/README.md) and
   [acceptance/fixtures/README.md](acceptance/fixtures/README.md), where the fixtures come from.
 - **Working on this repository**: [CONTRIBUTING.md](CONTRIBUTING.md) for the commands, standards

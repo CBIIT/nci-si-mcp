@@ -437,6 +437,26 @@ def _attributed(row: dict[str, Any], provenance: dict[str, Any]) -> dict[str, An
 
 
 def _gdc(context: Context, selected: ReleaseContext, code: str) -> dict[str, Any]:
+    source, provenance = gdc_provenance(context, selected)
+    values = gdc_values(_gdc_rows(context, code), code, source, provenance)
+    return _stored_result(values, [source], True, provenance)
+
+
+def gdc_values(
+    rows: list[dict[str, Any]], code: str, source: dict[str, str], provenance: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """Preserve verified exact-code mappings, never substring matches from term search."""
+    return [
+        _gdc_value(row, source, provenance)
+        for row in rows
+        if _identifier(row.get("sourceCode"), r"C[1-9][0-9]*", "GDC source code", "evs") == code
+    ]
+
+
+def gdc_provenance(
+    context: Context, selected: ReleaseContext
+) -> tuple[dict[str, str], dict[str, Any]]:
+    """Verify the mapset identity for both direct resolution and bounded grounding."""
     mapset = context.evs.get_gdc_mapset(selected)
     source = {"mapset": mapset["code"], "version": mapset["version"]}
     provenance = ProvenanceEnvelope(
@@ -449,12 +469,7 @@ def _gdc(context: Context, selected: ReleaseContext, code: str) -> dict[str, Any
         upstream=mapset,
     ).to_dict()
     provenance = _attributed(mapset, provenance)
-    values = [
-        _gdc_value(row, source, provenance)
-        for row in _gdc_rows(context, code)
-        if _identifier(row.get("sourceCode"), r"C[1-9][0-9]*", "GDC source code", "evs") == code
-    ]
-    return _stored_result(values, [source], True, provenance)
+    return source, provenance
 
 
 def _stored_result(

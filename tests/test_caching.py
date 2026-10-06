@@ -17,7 +17,7 @@ from test_server import ServerFixture, pinned
 class CachingTest(ServerFixture):
     def test_registered_cache_defaults_allow_explicit_handler_ownership(self, _):
         registrations = [spec for spec in SPECS if spec.name or spec.uri]
-        self.assertEqual(len(registrations), 33)
+        self.assertEqual(len(registrations), 36)
         for spec in registrations:
             with self.subTest(operation=spec.operation):
                 self.assertIsInstance(spec.resolution, (bool, type(None)))

@@ -323,7 +323,11 @@ class Session:
 
 @contextmanager
 def open_session(
-    command: list[str], environment: dict[str, str], errlog: TextIO = sys.stderr
+    command: list[str],
+    environment: dict[str, str],
+    errlog: TextIO = sys.stderr,
+    *,
+    timeout: float | None = None,
 ) -> Iterator[Session]:
     """Start the server's command, its standard error going to `errlog`, and hold one MCP
     session with it."""
@@ -334,7 +338,11 @@ def open_session(
         start_blocking_portal() as portal,
         portal.wrap_async_context_manager(
             # No response cache: each tools/list must reach the server (P-6).
-            Client(transport, read_timeout_seconds=READ_TIMEOUT_SECONDS, cache=None)
+            Client(
+                transport,
+                read_timeout_seconds=READ_TIMEOUT_SECONDS if timeout is None else timeout,
+                cache=None,
+            )
         ) as client,
     ):
         yield Session(portal, client)
@@ -369,6 +377,7 @@ def open_remote_session(
     *,
     timeout: float | None = None,
     statuses: list[int] | None = None,
+    stateful: bool = False,
 ) -> Iterator[Session]:
     """Hold one MCP session with the endpoint at `url`, no request taking longer than `timeout`
     seconds where that is given. The error of a failed connection names neither the URL nor the
@@ -381,6 +390,9 @@ def open_remote_session(
                 _http_transport(url, authorization, timeout, [] if statuses is None else statuses),
                 read_timeout_seconds=timeout or READ_TIMEOUT_SECONDS,
                 cache=None,
+                # Session-specific tests must opt into the handshake. Auto may select
+                # the 2026 single-exchange protocol, which carries native cache hints.
+                mode="legacy" if stateful else "auto",
             )
         ) as client,
     ):

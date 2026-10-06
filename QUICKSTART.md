@@ -42,7 +42,14 @@ export NCI_SI_EMBEDDING_MODEL=cambridgeltl/SapBERT-from-PubMedBERT-fulltext
 
 ## Connect a client
 
-An MCP client starts the server as a command. In a client that reads an `mcpServers`
+For a container deployment with an external index and model, follow the short
+[container runbook](docs/container.md).
+
+For remote clients, run `pdm run nci-si-mcp serve --transport streamable-http` and connect to
+`http://127.0.0.1:8000/mcp`. See [remote transport](docs/transport.md) for session modes,
+replica routing, readiness and authentication hooks.
+
+An MCP client starts the stdio server as a command. In a client that reads an `mcpServers`
 configuration (Claude Desktop, for one), with absolute paths:
 
 ```json
@@ -74,7 +81,7 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects twelve EVS tools, ten caDSR tools, or both groups. Resources follow their group. CLI commands remain available in every profile |
+| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects twelve EVS tools, ten caDSR tools, or all 29 tools including cross-domain and workflows. Unified also exposes four furnished prompts. Resources follow their group. CLI commands remain available in every profile |
 | `NCI_SI_UPSTREAM_MODE` | `live` | `live` or `fixture`; selects the six base URLs below as a set (next paragraph) |
 | `NCI_SI_EVS_BASE_URL` | `https://api-evsrest.nci.nih.gov` | EVS REST endpoint (`http` or `https`) |
 | `NCI_SI_EVS_FHIR_BASE_URL` | `https://api-evsrest.nci.nih.gov/fhir/r4` | EVS FHIR endpoint |
@@ -93,6 +100,14 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 | `NCI_SI_EVS_MAX_RESPONSE_BYTES` | `10485760` | Maximum accepted EVS REST or FHIR response, up to 1 GiB |
 | `NCI_SI_INDEX_BATCH_SIZE` | `100` | Codes per EVS indexing request |
 | `NCI_SI_LOG_LEVEL` | `INFO` | Stderr diagnostic level; per-call audit records remain enabled at every level |
+| `NCI_SI_TRANSPORT` | `stdio` | Serve over stdio or streamable-http; `serve --transport` overrides this setting |
+| `NCI_SI_HTTP_HOST` | `127.0.0.1` | HTTP bind address; binding all interfaces does not relax the Host allow-list |
+| `NCI_SI_HTTP_PORT` | `8000` | HTTP port, 1–65535; MCP endpoint is /mcp |
+| `NCI_SI_HTTP_SESSIONS` | `stateful` | stateful retains each session's implicit release and needs process affinity; stateless resolves omitted releases per call and needs no affinity |
+| `NCI_SI_HTTP_MAX_REQUEST_BYTES` | `4194304` | Maximum HTTP request body bytes, including chunked bodies; oversized requests return 413 before parsing |
+| `NCI_SI_HTTP_ALLOWED_HOSTS` | `127.0.0.1:*,localhost:*,[::1]:*` | Comma-separated permitted Host authorities, exact or wildcard port; add the public authority when using a proxy |
+| `NCI_SI_HTTP_ALLOWED_ORIGINS` | `http://127.0.0.1:*,http://localhost:*,http://[::1]:*` | Permitted Origin authorities, exact or wildcard port; requests without Origin are allowed |
+| `NCI_SI_HTTP_REQUIRE_INDEX` | `0` | Numeric switch (only 0 or 1), following the settings' numeric parsing rather than introducing a separate boolean syntax. Set to 1 when deployment supplies an index: readiness requires an active build compatible with the configured embedding model. With 0 an absent index permits live tools; an existing active build is still verified |
 
 The caDSR lookup, registry, matching, form and code-map tools use upstream APIs.
 Registry discovery reads the export folder's exact distribution row. The folder gives
@@ -621,6 +636,20 @@ results. Header filters must be printable ASCII; entity/value text stays unchang
 Unlisted matching pins are `release_not_available`; a published pin is
 `capability_unavailable` (`pinned matching`) because the matching APIs have no registryRelease
 field yet (C-1, upstream package #42). No unpinned match is labelled pinned.
+
+Workflow tools are available in `unified`:
+
+- `ground_value`: exactly one of `conceptCode` or `text`; optional `commons`, `release` and `registryRelease`. Text selects the first result of default lexical search (limit 10), then reads that concept at the same release. No match is `not_found`; use other text or a concept code. Data-element, permissible-value and optional stored-value hops each have an independent 1,000-result cap. A cut reports full `perHop` truncation records; cutting one hop never cuts another. Without commons, storedValues is absent. Explicit-release joins use the shorter TTL/public; implicit NCIt selection uses 0/private. CLI: `ground-value --concept-code C4817 --commons GDC`.
+- `expand_cohort`: required `conceptCode`; optional `release`, `maxDepth` (2/4), `includeNegative` (false) and `maxNodes` (200/1000). Returns the start and child descendants, withholding only codes excluded by the start's negative roles unless includeNegative is true. Every exclusion assertion is retained, including multiple assertions for one code. maxNodes counts returned codes including the start; graph edges and bounds retain provenance. Explicit release uses long/public caching; implicit release uses 0/private. CLI: `expand-cohort C4817 --max-depth 2`.
+- `harmonize_data_dictionary`: required `columns` (1–10 objects with name, optional description and sampleValues); optional `registryRelease` and matching `filters`. Match names/descriptions, align samples through restricted VM Match in batches of ten, and return each column's matches/alignment plus unmatched names in caller order. Identical requests are reused. Every match names the same registry state. Any failure fails the whole call; results use 0/private. CLI: `harmonize-data-dictionary '{"name":"Patient Gender","sampleValues":["Male"]}'`.
+
+Workflows share one outbound request budget, retries included. Omitted registryRelease is
+unpinned; unlisted pins fail with release_not_available and published but unaddressable pins
+with capability_unavailable. No export date becomes a registry release identifier.
+
+The four furnished prompts—protocol_authoring, crdc_model_alignment, uscdi_cancer_curation
+and cross_program_harmonization—are listed only in unified. Their declared arguments are
+substituted into the exact templates in `spec/prompts.yaml`; prompts perform no content calls.
 
 The Form-by-ID API uses type E even for an unknown form. Only HTTP 200 with an explicit
 `form: null` and `apiResponse.type: E` on a validated id is interpreted as `not_found`.

@@ -1,0 +1,291 @@
+# Evidence and requests, not acceptance waivers. Exact live failures belong below only
+# after they have been observed and attributed to the named entry.
+live_failures: {}
+entries:
+  - id: evs-polarity
+    team: evs
+    title: Publish stable relationship polarity by code
+    platform: E-4; OP-E02
+    requirements: [get_concept_neighborhood-2, list_relationships-2]
+    tests: ["tests/test_evs.py::test_polarity_follows_the_relationship_code_not_its_name", "tests/test_evs.py::test_a_relationship_s_polarity_follows_its_code_not_its_name"]
+    evidence: [acceptance/fixtures/recorded/evs/roles.json, acceptance/fixtures/scenarios/traversal/exclusions/roles.json]
+    source: https://github.com/hniedner/nci-si-mcp/issues/42
+    observation: The catalogue exposes relationship codes and names; the exclusion scenario deliberately gives misleading names. That crafted scenario is a regression probe, not an observed production mislabelling.
+    reproduction: Read the pinned role catalogue (OP-E02); run the traversal/exclusions scenario to distinguish classification by code from name matching.
+    expected: Publish a versioned machine-readable exclusion/polarity classification keyed by stable relationship code.
+    impact: A name-based inference can include excluded concepts in a cohort.
+    workaround: Use the configured exclusion code set; fail closed if the release catalogue lacks a required code.
+    acceptance: Renaming a relationship does not change polarity; positive and negative fixtures produce the same code-based classification as the published catalogue.
+
+  - id: evs-semantic
+    team: evs
+    title: Platform semantic retrieval and local-index retirement
+    platform: E-9
+    requirements: [search_concepts-3, search_concepts-5, search_concepts-8]
+    tests: ["tests/test_evs.py::test_index_search_returns_scored_indexed_concepts_and_the_named_one_first_page", "tests/test_evs.py::test_an_index_search_for_another_release_fails_closed", "tests/test_evs.py::test_an_index_mode_without_an_index_is_unavailable"]
+    evidence: [docs/retrieval-evaluation.md, acceptance/request-forms/evs.md]
+    source: https://github.com/hniedner/nci-si-mcp/issues/42
+    observation: The furnished implementation performs semantic/hybrid retrieval locally; its lexical EVS request is not evidence of an upstream semantic operation.
+    reproduction: Compare lexical OP-E08 with semantic/hybrid search using an activated full index and then without an index; use the recorded full-corpus evaluation, not fixture timing, for quality floors.
+    expected: Provide release-addressable semantic/hybrid results, scores, paging, provenance and declared ranking behavior.
+    impact: Operators currently distribute an embedding model and full index and maintain release compatibility.
+    workaround: Keep the local index; refuse missing or mismatched builds rather than substituting lexical results.
+    acceptance: Before retiring the local index, the replacement passes the tool contracts and full-corpus quality and latency evaluation on the same queries and release; sample-only scores cannot justify retirement.
+
+  - id: evs-retired
+    team: evs
+    title: Consistent active and retired search filters
+    platform: OP-E08; A8.3; A9.3
+    requirements: [search_concepts-6, search_concepts-7]
+    tests: ["tests/test_evs.py::test_retired_only_returns_the_retired_concepts_alone", "tests/test_evs.py::test_retired_only_where_the_status_is_none_the_search_selects_is_invalid"]
+    evidence: [acceptance/fixtures/recorded/evs/search-retired-only.json, acceptance/fixtures/recorded/evs/search-go-obsolete.json, acceptance/fixtures/recorded/evs/terminologies.json]
+    source: https://github.com/hniedner/nci-si-mcp/issues/42
+    observation: The issue records DEFAULT and true rejected by conceptStatus (400), and Retired_Concept accepted but ignored for GO. The retained recordings cover NCIt retired-only and the unfiltered GO baseline, not those failed probes.
+    reproduction: Compare GO obsolete search with conceptStatus omitted, Retired_Concept, and the listing's retiredStatusValue=true; try DEFAULT for NCIt. These are the issue's 2 October observations, not newly executed probes.
+    expected: An active filter or DEFAULT selection, plus retired-only selection using each terminology's documented status value.
+    impact: An exclude-retired request cannot be served, and retired-only is unavailable for affected non-NCIt terminologies.
+    workaround: Offer include/only, never exclude; refuse retired-only where the status cannot be selected.
+    acceptance: Active-only omits every retired result; retired-only returns no active result across NCIt and GO, with correct totals and continuation pages.
+
+  - id: evs-licence
+    team: evs
+    title: Carry upstream licence text with concepts and maps
+    platform: OP-E05; OP-E20; A7.3; X-19
+    requirements: [X-19]
+    tests: ["tests/test_crosscutting.py::test_licence_text_the_platform_gives_with_an_item_is_passed_through_unchanged"]
+    evidence: [acceptance/fixtures/recorded/evs/terminologies.json, acceptance/request-forms/evs.md]
+    source: https://github.com/hniedner/nci-si-mcp/issues/42
+    observation: The listing supplies metadata.licenseText; content does not consistently carry it. license/attributed is a crafted future answer, not proof of a served capability.
+    reproduction: Compare the licensed terminology listing with a concept/map response; exercise license/attributed for the requested passthrough shape.
+    expected: Include upstream licence and attribution text per concept/map, or once per response with an unambiguous association.
+    impact: Clients reading content alone cannot receive the terms supplied only by a separate listing.
+    workaround: Pass through text actually retrieved; the MCP server maintains no licence text of its own and does not invent it.
+    acceptance: Every affected content response delivers the platform's exact text through the tool unchanged, without exposing a licence credential.
+
+  - id: evs-pinned-forms
+    team: evs
+    title: Address subset, mapset and FHIR content states explicitly
+    platform: OP-E06; OP-E23; OP-E24; OP-E25; OP-F05
+    requirements: [X-1, X-2, X-3, expand_value_set-1]
+    tests: ["tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all", "tests/test_cross_domain.py::test_a_gdc_value_resolves_through_the_mapset_its_source_names"]
+    evidence: [acceptance/request-forms/evs.md, acceptance/fixtures/crafted/OP-E06/subset-gdc.json, acceptance/fixtures/crafted/OP-F05/expand-c85492.json]
+    source: https://github.com/hniedner/nci-si-mcp/issues/42
+    observation: The request register records the missing pinned subset path and rejected FHIR system-version form; mapsets have heterogeneous versions, not uniformly NCIt releases.
+    reproduction: Use the register's served and prescribed forms side by side, including an unavailable release; preserve mapset-specific version semantics.
+    expected: Document and serve explicit content-state selection and report the selected state in each payload.
+    impact: Unpinned operations cannot retrieve an older requested state after the platform moves.
+    workaround: The approved unpinned fallback verifies the payload's reported release and fails on mismatch; a mapset's own version is never relabelled as a verified NCIt release.
+    acceptance: Known pins return that exact state, unknown pins fail closed, and mixed or missing identities cannot masquerade as the requested release.
+
+  - id: evs-inactive-expansion
+    team: evs
+    title: Define inactive membership and expansion paging
+    platform: OP-F05; A8.3; A9.5
+    requirements: [expand_value_set-1, expand_value_set-2]
+    tests: ["tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive", "tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all"]
+    evidence: [acceptance/fixtures/recorded/evs-fhir/expand-c85492.json, acceptance/request-forms/evs.md]
+    source: https://github.com/hniedner/nci-si-mcp/issues/42
+    observation: The recorded expansion ignores count, offset and activeOnly. Whether production ever emits inactive members marked contains.inactive remains unknown; valueset/inactive-members crafts that case.
+    reproduction: Compare expansion with and without count/offset/activeOnly; request an upstream example known to include an inactive member.
+    expected: State whether inactive members are returned, mark them explicitly, and honor or explicitly document pagination/filter behavior.
+    impact: Live evidence cannot currently demonstrate inactive filtering; full expansions require local slicing.
+    workaround: Filter only members marked inactive and slice the retrieved expansion locally; never issue one lookup per member.
+    acceptance: A provided inactive-member example is excluded by activeOnly and included otherwise, with consistent totals/pages and bounded request counts.
+
+  - id: cadsr-registry
+    team: cadsr
+    title: Publish registry identity and a verifiable pin contract
+    platform: C-1; OP-C08; OP-C06; OP-M01; OP-M02; OP-C12
+    requirements: [resolve_registry_release-1, X-21, get_code_map-1]
+    tests: ["tests/test_cadsr.py::test_without_a_registry_release_the_export_date_stands_for_it", "tests/test_cadsr.py::test_a_published_registry_release_is_returned", "tests/test_cadsr.py::test_a_published_registry_release_is_asked_for_and_named_with_its_date"]
+    evidence: [acceptance/fixtures/recorded/cadsr/registry-releases.json, acceptance/fixtures/recorded/cadsr-ftp/cde-xml-listing.json, acceptance/fixtures/recorded/cadsr-ftp/cde-xml-readme.json, acceptance/fixtures/scenarios/cadsr/with-registry-release/crdc-list.json]
+    source: https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-6011947240
+    observation: The release route is recorded 404. The export folder names 2026-07-01 22:19 without a timezone while its README says daily updates; matching/forms declare no registryRelease transport. C-1 fixtures are requested future behavior.
+    reproduction: Read the release route and the exact releasedCDEsXML-OD.zip folder row; inspect the matching/form contracts and the crafted pinned getCRDCList request/echo.
+    expected: Publish stable registry identifiers and generation dates; specify pin transport and response verification for every content, form and matching operation, including getCRDCList.
+    impact: Export dates alone cannot support reproducible registry queries; old registry content cannot be addressed.
+    workaround: Preserve the folder's local date unchanged with published=false; unavailable pins fail release_not_available and listed but unaddressable matching/form pins fail capability_unavailable.
+    acceptance: Every supported pin is echoed and verified; an unknown pin fails, an unpinned result is never labelled pinned, and export freshness is stated accurately.
+
+  - id: cadsr-search
+    team: cadsr
+    title: Serve keyword search with named filters and visible caps
+    platform: C-3; OP-C03
+    requirements: [search_data_elements-1, search_data_elements-2]
+    tests: ["tests/test_cadsr.py::test_a_search_s_page_is_the_limit_given", "tests/test_cadsr.py::test_a_search_the_platform_caps_reports_the_cap_and_no_total"]
+    evidence: [acceptance/fixtures/crafted/OP-C03/search-over-cap.json, acceptance/fixtures/recorded/cadsr/data-element-refused.json, docs/evidence/phase-5/benchmark-live.json]
+    source: https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-5966921102
+    observation: Keyword search is requested OP-C03, not a verified served operation; the capped search answer is crafted. The live benchmark returned upstream_unavailable. Context/workflow/registration/value-domain filter parameter names are absent from that requested form.
+    reproduction: Use DataElement/search with keyword and pageSize from the request inventory; compare with public-id lookup. The recorded malformed-id response illustrates the HTTP-200 error convention, not a recording of keyword search.
+    expected: A keyword endpoint with explicit filter names, registryRelease verification, pagination or a machine-readable 1000-result truncation signal.
+    impact: Keyword-based discovery and filtering cannot be relied on live; a capped list cannot be mistaken for a known total.
+    workaround: Public-id or preferred-question-text lookup; propagate search failures with capability guidance, no synthetic answer or alternate-route fallback.
+    acceptance: Positive, no-match, filtered and over-cap queries have distinct correct results; every requested filter is honored or explicitly rejected, and continuation/truncation is truthful.
+
+  - id: cadsr-match-parameters
+    team: cadsr
+    title: Specify matching model and threshold controls
+    platform: C-6; OP-M01
+    requirements: [match_data_elements-1]
+    tests: ["tests/test_cadsr.py::test_what_the_platform_does_not_take_is_an_invalid_request_never_ignored"]
+    evidence: [acceptance/fixtures/recorded/cadsr-contracts/cde-match.json]
+    source: https://github.com/hniedner/nci-si-mcp/issues/42
+    observation: The published matching contract does not take the requested modelVariant and similarityThreshold controls.
+    reproduction: Compare the contract's declared headers/body with those two caller parameters; fixture tests assert rejection, not upstream support.
+    expected: Name supported models, threshold range/meaning and their request fields, or explicitly exclude them from the service contract.
+    impact: Callers cannot tune model choice or threshold consistently across implementations.
+    workaround: Reject both parameters as invalid_request rather than silently ignoring them.
+    acceptance: Supported controls measurably affect the declared result semantics; unsupported values fail explicitly and are never dropped.
+
+  - id: cadsr-access
+    team: cadsr
+    title: Provide access for CDE Match and lists of values
+    platform: C-6; OP-M01; OP-C13
+    requirements: [match_data_elements-1, list_contexts-1, harmonize_data_dictionary-1]
+    tests: ["tests/test_cadsr.py::test_data_element_matches_are_scored_and_rule_attributed_as_the_platform_says", "tests/test_cadsr.py::test_the_contexts_are_the_registry_s_context_names", "tests/test_workflow.py::test_each_column_is_matched_once_and_the_unmatched_are_listed"]
+    evidence: [acceptance/fixtures/recorded/cadsr/cde-match-refused-object.json, acceptance/fixtures/recorded/cadsr/context-names-refused.json, acceptance/fixtures/recorded/cadsr-contracts/cde-match.json, acceptance/fixtures/recorded/cadsr-contracts/lists-of-values.json, docs/evidence/phase-5/benchmark-live.json]
+    source: https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-5966334217
+    observation: Anonymous calls are recorded 401. No credentials have been issued; credentialed fixture answers follow published contracts and are crafted. Live matching and harmonization measurements returned upstream errors.
+    reproduction: Repeat the recorded anonymous requests; after access is provided, re-record with an environment-supplied credential and never write its value to evidence.
+    expected: Issue suite credentials or provide a documented public tier, with a stable access policy.
+    impact: Matching, registry-context enumeration and dictionary harmonization lack live success evidence.
+    workaround: Test the published contracts against crafted fixtures; preserve live errors and label content evidence fixture-only, without fabricating a formal acceptance exception.
+    acceptance: Authorized requests return real identities, scores/rules and contexts that pass the same assertions; unauthorized requests fail explicitly and credentials reach only the intended origin.
+
+  - id: cadsr-match-wire
+    team: cadsr
+    title: Reconcile matching request and sentinel semantics
+    platform: C-6; OP-M01; OP-M02
+    requirements: [match_data_elements-1, match_value_meanings-1]
+    tests: ["tests/test_cadsr.py::test_data_element_matches_are_scored_and_rule_attributed_as_the_platform_says", "tests/test_cadsr.py::test_value_meaning_matches_are_the_platform_s_in_its_order_with_their_rule"]
+    evidence: [acceptance/fixtures/recorded/cadsr/cde-match-refused.json, acceptance/fixtures/recorded/cadsr/cde-match-refused-object.json, acceptance/fixtures/recorded/cadsr-contracts/cde-match.json, acceptance/fixtures/recorded/cadsr/vm-match-male.json]
+    source: https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-6011568485
+    observation: CDE Match's contract declares one object, but the issue reports a successful array request in September; both recorded forms now get 401. vmMatch's published header descriptions conflict with its recorded Restricted/match wire form. Recorded crosswalkCode=NA is interpreted as no crosswalk, pending confirmation.
+    reproduction: With approved access, compare object and array CDE requests; compare vmMatch header descriptions with the recorded Male request and inspect its NA crosswalk fields.
+    expected: Publish one authoritative body/header mapping and declare whether NA is a reserved sentinel or a possible real crosswalk identifier.
+    impact: Consumers otherwise implement incompatible wire forms or expose a sentinel as a real mapping.
+    workaround: CDE uses the published single object; VM uses the approved recorded mapping with no alternate-header fallback; NA yields no crosswalk.
+    acceptance: Contract examples execute successfully, unsupported forms fail explicitly, and a sentinel cannot be confused with a real code system.
+
+  - id: cadsr-match-latency
+    team: cadsr
+    title: Bound common-value matching latency
+    platform: C-6; OP-M02
+    requirements: [X-5, match_value_meanings-1]
+    tests: ["tests/test_cadsr.py::test_matching_slower_than_the_match_timeout_is_a_timeout"]
+    evidence: [acceptance/fixtures/recorded/cadsr/vm-match-male.json, acceptance/request-forms/cadsr.md]
+    source: https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-5968476814
+    observation: The issue reports Unknown timing out with HTTP 504 at 10.6 seconds on 3 October, while Not Applicable and Other, specify completed near two seconds. That timing observation is in the issue, not the Male fixture.
+    reproduction: POST an array containing name=Unknown with Restricted/match, recording status and elapsed time; compare the two successful common values under the same conditions.
+    expected: State the supported matching deadline and resolve common-value queries within it, or provide a defined asynchronous/bounded alternative.
+    impact: A normal data value can fail at the gateway before a useful answer is available.
+    workaround: Use the bounded matching timeout/retry budget and a structured error; do not turn a timeout into an empty match.
+    acceptance: Repeated common-value probes meet the agreed upstream deadline and preserve actual match semantics; timeout tests still fail explicitly.
+
+  - id: cadsr-forms
+    team: cadsr
+    title: Supply a public released form and clarify form lookup
+    platform: OP-C12; C-1
+    requirements: [get_form-1, X-15]
+    tests: ["tests/test_cadsr.py::test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too", "tests/test_cadsr.py::test_an_unknown_form_answered_inside_an_http_200_is_not_found"]
+    evidence: [acceptance/fixtures/recorded/cadsr/form-5406471.json, acceptance/fixtures/recorded/cadsr/form-unknown.json]
+    source: https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-6011947240
+    observation: The known anonymous v2 example is RETIRED ARCHIVED; v1 access and discovery limitations are recorded in the issue. An unknown form is HTTP 200, form=null, type E, indistinguishable from a genuine failure using that exact shape.
+    reproduction: Fetch v2 Form/5406471 and Form/99999999; obtain a released public form identifier or a documented keyword discovery route.
+    expected: Provide a released test form, document Form/query's supported identifiers and optional keyword search, and distinguish absence from internal failure using 404 or a machine-readable absence code.
+    impact: Released-form behavior lacks a public example; identical absence/error shapes cannot be classified perfectly.
+    workaround: Preserve retired status; accept identifiers only; interpret only the approved validated-id HTTP-200/null-form/type-E shape as not_found. Other errors use X-15.
+    acceptance: Released and retired fixtures preserve their real statuses/modules; unknown IDs are distinct from failures, and registry pins follow the C-1 contract before being offered.
+
+  - id: cadsr-errors
+    team: cadsr
+    title: Distinguish invalid input, absence and upstream failure
+    platform: OP-C01; OP-C09; X-15
+    requirements: [X-15]
+    tests: ["tests/test_cadsr.py::test_a_refusal_inside_an_http_200_is_an_invalid_request", "tests/test_cadsr.py::test_html_where_json_was_asked_for_is_an_upstream_error"]
+    evidence: [acceptance/fixtures/recorded/cadsr/data-element-unknown.json, acceptance/fixtures/recorded/cadsr/data-element-refused.json, acceptance/fixtures/recorded/cadsr/data-element-2200604-html.json]
+    source: https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-5969077942
+    observation: Recorded invalid IDs and absence are HTTP 200 with different apiResponse envelopes; missing conceptCode is reported in the issue as an empty type-S success. Without Accept, recorded endpoints answer HTML.
+    reproduction: Use the recorded unknown/malformed ID requests and omit conceptCode on DataElements/Concept?headerOnly=true; compare requests with and without Accept:application/json.
+    expected: Return 400 for missing/invalid arguments, 404 for absence, appropriate failure status otherwise, and a consistent JSON error contract.
+    impact: A caller may confuse a faulty request or server failure with a legitimate empty result.
+    workaround: Validate caller input, explicitly ask for JSON, and classify known masked-error envelopes centrally without parsing arbitrary error prose.
+    acceptance: Valid no-match, invalid input, missing content and outage probes produce distinct structured outcomes; no error becomes an empty success.
+
+  - id: cadsr-discovery
+    team: cadsr
+    title: Complete permissible-value and classification discovery
+    platform: OP-C07; OP-C10; OP-C13; C-11
+    requirements: [get_permissible_value-1, list_contexts-1]
+    tests: ["tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty"]
+    evidence: [acceptance/fixtures/recorded/cadsr/permissible-values.json, acceptance/fixtures/recorded/cadsr/permissible-value-9192925.json, acceptance/fixtures/recorded/cadsr/classification-3685569.json, acceptance/request-forms/cadsr.md]
+    source: https://github.com/hniedner/nci-si-mcp/issues/42
+    observation: Standalone permissible-value paths return 404; values are nested in data elements. Classification filtering is served, but it is not a catalogue of schemes.
+    reproduction: Compare the recorded permissible-value routes with DataElement/2200604 and the classification filter for scheme 3685569 version 1.
+    expected: Document and serve identifier-based permissible-value lookup and an explicit classification-scheme catalogue, with paging and registry identity.
+    impact: Clients cannot discover schemes or resolve a permissible value directly through the published operation inventory.
+    workaround: Return capability_unavailable for unsupported standalone operations; do not invent values from unrequested data or present a filtered list as a catalogue.
+    acceptance: Known/unknown value IDs resolve distinctly and the catalogue enumerates actual scheme identities with bounded continuation and no silent cap.
+
+  - id: cadsr-concept-release
+    team: cadsr
+    title: Name the NCIt release behind concept links
+    platform: OP-C09; C-1
+    requirements: [find_data_elements_for_concept-3, find_data_elements_for_concept-4]
+    tests: ["tests/test_cross_domain.py::test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_states", "tests/test_cross_domain.py::test_a_release_other_than_the_ncit_graph_s_fails_closed"]
+    evidence: [acceptance/fixtures/recorded/cadsr/concept-c17357.json, acceptance/fixtures/recorded/ssis-sparql/graph-identities.json]
+    source: https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-5971715792
+    observation: caDSR REST's concept links do not name their NCIt release; Shared SI's NCIt graph does. The two surfaces have distinct content states and can return different rows.
+    reproduction: Compare concept C17357 on the recorded caDSR REST and Shared SI forms and inspect each identity record; never compare their rows as if they were one snapshot.
+    expected: Name the NCIt release or concept-load state in each link response, alongside the registry state, with a verification contract.
+    impact: A release-pinned cross-domain join cannot safely use caDSR REST alone.
+    workaround: Use Shared SI after verifying both graphs and the requested NCIt version; REST alone fails release_not_available.
+    acceptance: Requested, reported and actual NCIt states agree; a mismatch fails closed and both graph/registry states remain visible.
+
+  - id: ssis-facade
+    team: ssis
+    title: Make façade caps, discovery and failures explicit
+    platform: S-5; OP-S02; X-15
+    requirements: [X-15, find_data_elements_for_concept-5]
+    tests: ["tests/test_cross_domain.py::test_descendants_beyond_the_tool_s_maximum_are_truncated_with_how_much_was_left_out"]
+    evidence: [acceptance/fixtures/recorded/ssis/graph-names.json, acceptance/fixtures/recorded/ssis/graph-names-without-limit.json, acceptance/fixtures/recorded/ssis/data-elements-without-dec.json, acceptance/fixtures/recorded/ssis/data-elements-of-object-class-c25190.json, acceptance/fixtures/recorded/ssis/graph-names-html.json]
+    source: https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-5968943275
+    observation: Recorded responses hide missing-argument errors in HTTP 200 and cap the Person query at 1000. The issue reports 2088 graph rows, missing hierarchy graphs in discovery, resources/graph_name?resource_name=caDSR returning 500, and a listed empty NCIm graph; these latter probes are issue evidence, not fixture assertions.
+    reproduction: Use the linked graph_names and Person requests, compare the graph count, and repeat the issue's resource-name/NCIm probes without interpreting listed graphs as populated.
+    expected: Signal truncation or paginate; list all loaded graphs with their roles; fix/document resource-name lookup; remove or populate empty advertised graphs; use 400 JSON for invalid arguments and default to JSON.
+    impact: Consumers may accept incomplete joins, miss the complete hierarchy, or mistake a bad request for no data.
+    workaround: Use bounded SPARQL with a maximum-plus-one sentinel, explicit graph identities, Accept JSON, validated inputs and central masked-error handling.
+    acceptance: A query above 1000 either pages to the true count or explicitly marks its cap; discovery identifies the complete hierarchy and resource errors are distinct from empty results.
+
+  - id: ssis-inspection
+    team: ssis
+    title: Publish query-inspection rules and protocol errors
+    platform: S-5; X-15
+    requirements: [X-15, find_data_elements_for_concept-1]
+    tests: ["tests/test_cross_domain.py::test_the_data_elements_are_the_concept_s_and_with_expansion_its_descendants_too"]
+    evidence: [acceptance/fixtures/recorded/ssis-sparql/query-refused.json, acceptance/fixtures/recorded/ssis-sparql/graph-identities-direct.json, acceptance/request-forms/ssis.md]
+    source: https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-5968943275
+    observation: Direct SPARQL POST and some plain FILTER regex queries are refused with HTML 403. The issue reports SERVICE and OPTION (TRANSITIVE) refused, while rdfs:subClassOf* works; there is no blanket property-path ban.
+    reproduction: >-
+      Compare recorded form-encoded requests with direct POST and the issue's refused
+      FILTER(regex(str(?p), "date|version|generat|export|created", "i")) probe;
+      use the exact registered query text for regression tests.
+    expected: Publish accepted constructs/transport forms and return a machine-readable SPARQL refusal distinct from an outage.
+    impact: Clients cannot reliably diagnose policy refusal from an HTML error page.
+    workaround: Use approved form-encoded templates and validated identifiers, maximum-plus-one rows, no OPTION (TRANSITIVE), and fail malformed/HTML responses as upstream_unavailable.
+    acceptance: Published supported queries pass, prohibited constructs return a documented structured refusal, and injected identifier delimiters are rejected before any request.
+
+  - id: ssis-identities
+    team: ssis
+    title: Publish typed graph dates and a registry version
+    platform: S-5; C-1
+    requirements: [find_data_elements_for_concept-3, get_release_alignment-1]
+    tests: ["tests/test_cross_domain.py::test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_states", "tests/test_cross_domain.py::test_every_dataset_is_dated_with_the_largest_interval_and_a_warning_above_the_threshold"]
+    evidence: [acceptance/fixtures/recorded/ssis-sparql/graph-identities.json]
+    source: https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-5968943275
+    observation: NCIt has version 26.09d and an untyped September 28, 2026 date; caDSR has untyped 2026-07-01 and no version. Their recorded interval is 89 days, not a claim about current freshness.
+    reproduction: Read both graph identity rows from the linked query, requiring both graphs; inspect datatype and version rather than substituting today's date.
+    expected: Use xsd:date consistently and publish a stable caDSR export/version identifier alongside the NCIt version.
+    impact: Cross-domain provenance is dated but registry reproducibility and automated alignment are weaker than a shared version contract.
+    workaround: Preserve each graph's identity, parse only supported date forms, compare NCIt version at the tool boundary and never manufacture a registry identifier.
+    acceptance: Both graphs return unambiguous identities; missing/duplicate identities fail closed, dates compute the correct interval and mismatched NCIt versions return release_mismatch.

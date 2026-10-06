@@ -5,8 +5,9 @@ from __future__ import annotations
 import json
 from collections.abc import Awaitable, Callable
 from functools import update_wrapper
+from importlib.resources import files
 from inspect import Parameter, Signature
-from typing import Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 from . import __version__
 from .audit import audited, compact, hashed, secrets
@@ -18,6 +19,10 @@ from .invocation import call
 from .registry import SPECS, ToolSpec, invoke
 from .release_selection import SessionRelease, session_scope
 from .results import Untruncated
+
+if TYPE_CHECKING:
+    from mcp.server.auth.provider import TokenVerifier
+    from mcp.server.auth.settings import AuthSettings
 
 INSTRUCTIONS = (
     "NCI Thesaurus (NCIt) lookup and relationship traversal against live NCI EVS, "
@@ -34,14 +39,20 @@ INSTRUCTIONS = (
 )
 
 
-def create_mcp(settings: Settings | None = None, *, context: Context | None = None):
+def create_mcp(
+    settings: Settings | None = None,
+    *,
+    context: Context | None = None,
+    auth: AuthSettings | None = None,
+    token_verifier: TokenVerifier | None = None,
+):
     # Optional dependencies are imported only when building the MCP adapter.
     try:
         from mcp.server.caching import CacheHint
         from mcp.server.mcpserver import MCPServer
         from mcp.server.mcpserver.exceptions import ResourceError
         from mcp.types import CallToolResult, TextContent, ToolAnnotations
-        from pydantic import RootModel, with_config
+        from pydantic import Field, RootModel, with_config
     except ImportError as exc:
         raise RuntimeError(
             "The MCP server needs the 'server' extra, which installs mcp>=2,<3 "
@@ -57,6 +68,8 @@ def create_mcp(settings: Settings | None = None, *, context: Context | None = No
         "nci-si-mcp",
         instructions=INSTRUCTIONS,
         version=__version__,
+        auth=auth,
+        token_verifier=token_verifier,
         cache_hints=dict.fromkeys(
             (
                 "tools/list",
@@ -93,7 +106,10 @@ def create_mcp(settings: Settings | None = None, *, context: Context | None = No
         if spec.name and spec.visible_in(resolved_settings.profile):
             # The SDK wraps a bare union in a synthetic result field. RootModel keeps
             # the existing top-level object and all optional wire fields unchanged.
-            output = Annotated[CallToolResult, RootModel[spec.output]]
+            # Handshake-era MCP requires outputSchema.type=object even for a union.
+            # Every registry arm is an object; retain the union's detailed validation.
+            record = Annotated[spec.output, Field(json_schema_extra={"type": "object"})]
+            output = Annotated[CallToolResult, RootModel[record]]
             fn = _callback(spec, tool_call, output_type=output)
             mcp.add_tool(
                 fn,
@@ -108,7 +124,37 @@ def create_mcp(settings: Settings | None = None, *, context: Context | None = No
 
     for spec in SPECS:
         register(spec)
+    _register_prompts(mcp, resolved_settings.profile)
     return mcp
+
+
+def _register_prompts(mcp: Any, profile: str) -> None:
+    from mcp.server.mcpserver.prompts import Prompt
+    from mcp.server.mcpserver.prompts.base import PromptArgument
+
+    # Packaged without a YAML dependency; test_prompts verifies equality with spec/.
+    templates = json.loads(files("nci_si_mcp").joinpath("data/prompts.json").read_text())
+    tools = {spec.name for spec in SPECS if spec.name and spec.visible_in(profile)}
+    for name, template in templates.items():
+        if set(template["tools"]) <= tools:
+            mcp.add_prompt(
+                Prompt(
+                    name=name,
+                    title=template["title"],
+                    description=template["adds"],
+                    arguments=[PromptArgument(**argument) for argument in template["arguments"]],
+                    fn=_prompt_callback(template),
+                    context_kwarg=None,
+                )
+            )
+
+
+def _prompt_callback(template: dict[str, Any]) -> Callable[..., str]:
+    def render(**arguments: str) -> str:
+        values = {a["name"]: "" for a in template["arguments"] if not a["required"]}
+        return template["template"].format(**(values | arguments))
+
+    return render
 
 
 def _callback(

@@ -1,0 +1,2570 @@
+{
+  "mode": "live",
+  "transport": "stdio",
+  "createdAt": "2026-10-06T21:19:17.526216+00:00",
+  "serverVersion": "0.14.0",
+  "sourceSha256": "9549e8ebb305b40d992696a7ea50598b1d26c965bc0b02ac0bc697a486b7b6e4",
+  "python": "3.14.7",
+  "platform": "macOS-27.2-arm64-arm-64bit-Mach-O",
+  "suite": {
+    "version": "0.14.0",
+    "fixture_set": "ncit_26.09d, recorded 2026-10-06",
+    "digest": "f0daae08a9c336b8aed33572755bf89dd9f5cc6a1e272e31c32ca351ab61ef81"
+  },
+  "repetitions": 20,
+  "conditions": {
+    "cold": "fresh process and data directory per call; startup excluded",
+    "warm": "one process after one excluded priming call; actual attempts report caching",
+    "percentiles": "nearest rank; tool errors included",
+    "resultBytes": "UTF-8 compact structured content, excluding MCP envelope",
+    "index": "none; lexical search; no semantic-quality or production latency claim"
+  },
+  "cases": [
+    {
+      "tool": "get_concept",
+      "arguments": {
+        "code": "C4817",
+        "terminology": "ncit",
+        "release": "26.09d"
+      },
+      "scenario": null,
+      "cold": {
+        "summary": {
+          "calls": 20,
+          "p50Ms": 688.9758330071345,
+          "p95Ms": 1186.3823339808732,
+          "errorRate": 0.0,
+          "meanResultBytes": 428.0,
+          "meanOutboundRequests": 1.0
+        },
+        "samples": [
+          {
+            "elapsedMs": 774.7258340241387,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 723.9325830014423,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 618.8768340507522,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 663.1193340290338,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 621.4900410268456,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 627.9897090280429,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 657.0013749878854,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 677.2107080323622,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 708.7594170589,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 1470.8614168921486,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 1091.6669169673696,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 1174.0229580318555,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 746.7743749730289,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 602.4410419631749,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 776.3483749004081,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 688.9758330071345,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 626.8298749346286,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 616.7707910062745,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 1166.239875019528,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 1186.3823339808732,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          }
+        ]
+      },
+      "warm": {
+        "summary": {
+          "calls": 20,
+          "p50Ms": 668.1897080270573,
+          "p95Ms": 1624.4864170439541,
+          "errorRate": 0.0,
+          "meanResultBytes": 428.0,
+          "meanOutboundRequests": 1.0
+        },
+        "samples": [
+          {
+            "elapsedMs": 798.7529160454869,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 635.109500028193,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 781.2236669706181,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 668.1897080270573,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 738.1810420192778,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 784.3417921103537,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 751.9264579750597,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 588.8247499242425,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 613.3955840487033,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 596.2654169416055,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 602.0297920331359,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 599.7255420079455,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 600.70120904129,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 642.2180839581415,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 672.381249954924,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 533.8302500313148,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 1117.203834000975,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 1781.7517090588808,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 1624.4864170439541,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 1250.8200409356505,
+            "resultBytes": 428,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "tool": "search_concepts",
+      "arguments": {
+        "query": "ewing sarcoma",
+        "mode": "lexical",
+        "limit": 10,
+        "terminology": "ncit",
+        "release": "26.09d"
+      },
+      "scenario": null,
+      "cold": {
+        "summary": {
+          "calls": 20,
+          "p50Ms": 702.2744999267161,
+          "p95Ms": 2026.8720419844612,
+          "errorRate": 0.0,
+          "meanResultBytes": 5393.0,
+          "meanOutboundRequests": 1.0
+        },
+        "samples": [
+          {
+            "elapsedMs": 672.1962500596419,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 669.5534170139581,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 734.6122920280322,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 672.4940829444677,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 673.0673749698326,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 695.9205000894144,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 734.1035410063341,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 711.5565420826897,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 1309.364499989897,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 2026.8720419844612,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 705.0756249809638,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 724.756708019413,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 646.3324159849435,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 745.8673330256715,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 681.9878749083728,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 679.182167048566,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 673.7668750574812,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 702.2744999267161,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 852.847333997488,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 2073.276499984786,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          }
+        ]
+      },
+      "warm": {
+        "summary": {
+          "calls": 20,
+          "p50Ms": 662.0172089897096,
+          "p95Ms": 1250.3019160358235,
+          "errorRate": 0.0,
+          "meanResultBytes": 5393.0,
+          "meanOutboundRequests": 1.0
+        },
+        "samples": [
+          {
+            "elapsedMs": 761.7556670447811,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 681.8005420500413,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 632.6305000111461,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 702.4315000744537,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 637.7793750725687,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 712.0149589609355,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 662.0172089897096,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 742.3482079757378,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 634.6391669940203,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 576.615541940555,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 656.5745830303058,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 617.2074999194592,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 626.5694999601692,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 692.8092909511179,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 700.8457499323413,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 658.9786659460515,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 657.190041965805,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 953.0803749803454,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 2114.519332884811,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          },
+          {
+            "elapsedMs": 1250.3019160358235,
+            "resultBytes": 5393,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": "26.09d",
+              "resolved": [
+                {
+                  "identifier": "26.09d",
+                  "terminology": "ncit"
+                }
+              ],
+              "selected": {
+                "channel": "monthly",
+                "date": null,
+                "terminology": "ncit",
+                "version": "26.09d"
+              },
+              "selection": "explicit"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "tool": "get_data_element",
+      "arguments": {
+        "publicId": "2200604"
+      },
+      "scenario": null,
+      "cold": {
+        "summary": {
+          "calls": 20,
+          "p50Ms": 924.2405000841245,
+          "p95Ms": 11628.548166016117,
+          "errorRate": 0.0,
+          "meanResultBytes": 540.0,
+          "meanOutboundRequests": 1.05
+        },
+        "samples": [
+          {
+            "elapsedMs": 11524.012374924496,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 10973.792750039138,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 12112.82320797909,
+            "resultBytes": 540,
+            "outboundRequests": 2,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 924.2405000841245,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 912.7505840733647,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 929.3729590717703,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 894.4177910452709,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 11259.333874913864,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 936.6342079592869,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 965.9681249177083,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 917.4602089915425,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 11628.548166016117,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 892.9513329640031,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 905.9206250822172,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 835.8774170046672,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 918.7165420735255,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 909.9932920653373,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 10632.495582918637,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 1006.9157079560682,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 876.9438749877736,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "warm": {
+        "summary": {
+          "calls": 20,
+          "p50Ms": 892.0459999935701,
+          "p95Ms": 14243.166625034064,
+          "errorRate": 0.0,
+          "meanResultBytes": 540.0,
+          "meanOutboundRequests": 1.0
+        },
+        "samples": [
+          {
+            "elapsedMs": 892.0459999935701,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 11169.37420796603,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 941.5541670750827,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 850.0469169812277,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 907.755957916379,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 862.7688750857487,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 879.2305829701945,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 877.8249169699848,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 11115.378792048432,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 958.1944579258561,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 837.4297500122339,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 853.9395410334691,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 14243.166625034064,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 961.431207950227,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 874.2980419192463,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 917.1806250233203,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 883.4140420658514,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 796.773917041719,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 14336.914082989097,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          },
+          {
+            "elapsedMs": 973.7364170141518,
+            "resultBytes": 540,
+            "outboundRequests": 1,
+            "responseCode": "ok",
+            "error": false,
+            "release": {
+              "requested": null,
+              "resolved": [
+                {
+                  "registry": "cadsr"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "complete": false,
+  "interrupted": {
+    "tool": "get_form",
+    "reason": "MCP client tools/call timed out before a completion record",
+    "clientTimeoutSeconds": 60,
+    "outboundRequests": null
+  }
+}

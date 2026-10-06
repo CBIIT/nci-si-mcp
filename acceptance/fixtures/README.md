@@ -65,7 +65,9 @@ caDSR's own behaviour is in the ordinary fixtures, with no scenario of its own:
   Match's scores, its rule, marked "Crafted") is invented. A self-test holds each answer to its
   contract: its operation and base path, its answer's definition with no field the definition
   does not name, its request body, and the basic authentication the contract requires. Their
-  tests report PASS (fixture only); with credentials the recorder records the answers instead,
+  content evidence is fixture-only. The current suite does not mark these content tests
+  live-capable, so its combined PASS table is not live verification; see the
+  [validation evidence](../../docs/benchmark.md). With credentials the recorder records the answers instead,
   taking the credential from the operator's environment and writing it into no fixture.
 
 The Shared SI Service's behaviour is in the ordinary fixtures too:
@@ -93,7 +95,8 @@ platform operation it serves (its `OP-` id, from `operations.yaml` of the progra
 conformance suite), whether it is recorded or crafted
 (and for which requirement), and the reason for its form; then each scenario.
 Where EVS does not yet answer the form a requirement prescribes, the ordinary fixture is crafted
-to the requirement and names it, and the live run shows the gap.
+to the requirement and names it. A live run exposes that gap only when the affected test is
+live-capable; otherwise the live report records it as unrun.
 
 Two kinds of request are answered whatever their form:
 

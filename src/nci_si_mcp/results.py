@@ -167,6 +167,9 @@ class Truncated(TypedDict):
     omitted: int
     exact: bool
     perKind: NotRequired[dict[str, Truncation]]
+    perHop: NotRequired[
+        dict[Literal["dataElements", "permissibleValues", "storedValues"], Truncation]
+    ]
 
 
 type Truncation = Untruncated | Truncated
@@ -362,6 +365,42 @@ class StoredValuesResult(TypedDict):
     confidence: StoredValueConfidence
     evidence: StoredValueEvidence
     provenance: NotRequired[Provenance]
+
+
+class GroundedValue(TypedDict):
+    concept: Concept
+    dataElements: list[DataElementUse]
+    permissibleValues: list[ValueUse]
+    storedValues: NotRequired[list[StoredValue]]
+    provenance: Provenance
+    truncation: Truncation
+
+
+class ExcludedCode(TypedDict):
+    code: str
+    terminology: str
+    edge: Edge
+    provenance: TraversalProvenance
+
+
+class Cohort(TypedDict):
+    codes: list[str]
+    excluded: list[ExcludedCode]
+    edges: list[Edge]
+    truncation: Truncation
+    provenance: Provenance
+
+
+class HarmonizedColumn(TypedDict):
+    name: str
+    matches: list[DataElementMatch]
+    permissibleValueAlignment: list[ValueMeaningMatch]
+
+
+class HarmonizedDictionary(TypedDict):
+    columns: list[HarmonizedColumn]
+    unmatched: list[str]
+    provenance: Provenance
 
 
 class DatasetRelease(TypedDict):

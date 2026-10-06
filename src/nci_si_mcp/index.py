@@ -282,6 +282,11 @@ class LocalIndex:
         with self._connect() as conn:
             return self._active_manifest(conn)
 
+    def verify_active(self, provider: EmbeddingProvider) -> IndexManifest:
+        """Open and validate the active search build without embedding or upstream I/O."""
+        with self._connect() as conn:
+            return self._searchable_manifest(conn, provider, None, None)
+
     def list_builds(self) -> list[IndexManifest]:
         """Completed snapshots, including the rollback target and pending activation."""
         with self._connect() as conn:

@@ -206,13 +206,20 @@ success/error results, and reject malformed records. They assert byte-identical 
 across release channels, upstream modes, calls and upstream failure (M1.2), and check rendered
 descriptions for unfinished text and unsupported values against behavior (A2.3, A2.4).
 Profiles select the current inventory: twelve tools for `evs`, ten for `cadsr`, and all
-twenty-two for `unified`. The legacy MCP names and caDSR stub are removed. An input schema states no
+twenty-nine for `unified`, including four cross-domain and three workflow tools. The legacy MCP names and caDSR stub are removed. An input schema states no
 `maximum` for a bounded argument: a value above it is applied as the maximum (the tools'
 `bounds` in `spec/tools.yaml`), and the argument's description states its default and maximum.
 
 ### 3.8 Transport (`platform/transport.py`)
 
 stdio stays. Add the NCI-approved remote transport — streamable HTTP in `mcp>=2.0` — behind the same registry. Authentication and authorisation are hooks on the transport layer with a no-op default; the mechanism is NCI's to approve, and the hook is what lets it be supplied without touching tools.
+
+Implemented in `transport.py`: stateful HTTP retains process-local sessions and needs affinity;
+stateless HTTP resolves implicit releases per call and needs none. A known ID sent to another
+stateful process returns 404. SDK auth/scopes run before dispatch, Host/Origin lists remain
+enabled, and oversized bodies return 413 before parsing. Readiness verifies a supplied active
+index locally. [Transport documentation](transport.md) records the protocol distinction,
+settings, startup requirements and reproducible remote fixture CI gate. Production runbook: #121.
 
 ### 3.9 Audit (`platform/audit.py`)
 
@@ -234,7 +241,8 @@ MCP and registry layers share a request-scoped audit context, preventing duplica
 and concurrent counter leakage. Actual HTTP attempts feed the count through the existing
 instrumentation, preserving optional observers and the independent traversal budget. No
 local rate limiter, persistent audit store, keyed hash or unapproved platform audit header is
-added; consumer/authentication hooks remain #41.
+added; transport authentication hooks are supplied by #40, and consumer audit integration
+and its verification remain #41.
 
 ---
 
@@ -412,11 +420,15 @@ Errors remain 0/private. Specific behaviours:
 
 ## 7. Workflow module
 
-Three composites (the specification's group `workflow`), implemented as orchestrations of the registry's own tools with one `Budget` and one `ReleaseContext` across the chain:
+Three composites (the specification's group `workflow`) reuse the registry tools' content producers with one request `Budget` across the chain. NCIt workflows select one effective `ReleaseContext`; dictionary harmonization resolves one caDSR registry state:
 
 - `ground_value` — fails closed if either content state cannot be named; `registryRelease` optional (unpinned when absent); truncation from each hop carried through (`perHop`).
-- `expand_cohort` — `codes[]` and `excluded[]`; asserted equal to composing `get_concept_neighborhood` + `get_concepts`.
+- `expand_cohort` — `codes[]` and `excluded[]`; asserted equal to child `get_concept_hierarchy` to maxDepth plus the start's depth-one `get_concept_neighborhood`. Only the start's exclusions govern the cohort, and each assertion remains present with includeNegative. maxNodes counts returned codes, including the start.
 - `harmonize_data_dictionary` — one match call per column, batched where the upstream allows; shared registry state.
+
+The four furnished templates in `spec/prompts.yaml` are registered only where every named
+tool is available. Their packaged JSON copy preserves the specified text and arguments,
+checked against the source by tests. Optional omitted arguments substitute empty text.
 
 ---
 

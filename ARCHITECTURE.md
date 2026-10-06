@@ -12,7 +12,7 @@ flowchart LR
 
     subgraph Interfaces["Interface layer"]
         CLI["CLI<br/>cli.py"]
-        MCP["MCP stdio server<br/>server.py"]
+        MCP["MCP stdio / HTTP server<br/>server.py, transport.py"]
     end
 
     subgraph Application["Application layer"]
@@ -85,6 +85,8 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 | `caching.py` | Defines producer-selected hints: explicitly release-pinned content and the static server surface (86,400,000 ms/public), unpinned caDSR content (3,600,000/public), resolution/status (0/public), and implicit NCIt calls, computed matching results or errors (0/private). It contains no data cache. | Python standard library |
 | `bounds.py` | Owns traversal defaults and maxima and the per-call `Budget`. A context variable shares 200 HTTP attempts, including retries, release discovery and split batches, and restores the previous context on exit. The walker rotates kinds across each breadth-first frontier and counts newly admitted nodes against optional per-kind allowances. Neighborhood and CLI traversal preserve partial graphs on exhaustion; without graph content they raise `RequestBudgetError`, mapped to `bound_exceeded`. Hierarchy page replay always fails with `bound_exceeded` on request exhaustion. | Python standard library |
 | `cli.py` | Builds command arguments and dispatch from the registry; owns `serve` startup, reports configuration failures and exits 1 on an error record. | `registry.py`, `server.py` |
+| `container_entry.py` | Starts the same server with externally supplied assets, verifies the index and loads the model offline; startup failures name the asset and error class without library messages. It never builds or activates an index. | `context.py`, `embeddings.py`, `transport.py` |
+| `transport.py` | Stateful or stateless HTTP over the shared adapter; SDK authentication and scope hooks, Host/Origin admission, body cap, local readiness and token-free auth diagnostics. Sessions belong to one process. | `server.py`, optional MCP/Starlette/Uvicorn |
 | `server.py` | Registers profile-selected tools, five resource templates and two concrete resources from the registry on an `mcp` 2.x `MCPServer`, and flags error records as protocol errors. Middleware carries cache decisions from SDK worker threads into tool `_meta` and resource fields, without inspecting content or matching names. Undeclared successful responses fail. SDK hints cover lists/discovery. | `registry.py`, `caching.py`, optional `mcp` package |
 | `registry.py` | Declares each operation once with its handler, output union, optional cache default and adapter exposure. Handlers that own the complete cache policy omit the default. Derives input models, CLI arguments and MCP parameters from handler signatures; selects tools by profile and invokes all producers through one boundary. | `handlers.py`, `invocation.py`, `caching.py`, `results.py` |
 | `context.py` | Holds injectable settings, clients, index and embedding provider shared by a server or CLI invocation. | EVS client, local index, embeddings |
@@ -100,6 +102,7 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 | `cadsr.py` | Injectable caDSR client for data elements, forms, context names, crosswalks, matching and registry metadata. JSON contracts govern API shapes; keyword search is the requested OP-C03 operation, currently unserved. Match POSTs use a separate 45-second transport; only API transports hold Basic auth. Export listing reads are credential-free and parse the exact distribution row without guessing a timezone. Future verified registry pins must be echoed by content responses. | `http_client.py`, `release.py`, `config.py` |
 | `cadsr_content.py` | Eight content/registry tools and their resources: validates selectors and pins, projects upstream element/form/map records, pages retrieved lists with argument-bound cursors, emits per-item provenance and selects the actual cache class. Unsupported capabilities fail explicitly. | `cadsr.py`, `release.py`, `cursor.py`, `caching.py`, `models.py` |
 | `cadsr_matching.py` | Two matching tools validate all inputs before calls, translate documented bodies/headers and preserve upstream order, identity, rules and optional fields. Computed results use 0/private. Missing pin transport fails closed; any entity failure fails the whole call. | `cadsr.py`, `cadsr_content.py`, `caching.py`, `validation.py` |
+| `workflows.py` | Ground values through independently bounded hops, expand cohorts from child hierarchy and root exclusions, and harmonize dictionary columns under one registry state. Each chain shares a request budget and effective content states; the fine-grained producers supply the content. | `content.py`, `seam.py`, `cadsr_matching.py`, `bounds.py` |
 | `ssis.py` | Shared SI façade and bounded SPARQL client. Fixed templates accept validated identifiers; content queries retain one sentinel row. Both graphs' actual dates and optional versions are returned unchanged. Empty content lists succeed; identity reads require exactly both graphs. Malformed responses and HTTP rejections fail without claiming an unverified cause. | `http_client.py`, `config.py`, `validation.py` |
 | `seam.py` | Four cross-domain handlers: graph-verified uses with one combined page/cap, latest-version exact permissible-value resolution, literal GDC/CRDC stored values, and four-dataset release alignment. Reuses call/session selection, budgets and content projection; never invents registry releases or stored values. | `ssis.py`, `evs.py`, `cadsr_content.py`, `content.py`, `cursor.py` |
 | `fhir.py` | Reads and verifies the unpinned NCIt value-set expansion, projects members and applies inactive filtering and local offset paging. | `http_client.py`, release, shared models |
@@ -382,7 +385,10 @@ MCP resources:
 - `ncit://index/manifest/{release}`
 
 The `evs` profile exposes twelve EVS tools; `cadsr` exposes ten caDSR tools;
-`unified` exposes both. caDSR data-element resources (latest or named item version) and the
+`unified` exposes both plus four cross-domain and three workflow tools (29 total), and four
+furnished prompts. Prompt templates are packaged in `data/prompts.json`, with a test requiring
+exact equality with `spec/prompts.yaml`; only profiles containing every named tool expose them.
+caDSR data-element resources (latest or named item version) and the
 concrete registry-state resource carry unpinned provenance and a short public cache hint.
 Each tool has group metadata and read-only, idempotent,
 non-destructive, open-world annotations. EVS resources are available in `evs` and `unified`
@@ -517,3 +523,7 @@ a successful empty history or a row naming no replacement yields `replacements: 
 Replacement codes and names remain unchanged. Their provenance names the history request
 and its pinned release, without inventing the version compact rows do not carry. Any
 optional upstream terminology/version is validated, and supplied licence text passes through.
+HTTP uses the same adapter and registry as stdio. SDK sessions and their implicit NCIt pins
+belong to one process: stateful replicas require affinity, while stateless requests resolve
+omitted releases per call. [Transport details](docs/transport.md) cover reconnection, health,
+readiness and authentication injection.

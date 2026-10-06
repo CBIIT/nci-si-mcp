@@ -92,6 +92,13 @@ repos:
       # -----------------------------------------------------------------------
       # 4. Project gates
       # -----------------------------------------------------------------------
+      - id: upstream-requirements
+        name: upstream requirements packages are current
+        entry: pdm run python scripts/upstream_requirements.py --check
+        language: system
+        pass_filenames: false
+        always_run: true
+
       - id: complexity
         name: cyclomatic complexity below 8
         entry: pdm run python scripts/validation/check_complexity.py
