@@ -108,15 +108,55 @@ class SSISClientTest(ServerTestCase):
                 "version": {"type": "literal", "value": "2.9"},
                 "value": {"type": "literal", "value": "Male"},
             },
+            {
+                "version": {"type": "literal", "value": "2.8"},
+                "value": {"type": "literal", "value": ""},
+                "concept": {"type": "uri", "value": "http://example.test/C1"},
+                "role": {"type": "uri", "value": CADSR_GRAPH + "#main_concept"},
+            },
         ]
         server = self.serve(sparql_reply(rows))
         result = self.ssis(server).get_permissible_values("123")
-        self.assertEqual(result, [{"version": "2.10"}, {"version": "2.9", "value": "Male"}])
+        self.assertEqual(
+            result,
+            [{key: term["value"] for key, term in row.items()} for row in rows],
+        )
         query = parse_qs(server.bodies[0].decode())["query"][0]
         self.assertEqual(query.count("OPTIONAL"), 2)
         self.assertIn("VALUES ?role { cadsr:main_concept }", query)
         self.assertNotIn("minor_concept", query)
         self.assertTrue(query.endswith("LIMIT 1001"))
+
+    def test_value_query_rejects_inconsistent_optional_bindings(self):
+        terms = {
+            "value": {"type": "literal", "value": "Male"},
+            "concept": {"type": "uri", "value": "http://example.test/C1"},
+            "role": {"type": "uri", "value": CADSR_GRAPH + "#main_concept"},
+        }
+        for keys in (
+            ("concept",),
+            ("role",),
+            ("concept", "role"),
+            ("value", "concept"),
+            ("value", "role"),
+        ):
+            with self.subTest(keys=keys):
+                row = {"version": {"type": "literal", "value": "2.10"}}
+                row.update({key: terms[key] for key in keys})
+                with self.assertRaises(PlatformError) as raised:
+                    self.ssis(self.serve(sparql_reply([row]))).get_permissible_values("123")
+                self.assertEqual(raised.exception.code, "upstream_unavailable")
+
+    def test_value_query_rejects_a_role_other_than_main_concept(self):
+        row = {
+            "version": {"type": "literal", "value": "2.10"},
+            "value": {"type": "literal", "value": "Male"},
+            "concept": {"type": "uri", "value": "http://example.test/C1"},
+            "role": {"type": "uri", "value": CADSR_GRAPH + "#minor_concept"},
+        }
+        with self.assertRaises(PlatformError) as raised:
+            self.ssis(self.serve(sparql_reply([row]))).get_permissible_values("123")
+        self.assertEqual(raised.exception.code, "upstream_unavailable")
 
     def test_maximum_plus_one_retains_the_sentinel_and_rejects_an_unbounded_answer(self):
         fixture = recording("ssis-sparql/data-elements-c17357.json")

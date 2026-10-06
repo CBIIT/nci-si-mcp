@@ -17,7 +17,7 @@ from .context import Context
 from .errors import InputValidationError, PlatformError, call_correlation_id
 from .evs import verify_release
 from .models import ProvenanceEnvelope, Truncation, release_ref, utc_now_iso
-from .release import ReleaseContext, served_evs_release
+from .release import ReleaseContext, resolve_evs_release, served_evs_release
 from .release_selection import implicit_selection, select
 from .ssis import NCIT_GRAPH, GraphIdentity
 from .validation import CrossDomainTerminology, bounded, validate_identifier
@@ -551,7 +551,8 @@ def _dataset(
 
 
 def _alignment_datasets(context: Context) -> list[dict[str, Any]]:
-    selected = _selected(context, None)
+    # Status discovery stays fresh and does not establish or replace a content pin.
+    selected = resolve_evs_release(context.evs, "ncit", context.settings.release_channel)
     provenance = ProvenanceEnvelope(
         release=release_ref("ncit", selected.version, selected.date),
         source="evs_rest",
@@ -559,17 +560,28 @@ def _alignment_datasets(context: Context) -> list[dict[str, Any]]:
         retrieved_at=utc_now_iso(),
         correlation_id=call_correlation_id(),
         source_uri=context.evs.uri("/api/v1/metadata/terminologies"),
+        upstream={
+            "terminology": selected.terminology,
+            "version": selected.version,
+            "date": selected.date,
+        },
     ).to_dict()
     datasets = [_dataset("ncit", selected.date, selected.version, provenance)]
     graphs = context.ssis.get_graph_identities()
     graph_provenance = _provenance(context, selected, graphs)
     for row in graphs:
         name = "ssis_ncit_graph" if row["graph"] == NCIT_GRAPH else "ssis_cadsr_graph"
-        graph_release = (
-            release_ref("ncit", row["version"], _date(row["date"]))
-            if "version" in row and row["graph"] == NCIT_GRAPH
-            else {"registry": "cadsr"}
-        )
+        version = row.get("version")
+        if row["graph"] == NCIT_GRAPH:
+            if version is None:
+                raise PlatformError(
+                    "release_not_available",
+                    "Shared SI has no NCIt release identity. Ask the provider to publish it.",
+                    source=NCIT_GRAPH,
+                )
+            graph_release = release_ref("ncit", version, _date(row["date"]))
+        else:
+            graph_release = {"registry": "cadsr"}
         datasets.append(
             _dataset(
                 name, row["date"], row.get("version"), graph_provenance | {"release": graph_release}

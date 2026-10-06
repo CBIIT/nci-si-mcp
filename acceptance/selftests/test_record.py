@@ -171,6 +171,46 @@ def test_a_derived_fixture_needs_its_recording():
         Recorder(section, upstream(), "2026-10-02").record(plan(section))
 
 
+def test_a_derived_post_preserves_the_prescribed_form_and_headers_with_recorded_answer():
+    entry = {
+        "fixture": "crafted/ssis-sparql/bounded.json",
+        "from": "recorded/ssis-sparql/identities.json",
+        "path": "/sparql",
+        "method": "POST",
+        "headers": {"Accept": "application/sparql-results+json"},
+        "form": {"query": "SELECT ?version WHERE { ?graph ?predicate ?version } LIMIT 3"},
+        "requirement": "self-test",
+    }
+    section = manifest(derived=[entry])
+    section["record"]["requests"].append(
+        {
+            "fixture": entry["from"],
+            "surface": "ssis-sparql",
+            "method": "POST",
+            "path": "/sparql",
+            "headers": entry["headers"],
+            "form": {"query": "SELECT ?version WHERE { ?graph ?predicate ?version }"},
+        }
+    )
+    live = upstream({("ssis-sparql", "/sparql", ""): (200, {"results": {"bindings": []}})})
+
+    documents = Recorder(section, live, "2026-10-02").record(plan(section))
+
+    assert documents[entry["fixture"]] == {
+        "kind": "crafted",
+        "requirement": "self-test",
+        "derived_from": entry["from"],
+        "request": {
+            "surface": "ssis-sparql",
+            "method": "POST",
+            "path": "/sparql",
+            "headers": entry["headers"],
+            "form": entry["form"],
+        },
+        "response": documents[entry["from"]]["response"],
+    }
+
+
 def test_nothing_is_recorded_against_another_release_than_the_pinned_one():
     live = upstream({RELEASE_QUERY: (200, [{"terminologyVersion": "ncit_26.10d"}])})
 

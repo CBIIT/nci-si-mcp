@@ -5,12 +5,13 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from fakes import FakeEVS, FakeSSIS, concept
+from fakes import FakeEVS, FakeSSIS, concept, release
 from nci_si_mcp.caching import cache_call
 from nci_si_mcp.config import Settings
 from nci_si_mcp.context import Context
 from nci_si_mcp.evs import EVSClient
 from nci_si_mcp.registry import invoke
+from nci_si_mcp.release_selection import SessionRelease, session_scope
 from nci_si_mcp.ssis import CADSR_GRAPH, NCIT_GRAPH
 
 NCIT = "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#"
@@ -22,6 +23,18 @@ def element(identifier, version="1"):
 
 def value_row(value="Male", code="C1", version="1"):
     return {"version": version, "value": value} | ({"concept": NCIT + code} if code else {})
+
+
+def gdc_map(code="C1", version="26.06e"):
+    return {
+        "mapsetCode": "NCIt_Maps_To_GDC",
+        "source": "ncit",
+        "target": "GDC",
+        "sourceCode": code,
+        "sourceTerminologyVersion": version,
+        "targetCode": "diagnosis",
+        "targetName": f"Stored {code}",
+    }
 
 
 class SeamTest(unittest.TestCase):
@@ -150,6 +163,28 @@ class SeamTest(unittest.TestCase):
         )
         self.assertNotIn("nextCursor", result)
         self.assertFalse(any(call[0] == "values" for call in self.ssis.calls))
+
+    def test_value_pages_cross_the_join_boundary_then_continue_without_duplicates(self):
+        self.ssis.elements = [element(123)]
+        self.ssis.values = [
+            {"id": "123", "version": "1", "value": label, "concept": NCIT + "C1"}
+            for label in ("A", "B", "C", "D")
+        ]
+        arguments = {"conceptCode": "C1", "includePermissibleValues": True, "limit": 2}
+        first = self.call(**arguments)
+        second = self.call(**arguments, cursor=first["nextCursor"])
+        third = self.call(**arguments, cursor=second["nextCursor"])
+        pages = (first, second, third)
+        self.assertEqual(
+            [[row["dataElement"]["publicId"] for row in page["dataElements"]] for page in pages],
+            [["123"], [], []],
+        )
+        self.assertEqual(
+            [[row["value"] for row in page["permissibleValues"]] for page in pages],
+            [["A"], ["B", "C"], ["D"]],
+        )
+        self.assertNotIn("nextCursor", third)
+        self.assertTrue(all(page["truncation"] == {"occurred": False} for page in pages))
 
     def test_value_query_uses_only_the_remaining_cap_and_retains_its_sentinel(self):
         self.ssis.elements = [element(i) for i in range(1, 1000)]
@@ -342,6 +377,78 @@ class SeamTest(unittest.TestCase):
         self.assertEqual(result["error"]["code"], "upstream_unavailable")
         self.assertEqual(result["error"]["details"]["surface"], "evs")
 
+    def test_gdc_reads_later_pages_before_filtering_and_counting_exact_matches(self):
+        self.context.evs = EVSClient("https://evs.test")
+        pages = [
+            {"total": 11, "maps": [gdc_map(f"C1{i}") for i in range(10)]},
+            {"total": 11, "maps": [gdc_map()]},
+        ]
+        with patch.object(
+            self.context.evs,
+            "_get_existing",
+            side_effect=[
+                self.evs.get_terminologies(),
+                {"code": "NCIt_Maps_To_GDC", "version": "26.06e"},
+                *pages,
+            ],
+        ) as get:
+            result = self.call(
+                "resolve_stored_value", conceptCode="C1", commons="GDC", release="26.06e"
+            )
+        self.assertEqual([row["value"] for row in result["storedValues"]], ["Stored C1"])
+        self.assertEqual(result["evidence"]["coverage"], 1)
+        self.assertEqual([call.args[1]["fromRecord"] for call in get.call_args_list[-2:]], [0, 10])
+
+    def test_gdc_changing_totals_and_over_bound_results_fail_without_partial_success(self):
+        first_page = [gdc_map() for _ in range(10)]
+        cases = (
+            (
+                [{"total": 11, "maps": first_page}, {"total": 12, "maps": [gdc_map()] * 2}],
+                "upstream_unavailable",
+            ),
+            ([{"total": 1001, "maps": first_page}], "bound_exceeded"),
+        )
+        self.context.evs = EVSClient("https://evs.test")
+        for pages, expected in cases:
+            with (
+                self.subTest(expected=expected),
+                patch.object(
+                    self.context.evs,
+                    "_get_existing",
+                    side_effect=[
+                        self.evs.get_terminologies(),
+                        {"code": "NCIt_Maps_To_GDC", "version": "26.06e"},
+                        *pages,
+                    ],
+                ),
+            ):
+                result = self.call(
+                    "resolve_stored_value", conceptCode="C1", commons="GDC", release="26.06e"
+                )
+                self.assertEqual(result["error"]["code"], expected)
+                self.assertNotIn("storedValues", result)
+
+    def test_gdc_individual_maps_must_name_the_requested_release(self):
+        self.context.evs = EVSClient("https://evs.test")
+        for version in ("26.05d", None):
+            with (
+                self.subTest(version=version),
+                patch.object(
+                    self.context.evs,
+                    "_get_existing",
+                    side_effect=[
+                        self.evs.get_terminologies(),
+                        {"code": "NCIt_Maps_To_GDC", "version": "26.06e"},
+                        {"total": 1, "maps": [gdc_map(version=version)]},
+                    ],
+                ),
+            ):
+                result = self.call(
+                    "resolve_stored_value", conceptCode="C1", commons="GDC", release="26.06e"
+                )
+                self.assertEqual(result["error"]["code"], "release_mismatch")
+                self.assertEqual(result["error"]["details"]["served"], [version or "unknown"])
+
     def test_gdc_checks_mapset_release_before_requesting_maps(self):
         self.context.evs = EVSClient("https://evs.test")
         with patch.object(
@@ -439,3 +546,46 @@ class SeamTest(unittest.TestCase):
                 )
                 self.assertNotIn("version", datasets["cadsr_export"])
                 self.assertEqual(datasets["cadsr_export"]["date"], "2026-06-05")
+
+    def test_alignment_reads_current_evs_without_using_or_changing_a_session_pin(self):
+        held = release("25.01d", "2025-01-27")
+        state = SessionRelease(selected=held)
+        listing = '<pre><a href="releasedCDEsXML-OD.zip">export</a> 2026-06-05 12:30\n</pre>'
+        with (
+            session_scope(state),
+            patch.object(self.context.cadsr.export_http, "get_text", return_value=listing),
+        ):
+            result = self.call("get_release_alignment")
+        ncit = next(row for row in result["datasets"] if row["name"] == "ncit")
+        self.assertEqual((ncit["version"], ncit["date"]), ("26.06e", "2026-06-29"))
+        self.assertEqual(state.selected, held)
+
+    def test_alignment_does_not_select_the_first_implicit_session_content_release(self):
+        state = SessionRelease()
+        listing = '<pre><a href="releasedCDEsXML-OD.zip">export</a> 2026-06-05 12:30\n</pre>'
+        with (
+            session_scope(state),
+            patch.object(self.context.cadsr.export_http, "get_text", return_value=listing),
+        ):
+            result = self.call("get_release_alignment")
+        self.assertEqual(result["datasets"][0]["version"], "26.06e")
+        self.assertIsNone(state.selected)
+
+    def test_alignment_preserves_the_evs_identity_as_upstream_evidence(self):
+        listing = '<pre><a href="releasedCDEsXML-OD.zip">export</a> 2026-06-05 12:30\n</pre>'
+        with patch.object(self.context.cadsr.export_http, "get_text", return_value=listing):
+            result = self.call("get_release_alignment")
+        ncit = next(row for row in result["datasets"] if row["name"] == "ncit")
+        upstream = ncit["provenance"]["upstream"]
+        self.assertEqual(
+            (upstream["terminology"], upstream["version"], upstream["date"]),
+            ("ncit", "26.06e", "2026-06-29"),
+        )
+
+    def test_alignment_missing_ncit_graph_version_never_becomes_a_registry_identity(self):
+        del self.ssis.graphs[0]["version"]
+        listing = '<pre><a href="releasedCDEsXML-OD.zip">export</a> 2026-06-05 12:30\n</pre>'
+        with patch.object(self.context.cadsr.export_http, "get_text", return_value=listing):
+            result = self.call("get_release_alignment")
+        self.assertEqual(result["error"]["code"], "release_not_available")
+        self.assertEqual(result["error"]["details"]["source"], NCIT_GRAPH)

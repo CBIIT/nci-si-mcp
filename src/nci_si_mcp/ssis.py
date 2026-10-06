@@ -108,6 +108,16 @@ def _binding(row: dict[str, Any], required: tuple[str, ...]) -> dict[str, str]:
     return {key: _term(value) for key, value in row.items()}
 
 
+def _value_binding(row: dict[str, str]) -> dict[str, str]:
+    # The nested OPTIONAL groups bind a value before its main concept and role.
+    fields = row.keys() & {"value", "concept", "role"}
+    if fields not in (set(), {"value"}, {"value", "concept", "role"}):
+        raise _malformed()
+    if "role" in row and row["role"] != CADSR_GRAPH + "#main_concept":
+        raise _malformed()
+    return row
+
+
 def _concept_clause(code: str, expand: bool) -> str:
     validate_identifier(code, r"C[0-9]+", "conceptCode")
     if type(expand) is not bool:
@@ -245,4 +255,4 @@ WHERE {{
 }}
 ORDER BY ?version ?value ?role ?concept
 LIMIT {maximum + 1}"""
-        return self._query(query, ("version",), maximum + 1)
+        return [_value_binding(row) for row in self._query(query, ("version",), maximum + 1)]
