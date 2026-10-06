@@ -40,8 +40,7 @@ def _form_absence(public_id: str, payload: bytes, status: int | None) -> None:
         raise PlatformError(
             "not_found",
             "No form has that public id and version. Check the identifier or version.",
-            identifier=public_id,
-            source="cadsr",
+            identifiers=[public_id],
         )
 
 
@@ -154,8 +153,8 @@ def _verify_registry_pin(response: Any, requested: str | None) -> None:
             "release_mismatch",
             "caDSR did not confirm the requested registry release. "
             "Retry after the platform fixes its pinning.",
-            expected=requested,
-            actual=actual,
+            requested=requested,
+            served=[actual] if isinstance(actual, str) and actual else [],
             source="cadsr",
         )
 

@@ -172,6 +172,24 @@ class CaDSRProtocolTest(ServerFixture):
         self.assertEqual((result.meta["ttlMs"], result.meta["cacheScope"]), (86_400_000, "public"))
         self.assertEqual(result.structured_content["provenance"]["release"]["identifier"], "known")
 
+    def test_registry_resource_names_only_a_published_release_in_its_provenance(self, _):
+        for identifier in (None, "known"):
+            state = RegistryState(identifier, "2026-07-01T22:19", "distribution")
+            with (
+                self.subTest(identifier=identifier),
+                patch.object(self.context.cadsr, "resolve_registry_release", return_value=state),
+            ):
+                resource = self.session(
+                    lambda client: client.read_resource("cadsr://registry/release")
+                )
+                result = json.loads(resource.contents[0].text)
+                expected = {"registry": "cadsr"}
+                if identifier is not None:
+                    expected |= {"identifier": identifier, "date": state.generated_at}
+                self.assertEqual(result["provenance"]["release"], expected)
+                self.assertEqual(result["published"], identifier is not None)
+                self.assertEqual(resource.ttl_ms, 3_600_000)
+
     def test_invalid_and_unavailable_calls_are_uncached_private_protocol_errors(self, _):
         for tool, arguments, code in (
             ("get_data_element", {"publicId": 123}, "invalid_request"),

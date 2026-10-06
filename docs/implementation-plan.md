@@ -170,13 +170,13 @@ Implemented in `bounds.py`: the traversal handler creates one `Budget`, includin
 
 ### 3.6 Caching hints (`platform/caching.py`)
 
-The values are the specification's M2.2 and M2.3 (`spec/conventions.yaml`): release-pinned content 86,400,000 and public; governed content no release pins (caDSR content while caDSR publishes no registry release) short and positive, at most 3,600,000, public; results computed from caller-supplied values 0 and private; the resolve tools 0 and public; `tools/list` long and public.
+The values are the specification's M2.2 and M2.3 (`spec/conventions.yaml`): explicitly release-pinned content 86,400,000 and public; implicit NCIt calls 0 and private; governed content no release pins (caDSR content while caDSR publishes no registry release) short and positive, at most 3,600,000, public; results computed from caller-supplied values 0 and private; the resolve tools 0 and public; `tools/list` long and public.
 
-A tool result carries both in its `_meta` (M2.5). A cursor encodes the release it was issued against; presenting it after that release is superseded returns `cursor_expired` (M2.4).
+A tool result carries both in its `_meta` (M2.5). A cursor binds the effective release. Explicit-release cursors continue while EVS serves that release; withdrawal expires them. An implicit session pin instead fails with `release_not_available` and asks for a new session or a named release, without rediscovery (X-22). Replacing an active index build expires its cursors even at the same release.
 
-Implemented for current producers in `caching.py` and the MCP adapter: pinned content and
+Implemented for current producers in `caching.py` and the MCP adapter: explicitly pinned content and
 the list/discovery surface use 86,400,000/public, resolution/status uses 0/public, and tool
-errors use 0/private. List, discovery and resource-read hints are protocol result fields;
+errors and implicit NCIt calls use 0/private. List, discovery and resource-read hints are protocol result fields;
 tool hints are protocol `_meta`, preserving other metadata. All EVS resource URIs are
 release-pinned and use the content policy. Missing indexes and mismatched releases are
 protocol errors, not status content. CLI release reports remain status results.
@@ -342,23 +342,24 @@ only those needed by this phase are implemented, and requested upstream operatio
 |---|---|---|
 | data element by public id | `GET /rad/NCIAPI/1.0/api/DataElement/{id}` | `version` is the **item's** version, exposed as such |
 | data elements by concept | `GET /rad/NCIAPI/1.0/api/DataElements/Concept?conceptCode=&headerOnly=true` | single concept only; 9.7–20 s measured — tool declares a 30 s timeout |
-| CRDC crosswalk | `GET …/DataElements/getCRDCList` | unparameterised; cached per export date |
+| CRDC crosswalk | `GET …/DataElements/getCRDCList` | filters and paging apply locally; short public hint when unpinned, with no export date on content provenance or server-side cache |
 | data element search | `GET …/DataElement/search?keyword={q}&pageSize={n}` | **Requested OP-C03, not served today (C-3).** Tested against crafted OP-C03 fixtures; no filter parameters, fallback route or synthetic result. A verified future C-1 registry pin is sent as `registryRelease`, as on every content request. The live type-E answer stays `upstream_unavailable` with fixed per-tool guidance: retrying cannot add keyword search; use data-element lookup by public id or question text. The 1,000 cap belongs to the documented filtered list paths, not a served search. |
 | contexts, item types, workflow statuses | `GET /rad/NCILovAPI/1.0/api/getContextNames` etc. | enumerations; definitions are absent upstream and the result says so |
 | classification schemes | from the data-element payload's `ClassificationSchemes[]` with nested items | first-class objects |
 | forms | `GET /rad/NCIFormAPI.v2_0:NciFormApiRad/Form/{publicId}` and `/Form/query` | keyword search requires `publicId` or `protocolId` upstream; a keyword-only request is `invalid_request` with that stated |
-| models and crosswalk mappings | `GET /rad/NCIModelAPI/1.0/api/Models`, `/CrossWalkMappings/Download` | feed `get_code_map` |
+| models and crosswalk mappings | `GET /rad/NCIModelAPI/1.0/api/Models`, `/CrossWalkMappings/Download` | client operations only; `get_code_map` uses the CRDC list, with no Model API fanout |
 | CDE Match | `POST /rad/NCIAPI.v2_0.cdeMatch.api:cdeMatch_rad/cdeMatch` | built from the **JSON** contract, not the documentation page (which declares a dev host); 28.9 s measured — 45 s timeout, structured timeout error |
 | VM Match | `POST /rad/vmMatch/v1/vmMatch` | 15.5 s measured; same handling |
 | export date | `GET https://cadsr.nci.nih.gov/ftp/caDSR_Downloads/CDE/XML/` | Exact `releasedCDEsXML-OD.zip` link row → local ISO date-time, minute precision, no offset; no HEAD fallback |
 
 Matching credentials stay server-side. CDE Match sends one `apiinput` object per entity, never an array fallback; transport retries repeat the identical request. VM Match sends the contract array with `matchType`, `function` and optional `evsTerminologyCodes` headers. A 401 propagates explicitly. CDE Match and LOV now refuse anonymous calls in the recorded evidence; this is not a claim that either operation is public. The #35 Form-by-ID interpretation of the recorded unknown-form envelope is specified below; it never matches message text or alters other operations.
 
-### 5.2 Tools (`cadsr_content.py`)
+### 5.2 Tools (`cadsr_content.py`, `cadsr_matching.py`)
 
-Ten planned tools, signatures in the specification (group `cadsr`). The five lookup and
-registry tools are implemented in the flat package through the shared registry, along with
-data-element and registry resources. Matching and forms/crosswalks follow in #34/#35.
+All ten caDSR tools are registered through the shared registry, alongside data-element,
+registry-state and CRDC crosswalk resources. Unsupported platform capabilities return explicit
+errors; they never substitute empty or fabricated content. Signatures are in the specification
+(group `cadsr`).
 
 Content requests without `registryRelease` carry none and have provenance `{registry: cadsr}`.
 For a requested pin, discovery must list exactly one matching identifier with a valid date;

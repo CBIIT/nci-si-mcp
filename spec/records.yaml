@@ -817,12 +817,12 @@ error:
       identifiers: The list of identifiers that were not found
     release_not_available:
       requested: The release, or the channel, that was asked for
-      source: Where the release could not be named, evs or index
+      source: Where the release could not be named, evs, cadsr or index
       found: The releases the channel's query named, where it named more than one (A3.6.3)
     release_mismatch:
       requested: The release that was asked for
       served: The list of releases the content came from, one element where it is a single release
-      source: Where the content came from, evs or index
+      source: Where the content came from, evs, cadsr or index
     upstream_unavailable:
       surface: The platform that failed, such as evs
       status: The HTTP status of the last failed request, where there was one

@@ -9,7 +9,7 @@ from unittest.mock import patch
 import httpx2
 from mcp.client import Client
 
-from fakes import release, terminology_row
+from fakes import concept, release, terminology_row
 from nci_si_mcp.bounds import Budget
 from nci_si_mcp.evs import EVSClient, EVSReleaseNotFoundError
 from nci_si_mcp.registry import invoke
@@ -91,6 +91,46 @@ class ReleaseSelectionTest(ServerFixture):
             self.evs.concepts["C3262"]["version"] = "26.07d"
             self.assertEqual(version(self.get()), "26.07d")
         self.assertEqual(sum(c[0] == "get_terminologies" for c in self.evs.calls), 1)
+
+    def test_withdrawn_implicit_cursors_keep_the_session_pin_without_rediscovery(self):
+        self.evs.concepts = {
+            "C1": concept("C1", active=True, children=[{"code": "C2"}, {"code": "C3"}]),
+            "C2": concept("C2", active=True),
+            "C3": concept("C3", active=True),
+        }
+        for operation, arguments, method in (
+            ("search_concepts", {"query": "Q", "mode": "lexical"}, "search_concepts"),
+            (
+                "get_concept_hierarchy",
+                {"code": "C1", "direction": "child"},
+                "get_concepts_by_codes",
+            ),
+        ):
+            self.evs.calls.clear()
+            self.evs.release = release()
+            with (
+                self.subTest(operation=operation),
+                session_scope(SessionRelease()),
+                patch.object(
+                    self.evs,
+                    "search_concepts",
+                    create=True,
+                    return_value=(2, [concept("C1", active=True)]),
+                ),
+            ):
+                args = {"terminology": "ncit", "limit": 1} | arguments
+                first = invoke(self.context, operation, **args)
+                self.evs.release = release("26.07d")
+                with patch.object(
+                    self.evs, method, side_effect=EVSReleaseNotFoundError("withdrawn")
+                ):
+                    result = invoke(self.context, operation, **args, cursor=first["nextCursor"])
+                self.assertEqual(result["error"]["code"], "release_not_available")
+                self.assertEqual(result["error"]["details"]["requested"], "26.06e")
+                self.assertIn(
+                    "start a new session or name a release", result["error"]["message"].lower()
+                )
+                self.assertEqual(sum(c[0] == "get_terminologies" for c in self.evs.calls), 1)
 
     def test_weekly_configuration_drives_implicit_discovery(self):
         self.context.settings = replace(self.settings, release_channel="weekly")

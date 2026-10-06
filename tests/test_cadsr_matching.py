@@ -223,6 +223,40 @@ class MatchingTest(ServerTestCase):
         self.assertEqual(match["item"]["workflowStatus"], "RETIRED ARCHIVED")
         self.assertNotIn("registrationStatus", match["item"])
 
+    def test_matching_preserves_finite_integer_scores_without_float_conversion(self):
+        score = 10**400
+        for operation, args, response in (
+            (
+                "match_data_elements",
+                {"entities": [{"name": "Q"}]},
+                cde_response(matches=[cde_row(score=score)]),
+            ),
+            ("match_value_meanings", {"values": ["Q"]}, vm_response(matches=[vm_row(score=score)])),
+        ):
+            with self.subTest(operation=operation):
+                result = self.call(self.serve(reply(response)), operation, **args)
+                self.assertEqual(result["matches"][0]["score"], score)
+
+    def test_nonfinite_scores_fail_the_whole_matching_result(self):
+        for score in (float("nan"), float("inf"), float("-inf")):
+            for operation, args, response in (
+                (
+                    "match_data_elements",
+                    {"entities": [{"name": "Q"}]},
+                    cde_response(matches=[cde_row(), cde_row(score=score)]),
+                ),
+                (
+                    "match_value_meanings",
+                    {"values": ["Q"]},
+                    vm_response(matches=[vm_row(), vm_row(score=score)]),
+                ),
+            ):
+                with self.subTest(operation=operation, score=score):
+                    result = self.call(self.serve(reply(response)), operation, **args)
+                    self.assertIn("error", result)
+                    self.assertEqual(result["error"]["code"], "upstream_unavailable")
+                    self.assertNotIn("matches", result)
+
     def test_vm_absent_concepts_scores_and_na_crosswalks_remain_absent(self):
         rows = [vm_row(), vm_row(itemType="ValueMeaning", concept=None, evsSource=None)]
         server = self.serve(reply(vm_response(matches=rows)))

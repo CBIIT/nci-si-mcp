@@ -119,9 +119,10 @@ def _envelope(operation: str, exc: Exception) -> dict[str, Any]:
     if operation == "search_data_elements" and error.code == "upstream_unavailable":
         error = PlatformError(
             error.code,
-            "caDSR does not yet serve keyword search (OP-C03, C-3); this tool calls the requested "
-            "route. Retrying will not help until caDSR adds it. Use get_data_element by public "
-            "id or question text meanwhile.",
+            error.message
+            + " caDSR does not yet serve keyword search (OP-C03, C-3); this tool calls the "
+            "requested route. Retrying will not help until caDSR adds it. "
+            "Use get_data_element by public id or question text meanwhile.",
             **error.details,
         )
     emit(logger, logging.WARNING, "call_failed", tool=operation, responseCode=error.code)
