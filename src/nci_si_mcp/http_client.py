@@ -337,8 +337,17 @@ class HttpClient:
             raise IncompleteRead(payload, declared_length - len(payload))
         return payload
 
-    def _parse(self, payload: bytes, path: str, attempt: _Attempt, json_response: bool) -> Any:
+    def _parse(
+        self,
+        payload: bytes,
+        path: str,
+        attempt: _Attempt,
+        json_response: bool,
+        interpret: Callable[[bytes, int | None], None] | None,
+    ) -> Any:
         try:
+            if interpret:
+                interpret(payload, attempt.status)
             if json_response:
                 return parse_upstream_json(payload, f"{self.label} {path}")
             return payload.decode("utf-8")
@@ -402,6 +411,7 @@ class HttpClient:
         number: int,
         reject: Callable[[Any], str | None] | None,
         json_response: bool,
+        interpret: Callable[[bytes, int | None], None] | None,
     ) -> Any:
         if budget := current_budget():
             budget.request()
@@ -409,7 +419,7 @@ class HttpClient:
         started = time.monotonic()
         try:
             payload = self._parse(
-                self._exchange(request, path, attempt), path, attempt, json_response
+                self._exchange(request, path, attempt), path, attempt, json_response, interpret
             )
             reason = reject(payload) if reject else None
             if reason is not None:
@@ -475,6 +485,7 @@ class HttpClient:
         params: dict[str, Any] | None = None,
         *,
         reject: Callable[[Any], str | None] | None = None,
+        interpret: Callable[[bytes, int | None], None] | None = None,
     ) -> Any:
         """GET a JSON document, retrying transport failures, HTTP 429 and HTTP 5xx.
 
@@ -482,9 +493,11 @@ class HttpClient:
         the platform answered is classified before it is returned.
         A request-local reject callback may name unusable domain content. That terminal
         failure carries this response's status and actual attempt count.
+        An explicit operation interpretation may raise a domain error before the shared
+        parser; it cannot replace the content returned or disable common classification.
         """
 
-        return self._run(self._request(path, params), path, reject=reject)
+        return self._run(self._request(path, params), path, reject=reject, interpret=interpret)
 
     def post_json(
         self,
@@ -514,13 +527,14 @@ class HttpClient:
         *,
         reject: Callable[[Any], str | None] | None = None,
         json_response: bool = True,
+        interpret: Callable[[bytes, int | None], None] | None = None,
     ) -> Any:
         attempts = timeouts = 0
         last_http: dict[str, Any] = {}
         while True:
             attempts += 1
             try:
-                return self._attempt(request, path, attempts, reject, json_response)
+                return self._attempt(request, path, attempts, reject, json_response, interpret)
             except _Transient as failure:
                 timeouts += failure.timed_out
                 last_http = failure.http_details() or last_http

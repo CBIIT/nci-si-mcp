@@ -42,6 +42,9 @@ class RegistryTest(ServerFixture):
             "list_contexts",
             "list_classification_schemes",
             "resolve_registry_release",
+            "get_form",
+            "get_permissible_value",
+            "get_code_map",
             "match_data_elements",
             "match_value_meanings",
         }

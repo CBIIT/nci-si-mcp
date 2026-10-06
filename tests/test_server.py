@@ -137,7 +137,7 @@ class ServerTest(ServerFixture):
     def test_tools_are_registered_with_descriptions_and_closed_value_sets(self, _):
         tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
 
-        self.assertEqual(len(tools), 19)
+        self.assertEqual(len(tools), 22)
         # The closed value sets are advertised in the schemas, wherever the
         # schema generator puts them.
         traverse_schema = json.dumps(tools["get_concept_neighborhood"].input_schema)
@@ -190,7 +190,8 @@ class ServerTest(ServerFixture):
 
         self.assertEqual(len(templates), 5)
         self.assertEqual(
-            {str(resource.uri) for resource in resources}, {"cadsr://registry/release"}
+            {str(resource.uri) for resource in resources},
+            {"cadsr://registry/release", "cadsr://crosswalk/crdc"},
         )
         self.assertEqual(
             {template.uri_template for template in templates}

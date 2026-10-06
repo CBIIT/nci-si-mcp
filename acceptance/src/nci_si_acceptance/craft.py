@@ -681,7 +681,7 @@ def _cadsr_json(path: str, **request: Any) -> dict[str, Any]:
 
 def cadsr_with_registry_release(recorded: Recorded) -> Documents:
     """A registry release published at the path the inventory names (OP-C08), and a data
-    element asked with it in the inventory's form (OP-C01), the release echoed in the answer.
+    element and CRDC list asked with it, the release echoed in each content answer.
     The ordinary layer holds the API as it is: that path answers 404."""
 
     requirement = (
@@ -703,7 +703,8 @@ def cadsr_with_registry_release(recorded: Recorded) -> Documents:
         f"{scenario}/crdc-list.json": crafted(
             requirement,
             crosswalk["request"] | {"params": {"registryRelease": [REGISTRY_RELEASE]}},
-            response=crosswalk["response"],
+            response=crosswalk["response"]
+            | {"body": crosswalk["response"]["body"] | {"registryRelease": REGISTRY_RELEASE}},
         ),
         f"{scenario}/registry-releases.json": crafted(
             requirement,

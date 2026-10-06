@@ -192,13 +192,13 @@ class CaDSRClientTest(ServerTestCase):
         server = self.serve(reply({"contextNames": []}))
         self.assertEqual(self.cadsr(server).list_contexts(), [])
 
-    def test_unknown_form_error_envelope_remains_an_upstream_error(self):
+    def test_unknown_form_error_envelope_is_the_recorded_not_found_interpretation(self):
         server = self.serve(
             reply({"form": None, "apiResponse": {"type": "E", "message": "No data"}})
         )
         with self.assertRaises(PlatformError) as raised:
             self.cadsr(server).get_form("123")
-        self.assertEqual(raised.exception.code, "upstream_unavailable")
+        self.assertEqual(raised.exception.code, "not_found")
         self.assertEqual(len(server.seen), 1)
 
     def test_match_sends_one_object_and_value_matching_sends_the_contract_array(self):
