@@ -29,6 +29,7 @@ fallback_version = "0.0.0"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
+    "mcp_session: use a handshake session for remote session-retention assertions",
     "tool(name): the required tool the test is for, in the per-tool report",
     "requirement(*ids): the requirements of spec/requirements.yaml the test enforces",
     "gate: a protocol-level gate (a P requirement); a failure fails every tool",

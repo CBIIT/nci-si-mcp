@@ -42,7 +42,11 @@ export NCI_SI_EMBEDDING_MODEL=cambridgeltl/SapBERT-from-PubMedBERT-fulltext
 
 ## Connect a client
 
-An MCP client starts the server as a command. In a client that reads an `mcpServers`
+For remote clients, run `pdm run nci-si-mcp serve --transport streamable-http` and connect to
+`http://127.0.0.1:8000/mcp`. See [remote transport](docs/transport.md) for session modes,
+replica routing, readiness and authentication hooks.
+
+An MCP client starts the stdio server as a command. In a client that reads an `mcpServers`
 configuration (Claude Desktop, for one), with absolute paths:
 
 ```json
@@ -93,6 +97,14 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 | `NCI_SI_EVS_MAX_RESPONSE_BYTES` | `10485760` | Maximum accepted EVS REST or FHIR response, up to 1 GiB |
 | `NCI_SI_INDEX_BATCH_SIZE` | `100` | Codes per EVS indexing request |
 | `NCI_SI_LOG_LEVEL` | `INFO` | Stderr diagnostic level; per-call audit records remain enabled at every level |
+| `NCI_SI_TRANSPORT` | `stdio` | Serve over stdio or streamable-http; `serve --transport` overrides this setting |
+| `NCI_SI_HTTP_HOST` | `127.0.0.1` | HTTP bind address; binding all interfaces does not relax the Host allow-list |
+| `NCI_SI_HTTP_PORT` | `8000` | HTTP port, 1–65535; MCP endpoint is /mcp |
+| `NCI_SI_HTTP_SESSIONS` | `stateful` | stateful retains each session's implicit release and needs process affinity; stateless resolves omitted releases per call and needs no affinity |
+| `NCI_SI_HTTP_MAX_REQUEST_BYTES` | `4194304` | Maximum HTTP request body bytes, including chunked bodies; oversized requests return 413 before parsing |
+| `NCI_SI_HTTP_ALLOWED_HOSTS` | `127.0.0.1:*,localhost:*,[::1]:*` | Comma-separated permitted Host authorities, exact or wildcard port; add the public authority when using a proxy |
+| `NCI_SI_HTTP_ALLOWED_ORIGINS` | `http://127.0.0.1:*,http://localhost:*,http://[::1]:*` | Permitted Origin authorities, exact or wildcard port; requests without Origin are allowed |
+| `NCI_SI_HTTP_REQUIRE_INDEX` | `0` | Set to 1 when deployment supplies an index: readiness requires an active build compatible with the configured embedding model. With 0 an absent index permits live tools; an existing active build is still verified |
 
 The caDSR lookup, registry, matching, form and code-map tools use upstream APIs.
 Registry discovery reads the export folder's exact distribution row. The folder gives

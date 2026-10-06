@@ -74,7 +74,9 @@ def skip_unprepared(items: Iterable[pytest.Item], reason: str = NOT_PREPARED) ->
 
 
 def _needs_own_server(item: pytest.Item) -> bool:
-    return bool(scenarios_of(item)) or item.get_closest_marker(OWN_SERVER) is not None
+    return bool(scenarios_of(item)) or any(
+        item.get_closest_marker(mark) for mark in (OWN_SERVER, "mcp_session")
+    )
 
 
 def skip_remote_own_servers(items: Iterable[pytest.Item], has_hook: bool) -> None:

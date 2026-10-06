@@ -13,7 +13,7 @@ from urllib.parse import urlsplit
 
 from .audit import JsonFormatter
 from .embeddings import normalize_embedding_settings
-from .validation import PROFILES, RELEASE_CHANNELS, UPSTREAM_MODES
+from .validation import HTTP_SESSIONS, PROFILES, RELEASE_CHANNELS, TRANSPORTS, UPSTREAM_MODES
 
 # Upper bound for the timeout and backoff settings; socket timeouts overflow far above it.
 MAX_SECONDS = 3600
@@ -164,6 +164,38 @@ def _env_role_codes() -> tuple[str, ...]:
     return tuple(code.strip() for code in value.split(","))
 
 
+def _env_list(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
+    value = os.getenv(name)
+    return default if value is None else tuple(part.strip() for part in value.split(","))
+
+
+DEFAULT_HTTP_HOSTS = ("127.0.0.1:*", "localhost:*", "[::1]:*")
+DEFAULT_HTTP_ORIGINS = tuple("http://" + host for host in DEFAULT_HTTP_HOSTS)
+
+
+def _require_authorities(name: str, values: tuple[str, ...], *, origin: bool) -> None:
+    if not values:
+        raise ValueError(f"{name} must list at least one authority")
+    for value in values:
+        url = value if origin else "http://" + value
+        # The SDK supports a wildcard port, never a wildcard hostname.
+        checked = url.removesuffix(":*")
+        if not _is_base_url(checked) or "*" in checked or urlsplit(checked).path:
+            raise ValueError(f"{name} must contain authorities without paths or credentials")
+
+
+def _require_http(settings: Settings) -> None:
+    _require_choice("NCI_SI_TRANSPORT", settings.transport, TRANSPORTS)
+    _require_choice("NCI_SI_HTTP_SESSIONS", settings.http_sessions, HTTP_SESSIONS)
+    if not re.fullmatch(r"[A-Za-z0-9.:_-]+", settings.http_host):
+        raise ValueError("NCI_SI_HTTP_HOST must be a bind address")
+    _require_between("NCI_SI_HTTP_PORT", settings.http_port, 1, 65535)
+    _require_between("NCI_SI_HTTP_MAX_REQUEST_BYTES", settings.http_max_request_bytes, 1, 1024**3)
+    _require_between("NCI_SI_HTTP_REQUIRE_INDEX", settings.http_require_index, 0, 1)
+    _require_authorities("NCI_SI_HTTP_ALLOWED_HOSTS", settings.http_allowed_hosts, origin=False)
+    _require_authorities("NCI_SI_HTTP_ALLOWED_ORIGINS", settings.http_allowed_origins, origin=True)
+
+
 @dataclass(frozen=True, slots=True)
 class Settings:
     """The server's configuration.
@@ -194,6 +226,14 @@ class Settings:
     evs_max_response_bytes: int = 10 * 1024 * 1024
     index_batch_size: int = 100
     log_level: str = "INFO"
+    transport: str = "stdio"
+    http_host: str = "127.0.0.1"
+    http_port: int = 8000
+    http_sessions: str = "stateful"
+    http_max_request_bytes: int = 4 * 1024 * 1024
+    http_allowed_hosts: tuple[str, ...] = DEFAULT_HTTP_HOSTS
+    http_allowed_origins: tuple[str, ...] = DEFAULT_HTTP_ORIGINS
+    http_require_index: int = 0
 
     def __post_init__(self) -> None:
         _require_choice("NCI_SI_PROFILE", self.profile, PROFILES)
@@ -217,6 +257,7 @@ class Settings:
         if self.log_level.upper() not in {"CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"}:
             raise ValueError("NCI_SI_LOG_LEVEL must be a standard logging level")
         normalize_embedding_settings(self.embedding_provider, self.embedding_model)
+        _require_http(self)
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -252,6 +293,14 @@ class Settings:
             ),
             index_batch_size=_env_number("NCI_SI_INDEX_BATCH_SIZE", "100", int),
             log_level=os.getenv("NCI_SI_LOG_LEVEL", "INFO").upper(),
+            transport=os.getenv("NCI_SI_TRANSPORT", "stdio"),
+            http_host=os.getenv("NCI_SI_HTTP_HOST", "127.0.0.1"),
+            http_port=_env_number("NCI_SI_HTTP_PORT", "8000", int),
+            http_sessions=os.getenv("NCI_SI_HTTP_SESSIONS", "stateful"),
+            http_max_request_bytes=_env_number("NCI_SI_HTTP_MAX_REQUEST_BYTES", "4194304", int),
+            http_allowed_hosts=_env_list("NCI_SI_HTTP_ALLOWED_HOSTS", DEFAULT_HTTP_HOSTS),
+            http_allowed_origins=_env_list("NCI_SI_HTTP_ALLOWED_ORIGINS", DEFAULT_HTTP_ORIGINS),
+            http_require_index=_env_number("NCI_SI_HTTP_REQUIRE_INDEX", "0", int),
         )
 
 

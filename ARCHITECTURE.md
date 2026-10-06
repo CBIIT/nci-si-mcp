@@ -12,7 +12,7 @@ flowchart LR
 
     subgraph Interfaces["Interface layer"]
         CLI["CLI<br/>cli.py"]
-        MCP["MCP stdio server<br/>server.py"]
+        MCP["MCP stdio / HTTP server<br/>server.py, transport.py"]
     end
 
     subgraph Application["Application layer"]
@@ -85,6 +85,7 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 | `caching.py` | Defines producer-selected hints: explicitly release-pinned content and the static server surface (86,400,000 ms/public), unpinned caDSR content (3,600,000/public), resolution/status (0/public), and implicit NCIt calls, computed matching results or errors (0/private). It contains no data cache. | Python standard library |
 | `bounds.py` | Owns traversal defaults and maxima and the per-call `Budget`. A context variable shares 200 HTTP attempts, including retries, release discovery and split batches, and restores the previous context on exit. The walker rotates kinds across each breadth-first frontier and counts newly admitted nodes against optional per-kind allowances. Neighborhood and CLI traversal preserve partial graphs on exhaustion; without graph content they raise `RequestBudgetError`, mapped to `bound_exceeded`. Hierarchy page replay always fails with `bound_exceeded` on request exhaustion. | Python standard library |
 | `cli.py` | Builds command arguments and dispatch from the registry; owns `serve` startup, reports configuration failures and exits 1 on an error record. | `registry.py`, `server.py` |
+| `transport.py` | Stateful or stateless HTTP over the shared adapter; SDK authentication and scope hooks, Host/Origin admission, body cap, local readiness and token-free auth diagnostics. Sessions belong to one process. | `server.py`, optional MCP/Starlette/Uvicorn |
 | `server.py` | Registers profile-selected tools, five resource templates and two concrete resources from the registry on an `mcp` 2.x `MCPServer`, and flags error records as protocol errors. Middleware carries cache decisions from SDK worker threads into tool `_meta` and resource fields, without inspecting content or matching names. Undeclared successful responses fail. SDK hints cover lists/discovery. | `registry.py`, `caching.py`, optional `mcp` package |
 | `registry.py` | Declares each operation once with its handler, output union, optional cache default and adapter exposure. Handlers that own the complete cache policy omit the default. Derives input models, CLI arguments and MCP parameters from handler signatures; selects tools by profile and invokes all producers through one boundary. | `handlers.py`, `invocation.py`, `caching.py`, `results.py` |
 | `context.py` | Holds injectable settings, clients, index and embedding provider shared by a server or CLI invocation. | EVS client, local index, embeddings |
@@ -521,3 +522,7 @@ a successful empty history or a row naming no replacement yields `replacements: 
 Replacement codes and names remain unchanged. Their provenance names the history request
 and its pinned release, without inventing the version compact rows do not carry. Any
 optional upstream terminology/version is validated, and supplied licence text passes through.
+HTTP uses the same adapter and registry as stdio. SDK sessions and their implicit NCIt pins
+belong to one process: stateful replicas require affinity, while stateless requests resolve
+omitted releases per call. [Transport details](docs/transport.md) cover reconnection, health,
+readiness and authentication injection.

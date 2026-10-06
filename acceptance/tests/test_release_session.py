@@ -9,6 +9,7 @@ ARGUMENTS = {"terminology": "ncit", "code": "C90000001"}
 
 
 @pytest.mark.requirement("X-22")
+@pytest.mark.mcp_session
 @pytest.mark.tool("get_concept")
 @pytest.mark.scenario("release/moving-session")
 def test_a_session_keeps_its_first_implicit_release_across_an_explicit_override(tools):
@@ -27,6 +28,7 @@ def test_a_session_keeps_its_first_implicit_release_across_an_explicit_override(
 
 
 @pytest.mark.requirement("X-22")
+@pytest.mark.mcp_session
 @pytest.mark.tool("get_concept")
 @pytest.mark.scenario("release/withdrawn-session")
 def test_a_withdrawn_session_release_fails_without_switching_to_the_new_release(tools):
