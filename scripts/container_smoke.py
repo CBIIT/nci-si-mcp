@@ -54,7 +54,6 @@ def mounted(image: str, assets: Path, *args: str) -> list[str]:
 
 
 def prepare(image: str, assets: Path) -> None:
-    assets.chmod(0o777)  # The disposable mount belongs to the image's unprivileged UID.
     result = docker(
         *mounted(
             image,
@@ -62,7 +61,7 @@ def prepare(image: str, assets: Path) -> None:
             "--network",
             "none",
             "--entrypoint",
-            "/usr/bin/python",
+            "python",
             "-v",
             f"{ROOT / 'container/smoke_assets.py'}:/prepare.py:ro",
             "-v",
@@ -158,7 +157,7 @@ def retained_builds(image: str, assets: Path) -> None:
         "print(json.dumps([b.build_id for b in LocalIndex(Path('/assets/data')).list_builds()]))"
     )
     result = docker(
-        *mounted(image, assets, "--network", "none", "--entrypoint", "/usr/bin/python"), "-c", code
+        *mounted(image, assets, "--network", "none", "--entrypoint", "python"), "-c", code
     )
     if json.loads(result.stdout) != json.loads((assets / "builds.json").read_text()):
         raise RuntimeError("Serving changed the active build or its predecessor")
@@ -171,13 +170,25 @@ def main() -> None:
     (ROOT / "tmp").mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="container-smoke-", dir=ROOT / "tmp") as directory:
         assets = Path(directory)
-        failure(args.image, assets, "index")
-        prepare(args.image, assets)
-        failure(args.image, assets, "index", "-e", "NCI_SI_EMBEDDING_MODEL=wrong-model")
-        serve(args.image, assets)
-        retained_builds(args.image, assets)
-        (assets / "model").rename(assets / "held-model")
-        failure(args.image, assets, "model")
+        assets.chmod(0o777)  # Let the unprivileged image UID create and reap scratch assets.
+        try:
+            failure(args.image, assets, "index")
+            prepare(args.image, assets)
+            failure(args.image, assets, "index", "-e", "NCI_SI_EMBEDDING_MODEL=wrong-model")
+            serve(args.image, assets)
+            retained_builds(args.image, assets)
+            (assets / "model").rename(assets / "held-model")
+            failure(args.image, assets, "model")
+        finally:
+            # Native Linux preserves container ownership on bind mounts. Reap our files
+            # as their creating UID before the host removes its temporary directory.
+            docker(
+                *mounted(args.image, assets, "--network", "none", "--entrypoint", "python"),
+                "-c",
+                "import shutil; from pathlib import Path; "
+                "[shutil.rmtree(p) if p.is_dir() else p.unlink() "
+                "for p in Path('/assets').iterdir()]",
+            )
     print("Image smoke passed: offline external model/index, HTTP, missing assets, graceful stop")
 
 

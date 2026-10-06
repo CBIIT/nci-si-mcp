@@ -1,6 +1,8 @@
 # Regenerate on Linux amd64, with the same Python as the dependency builder.
-FROM docker.io/library/python@sha256:f85c5697265c178cc6887276c55fe16cf3d14ca35c3df6a5eab3b360534a55d2 AS resolve
+FROM public.ecr.aws/amazonlinux/amazonlinux@sha256:12052e9b5d3fd85769abbdd863dd038e1890c9ace31d5fdbe1afa78eda97d061 AS resolve
+RUN dnf -y upgrade --refresh
+RUN dnf -y install python3.14 python3.14-pip
 COPY constraints.txt roots.txt /build/
-RUN python -m pip install --dry-run --ignore-installed --only-binary=:all: --report /resolution.json -r /build/roots.txt -c /build/constraints.txt
+RUN python3.14 -m pip install --dry-run --ignore-installed --only-binary=:all: --report /resolution.json -r /build/roots.txt -c /build/constraints.txt
 FROM scratch AS report
 COPY --from=resolve /resolution.json /resolution.json

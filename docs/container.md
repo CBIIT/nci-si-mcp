@@ -64,8 +64,10 @@ Keep exactly one current wheel in `dist/`. CI builds the same wheel/image and ru
 `pdm run python scripts/container_smoke.py IMAGE` with an external, test-only model and a
 recorded concept. This is packaging evidence, not production retrieval calibration.
 
-The dependency builder uses a pinned Python slim digest; only its installed runtime
-dependencies enter the minimal glibc Python 3.14 image. The Dockerfile accepts a requirements
+The image uses a digest-pinned Amazon Linux 2023 base, refreshes OS packages and installs
+its `python3.14` package. The builder creates a virtual environment on the same base and
+copies it into the runtime; builder package installations and caches stay behind.
+The Dockerfile accepts a requirements
 path as a build argument so an additional architecture can be added later. To regenerate
 the amd64 CPU lock from `pdm.lock`:
 
@@ -80,9 +82,13 @@ Remove `tmp/container-lock` afterwards. Installation requires hashes. The check 
 PDM runtime versions drift; ordinary developer dependencies are unchanged.
 
 The initial [candidate scan evidence](../container/base-scans.json) records image identities,
-scanner/database metadata and every High finding. On 6 October 2026, Python slim-trixie
-had 48 High/0 Critical findings, unchanged after OS and pip upgrades; the selected minimal
-glibc base and its CPU dependency image both had zero. These are point-in-time results;
+scanner metadata and every High finding. On 6 October 2026, Python slim-trixie
+had 48 High/0 Critical findings, unchanged after OS and pip upgrades. Both Chainguard's
+minimal glibc Python base and the upgraded AL2023 Python base scanned at zero, as did
+each base with the CPU dependencies. AL2023 was selected to match CBIIT services and
+its hardened base, with retained pullable digests. Chainguard's free tier offers moving
+`latest` tags and does not guarantee old pinned digests remain pullable.
+These are point-in-time results;
 each complete release image is scanned again.
 
 The Release workflow chains image build, smoke tests, SBOM and vulnerability scanning before
@@ -103,5 +109,5 @@ reports are attached before the public-access check; a successful run adds the d
 evidence references to the release notes. Use the digest to deploy, not a floating tag.
 
 CBIIT's hardened bases are in private ECR unavailable to public CI. The hosting team may
-rebuild on its approved base. Cloud One ECR publication and OIDC deployment roles are later
+rebuild on its approved `cbiit-amazon-linux-2023` base. Cloud One ECR publication and OIDC deployment roles are later
 deployment work; this issue supplies public GHCR images only.

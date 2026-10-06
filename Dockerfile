@@ -1,21 +1,27 @@
-# Builder tools never reach the serving image. Build a wheel with `pdm build` first.
-FROM docker.io/library/python@sha256:f85c5697265c178cc6887276c55fe16cf3d14ca35c3df6a5eab3b360534a55d2 AS dependencies
+# Build a wheel with `pdm build` first. Both stages use AL2023's Python 3.14.
+FROM public.ecr.aws/amazonlinux/amazonlinux@sha256:12052e9b5d3fd85769abbdd863dd038e1890c9ace31d5fdbe1afa78eda97d061 AS base
+RUN dnf -y upgrade --refresh
+RUN dnf -y install python3.14 libgomp
+RUN dnf clean all
+
+FROM base AS dependencies
+RUN dnf -y install python3.14-pip
+RUN python3.14 -m venv /opt/venv
 ARG REQUIREMENTS=container/requirements-amd64.txt
 COPY ${REQUIREMENTS} /build/requirements.txt
-RUN python -m pip install --require-hashes --only-binary=:all: --no-compile --no-cache-dir --target /dependencies -r /build/requirements.txt
+RUN /opt/venv/bin/python -m pip install --require-hashes --only-binary=:all: --no-compile --no-cache-dir -r /build/requirements.txt
 COPY dist/*.whl /build/
-RUN python -m pip install --no-deps --no-index --no-compile --target /dependencies /build/*.whl
+RUN /opt/venv/bin/python -m pip install --no-deps --no-index --no-compile /build/*.whl
 
-# Minimal glibc Python 3.14, with no shell or package installer in the runtime.
-FROM cgr.dev/chainguard/python@sha256:b7af1ae90e2fcfb5c32be03908e74d32fdfd64156c2b7c535bd3e497e7846d84
+FROM base AS runtime
 ARG VERSION
 ARG REVISION
 ARG SOURCE
 LABEL org.opencontainers.image.version=$VERSION \
       org.opencontainers.image.revision=$REVISION \
       org.opencontainers.image.source=$SOURCE
-COPY --from=dependencies /dependencies /app/dependencies
-ENV PYTHONPATH=/app/dependencies \
+COPY --from=dependencies /opt/venv /opt/venv
+ENV PATH=/opt/venv/bin:$PATH \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     HF_HOME=/model-cache \
@@ -30,4 +36,4 @@ ENV PYTHONPATH=/app/dependencies \
 USER 65532:65532
 EXPOSE 8000
 STOPSIGNAL SIGTERM
-ENTRYPOINT ["/usr/bin/python", "-m", "nci_si_mcp.container_entry"]
+ENTRYPOINT ["/opt/venv/bin/python", "-m", "nci_si_mcp.container_entry"]

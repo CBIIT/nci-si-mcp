@@ -724,5 +724,49 @@
     "repoDigests": [],
     "counts": {},
     "findings": []
+  },
+  {
+    "candidate": "al2023-base",
+    "createdAt": "2026-10-06T20:44:31.637234931Z",
+    "scanner": {
+      "Version": "0.75.0",
+      "VulnerabilityDB": {
+        "Version": 2,
+        "UpdatedAt": "2026-10-06T13:07:05.606377799Z"
+      }
+    },
+    "baseDigest": "public.ecr.aws/amazonlinux/amazonlinux@sha256:12052e9b5d3fd85769abbdd863dd038e1890c9ace31d5fdbe1afa78eda97d061",
+    "build": [
+      "dnf -y upgrade --refresh",
+      "dnf -y install python3.14 libgomp",
+      "dnf clean all"
+    ],
+    "imageId": "sha256:806646e78a858e98ada62dc32e1ef7deb1cd48dc55cd9a600609b7ed1cec91ba",
+    "repoDigests": [],
+    "counts": {},
+    "findings": []
+  },
+  {
+    "candidate": "al2023-runtime",
+    "createdAt": "2026-10-06T20:51:34.015020017Z",
+    "scanner": {
+      "Version": "0.75.0",
+      "VulnerabilityDB": {
+        "Version": 2,
+        "UpdatedAt": "2026-10-06T13:07:05.606377799Z"
+      }
+    },
+    "baseDigest": "public.ecr.aws/amazonlinux/amazonlinux@sha256:12052e9b5d3fd85769abbdd863dd038e1890c9ace31d5fdbe1afa78eda97d061",
+    "build": [
+      "Same upgraded AL2023 Python base as al2023-base",
+      "Builder: dnf -y install python3.14-pip",
+      "Builder: python3.14 -m venv /opt/venv",
+      "Builder: /opt/venv/bin/python -m pip install --require-hashes --only-binary=:all: --no-compile --no-cache-dir -r container/requirements-amd64.txt",
+      "Runtime: copy /opt/venv from builder onto al2023-base"
+    ],
+    "imageId": "sha256:3466a59c5e4b86ac001f581e3089992c0d7a3e44c11b0f80cd9dbaa5c72ad761",
+    "repoDigests": [],
+    "counts": {},
+    "findings": []
   }
 ]
