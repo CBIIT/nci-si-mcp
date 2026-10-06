@@ -169,12 +169,13 @@ class ServerTest(ServerFixture):
 
         self.assertEqual(
             defaults("search_concepts"),
-            {"limit": 10, "mode": "lexical", "cursor": None, "retired": "include"},
+            {"release": None, "limit": 10, "mode": "lexical", "cursor": None, "retired": "include"},
         )
-        self.assertEqual(defaults("get_concept"), {"include": None})
+        self.assertEqual(defaults("get_concept"), {"release": None, "include": None})
         self.assertEqual(
             defaults("get_concept_neighborhood"),
             {
+                "release": None,
                 "depth": 2,
                 "maxNodes": 200,
                 "maxEdges": 1000,

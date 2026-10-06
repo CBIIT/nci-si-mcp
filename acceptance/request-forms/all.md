@@ -585,6 +585,14 @@ A weekly and a monthly row are both `latest`, the weekly first in every list; ea
 
 Two releases are both latest with the monthly tag; the monthly query and the listing name both. Crafted, 2 fixtures, for A3.6.3: a release with duplicate tags fails closed.
 
+### `release/moving-session`
+
+The monthly query changes after its first read; both releases serve the session test concept, so implicit re-resolution and explicit overrides are distinguishable. Crafted, 3 fixtures, for X-22.
+
+### `release/withdrawn-session`
+
+The monthly query changes after its first read and the original concept path then answers terminology-not-found; a session must fail closed instead of adopting the new release. Crafted, 3 fixtures, for X-22.
+
 ### `batch/silent-drop`
 
 A code EVS does not know is left out of a batch. Recorded.

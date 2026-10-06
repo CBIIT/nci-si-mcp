@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import nci_si_mcp
-from fakes import FakeEVS, concept
+from fakes import FakeEVS, concept, release
 from nci_si_mcp.cli import build_parser, main
 from nci_si_mcp.config import Settings
 from nci_si_mcp.context import Context
@@ -75,6 +75,16 @@ class ParserTest(unittest.TestCase):
 
 @patch("nci_si_mcp.cli.configure_logging")
 class MainTest(unittest.TestCase):
+    def test_cli_invocations_do_not_reuse_an_implicit_release(self, _):
+        context = self.fake_context()
+        first_code, first, _ = self.run_cli("lookup", "C3262", "--live-only", context=context)
+        context.evs.release = release("26.07d")
+        context.evs.concepts["C3262"] = dict(context.evs.concepts["C3262"], version="26.07d")
+        second_code, second, _ = self.run_cli("lookup", "C3262", "--live-only", context=context)
+        self.assertEqual((first_code, second_code), (0, 0))
+        self.assertEqual(first["provenance"]["release"]["identifier"], "26.06e")
+        self.assertEqual(second["provenance"]["release"]["identifier"], "26.07d")
+
     def setUp(self):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)

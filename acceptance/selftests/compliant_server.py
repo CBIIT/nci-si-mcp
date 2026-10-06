@@ -18,7 +18,7 @@ requirements, for the harness's own tests.
     not-idempotent    idempotentHint false                                          (P-10)
     closed-world      openWorldHint false                                           (P-10)
     parameter-renamed get_concept takes conceptCode in place of code                (P-12)
-    release-optional  get_concept does not require release                          (P-12)
+    release-required-schema get_concept still requires the now-optional release    (P-12)
     quotes-not-offered a description that assigns a value not offered in backticks (P-11)
     lists-not-offered an input schema whose enum holds a value not offered          (P-11)
     patterns-not-offered an input schema whose pattern admits a value not offered   (P-11)
@@ -67,7 +67,11 @@ requirements, for the harness's own tests.
     wrong-default     a left-out argument with a stated default served otherwise    (X-20)
     empty-with-cursor a query that matches nothing answered with nextCursor          (X-4)
     raised-to-one     a bounded argument below one served as one                    (X-18)
-    release-defaulted a call without its required release served all the same        (X-22)
+    release-refused   an omitted NCIt release is refused                            (X-22)
+    implicit-public   an implicit release gets a positive public cache hint        (X-22)
+    session-reresolves implicit calls rediscover instead of holding a session pin  (X-22)
+    session-overwrite an explicit release overwrites the implicit session pin      (X-22)
+    session-withdrawal-empty a withdrawn session release becomes an empty success  (X-22)
     unchecked-identifiers an identifier off its stated form served as given          (X-23)
     checks-after-asking an identifier off its form refused only after a request carried it (X-23)
     unencoded-code    a code put into the path as it is, a slash in it included     (X-23)
@@ -220,6 +224,7 @@ CALLS = yaml.safe_load((Path(__file__).parent.parent / "tests" / "calls.yaml").r
 # Whether each call so far reached EVS, and EVS's answer to each call already answered.
 reached = []
 answered: dict[str, dict] = {}
+session_state: dict[str, str] = {}
 # The licence texts EVS gave so far (the sticky-attribution defect).
 given: list[str] = []
 
@@ -332,8 +337,8 @@ def _input_schema(name: str) -> dict:
     names, required = parameters(name)
     if DEFECT == "parameter-renamed" and name == "get_concept":
         names, required = names - {"code"} | {"conceptCode"}, required - {"code"} | {"conceptCode"}
-    if DEFECT == "release-optional" and name == "get_concept":
-        required -= {"release"}
+    if DEFECT == "release-required-schema" and name == "get_concept":
+        required |= {"release"}
     listed = {
         "lists-not-offered": {"enum": _not_offered(name)},
         "patterns-not-offered": {"pattern": f"^({'|'.join(_not_offered(name))})$"},
@@ -809,8 +814,8 @@ def _formed(form: str | dict, arguments: dict, key: str) -> bool:
 
 
 def _unpinned(name: str, arguments: dict) -> bool:
-    required = parameters(name)[1]
-    return "release" in required - arguments.keys() and DEFECT != "release-defaulted"
+    names = parameters(name)[0]
+    return "release" in names and arguments.get("release") is None and DEFECT == "release-refused"
 
 
 def _below_one(name: str, arguments: dict) -> bool:
@@ -823,9 +828,16 @@ def _answer(name: str, arguments: dict, correlation: str) -> tuple[object, bool]
     """The content of a call and whether it is an error; a call answered before is not
     asked again, as A9.4 allows."""
 
+    if arguments.get("code") == "C90000001":
+        return _session_answer(arguments, correlation)
+    return _ordinary_answer(name, arguments, correlation)
+
+
+def _ordinary_answer(name: str, arguments: dict, correlation: str) -> tuple[object, bool]:
     call = json.dumps([name, arguments], sort_keys=True)
     if refusal := _refusal(name, arguments, correlation):
         return refusal, True
+    arguments = _implicit_arguments(name, arguments)
     if call not in answered and DEFECT != "asks-nothing":
         status, body = _asked(name, arguments, correlation)
         if code := _failure(status, body, arguments):
@@ -837,6 +849,43 @@ def _answer(name: str, arguments: dict, correlation: str) -> tuple[object, bool]
     if NO_CACHE:
         answered.clear()
     return content, False
+
+
+def _implicit_arguments(name: str, arguments: dict) -> dict:
+    if "release" in parameters(name)[0] and arguments.get("release") is None:
+        return arguments | {"release": CURRENT}
+    return arguments
+
+
+def _session_pin(arguments: dict) -> str:
+    if explicit := arguments.get("release"):
+        if DEFECT == "session-overwrite":
+            session_state["release"] = explicit
+        return explicit
+    if "release" not in session_state or DEFECT == "session-reresolves":
+        _, rows, _ = _ask(
+            "/api/v1/metadata/terminologies?terminology=ncit&latest=true&tag=monthly", {}
+        )
+        session_state["release"] = rows[0]["version"]
+    return session_state["release"]
+
+
+def _session_answer(arguments: dict, correlation: str) -> tuple[object, bool]:
+    """The X-22 session fixture uses actual pinned content, not the version probe."""
+    pin = _session_pin(arguments)
+    path = f"/api/v1/concept/ncit_{pin}/C90000001?include=minimal"
+    status, body, _ = _ask(path, {"X-Correlation-ID": correlation})
+    if status == HTTPStatus.NOT_FOUND:
+        error = _error("release_not_available", status, body, correlation)
+        error["error"].update(
+            details={"requested": pin, "source": "evs"},
+            message="Start a new session or name a release.",
+        )
+        if DEFECT == "session-withdrawal-empty":
+            return {}, False
+        return error, True
+    provenance = _provenance("get_concept", arguments | {"release": pin}, correlation, body)
+    return body | {"provenance": provenance}, False
 
 
 def _meta() -> dict:
@@ -855,8 +904,16 @@ async def call_tool(_context, params: types.CallToolRequestParams) -> types.Call
         content=[types.TextContent(type="text", text=text)],
         structured_content=content,
         is_error=failed,
-        _meta=_meta(),
+        _meta=_tool_meta(params.name, params.arguments or {}),
     )
+
+
+def _tool_meta(name: str, arguments: dict) -> dict:
+    if DEFECT == "implicit-public":
+        return _meta()
+    if "release" in parameters(name)[0] and arguments.get("release") is None:
+        return {"ttlMs": 0, "cacheScope": "private"}
+    return _meta()
 
 
 def _uris() -> list[tuple[str, str]]:

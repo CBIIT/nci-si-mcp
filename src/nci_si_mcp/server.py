@@ -16,6 +16,7 @@ from .context import Context
 from .errors import InputValidationError, is_error_record
 from .invocation import call
 from .registry import SPECS, ToolSpec, invoke
+from .release_selection import SessionRelease, session_scope
 from .results import Untruncated
 
 INSTRUCTIONS = (
@@ -70,6 +71,7 @@ def create_mcp(settings: Settings | None = None, *, context: Context | None = No
             _cache_results,
             _audit_tools(context, resolved_settings.profile),
             _validate_inputs(resolved_settings.profile),
+            _release_session,
         ],
     )
 
@@ -219,3 +221,22 @@ async def _cache_results(ctx: Any, call_next: Callable[[Any], Awaitable[Any]]) -
         if ctx.method == "tools/call":
             return {**result, "_meta": {**result.get("_meta", {}), **hint}}
         return {**result, **hint}
+
+
+async def _release_session(ctx: Any, call_next: Callable[[Any], Awaitable[Any]]) -> Any:
+    # MCP 2 creates ServerSession per request. Its connection owns the validated
+    # HTTP session, not the proxy or an untrusted Mcp-Session-Id header.
+    connection = ctx.session._connection
+    if ctx.request is None:
+        # A stdio lifespan is one session, including the SDK's envelope protocol
+        # which creates a fresh Connection for each request on that same stream.
+        state = ctx.lifespan_context
+    elif connection.session_id is not None:
+        state = connection.state
+    else:
+        state = None
+    pin = None
+    if state is not None:
+        pin = state.setdefault("nci_si_implicit_release", SessionRelease())
+    with session_scope(pin):
+        return await call_next(ctx)

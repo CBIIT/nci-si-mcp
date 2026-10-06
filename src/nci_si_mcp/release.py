@@ -1,14 +1,16 @@
 """The release model: which release a call reads, resolved once and threaded through it.
 
 A `ReleaseContext` names the EVS release every request of one call is pinned to. It is resolved
-explicitly by `resolve_evs_release` for discovery; content calls construct it from the supplied
-terminology and release. Discovery results are never cached across calls (A3.1, A3.2).
+explicitly by `resolve_evs_release` for discovery. Content calls use the supplied release or
+the shared selection scope's implicit NCIt pin. Discovery operations remain fresh; only an
+MCP session's implicit content pin survives calls (X-22).
 `registry_state` is the caDSR counterpart: caDSR publishes no registry release, so the state
 is the export's date and never an invented identifier (A3.8).
 """
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -61,6 +63,7 @@ def resolve_evs_release(evs: EVSClient, terminology: str, channel: str) -> Relea
 
     rows = evs.get_terminologies(terminology, latest=True, tag=channel)
     row = _one_release_row(rows, f"{terminology} {channel}")
+    _verify_selection(row, terminology, channel)
     return ReleaseContext(
         terminology=terminology,
         channel=channel,
@@ -68,6 +71,32 @@ def resolve_evs_release(evs: EVSClient, terminology: str, channel: str) -> Relea
         date=row.get("date"),
         pinned_terminology=row.get("terminologyVersion") or f"{terminology}_{row['version']}",
     )
+
+
+def _verify_selection(row: dict[str, Any], terminology: str, channel: str) -> None:
+    tags = row.get("tags")
+    if row.get("terminology") != terminology or row.get("latest") is not True:
+        raise _not_available(
+            "EVS returned conflicting release identity", f"{terminology} {channel}"
+        )
+    if not isinstance(tags, dict) or tags.get(channel) != "true":
+        raise _not_available("EVS returned a release without the requested channel", channel)
+    version = row.get("version")
+    if not isinstance(version, str) or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", version) is None:
+        raise _not_available("EVS returned an invalid release version", f"{terminology} {channel}")
+    _verify_pinned_segment(row.get("terminologyVersion"), terminology)
+
+
+def _verify_pinned_segment(segment: Any, terminology: str) -> None:
+    # EVS may use a path spelling different from the display version, but it must
+    # still be a single release-qualified segment of the requested terminology.
+    if segment is None:
+        return
+    if (
+        not isinstance(segment, str)
+        or re.fullmatch(re.escape(terminology) + r"_[A-Za-z0-9][A-Za-z0-9._-]*", segment) is None
+    ):
+        raise _not_available("EVS returned a conflicting pinned terminology", terminology)
 
 
 def served_evs_release(
