@@ -1,0 +1,33 @@
+{
+  "kind": "recorded",
+  "recorded_on": "2026-10-06",
+  "request": {
+    "surface": "evs",
+    "method": "GET",
+    "path": "/api/v1/concept/ncit_26.09d/C213629",
+    "params": {
+      "include": [
+        "minimal,children"
+      ]
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "code": "C213629",
+      "name": "Head and Neck Adamantinoma-Like Ewing Sarcoma",
+      "terminology": "ncit",
+      "version": "26.09d",
+      "conceptStatus": "DEFAULT",
+      "leaf": false,
+      "active": true,
+      "children": [
+        {
+          "code": "C213630",
+          "name": "Major Salivary Gland Adamantinoma-Like Ewing Sarcoma",
+          "leaf": false
+        }
+      ]
+    }
+  }
+}

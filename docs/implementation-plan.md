@@ -206,7 +206,7 @@ success/error results, and reject malformed records. They assert byte-identical 
 across release channels, upstream modes, calls and upstream failure (M1.2), and check rendered
 descriptions for unfinished text and unsupported values against behavior (A2.3, A2.4).
 Profiles select the current inventory: twelve tools for `evs`, ten for `cadsr`, and all
-twenty-two for `unified`. The legacy MCP names and caDSR stub are removed. An input schema states no
+twenty-nine for `unified`, including four cross-domain and three workflow tools. The legacy MCP names and caDSR stub are removed. An input schema states no
 `maximum` for a bounded argument: a value above it is applied as the maximum (the tools'
 `bounds` in `spec/tools.yaml`), and the argument's description states its default and maximum.
 
@@ -412,11 +412,15 @@ Errors remain 0/private. Specific behaviours:
 
 ## 7. Workflow module
 
-Three composites (the specification's group `workflow`), implemented as orchestrations of the registry's own tools with one `Budget` and one `ReleaseContext` across the chain:
+Three composites (the specification's group `workflow`) reuse the registry tools' content producers with one request `Budget` across the chain. NCIt workflows select one effective `ReleaseContext`; dictionary harmonization resolves one caDSR registry state:
 
 - `ground_value` — fails closed if either content state cannot be named; `registryRelease` optional (unpinned when absent); truncation from each hop carried through (`perHop`).
-- `expand_cohort` — `codes[]` and `excluded[]`; asserted equal to composing `get_concept_neighborhood` + `get_concepts`.
+- `expand_cohort` — `codes[]` and `excluded[]`; asserted equal to child `get_concept_hierarchy` to maxDepth plus the start's depth-one `get_concept_neighborhood`. Only the start's exclusions govern the cohort, and each assertion remains present with includeNegative. maxNodes counts returned codes, including the start.
 - `harmonize_data_dictionary` — one match call per column, batched where the upstream allows; shared registry state.
+
+The four furnished templates in `spec/prompts.yaml` are registered only where every named
+tool is available. Their packaged JSON copy preserves the specified text and arguments,
+checked against the source by tests. Optional omitted arguments substitute empty text.
 
 ---
 

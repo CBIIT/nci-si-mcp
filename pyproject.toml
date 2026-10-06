@@ -201,6 +201,7 @@ ignore_names = [
     "crdcName", "usedBy", "valueLevelBinding", "coverage", "codeMaps",
     "conceptTerminology", "dataElements", "permissibleValue", "storedValues", "confidence",
     "intervalDays",
+    "perHop", "permissibleValueAlignment", "sampleValues",
 ]
 
 [tool.basedpyright]

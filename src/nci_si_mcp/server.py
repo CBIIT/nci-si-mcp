@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Awaitable, Callable
 from functools import update_wrapper
+from importlib.resources import files
 from inspect import Parameter, Signature
 from typing import Annotated, Any
 
@@ -108,7 +109,37 @@ def create_mcp(settings: Settings | None = None, *, context: Context | None = No
 
     for spec in SPECS:
         register(spec)
+    _register_prompts(mcp, resolved_settings.profile)
     return mcp
+
+
+def _register_prompts(mcp: Any, profile: str) -> None:
+    from mcp.server.mcpserver.prompts import Prompt
+    from mcp.server.mcpserver.prompts.base import PromptArgument
+
+    # Packaged without a YAML dependency; test_prompts verifies equality with spec/.
+    templates = json.loads(files("nci_si_mcp").joinpath("data/prompts.json").read_text())
+    tools = {spec.name for spec in SPECS if spec.name and spec.visible_in(profile)}
+    for name, template in templates.items():
+        if set(template["tools"]) <= tools:
+            mcp.add_prompt(
+                Prompt(
+                    name=name,
+                    title=template["title"],
+                    description=template["adds"],
+                    arguments=[PromptArgument(**argument) for argument in template["arguments"]],
+                    fn=_prompt_callback(template),
+                    context_kwarg=None,
+                )
+            )
+
+
+def _prompt_callback(template: dict[str, Any]) -> Callable[..., str]:
+    def render(**arguments: str) -> str:
+        values = {a["name"]: "" for a in template["arguments"] if not a["required"]}
+        return template["template"].format(**(values | arguments))
+
+    return render
 
 
 def _callback(

@@ -9,7 +9,7 @@ from dataclasses import asdict, dataclass, field, make_dataclass
 from inspect import Parameter, Signature, getdoc, signature
 from typing import Any, Literal, get_args, get_origin, get_type_hints, is_typeddict
 
-from . import cadsr_content, cadsr_matching, content, handlers, seam
+from . import cadsr_content, cadsr_matching, content, handlers, seam, workflows
 from .audit import AuditClass, audited, secrets
 from .caching import invocation_policy
 from .context import Context
@@ -19,6 +19,7 @@ from .results import (
     ClassificationSchemesResult,
     CodeMapResource,
     CodeMapsResult,
+    Cohort,
     Concept,
     ConceptBatch,
     ConceptResult,
@@ -30,6 +31,8 @@ from .results import (
     DataElementUses,
     ErrorResult,
     Form,
+    GroundedValue,
+    HarmonizedDictionary,
     Hierarchy,
     IndexManifestResult,
     MappingsResult,
@@ -114,6 +117,42 @@ def _input_field(parameter: Parameter) -> tuple:
 
 
 SPECS = (
+    ToolSpec(
+        workflows.ground_value,
+        "workflow",
+        GroundedValue | ErrorResult,
+        name="ground_value",
+        command="ground-value",
+        audit={
+            "conceptCode": "plain",
+            "release": "plain",
+            "registryRelease": "plain",
+            "text": "hash",
+            "commons": "hash",
+        },
+    ),
+    ToolSpec(
+        workflows.expand_cohort,
+        "workflow",
+        Cohort | ErrorResult,
+        name="expand_cohort",
+        command="expand-cohort",
+        audit={
+            "conceptCode": "plain",
+            "release": "plain",
+            "maxDepth": "plain",
+            "includeNegative": "plain",
+            "maxNodes": "plain",
+        },
+    ),
+    ToolSpec(
+        workflows.harmonize_data_dictionary,
+        "workflow",
+        HarmonizedDictionary | ErrorResult,
+        name="harmonize_data_dictionary",
+        command="harmonize-data-dictionary",
+        audit={"registryRelease": "plain", "columns": "hash", "filters": "hash"},
+    ),
     ToolSpec(
         seam.resolve_stored_value,
         "cross-domain",
