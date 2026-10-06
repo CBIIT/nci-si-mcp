@@ -64,6 +64,8 @@ remains contract-fixture evidence until credentials are issued. The
   rationale, are listed for [EVS](acceptance/request-forms/evs.md), for
   [caDSR](acceptance/request-forms/cadsr.md), for the
   [Shared SI Service](acceptance/request-forms/ssis.md) and for [all](acceptance/request-forms/all.md).
+  [Upstream requirements](docs/upstream/README.md) link the remaining platform requests to
+  their evidence, affected tests, workarounds and acceptance criteria.
 - **NCI reviewers and the suite's maintainers**: [acceptance/README.md](acceptance/README.md) and
   [acceptance/fixtures/README.md](acceptance/fixtures/README.md), where the fixtures come from.
 - **Working on this repository**: [CONTRIBUTING.md](CONTRIBUTING.md) for the commands, standards

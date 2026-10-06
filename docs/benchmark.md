@@ -69,7 +69,7 @@ also reads **MODIFIED**, because this is not an approved furnished suite release
 
 No live acceptance failure was invented to produce a `PASS (fixture only)` row. The known
 upstream dependencies still apply, including C-1 registry releases, C-3 keyword search and
-C-6 matching parameters/access. The [upstream requirements work](https://github.com/hniedner/nci-si-mcp/issues/42)
+C-6 matching parameters/access. The [upstream requirements packages](upstream/README.md)
 records their reproduction evidence and affected cases separately; a skipped live test
 is never recast as a passed live test. Representative benchmark results supplement the
 acceptance evidence and do not replace its assertions.
