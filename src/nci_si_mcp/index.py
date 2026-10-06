@@ -23,6 +23,7 @@ from .errors import (
     IndexBuildError,
     IndexCompatibilityError,
     IndexEvaluationError,
+    IndexStateError,
     IndexStorageError,
     NoActiveIndexError,
     PlatformError,
@@ -216,7 +217,7 @@ def _check_sample_snapshot(conn: sqlite3.Connection, active: IndexManifest | Non
     expected = active.build_id if active else None
     current = row[0] if row else None
     if expected != current:
-        raise IndexBuildError("The active index changed during sample indexing; retry the sample")
+        raise IndexStateError("The active index changed during sample indexing; retry the sample")
 
 
 class LocalIndex:
@@ -435,7 +436,7 @@ class LocalIndex:
             (build_id,),
         ).fetchone()
         if not row:
-            raise IndexBuildError(
+            raise IndexStateError(
                 "Unknown completed build; list available builds with index-builds"
             )
         manifest = LocalIndex._manifest(row)
@@ -473,7 +474,7 @@ class LocalIndex:
                     (build_id,),
                 ).fetchone()
                 if not row:
-                    raise IndexBuildError("Unknown build; list available builds with index-builds")
+                    raise IndexStateError("Unknown build; list available builds with index-builds")
                 old = self._manifest(row)
                 for item in conn.execute(
                     "SELECT payload FROM concepts WHERE build_id = ? ORDER BY code", (build_id,)

@@ -286,7 +286,7 @@ def search(
 
     Each entry of `score_components` is min-max normalized over the
     fields scored for this query: the best is 1.0 however poor the match,
-    the weakest is 0.0 even when it matches, and when only one concept is
+    the weakest is 0.0 even when it matches, and when only one field is
     scored, or all tie, they are all 1.0. Exact preferred-name hits score 1
     and win ties, comparing case-insensitively after NFC and whitespace collapsing.
     A component that was not computed
@@ -305,7 +305,7 @@ def search(
     out; it then names the `results` bound and how many were `omitted`,
     `exact` where that is a count and not a lower bound."""
     query, limit, normalized_mode = validate_search(query, limit, mode)
-    hits, truncation = context.index.search_with_truncation(
+    hits, truncation, manifest = context.index.search_snapshot(
         query, context.embedding_provider, limit=limit, mode=normalized_mode
     )
     result: dict[str, Any] = {
@@ -319,15 +319,8 @@ def search(
     }
     # A result with no item has none to carry the provenance (M3.2).
     if not hits:
-        result["provenance"] = _active_manifest(context).provenance().to_dict()
+        result["provenance"] = manifest.provenance().to_dict()
     return result
-
-
-def _active_manifest(context: Context) -> IndexManifest:
-    manifest = context.index.get_active_manifest()
-    if not manifest:
-        raise NoActiveIndexError("No active NCIt index is available")
-    return manifest
 
 
 def _concept_uri(context: Context, code: str, pinned_terminology: str) -> str:
@@ -371,8 +364,9 @@ def lookup(
             raise PlatformError(
                 "release_mismatch",
                 f"The current {release.channel} release is {release.version} but the active "
-                f"index holds {manifest.release_version}. Rebuild the index with "
-                "`index-sample`, or use live_only to read live EVS without consulting it.",
+                f"index holds {manifest.release_version}. Build the current release with "
+                "`index-build` and activate its passing build with `index-activate`, "
+                "or use live_only to read live EVS without consulting the index.",
                 requested=release.version,
                 served=[manifest.release_version],
                 source="index",

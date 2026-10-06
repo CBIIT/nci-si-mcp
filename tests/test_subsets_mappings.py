@@ -63,6 +63,7 @@ class SubsetsMappingsTest(ServerFixture):
             "https://example.invalid/api/v1/concept/ncit_26.06e/C1?include=minimal%2Cassociations",
         )
         self.assertEqual(result["subsets"][0]["provenance"]["release"]["identifier"], "26.06e")
+        self.assertNotIn("provenance", result)
 
     def test_mapping_values_order_and_optional_target_version_survive_closed_projection(self):
         second = self.mapping | {
@@ -85,6 +86,7 @@ class SubsetsMappingsTest(ServerFixture):
             "https://example.invalid/api/v1/concept/ncit_26.06e/C1?include=minimal%2Cmaps",
         )
         self.assertEqual(result["mappings"][0]["provenance"]["release"]["identifier"], "26.06e")
+        self.assertNotIn("provenance", result)
 
     def test_null_empty_and_absent_optional_mapping_fields_are_omitted(self):
         for value in (None, ""):
@@ -110,7 +112,8 @@ class SubsetsMappingsTest(ServerFixture):
                 self.assertTrue(
                     all(row["targetTerminology"] == label for row in result["mappings"])
                 )
-                self.assertEqual(result["provenance"]["release"]["identifier"], "26.06e")
+                source = result["mappings"][0] if count else result
+                self.assertEqual(source["provenance"]["release"]["identifier"], "26.06e")
 
     def test_missing_required_fields_fail_instead_of_skipping_even_a_filtered_map(self):
         for field in self.mapping:

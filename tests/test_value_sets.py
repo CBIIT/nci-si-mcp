@@ -45,6 +45,7 @@ class ValueSetTest(ServerFixture):
         self.assertEqual(result["total"], 534)
         self.assertEqual(result["truncation"], {"occurred": False})
         provenance = result["members"][0]["provenance"]
+        self.assertNotIn("provenance", result)
         self.assertEqual(provenance["upstream"], {"url": CANONICAL, "version": "26.09d"})
         self.assertEqual(provenance["source"], "evs_fhir")
         self.assertEqual(provenance["release"], {"terminology": "ncit", "identifier": "26.09d"})
@@ -225,7 +226,8 @@ class ValueSetTest(ServerFixture):
         self.assertTrue(request.full_url.startswith("https://fhir.invalid/r4/ValueSet/$expand?"))
         self.assertEqual(request.get_header("X-evsrestapi-license-key"), "test-only")
         self.assertEqual(
-            request.get_header("X-correlation-id"), result["provenance"]["correlationId"]
+            request.get_header("X-correlation-id"),
+            result["members"][0]["provenance"]["correlationId"],
         )
         self.assertEqual(timeout, 7)
         self.assertEqual(

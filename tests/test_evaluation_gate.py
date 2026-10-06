@@ -10,7 +10,7 @@ from fakes import concept
 from nci_si_mcp.embeddings import EmbeddingProvider, HashingEmbeddingProvider
 from nci_si_mcp.errors import IndexBuildError, correlated
 from nci_si_mcp.evaluation import evaluate_build
-from nci_si_mcp.evaluation_sets import GoldQuery, parse_set
+from nci_si_mcp.evaluation_sets import GoldQuery, MetricFloor, parse_set
 from nci_si_mcp.index import LocalIndex
 from test_evaluation_sets import sample_set_payload
 
@@ -27,6 +27,31 @@ class OrthogonalProvider(EmbeddingProvider):
 
 
 class EvaluationGateTests(unittest.TestCase):
+    def test_hit_at_five_independently_blocks_activation_when_mrr_passes(self):
+        candidate = self.index.build(
+            [concept(f"C{i}", "Identical") for i in range(1, 7)],
+            None,
+            self.provider,
+            build_kind="production",
+        )
+        dataset = replace(
+            self.dataset,
+            queries=(GoldQuery("Identical", ("C6",)),),
+            semantic=MetricFloor(hit_at_5=1, mrr_at_10=0.1),
+            hybrid=MetricFloor(hit_at_5=1, mrr_at_10=0.1),
+        )
+        evaluated = evaluate_build(self.index, self.provider, dataset, candidate.build_id)
+        report = evaluated.evaluation_report
+        self.assertEqual(report["gold_codes_not_indexed"], [])
+        for result in report["results"]:
+            with self.subTest(mode=result["mode"]):
+                self.assertEqual(result["hit_at_5"], 0)
+                self.assertAlmostEqual(result["mean_reciprocal_rank"], 1 / 6)
+        self.assertFalse(report["passed"])
+        with self.assertRaisesRegex(IndexBuildError, "passing evaluation"):
+            self.index.activate(candidate.build_id)
+        self.assertIsNone(self.index.get_active_manifest())
+
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)

@@ -167,7 +167,7 @@ def get_concept_subsets(
                     "provenance": _item_provenance(row, provenance),
                 }
             )
-    return {"subsets": subsets, "provenance": provenance}
+    return {"subsets": subsets} | ({"provenance": provenance} if not subsets else {})
 
 
 def expand_value_set(
@@ -228,7 +228,7 @@ def get_concept_mappings(
     mappings = [_mapping_record(row, provenance) for row in rows]
     if targetTerminology is not None:
         mappings = [row for row in mappings if row["targetTerminology"] == targetTerminology]
-    return {"mappings": mappings, "provenance": provenance}
+    return {"mappings": mappings} | ({"provenance": provenance} if not mappings else {})
 
 
 def _concept_rows(
@@ -358,11 +358,11 @@ def get_concepts(
     unique = list(dict.fromkeys(requested))
     sections, upstream = _includes(include)
     if not unique:
-        return {"concepts": [], "missing": []}
+        return {"concepts": [], "missing": [], "provenance": _empty_provenance(selected)}
     _batch_target(context, selected, unique, upstream)
     raw = context.evs.get_concepts_by_codes(unique, selected, include=upstream)
     found = _reconcile_batch(raw, set(unique))
-    return {
+    result = {
         "concepts": [
             _project(context, selected, found[code], sections)
             for code in requested
@@ -370,6 +370,19 @@ def get_concepts(
         ],
         "missing": [code for code in requested if code not in found],
     }
+    if not found:
+        result["provenance"] = _empty_provenance(selected)
+    return result
+
+
+def _empty_provenance(release: ReleaseContext) -> dict[str, Any]:
+    return ProvenanceEnvelope(
+        release=release_ref(release.terminology, release.version, release.date),
+        source="evs_rest",
+        served_by="live",
+        retrieved_at=utc_now_iso(),
+        correlation_id=call_correlation_id(),
+    ).to_dict()
 
 
 def _batch_codes(codes: list[str], terminology: str) -> list[str]:
@@ -430,7 +443,9 @@ def list_relationships(context: Context, terminology: str, release: str) -> dict
         relationships = load_catalogue(
             context.evs, selected, exclusion_codes(context.settings, terminology)
         )
-    return {"relationships": relationships}
+    return {"relationships": relationships} | (
+        {"provenance": _empty_provenance(selected)} if not relationships else {}
+    )
 
 
 def search_concepts(

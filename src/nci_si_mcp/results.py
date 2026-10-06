@@ -112,6 +112,7 @@ class Concept(TypedDict):
 class ConceptBatch(TypedDict):
     concepts: list[Concept]
     missing: list[str]
+    provenance: NotRequired[Provenance]
 
 
 class Replacement(TypedDict):
@@ -139,7 +140,7 @@ class Subset(TypedDict):
 
 class SubsetsResult(TypedDict):
     subsets: list[Subset]
-    provenance: Provenance
+    provenance: NotRequired[Provenance]
 
 
 class ValueSetMember(TypedDict):
@@ -154,7 +155,7 @@ class ValueSetExpansion(TypedDict):
     members: list[ValueSetMember]
     total: int
     truncation: Truncation
-    provenance: Provenance
+    provenance: NotRequired[Provenance]
 
 
 class Mapping(TypedDict):
@@ -169,7 +170,7 @@ class Mapping(TypedDict):
 
 class MappingsResult(TypedDict):
     mappings: list[Mapping]
-    provenance: Provenance
+    provenance: NotRequired[Provenance]
 
 
 class CatalogueRelationship(TypedDict):
@@ -183,6 +184,7 @@ class CatalogueRelationship(TypedDict):
 
 class RelationshipsResult(TypedDict):
     relationships: list[CatalogueRelationship]
+    provenance: NotRequired[Provenance]
 
 
 class RankedConcept(TypedDict):

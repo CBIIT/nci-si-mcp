@@ -39,13 +39,18 @@ class BatchContentTest(ServerFixture):
         )
 
     def test_empty_input_is_empty_without_upstream_work(self):
-        self.assertEqual(self.batch([]), {"concepts": [], "missing": []})
+        result = self.batch([])
+        self.assertEqual(result["concepts"], [])
+        self.assertEqual(result["missing"], [])
+        self.assertEqual(result["provenance"]["release"]["identifier"], "26.06e")
+        self.assertEqual(result["provenance"]["source"], "evs_rest")
         self.assertEqual(self.evs.calls, [])
 
     def test_all_missing_is_success_and_preserves_occurrences(self):
-        self.assertEqual(
-            self.batch(["C9", "C8", "C9"]), {"concepts": [], "missing": ["C9", "C8", "C9"]}
-        )
+        result = self.batch(["C9", "C8", "C9"])
+        self.assertEqual(result["concepts"], [])
+        self.assertEqual(result["missing"], ["C9", "C8", "C9"])
+        self.assertEqual(result["provenance"]["release"]["identifier"], "26.06e")
         self.assertEqual(len(self.evs.calls), 1)
 
     def test_each_concept_gets_only_selected_sections_and_its_own_provenance(self):
@@ -56,6 +61,7 @@ class BatchContentTest(ServerFixture):
             licenseText="Upstream text",
         )
         result = self.batch(["C1", "C2"], include=["synonyms", "semanticType", "synonyms"])
+        self.assertNotIn("provenance", result)
         first, second = result["concepts"]
         self.assertEqual(first["synonyms"], [{"name": "One"}])
         self.assertEqual(first["semanticType"], ["Kind"])
@@ -181,7 +187,8 @@ class BatchBoundaryTest(ServerFixture):
         with patch("nci_si_mcp.http_client._open", return_value=FakeResponse(b"[]")) as opened:
             accepted = self.batch([code], include=["synonyms", "definitions", "properties"])
             refused = self.batch([code + "1"], include=["synonyms", "definitions", "properties"])
-        self.assertEqual(accepted, {"concepts": [], "missing": [code]})
+        self.assertEqual(accepted["concepts"], [])
+        self.assertEqual(accepted["missing"], [code])
         self.assertEqual(refused["error"]["code"], "invalid_request")
         self.assertEqual(opened.call_count, 1)
         target = urlsplit(opened.call_args.args[0].full_url)

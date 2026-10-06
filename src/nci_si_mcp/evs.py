@@ -92,6 +92,17 @@ def object_list(payload: dict[str, Any], key: str) -> list[dict[str, Any]]:
     return _object_list(payload.get(key) or [], f"field '{key}'")
 
 
+def _validate_search_page(rows: list[dict[str, Any]], total: int, offset: int, limit: int) -> None:
+    if len(rows) != min(limit, max(0, total - offset)):
+        raise EVSResponseError("EVS search page is incomplete or exceeds its declared total")
+    seen: set[str] = set()
+    for row in rows:
+        code = row.get("code")
+        if not isinstance(code, str) or not code or code in seen:
+            raise EVSResponseError("EVS search page has a missing or duplicate concept code")
+        seen.add(code)
+
+
 def _empty_terminologies(data: Any) -> str | None:
     return "EVS listed no terminologies" if data == [] else None
 
@@ -353,8 +364,7 @@ class EVSClient:
         # EVS omits concepts entirely when total is zero; a positive total still
         # fails the completeness check below if its page is missing.
         rows = _object_list(data.get("concepts", []), "search concepts")
-        if len(rows) != min(limit, max(0, total - offset)):
-            raise EVSResponseError("EVS search page is incomplete or exceeds its declared total")
+        _validate_search_page(rows, total, offset, limit)
         verify_content(rows, release)
         return total, rows
 

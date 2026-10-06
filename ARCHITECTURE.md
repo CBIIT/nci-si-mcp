@@ -359,6 +359,12 @@ MCP tools:
 - `list_terminologies`
 
 - `get_concept`
+- `get_concepts`
+- `list_relationships`
+- `resolve_retired_code`
+- `get_concept_subsets`
+- `get_concept_mappings`
+- `expand_value_set`
 - `search_concepts`
 - `get_concept_hierarchy`
 - `get_concept_neighborhood`
@@ -391,8 +397,8 @@ aliases are removed. QUICKSTART.md lists the error codes.
   with the field count; vectors are processed in chunks and never cached as a full matrix.
 - caDSR/CDE tools are not implemented. Until credentials are issued, their implementation
   uses fixtures crafted from the published contracts; the former status-only stub is removed.
-- Index builds and activation are operator commands. Evaluation gates follow in #29;
-  the operator runbook follows in #40.
+- Index builds and activation are operator commands. Production activation requires a
+  persisted passing evaluation for that build; the operator runbook follows in #40.
 - The package requires Python 3.14 or newer. The `mcp` package comes with the
   optional `server` extra, which only the `serve` command and the server tests
   need.

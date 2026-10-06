@@ -74,7 +74,7 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects twelve EVS tools, no caDSR tools yet, or the same twelve EVS tools, respectively; CLI maintenance commands and resources remain available |
+| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects twelve EVS tools, no caDSR tools yet, or the same twelve EVS tools, respectively; EVS resources are available in `evs` and `unified`. CLI maintenance commands remain available in every profile |
 | `NCI_SI_UPSTREAM_MODE` | `live` | `live` or `fixture`; selects the six base URLs below as a set (next paragraph) |
 | `NCI_SI_EVS_BASE_URL` | `https://api-evsrest.nci.nih.gov` | EVS REST endpoint (`http` or `https`) |
 | `NCI_SI_EVS_FHIR_BASE_URL` | `https://api-evsrest.nci.nih.gov/fhir/r4` | EVS FHIR endpoint |
@@ -698,8 +698,8 @@ EVS wraps in a success status but that is an error envelope, an error
 | `timeout` | Every attempt at an EVS request timed out (`NCI_SI_TIMEOUT_SECONDS`) | `surface`, `seconds`, `attempts` |
 | `bound_exceeded` | An EVS response exceeds `NCI_SI_EVS_MAX_RESPONSE_BYTES`, or the request budget is exhausted before a graph is available | `bound`, `limit`, `reached` (for response size, the limit plus one when EVS declared no length) |
 | `capability_unavailable` | The requested terminology or operation is not supported yet, or an index resource has no active index; the MCP tool descriptions name the interim limits | `capability` |
-| `cursor_expired` | EVS no longer serves the hierarchy cursor’s release; restart with the current release |  `cursorRelease`, `currentRelease` |
-| `internal_error` | `search` or `evaluate` was called before an index was built, the index was built with other embedding settings than the runtime uses, SQLite could not open, read or write the index file named in the message, a production evaluation or sample-isolation check refused an operator command, (CLI only) the index, the embedding model or the MCP package could not be loaded at startup, or the selected relationship catalogue lacks configured exclusion codes | `missingCodes` for missing exclusions only; absent for other causes |
+| `cursor_expired` | EVS no longer serves a hierarchy or live-search cursor’s release, or the active indexed-search build changed; restart the query. Same-release build replacement also expires a cursor, with equal release identifiers | `cursorRelease`, `currentRelease` |
+| `internal_error` | `search` or `evaluate` was called before an index was built, the index was built with other embedding settings than the runtime uses, SQLite could not open, read or write the index file named in the message, a production evaluation or sample-isolation check refused an operator command, the selected build is unavailable or a concurrent writer changed the active build, (CLI only) the index, the embedding model or the MCP package could not be loaded at startup, or the selected relationship catalogue lacks configured exclusion codes | `missingCodes` for missing exclusions only; absent for other causes |
 
 The CLI `release-info` command succeeds during an EVS outage:
 the `evs_api` and `selected_release` fields then hold an error record

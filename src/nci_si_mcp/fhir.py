@@ -30,12 +30,12 @@ def expand(
     members = [_member(row, provenance, canonical) for row in _contains(raw)]
     if active_only:
         members = [member for member in members if not member.get("inactive")]
+    page = members[offset : offset + count]
     return {
-        "members": members[offset : offset + count],
+        "members": page,
         "total": len(members),
         "truncation": {"occurred": False},
-        "provenance": provenance,
-    }
+    } | ({"provenance": provenance} if not page else {})
 
 
 def _verify_value_set(raw: Any, release: ReleaseContext, canonical: str) -> None:

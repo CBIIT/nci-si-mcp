@@ -204,7 +204,7 @@ Unit tests render `tools/list` in every configured profile, validate every schem
 success/error results, and reject malformed records. They assert byte-identical listings
 across release channels, upstream modes, calls and upstream failure (M1.2), and check rendered
 descriptions for unfinished text and unsupported values against behavior (A2.3, A2.4).
-Profiles select the current inventory: eight EVS tools for `evs` and `unified`, no tools yet
+Profiles select the current inventory: twelve EVS tools for `evs` and `unified`, no tools yet
 for `cadsr`. The legacy MCP names and caDSR stub are removed. An input schema states no
 `maximum` for a bounded argument: a value above it is applied as the maximum (the tools'
 `bounds` in `spec/tools.yaml`), and the argument's description states its default and maximum.
