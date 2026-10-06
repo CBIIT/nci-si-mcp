@@ -328,7 +328,7 @@ class AuditAdapterTest(ServerFixture):
 
         with captured() as stream:
             self.session(calls)
-            resource = self.read("nci-si://concept/ncit/C3262")
+            resource = self.read("ncit://concept/26.06e/C3262")
 
         found = records(stream)
         self.assertEqual(len(found), 3)

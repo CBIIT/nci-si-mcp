@@ -604,9 +604,15 @@ beside it are still checked. Descendant checks read final child lists only.
 
 ## MCP Resources
 
-- `nci-si://concept/ncit/{code}`: the CLI lookup result with default options, including indexed fallback during an upstream outage.
-- `nci-si://release/ncit/{version}`: `current` and `latest` return the full CLI `release-info` report for the configured channel, including weekly; the current version returns its `{terminology, channel, version, date}` record. The old `monthly` and `monthly-latest` aliases are rejected. Resource-template replacement remains #30.
-- `nci-si://index/ncit/{version}/manifest`: `active`, or the release the local index holds, returns its manifest; without an index the result is `{"active_index": null}`.
+- `ncit://concept/{release}/{code}`: the pinned `get_concept` record, with synonyms, definitions, properties and semanticType. The release is required; an upstream failure remains an error.
+- `ncit://release/{version}`: a served NCIt version with terminology, channel, version, date, alternatives and provenance. Historical versions use their upstream tags; the configured channel is preferred when both monthly and weekly are present.
+- `ncit://index/manifest/{release}`: the active index's manifest only when its release matches. No active index is `capability_unavailable`; another active release is `release_mismatch`. An inactive matching build is not served.
+
+These JSON resources appear only in the `evs` and `unified` profiles. Successful reads carry
+release-pinned public caching hints on the protocol result. Failed reads are protocol errors;
+handler failures carry the shared error envelope. The old `nci-si://` URIs and moving
+`current`, `latest` and `active` aliases are removed. Use `resolve_release` to discover a
+version, then put that version in the resource URI. CLI `release-info` remains the status report.
 
 ## MCP output schemas
 
@@ -686,15 +692,15 @@ EVS wraps in a success status but that is an error envelope, an error
 | --- | --- | --- |
 | `invalid_request` | An argument is missing, malformed, out of range, or contradicts another; CLI only: an environment variable is invalid | `parameter`, `reason` |
 | `not_found` | The requested release has no concept with that code, or `index-sample` named codes the release does not contain (nothing was indexed) | `identifiers` |
-| `release_not_available` | EVS did not name exactly one latest NCIt release for the channel (`requested` names the requested channel; optional `found` lists versions when several rows were returned), EVS no longer serves the pinned release, or a resource names a release that is not current (or not the one the index holds) | `requested`, `source`, `found` |
+| `release_not_available` | EVS did not name exactly one latest NCIt release for the channel (`requested` names the requested channel; optional `found` lists versions when several rows were returned), EVS no longer serves the pinned release, or a release resource names an unserved version or one with absent/ambiguous channel metadata | `requested`, `source`, `found` |
 | `release_mismatch` | The local index holds a different release than the requested one, or EVS served a concept of another release than the one requested | `requested`, `served` (a list of releases), `source` |
 | `upstream_unavailable` | EVS could not be reached or kept failing after the retries, rejected the request, or returned something unusable: a malformed, HTML or masked-error body, or a 404 from any request other than a single-concept lookup (check `NCI_SI_EVS_BASE_URL`) | `surface`, `status`, `attempts`, `retryAfter` (`status` and `retryAfter` where known) |
 | `timeout` | Every attempt at an EVS request timed out (`NCI_SI_TIMEOUT_SECONDS`) | `surface`, `seconds`, `attempts` |
 | `bound_exceeded` | An EVS response exceeds `NCI_SI_EVS_MAX_RESPONSE_BYTES`, or the request budget is exhausted before a graph is available | `bound`, `limit`, `reached` (for response size, the limit plus one when EVS declared no length) |
-| `capability_unavailable` | The requested terminology or operation is not supported yet; the MCP tool descriptions name the interim limits | `capability` |
+| `capability_unavailable` | The requested terminology or operation is not supported yet, or an index resource has no active index; the MCP tool descriptions name the interim limits | `capability` |
 | `cursor_expired` | EVS no longer serves the hierarchy cursor’s release; restart with the current release |  `cursorRelease`, `currentRelease` |
 | `internal_error` | `search` or `evaluate` was called before an index was built, the index was built with other embedding settings than the runtime uses, SQLite could not open, read or write the index file named in the message, a production evaluation or sample-isolation check refused an operator command, (CLI only) the index, the embedding model or the MCP package could not be loaded at startup, or the selected relationship catalogue lacks configured exclusion codes | `missingCodes` for missing exclusions only; absent for other causes |
 
-The CLI `release-info` command and its moving resource aliases succeed during an EVS outage:
+The CLI `release-info` command succeeds during an EVS outage:
 the `evs_api` and `selected_release` fields then hold an error record
 next to the local index manifest.

@@ -160,7 +160,7 @@ class EveryItemCarriesItsProvenanceTest(ProvenanceTestCase):
         manifest = invoke(
             self.context,
             "index_resource",
-            "active",
+            "26.06e",
         )["provenance"]
 
         self.assert_record(report, REQUIRED, ALLOWED)
@@ -541,7 +541,7 @@ class NoUpstreamUrlTest(ProvenanceTestCase):
         manifest = invoke(
             self.context,
             "index_resource",
-            "active",
+            "26.06e",
         )["provenance"]
 
         self.assertNotIn("sourceUri", empty)
@@ -559,7 +559,7 @@ class RetrievedAtTest(ProvenanceTestCase):
         manifest = invoke(
             self.context,
             "index_resource",
-            "active",
+            "26.06e",
         )["provenance"]
         empty = invoke(self.context, "search", "zzzz", mode="bm25")["provenance"]
 
@@ -605,7 +605,7 @@ class CorrelationOfEveryResultTest(ProvenanceTestCase):
             manifest = invoke(
                 self.context,
                 "index_resource",
-                "active",
+                "26.06e",
             )["provenance"]
             empty = invoke(self.context, "search", "zzzz", mode="bm25")["provenance"]
             hit = invoke(self.context, "search", "neoplasm")["hits"][0]["concept"]["provenance"]
@@ -627,7 +627,7 @@ class CorrelationOfEveryResultTest(ProvenanceTestCase):
             invoke(
                 self.context,
                 "index_resource",
-                "active",
+                "26.06e",
             )["provenance"]["servedBy"],
             "index",
         )
@@ -752,7 +752,7 @@ class EdgeTypeProvenanceTest(ProvenanceTestCase):
             invoke(
                 self.context,
                 "index_resource",
-                "active",
+                "26.06e",
             )["provenance"],
         ]
         for provenance in indexed:

@@ -89,7 +89,7 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 | `registry.py` | Declares each operation once with its handler, output union, cache class and adapter exposure. Derives input models, CLI arguments and MCP parameters from handler signatures; selects tools by profile and invokes all producers through one boundary. | `handlers.py`, `invocation.py`, `caching.py`, `results.py` |
 | `context.py` | Holds injectable settings, clients, index and embedding provider shared by a server or CLI invocation. | EVS client, local index, embeddings |
 | `audit.py` | Emits one redacted JSON completion record per invocation, classifies parameters from the registry, counts actual HTTP attempts in request-scoped state, and formats diagnostics. | Correlation context, standard-library logging and SHA-256 |
-| `handlers.py` | Validates inputs, orchestrates use cases, pins EVS requests to the configured release channel, enforces index compatibility and implements lookup fallback. Owns tool contracts and resource content; moving aliases and absent-index reports select status cache policy. | `context.py`, release, traversal, evaluation |
+| `handlers.py` | Validates inputs, orchestrates use cases, pins EVS requests to the configured release channel, enforces index compatibility and implements lookup fallback. Owns tool contracts and pinned resource content; absent and mismatched indexes are explicit errors. | `context.py`, release, traversal, evaluation |
 | `catalogue.py` | Reads release-pinned roles and associations once per call, validates row identities and the configured terminology-specific exclusion set, and projects relationship records with polarity by code. Missing exclusions fail the listing and neighborhood call with internal_error and missingCodes; no startup reads or cross-call cache. | EVS client, models, configuration |
 | `cursor.py` | Encodes hierarchy continuation positions with their applied arguments; validates malformed or changed continuations before network access. | standard library, errors |
 | `content.py` | Implements the caller-pinned EVS content surface, projects spec concept/node/edge records, and explicitly refuses unsupported Phase 2 options. Reuses fetched graph payloads and batches missing node status reads within the traversal request budget. Indexed search checks the requested release inside its read transaction. | `context.py`, index, traversal, release, validation |
@@ -365,17 +365,20 @@ MCP tools:
 
 MCP resources:
 
-- `nci-si://concept/ncit/{code}`
-- `nci-si://release/ncit/{version}`
-- `nci-si://index/ncit/{version}/manifest`
+- `ncit://concept/{release}/{code}`
+- `ncit://release/{version}`
+- `ncit://index/manifest/{release}`
 
 The `evs` and `unified` profiles expose the twelve EVS tools; `cadsr` currently exposes no tools.
 Each tool has group metadata and read-only, idempotent,
-non-destructive, open-world annotations. Resources are available in every profile.
+non-destructive, open-world annotations. EVS resources are available in `evs` and `unified`
+only. Every resource is release-pinned; concept reads use `get_concept` with every supported
+section, release reads use the requested served version's metadata, and index reads serve only
+the active matching manifest, with `source: evs_index` and `servedBy: index` provenance.
 
 The CLI retains lookup, indexed search, traversal, release-info, sample indexing and
-retrieval evaluation diagnostics. The release report uses `selected_release`; the moving
-resource aliases are `current` and `latest`. QUICKSTART.md lists the error codes.
+retrieval evaluation diagnostics. The release report uses `selected_release`; moving resource
+aliases are removed. QUICKSTART.md lists the error codes.
 
 ## Current boundaries
 

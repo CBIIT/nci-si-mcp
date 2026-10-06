@@ -24,8 +24,8 @@ from test_evs_client import FakeResponse
 from test_handlers import NEOPLASM, HandlerTestCase, release
 
 SPEC_KEYS = {code: set(keys) for code, keys in RECORDS["error"]["detail_keys"].items()}
-# Codes that nothing raises yet; their keys are in the specification for the day something does.
-UNRAISED = {"capability_unavailable", "cursor_expired"}
+# Codes not exercised by these raise sites; cursor tests cover cursor_expired separately.
+UNRAISED = {"cursor_expired"}
 
 
 def http_error(status, headers=None, body=b""):
@@ -64,14 +64,7 @@ class DetailKeysTest(HandlerTestCase):
     def raise_sites(self):
         """(code, details) of an error from each place that raises one with details."""
 
-        self.assertEqual(
-            invoke(
-                self.context,
-                "index_resource",
-                "active",
-            ),
-            {"active_index": None},
-        )
+        absent_manifest = from_the_record(invoke(self.context, "index_resource", "26.06e"))
         no_index = from_the_record(invoke(self.context, "search", "tumor"))
         self.index()
         self.evs.release = release("26.07d", "2026-07-27")
@@ -79,6 +72,7 @@ class DetailKeysTest(HandlerTestCase):
         mismatch = from_the_record(invoke(self.context, "lookup", "C3262"))
         del self.evs.concepts["C40704"]
         return [
+            absent_manifest,
             no_index,
             from_the_record(invoke(self.context, "search", " ")),
             from_the_record(invoke(self.context, "index_codes", ["C3262", "C40704"])),
