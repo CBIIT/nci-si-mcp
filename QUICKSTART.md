@@ -14,8 +14,8 @@ pdm run nci-si-mcp serve
 ```
 
 `pdm install` creates `.venv` from `pdm.lock` and installs the package in editable mode with
-the test and lint tools and the `server` extra (the `mcp` package, which the `serve` command
-and the server tests need). The commands below are written as `python -m nci_si_mcp.cli ...`:
+the test and lint tools, the `server` extra (MCP), and the `index` extra (NumPy for exact
+indexed search). The commands below are written as `python -m nci_si_mcp.cli ...`:
 run them inside the environment (`eval $(pdm venv activate)`) or prefix them with `pdm run`.
 
 To run a released version without a checkout, install it from its tag; the
@@ -519,7 +519,7 @@ not. The same fields everywhere:
 
 An item reached by traversal adds `depth` (an edge has that of the node it reaches; the start
 codes have 0); and, for any item but a start code, `relationship` (`kind`; for a role or
-association also its `code` and `name`; a hierarchy link has only its kind: `parent`, `child` or
+association its `name` and its `code` when upstream supplied one; a hierarchy link has only its kind: `parent`, `child` or
 `descendant`), `direction` (`out` or `in`, the way the edge type is followed) and `polarity`
 (`negative` for configured NCIt exclusion roles, R135 to R142 by default, otherwise
 `positive`). Polarity follows the relationship code. Other terminologies have no exclusion
@@ -532,8 +532,8 @@ was cut. Otherwise it holds `bound` (`results`, `depth`, `nodes`, `edges`, `kind
 traversal reports the first bound that dropped something; it counts the concepts or edges it
 dropped, not those beyond them, so `exact` is false. `upstream_cap` is a concept whose relations
 or descendants exceeded `NCI_SI_EVS_MAX_RESPONSE_BYTES`: `omitted` counts such concepts, and the
-log names them. A search reports `results` when `limit` left scored concepts out; `exact` is true
-where every candidate was scored.
+log names them. CLI search reports `results` when `limit` left scored concepts out; `exact` is true
+where every candidate was scored. MCP search pages with `nextCursor` instead of truncating.
 `kind_budget` counts new nodes omitted by the first exhausted kind. `requests` counts
 unread work as a lower bound; when the number of relations left out for a kind is
 unknown, its record gives `omitted: 0` and `exact: false`.
@@ -584,9 +584,11 @@ take turns across the whole frontier; each kind spends its allowance only on
 new nodes. Edges to existing nodes do not spend that allowance. Mixed-kind walks
 report `perKind` truncation records when anything is dropped.
 
-Each traversal can make at most 200 HTTP attempts, including retries, split batches and status hydration. Exhaustion before any graph is available returns
-`bound_exceeded`; otherwise the partial graph reports the first bound that dropped
-anything, using `requests` if no earlier bound was reached. Unread kinds carry
+Each traversal can make at most 200 HTTP attempts, including retries, split batches and status hydration.
+Hierarchy paging replays the pinned walk; exhausting its request budget returns
+`bound_exceeded` and asks the caller to narrow the query. Neighborhood and CLI traversal
+return `bound_exceeded` before any graph is available; otherwise the partial graph reports
+the first bound that dropped anything, using `requests` if no earlier bound was reached. Unread kinds carry
 their own truncation record with `omitted: 0` and `exact: false` when the omitted
 relation count is unknown. An explicit kind allowance uses `kind_budget`
 truncation. These budgets are independent for concurrent calls.
@@ -632,8 +634,7 @@ content. Lookup, search (including an empty result) and traversal use 86,400,000
 
 The four list methods and `server/discover` carry 86,400,000 ms and `public` as result
 fields. Resource reads carry the same fields on the read result: concept content and
-version-addressed release/index content use 86,400,000 ms and `public`. Moving release-report
-aliases, the `active` index alias, and an absent-index report use 0 and `public`.
+version-addressed release/index content use 86,400,000 ms and `public`.
 
 ## Audit records
 
@@ -697,7 +698,7 @@ EVS wraps in a success status but that is an error envelope, an error
 | `release_mismatch` | The local index holds a different release than the requested one, or EVS served a concept of another release than the one requested | `requested`, `served` (a list of releases), `source` |
 | `upstream_unavailable` | EVS could not be reached or kept failing after the retries, rejected the request, or returned something unusable: a malformed, HTML or masked-error body, or a 404 from any request other than a single-concept lookup (check `NCI_SI_EVS_BASE_URL`) | `surface`, `status`, `attempts`, `retryAfter` (`status` and `retryAfter` where known) |
 | `timeout` | Every attempt at an EVS request timed out (`NCI_SI_TIMEOUT_SECONDS`) | `surface`, `seconds`, `attempts` |
-| `bound_exceeded` | An EVS response exceeds `NCI_SI_EVS_MAX_RESPONSE_BYTES`, or the request budget is exhausted before a graph is available | `bound`, `limit`, `reached` (for response size, the limit plus one when EVS declared no length) |
+| `bound_exceeded` | An EVS response exceeds `NCI_SI_EVS_MAX_RESPONSE_BYTES`, the request budget is exhausted before a graph is available, or hierarchy page replay exhausts its request budget | `bound`, `limit`, `reached` (for response size, the limit plus one when EVS declared no length) |
 | `capability_unavailable` | The requested terminology or operation is not supported yet, or an index resource has no active index; the MCP tool descriptions name the interim limits | `capability` |
 | `cursor_expired` | EVS no longer serves a hierarchy or live-search cursor’s release, or the active indexed-search build changed; restart the query. Same-release build replacement also expires a cursor, with equal release identifiers | `cursorRelease`, `currentRelease` |
 | `internal_error` | `search` or `evaluate` was called before an index was built, the index was built with other embedding settings than the runtime uses, SQLite could not open, read or write the index file named in the message, a production evaluation or sample-isolation check refused an operator command, the selected build is unavailable or a concurrent writer changed the active build, (CLI only) the index, the embedding model or the MCP package could not be loaded at startup, or the selected relationship catalogue lacks configured exclusion codes | `missingCodes` for missing exclusions only; absent for other causes |
