@@ -17,7 +17,7 @@ def cache_hint(
     computed: bool = False,
     implicit: bool = False,
 ) -> dict[str, int | str]:
-    """Governed content is shareable; failed calls must not be cached."""
+    """Select freshness and sharing for the producer's response class."""
 
     private = any((error, computed, implicit))
     return {
