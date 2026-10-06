@@ -298,7 +298,7 @@ class CaDSRClient:
         try:
             response = self.http.get_json(f"{DATA_API}/registry/releases")
         except UpstreamRejectedError as exc:
-            if exc.details.get("status") != HTTPStatus.NOT_FOUND or not exc._empty_body:
+            if exc.details.get("status") != HTTPStatus.NOT_FOUND or not exc.empty_body:
                 raise
             return []
         return _items(response, "registryReleases")

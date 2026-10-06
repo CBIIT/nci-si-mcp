@@ -453,7 +453,7 @@ One match of match_value_meanings, in the platform's order.
 | `item` | The item matched, as vmMatch gives it: { itemType, publicId, version, name, concept?, evsSource?, context, workflowStatus, registrationStatus?, provenance }. itemType is Concept or ValueMeaning, publicId that item's caDSR public id (itemId), name its matchedName; concept is the code it stands for, in the code system evsSource names (NCI_CONCEPT_CODE, SNOMED-CT_CODE, ...), each absent where the platform gives none; registrationStatus is absent, never null, where the platform gives none | A9.1 |
 | `rule` | The rule the platform says matched (vmMatch's ruleDescription), unchanged | A9.2 |
 | `score` | The platform's score, where it gives one; absent, never null, where it does not (vmMatch gives none) (optional) | A9.2 |
-| `crosswalk` | The crosswalk the platform gives, { code, description } from crosswalkCode and crosswalkDescription; absent where it gives none, the platform's NA meaning no crosswalk (optional) | match_value_meanings |
+| `crosswalk` | The crosswalk the platform gives, { code, description } from crosswalkCode and crosswalkDescription; absent where it gives none, an empty code or the platform's NA meaning no crosswalk (optional) | match_value_meanings |
 
 ### The form record
 

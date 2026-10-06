@@ -60,9 +60,12 @@ class UpstreamTimeoutError(UpstreamUnavailableError):
 
 
 class UpstreamRejectedError(UpstreamError):
-    """The platform refused the request with a status that a retry cannot change."""
+    """The platform refused the request with a status that a retry cannot change.
 
-    _empty_body = False
+    empty_body is true only when the bounded error-body read succeeded with no bytes.
+    """
+
+    empty_body = False
 
 
 class UpstreamTooLargeError(UpstreamError):
@@ -392,7 +395,7 @@ class HttpClient:
         failure = UpstreamRejectedError(
             message, surface=self.surface, status=exc.code, attempts=attempt.number
         )
-        failure._empty_body = empty_body
+        failure.empty_body = empty_body
         return failure
 
     def _exchange(self, request: Request, path: str, attempt: _Attempt) -> Any:

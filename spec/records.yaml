@@ -537,8 +537,8 @@ value_meaning_match:
     crosswalk:
       content: >-
         The crosswalk the platform gives, { code, description } from crosswalkCode and
-        crosswalkDescription; absent where it gives none, the platform's NA meaning no
-        crosswalk
+        crosswalkDescription; absent where it gives none, an empty code or the platform's
+        NA meaning no crosswalk
       optional: true
       of: match_value_meanings
 form:

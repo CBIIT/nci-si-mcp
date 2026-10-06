@@ -16,9 +16,18 @@ from test_server import ServerFixture
 
 
 class CaDSRAdapterMutationTest(ServerFixture):
+    def setUp(self):
+        super().setUp()
+        self.enterContext(
+            patch(
+                "nci_si_mcp.http_client._open",
+                side_effect=AssertionError("Unexpected HTTP request"),
+            )
+        )
+
     def injected_context(self):
         self.state = registry_state(
-            "2026-07-01T22:19", None, source_distribution="releasedCDEsXML-OD.zip"
+            "1901-02-03T04:05", None, source_distribution="releasedCDEsXML-OD.zip"
         )
         client = SimpleNamespace(resolve_registry_release=lambda: self.state)
         return Context(

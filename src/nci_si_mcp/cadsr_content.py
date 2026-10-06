@@ -361,7 +361,7 @@ def search_data_elements(
     result = _page(records, "results", position.offset, size, args, provenance)
     result["truncation"] = _search_truncation(len(rows), response.get("numRecords"))
     count = response.get("numRecords")
-    if type(count) is int and count >= len(rows):
+    if type(count) is int:
         result["totalKnown"] = count
     select_cache_hint(resolution=False, unpinned=registryRelease is None)
     return result

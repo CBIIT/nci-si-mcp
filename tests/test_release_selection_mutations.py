@@ -15,6 +15,35 @@ from test_server import ServerFixture
 
 
 class ReleaseSelectionMutationTest(ServerFixture):
+    def test_expired_search_cursor_discovers_the_configured_weekly_release(self):
+        self.context.settings = replace(self.settings, release_channel="weekly")
+        arguments = {
+            "terminology": "ncit",
+            "query": "Q",
+            "mode": "lexical",
+            "release": "26.06e",
+            "limit": 1,
+        }
+        with patch.object(
+            self.evs, "search_concepts", create=True, return_value=(2, [concept("C1", active=True)])
+        ):
+            first = invoke(self.context, "search_concepts", **arguments)
+        self.evs.release = release("26.07d", channel="weekly")
+        with patch.object(
+            self.evs,
+            "search_concepts",
+            create=True,
+            side_effect=EVSReleaseNotFoundError("withdrawn"),
+        ):
+            result = invoke(
+                self.context, "search_concepts", **arguments, cursor=first["nextCursor"]
+            )
+        self.assertEqual(result["error"]["code"], "cursor_expired")
+        self.assertEqual(
+            result["error"]["details"], {"cursorRelease": "26.06e", "currentRelease": "26.07d"}
+        )
+        self.assertIn(("get_terminologies", "ncit", (True, "weekly")), self.evs.calls)
+
     def test_each_implicit_content_tool_validates_before_discovery(self):
         cases = (
             ("get_concept", {"code": "bad"}),

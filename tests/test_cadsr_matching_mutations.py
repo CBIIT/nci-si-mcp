@@ -190,6 +190,7 @@ class MatchingBoundariesTest(ServerTestCase):
         rows.append(missing)
         rows.append(vm_row(ruleDescription=5))
         rows.append(vm_row(crosswalkCode="mapped", crosswalkDescription=None))
+        rows.append(vm_row(crosswalkCode=123))
         self.assert_malformed(
             "match_value_meanings", {"values": ["Q"]}, [vm_response(matches=[row]) for row in rows]
         )
@@ -209,7 +210,11 @@ class MatchingBoundariesTest(ServerTestCase):
     def test_vm_present_optional_fields_survive_and_null_scores_and_crosswalks_are_absent(self):
         absent = vm_row(score=None, registrationStatus="Qualified")
         del absent["crosswalkCode"]
-        rows = [absent, vm_row(score=None, crosswalkCode=None, crosswalkDescription=None)]
+        rows = [
+            absent,
+            vm_row(score=None, crosswalkCode=None, crosswalkDescription=None),
+            vm_row(score=None, crosswalkCode="", crosswalkDescription=""),
+        ]
         result = self.call(
             self.serve(reply(vm_response(matches=rows))), "match_value_meanings", values=["Q"]
         )
