@@ -168,3 +168,17 @@ class FakeEVS:
     def get_descendants(self, code, max_level, release):
         self._record("get_descendants", release.pinned_terminology, (code, max_level))
         return [item for item in self.descendants.get(code, []) if item["level"] <= max_level]
+
+
+def data_element(public_id="123", **extra):
+    return {
+        "publicId": public_id,
+        "version": "2",
+        "longName": "Contract fixture",
+        "context": "TEST",
+        "workflowStatus": "RETIRED ARCHIVED",
+        "registrationStatus": "Application",
+        "dateCreated": "2020-01-01",
+        "dateModified": "2026-08-25",
+        **extra,
+    }

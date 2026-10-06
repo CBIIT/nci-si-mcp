@@ -343,7 +343,7 @@ only those needed by this phase are implemented, and requested upstream operatio
 | data element by public id | `GET /rad/NCIAPI/1.0/api/DataElement/{id}` | `version` is the **item's** version, exposed as such |
 | data elements by concept | `GET /rad/NCIAPI/1.0/api/DataElements/Concept?conceptCode=&headerOnly=true` | single concept only; 9.7–20 s measured — tool declares a 30 s timeout |
 | CRDC crosswalk | `GET …/DataElements/getCRDCList` | unparameterised; cached per export date |
-| data element search | `GET …/DataElement/search?keyword={q}&pageSize={n}` | **Requested OP-C03, not served today (C-3).** Tested against crafted OP-C03 fixtures; no filter or registry-release parameters, fallback route or synthetic result. The live route interprets search as a public id and returns type E, left as `upstream_unavailable` in #31. #33 decides the tool-level capability policy. The 1,000 cap belongs to the documented filtered list paths, not a served search. |
+| data element search | `GET …/DataElement/search?keyword={q}&pageSize={n}` | **Requested OP-C03, not served today (C-3).** Tested against crafted OP-C03 fixtures; no filter parameters, fallback route or synthetic result. A verified future C-1 registry pin is sent as `registryRelease`, as on every content request. The live type-E answer stays `upstream_unavailable` with fixed per-tool guidance: retrying cannot add keyword search; use data-element lookup by public id or question text. The 1,000 cap belongs to the documented filtered list paths, not a served search. |
 | contexts, item types, workflow statuses | `GET /rad/NCILovAPI/1.0/api/getContextNames` etc. | enumerations; definitions are absent upstream and the result says so |
 | classification schemes | from the data-element payload's `ClassificationSchemes[]` with nested items | first-class objects |
 | forms | `GET /rad/NCIFormAPI.v2_0:NciFormApiRad/Form/{publicId}` and `/Form/query` | keyword search requires `publicId` or `protocolId` upstream; a keyword-only request is `invalid_request` with that stated |
@@ -354,17 +354,34 @@ only those needed by this phase are implemented, and requested upstream operatio
 
 Matching credentials stay server-side. CDE Match sends one `apiinput` object per entity, never an array fallback; transport retries repeat the identical request. VM Match sends the contract array with `matchType`, `function` and optional `evsTerminologyCodes` headers. A 401 propagates explicitly. CDE Match and LOV now refuse anonymous calls in the recorded evidence; this is not a claim that either operation is public. The recorded unknown-form type-E envelope remains an upstream failure under X-15; #35 must decide any operation-specific not-found interpretation without matching message text.
 
-### 5.2 Tools (`cadsr/tools.py`)
+### 5.2 Tools (`cadsr_content.py`)
 
-Ten tools, signatures in the specification (group `cadsr`). Specific behaviours:
+Ten planned tools, signatures in the specification (group `cadsr`). The five lookup and
+registry tools are implemented in the flat package through the shared registry, along with
+data-element and registry resources. Matching and forms/crosswalks follow in #34/#35.
+
+Content requests without `registryRelease` carry none and have provenance `{registry: cadsr}`.
+For a requested pin, discovery must list exactly one matching identifier with a valid date;
+absent/unlisted pins are `release_not_available` before content access. Every content request
+then carries the verified pin, and every response must echo it or fail `release_mismatch`.
+The future C-1 data-element fixture uses `/DataElement?publicId=…&registryRelease=…`;
+today's unpinned operation continues to use `/DataElement/{id}`. Neither falls back to the other.
+No item version or export date is substituted. Local cursors bind all applied arguments,
+including the normalized limit and registry pin, and preserve platform order.
+
+Governed unpinned content is 3,600,000/public; verified pinned content is 86,400,000/public.
+The producer selects that policy inside the shared cache scope. Tool resolution is 0/public;
+the registry resource is unpinned content with a short positive TTL and source provenance.
+Errors remain 0/private. Specific behaviours:
 
 - `resolve_registry_release` → `{published: false, generatedAt, sourceDistribution}` today, with no `identifier`; when a registry release is published, `published` is true, `identifier` is present and `generatedAt` is the release's own date (§3.3); `ttlMs` 0.
-- `search_data_elements` → filters by context, workflow status, registration status, value-domain type; truncation at the cap reported; `totalKnown` where available.
+- `get_data_element` → exactly one selector; preferred-question lookup resolves a unique public id to the full record, none to not_found and several to invalid_request naming candidates. Long-name lookup is unavailable (OP-C02). Only the requested sections accompany the record's own fields; permissible values and schemes have per-item provenance, and value meanings retain concept primary flags. Item versions and statuses are unchanged.
+- `search_data_elements` → the requested lexical route only, with local paging of its returned list, limit 10/100, no invented score or count. A cap of 1,000 reports upstream_cap, omitted at least 1, exact false. An explicit upstream count becomes totalKnown; a contradictory count fails. Semantic/hybrid are capability_unavailable (OP-C04). Nonempty filters are capability_unavailable until #42 supplies their upstream parameter contract; no filter is ignored or sent speculatively.
 - `match_data_elements` → `modelVariant` and `similarityThreshold` are **rejected with `invalid_request`** naming the parameter when supplied, because the published contract does not expose them; the rejection message cites the upstream requirements package. When the contract gains them, the rejection is removed and nothing else changes.
 - `get_form` → by public id with modules and questions; keyword search returns `invalid_request` stating the upstream constraint.
 - `get_permissible_value` → by data element and value; states that no stable identifier exists in the SI projection (S-3).
 - `get_code_map` → `getCRDCList` plus Model API crosswalks; per-node coverage stated; PDC and IDC report `no value-level binding` rather than empty.
-- `list_contexts` / `list_classification_schemes` → from LOV and the DE payload; `definition: null` is explicit.
+- `list_contexts` → paged LOV names as identifiers, with provenance and no definition field. `list_classification_schemes` is capability_unavailable (OP-C13); get_data_element's classificationSchemes section exposes the element's schemes and nested items.
 
 ---
 

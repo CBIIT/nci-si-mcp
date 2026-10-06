@@ -5,14 +5,17 @@ from contextlib import contextmanager, nullcontext
 from contextvars import ContextVar
 
 LONG_TTL_MS = 86_400_000
+SHORT_TTL_MS = 3_600_000
 _decision: ContextVar[dict[str, int | str]] = ContextVar("cache_decision")
 
 
-def cache_hint(*, resolution: bool = False, error: bool = False) -> dict[str, int | str]:
+def cache_hint(
+    *, resolution: bool = False, error: bool = False, unpinned: bool = False
+) -> dict[str, int | str]:
     """Governed content is shareable; failed calls must not be cached."""
 
     return {
-        "ttlMs": 0 if resolution or error else LONG_TTL_MS,
+        "ttlMs": 0 if resolution or error else SHORT_TTL_MS if unpinned else LONG_TTL_MS,
         "cacheScope": "private" if error else "public",
     }
 
@@ -29,10 +32,10 @@ def cache_call() -> Iterator[dict[str, int | str]]:
         _decision.reset(token)
 
 
-def select_cache_hint(*, resolution: bool) -> None:
+def select_cache_hint(*, resolution: bool, unpinned: bool = False) -> None:
     """Declare the current response's class at its producer, never from serialized content."""
 
-    _decision.get().update(cache_hint(resolution=resolution))
+    _decision.get().update(cache_hint(resolution=resolution, unpinned=unpinned))
 
 
 @contextmanager

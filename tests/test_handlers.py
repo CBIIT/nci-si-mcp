@@ -684,7 +684,7 @@ class ErrorModelTest(HandlerTestCase):
             (
                 UpstreamTooLargeError("too big", bound="b", limit=5, reached=6),
                 "bound_exceeded",
-                "NCI_SI_EVS_MAX_RESPONSE",
+                "Ask for a smaller response or check the upstream response limit.",
                 {"bound": "b", "limit": 5, "reached": 6},
             ),
             (

@@ -41,6 +41,16 @@ ProvenanceSource = Literal[
     "evs_rest", "evs_fhir", "evs_index", "cadsr_rest", "cadsr_export", "ssis_facade", "ssis_sparql"
 ]
 ServedBy = Literal["live", "cache", "index", "fixture"]
+DataElementInclude = Literal[
+    "permissibleValues",
+    "valueDomain",
+    "conceptAssociations",
+    "alternateNames",
+    "classificationSchemes",
+]
+RegistrySearchMode = Literal["lexical", "semantic", "hybrid"]
+DataElementConceptRole = Literal["objectClass", "property"]
+DataElementFilter = Literal["context", "workflowStatus", "registrationStatus", "valueDomainType"]
 
 PROFILES = frozenset(get_args(Profile))
 UPSTREAM_MODES = frozenset(get_args(UpstreamMode))

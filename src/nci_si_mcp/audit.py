@@ -171,7 +171,10 @@ class Audit:
             tool=self.tool,
             parameters=safe,
             target={key: safe[key] for key in ("terminology", "context") if key in safe},
-            release={"requested": safe.get("release"), "resolved": _releases(self.result)},
+            release={
+                "requested": safe.get("release", safe.get("registryRelease")),
+                "resolved": _releases(self.result),
+            },
             status="ok" if outcome["responseCode"] == "ok" else "error",
             errorType=self.error_type,
             outboundRequests=self.outbound_requests,

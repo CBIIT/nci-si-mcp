@@ -119,6 +119,31 @@ def _version_params(version: str | None) -> dict[str, Any]:
     return {"version": version}
 
 
+def _verify_registry_pin(response: Any, requested: str | None) -> None:
+    if requested is None:
+        return
+    actual = response.get("registryRelease") if isinstance(response, dict) else None
+    if actual != requested:
+        raise PlatformError(
+            "release_mismatch",
+            "caDSR did not confirm the requested registry release. "
+            "Retry after the platform fixes its pinning.",
+            expected=requested,
+            actual=actual,
+            source="cadsr",
+        )
+
+
+def data_element_request(
+    public_id: str, version: str | None, registry_release: str | None
+) -> tuple[str, dict[str, Any]]:
+    """C-1's requested pinned route differs from today's public-id path."""
+    params = _version_params(version) | {"registryRelease": registry_release}
+    if registry_release is not None:
+        return f"{DATA_API}/DataElement", params | {"publicId": public_id}
+    return f"{DATA_API}/DataElement/{public_id}", params
+
+
 class CaDSRClient:
     def __init__(self, settings: Settings) -> None:
         credential = settings.cadsr_credential
@@ -152,26 +177,36 @@ class CaDSRClient:
             timeout_seconds=settings.timeout_seconds,
         )
 
-    def get_data_element(self, public_id: str, version: str | None = None) -> dict[str, Any] | None:
+    def get_data_element(
+        self, public_id: str, version: str | None = None, *, registry_release: str | None = None
+    ) -> dict[str, Any] | None:
         validate_identifier(public_id, r"[1-9][0-9]*", "publicId")
-        response = self.http.get_json(
-            f"{DATA_API}/DataElement/{public_id}", _version_params(version)
-        )
+        path, params = data_element_request(public_id, version, registry_release)
+        response = self.http.get_json(path, params)
+        _verify_registry_pin(response, registry_release)
         return _item(response, "DataElement")
 
-    def get_by_question_text(self, text: str) -> list[dict[str, Any]]:
+    def get_by_question_text(
+        self, text: str, *, registry_release: str | None = None
+    ) -> list[dict[str, Any]]:
         response = self.http.get_json(
             f"{DATA_API}/DataElements/ReferenceDocument",
             {
                 "documentText": text,
                 "documentType": "Preferred Question Text",
                 "headerOnly": "true",
+                "registryRelease": registry_release,
             },
         )
+        _verify_registry_pin(response, registry_release)
         return _items(response, "DataElements")
 
-    def list_contexts(self) -> list[str]:
-        return _items(self.http.get_json("/NCILovAPI/1.0/api/getContextNames"), "contextNames", str)
+    def list_contexts(self, *, registry_release: str | None = None) -> list[str]:
+        response = self.http.get_json(
+            "/NCILovAPI/1.0/api/getContextNames", {"registryRelease": registry_release}
+        )
+        _verify_registry_pin(response, registry_release)
+        return _items(response, "contextNames", str)
 
     def get_form(self, public_id: str, version: str | None = None) -> dict[str, Any] | None:
         validate_identifier(public_id, r"[1-9][0-9]*", "publicId")
@@ -183,16 +218,21 @@ class CaDSRClient:
             self.http.get_json(f"{DATA_API}/DataElements/getCRDCList"), "CRDCDataElements"
         )
 
-    def search_data_elements(self, query: str, page_size: int) -> dict[str, Any]:
+    def search_data_elements(
+        self, query: str, page_size: int, *, registry_release: str | None = None
+    ) -> dict[str, Any]:
         """OP-C03 requested operation, not served by caDSR today (C-3).
 
         Tested against the crafted OP-C03 fixtures. A live type-E answer remains
-        an upstream error; there is no fallback, registry pin or undocumented filter.
+        an upstream error; there is no fallback or undocumented filter. A verified
+        registry pin follows the requested future C-1 contract.
         """
         size = bounded(page_size, 1000, "pageSize")
         response = self.http.get_json(
-            f"{DATA_API}/DataElement/search", {"keyword": query, "pageSize": size}
+            f"{DATA_API}/DataElement/search",
+            {"keyword": query, "pageSize": size, "registryRelease": registry_release},
         )
+        _verify_registry_pin(response, registry_release)
         _items(response, "DataElements")
         return response
 

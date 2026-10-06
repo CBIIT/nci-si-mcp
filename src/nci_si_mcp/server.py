@@ -20,8 +20,9 @@ from .results import Untruncated
 
 INSTRUCTIONS = (
     "NCI Thesaurus (NCIt) lookup and relationship traversal against live NCI EVS, "
-    "plus text search over a small locally indexed sample of concepts. Every item a tool "
-    "returns carries a provenance record that names its terminology and release, "
+    "plus local indexed search and caDSR data-element lookup and registry discovery. "
+    "caDSR keyword search is a requested upstream capability not served today. Every item a tool "
+    "returns carries a provenance record that names its terminology release or registry state, "
     "the surface that supplied it and the call's correlationId. A failed tool "
     "call is flagged as an error. Failures the server handles carry the error record "
     "{error: {code, message, details?, correlationId}}: code is one of invalid_request, "
