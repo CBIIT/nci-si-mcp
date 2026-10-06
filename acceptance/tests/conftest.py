@@ -226,12 +226,16 @@ def _make_tools(session: Session, upstream: FixtureServer | None, process: Proce
 
 @contextmanager
 def _remote_tools(
-    target: Target, upstream: FixtureServer | None, startup: tuple[dict[str, Any], ...] = ()
+    target: Target,
+    upstream: FixtureServer | None,
+    startup: tuple[dict[str, Any], ...] = (),
+    *,
+    stateful: bool = False,
 ) -> Iterator[Tools]:
     """A session with the remote server, which the harness neither started nor can read the
     standard error or data directory of."""
 
-    with open_remote_session(target.url, target.authorization) as session:
+    with open_remote_session(target.url, target.authorization, stateful=stateful) as session:
         yield _make_tools(session, upstream, Process(None, None, startup))
 
 
@@ -297,7 +301,10 @@ def tools(
 
     scenarios = scenarios_of(request.node)
     unprepared = request.node.get_closest_marker(UNPREPARED) is not None
-    own = unprepared or request.node.get_closest_marker(OWN_SERVER) is not None
+    stateful = request.node.get_closest_marker("mcp_session") is not None
+    own = any(
+        request.node.get_closest_marker(mark) for mark in (UNPREPARED, OWN_SERVER, "mcp_session")
+    )
     if not (scenarios or own) or upstream is None:
         yield request.getfixturevalue("server")
         return
@@ -305,7 +312,9 @@ def tools(
     settings = upstream.fixtures.settings_of(scenarios)
     try:
         if target.url:
-            ours = _hooked_tools(target, upstream, state_hook, scenarios, settings)
+            ours = _hooked_tools(
+                target, upstream, state_hook, scenarios, settings, stateful=stateful
+            )
         else:
             data = None if unprepared else prepared
             ours = _tools(target, upstream, tmp_path_factory, data, settings)
@@ -323,6 +332,8 @@ def _hooked_tools(
     state_hook: StateHook,
     scenarios: tuple[str, ...],
     settings: dict[str, str],
+    *,
+    stateful: bool = False,
 ) -> Iterator[Tools]:
     """The remote server as the operator's state-change hook leaves it for these scenarios (a
     server of its own, where there are none)."""
@@ -330,7 +341,7 @@ def _hooked_tools(
     started = state_hook.apply(scenarios, settings, fresh=not scenarios)
     if unmatched := unmatched_requests(started):
         raise UnmatchedUpstream(unmatched, " while the server started")
-    with _remote_tools(target, upstream, started) as tools:
+    with _remote_tools(target, upstream, started, stateful=stateful) as tools:
         yield tools
 
 

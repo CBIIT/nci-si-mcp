@@ -369,6 +369,7 @@ def open_remote_session(
     *,
     timeout: float | None = None,
     statuses: list[int] | None = None,
+    stateful: bool = False,
 ) -> Iterator[Session]:
     """Hold one MCP session with the endpoint at `url`, no request taking longer than `timeout`
     seconds where that is given. The error of a failed connection names neither the URL nor the
@@ -381,6 +382,9 @@ def open_remote_session(
                 _http_transport(url, authorization, timeout, [] if statuses is None else statuses),
                 read_timeout_seconds=timeout or READ_TIMEOUT_SECONDS,
                 cache=None,
+                # Session-specific tests must opt into the handshake. Auto may select
+                # the 2026 single-exchange protocol, which carries native cache hints.
+                mode="legacy" if stateful else "auto",
             )
         ) as client,
     ):

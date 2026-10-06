@@ -7,6 +7,7 @@ import json
 import logging
 import re
 import sys
+from dataclasses import replace
 from typing import Any, TextIO
 
 from .audit import emit
@@ -15,6 +16,8 @@ from .context import Context
 from .errors import PlatformError, correlated, is_error_record, serialise, with_next_step
 from .registry import SPECS, cli_arguments, invoke
 from .server import create_mcp
+from .transport import run_http
+from .validation import TRANSPORTS
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +29,8 @@ _STARTUP_ERRORS = (RuntimeError, ValueError, OSError)
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="nci-si-mcp")
     subcommands = parser.add_subparsers(dest="command", required=True)
-    subcommands.add_parser("serve", help="Run the MCP stdio server")
+    serve = subcommands.add_parser("serve", help="Run the MCP server")
+    serve.add_argument("--transport", choices=sorted(TRANSPORTS), default=None)
     for spec in SPECS:
         if spec.command:
             command = subcommands.add_parser(spec.command, help=spec.description.splitlines()[0])
@@ -66,25 +70,38 @@ def main() -> int:
         return _main(args)
 
 
+def _settings(args: argparse.Namespace) -> Settings:
+    settings = Settings.from_env()
+    if args.command == "serve" and args.transport is not None:
+        settings = replace(settings, transport=args.transport)
+    return settings
+
+
+def _serve(settings: Settings, context: Context) -> int:
+    if settings.transport == "streamable-http":
+        run_http(settings, context)
+    else:
+        create_mcp(settings, context=context).run()
+    return 0
+
+
 def _main(args: argparse.Namespace) -> int:
     # The MCP server speaks its protocol on stdout, so its failures go to stderr.
     serve = args.command == "serve"
     errors = sys.stderr if serve else sys.stdout
     try:
-        settings = Settings.from_env()
+        settings = _settings(args)
     except ValueError as exc:
         return _print_result(serialise(_configuration_error(exc)), errors)
     configure_logging(settings.log_level)
     try:
         context = Context(settings)
-        mcp = create_mcp(settings, context=context) if serve else None
+        if serve:
+            return _serve(settings, context)
     except _STARTUP_ERRORS as exc:
         emit(logger, logging.DEBUG, "startup_failed", errorType=type(exc).__name__)
         message = with_next_step(f"{type(exc).__name__}: {exc}", "Fix the cause named and rerun.")
         return _print_result(serialise(PlatformError("internal_error", message)), errors)
-    if mcp:
-        mcp.run()
-        return 0
     return _print_result(_run(context, args), sys.stdout)
 
 

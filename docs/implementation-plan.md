@@ -214,6 +214,13 @@ twenty-nine for `unified`, including four cross-domain and three workflow tools.
 
 stdio stays. Add the NCI-approved remote transport — streamable HTTP in `mcp>=2.0` — behind the same registry. Authentication and authorisation are hooks on the transport layer with a no-op default; the mechanism is NCI's to approve, and the hook is what lets it be supplied without touching tools.
 
+Implemented in `transport.py`: stateful HTTP retains process-local sessions and needs affinity;
+stateless HTTP resolves implicit releases per call and needs none. A known ID sent to another
+stateful process returns 404. SDK auth/scopes run before dispatch, Host/Origin lists remain
+enabled, and oversized bodies return 413 before parsing. Readiness verifies a supplied active
+index locally. [Transport documentation](transport.md) records the protocol distinction,
+settings, startup requirements and reproducible remote fixture CI gate. Production runbook: #121.
+
 ### 3.9 Audit (`platform/audit.py`)
 
 Phase 1 implements this in `audit.py`: one JSON completion record per call, including MCP
@@ -234,7 +241,8 @@ MCP and registry layers share a request-scoped audit context, preventing duplica
 and concurrent counter leakage. Actual HTTP attempts feed the count through the existing
 instrumentation, preserving optional observers and the independent traversal budget. No
 local rate limiter, persistent audit store, keyed hash or unapproved platform audit header is
-added; consumer/authentication hooks remain #41.
+added; transport authentication hooks are supplied by #40, and consumer audit integration
+and its verification remain #41.
 
 ---
 

@@ -87,6 +87,12 @@ and still answer plausibly. A test that provokes such requests on purpose is mar
 
 ## Remote server
 
+For this repository's prototype, `pdm run acceptance-http` supplies the local fixture server
+settings, prepared index and restart hook automatically; see [transport details](../docs/transport.md).
+Session-release cases marked `mcp_session` use handshake mode so they run in an actual MCP
+session. Other cases negotiate normally: native list/resource cache fields belong to the
+2026 protocol and are intentionally removed by the SDK on older protocols.
+
 The platform's server is remote: `NCI_SI_ACCEPTANCE_URL` names its streamable-HTTP endpoint in
 place of `NCI_SI_ACCEPTANCE_SERVER` (naming both stops the run). The harness starts nothing and
 cannot set the environment of a process it did not start, so the operator does three things the

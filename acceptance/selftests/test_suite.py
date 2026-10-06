@@ -130,12 +130,14 @@ def test_a_remote_server_not_declared_prepared_skips_the_tests_that_need_the_ind
 def test_a_remote_server_without_a_state_hook_skips_the_tests_needing_a_server_of_its_own():
     scenario = Item(pytest.mark.scenario("release/unknown"))
     own = Item(pytest.mark.own_server)
+    session = Item(pytest.mark.mcp_session)
     ordinary = Item()
 
-    skip_remote_own_servers([scenario, own, ordinary], has_hook=False)
+    skip_remote_own_servers([scenario, own, session, ordinary], has_hook=False)
 
     assert scenario.get_closest_marker("skip").kwargs == {"reason": NEEDS_STATE_HOOK}
     assert own.get_closest_marker("skip").kwargs == {"reason": NEEDS_STATE_HOOK}
+    assert session.get_closest_marker("skip").kwargs == {"reason": NEEDS_STATE_HOOK}
     assert ordinary.get_closest_marker("skip") is None
 
 

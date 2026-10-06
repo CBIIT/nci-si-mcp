@@ -26,4 +26,5 @@ tmp/
 
 # Acceptance reports written by `pdm run acceptance --report=...`
 /acceptance/fixture.json
+/acceptance/http-fixture.json
 /acceptance/live.json

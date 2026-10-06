@@ -23,6 +23,46 @@ def settings_from(**environment):
 
 
 class SettingsTest(unittest.TestCase):
+    def test_http_settings_select_sessions_limits_and_public_authorities(self):
+        settings = settings_from(
+            NCI_SI_TRANSPORT="streamable-http",
+            NCI_SI_HTTP_SESSIONS="stateless",
+            NCI_SI_HTTP_HOST="::1",
+            NCI_SI_HTTP_PORT="8080",
+            NCI_SI_HTTP_MAX_REQUEST_BYTES="512",
+            NCI_SI_HTTP_ALLOWED_HOSTS="service.example:443,localhost:*",
+            NCI_SI_HTTP_ALLOWED_ORIGINS="https://service.example",
+            NCI_SI_HTTP_REQUIRE_INDEX="1",
+        )
+        self.assertEqual(
+            (settings.transport, settings.http_sessions), ("streamable-http", "stateless")
+        )
+        self.assertEqual((settings.http_host, settings.http_port), ("::1", 8080))
+        self.assertEqual((settings.http_max_request_bytes, settings.http_require_index), (512, 1))
+        self.assertEqual(settings.http_allowed_hosts, ("service.example:443", "localhost:*"))
+        self.assertEqual(settings.http_allowed_origins, ("https://service.example",))
+
+    def test_invalid_http_configuration_is_rejected_at_startup(self):
+        for variable, value in (
+            ("NCI_SI_TRANSPORT", "websocket"),
+            ("NCI_SI_HTTP_SESSIONS", "shared"),
+            ("NCI_SI_HTTP_HOST", "http://example"),
+            ("NCI_SI_HTTP_PORT", "0"),
+            ("NCI_SI_HTTP_PORT", "65536"),
+            ("NCI_SI_HTTP_MAX_REQUEST_BYTES", "0"),
+            ("NCI_SI_HTTP_REQUIRE_INDEX", "2"),
+            ("NCI_SI_HTTP_ALLOWED_HOSTS", ""),
+            ("NCI_SI_HTTP_ALLOWED_HOSTS", "*"),
+            ("NCI_SI_HTTP_ALLOWED_HOSTS", "host/path"),
+            ("NCI_SI_HTTP_ALLOWED_HOSTS", "user:secret@host"),
+            ("NCI_SI_HTTP_ALLOWED_ORIGINS", "https://host/path"),
+        ):
+            with (
+                self.subTest(variable=variable, value=value),
+                self.assertRaisesRegex(ValueError, variable),
+            ):
+                settings_from(**{variable: value})
+
     def test_defaults(self):
         settings = settings_from()
 

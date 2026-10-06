@@ -25,6 +25,8 @@ EdgeType = Literal[
 Profile = Literal["evs", "cadsr", "unified"]
 UpstreamMode = Literal["live", "fixture"]
 ReleaseChannel = Literal["monthly", "weekly"]
+Transport = Literal["stdio", "streamable-http"]
+HTTPSessions = Literal["stateful", "stateless"]
 ReleaseSelection = Literal["explicit", "session-held", "freshly-resolved"]
 ConceptInclude = Literal["synonyms", "definitions", "properties", "semanticType"]
 PublicSearchMode = Literal["lexical", "typeahead", "semantic", "hybrid"]
@@ -62,6 +64,8 @@ DatasetName = Literal["ncit", "ssis_ncit_graph", "ssis_cadsr_graph", "cadsr_expo
 PROFILES = frozenset(get_args(Profile))
 UPSTREAM_MODES = frozenset(get_args(UpstreamMode))
 RELEASE_CHANNELS = frozenset(get_args(ReleaseChannel))
+TRANSPORTS = frozenset(get_args(Transport))
+HTTP_SESSIONS = frozenset(get_args(HTTPSessions))
 
 NCIT_CODE_RE = re.compile(r"C[0-9]+")
 SEARCH_MODES = frozenset(get_args(SearchMode))

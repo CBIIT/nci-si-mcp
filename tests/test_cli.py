@@ -352,6 +352,31 @@ class MainTest(unittest.TestCase):
         server.run.assert_called_once_with()
         self.assertIsInstance(create.call_args.kwargs["context"], Context)
 
+    def test_http_transport_can_be_selected_by_environment_or_cli_override(self, _):
+        for arguments, environment in (
+            ((), {"NCI_SI_TRANSPORT": "streamable-http"}),
+            (("--transport", "streamable-http"), {"NCI_SI_TRANSPORT": "stdio"}),
+        ):
+            with self.subTest(arguments=arguments), patch("nci_si_mcp.cli.run_http") as run:
+                code, printed, stderr = self.run_cli("serve", *arguments, **environment)
+            self.assertEqual((code, printed, stderr), (0, None, ""))
+            self.assertEqual(run.call_args.args[0].transport, "streamable-http")
+
+    def test_http_startup_failure_stays_on_stderr(self, _):
+        with patch("nci_si_mcp.cli.run_http", side_effect=OSError("cannot bind port")):
+            code, printed, stderr = self.run_cli("serve", "--transport", "streamable-http")
+        self.assertEqual((code, printed), (1, None))
+        self.assertEqual(json.loads(stderr)["error"]["code"], "internal_error")
+
+    def test_explicit_stdio_overrides_http_environment(self, _):
+        with patch("nci_si_mcp.cli.create_mcp") as create, patch("nci_si_mcp.cli.run_http") as http:
+            code, printed, _ = self.run_cli(
+                "serve", "--transport", "stdio", NCI_SI_TRANSPORT="streamable-http"
+            )
+        self.assertEqual((code, printed), (0, None))
+        self.assertEqual(create.call_args.args[0].transport, "stdio")
+        http.assert_not_called()
+
     def test_serve_failures_go_to_stderr(self, _):
         with patch("nci_si_mcp.cli.create_mcp", side_effect=RuntimeError("mcp is missing")):
             code, printed, stderr = self.run_cli("serve")
