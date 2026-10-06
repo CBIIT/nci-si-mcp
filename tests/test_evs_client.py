@@ -45,6 +45,39 @@ def http_error(status, body=b""):
 @patch("nci_si_mcp.http_client.time.sleep")
 @patch("nci_si_mcp.http_client._open")
 class EVSClientTest(unittest.TestCase):
+    def test_gdc_mapset_and_page_use_the_api_paths_and_verify_release(self, urlopen, sleep):
+        client = self.client()
+        urlopen.return_value = FakeResponse(b'{"code":"NCIt_Maps_To_GDC","version":"26.06e"}')
+        self.assertEqual(client.get_gdc_mapset(release())["version"], "26.06e")
+        self.assertIn("/api/v1/mapset/NCIt_Maps_To_GDC", urlopen.call_args.args[0].full_url)
+        urlopen.return_value = FakeResponse(b'{"total":0}')
+        self.assertEqual(client.get_gdc_maps("C4817"), ([], 0))
+        self.assertTrue(
+            urlopen.call_args.args[0].full_url.endswith(
+                "/api/v1/mapset/NCIt_Maps_To_GDC/maps?term=C4817&fromRecord=0&pageSize=10"
+            )
+        )
+
+    def test_gdc_missing_identity_and_incomplete_pages_fail_closed(self, urlopen, sleep):
+        client = self.client()
+        for payload in ([], {}, {"code": "other", "version": "26.06e"}):
+            with self.subTest(payload=payload):
+                urlopen.return_value = FakeResponse(json.dumps(payload).encode())
+                with self.assertRaises(EVSResponseError):
+                    client.get_gdc_mapset(release())
+        for payload in (
+            {},
+            [],
+            {"maps": [], "total": True},
+            {"maps": [], "total": -1},
+            {"maps": [], "total": 1},
+            {"maps": ["bad"], "total": 1},
+        ):
+            with self.subTest(payload=payload):
+                urlopen.return_value = FakeResponse(json.dumps(payload).encode())
+                with self.assertRaises(EVSResponseError):
+                    client.get_gdc_maps("C4817")
+
     def test_filtered_empty_terminology_queries_remain_empty(self, urlopen, sleep):
         urlopen.return_value = FakeResponse(b"[]")
         for arguments in ({"terminology": "unknown"}, {"latest": True}, {"tag": "monthly"}):

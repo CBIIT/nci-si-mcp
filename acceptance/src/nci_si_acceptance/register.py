@@ -93,9 +93,10 @@ The Shared SI Service names no release (S-1, S-2): the NCIt and caDSR graphs eac
 untyped `dc:date`, in two formats, and only NCIt an `owl:versionInfo`; the identity query below
 reads them (A3.7.1). For the SPARQL endpoint the suite prescribes the query text: each query
 below is matched with runs of whitespace collapsed, sent as a form-encoded POST (a direct POST
-of the query is refused) asking for `application/sparql-results+json`. Its `LIMIT` is the tool's
-maximum + 1, so that the answer shows whether more exist. A team may propose another form here,
-as for every form. The façade answers HTML unless `Accept: application/json` is sent, and a
+of the query is refused) asking for `application/sparql-results+json`. Bounded identities ask for
+three rows; content asks for at most the shared remaining maximum + 1, to detect a cut. The
+bounded variants reuse recorded answers as explicitly crafted fixtures. Teams may propose changes
+to any form. The façade answers HTML unless `Accept: application/json` is sent, and a
 missing argument with HTTP 200 (X-15).
 """
 FALLBACK = """\
@@ -299,7 +300,9 @@ def _queries(manifest: dict[str, Any], surfaces: set[str] | None) -> list[str]:
     """The text of each request that carries one (the SPARQL queries), by fixture."""
 
     lines = []
-    for entry in manifest["record"].get("requests", []):
+    requests = {entry["fixture"]: entry for entry in manifest["record"].get("requests", [])}
+    derived = [requests[entry["from"]] | entry for entry in manifest["record"].get("derived", [])]
+    for entry in [*requests.values(), *derived]:
         if not _shown(entry, surfaces):
             continue
         for name, text in _texts(entry).items():

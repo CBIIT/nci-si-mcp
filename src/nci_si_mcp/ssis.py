@@ -9,12 +9,11 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from functools import partial
-from http import HTTPStatus
 from typing import Any, NotRequired, TypedDict
 
 from .config import Settings
 from .errors import InputValidationError, PlatformError
-from .http_client import HttpClient, UpstreamRejectedError, UpstreamUnavailableError
+from .http_client import HttpClient
 from .validation import bounded, validate_identifier
 
 NCIT_GRAPH = "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf"
@@ -123,6 +122,7 @@ def _valid_date(value: str) -> bool:
         date.fromisoformat(value)
     except ValueError:
         try:
+            # The recorded English month spelling assumes the server's C/English locale.
             datetime.strptime(value, "%B %d, %Y")
         except ValueError:
             return False
@@ -182,18 +182,9 @@ class SSISClient:
         return rows
 
     def _query(self, query: str, required: tuple[str, ...], row_limit: int) -> list[dict[str, str]]:
-        try:
-            payload = self.sparql_http.post_form(
-                "/sparql", {"query": _PREFIXES + query}, accept="application/sparql-results+json"
-            )
-        except UpstreamRejectedError as exc:
-            if exc.details.get("status") != HTTPStatus.FORBIDDEN:
-                raise
-            raise UpstreamUnavailableError(
-                "Shared SI rejected the query. Check the supported query forms or retry later.",
-                reason="query rejected by inspection layer",
-                **exc.details,
-            ) from None
+        payload = self.sparql_http.post_form(
+            "/sparql", {"query": _PREFIXES + query}, accept="application/sparql-results+json"
+        )
         results = payload.get("results") if isinstance(payload, dict) else None
         rows = _list(results, "bindings", dict)
         if len(rows) > row_limit:
@@ -204,7 +195,7 @@ class SSISClient:
         """Return unchanged metadata; #38 normalizes dates and verifies the NCIt release."""
         rows = self._query(_IDENTITIES, ("graph", "date"), len(_GRAPHS) + 1)
         identities = [_identity(row) for row in rows]
-        if identities and sorted(row["graph"] for row in identities) != sorted(_GRAPHS):
+        if sorted(row["graph"] for row in identities) != sorted(_GRAPHS):
             raise _malformed()
         return identities
 
@@ -236,18 +227,22 @@ class SSISClient:
         """
         validate_identifier(public_id, r"[1-9][0-9]*", "publicId")
         maximum = bounded(maximum, MAXIMUM, "maximum")
-        query = f"""SELECT ?version ?value ?concept ?role
+        query = f"""SELECT DISTINCT ?version ?value ?concept ?role
 WHERE {{
   GRAPH <{CADSR_GRAPH}> {{
-    VALUES ?role {{ cadsr:main_concept cadsr:minor_concept }}
     ?element cadsr:publicId "{public_id}" ;
-      mdr:version ?version ;
-      mdr:permitted_value ?pv .
-    ?pv mdr:value ?value ;
-      cadsr:has_concept ?node .
-    ?node ?role ?concept .
+      mdr:version ?version .
+    OPTIONAL {{
+      ?element mdr:permitted_value ?pv .
+      ?pv mdr:value ?value .
+      OPTIONAL {{
+        VALUES ?role {{ cadsr:main_concept }}
+        ?pv cadsr:has_concept ?node .
+        ?node ?role ?concept .
+      }}
+    }}
   }}
 }}
 ORDER BY ?version ?value ?role ?concept
 LIMIT {maximum + 1}"""
-        return self._query(query, ("version", "value", "concept", "role"), maximum + 1)
+        return self._query(query, ("version",), maximum + 1)

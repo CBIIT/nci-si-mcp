@@ -50,9 +50,10 @@ The Shared SI Service names no release (S-1, S-2): the NCIt and caDSR graphs eac
 untyped `dc:date`, in two formats, and only NCIt an `owl:versionInfo`; the identity query below
 reads them (A3.7.1). For the SPARQL endpoint the suite prescribes the query text: each query
 below is matched with runs of whitespace collapsed, sent as a form-encoded POST (a direct POST
-of the query is refused) asking for `application/sparql-results+json`. Its `LIMIT` is the tool's
-maximum + 1, so that the answer shows whether more exist. A team may propose another form here,
-as for every form. The façade answers HTML unless `Accept: application/json` is sent, and a
+of the query is refused) asking for `application/sparql-results+json`. Bounded identities ask for
+three rows; content asks for at most the shared remaining maximum + 1, to detect a cut. The
+bounded variants reuse recorded answers as explicitly crafted fixtures. Teams may propose changes
+to any form. The façade answers HTML unless `Accept: application/json` is sent, and a
 missing argument with HTTP 200 (X-15).
 
 ## Requests
@@ -121,16 +122,21 @@ missing argument with HTTP 200 (X-15).
 | OP-S02 | `GET ssis /si-api/v1/data_elements/with_concept_id?graph_name=http://cbiit.nci.nih.gov/caDSR&resource_name=caDSR` with `Accept: application/json` | 200 | recorded | Without its required dec_pub_id: HTTP 200 with apiResponse type I, "No data found", a missing argument answered as an empty result (X-15). | `recorded/ssis/data-elements-without-dec.json` |
 | OP-S02 | `GET ssis /si-api/v1/data_elements/with_specific_object_class?graph_name=http://cbiit.nci.nih.gov/caDSR&resource_name=caDSR&concept_id=C25190` with `Accept: application/json` | 200 | recorded | The data elements whose object class is Person (C25190): exactly 1,000 rows with apiResponse type S, where the caDSR graph holds 2,088. The cap is silent (A5.4), and the same 1,000 came back in another order a few minutes later. | `recorded/ssis/data-elements-of-object-class-c25190.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The release identity of the NCIt and caDSR graphs: owl:versionInfo and dc:date, two untyped dates in two formats ("September 28, 2026" and "2026-07-01"), the stand-in for OP-S03 (A3.7.1). | `recorded/ssis-sparql/graph-identities.json` |
+| OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | crafted for A3.7.1 and M6.1; bounded identities or remaining shared result capacity plus one sentinel. | Bounded query under the shared result cap; reuses the recorded answer as crafted. | `crafted/ssis-sparql/graph-identities-bounded.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The data elements that use Gender (C17357) as an object class, property or permissible value concept, main or minor (find_data_elements_for_concept). | `recorded/ssis-sparql/data-elements-c17357.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The data elements that use C116977, none: an empty answer (find_data_elements_for_concept, X-4). | `recorded/ssis-sparql/data-elements-c116977.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The same, over C17357 and its descendants in NCIt's hierarchy (A5.4). | `recorded/ssis-sparql/data-elements-c17357-descendants.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The same over Disease or Disorder (C2991) and its descendants: 1,001 rows, so more exist than the tool's maximum (A5.4). | `recorded/ssis-sparql/data-elements-c2991-descendants.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The permissible values of data element 2200604 with the concepts their value meanings stand for, asked by its registry id alone: the caller's value never goes into the query text (A7.7), and the server picks it by exact equality (get_concept_for_permissible_value). | `recorded/ssis-sparql/values-of-2200604.json` |
+| OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | crafted for get_concept_for_permissible_value; latest numeric version first, exact value and main concept only. | Preserve the latest version without values and values without main concepts; minor concepts do not compete. | `crafted/ssis-sparql/values-of-2200604-optional.json` |
 | OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The permissible values whose value meaning stands for Male (C20197), each with its data element and concept: the reverse lookup no façade operation offers. | `recorded/ssis-sparql/values-c20197.json` |
 | OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The permissible values that stand for Gender (C17357): find_data_elements_for_concept with includePermissibleValues. | `recorded/ssis-sparql/values-c17357.json` |
+| OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | crafted for A3.7.1 and M6.1; bounded identities or remaining shared result capacity plus one sentinel. | Bounded query under the shared result cap; reuses the recorded answer as crafted. | `crafted/ssis-sparql/values-c17357-bounded.json` |
 | OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The same over C17357 and its descendants, each value naming its concept (A5.4). | `recorded/ssis-sparql/values-c17357-descendants.json` |
+| OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | crafted for A3.7.1 and M6.1; bounded identities or remaining shared result capacity plus one sentinel. | Bounded query under the shared result cap; reuses the recorded answer as crafted. | `crafted/ssis-sparql/values-c17357-descendants-bounded.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The data elements that use Ewing Sarcoma (C4817): ground_value's data element hop. | `recorded/ssis-sparql/data-elements-c4817.json` |
 | OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The permissible values that stand for Ewing Sarcoma (C4817): ground_value's value hop. | `recorded/ssis-sparql/values-c4817.json` |
+| OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | crafted for A3.7.1 and M6.1; bounded identities or remaining shared result capacity plus one sentinel. | Bounded query under the shared result cap; reuses the recorded answer as crafted. | `crafted/ssis-sparql/values-c4817-bounded.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The data elements that use Disease or Disorder (C2991), 1,001 rows: ground_value's data element hop reaches its bound. | `recorded/ssis-sparql/data-elements-c2991.json` |
 | OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The permissible values that stand for Disease or Disorder (C2991), 461 rows: ground_value's value hop, complete while the data element hop is cut. | `recorded/ssis-sparql/values-c2991.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 403 | recorded | The inspection layer's refusal of a query it does not pass: HTTP 403 with an HTML body. ssis/query-rejected serves it to every query. | `recorded/ssis-sparql/query-refused.json` |
@@ -524,6 +530,135 @@ WHERE {
 }
 ```
 
+### `crafted/ssis-sparql/values-of-2200604-optional.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT DISTINCT ?version ?value ?concept ?role
+WHERE {
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    ?element cadsr:publicId "2200604" ;
+      mdr:version ?version .
+    OPTIONAL {
+      ?element mdr:permitted_value ?pv .
+      ?pv mdr:value ?value .
+      OPTIONAL {
+        VALUES ?role { cadsr:main_concept }
+        ?pv cadsr:has_concept ?node .
+        ?node ?role ?concept .
+      }
+    }
+  }
+}
+ORDER BY ?version ?value ?role ?concept
+LIMIT 1001
+```
+
+### `crafted/ssis-sparql/graph-identities-bounded.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT ?graph ?version ?date
+WHERE {
+  VALUES ?graph { <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> <http://cbiit.nci.nih.gov/caDSR> }
+  GRAPH ?graph {
+    ?ontology dc:date ?date .
+    OPTIONAL { ?ontology owl:versionInfo ?version }
+  }
+}
+LIMIT 3
+```
+
+### `crafted/ssis-sparql/values-c17357-bounded.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT DISTINCT ?id ?version ?value ?concept
+WHERE {
+  VALUES ?concept { ncit:C17357 }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+    ?node ?role ?concept .
+    ?pv cadsr:has_concept ?node ;
+      mdr:value ?value .
+    ?element mdr:permitted_value ?pv ;
+      cadsr:publicId ?id ;
+      mdr:version ?version .
+  }
+}
+ORDER BY ?id ?version ?value ?concept
+LIMIT 984
+```
+
+### `crafted/ssis-sparql/values-c17357-descendants-bounded.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT DISTINCT ?id ?version ?value ?concept
+WHERE {
+  GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> {
+    ?concept rdfs:subClassOf* ncit:C17357 .
+  }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+    ?node ?role ?concept .
+    ?pv cadsr:has_concept ?node ;
+      mdr:value ?value .
+    ?element mdr:permitted_value ?pv ;
+      cadsr:publicId ?id ;
+      mdr:version ?version .
+  }
+}
+ORDER BY ?id ?version ?value ?concept
+LIMIT 974
+```
+
+### `crafted/ssis-sparql/values-c4817-bounded.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT DISTINCT ?id ?version ?value ?concept
+WHERE {
+  VALUES ?concept { ncit:C4817 }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+    ?node ?role ?concept .
+    ?pv cadsr:has_concept ?node ;
+      mdr:value ?value .
+    ?element mdr:permitted_value ?pv ;
+      cadsr:publicId ?id ;
+      mdr:version ?version .
+  }
+}
+ORDER BY ?id ?version ?value ?concept
+LIMIT 965
+```
+
 ## Concept requests answered by rule
 
 One recording per concept answers each projection (`include`) and relation list of that concept
@@ -575,7 +710,7 @@ Each request: An unknown release answers 404 on every content path: the server f
 
 ### `release/mismatch`
 
-Every payload that reports the pinned release names 26.08e instead, the unpinned forms included; release discovery is left as recorded. Crafted, 164 fixtures, for A3.4: the content served names another release than the one requested.
+Every payload that reports the pinned release names 26.08e instead, the unpinned forms included; release discovery is left as recorded. Crafted, 165 fixtures, for A3.4: the content served names another release than the one requested.
 
 ### `release/two-latest`
 
@@ -651,7 +786,7 @@ Every upstream request, whatever its surface and path, gets a closed connection,
 
 ### `release/graph-behind`
 
-The Shared SI Service's NCIt graph names another release; EVS serves the one pinned. Crafted, 1 fixture, for A3.4: the content served names another release than the one requested.
+The Shared SI Service's NCIt graph names another release; EVS serves the one pinned. Crafted, 2 fixtures, for A3.4: the content served names another release than the one requested.
 
 ### `release/concept-behind`
 

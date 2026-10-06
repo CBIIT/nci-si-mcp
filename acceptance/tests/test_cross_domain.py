@@ -279,6 +279,8 @@ def test_a_permissible_value_by_its_identifier_is_unavailable(tools, pinned, rec
 @pytest.mark.requirement("resolve_stored_value-1")
 def test_a_gdc_value_resolves_through_the_mapset_its_source_names(tools, pinned, recorded):
     maps = recorded("recorded/evs/mapset-gdc-maps-code.json")["response"]["body"]["maps"]
+    # EVS term search also returns the unrelated prefix hit C48177.
+    maps = [row for row in maps if row["sourceCode"] == "C4817"]
     mapset = recorded("recorded/evs/mapset-gdc.json")["response"]["body"]
     source = {"mapset": mapset["code"], "version": mapset["version"]}
 

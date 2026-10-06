@@ -55,6 +55,9 @@ DataElementFilter = Literal["context", "workflowStatus", "registrationStatus", "
 MatchStrictness = Literal["restricted", "unrestricted"]
 MatchedItemType = Literal["Concept", "ValueMeaning"]
 CodeMapSource = Literal["CRDC"]
+CrossDomainTerminology = Literal["ncit"]
+StoredValueConfidence = Literal["asserted", "none"]
+DatasetName = Literal["ncit", "ssis_ncit_graph", "ssis_cadsr_graph", "cadsr_export"]
 
 PROFILES = frozenset(get_args(Profile))
 UPSTREAM_MODES = frozenset(get_args(UpstreamMode))

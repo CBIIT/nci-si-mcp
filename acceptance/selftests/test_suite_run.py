@@ -333,6 +333,10 @@ def test_semantic_without_index(tools):
         name: row["implemented_as"] for name, row in tools.items() if row["implemented_as"]
     }
     assert implemented == {
+        "find_data_elements_for_concept": "find_data_elements_for_concept",
+        "get_concept_for_permissible_value": "get_concept_for_permissible_value",
+        "resolve_stored_value": "resolve_stored_value",
+        "get_release_alignment": "get_release_alignment",
         "get_data_element": "get_data_element",
         "search_data_elements": "search_data_elements",
         "list_contexts": "list_contexts",
