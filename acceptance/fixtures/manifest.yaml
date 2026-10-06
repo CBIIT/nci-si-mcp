@@ -60,6 +60,12 @@ scenarios:
   release/duplicate-tag: >-
     Two releases are both latest with the monthly tag; the monthly query and the listing name
     both
+  release/moving-session: >-
+    The monthly query changes after its first read; both releases serve the session test
+    concept, so implicit re-resolution and explicit overrides are distinguishable
+  release/withdrawn-session: >-
+    The monthly query changes after its first read and the original concept path then answers
+    terminology-not-found; a session must fail closed instead of adopting the new release
   batch/silent-drop: A code EVS does not know is left out of a batch
   retired/with-replacement: C154421 is retired with a replacement, and one bad code fails a batch
   traversal/deep-fanout: >-

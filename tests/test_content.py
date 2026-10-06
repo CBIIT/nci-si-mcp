@@ -112,9 +112,9 @@ class ContentTest(ServerFixture):
         self.assertEqual(result["error"]["code"], "not_found")
         self.assertEqual(self.evs.calls, [("get_concept", "other_v1", "X")])
 
-    def test_required_release_and_wrong_types_are_correlated_protocol_errors(self):
+    def test_non_ncit_release_and_wrong_types_are_correlated_protocol_errors(self):
         calls = [
-            ("get_concept", {"terminology": "ncit", "code": "C1"}, "release"),
+            ("get_concept", {"terminology": "other", "code": "X"}, "release"),
             ("get_concept", {"terminology": "ncit", "release": "26.06e", "code": 1}, "code"),
             (
                 "get_concept",

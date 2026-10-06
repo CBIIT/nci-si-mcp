@@ -191,7 +191,17 @@ class AuditAdapterTest(ServerFixture):
         self.assertEqual(record["target"], {"terminology": "ncit"})
         self.assertEqual(
             record["release"],
-            {"requested": "26.06e", "resolved": [content["provenance"]["release"]]},
+            {
+                "requested": "26.06e",
+                "resolved": [content["provenance"]["release"]],
+                "selection": "explicit",
+                "selected": {
+                    "terminology": "ncit",
+                    "channel": "monthly",
+                    "version": "26.06e",
+                    "date": None,
+                },
+            },
         )
         self.assertEqual(
             record["resultSize"],
@@ -306,7 +316,7 @@ class AuditAdapterTest(ServerFixture):
         invoke(self.context, "index_codes", ["C3262"])
         with captured() as stream:
             result = invoke(
-                self.context, "search_concepts", "ncit", "old", "query-canary", mode="semantic"
+                self.context, "search_concepts", "ncit", "query-canary", "old", mode="semantic"
             )
 
         (record,) = records(stream)

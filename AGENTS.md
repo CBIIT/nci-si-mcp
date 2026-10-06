@@ -177,10 +177,11 @@ The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for t
    5. **Comments and documentation:** docstrings, comments and documents say what the code
       does now.
 
-   Fix what is real through pull requests into the milestone branch, without opening issues (except for work deferred to
-   a later milestone, recorded in that milestone's issue), and run all five again until a full
-   round finds nothing new. Post each round as a short table: finding, pass, fixed or rejected
-   (with the reason).
+   Fix what is real directly on the milestone branch (commit and push it there), without opening
+   issues (except for work deferred to a later milestone, recorded in that milestone's issue), and
+   run all five again until a full round finds nothing new. Post each round as a short table:
+   finding, pass, fixed or rejected (with the reason). Close the mutation review's gaps (step 8)
+   the same way.
 8. **The reviewer then runs an independent mutation review** and posts the surviving mutants;
    close each real gap with a test that fails without the fix, and say which you judged
    equivalent and why.
@@ -194,12 +195,14 @@ The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for t
     automatically. Then remove your branches, worktrees, scratch files and any process or
     wait loop you started.
 
-The `milestone branches` ruleset lets a commit onto `milestone/*` only once CI has passed on it,
-and CI runs on pull requests, so every change reaches the milestone branch through a pull request
-into it: issue branches, review fixes, and `main` whenever it moves (a pull request from `main`
-into the milestone branch, merged with `gh pr merge N --merge`, never with `--delete-branch`;
-a merge commit records `main` as an ancestor, so the next sync does not conflict again; `main`
-itself accepts squash merges only). Findings made along the
+The `milestone branches` ruleset forbids force pushes to `milestone/*` and requires no status
+checks, because the milestone pull request into `main` runs the full CI on the milestone head and
+`main` accepts nothing else. Issue work still reaches the milestone branch through its own issue
+pull request (steps 3 to 5). Review fixes (steps 7 and 8) are committed on the milestone branch
+itself and pushed; run the local gates first, as for an issue. When `main` moves, sync it with a
+merge commit (`git merge origin/main` on the milestone branch, then push), never a rebase or a
+squash, so `main` stays an ancestor and the next sync does not conflict; `main` itself accepts
+squash merges only. Findings made along the
 way are fixed on the branch they belong to; only an unrelated problem gets an issue. Do not change
 the ruleset, repository settings, `spec/`'s conventions or another issue's scope without the
 reviewer's agreement.
@@ -263,6 +266,12 @@ add broad `except` clauses. An empty result is never an error and an error is ne
 (webMethods `apiResponse.type` `E`, FHIR `OperationOutcome` error, HTML where JSON was asked for)
 as `upstream_unavailable`; every upstream client parses its bodies through it (in `http_client.HttpClient`).
 
+The reviewer-approved Form-by-ID exception lives in `cadsr._form_absence`: after public-id
+validation, only HTTP 200 with an explicit `form: null` and `apiResponse.type: E` is `not_found`.
+The recording `recorded/cadsr/form-unknown.json` has no other discriminator, so a genuine failure
+in exactly that shape is indistinguishable; #42 asks for an explicit absence signal. No message
+matching or second request. Every other shape, status and operation keeps common X-15 handling.
+
 `http_client.HttpClient` is the one HTTP client. Its `Upstream*` errors reach the invocation
 boundary directly; EVS errors identify only EVS-specific failures. Attempts are counted and reported to
 the `on_request` hook. A credential is a header of one client and goes to that client's origin only;
@@ -283,12 +292,17 @@ update them when behaviour changes.
   and tagged with the channel (`?terminology=…&latest=true&tag=…`) and requires exactly one; any
   other count is `release_not_available`, with no fallback to another channel. EVS sets `latest`
   per channel, so the unfiltered listing can show two `ncit` rows as latest. `resolve_release`
-  resolves the channel once per call; the content tools pin every request to the caller's
-  `release` argument instead. Either way the `ReleaseContext` lives for one call only.
+  resolves the channel once per call. NCIt content calls may omit `release`: the shared
+  invocation scope resolves it once or reuses the MCP session’s first implicit pin. Explicit
+  calls never change that pin; other terminologies require release. No process-wide pin is
+  retained. Stateless HTTP and CLI resolve per call. A withdrawn session pin fails closed
+  without rediscovery, asking for a new session or explicit release. Completion audit names
+  explicit, session-held or freshly-resolved selection.
   A 404 `Terminology not found` is `EVSReleaseNotFoundError`
   (`release_not_available`).
 - `release.registry_state` is the pure part of the caDSR registry state: no registry identifier is
-  ever made up. The `Last-Modified` HEAD request belongs to the caDSR client.
+  ever made up. The caDSR client reads the exact distribution row in the export folder;
+  its local date-time has minute precision and no timezone, which is preserved without an offset.
 - Every concept request uses `release.pinned_terminology` (for example `ncit_26.09d`) as the path
   segment, and `evs.verify_content` checks the terminology and version of each full concept at the client
   boundary. Content methods require a `ReleaseContext`; compact descendant entries name the

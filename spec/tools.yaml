@@ -47,10 +47,10 @@ resolve_release:
   patterns: {terminology: &terminology "^[a-z][a-z0-9_]*$"}
   returns: "{ terminology, channel, version, date, alternatives[] }"
   items: ["."]
-  summary: Which release of a terminology is current, by channel (without one, the channel configured, A3.6.2); called explicitly, and its answer is passed to every later call.
+  summary: Which release of a terminology is current, by channel (without one, the channel configured, A3.6.2); called explicitly for discovery; NCIt content calls may instead omit release under X-22.
 get_concept:
   group: evs
-  inputs: (terminology, release, code, include[]?)
+  inputs: (terminology, release?, code, include[]?)
   patterns:
     terminology: *terminology
     release: &release "^[A-Za-z0-9][A-Za-z0-9._-]*$"
@@ -62,7 +62,7 @@ get_concept:
   summary: One concept with the detail selected.
 get_concepts:
   group: evs
-  inputs: (terminology, release, codes[], include[]?)
+  inputs: (terminology, release?, codes[], include[]?)
   lists: {codes: 650}
   patterns: {terminology: *terminology, release: *release, codes: *code}
   returns: "{ concepts[], missing[] }"
@@ -71,7 +71,7 @@ get_concepts:
   summary: Many concepts in one platform call, with the detail selected.
 search_concepts:
   group: evs
-  inputs: (terminology, release, query, mode?, limit?, cursor?, retired?)
+  inputs: (terminology, release?, query, mode?, limit?, cursor?, retired?)
   patterns: {terminology: *terminology, release: *release}
   free_text: [query]
   returns: "{ results[{ concept, score?, matchedOn? }], nextCursor?, totalKnown? }"
@@ -91,7 +91,7 @@ search_concepts:
     let a caller drop them itself.
 get_concept_hierarchy:
   group: evs
-  inputs: (terminology, release, code, direction, depth?, limit?, cursor?)
+  inputs: (terminology, release?, code, direction, depth?, limit?, cursor?)
   patterns: {terminology: *terminology, release: *release, code: *code}
   returns: "{ nodes[], paths[]?, truncation, nextCursor? }"
   items: ["nodes[]"]
@@ -107,7 +107,7 @@ get_concept_hierarchy:
     and cursor do not apply to it.
 expand_value_set:
   group: evs
-  inputs: (terminology, release, valueSet | code, count?, offset?, activeOnly?)
+  inputs: (terminology, release?, valueSet | code, count?, offset?, activeOnly?)
   patterns: {terminology: *terminology, release: *release, valueSet: *code, code: *code}
   returns: "{ members[], total, truncation }"
   items: ["members[]"]
@@ -118,7 +118,7 @@ expand_value_set:
     does, in place of a cursor (the exception to M6.1); activeOnly is false unless given.
 get_concept_neighborhood:
   group: evs
-  inputs: (terminology, release, code, depth?, kinds[]?, maxNodes?, maxEdges?, budgetPerKind?, includeNegative?)
+  inputs: (terminology, release?, code, depth?, kinds[]?, maxNodes?, maxEdges?, budgetPerKind?, includeNegative?)
   patterns: {terminology: *terminology, release: *release, code: *code}
   returns: "{ nodes[], edges[], truncation }"
   items: ["nodes[]", "edges[]"]
@@ -139,14 +139,14 @@ get_concept_neighborhood:
     includeNegative.
 get_concept_subsets:
   group: evs
-  inputs: (terminology, release, code)
+  inputs: (terminology, release?, code)
   patterns: {terminology: *terminology, release: *release, code: *code}
   returns: "{ subsets[] }"
   items: ["subsets[]"]
   summary: The subsets a concept belongs to.
 get_concept_mappings:
   group: evs
-  inputs: (terminology, release, code, targetTerminology?)
+  inputs: (terminology, release?, code, targetTerminology?)
   patterns: {terminology: *terminology, release: *release, code: *code}
   returns: "{ mappings[] }"
   items: ["mappings[]"]
@@ -157,7 +157,7 @@ get_concept_mappings:
     platform names exactly so, case included.
 resolve_retired_code:
   group: evs
-  inputs: (terminology, release, code)
+  inputs: (terminology, release?, code)
   patterns: {terminology: *terminology, release: *release, code: *code}
   returns: "{ code, terminology, active, status?, replacements[] }"
   items: [".", "replacements[]"]
@@ -167,7 +167,7 @@ resolve_retired_code:
     platform names none, retired or not.
 list_relationships:
   group: evs
-  inputs: (terminology, release)
+  inputs: (terminology, release?)
   patterns: {terminology: *terminology, release: *release}
   returns: "{ relationships[] }"
   items: ["relationships[]"]
@@ -227,7 +227,8 @@ match_data_elements:
   summary: >-
     Data elements matched to described entities, scored and rule-attributed, at most
     matchLimit for each entity; the contract's default is 10, and the maximum of 100 is this
-    specification's, the contract stating none. modelVariant and similarityThreshold, which the
+    specification's, the contract stating none. The classificationScheme filter takes both
+    publicId and version. modelVariant and similarityThreshold, which the
     platform does not take, are an invalid request when given. At most 10 entities a call: the
     contract states no maximum, and one entity took 28.9 s (10 September 2026) against a match
     timeout of 45 s.
@@ -298,7 +299,7 @@ list_classification_schemes:
 
 find_data_elements_for_concept:
   group: cross-domain
-  inputs: (conceptCode, terminology?, release, expandDescendants?, includePermissibleValues?, limit?, cursor?)
+  inputs: (conceptCode, terminology?, release?, expandDescendants?, includePermissibleValues?, limit?, cursor?)
   patterns: {release: *release, conceptCode: *ncit_code}
   returns: "{ dataElements[data_element_use], permissibleValues[value_use]?, truncation, nextCursor? }"
   items: ["dataElements[]", "permissibleValues[]"]
@@ -308,27 +309,27 @@ find_data_elements_for_concept:
   summary: >-
     The data elements that use a concept, as an object class, property or permissible value
     concept, optionally across its descendants; with includePermissibleValues, also the
-    permissible values whose value meaning stands for it (the reverse lookup, OP-S04). The
-    release is required and checked against the NCIt graph's: release_mismatch on a difference.
+    permissible values whose value meaning stands for it (the reverse lookup, OP-S04).
+    The effective release (X-22) is checked against the NCIt graph's: release_mismatch on a difference.
     It is served from a surface that names the NCIt release it used: today the Shared SI
     Service; caDSR REST, which cannot, answers release_not_available.
 get_concept_for_permissible_value:
   group: cross-domain
-  inputs: "(permissibleValueId | { dataElementId, value }, release)"
+  inputs: "(permissibleValueId | { dataElementId, value }, release?)"
   patterns: {release: *release, dataElementId: *registry_id, permissibleValueId: *registry_id}
   returns: "concept, with permissibleValue { dataElement { publicId, version }, value }"
   items: ["."]
   summary: >-
     The concept a permissible value stands for, named by its data element and value, as the
     concept record of the release pinned, its provenance naming both content states (release
-    and registry); a caller learns the release from resolve_release, as for every EVS tool. The
+    and registry); the caller may name a release or use implicit NCIt resolution (X-22). The
     data element is asked for by its id, and the value is compared locally with its permissible
     values by exact, case-sensitive equality (no trimming, no case-folding), never sent upstream
     (A7.7); a value it does not have is not_found. By permissibleValueId, capability_unavailable
     until the platform retrieves a value by it (OP-C10).
 resolve_stored_value:
   group: cross-domain
-  inputs: (conceptCode, commons, release, dataElementId?)
+  inputs: (conceptCode, commons, release?, dataElementId?)
   patterns: {release: *release, conceptCode: *ncit_code, dataElementId: *registry_id}
   returns: "{ storedValues[stored_value], confidence, evidence }"
   items: ["storedValues[]"]
@@ -356,7 +357,7 @@ get_release_alignment:
 
 ground_value:
   group: workflow
-  inputs: (conceptCode | text, commons?, release, registryRelease?)
+  inputs: (conceptCode | text, commons?, release?, registryRelease?)
   patterns: {release: *release, conceptCode: *ncit_code}
   free_text: [text]
   returns: "{ concept, dataElements[data_element_use], permissibleValues[value_use], storedValues[stored_value]?, provenance, truncation }"
@@ -372,7 +373,7 @@ ground_value:
     is asked by the concept, one hop's bound limits no other.
 expand_cohort:
   group: workflow
-  inputs: (conceptCode, release, maxDepth?, includeNegative?, maxNodes?)
+  inputs: (conceptCode, release?, maxDepth?, includeNegative?, maxNodes?)
   patterns: {release: *release, conceptCode: *ncit_code}
   returns: "{ codes[], excluded[excluded_code], edges[edge], truncation, provenance }"
   items: ["edges[]", "excluded[]"]

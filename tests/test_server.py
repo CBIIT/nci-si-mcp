@@ -137,7 +137,7 @@ class ServerTest(ServerFixture):
     def test_tools_are_registered_with_descriptions_and_closed_value_sets(self, _):
         tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
 
-        self.assertEqual(len(tools), 12)
+        self.assertEqual(len(tools), 22)
         # The closed value sets are advertised in the schemas, wherever the
         # schema generator puts them.
         traverse_schema = json.dumps(tools["get_concept_neighborhood"].input_schema)
@@ -169,12 +169,13 @@ class ServerTest(ServerFixture):
 
         self.assertEqual(
             defaults("search_concepts"),
-            {"limit": 10, "mode": "lexical", "cursor": None, "retired": "include"},
+            {"release": None, "limit": 10, "mode": "lexical", "cursor": None, "retired": "include"},
         )
-        self.assertEqual(defaults("get_concept"), {"include": None})
+        self.assertEqual(defaults("get_concept"), {"release": None, "include": None})
         self.assertEqual(
             defaults("get_concept_neighborhood"),
             {
+                "release": None,
                 "depth": 2,
                 "maxNodes": 200,
                 "maxEdges": 1000,
@@ -184,15 +185,21 @@ class ServerTest(ServerFixture):
             },
         )
 
-    def test_three_resource_templates_are_registered_as_json(self, _):
+    def test_resources_and_templates_are_registered_as_documented_json(self, _):
         templates = self.session(lambda client: client.list_resource_templates()).resource_templates
+        resources = self.session(lambda client: client.list_resources()).resources
 
-        self.assertEqual(len(templates), 3)
+        self.assertEqual(len(templates), 5)
         self.assertEqual(
-            {template.uri_template for template in templates},
+            {str(resource.uri) for resource in resources},
+            {"cadsr://registry/release", "cadsr://crosswalk/crdc"},
+        )
+        self.assertEqual(
+            {template.uri_template for template in templates}
+            | {str(resource.uri) for resource in resources},
             set(bullet_names(section(QUICKSTART, "MCP Resources"))),
         )
-        for template in templates:
+        for template in [*templates, *resources]:
             self.assertEqual(template.mime_type, "application/json")
             self.assertTrue(template.description)
 

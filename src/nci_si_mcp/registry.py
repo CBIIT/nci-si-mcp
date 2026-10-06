@@ -2,26 +2,39 @@
 
 from __future__ import annotations
 
+import json
+import re
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field, make_dataclass
 from inspect import Parameter, Signature, getdoc, signature
-from typing import Any, Literal, get_args, get_origin, get_type_hints
+from typing import Any, Literal, get_args, get_origin, get_type_hints, is_typeddict
 
-from . import content, handlers
+from . import cadsr_content, cadsr_matching, content, handlers
 from .audit import AuditClass, audited, secrets
 from .caching import invocation_policy
 from .context import Context
 from .invocation import call
+from .release_selection import selection_scope
 from .results import (
+    ClassificationSchemesResult,
+    CodeMapResource,
+    CodeMapsResult,
     Concept,
     ConceptBatch,
     ConceptResult,
     ConceptSearch,
+    ContextsResult,
+    DataElement,
+    DataElementMatches,
+    DataElementSearch,
     ErrorResult,
+    Form,
     Hierarchy,
     IndexManifestResult,
     MappingsResult,
     Neighborhood,
+    PermissibleValue,
+    RegistryReleaseResult,
     RelationshipsResult,
     ReleaseResult,
     ResolvedReleaseResult,
@@ -30,6 +43,7 @@ from .results import (
     SubsetsResult,
     TerminologiesResult,
     TraversalResult,
+    ValueMeaningMatches,
     ValueSetExpansion,
 )
 
@@ -95,6 +109,164 @@ def _input_field(parameter: Parameter) -> tuple:
 
 
 SPECS = (
+    ToolSpec(
+        cadsr_content.get_form,
+        "cadsr",
+        Form | ErrorResult,
+        False,
+        name="get_form",
+        command="get-form",
+        audit={
+            "publicId": "plain",
+            "keyword": "hash",
+            "version": "plain",
+            "includeModules": "plain",
+            "registryRelease": "plain",
+        },
+    ),
+    ToolSpec(
+        cadsr_content.get_permissible_value,
+        "cadsr",
+        PermissibleValue | ErrorResult,
+        False,
+        name="get_permissible_value",
+        command="get-permissible-value",
+        audit={"permissibleValueId": "plain", "registryRelease": "plain"},
+    ),
+    ToolSpec(
+        cadsr_content.get_code_map,
+        "cadsr",
+        CodeMapsResult | ErrorResult,
+        False,
+        name="get_code_map",
+        command="get-code-map",
+        audit={
+            "sourceSystem": "plain",
+            "targetContext": "hash",
+            "dataElementId": "plain",
+            "limit": "plain",
+            "cursor": "hash",
+            "registryRelease": "plain",
+        },
+    ),
+    ToolSpec(
+        cadsr_content.crosswalk_resource,
+        "cadsr",
+        CodeMapResource | ErrorResult,
+        False,
+        uri="cadsr://crosswalk/crdc",
+    ),
+    ToolSpec(
+        cadsr_matching.match_data_elements,
+        "cadsr",
+        DataElementMatches | ErrorResult,
+        False,
+        name="match_data_elements",
+        command="match-data-elements",
+        audit={
+            "entities": "hash",
+            "matchLimit": "plain",
+            "modelVariant": "hash",
+            "similarityThreshold": "plain",
+            "filters": "hash",
+            "registryRelease": "plain",
+        },
+    ),
+    ToolSpec(
+        cadsr_matching.match_value_meanings,
+        "cadsr",
+        ValueMeaningMatches | ErrorResult,
+        False,
+        name="match_value_meanings",
+        command="match-value-meanings",
+        audit={
+            "values": "hash",
+            "strictness": "plain",
+            "terminologyScope": "plain",
+            "registryRelease": "plain",
+        },
+    ),
+    ToolSpec(
+        cadsr_content.get_data_element,
+        "cadsr",
+        DataElement | ErrorResult,
+        False,
+        name="get_data_element",
+        command="get-data-element",
+        audit={
+            "publicId": "plain",
+            "longName": "hash",
+            "questionText": "hash",
+            "version": "plain",
+            "include": "plain",
+            "registryRelease": "plain",
+        },
+    ),
+    ToolSpec(
+        cadsr_content.search_data_elements,
+        "cadsr",
+        DataElementSearch | ErrorResult,
+        False,
+        name="search_data_elements",
+        command="search-data-elements",
+        audit={
+            "query": "hash",
+            "mode": "plain",
+            "filters": "hash",
+            "cursor": "hash",
+            "limit": "plain",
+            "registryRelease": "plain",
+        },
+    ),
+    ToolSpec(
+        cadsr_content.list_contexts,
+        "cadsr",
+        ContextsResult | ErrorResult,
+        False,
+        name="list_contexts",
+        command="list-contexts",
+        audit={"limit": "plain", "cursor": "hash", "registryRelease": "plain"},
+    ),
+    ToolSpec(
+        cadsr_content.list_classification_schemes,
+        "cadsr",
+        ClassificationSchemesResult | ErrorResult,
+        False,
+        name="list_classification_schemes",
+        command="list-classification-schemes",
+        audit={"context": "hash", "limit": "plain", "cursor": "hash", "registryRelease": "plain"},
+    ),
+    ToolSpec(
+        cadsr_content.resolve_registry_release,
+        "cadsr",
+        RegistryReleaseResult | ErrorResult,
+        True,
+        name="resolve_registry_release",
+        command="resolve-registry-release",
+    ),
+    ToolSpec(
+        cadsr_content.data_element_resource,
+        "cadsr",
+        DataElement | ErrorResult,
+        False,
+        uri="cadsr://data-element/{publicId}",
+        audit={"publicId": "plain"},
+    ),
+    ToolSpec(
+        cadsr_content.data_element_version_resource,
+        "cadsr",
+        DataElement | ErrorResult,
+        False,
+        uri="cadsr://data-element/{publicId}/{version}",
+        audit={"publicId": "plain", "version": "plain"},
+    ),
+    ToolSpec(
+        cadsr_content.registry_resource,
+        "cadsr",
+        RegistryReleaseResult | ErrorResult,
+        False,
+        uri="cadsr://registry/release",
+    ),
     ToolSpec(
         content.expand_value_set,
         "evs",
@@ -337,14 +509,14 @@ OPERATIONS = {spec.operation: spec for spec in SPECS}
 
 
 def invoke(
-    context: Context, operation: str, *args: Any, _correlation_id: object = None, **kwargs: Any
+    context: Context, operation: str, /, *args: Any, _correlation_id: object = None, **kwargs: Any
 ) -> dict[str, Any]:
     """Invoke any producer under the same correlation, error and cache boundary."""
 
     spec = OPERATIONS[operation]
 
     def produce() -> dict[str, Any]:
-        with invocation_policy(resolution=spec.resolution):
+        with invocation_policy(resolution=spec.resolution), selection_scope():
             return spec.handler(context, **spec.arguments(args, kwargs))
 
     arguments = dict(zip((p.name for p in spec.parameters), args, strict=False)) | kwargs
@@ -357,6 +529,7 @@ def invoke(
 
 # CLI spellings differ from the shared handler fields only in these legacy flags.
 _CLI_FLAGS = {
+    "includeModules": "--no-modules",
     "include_hierarchy": "--no-hierarchy",
     "include_roles": "--no-roles",
     "include_associations": "--no-associations",
@@ -374,7 +547,14 @@ def _argument_type(annotation: Any) -> tuple[Any, bool, tuple[Any, ...]]:
         return scalar, True, choices
     if get_origin(annotation) is Literal:
         return type(args[0]), False, tuple(sorted(args))
-    return annotation, False, ()
+    return _scalar_type(annotation), False, ()
+
+
+def _scalar_type(annotation: Any) -> Any:
+    """Structured CLI arguments are JSON objects; scalar arguments use their own parser."""
+    if get_origin(annotation) is dict or is_typeddict(annotation):
+        return json.loads
+    return annotation
 
 
 def _value_options(parameter: Parameter) -> dict[str, Any]:
@@ -396,7 +576,8 @@ def _cli_argument(parameter: Parameter) -> tuple[tuple[str, ...], dict[str, Any]
     options = _value_options(parameter)
     flag = parameter.name
     if parameter.default is not Parameter.empty:
-        flag = _CLI_FLAGS.get(parameter.name, "--" + parameter.name.replace("_", "-"))
+        spelling = re.sub(r"(?<!^)(?=[A-Z])", "-", parameter.name).lower().replace("_", "-")
+        flag = _CLI_FLAGS.get(parameter.name, "--" + spelling)
         options.update(default=parameter.default, dest=parameter.name)
     return (flag,), options
 

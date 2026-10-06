@@ -110,8 +110,20 @@ X-21:
   statement: A caDSR content call without registryRelease names the registry form of the release with neither identifier nor date; with a registry release caDSR does not publish, it is release_not_available, never answered unpinned; with one caDSR publishes, the release is asked for and named in provenance with its date.
   basis: [A3.8, A3.4, provenance]
 X-22:
-  statement: A call that leaves out a release the tool requires is an invalid request; the server never chooses the release for it.
-  basis: [A3.1, A2.5]
+  statement: >
+    For NCIt content, an omitted or null release resolves the configured channel's current
+    release once per call, by tag and exactly one row, or fails with release_not_available.
+    Every request is pinned and every result names the effective release. Within an MCP
+    session the first successfully resolved implicit release is reused, even after a content
+    error; an explicit release applies only to its call and never changes that pin. A session
+    release no longer served fails with release_not_available naming it and asking the caller
+    to start a new session or name a release, never silently re-resolving. Other terminologies
+    require an explicit release (invalid_request naming release). CLI invocations and requests
+    without a session resolve per call; no process-wide default is kept. Cursors bind the
+    effective release. Completion audit records whether the release was explicit, session-held
+    or freshly-resolved. Implicit NCIt calls carry ttlMs 0 and cacheScope private (M2.2);
+    explicit-release calls and resources retain their existing policy. Missing, ambiguous or mismatched release identity fails closed.
+  basis: [A3.1, A3.3, A3.4, A3.6.1, A3.6.2, A6.1, A2.5, M2.2, M2.3]
 X-23:
   statement: An identifier that does not match the form its tool states (patterns), a release among them, is an invalid request before anything else the tool would answer, capability_unavailable included, and no upstream request carries it; an identifier without a stated form reaches the platform as one encoded path segment or parameter value. A release of that form the platform does not serve stays release_not_available (X-2).
   basis: [A7.6, A2.5]
@@ -285,7 +297,7 @@ find_data_elements_for_concept-5:
   statement: Data elements beyond the tool's maximum are left out, with the truncation record saying how many at least.
   basis: [find_data_elements_for_concept, truncation, A5.4]
 get_concept_for_permissible_value-1:
-  statement: A data element and value resolve to the concept its value meaning stands for, as the concept record of the release the call pins (release is required), its provenance naming both content states.
+  statement: A data element and value resolve to the concept its value meaning stands for, as the concept record of the release the call pins (explicitly named or resolved under X-22), its provenance naming both content states.
   basis: [get_concept_for_permissible_value, provenance, A1.5]
 get_concept_for_permissible_value-2:
   statement: By permissibleValueId the tool is capability_unavailable (OP-C10), never not_found or empty.

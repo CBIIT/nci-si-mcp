@@ -12590,7 +12590,8 @@
    ],
    "apiResponse": {
     "type": "S"
-   }
+   },
+   "registryRelease": "2026.07.02"
   }
  }
 }

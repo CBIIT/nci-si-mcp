@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from .cadsr import CaDSRClient
 from .config import Settings
 from .embeddings import EmbeddingProvider, create_embedding_provider
 from .evs import LICENSE_KEY_HEADER, EVSClient
@@ -15,10 +16,12 @@ class Context:
         settings: Settings,
         *,
         evs: EVSClient | None = None,
+        cadsr: CaDSRClient | None = None,
         index: LocalIndex | None = None,
         embedding_provider: EmbeddingProvider | None = None,
     ) -> None:
         self.settings = settings
+        self.cadsr = cadsr or CaDSRClient(settings)
         self.evs = evs or EVSClient(
             settings.evs_base_url,
             settings.timeout_seconds,

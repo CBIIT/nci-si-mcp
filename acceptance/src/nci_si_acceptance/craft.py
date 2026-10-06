@@ -302,6 +302,39 @@ def release_duplicate_tag(recorded: Recorded) -> Documents:
     }
 
 
+def release_session(recorded: Recorded) -> Documents:
+    """X-22: discovery moves after its first read; a held release may be withdrawn."""
+    source = recorded("recorded/evs/release-monthly.json")
+    first = source["response"]["body"][0]
+    second = first | {"version": OTHER_RELEASE, "terminologyVersion": f"ncit_{OTHER_RELEASE}"}
+    body = concept("C90000001", "Session release fixture")
+    request: dict[str, Any] = concept_request(body["code"]) | {"params": {"include": ["minimal"]}}
+    response = {"status": 200, "body": body}
+    documents = {}
+    for scenario in ("moving-session", "withdrawn-session"):
+        root = f"scenarios/release/{scenario}"
+        documents[f"{root}/monthly.json"] = crafted(
+            "X-22",
+            source["request"],
+            responses=[source["response"], {"status": 200, "body": [second]}],
+        )
+        documents[f"{root}/original.json"] = crafted(
+            "X-22", request, responses=[response, _session_next(scenario, response)]
+        )
+        documents[f"{root}/other.json"] = crafted(
+            "X-22",
+            request | {"path": request["path"].replace(RELEASE, OTHER_RELEASE)},
+            response={"status": 200, "body": body | {"version": OTHER_RELEASE}},
+        )
+    return documents
+
+
+def _session_next(scenario: str, response: dict[str, Any]) -> dict[str, Any]:
+    if scenario == "moving-session":
+        return response
+    return {"status": 404, "body": {"message": f"Terminology not found = {TERMINOLOGY}"}}
+
+
 def traversal_deep_fanout(_: Recorded) -> Documents:
     """A root with more children than the node maximum, one of them heading a chain
     deeper than the depth maximum."""
@@ -681,7 +714,7 @@ def _cadsr_json(path: str, **request: Any) -> dict[str, Any]:
 
 def cadsr_with_registry_release(recorded: Recorded) -> Documents:
     """A registry release published at the path the inventory names (OP-C08), and a data
-    element asked with it in the inventory's form (OP-C01), the release echoed in the answer.
+    element and CRDC list asked with it, the release echoed in each content answer.
     The ordinary layer holds the API as it is: that path answers 404."""
 
     requirement = (
@@ -703,7 +736,8 @@ def cadsr_with_registry_release(recorded: Recorded) -> Documents:
         f"{scenario}/crdc-list.json": crafted(
             requirement,
             crosswalk["request"] | {"params": {"registryRelease": [REGISTRY_RELEASE]}},
-            response=crosswalk["response"],
+            response=crosswalk["response"]
+            | {"body": crosswalk["response"]["body"] | {"registryRelease": REGISTRY_RELEASE}},
         ),
         f"{scenario}/registry-releases.json": crafted(
             requirement,
@@ -1026,6 +1060,7 @@ def cadsr_over_cap(_: Recorded) -> Documents:
 
 
 SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
+    release_session,
     release_mismatch,
     release_two_latest,
     release_duplicate_tag,

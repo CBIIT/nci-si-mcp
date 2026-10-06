@@ -16,12 +16,14 @@ from .context import Context
 from .errors import InputValidationError, is_error_record
 from .invocation import call
 from .registry import SPECS, ToolSpec, invoke
+from .release_selection import SessionRelease, session_scope
 from .results import Untruncated
 
 INSTRUCTIONS = (
     "NCI Thesaurus (NCIt) lookup and relationship traversal against live NCI EVS, "
-    "plus text search over a small locally indexed sample of concepts. Every item a tool "
-    "returns carries a provenance record that names its terminology and release, "
+    "plus local indexed search and caDSR data-element lookup, matching and registry discovery. "
+    "caDSR keyword search is a requested upstream capability not served today. Every item a tool "
+    "returns carries a provenance record that names its terminology release or registry state, "
     "the surface that supplied it and the call's correlationId. A failed tool "
     "call is flagged as an error. Failures the server handles carry the error record "
     "{error: {code, message, details?, correlationId}}: code is one of invalid_request, "
@@ -69,6 +71,7 @@ def create_mcp(settings: Settings | None = None, *, context: Context | None = No
             _cache_results,
             _audit_tools(context, resolved_settings.profile),
             _validate_inputs(resolved_settings.profile),
+            _release_session,
         ],
     )
 
@@ -198,6 +201,9 @@ def _check_arguments(model: Any, arguments: Any) -> dict[str, Any]:
     except ValidationError as exc:
         error = exc.errors(include_input=False)[0]
         parameter = str(error["loc"][0]) if error["loc"] else "arguments"
+        if error["type"] == "missing" and len(error["loc"]) > 1:
+            # Name the incomplete object, as callers must supply its required fields.
+            parameter = ".".join(str(part) for part in error["loc"][:-1])
         raise InputValidationError(error["msg"], parameter) from None
     return {}
 
@@ -215,3 +221,22 @@ async def _cache_results(ctx: Any, call_next: Callable[[Any], Awaitable[Any]]) -
         if ctx.method == "tools/call":
             return {**result, "_meta": {**result.get("_meta", {}), **hint}}
         return {**result, **hint}
+
+
+async def _release_session(ctx: Any, call_next: Callable[[Any], Awaitable[Any]]) -> Any:
+    # MCP 2 creates ServerSession per request. Its connection owns the validated
+    # HTTP session, not the proxy or an untrusted Mcp-Session-Id header.
+    connection = ctx.session._connection
+    if ctx.request is None:
+        # A stdio lifespan is one session, including the SDK's envelope protocol
+        # which creates a fresh Connection for each request on that same stream.
+        state = ctx.lifespan_context
+    elif connection.session_id is not None:
+        state = connection.state
+    else:
+        state = None
+    pin = None
+    if state is not None:
+        pin = state.setdefault("nci_si_implicit_release", SessionRelease())
+    with session_scope(pin):
+        return await call_next(ctx)

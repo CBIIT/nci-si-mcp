@@ -74,7 +74,7 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects twelve EVS tools, no caDSR tools yet, or the same twelve EVS tools, respectively; EVS resources are available in `evs` and `unified`. CLI maintenance commands remain available in every profile |
+| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects twelve EVS tools, ten caDSR tools, or both groups. Resources follow their group. CLI commands remain available in every profile |
 | `NCI_SI_UPSTREAM_MODE` | `live` | `live` or `fixture`; selects the six base URLs below as a set (next paragraph) |
 | `NCI_SI_EVS_BASE_URL` | `https://api-evsrest.nci.nih.gov` | EVS REST endpoint (`http` or `https`) |
 | `NCI_SI_EVS_FHIR_BASE_URL` | `https://api-evsrest.nci.nih.gov/fhir/r4` | EVS FHIR endpoint |
@@ -93,6 +93,12 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 | `NCI_SI_EVS_MAX_RESPONSE_BYTES` | `10485760` | Maximum accepted EVS REST or FHIR response, up to 1 GiB |
 | `NCI_SI_INDEX_BATCH_SIZE` | `100` | Codes per EVS indexing request |
 | `NCI_SI_LOG_LEVEL` | `INFO` | Stderr diagnostic level; per-call audit records remain enabled at every level |
+
+The caDSR lookup, registry, matching, form and code-map tools use upstream APIs.
+Registry discovery reads the export folder's exact distribution row. The folder gives
+local server time without a zone, so `generatedAt` carries no offset (for example
+`2026-07-01T22:19`), not the ZIP file's HTTP timestamp. API content without a published registry
+release does not inherit that export date.
 
 The six base URLs are one set. In `live` mode a base URL that is not given takes its production
 default, and one that is given replaces that default. In `fixture` mode every one of the six must be given, so a fixture
@@ -544,18 +550,29 @@ unknown, its record gives `omitted: 0` and `exact: false`.
 
 ## MCP Tools
 
-- `get_concept`: fetch a caller-pinned EVS concept with required `terminology`, `release` and `code`. Optional `include` selects synonyms, definitions, properties or semanticType; status is passed through from EVS.
-- `resolve_retired_code`: fetch a required `terminology`, `release` and `code`, returning upstream `active` and optional `status`, with `replacements` always present. Active concepts return an empty list without a history request. Retired concepts use the pinned single-code history endpoint; each named replacement carries its code, name, terminology and provenance. A history 404 is an upstream error, not an empty result.
-- `get_concept_subsets`: read the required `terminology`, `release` and `code`, returning its `Concept_In_Subset` associations as subset code, terminology, name and provenance, in platform order.
-- `expand_value_set`: expand an NCIt subset with required `terminology`, `release` and exactly one of `valueSet` or `code`. `count` defaults to 200 and clamps to 1000; `offset` defaults to 0. `activeOnly` defaults to false; when true, inactive members are removed before paging and `total` counts those kept. Members retain platform order and FHIR provenance, with `inactive` only when true. Pages, including clamped and empty pages, are not truncation. EVS's unpinned expansion must report exactly the requested release or the call fails with `release_mismatch`; historical expansion is not guaranteed. Other terminologies return `capability_unavailable` without a request.
-- `get_concept_mappings`: read the required `terminology`, `release` and `code`, returning its maps in platform order. Optional `targetTerminology` matches the platform label exactly, including case. Record values are unchanged; optional target version and term type are omitted when absent, null or empty. Both tools use one pinned concept read, carry provenance on empty results and fail on malformed content.
-- `list_relationships`: list the pinned release’s roles and associations with code, terminology, name, kind, polarity and provenance. Reads each catalogue once per call; no cross-call cache. Missing configured exclusion codes make this tool and `get_concept_neighborhood` fail with `internal_error`, naming the absent codes in `details.missingCodes`. No network access is needed at startup.
-- `get_concepts`: fetch a caller-pinned batch with required `terminology`, `release` and `codes`. Returns `concepts` and `missing` in input order, preserving duplicate occurrences. Optional `include` works as in `get_concept`. Empty input makes no request. At most 650 supplied codes and a 7000-byte encoded request target are allowed; larger inputs are `invalid_request`. An oversized response is `bound_exceeded` (`NCI_SI_EVS_MAX_RESPONSE_BYTES`), never partial results.
-- `search_concepts`: search a pinned terminology with required `terminology`, `release` and `query`. Default `lexical` and `typeahead` use EVS's order; lexical preserves its highlight as `matchedOn`, while typeahead omits it. Neither invents a score. `semantic` and `hybrid` use the exact NCIt index, which must hold the requested release; they require NumPy (`index` extra) and return a score and winning field. `limit` defaults to 10 and clamps to 1000. All modes return `totalKnown` and continue with `cursor` until `nextCursor` is absent. `retired: only` filters using the pinned terminology's advertised retirement status, or returns `invalid_request` if none is selectable; the default `include` keeps active and retired matches.
-- `get_concept_hierarchy`: caller-pinned parents or children, excluding the seed. Required `direction`; `depth` defaults to 1, maximum 4; `limit` defaults to 200, maximum 1000. `nextCursor` continues with the same applied arguments. Paging replays within 200 requests: roughly 9,900 nodes for ordinary depth-one fanout at 50 per batch, fewer with retries or oversized responses. Narrow the starting concept or depth if replay returns `bound_exceeded`. Historical releases continue while served; withdrawal returns `cursor_expired`. `pathsToRoot` returns every platform path and unique reached nodes; depth, limit and cursor do not apply to it.
-- `get_concept_neighborhood`: caller-pinned graph including the seed. `depth` defaults to 2, maximum 4; `maxNodes` 200/1000; `maxEdges` 1000/5000; optional `budgetPerKind` maximum 1000. `kinds` selects among the six relation kinds. Negative assertions and targets are returned marked; their targets expand only with `includeNegative: true` or a positive route. A relationship without an upstream code remains positive, with its name and qualifiers preserved. Both graph tools share 200 requests per call, including a batched final-frontier check for depth truncation.
+For NCIt content tools, omit `release` (or use `null`) to resolve the configured monthly/weekly
+channel once. The first implicit release stays pinned for that MCP session. An explicit release
+applies only to that call and never changes the session pin. Other terminologies require an
+explicit release. If EVS withdraws the session release, start a new session or name a release;
+the server never silently switches it. Cursors bind the effective release. For example, call
+`get_concept` with `{"terminology": "ncit", "code": "C3262"}`. Every result still names its release.
+CLI invocations and HTTP calls without a session resolve independently. Discovery operations
+remain fresh, and resource URIs keep an explicit release. Completion audit records name the
+selection as `explicit`, `session-held` or `freshly-resolved`. Implicit NCIt calls use
+`ttlMs: 0` / `cacheScope: private`; explicit-release calls retain `86,400,000/public`.
 
-These content entries require an explicit release. Live concept and graph reads support EVS
+- `get_concept`: fetch an EVS concept at the effective release with required `terminology` and `code`. Optional `include` selects synonyms, definitions, properties or semanticType; status is passed through from EVS.
+- `resolve_retired_code`: fetch a required `terminology` and `code`, returning upstream `active` and optional `status`, with `replacements` always present. Active concepts return an empty list without a history request. Retired concepts use the pinned single-code history endpoint; each named replacement carries its code, name, terminology and provenance. A history 404 is an upstream error, not an empty result.
+- `get_concept_subsets`: read the required `terminology` and `code`, returning its `Concept_In_Subset` associations as subset code, terminology, name and provenance, in platform order.
+- `expand_value_set`: expand an NCIt subset with required `terminology` and exactly one of `valueSet` or `code`. `count` defaults to 200 and clamps to 1000; `offset` defaults to 0. `activeOnly` defaults to false; when true, inactive members are removed before paging and `total` counts those kept. Members retain platform order and FHIR provenance, with `inactive` only when true. Pages, including clamped and empty pages, are not truncation. EVS's unpinned expansion must report exactly the requested release or the call fails with `release_mismatch`; historical expansion is not guaranteed. Other terminologies return `capability_unavailable` without a request.
+- `get_concept_mappings`: read the required `terminology` and `code`, returning its maps in platform order. Optional `targetTerminology` matches the platform label exactly, including case. Record values are unchanged; optional target version and term type are omitted when absent, null or empty. Both tools use one pinned concept read, carry provenance on empty results and fail on malformed content.
+- `list_relationships`: list the pinned release’s roles and associations with code, terminology, name, kind, polarity and provenance. Reads each catalogue once per call; no cross-call cache. Missing configured exclusion codes make this tool and `get_concept_neighborhood` fail with `internal_error`, naming the absent codes in `details.missingCodes`. No network access is needed at startup.
+- `get_concepts`: fetch a batch at the effective release with required `terminology` and `codes`. Returns `concepts` and `missing` in input order, preserving duplicate occurrences. Optional `include` works as in `get_concept`. Empty input makes no content request; implicit release discovery may still run. At most 650 supplied codes and a 7000-byte encoded request target are allowed; larger inputs are `invalid_request`. An oversized response is `bound_exceeded` (`NCI_SI_EVS_MAX_RESPONSE_BYTES`), never partial results.
+- `search_concepts`: search a pinned terminology with required `terminology` and `query`. Default `lexical` and `typeahead` use EVS's order; lexical preserves its highlight as `matchedOn`, while typeahead omits it. Neither invents a score. `semantic` and `hybrid` use the exact NCIt index, which must hold the requested release; they require NumPy (`index` extra) and return a score and winning field. `limit` defaults to 10 and clamps to 1000. All modes return `totalKnown` and continue with `cursor` until `nextCursor` is absent. `retired: only` filters using the pinned terminology's advertised retirement status, or returns `invalid_request` if none is selectable; the default `include` keeps active and retired matches.
+- `get_concept_hierarchy`: parents or children at the effective release, excluding the seed. Required `direction`; `depth` defaults to 1, maximum 4; `limit` defaults to 200, maximum 1000. `nextCursor` continues with the same applied arguments. Paging replays within 200 requests: roughly 9,900 nodes for ordinary depth-one fanout at 50 per batch, fewer with retries or oversized responses. Narrow the starting concept or depth if replay returns `bound_exceeded`. Historical releases continue while served; withdrawal expires an explicit-release cursor. An implicit session pin instead fails with `release_not_available`, asking for a new session or an explicit release. `pathsToRoot` returns every platform path and unique reached nodes; depth, limit and cursor do not apply to it.
+- `get_concept_neighborhood`: a graph at the effective release including the seed. `depth` defaults to 2, maximum 4; `maxNodes` 200/1000; `maxEdges` 1000/5000; optional `budgetPerKind` maximum 1000. `kinds` selects among the six relation kinds. Negative assertions and targets are returned marked; their targets expand only with `includeNegative: true` or a positive route. A relationship without an upstream code remains positive, with its name and qualifiers preserved. Both graph tools share 200 requests per call, including a batched final-frontier check for depth truncation.
+
+These content entries require an explicit release for non-NCIt terminologies. Live concept and graph reads support EVS
 terminologies; NCIt codes follow their stated C-number form, and other codes are encoded as
 one path segment. Semantic/hybrid search remains NCIt-only; another terminology is
 `invalid_request`. Bounds above their maxima clamp. Invalid arguments return `invalid_request`.
@@ -568,10 +585,44 @@ with no matches still return empty successes; missing current releases retain th
 `release_not_available` behavior.
 
 Each tool description, as sent to MCP clients, states the contract in full. The former
-`ncit_*` tools and `cadsr_status` are removed; use the twelve tools above. The caDSR profile
-currently exposes no tools. CLI diagnostics retain `search`, `lookup`, `traverse` and
+`ncit_*` tools and `cadsr_status` are removed. CLI diagnostics retain `search`, `lookup`, `traverse` and
 `release-info`, including CLI-only options such as `--live-only` and `--include-raw`.
 The release report's `selected_release` field names the configured channel's release.
+
+The caDSR tools are available in `cadsr` and `unified`. Credentials have not been issued for
+development; their tests use contract-crafted fixtures. Runtime responses always come from
+the configured upstream, never from a built-in fixture.
+
+- `get_data_element`: exactly one of `publicId`, `questionText` or `longName`. A preferred question with one candidate retrieves the full item; none is `not_found`, several is `invalid_request` naming candidates. Long-name lookup is unavailable (OP-C02). Optional `version` selects the item's version. Optional `include` selects permissibleValues, valueDomain, conceptAssociations, alternateNames or classificationSchemes; without it, only the base record is returned. Nested permissible values and schemes carry provenance. CLI: `get-data-element --public-id 2200604`.
+- `search_data_elements`: required `query`, optional `mode` (default lexical), `filters`, `limit` (10/100), `cursor` and `registryRelease`. The requested keyword route (OP-C03, C-3) is not served by caDSR today. Failures retain their original details and `upstream_unavailable` code, with conditional guidance: persistent failures may reflect the missing keyword capability; use `get_data_element` by public id or question text. Transient failures may still recover on retry. Semantic/hybrid modes (OP-C04) and nonempty filters are `capability_unavailable`. Successful upstream lists retain order and page locally; a 1,000-row response reports `upstream_cap`, numeric omitted at least one and exact false. `totalKnown` appears only for an upstream count. CLI: `search-data-elements QUERY`; `--filters` accepts a JSON object, but filters remain unavailable until #42.
+- `list_contexts`: upstream context names as identifiers, with provenance and no invented definitions. Optional `limit` (100/1000), `cursor` and `registryRelease`. CLI: `list-contexts`.
+- `list_classification_schemes`: optional `context`, `limit` (100/1000), `cursor` and `registryRelease`; returns `capability_unavailable` until OP-C13 exists. Use `get_data_element` with include classificationSchemes to read an element's schemes and nested items. CLI: `list-classification-schemes`.
+- `resolve_registry_release`: no arguments. Returns published registry metadata if available, otherwise the exact export row's local date-time without an offset or identifier. TTL 0/public. CLI: `resolve-registry-release`.
+- `get_form`: `publicId` is required for lookup; optional `version` selects its item version. Optional `keyword` is rejected because Form/query requires an identifier. `includeModules` defaults to true; false omits modules/questions, otherwise their order and fields pass through. Retired statuses remain unchanged. Optional `registryRelease` fails closed: unpublished pins are release_not_available; a published pin is capability_unavailable (pinned form lookup) until C-1 defines its transport. CLI: `get-form --public-id 5406471 --no-modules`.
+- `get_permissible_value`: required `permissibleValueId`, optional `registryRelease`. Returns capability_unavailable (OP-C10): REST publishes the identifier but does not retrieve a value by it. Invalid ids and unlisted pins are rejected first. Read a containing data element with include permissibleValues instead. CLI: `get-permissible-value 9192925`.
+- `get_code_map`: optional `sourceSystem` (CRDC only, the default), `targetContext`, `dataElementId`, `limit` (100/1000), `cursor` and `registryRelease`. One map per CRDC data element, preserving values and colon-joined concept codes; targetContext matches exact comma-split Used By names. Coverage counts values with concept codes. Missing binding is explicit as valueLevelBinding false and values empty. Cursors bind all arguments, and verified pins must be confirmed upstream. CLI: `get-code-map --target-context GDC`.
+- `match_data_elements`: required `entities` (1–10 objects with `name`, optional `userTip` and `permissibleValues` strings). Optional `matchLimit` (10/100), `filters` and `registryRelease`. Optional `modelVariant` and `similarityThreshold` are rejected with `invalid_request`, citing C-6. Filters accept context, workflowStatus, registrationStatus and valueDomainType as text, and classificationScheme as `{publicId, version}` with both required. One object is sent per entity, matches retain entity/platform order with the platform's score, rule and matched text. Any failure fails the whole call. CLI: `match-data-elements '{"name":"Patient Gender"}'`; `--filters` takes a JSON object.
+- `match_value_meanings`: required `values` (1–10 strings), optional `strictness` (restricted by default, or unrestricted), `terminologyScope` (list of code-system codes) and `registryRelease`. Matches retain platform order, type, rule, identity, context and workflowStatus; a missing concept/source, registrationStatus, score or empty/NA crosswalk is omitted. CLI: `match-value-meanings Male Female --strictness unrestricted`; repeat `--terminology-scope` for multiple codes.
+
+Matching results, including empty ones, use TTL 0/private. Calls use
+`NCI_SI_MATCH_TIMEOUT_SECONDS` (45 seconds by default); timeouts are errors, never empty
+results. Header filters must be printable ASCII; entity/value text stays unchanged in JSON.
+Unlisted matching pins are `release_not_available`; a published pin is
+`capability_unavailable` (`pinned matching`) because the matching APIs have no registryRelease
+field yet (C-1, upstream package #42). No unpinned match is labelled pinned.
+
+The Form-by-ID API uses type E even for an unknown form. Only HTTP 200 with an explicit
+`form: null` and `apiResponse.type: E` on a validated id is interpreted as `not_found`.
+The recording has no other discriminator: a genuine platform failure in exactly that shape
+would also read as not found. Other operations, statuses and shapes retain normal upstream
+error handling. The #42 requirements package asks caDSR to make absence explicit.
+
+Each caDSR content tool accepts optional `registryRelease`. A pin must be listed upstream
+before any content request, and every supported pinned content response must confirm it; absent/unlisted
+pins return `release_not_available`, a missing or different confirmation `release_mismatch`.
+Unpinned content names only `{registry: cadsr}` in provenance. No item version or export date
+is a registry pin. Cursors bind all normalized arguments, including the pin and applied limit;
+passing another query or pin is `invalid_request`. Bounds above their maxima clamp.
 
 ### Graph bounds
 
@@ -610,9 +661,13 @@ beside it are still checked. Descendant checks read final child lists only.
 - `ncit://concept/{release}/{code}`: the pinned `get_concept` record, with synonyms, definitions, properties and semanticType. The release is required; an upstream failure remains an error.
 - `ncit://release/{version}`: a served NCIt version with terminology, channel, version, date, alternatives and provenance. Historical versions use their upstream tags; the configured channel is preferred when both monthly and weekly are present.
 - `ncit://index/manifest/{release}`: the active index's manifest only when its release matches. No active index is `capability_unavailable`; another active release is `release_mismatch`. An inactive matching build is not served.
+- `cadsr://data-element/{publicId}`: a data element at its latest item version, without extra sections or a registry pin.
+- `cadsr://data-element/{publicId}/{version}`: a data element at the named item version; its version is not a registry release.
+- `cadsr://registry/release`: registry state with source provenance; the export listing supplies local time without an offset while no registry release is published.
+- `cadsr://crosswalk/crdc`: the CRDC crosswalk at its 1,000-map maximum page, with item provenance and short public caching. A larger crosswalk reports exact truncation; use `get_code_map` for filters and further pages.
 
-These JSON resources appear only in the `evs` and `unified` profiles. Successful reads carry
-release-pinned public caching hints on the protocol result. Failed reads are protocol errors;
+EVS JSON resources appear in `evs` and `unified`; caDSR resources in `cadsr` and `unified`.
+Successful reads carry public caching hints on the protocol result. Failed reads are protocol errors;
 handler failures carry the shared error envelope. The old `nci-si://` URIs and moving
 `current`, `latest` and `active` aliases are removed. Use `resolve_release` to discover a
 version, then put that version in the resource URI. CLI `release-info` remains the status report.
@@ -628,13 +683,16 @@ records. The tool listing stays the same across release channels and upstream av
 ## MCP caching hints
 
 Tool results carry `ttlMs` and `cacheScope` in protocol `_meta`, separate from their JSON
-content. Lookup, search (including an empty result) and traversal use 86,400,000 ms and
-`public`. Discovery tools use 0 and `public`; tool errors use 0 and
+content. Explicitly release-pinned content uses 86,400,000 ms/public; unpinned caDSR content (including
+empty results) uses 3,600,000 ms/public. Implicit NCIt calls and computed matching results use 0/private.
+Discovery tools use 0 and `public`; tool errors use 0 and
 `private`. The hints describe freshness and sharing; they do not add a server-side cache.
 
 The four list methods and `server/discover` carry 86,400,000 ms and `public` as result
 fields. Resource reads carry the same fields on the read result: concept content and
-version-addressed release/index content use 86,400,000 ms and `public`.
+version-addressed EVS release/index content use 86,400,000 ms and `public`.
+The unpinned caDSR resources use 3,600,000 ms/public, including registry state: the resource
+holds content, while the resolver tool is an uncached status operation.
 
 ## Audit records
 

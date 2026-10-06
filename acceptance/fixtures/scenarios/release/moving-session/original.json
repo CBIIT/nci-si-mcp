@@ -1,0 +1,40 @@
+{
+ "kind": "crafted",
+ "requirement": "X-22",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C90000001",
+  "params": {
+   "include": [
+    "minimal"
+   ]
+  }
+ },
+ "responses": [
+  {
+   "status": 200,
+   "body": {
+    "code": "C90000001",
+    "name": "Session release fixture",
+    "terminology": "ncit",
+    "version": "26.09d",
+    "conceptStatus": "DEFAULT",
+    "leaf": true,
+    "active": true
+   }
+  },
+  {
+   "status": 200,
+   "body": {
+    "code": "C90000001",
+    "name": "Session release fixture",
+    "terminology": "ncit",
+    "version": "26.09d",
+    "conceptStatus": "DEFAULT",
+    "leaf": true,
+    "active": true
+   }
+  }
+ ]
+}

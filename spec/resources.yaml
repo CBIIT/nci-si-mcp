@@ -29,8 +29,8 @@
 #   provenance fields the resource's provenance record must carry, beyond those X-7 requires
 #   prepared   the content is served from the interim index, which the suite's prepare step builds
 #
-# The release is mandatory for every concept read (the EVS SOW: "structurally required for every
-# live, cached, and indexed concept ... request"), so it is a variable of the concept's URI. The
+# A concept resource is explicitly addressed by release in its URI. Tool calls may instead
+# resolve an omitted NCIt release under X-22; their upstream requests remain pinned. The
 # caDSR resources take no registry release, as the caDSR tools do without one (X-21), so their
 # provenance names the registry alone: release {registry: cadsr}.
 # acceptance/selftests/test_spec.py holds the rules these entries follow.

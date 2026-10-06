@@ -16,6 +16,7 @@ from datetime import UTC, datetime
 from typing import Any, Literal
 
 from .errors import correlated, current_correlation_id, is_error_record
+from .validation import ReleaseSelection
 
 type AuditClass = Literal["plain", "hash"]
 logger = logging.getLogger(__name__)
@@ -160,6 +161,8 @@ class Audit:
     outbound_requests: int = 0
     result: dict[str, Any] | None = None
     error_type: str | None = None
+    release_source: ReleaseSelection | None = None
+    selected_release: dict[str, Any] | None = None
 
     def finish(self) -> None:
         outcome = _outcome(self.result)
@@ -171,7 +174,15 @@ class Audit:
             tool=self.tool,
             parameters=safe,
             target={key: safe[key] for key in ("terminology", "context") if key in safe},
-            release={"requested": safe.get("release"), "resolved": _releases(self.result)},
+            release={
+                "requested": safe.get("release", safe.get("registryRelease")),
+                "resolved": _releases(self.result),
+                **(
+                    {"selection": self.release_source, "selected": self.selected_release}
+                    if self.release_source
+                    else {}
+                ),
+            },
             status="ok" if outcome["responseCode"] == "ok" else "error",
             errorType=self.error_type,
             outboundRequests=self.outbound_requests,
@@ -181,6 +192,12 @@ class Audit:
 
 
 _active: ContextVar[Audit | None] = ContextVar("audit_call", default=None)
+
+
+def release_selection(source: ReleaseSelection, selected: dict[str, Any] | None) -> None:
+    """Retain the effective release even when the content request fails."""
+    if active := _active.get():
+        active.release_source, active.selected_release = source, selected
 
 
 def requested() -> None:

@@ -51,7 +51,7 @@ DEFECTS = [
     ("not-idempotent", P10),
     ("closed-world", P10),
     ("parameter-renamed", P12),
-    ("release-optional", P12),
+    ("release-required-schema", P12),
     ("quotes-not-offered", P11),
     ("lists-not-offered", P11),
     ("patterns-not-offered", P11),

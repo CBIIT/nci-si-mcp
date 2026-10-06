@@ -19,20 +19,28 @@ class ResourceTest(ServerFixture):
         return json.loads(str(raised.exception))["error"]
 
     def test_templates_are_exposed_only_in_their_profiles(self, _):
-        expected = {
+        evs = {
             "ncit://concept/{release}/{code}",
             "ncit://release/{version}",
             "ncit://index/manifest/{release}",
         }
+        cadsr = {"cadsr://data-element/{publicId}", "cadsr://data-element/{publicId}/{version}"}
+        expected = {"evs": evs, "cadsr": cadsr, "unified": evs | cadsr}
         for profile in ("evs", "unified", "cadsr"):
             with self.subTest(profile=profile):
                 self.settings = replace(self.settings, profile=profile)
                 listed = self.session(lambda client: client.list_resource_templates())
                 self.assertEqual(
                     {row.uri_template for row in listed.resource_templates},
-                    set() if profile == "cadsr" else expected,
+                    expected[profile],
                 )
-                self.assertEqual(self.session(lambda client: client.list_resources()).resources, [])
+                resources = self.session(lambda client: client.list_resources()).resources
+                self.assertEqual(
+                    {str(row.uri) for row in resources},
+                    set()
+                    if profile == "evs"
+                    else {"cadsr://registry/release", "cadsr://crosswalk/crdc"},
+                )
         with self.assertRaises(MCPError):
             self.read("ncit://concept/26.06e/C3262")
 

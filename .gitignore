@@ -10,6 +10,8 @@ __pycache__/
 pdm.toml
 .pdm-build/
 .coverage
+# Per-process coverage data written during a parallel test run and combined at its end
+.coverage.*
 dist/
 .DS_Store
 

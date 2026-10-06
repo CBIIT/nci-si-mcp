@@ -521,10 +521,11 @@ value_meaning_match:
     item:
       content: >-
         The item matched, as vmMatch gives it: { itemType, publicId, version, name, concept?,
-        evsSource?, context, workflowStatus, registrationStatus, provenance }. itemType is
+        evsSource?, context, workflowStatus, registrationStatus?, provenance }. itemType is
         Concept or ValueMeaning, publicId that item's caDSR public id (itemId), name its
         matchedName; concept is the code it stands for, in the code system evsSource names
-        (NCI_CONCEPT_CODE, SNOMED-CT_CODE, ...), each absent where the platform gives none
+        (NCI_CONCEPT_CODE, SNOMED-CT_CODE, ...), each absent where the platform gives none;
+        registrationStatus is absent, never null, where the platform gives none
       of: A9.1
     rule:
       content: The rule the platform says matched (vmMatch's ruleDescription), unchanged
@@ -536,8 +537,8 @@ value_meaning_match:
     crosswalk:
       content: >-
         The crosswalk the platform gives, { code, description } from crosswalkCode and
-        crosswalkDescription; absent where it gives none, the platform's NA meaning no
-        crosswalk
+        crosswalkDescription; absent where it gives none, an empty code or the platform's
+        NA meaning no crosswalk
       optional: true
       of: match_value_meanings
 form:
@@ -817,12 +818,12 @@ error:
       identifiers: The list of identifiers that were not found
     release_not_available:
       requested: The release, or the channel, that was asked for
-      source: Where the release could not be named, evs or index
+      source: Where the release could not be named, evs, cadsr or index
       found: The releases the channel's query named, where it named more than one (A3.6.3)
     release_mismatch:
       requested: The release that was asked for
       served: The list of releases the content came from, one element where it is a single release
-      source: Where the content came from, evs or index
+      source: Where the content came from, evs, cadsr or index
     upstream_unavailable:
       surface: The platform that failed, such as evs
       status: The HTTP status of the last failed request, where there was one

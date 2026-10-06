@@ -74,7 +74,7 @@ class RegistryMutationTest(ServerFixture):
         self.assertEqual(result["error"]["code"], "upstream_unavailable")
         self.assertTrue(
             result["error"]["message"].endswith(
-                "Retry later; if it persists, check NCI_SI_EVS_BASE_URL."
+                "Check the configured base URL and credentials for this upstream."
             )
         )
 
