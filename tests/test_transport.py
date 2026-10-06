@@ -4,6 +4,7 @@ import logging
 from contextlib import asynccontextmanager
 from copy import deepcopy
 from dataclasses import replace
+from threading import Event
 from unittest.mock import patch
 
 import httpx2
@@ -243,6 +244,34 @@ class HTTPTest(ServerFixture):
         self.assertEqual((ready.status_code, corrupt.status_code), (200, 503))
         self.assertEqual(corrupt.json(), {"status": "not_ready"})
         self.assertEqual(self.evs.calls, [])
+
+    def test_health_responds_while_readiness_waits_for_index_storage(self):
+        entered, released = Event(), Event()
+        verify = self.context.index.verify_active
+
+        def waiting_index(provider):
+            entered.set()
+            released.wait(2)
+            return verify(provider)
+
+        async def scenario():
+            settings = replace(self.settings, http_require_index=1)
+            async with http_app(settings, self.context) as client:
+                pending = asyncio.create_task(client.get("/ready"))
+                try:
+                    self.assertTrue(await asyncio.to_thread(entered.wait, 1))
+                    health = await asyncio.wait_for(client.get("/health"), timeout=1)
+                    self.assertEqual((health.status_code, health.json()), (200, {"status": "ok"}))
+                    self.assertFalse(pending.done(), "readiness must still be waiting for storage")
+                finally:
+                    released.set()
+                    response = await pending
+                self.assertEqual(
+                    (response.status_code, response.json()), (503, {"status": "not_ready"})
+                )
+
+        with patch.object(self.context.index, "verify_active", side_effect=waiting_index):
+            asyncio.run(scenario())
 
     def test_readiness_logs_only_failure_transitions_without_exception_messages(self):
         settings = replace(self.settings, http_require_index=1)

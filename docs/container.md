@@ -25,7 +25,7 @@ assets fail startup with one JSON diagnostic identifying the asset and error cla
 Use the digest recorded on the GitHub release, for example:
 
 ```bash
-docker run --rm --read-only --cap-drop=ALL --security-opt=no-new-privileges \
+docker run --rm --read-only --stop-timeout 20 --cap-drop=ALL --security-opt=no-new-privileges \
   --tmpfs /tmp:rw,noexec,nosuid -p 127.0.0.1:8000:8000 \
   -v "$INDEX_DIR:/data" -v "$MODEL_CACHE:/model-cache:ro" \
   --env-file "$SERVER_ENV" "$IMAGE_DIGEST"
@@ -59,10 +59,12 @@ does not synchronize local files or sessions across replicas.
 
 ## Build and release evidence
 
-Run `pdm build --no-sdist` in a tagged checkout, then `docker build --platform linux/amd64`.
-Keep exactly one current wheel in `dist/`. CI builds the same wheel/image and runs
-`pdm run python scripts/container_smoke.py IMAGE` with an external, test-only model and a
-recorded concept. This is packaging evidence, not production retrieval calibration.
+Run `pdm build --no-sdist` in a tagged checkout, then
+`docker build --platform linux/amd64 -t nci-si-mcp:local .`.
+Keep exactly one current wheel in `dist/`. Run
+`pdm run python scripts/container_smoke.py nci-si-mcp:local` to check the image with an
+external, test-only model and a recorded concept. CI builds the same wheel/image and runs
+the same smoke check. This is packaging evidence, not production retrieval calibration.
 
 The image uses a digest-pinned Amazon Linux 2023 base, refreshes OS packages and installs
 its `python3.14` package. The builder creates a virtual environment on the same base and

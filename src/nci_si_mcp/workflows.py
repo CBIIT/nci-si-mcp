@@ -151,12 +151,15 @@ def ground_value(
 def _column(column: DictionaryColumn) -> tuple[dict[str, Any], list[str]]:
     if not isinstance(column, dict) or set(column) - set(DictionaryColumn.__annotations__):
         raise InputValidationError("Use name, description and sampleValues only", "columns")
-    entity = {"name": column.get("name")}
+    entity = {"entity": cadsr_matching._text(column.get("name"), "columns.name")}
     if "description" in column:
-        entity["userTip"] = column["description"]
+        entity["entityUserTip"] = cadsr_matching._text(column["description"], "columns.description")
     samples = column.get("sampleValues", [])
-    cadsr_matching._permissible_values(samples)
-    return cadsr_matching._entity(entity), samples
+    if not isinstance(samples, list):
+        raise InputValidationError("Must be a list of text values", "columns.sampleValues")
+    for sample in samples:
+        cadsr_matching._text(sample, "columns.sampleValues")
+    return entity, samples
 
 
 def _align_columns(

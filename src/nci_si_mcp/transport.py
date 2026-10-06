@@ -73,6 +73,7 @@ def create_http_app(
 ) -> Starlette:
     """Inject an approved auth provider here; the default accepts unauthenticated clients."""
     from mcp.server.transport_security import TransportSecuritySettings
+    from starlette.concurrency import run_in_threadpool
     from starlette.responses import JSONResponse
     from starlette.routing import Route
 
@@ -98,9 +99,12 @@ def create_http_app(
     was_ready = True
 
     async def ready(request: Any) -> JSONResponse:
-        # Run on the event loop so overlapping probes cannot duplicate a transition.
         nonlocal was_ready
-        error = _readiness_error(context, bool(settings.http_require_index))
+        # SQLite can wait on a writer; health and MCP requests must remain responsive.
+        error = await run_in_threadpool(
+            _readiness_error, context, bool(settings.http_require_index)
+        )
+        # Keep the transition atomic on the event loop after the storage check.
         available = error is None
         if was_ready and not available:
             emit(logger, logging.WARNING, "http_not_ready", errorType=error)

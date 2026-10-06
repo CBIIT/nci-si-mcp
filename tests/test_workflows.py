@@ -278,6 +278,36 @@ class CohortTest(WorkflowFixture):
         self.assert_composition(False, positive, exclusions)
         self.assert_composition(True, members, exclusions)
 
+    def test_edges_preserve_hierarchy_and_each_exclusion_after_member_cut(self):
+        for negative in (False, True):
+            for maximum in (2, 200):
+                with self.subTest(negative=negative, maximum=maximum):
+                    result = self.call(
+                        "expand_cohort",
+                        conceptCode="C1",
+                        includeNegative=negative,
+                        maxNodes=maximum,
+                    )
+                    self.assert_cohort_edges(result)
+
+    def assert_cohort_edges(self, result):
+        present = set(result["codes"])
+        expected = {
+            pair for pair in (("C2", "C1"), ("C3", "C1"), ("C4", "C2")) if set(pair) <= present
+        }
+        children = self.edges_of(result, "child")
+        self.assertEqual({(e["sourceCode"], e["targetCode"]) for e in children}, expected)
+        roles = self.edges_of(result, "role")
+        self.assertEqual(roles, [row["edge"] for row in result["excluded"]])
+        self.assertEqual(
+            [e["provenance"]["relationship"]["code"] for e in roles],
+            ["R135", "R136"],
+        )
+
+    @staticmethod
+    def edges_of(result, kind):
+        return [e for e in result["edges"] if e["provenance"]["relationship"]["kind"] == kind]
+
     def assert_composition(self, negative, expected, exclusions):
         for maximum, truncated in ((2, True), (200, False)):
             with self.subTest(negative=negative, maximum=maximum):
@@ -367,6 +397,37 @@ class HarmonizationTest(ServerTestCase):
         self.assertEqual(len(result["columns"]), 2)
         self.assertEqual(result["columns"][0], result["columns"][1])
         self.assertEqual(len(server.seen), 2)
+
+    def test_sample_batches_preserve_all_alignments_and_reuse_shared_batches(self):
+        values = [f"Value {i}" for i in range(11)]
+        responses = [
+            {"name": value, "matches": [vm_row(itemId=str(i + 1), matchedName=value)]}
+            for i, value in enumerate(values)
+        ]
+        server = self.serve(
+            reply(cde_response("First", [cde_row()])),
+            reply(cde_response("Second", [cde_row()])),
+            reply({"matchResults": responses[:10]}),
+            reply({"matchResults": responses[10:]}),
+        )
+        result = self.call(
+            server,
+            columns=[
+                {"name": "First", "sampleValues": values},
+                {"name": "Second", "sampleValues": values[:10]},
+            ],
+        )
+        self.assertEqual(
+            [
+                [m["item"]["name"] for m in c["permissibleValueAlignment"]]
+                for c in result["columns"]
+            ],
+            [values, values[:10]],
+        )
+        self.assertEqual(
+            [json.loads(body) for body in server.bodies[2:]],
+            [[{"name": value} for value in values[:10]], [{"name": values[10]}]],
+        )
 
     def test_unknown_and_published_but_unaddressable_pins_fail_closed(self):
         for rows, expected in (
