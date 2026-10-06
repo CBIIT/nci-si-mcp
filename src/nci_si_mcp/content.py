@@ -19,6 +19,7 @@ from .bounds import (
     Budget,
     RequestBudgetError,
     budgeted,
+    current_budget,
 )
 from .catalogue import exclusion_codes, load_catalogue
 from .context import Context
@@ -41,6 +42,7 @@ from .models import (
     utc_now_iso,
 )
 from .release import ReleaseContext, resolve_evs_release
+from .release_selection import implicit_selection, select
 from .traversal import BATCH_SIZE, traverse_ncit
 from .validation import (
     MAX_INDEX_SEARCH_LIMIT,
@@ -53,7 +55,6 @@ from .validation import (
     validate_choice,
     validate_expansion_options,
     validate_identifier,
-    validate_terminology,
 )
 
 
@@ -62,14 +63,6 @@ def _unavailable(capability: str) -> NoReturn:
         "capability_unavailable",
         f"{capability} is not implemented. Use a supported option or retry after it is available.",
         capability=capability,
-    )
-
-
-def _pin(context: Context, terminology: str, release: str) -> ReleaseContext:
-    validate_terminology(terminology)
-    validate_identifier(release, r"[A-Za-z0-9][A-Za-z0-9._-]*", "release")
-    return ReleaseContext(
-        terminology, context.settings.release_channel, release, None, f"{terminology}_{release}"
     )
 
 
@@ -110,21 +103,25 @@ def _provenance(provenance: dict[str, Any]) -> dict[str, Any]:
 def get_concept(
     context: Context,
     terminology: str,
-    release: str,
     code: str,
+    release: str | None = None,
     include: list[ConceptInclude] | None = None,
 ) -> dict[str, Any]:
-    """Get one EVS concept in the required caller-selected release.
+    """Get one EVS concept in the effective release.
 
     Returns code, terminology, name, active, upstream status when supplied, and
     live EVS provenance. include optionally selects synonyms, definitions,
     properties and semanticType; without it only the base record is returned.
     Every request is pinned to release and its returned version is checked.
     Codes follow their terminology; an absent code is not_found.
+
+    For NCIt, omitted/null release resolves the configured channel once and reuses
+    the first implicit pin within an MCP session. Explicit release overrides only
+    this call. Other terminologies require release. CLI resolves anew per invocation.
     """
-    selected = _pin(context, terminology, release)
     code = _code(code, terminology)
     sections, upstream = _includes(include)
+    selected = select(context, terminology, release)
     raw = context.evs.get_concept(
         code,
         release=selected,
@@ -144,15 +141,19 @@ def _includes(include: list[ConceptInclude] | None) -> tuple[list[ConceptInclude
 
 
 def get_concept_subsets(
-    context: Context, terminology: str, release: str, code: str
+    context: Context, terminology: str, code: str, release: str | None = None
 ) -> dict[str, Any]:
-    """Read a concept's subset associations in the required caller-selected release.
+    """Read a concept's subset associations in the effective release.
 
     Returns subsets in platform order, each with code, terminology, name and
     live source-release provenance. Selects the exact Concept_In_Subset type,
     including computed associations without a relationship code. One pinned
     concept read supplies the associations; malformed content is an error.
     Empty results carry provenance, and supplied licence text passes through.
+
+    For NCIt, omitted/null release resolves the configured channel once and reuses
+    the first implicit pin within an MCP session. Explicit release overrides only
+    this call. Other terminologies require release. CLI resolves anew per invocation.
     """
     rows, provenance = _concept_rows(context, terminology, release, code, "associations")
     subsets = []
@@ -173,7 +174,7 @@ def get_concept_subsets(
 def expand_value_set(
     context: Context,
     terminology: str,
-    release: str,
+    release: str | None = None,
     valueSet: str | None = None,  # noqa: N803 - public name specified in tools.yaml.
     code: str | None = None,
     count: int = 200,
@@ -191,13 +192,17 @@ def expand_value_set(
     release before any content is returned. Historical expansion is not promised.
     Each member has FHIR provenance; empty results retain it. Non-NCIt expansion
     is capability_unavailable. HTTP response limits apply to the complete expansion.
+
+    For NCIt, omitted/null release resolves the configured channel once and reuses
+    the first implicit pin within an MCP session. Explicit release overrides only
+    this call. Other terminologies require release. CLI resolves anew per invocation.
     """
-    selected = _pin(context, terminology, release)
     supplied = [value for value in (valueSet, code) if value is not None]
     if len(supplied) != 1:
         raise InputValidationError("Supply exactly one of valueSet or code", "valueSet")
     identifier = _code(supplied[0], terminology)
     count = validate_expansion_options(count, offset, activeOnly)
+    selected = select(context, terminology, release)
     if terminology != "ncit":
         raise PlatformError(
             "capability_unavailable",
@@ -210,11 +215,11 @@ def expand_value_set(
 def get_concept_mappings(
     context: Context,
     terminology: str,
-    release: str,
     code: str,
+    release: str | None = None,
     targetTerminology: str | None = None,  # noqa: N803 - public name specified in tools.yaml.
 ) -> dict[str, Any]:
-    """Read maps carried on a concept in the required caller-selected release.
+    """Read maps carried on a concept in the effective release.
 
     Returns mappings in platform order, preserving the record's values exactly.
     targetTerminology matches the platform label exactly, including case.
@@ -223,6 +228,10 @@ def get_concept_mappings(
     One pinned concept read supplies maps and source-release provenance; target
     versions remain the map's own. Empty results carry provenance and licence
     text passes through only when supplied by the platform.
+
+    For NCIt, omitted/null release resolves the configured channel once and reuses
+    the first implicit pin within an MCP session. Explicit release overrides only
+    this call. Other terminologies require release. CLI resolves anew per invocation.
     """
     rows, provenance = _concept_rows(context, terminology, release, code, "maps")
     mappings = [_mapping_record(row, provenance) for row in rows]
@@ -232,10 +241,10 @@ def get_concept_mappings(
 
 
 def _concept_rows(
-    context: Context, terminology: str, release: str, code: str, section: str
+    context: Context, terminology: str, release: str | None, code: str, section: str
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    selected = _pin(context, terminology, release)
     code = _code(code, terminology)
+    selected = select(context, terminology, release)
     raw = context.evs.get_concept(code, release=selected, include=f"minimal,{section}")
     if raw.get("code") != code:
         raise EVSResponseError("EVS returned a concept other than the one requested")
@@ -281,9 +290,9 @@ def _project(
 
 
 def resolve_retired_code(
-    context: Context, terminology: str, release: str, code: str
+    context: Context, terminology: str, code: str, release: str | None = None
 ) -> dict[str, Any]:
-    """Resolve an EVS code's retirement status and named replacements in a required release.
+    """Resolve an EVS code's retirement status and named replacements in the effective release.
 
     Returns code, terminology, the platform's active boolean and optional status
     unchanged, replacements and provenance. Active concepts have no replacement
@@ -294,10 +303,14 @@ def resolve_retired_code(
     Unknown concepts are not_found; an unavailable history endpoint is an error,
     never an empty list. Compact history carries the requested release without
     inventing a self-described upstream version. Supplied licence text passes through.
+
+    For NCIt, omitted/null release resolves the configured channel once and reuses
+    the first implicit pin within an MCP session. Explicit release overrides only
+    this call. Other terminologies require release. CLI resolves anew per invocation.
     """
-    selected = _pin(context, terminology, release)
     code = _code(code, terminology)
-    concept = get_concept(context, terminology, release, code)
+    selected = select(context, terminology, release)
+    concept = get_concept(context, terminology, code, release)
     result = {key: value for key, value in concept.items() if key != "name"}
     result["replacements"] = []
     if not concept["active"]:
@@ -337,26 +350,31 @@ def _replacement_record(row: dict[str, Any], release: ReleaseContext, uri: str) 
 def get_concepts(
     context: Context,
     terminology: str,
-    release: str,
     codes: list[str],
+    release: str | None = None,
     include: list[ConceptInclude] | None = None,
 ) -> dict[str, Any]:
-    """Get a batch of concepts in the required release, preserving requested order.
+    """Get a batch of concepts in the effective release, preserving requested order.
 
     Returns concepts and missing code lists. Duplicate input occurrences are
     preserved; the upstream request uses each code once. Empty input returns two
-    empty lists without a request. include selects synonyms, definitions,
+    empty lists without a content request; implicit release discovery may still run.
+    include selects synonyms, definitions,
     properties and semanticType, as for get_concept. Each concept carries its
     verified release, status and live provenance; unknown codes are named in missing.
     At most 650 supplied codes and a 7000-byte encoded request target are allowed;
     larger inputs are invalid_request before any upstream call. One nonempty batch
     is one platform call, with counted HTTP retries; there is no per-code fan-out.
     An oversized response fails closed with bound_exceeded, never partial concepts.
+
+    For NCIt, omitted/null release resolves the configured channel once and reuses
+    the first implicit pin within an MCP session. Explicit release overrides only
+    this call. Other terminologies require release. CLI resolves anew per invocation.
     """
-    selected = _pin(context, terminology, release)
     requested = _batch_codes(codes, terminology)
     unique = list(dict.fromkeys(requested))
     sections, upstream = _includes(include)
+    selected = select(context, terminology, release)
     if not unique:
         return {"concepts": [], "missing": [], "provenance": _empty_provenance(selected)}
     _batch_target(context, selected, unique, upstream)
@@ -426,8 +444,10 @@ def _section(raw: dict[str, Any], section: str) -> list[Any]:
     return raw.get(section, [])
 
 
-def list_relationships(context: Context, terminology: str, release: str) -> dict[str, Any]:
-    """List the roles and associations of the required caller-selected release.
+def list_relationships(
+    context: Context, terminology: str, release: str | None = None
+) -> dict[str, Any]:
+    """List the roles and associations of the effective release.
 
     Each relationship has code, terminology, name, kind, polarity and live provenance.
     Polarity follows the configured NCIt exclusion codes (R135 to R142 by default),
@@ -436,10 +456,14 @@ def list_relationships(context: Context, terminology: str, release: str) -> dict
     with internal_error and details.missingCodes; other upstream errors stay explicit.
     All reads are pinned to release and each row's terminology and version are verified.
     The call shares 200 outbound attempts including retries and the HTTP response-size cap.
+
+    For NCIt, omitted/null release resolves the configured channel once and reuses
+    the first implicit pin within an MCP session. Explicit release overrides only
+    this call. Other terminologies require release. CLI resolves anew per invocation.
     """
 
-    selected = _pin(context, terminology, release)
     with budgeted(Budget()):
+        selected = select(context, terminology, release)
         relationships = load_catalogue(
             context.evs, selected, exclusion_codes(context.settings, terminology)
         )
@@ -451,8 +475,8 @@ def list_relationships(context: Context, terminology: str, release: str) -> dict
 def search_concepts(
     context: Context,
     terminology: str,
-    release: str,
     query: str,
+    release: str | None = None,
     mode: PublicSearchMode = "lexical",
     limit: int = 10,
     cursor: str | None = None,
@@ -473,15 +497,19 @@ def search_concepts(
     selectable retired status. exclude and upstream search-type options are not offered.
     Missing index or NumPy is capability_unavailable; another index release is
     release_mismatch; an indexed mode for another terminology is invalid_request.
+
+    For NCIt, omitted/null release resolves the configured channel once and reuses
+    the first implicit pin within an MCP session. Explicit release overrides only
+    this call. Other terminologies require release. CLI resolves anew per invocation.
     """
-    selected = _pin(context, terminology, release)
     limit = bounded(limit, MAX_INDEX_SEARCH_LIMIT, "limit")
     _search_options(query, mode, retired)
+    selected = select(context, terminology, release)
     indexed = mode in ("semantic", "hybrid")
     arguments = {
         "tool": "search_concepts",
         "terminology": terminology,
-        "release": release,
+        "release": selected.version,
         "query": query,
         "mode": mode,
         "limit": limit,
@@ -495,9 +523,13 @@ def search_concepts(
         handler = _indexed_search if indexed else _live_search
         return handler(context, selected, arguments, position, status)
     except EVSReleaseNotFoundError:
-        if cursor is None:
+        if _keep_release_error(cursor):
             raise
         _expired_release(context, selected)
+
+
+def _keep_release_error(cursor: str | None) -> bool:
+    return cursor is None or implicit_selection()
 
 
 def _indexed_search(
@@ -650,14 +682,14 @@ def _search_options(query: str, mode: str, retired: str) -> None:
 def get_concept_hierarchy(
     context: Context,
     terminology: str,
-    release: str,
     code: str,
     direction: HierarchyDirection,
+    release: str | None = None,
     depth: int = 1,
     limit: int = 200,
     cursor: str | None = None,
 ) -> dict[str, Any]:
-    """Get concept parents or children in the required release, excluding the seed.
+    """Get concept parents or children in the effective release, excluding the seed.
 
     depth defaults to 1 and clamps at 4; limit defaults to 200 and clamps at
     1000. Each node has live EVS traversal provenance. The call shares 200
@@ -668,36 +700,56 @@ def get_concept_hierarchy(
     replay; retries and oversized responses reduce this. If replay cannot reach
     the page, bound_exceeded asks the caller to narrow the query. A still-served
     historical release remains valid; withdrawal returns cursor_expired with the
-    pinned and current releases. Only withdrawal triggers channel discovery.
+    pinned and current releases for explicit-release calls; only their withdrawal
+    triggers channel discovery. An implicit session pin instead fails without switching.
     pathsToRoot returns every platform path in order and every reached concept
     once; depth, limit and cursor do not apply to this direction.
     A bounded final-frontier check
     reports depth truncation only when unseen targets remain; leaves and cycles
     to returned nodes are complete. Unknown continuation has exact=false.
     A reported global node cut skips this check; already-truncated kinds are excluded.
+
+    For NCIt, omitted/null release resolves the configured channel once and reuses
+    the first implicit pin within an MCP session. Explicit release overrides only
+    this call. Other terminologies require release. CLI resolves anew per invocation.
     """
-    selected = _pin(context, terminology, release)
     code = _code(code, terminology)
     validate_choice(direction, get_args(HierarchyDirection), "direction")
-    if direction == "pathsToRoot":
-        return _paths_to_root(context, selected, code)
-    depth, limit = bounded(depth, HARD_MAX_DEPTH, "depth"), bounded(limit, HARD_MAX_NODES, "limit")
+    if direction != "pathsToRoot":
+        depth = bounded(depth, HARD_MAX_DEPTH, "depth")
+        limit = bounded(limit, HARD_MAX_NODES, "limit")
+    budget = Budget(depth=depth, paged=True)
+    with budgeted(budget):
+        selected = select(context, terminology, release)
+        if direction == "pathsToRoot":
+            return _paths_to_root(context, selected, code)
+        return _hierarchy(context, selected, code, direction, depth, limit, cursor, budget)
+
+
+def _hierarchy(
+    context: Context,
+    selected: ReleaseContext,
+    code: str,
+    direction: str,
+    depth: int,
+    limit: int,
+    cursor: str | None,
+    budget: Budget,
+) -> dict[str, Any]:
     arguments = {
-        "terminology": terminology,
-        "release": release,
+        "terminology": selected.terminology,
+        "release": selected.version,
         "code": code,
         "direction": direction,
         "depth": depth,
         "limit": limit,
     }
     offset = cursors.decode(cursor, arguments).offset
-    budget = Budget(depth=depth, paged=True)
     # The hierarchy has a page allowance, not a total node or edge allowance.
     # Reserve the seed and a lookahead node; replay remains request-bounded.
     budget.nodes = offset + limit + 2
     budget.edges = budget.nodes**2
-    with budgeted(budget):
-        graph = _hierarchy_replay(context, selected, code, direction, budget, cursor)
+    graph = _hierarchy_replay(context, selected, code, direction, budget, cursor)
     return _hierarchy_page(graph, arguments, offset, limit)
 
 
@@ -734,7 +786,7 @@ def _hierarchy_replay(
             raise RequestBudgetError(budget.requests, budget.attempts)
         return graph
     except EVSReleaseNotFoundError:
-        if cursor is None:
+        if cursor is None or implicit_selection():
             raise
         current = resolve_evs_release(context.evs, release.terminology, release.channel)
         raise PlatformError(
@@ -753,7 +805,7 @@ def _hierarchy_replay(
 
 
 def _paths_to_root(context: Context, release: ReleaseContext, code: str) -> dict[str, Any]:
-    with budgeted(Budget()):
+    with budgeted(current_budget() or Budget()):
         seed = context.evs.get_concept(code, release=release, include="minimal")
         if seed.get("code") != code:
             raise EVSResponseError("EVS returned a concept other than the requested path seed")
@@ -801,8 +853,8 @@ def _path_provenance(release: ReleaseContext, uri: str, depth: int) -> dict[str,
 def get_concept_neighborhood(
     context: Context,
     terminology: str,
-    release: str,
     code: str,
+    release: str | None = None,
     depth: int = 2,
     kinds: list[NeighborhoodKind] | None = None,
     maxNodes: int = 200,  # noqa: N803 - the public signature is specified in tools.yaml.
@@ -810,7 +862,7 @@ def get_concept_neighborhood(
     budgetPerKind: int | None = None,  # noqa: N803
     includeNegative: bool = False,  # noqa: N803
 ) -> dict[str, Any]:
-    """Walk terminology relationships in the required release, including the seed at depth 0.
+    """Walk terminology relationships in the effective release, including the seed at depth 0.
 
     kinds selects parent, child, role, association, inverseRole or
     inverseAssociation (all six by default). depth defaults to 2, maximum 4;
@@ -833,8 +885,11 @@ def get_concept_neighborhood(
     Before the walk, the release's role and association catalogues are read once
     in the same budget. Missing configured exclusion codes return internal_error
     with details.missingCodes; no graph is returned and server startup stays offline.
+
+    For NCIt, omitted/null release resolves the configured channel once and reuses
+    the first implicit pin within an MCP session. Explicit release overrides only
+    this call. Other terminologies require release. CLI resolves anew per invocation.
     """
-    selected = _pin(context, terminology, release)
     code = _code(code, terminology)
     selected_kinds = _kinds(kinds)
     if not isinstance(includeNegative, bool):
@@ -848,6 +903,7 @@ def get_concept_neighborhood(
         else bounded(budgetPerKind, HARD_MAX_PER_KIND, "budgetPerKind"),
     )
     with budgeted(budget):
+        selected = select(context, terminology, release)
         exclusions = exclusion_codes(context.settings, terminology)
         load_catalogue(context.evs, selected, exclusions)
         result = _graph_record(

@@ -14,6 +14,7 @@ from .audit import AuditClass, audited, secrets
 from .caching import invocation_policy
 from .context import Context
 from .invocation import call
+from .release_selection import selection_scope
 from .results import (
     ClassificationSchemesResult,
     CodeMapResource,
@@ -515,7 +516,7 @@ def invoke(
     spec = OPERATIONS[operation]
 
     def produce() -> dict[str, Any]:
-        with invocation_policy(resolution=spec.resolution):
+        with invocation_policy(resolution=spec.resolution), selection_scope():
             return spec.handler(context, **spec.arguments(args, kwargs))
 
     arguments = dict(zip((p.name for p in spec.parameters), args, strict=False)) | kwargs

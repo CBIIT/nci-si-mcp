@@ -9,6 +9,8 @@ from pathlib import Path
 
 import pytest
 
+from nci_si_acceptance.craft import Recorded, release_session
+
 # "i/n": run the i-th of n shards of the self-tests (CI's selftest jobs).
 SHARD_VARIABLE = "SELFTEST_SHARD"
 
@@ -67,7 +69,7 @@ GIVEN_TEXT = "MedDRA content, licensed for NCI work only, as given with this con
 # terminology listing is read by the suite itself (X-17), never asked.
 ANSWERS = {
     "recorded/evs/terminologies.json": {
-        "request": VERSION | {"path": "/api/v1/metadata/terminologies"},
+        "request": VERSION | {"path": "/api/v1/metadata/terminologies", "ignored": {}},
         "response": {
             "status": 200,
             "body": [
@@ -129,6 +131,7 @@ ANSWERS = {
         "response": {"status": 403, "body": {}},
     },
 }
+ANSWERS.update(release_session(Recorded(SUITE.parent / "fixtures")))
 
 
 def _fixture(path: Path, answer: dict) -> None:
@@ -152,7 +155,13 @@ def compliant(pytester, monkeypatch):
         settings.write_text(json.dumps({"NCI_SI_EVS_LICENSE_KEY": LICENCE_KEY}), encoding="utf-8")
     stand_in(pytester)
     tests = pytester.mkdir("tests")
-    for name in ("conftest.py", "test_protocol.py", "test_crosscutting.py", "calls.yaml"):
+    for name in (
+        "conftest.py",
+        "test_protocol.py",
+        "test_crosscutting.py",
+        "test_release_session.py",
+        "calls.yaml",
+    ):
         (tests / name).write_text((SUITE / name).read_text(encoding="utf-8"), encoding="utf-8")
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_MODE", "fixture")
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_SERVER", f"{sys.executable} {COMPLIANT_SERVER}")

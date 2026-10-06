@@ -25,6 +25,7 @@ EdgeType = Literal[
 Profile = Literal["evs", "cadsr", "unified"]
 UpstreamMode = Literal["live", "fixture"]
 ReleaseChannel = Literal["monthly", "weekly"]
+ReleaseSelection = Literal["explicit", "session-held", "freshly-resolved"]
 ConceptInclude = Literal["synonyms", "definitions", "properties", "semanticType"]
 PublicSearchMode = Literal["lexical", "typeahead", "semantic", "hybrid"]
 RetiredSelection = Literal["include", "only"]

@@ -152,7 +152,7 @@ class AdapterReviewTest(ServerFixture):
         self.assertEqual(raised.exception.details["bound"], "NCI_SI_EVS_MAX_RESPONSE_BYTES")
 
     def test_missing_index_names_unavailable_search_capability(self):
-        result = invoke(self.context, "search_concepts", "ncit", "26.06e", "One", mode="semantic")
+        result = invoke(self.context, "search_concepts", "ncit", "One", "26.06e", mode="semantic")
         self.assertEqual(result["error"]["code"], "capability_unavailable")
         self.assertEqual(
             result["error"]["details"],

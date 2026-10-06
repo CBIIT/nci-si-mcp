@@ -30,7 +30,7 @@ A2:
 A3:
   title: Release identity
   rules:
-    A3.1: Every platform request names the release explicitly; resolving it once at start-up does not count.
+    A3.1: Every platform content request names the release explicitly. A per-call resolution or reuse of the MCP session’s implicit NCIt release pins every request of the call (X-22); a process-wide start-up default does not count.
     A3.2: Unversioned platform access is used only to discover which releases exist, and, where the platform offers no release-pinned form of an operation, to call its unpinned form, verify the release the payload reports and fail closed on a difference (the verified fallback).
     A3.3: The release in effect is recorded in the provenance of every result.
     A3.4: A cache or index derived from platform content is bound to its release; any mismatch between the release requested, the release the content reports and the release of derived content fails closed with a structured error.
@@ -136,8 +136,8 @@ M2:
   title: Caching hints
   rules:
     M2.1: tools/list, prompts/list, resources/list, resources/templates/list, resources/read and server/discover carry ttlMs and cacheScope.
-    M2.2: "A result's ttlMs follows what it holds: release-pinned content 86,400,000 (long); governed content that no release pins (caDSR content while caDSR publishes no registry release) a short positive ttlMs, at most 3,600,000; a result computed from caller-supplied values (the tools marked computed in tools.yaml) 0; resolve_release, resolve_registry_release and get_release_alignment 0; a result that joins content of two states (a cross-domain or workflow result resting on release-pinned NCIt and on caDSR content) the shorter of their ttlMs. tools/list is long and public."
-    M2.3: cacheScope is public for governed content, the resolve tools included, and private for results computed from caller-supplied values.
+    M2.2: "A result's ttlMs follows what it holds: release-pinned content 86,400,000 (long); governed content that no release pins (caDSR content while caDSR publishes no registry release) a short positive ttlMs, at most 3,600,000; a result computed from caller-supplied values (the tools marked computed in tools.yaml) 0; resolve_release, resolve_registry_release and get_release_alignment 0; a result that joins content of two states (a cross-domain or workflow result resting on release-pinned NCIt and on caDSR content) the shorter of their ttlMs. tools/list is long and public. Exception (X-22): a call that implicitly selects its NCIt release returns ttlMs 0 and cacheScope private, since its arguments do not key the effective release; explicit-release calls and resources retain their existing policy."
+    M2.3: cacheScope is public for governed content, the resolve tools included, and private for results computed from caller-supplied values and for implicit NCIt release selection under M2.2.
     M2.4: A cursor pins the release it was issued against; presented after that release is superseded, it is a structured error.
     M2.5: "A tool result carries ttlMs and cacheScope in its _meta; the result of resources/read, as of the list methods, carries them as fields of the result, never in its _meta. The hint of a resource is of the class M2.2 gives what it holds, not necessarily its tool's own."
   why:

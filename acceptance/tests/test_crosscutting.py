@@ -743,11 +743,14 @@ def test_a_bounded_argument_below_one_is_an_invalid_request(tools, pinned, name,
 
 @pytest.mark.requirement("X-22")
 @pytest.mark.parametrize("name", PINNED)
-def test_a_call_without_its_required_release_is_an_invalid_request(tools, pinned, name):
+def test_a_call_without_release_names_the_resolved_ncit_release(tools, pinned, name):
     unpinned = {key: value for key, value in pinned.items() if key != "release"}
     result = _call(tools, unpinned, name)
 
-    assert error_code(result) == "invalid_request", result.content
+    assert not result.is_error, result.content
+    items = items_of(name, result.content) or [result.content]
+    assert {release_of(item) for item in items} == {pinned_release(name, pinned)}
+    assert (result.meta.get("ttlMs"), result.meta.get("cacheScope")) == (0, "private")
 
 
 # The licensed concept as each tool that returns concept items asks for it, and the licensed

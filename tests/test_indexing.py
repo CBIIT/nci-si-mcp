@@ -1,7 +1,7 @@
 import json
 from unittest.mock import patch
 
-from fakes import concept, release
+from fakes import concept, terminology_row
 from nci_si_mcp.errors import IndexBuildError
 from nci_si_mcp.evaluation import evaluate_build
 from nci_si_mcp.evaluation_sets import parse_set
@@ -127,7 +127,7 @@ class FullBuildTest(ServerFixture):
 
     def test_full_build_operator_command_selects_release_once_and_does_not_activate(self):
         replies = [
-            FakeResponse(json.dumps([release().to_dict()]).encode()),
+            FakeResponse(json.dumps([terminology_row()]).encode()),
             FakeResponse(json.dumps({"total": 1, "concepts": [concept("C1")]}).encode()),
         ]
         with (
@@ -145,7 +145,7 @@ class FullBuildTest(ServerFixture):
 
     def test_unmatched_full_build_calibration_names_candidate_and_blocks_activation(self):
         replies = [
-            FakeResponse(json.dumps([release().to_dict()]).encode()),
+            FakeResponse(json.dumps([terminology_row()]).encode()),
             FakeResponse(json.dumps({"total": 1, "concepts": [concept("C1")]}).encode()),
         ]
         with patch("nci_si_mcp.http_client._open", side_effect=replies):

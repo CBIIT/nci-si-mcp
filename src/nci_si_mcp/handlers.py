@@ -515,7 +515,7 @@ def evaluate(context: Context, build_id: str | None = None) -> dict[str, Any]:
 
 def concept_resource(context: Context, release: str, code: str) -> dict[str, Any]:
     """One NCIt concept pinned to release, with all get_concept content sections."""
-    return get_concept(context, "ncit", release, code, include=list(get_args(ConceptInclude)))
+    return get_concept(context, "ncit", code, release, include=list(get_args(ConceptInclude)))
 
 
 def release_resource(context: Context, version: str) -> dict[str, Any]:

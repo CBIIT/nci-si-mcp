@@ -72,14 +72,14 @@ def test_the_items_of_a_result_are_where_the_tool_says(tool, result, items):
         (
             "get_concept",
             {"terminology", "release", "code", "include"},
-            {"terminology", "release", "code"},
+            {"terminology", "code"},
         ),
         ("resolve_release", {"terminology", "channel"}, {"terminology"}),
         # Alternatives: none of them is required.
         (
             "expand_value_set",
             {"terminology", "release", "valueSet", "code", "count", "offset", "activeOnly"},
-            {"terminology", "release"},
+            {"terminology"},
         ),
         (
             "get_form",
@@ -96,7 +96,7 @@ def test_the_items_of_a_result_are_where_the_tool_says(tool, result, items):
         (
             "get_concept_for_permissible_value",
             {"permissibleValueId", "dataElementId", "value", "release"},
-            {"release"},
+            set(),
         ),
         # A list of objects is one parameter; its fields are not.
         (

@@ -289,8 +289,12 @@ update them when behaviour changes.
   and tagged with the channel (`?terminology=…&latest=true&tag=…`) and requires exactly one; any
   other count is `release_not_available`, with no fallback to another channel. EVS sets `latest`
   per channel, so the unfiltered listing can show two `ncit` rows as latest. `resolve_release`
-  resolves the channel once per call; the content tools pin every request to the caller's
-  `release` argument instead. Either way the `ReleaseContext` lives for one call only.
+  resolves the channel once per call. NCIt content calls may omit `release`: the shared
+  invocation scope resolves it once or reuses the MCP session’s first implicit pin. Explicit
+  calls never change that pin; other terminologies require release. No process-wide pin is
+  retained. Stateless HTTP and CLI resolve per call. A withdrawn session pin fails closed
+  without rediscovery, asking for a new session or explicit release. Completion audit names
+  explicit, session-held or freshly-resolved selection.
   A 404 `Terminology not found` is `EVSReleaseNotFoundError`
   (`release_not_available`).
 - `release.registry_state` is the pure part of the caDSR registry state: no registry identifier is
