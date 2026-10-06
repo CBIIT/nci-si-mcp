@@ -613,7 +613,9 @@ class _Walk:
         self.edges.append(edge)
         if new_node:
             self.budget.added_by_kind[edge.edge_type] += 1
-            held = replace(edge.provenance, source_uri=self._concept_uri(edge.target_code))
+            held = replace(
+                edge.provenance, source_uri=self._concept_uri(edge.target_code), attribution=None
+            )
             self.nodes[edge.target_code] = self._node(edge.target_code, edge.target_name, held)
         eligible = self.include_negative or edge.provenance.polarity != "negative"
         if eligible and edge.target_code not in self.expandable:
