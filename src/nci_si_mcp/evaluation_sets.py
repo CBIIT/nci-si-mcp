@@ -7,7 +7,6 @@ Test-only sets exercise the gate without claiming deterministic embeddings measu
 from __future__ import annotations
 
 import json
-import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -56,7 +55,7 @@ def _object(value: Any, keys: set[str], label: str) -> dict[str, Any]:
 def _fraction(value: Any, label: str) -> float:
     if type(value) not in (float, int):
         raise ValueError(f"Evaluation {label} must be a finite fraction")
-    if not 0 <= value <= 1 or not math.isfinite(value):
+    if not 0 <= value <= 1:
         raise ValueError(f"Evaluation {label} must be between zero and one")
     return float(value)
 

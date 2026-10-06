@@ -141,9 +141,10 @@ def _scan(
         (manifest.build_id, status, manifest.build_id, status),
     )
     while rows := cursor.fetchmany(256):
+        scores = _cosines(np, rows, query, manifest.index_path)
         lengths = np.fromiter((len(row[1]) for row in rows), dtype=np.int32)
         end = offset + int(lengths.sum())
-        cosines[offset:end] = _cosines(np, rows, query, manifest.index_path)
+        cosines[offset:end] = scores
         concepts[offset:end] = np.repeat(
             np.fromiter((codes[row[0]] for row in rows), dtype=np.int32), lengths
         )
@@ -211,6 +212,7 @@ def _vector_page(
 ) -> tuple[list[tuple[str, FieldScore]], int]:
     np = _numpy()
     vector = _query(np, values)
+    # The primary key also orders this query today; make the page tie-break explicit.
     codes = [
         row[0]
         for row in conn.execute(

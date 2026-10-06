@@ -249,8 +249,8 @@ class SearchHit:
     concept: NcitConcept
     score: float
     rank: int
+    matched_on: str
     score_components: dict[str, float] = field(default_factory=dict)
-    matched_on: str = "name"
 
     def to_dict(self, source_uri: str, include_raw: bool = False) -> dict[str, Any]:
         data = asdict(self)

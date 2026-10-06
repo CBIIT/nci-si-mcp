@@ -420,9 +420,9 @@ def traverse(
     that a `child` walk of the same depth reaches: up to a few percent at
     depth 2, and up to a third at depth 3 or 4, depending on the concept.
     Use `child` edges when every concept within `max_depth` is needed.
-    `relationship_names` keeps only edges with those names, ignoring case:
-    role and association names such as `Disease_Has_Finding`, or
-    `is_a_parent`, `is_a_child` and `is_a_descendant` for hierarchy edges.
+    `relationship_names` filters role and association edges by name, ignoring
+    case, for example `Disease_Has_Finding`. Hierarchy edges remain included
+    and carry no invented relationship name.
 
     Limits are clamped to depth 4, 1,000 nodes and 5,000 edges, and the
     result reports the effective `max_depth`, `max_nodes` and `max_edges`.
@@ -458,10 +458,10 @@ def traverse(
     from, and how the item was reached: its `depth` (an edge has that of
     the node it reaches), and for any item but the start codes the
     `relationship` `{kind, code?, name?}` (a role or association has a
-    code and name, a hierarchy link only its kind), the `direction` in
-    which that edge type is followed and the `polarity`, `negative` for
-    the exclusion roles R135 to R142 by code. A start code that release
-    does not contain returns `not_found`."""
+    name and a code when upstream supplies one, a hierarchy link only its kind),
+    the `direction` in which that edge type is followed and the `polarity`,
+    `negative` for configured NCIt exclusion roles by code (R135 to R142 by
+    default). A start code that release does not contain returns `not_found`."""
     validate_kind_budget(budget_per_kind)
     start_codes, normalized_direction, selected_types, relationship_names = validate_traversal(
         start_codes,
