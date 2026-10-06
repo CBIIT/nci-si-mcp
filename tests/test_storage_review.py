@@ -62,7 +62,7 @@ class StorageReviewTest(IndexTestCase):
         self.assertEqual(([hit.rank for hit in hits], total), ([3, 4], 4))
 
     def test_missing_dimensions_are_derived_for_sample_compatibility(self):
-        index = self.build([concept("C1")])
+        index = self.build([concept("C1", "Primary name", synonyms=[{"name": "Distinct alias"}])])
         active = replace(index.get_active_manifest(), embedding_dimensions=None)
         update_manifest(index, active)
         updated = index.upsert_concepts([concept("C2")], None, self.provider)
@@ -237,14 +237,17 @@ class FullBuildStorageReviewTest(ServerFixture):
             full_build(self.context, release())
         self.assertEqual(self.context.index.list_builds(), [])
 
-    def test_full_build_rejects_null_and_nontext_names(self):
-        for name in (None, 7):
+    def test_full_build_rejects_null_nontext_and_whitespace_names(self):
+        for name in (None, 7, " \t\n "):
             with (
                 self.subTest(name=name),
                 patch.object(
                     self.context.evs,
                     "get_index_page",
-                    return_value=(1, [concept("C1") | {"name": name}]),
+                    return_value=(
+                        1,
+                        [concept("C1", synonyms=[{"name": "Searchable alias"}]) | {"name": name}],
+                    ),
                 ),
                 self.assertRaisesRegex(EVSResponseError, "preferred name"),
             ):

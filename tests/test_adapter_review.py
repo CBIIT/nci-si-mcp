@@ -55,6 +55,23 @@ class RecordReviewTest(TestCase):
             with self.subTest(key=key):
                 self.assertEqual(set(schema["properties"][key]["enum"]), set(fields[key]["values"]))
 
+    def test_provenance_traversal_and_truncation_closed_values_match_specification(self):
+        records = yaml.safe_load((ROOT / "spec/records.yaml").read_text())
+        for record, type_name, field in (
+            ("provenance", "Provenance", "source"),
+            ("provenance", "Provenance", "servedBy"),
+            ("traversal", "TraversalProvenance", "polarity"),
+            ("truncation", "Truncated", "bound"),
+        ):
+            with self.subTest(record=record, field=field):
+                schema = TypeAdapter(getattr(results, type_name)).json_schema()
+                if "$ref" in schema:
+                    schema = schema["$defs"][schema["$ref"].rsplit("/", 1)[1]]
+                self.assertEqual(
+                    set(schema["properties"][field].get("enum", [])),
+                    set(records[record]["fields"][field]["values"]),
+                )
+
     def test_list_envelopes_preserve_required_counts_and_missing_identifiers(self):
         tools = yaml.safe_load((ROOT / "spec/tools.yaml").read_text())
         for tool, record, field in (

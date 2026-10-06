@@ -112,6 +112,16 @@ class ScoringReviewTest(IndexTestCase):
                 with self.assertRaisesRegex(IndexStorageError, "Stored vector length"):
                     index.search("Alpha", self.provider, mode="vector")
 
+    def test_nonbinary_vectors_are_reported_as_database_corruption(self):
+        index = self.build([concept("C1", "Alpha")])
+        # Matching the expected byte length isolates the type guard from the size guard.
+        for vector in ("x" * (self.provider.dimensions * 4), 1):
+            with self.subTest(vector_type=type(vector).__name__):
+                with index._connect() as conn:
+                    conn.execute("UPDATE concept_vectors SET vector = ?", (vector,))
+                with self.assertRaisesRegex(IndexStorageError, "Stored vector length"):
+                    index.search("Alpha", self.provider, mode="vector")
+
     def test_missing_numpy_names_the_unavailable_scoring_capability(self):
         index = self.build([concept("C1", "Alpha")])
         with patch.dict("sys.modules", {"numpy": None}), self.assertRaises(PlatformError) as raised:
