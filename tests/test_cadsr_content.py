@@ -14,7 +14,7 @@ from test_cadsr_client import LISTING, reply
 from test_http_client import Reply, ServerTestCase
 
 
-class CaDSRContentTest(ServerTestCase):
+class CaDSRFixture(ServerTestCase):
     def setUp(self):
         self.directory = TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
@@ -36,6 +36,8 @@ class CaDSRContentTest(ServerTestCase):
         self.hint = hint
         return result
 
+
+class CaDSRContentTest(CaDSRFixture):
     def test_unpinned_element_preserves_own_fields_without_export_metadata(self):
         raw = element(AlternateNames=[{"name": "Alias"}])
         server = self.serve(reply({"DataElement": raw}))

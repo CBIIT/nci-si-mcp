@@ -16,6 +16,8 @@ from .context import Context
 from .invocation import call
 from .results import (
     ClassificationSchemesResult,
+    CodeMapResource,
+    CodeMapsResult,
     Concept,
     ConceptBatch,
     ConceptResult,
@@ -25,10 +27,12 @@ from .results import (
     DataElementMatches,
     DataElementSearch,
     ErrorResult,
+    Form,
     Hierarchy,
     IndexManifestResult,
     MappingsResult,
     Neighborhood,
+    PermissibleValue,
     RegistryReleaseResult,
     RelationshipsResult,
     ReleaseResult,
@@ -104,6 +108,53 @@ def _input_field(parameter: Parameter) -> tuple:
 
 
 SPECS = (
+    ToolSpec(
+        cadsr_content.get_form,
+        "cadsr",
+        Form | ErrorResult,
+        False,
+        name="get_form",
+        command="get-form",
+        audit={
+            "publicId": "plain",
+            "keyword": "hash",
+            "version": "plain",
+            "includeModules": "plain",
+            "registryRelease": "plain",
+        },
+    ),
+    ToolSpec(
+        cadsr_content.get_permissible_value,
+        "cadsr",
+        PermissibleValue | ErrorResult,
+        False,
+        name="get_permissible_value",
+        command="get-permissible-value",
+        audit={"permissibleValueId": "plain", "registryRelease": "plain"},
+    ),
+    ToolSpec(
+        cadsr_content.get_code_map,
+        "cadsr",
+        CodeMapsResult | ErrorResult,
+        False,
+        name="get_code_map",
+        command="get-code-map",
+        audit={
+            "sourceSystem": "plain",
+            "targetContext": "hash",
+            "dataElementId": "plain",
+            "limit": "plain",
+            "cursor": "hash",
+            "registryRelease": "plain",
+        },
+    ),
+    ToolSpec(
+        cadsr_content.crosswalk_resource,
+        "cadsr",
+        CodeMapResource | ErrorResult,
+        False,
+        uri="cadsr://crosswalk/crdc",
+    ),
     ToolSpec(
         cadsr_matching.match_data_elements,
         "cadsr",
@@ -477,6 +528,7 @@ def invoke(
 
 # CLI spellings differ from the shared handler fields only in these legacy flags.
 _CLI_FLAGS = {
+    "includeModules": "--no-modules",
     "include_hierarchy": "--no-hierarchy",
     "include_roles": "--no-roles",
     "include_associations": "--no-associations",

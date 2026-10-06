@@ -7,12 +7,13 @@ from typing import Any, NoReturn, get_args
 
 from . import cursor as cursors
 from .caching import select_cache_hint
-from .cadsr import DATA_API, EXPORT_FOLDER, data_element_request
+from .cadsr import DATA_API, EXPORT_FOLDER, FORM_API, data_element_request
 from .context import Context
 from .errors import InputValidationError, PlatformError, call_correlation_id
 from .models import ProvenanceEnvelope, Truncation, utc_now_iso
 from .release import RegistryMetadataError, registry_state
 from .validation import (
+    CodeMapSource,
     DataElementFilter,
     DataElementInclude,
     RegistrySearchMode,
@@ -33,6 +34,7 @@ _OWN = (
 )
 _IDENTITY = ("publicId", "version", "longName")
 _SEARCH_CAP = 1000
+_CODE_MAP_LIMIT = 1000
 
 
 def _unavailable(capability: str) -> NoReturn:
@@ -505,3 +507,185 @@ def registry_resource(context: Context) -> dict[str, Any]:
     ).to_dict()
     select_cache_hint(resolution=False, unpinned=True)
     return state.to_dict() | {"provenance": provenance}
+
+
+def get_form(
+    context: Context,
+    publicId: str | None = None,  # noqa: N803 - public specification spelling.
+    keyword: str | None = None,
+    version: str | None = None,
+    includeModules: bool = True,  # noqa: N803 - public specification spelling.
+    registryRelease: str | None = None,  # noqa: N803 - public specification spelling.
+) -> dict[str, Any]:
+    """Get a caDSR form by publicId and optional item version, retaining upstream statuses.
+
+    Keyword lookup is invalid_request: Form/query requires an identifier. includeModules
+    defaults to true; false omits modules and questions. A validated Form-by-ID HTTP 200
+    with explicit form:null/type:E means not_found (the recorded unknown-form response);
+    every other failure uses the common error path. Unpinned forms use a short public TTL.
+    Published registry pins cannot yet address forms; unlisted pins are unavailable releases.
+    """
+    identifier = _form_options(publicId, keyword, version, includeModules)
+    release = _pin(context, registryRelease)
+    if registryRelease is not None:
+        raise PlatformError(
+            "capability_unavailable",
+            "Form lookup lacks a registryRelease field (C-1, upstream requirements package #42). "
+            "Omit the pin until caDSR supports it.",
+            capability="pinned form lookup",
+        )
+    raw = context.cadsr.get_form(identifier, version)
+    if raw is None:
+        raise PlatformError(
+            "not_found",
+            "No form has that identifier and version. Check the public id or version.",
+            identifier=publicId,
+            source="cadsr",
+        )
+    item = raw | {"publicId": raw.get("publicID")}
+    _verify_item(item, identifier, version)
+    provenance = _provenance(
+        context, release, f"{FORM_API}/Form/{identifier}", {"version": version}
+    )
+    result = _element(item, [], provenance)
+    result["provenance"] = _item_provenance(raw, provenance) | {
+        "upstream": {key: raw[key] for key in ("publicID", "version", "dateModified") if key in raw}
+    }
+    if includeModules:
+        if "modules" not in raw:
+            _malformed("form modules")
+        result["modules"] = _rows(raw, "modules")
+    select_cache_hint(resolution=False, unpinned=True)
+    return result
+
+
+def _form_options(
+    identifier: str | None, keyword: str | None, version: str | None, modules: bool
+) -> str:
+    if keyword is not None:
+        raise InputValidationError("The Form API needs an identifier, not a keyword", "keyword")
+    validated = validate_identifier(identifier or "", r"[1-9][0-9]*", "publicId")
+    if version is not None:
+        validate_identifier(version, r"[0-9]+([.][0-9]+)?", "version")
+    if not isinstance(modules, bool):
+        raise InputValidationError("includeModules must be true or false", "includeModules")
+    return validated
+
+
+def get_permissible_value(
+    context: Context,
+    permissibleValueId: str,  # noqa: N803 - public specification spelling.
+    registryRelease: str | None = None,  # noqa: N803 - public specification spelling.
+) -> dict[str, Any]:
+    """Standalone permissible-value retrieval is unavailable until caDSR serves OP-C10.
+
+    caDSR REST publishes the value's identifier, but has no operation to retrieve it.
+    Invalid identifiers are invalid_request; unlisted registry pins fail before lookup.
+    Use get_data_element with include permissibleValues to read the containing value domain.
+    """
+    validate_identifier(permissibleValueId, r"[1-9][0-9]*", "permissibleValueId")
+    _pin(context, registryRelease)
+    _unavailable("permissible-value retrieval by identifier (OP-C10)")
+
+
+def _map_value(raw: dict[str, Any]) -> dict[str, str]:
+    value, code = raw.get("Permissible Value"), raw.get("Concept Code")
+    if not isinstance(value, str) or (code is not None and not isinstance(code, str)):
+        _malformed("code-map value")
+    return {"value": value} | ({"conceptCode": code} if code else {})
+
+
+def _code_map(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
+    item = {"publicId": raw.get("CDE Public ID"), "version": raw.get("Version")}
+    _identity(item)
+    names = _fields(raw, ("CRDC Name", "Used By"))
+    values = [_map_value(value) for value in _rows(raw, "permissibleValues")]
+    return {
+        "dataElement": item,
+        "crdcName": names["CRDC Name"],
+        "usedBy": [name.strip() for name in (names["Used By"] or "").split(",") if name.strip()],
+        "valueLevelBinding": bool(values),
+        "coverage": sum("conceptCode" in value for value in values),
+        "values": values,
+        "provenance": _item_provenance(raw, provenance)
+        | {"upstream": {key: raw[key] for key in ("CDE Public ID", "Version")}},
+    }
+
+
+def _map_options(source: str, target: str | None, identifier: str | None) -> None:
+    validate_choice(source, get_args(CodeMapSource), "sourceSystem")
+    if identifier is not None:
+        validate_identifier(identifier, r"[1-9][0-9]*", "dataElementId")
+    if target is not None and (not isinstance(target, str) or not target.strip()):
+        raise InputValidationError("targetContext must be nonblank text", "targetContext")
+
+
+def get_code_map(
+    context: Context,
+    sourceSystem: CodeMapSource = "CRDC",  # noqa: N803 - public specification spelling.
+    targetContext: str | None = None,  # noqa: N803 - public specification spelling.
+    dataElementId: str | None = None,  # noqa: N803 - public specification spelling.
+    limit: int = 100,
+    cursor: str | None = None,
+    registryRelease: str | None = None,  # noqa: N803 - public specification spelling.
+) -> dict[str, Any]:
+    """Page CRDC code maps, one per data element, with upstream values and concept codes.
+
+    sourceSystem is CRDC only (default). targetContext matches complete comma-split
+    context/commons names; dataElementId selects one item. limit is 100 by default, at most
+    1000; cursors bind all arguments and registryRelease. No Model API data is guessed.
+    Missing values report valueLevelBinding=false and values=[]; coverage counts values
+    carrying a concept code, retaining colon-joined codes. Verified pins use a long public
+    TTL; unpinned content is short-lived and names the registry alone.
+    """
+    _map_options(sourceSystem, targetContext, dataElementId)
+    size = bounded(limit, _CODE_MAP_LIMIT, "limit")
+    args = {
+        "tool": "get_code_map",
+        "sourceSystem": sourceSystem,
+        "targetContext": targetContext,
+        "dataElementId": dataElementId,
+        "limit": size,
+        "registryRelease": registryRelease,
+    }
+    position = cursors.decode(cursor, args)
+    release = _pin(context, registryRelease)
+    maps, provenance = _map_records(context, release, registryRelease)
+    selected = _select_maps(maps, targetContext, dataElementId)
+    select_cache_hint(resolution=False, unpinned=registryRelease is None)
+    return _page(selected, "codeMaps", position.offset, size, args, provenance)
+
+
+def _select_maps(
+    maps: list[dict[str, Any]], target: str | None, identifier: str | None
+) -> list[dict[str, Any]]:
+    return [
+        row
+        for row in maps
+        if (target is None or target in row["usedBy"])
+        and (identifier is None or row["dataElement"]["publicId"] == identifier)
+    ]
+
+
+def crosswalk_resource(context: Context) -> dict[str, Any]:
+    """The CRDC crosswalk at its 1,000-map maximum, with explicit truncation if larger."""
+    maps, provenance = _map_records(context, {"registry": "cadsr"}, None)
+    result: dict[str, Any] = {"codeMaps": maps[:_CODE_MAP_LIMIT]}
+    if len(maps) > _CODE_MAP_LIMIT:
+        result["truncation"] = Truncation(
+            True, "results", _CODE_MAP_LIMIT, _CODE_MAP_LIMIT, len(maps) - _CODE_MAP_LIMIT, True
+        ).to_dict()
+    if not maps:
+        result["provenance"] = provenance
+    select_cache_hint(resolution=False, unpinned=True)
+    return result
+
+
+def _map_records(
+    context: Context, release: dict[str, str], pin: str | None
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    rows = context.cadsr.get_crdc_list(registry_release=pin)
+    provenance = _provenance(
+        context, release, f"{DATA_API}/DataElements/getCRDCList", {"registryRelease": pin}
+    )
+    return [_code_map(row, provenance) for row in rows], provenance

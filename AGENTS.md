@@ -263,6 +263,12 @@ add broad `except` clauses. An empty result is never an error and an error is ne
 (webMethods `apiResponse.type` `E`, FHIR `OperationOutcome` error, HTML where JSON was asked for)
 as `upstream_unavailable`; every upstream client parses its bodies through it (in `http_client.HttpClient`).
 
+The reviewer-approved Form-by-ID exception lives in `cadsr._form_absence`: after public-id
+validation, only HTTP 200 with an explicit `form: null` and `apiResponse.type: E` is `not_found`.
+The recording `recorded/cadsr/form-unknown.json` has no other discriminator, so a genuine failure
+in exactly that shape is indistinguishable; #42 asks for an explicit absence signal. No message
+matching or second request. Every other shape, status and operation keeps common X-15 handling.
+
 `http_client.HttpClient` is the one HTTP client. Its `Upstream*` errors reach the invocation
 boundary directly; EVS errors identify only EVS-specific failures. Attempts are counted and reported to
 the `on_request` hook. A credential is a header of one client and goes to that client's origin only;

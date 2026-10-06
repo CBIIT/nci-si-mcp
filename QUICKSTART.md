@@ -74,7 +74,7 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects twelve EVS tools, seven caDSR tools, or both groups. Resources follow their group. CLI commands remain available in every profile |
+| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects twelve EVS tools, ten caDSR tools, or both groups. Resources follow their group. CLI commands remain available in every profile |
 | `NCI_SI_UPSTREAM_MODE` | `live` | `live` or `fixture`; selects the six base URLs below as a set (next paragraph) |
 | `NCI_SI_EVS_BASE_URL` | `https://api-evsrest.nci.nih.gov` | EVS REST endpoint (`http` or `https`) |
 | `NCI_SI_EVS_FHIR_BASE_URL` | `https://api-evsrest.nci.nih.gov/fhir/r4` | EVS FHIR endpoint |
@@ -94,7 +94,7 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 | `NCI_SI_INDEX_BATCH_SIZE` | `100` | Codes per EVS indexing request |
 | `NCI_SI_LOG_LEVEL` | `INFO` | Stderr diagnostic level; per-call audit records remain enabled at every level |
 
-The caDSR lookup, registry and matching tools use upstream APIs; form tools follow in Phase 3.
+The caDSR lookup, registry, matching, form and code-map tools use upstream APIs.
 Registry discovery reads the export folder's exact distribution row. The folder gives
 local server time without a zone, so `generatedAt` carries no offset (for example
 `2026-07-01T22:19`), not the ZIP file's HTTP timestamp. API content without a published registry
@@ -587,6 +587,9 @@ the configured upstream, never from a built-in fixture.
 - `list_contexts`: upstream context names as identifiers, with provenance and no invented definitions. Optional `limit` (100/1000), `cursor` and `registryRelease`. CLI: `list-contexts`.
 - `list_classification_schemes`: optional `context`, `limit` (100/1000), `cursor` and `registryRelease`; returns `capability_unavailable` until OP-C13 exists. Use `get_data_element` with include classificationSchemes to read an element's schemes and nested items. CLI: `list-classification-schemes`.
 - `resolve_registry_release`: no arguments. Returns published registry metadata if available, otherwise the exact export row's local date-time without an offset or identifier. TTL 0/public. CLI: `resolve-registry-release`.
+- `get_form`: `publicId` is required for lookup; optional `version` selects its item version. Optional `keyword` is rejected because Form/query requires an identifier. `includeModules` defaults to true; false omits modules/questions, otherwise their order and fields pass through. Retired statuses remain unchanged. Optional `registryRelease` fails closed: unpublished pins are release_not_available; a published pin is capability_unavailable (pinned form lookup) until C-1 defines its transport. CLI: `get-form --public-id 5406471 --no-modules`.
+- `get_permissible_value`: required `permissibleValueId`, optional `registryRelease`. Returns capability_unavailable (OP-C10): REST publishes the identifier but does not retrieve a value by it. Invalid ids and unlisted pins are rejected first. Read a containing data element with include permissibleValues instead. CLI: `get-permissible-value 9192925`.
+- `get_code_map`: optional `sourceSystem` (CRDC only, the default), `targetContext`, `dataElementId`, `limit` (100/1000), `cursor` and `registryRelease`. One map per CRDC data element, preserving values and colon-joined concept codes; targetContext matches exact comma-split Used By names. Coverage counts values with concept codes. Missing binding is explicit as valueLevelBinding false and values empty. Cursors bind all arguments, and verified pins must be confirmed upstream. CLI: `get-code-map --target-context GDC`.
 - `match_data_elements`: required `entities` (1–10 objects with `name`, optional `userTip` and `permissibleValues` strings). Optional `matchLimit` (10/100), `filters` and `registryRelease`. Optional `modelVariant` and `similarityThreshold` are rejected with `invalid_request`, citing C-6. Filters accept context, workflowStatus, registrationStatus and valueDomainType as text, and classificationScheme as `{publicId, version}` with both required. One object is sent per entity, matches retain entity/platform order with the platform's score, rule and matched text. Any failure fails the whole call. CLI: `match-data-elements '{"name":"Patient Gender"}'`; `--filters` takes a JSON object.
 - `match_value_meanings`: required `values` (1–10 strings), optional `strictness` (restricted by default, or unrestricted), `terminologyScope` (list of code-system codes) and `registryRelease`. Matches retain platform order, type, rule and identity; a missing concept/source, score or NA crosswalk is omitted. CLI: `match-value-meanings Male Female --strictness unrestricted`; repeat `--terminology-scope` for multiple codes.
 
@@ -596,6 +599,12 @@ results. Header filters must be printable ASCII; entity/value text stays unchang
 Unlisted matching pins are `release_not_available`; a published pin is
 `capability_unavailable` (`pinned matching`) because the matching APIs have no registryRelease
 field yet (C-1, upstream package #42). No unpinned match is labelled pinned.
+
+The Form-by-ID API uses type E even for an unknown form. Only HTTP 200 with an explicit
+`form: null` and `apiResponse.type: E` on a validated id is interpreted as `not_found`.
+The recording has no other discriminator: a genuine platform failure in exactly that shape
+would also read as not found. Other operations, statuses and shapes retain normal upstream
+error handling. The #42 requirements package asks caDSR to make absence explicit.
 
 Each caDSR content tool accepts optional `registryRelease`. A pin must be listed upstream
 before any content request, and every supported pinned content response must confirm it; absent/unlisted
@@ -644,6 +653,7 @@ beside it are still checked. Descendant checks read final child lists only.
 - `cadsr://data-element/{publicId}`: a data element at its latest item version, without extra sections or a registry pin.
 - `cadsr://data-element/{publicId}/{version}`: a data element at the named item version; its version is not a registry release.
 - `cadsr://registry/release`: registry state with source provenance; the export listing supplies local time without an offset while no registry release is published.
+- `cadsr://crosswalk/crdc`: the CRDC crosswalk at its 1,000-map maximum page, with item provenance and short public caching. A larger crosswalk reports exact truncation; use `get_code_map` for filters and further pages.
 
 EVS JSON resources appear in `evs` and `unified`; caDSR resources in `cadsr` and `unified`.
 Successful reads carry public caching hints on the protocol result. Failed reads are protocol errors;

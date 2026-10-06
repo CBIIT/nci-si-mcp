@@ -34,6 +34,36 @@ class ErrorResult(TypedDict):
     error: ErrorRecord
 
 
+class CodeMapValue(TypedDict):
+    value: str
+    conceptCode: NotRequired[str]
+
+
+class CodeMapIdentity(TypedDict):
+    publicId: str
+    version: str
+
+
+class CodeMap(TypedDict):
+    dataElement: CodeMapIdentity
+    crdcName: str | None
+    usedBy: list[str]
+    valueLevelBinding: bool
+    coverage: int
+    values: list[CodeMapValue]
+    provenance: Provenance
+
+
+class CodeMapsResult(TypedDict):
+    codeMaps: list[CodeMap]
+    nextCursor: NotRequired[str]
+    provenance: NotRequired[Provenance]
+
+
+class CodeMapResource(CodeMapsResult):
+    truncation: NotRequired[Truncation]
+
+
 class DataElementMatch(TypedDict):
     entity: str
     dataElement: DataElement
@@ -188,6 +218,16 @@ class ConceptAssociation(TypedDict):
     conceptCode: str
     longName: str | None
     role: DataElementConceptRole
+
+
+class Form(RegistryItemIdentity):
+    context: str | None
+    workflowStatus: str | None
+    registrationStatus: str | None
+    dateCreated: str | None
+    dateModified: str | None
+    provenance: Provenance
+    modules: NotRequired[list[dict[str, Any]]]
 
 
 class DataElement(RegistryItemIdentity):

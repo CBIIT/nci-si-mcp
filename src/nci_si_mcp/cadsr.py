@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import json
 import re
 from functools import partial
 from html.parser import HTMLParser
@@ -24,6 +25,31 @@ VM_MATCH = "/vmMatch/v1/vmMatch"
 EXPORT_FOLDER = "/CDE/XML/"
 DISTRIBUTION = "releasedCDEsXML-OD.zip"
 _LISTING_DATE = re.compile(r"(?<!\S)\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(?!\S)")
+
+
+def _form_absence(public_id: str, payload: bytes, status: int | None) -> None:
+    if status != HTTPStatus.OK:
+        return
+    try:
+        data = json.loads(payload)
+    except json.JSONDecodeError, UnicodeDecodeError:
+        return  # The common parser reports malformed JSON and HTML.
+    if _empty_error_form(data):
+        # recorded/cadsr/form-unknown.json supplies no machine-readable absence code.
+        # A genuine platform failure in exactly this shape would also read as not found.
+        raise PlatformError(
+            "not_found",
+            "No form has that public id and version. Check the identifier or version.",
+            identifier=public_id,
+            source="cadsr",
+        )
+
+
+def _empty_error_form(data: Any) -> bool:
+    if not isinstance(data, dict) or "form" not in data or data["form"] is not None:
+        return False
+    envelope = data.get("apiResponse")
+    return isinstance(envelope, dict) and envelope.get("type") == "E"
 
 
 class _ExportListing(HTMLParser):
@@ -210,13 +236,19 @@ class CaDSRClient:
 
     def get_form(self, public_id: str, version: str | None = None) -> dict[str, Any] | None:
         validate_identifier(public_id, r"[1-9][0-9]*", "publicId")
-        response = self.http.get_json(f"{FORM_API}/Form/{public_id}", _version_params(version))
+        response = self.http.get_json(
+            f"{FORM_API}/Form/{public_id}",
+            _version_params(version),
+            interpret=partial(_form_absence, public_id),
+        )
         return _item(response, "form")
 
-    def get_crdc_list(self) -> list[dict[str, Any]]:
-        return _items(
-            self.http.get_json(f"{DATA_API}/DataElements/getCRDCList"), "CRDCDataElements"
+    def get_crdc_list(self, *, registry_release: str | None = None) -> list[dict[str, Any]]:
+        response = self.http.get_json(
+            f"{DATA_API}/DataElements/getCRDCList", {"registryRelease": registry_release}
         )
+        _verify_registry_pin(response, registry_release)
+        return _items(response, "CRDCDataElements")
 
     def search_data_elements(
         self, query: str, page_size: int, *, registry_release: str | None = None

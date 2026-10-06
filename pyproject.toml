@@ -198,6 +198,7 @@ ignore_names = [
     "workflowStatus", "registrationStatus", "dateCreated", "dateModified", "permissibleValues",
     "valueDomain", "conceptAssociations", "alternateNames", "classificationSchemes", "dataElement",
     "userTip", "valueDomainType", "classificationScheme", "matchedText", "itemType", "evsSource",
+    "crdcName", "usedBy", "valueLevelBinding", "coverage", "codeMaps",
 ]
 
 [tool.basedpyright]

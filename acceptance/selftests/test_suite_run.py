@@ -254,7 +254,16 @@ def test_gate():
     ) == ("FAIL", True)
 
 
-def test_the_report_gives_each_required_tool_its_outcome(suite):
+def test_the_report_gives_each_required_tool_its_outcome(suite, monkeypatch):
+    # Keep the absent-tool case deliberate as the furnished server gains capabilities.
+    server = suite.path / "without_form.py"
+    server.write_text(
+        "import sys\nfrom nci_si_mcp import cli, server\n"
+        "server.SPECS = tuple(s for s in server.SPECS if s.name != 'get_form')\n"
+        "sys.argv = ['nci-si-mcp', 'serve']\nraise SystemExit(cli.main())\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("NCI_SI_ACCEPTANCE_SERVER", shlex.join([sys.executable, str(server)]))
     test = """
 import pytest
 
@@ -329,6 +338,9 @@ def test_semantic_without_index(tools):
         "list_contexts": "list_contexts",
         "list_classification_schemes": "list_classification_schemes",
         "resolve_registry_release": "resolve_registry_release",
+        "get_form": "get_form",
+        "get_permissible_value": "get_permissible_value",
+        "get_code_map": "get_code_map",
         "match_data_elements": "match_data_elements",
         "match_value_meanings": "match_value_meanings",
         "resolve_release": "resolve_release",

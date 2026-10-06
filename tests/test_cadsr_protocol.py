@@ -7,12 +7,53 @@ from unittest.mock import patch
 from fakes import data_element
 from nci_si_mcp.cli import build_parser
 from nci_si_mcp.release import RegistryState
+from test_cadsr_forms import code_map, form
 from test_cadsr_matching import cde_response, cde_row, vm_response, vm_row
 from test_server import ServerFixture
 
 
 @patch("nci_si_mcp.server.configure_logging")
 class CaDSRProtocolTest(ServerFixture):
+    def test_form_and_crosswalk_resource_keep_governed_policy_alongside_matching(self, _):
+        async def calls(client):
+            return await asyncio.gather(
+                client.call_tool("get_form", {"publicId": "123"}),
+                client.read_resource("cadsr://crosswalk/crdc"),
+                client.call_tool("get_code_map", {}),
+                client.call_tool("match_data_elements", {"entities": [{"name": "Q"}]}),
+            )
+
+        with (
+            patch.object(self.context.cadsr, "get_form", return_value=form()),
+            patch.object(self.context.cadsr, "get_crdc_list", return_value=[code_map()]),
+            patch.object(
+                self.context.cadsr,
+                "match_data_element",
+                return_value=cde_response()["matchResults"],
+            ),
+        ):
+            item, resource, tool, computed = self.session(calls)
+        self.assertFalse(item.is_error)
+        self.assertEqual(item.structured_content["modules"], form()["modules"])
+        self.assertEqual((item.meta["ttlMs"], item.meta["cacheScope"]), (3_600_000, "public"))
+        content = json.loads(resource.contents[0].text)
+        self.assertEqual(
+            content["codeMaps"][0]["dataElement"],
+            tool.structured_content["codeMaps"][0]["dataElement"],
+        )
+        self.assertEqual((resource.ttl_ms, resource.cache_scope), (3_600_000, "public"))
+        self.assertEqual((computed.meta["ttlMs"], computed.meta["cacheScope"]), (0, "private"))
+
+    def test_permissible_value_error_is_private_and_cli_can_exclude_form_modules(self, _):
+        result = self.session(
+            lambda client: client.call_tool("get_permissible_value", {"permissibleValueId": "456"})
+        )
+        self.assertTrue(result.is_error)
+        self.assertEqual(result.structured_content["error"]["code"], "capability_unavailable")
+        self.assertEqual((result.meta["ttlMs"], result.meta["cacheScope"]), (0, "private"))
+        args = build_parser().parse_args(["get-form", "--public-id", "123", "--no-modules"])
+        self.assertFalse(args.includeModules)
+
     def test_matching_is_private_even_alongside_governed_content(self, _):
         async def calls(client):
             return await asyncio.gather(

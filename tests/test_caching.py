@@ -17,7 +17,7 @@ from test_server import ServerFixture, pinned
 class CachingTest(ServerFixture):
     def test_every_registered_tool_and_resource_declares_a_cache_class(self, _):
         registrations = [spec for spec in SPECS if spec.name or spec.uri]
-        self.assertEqual(len(registrations), 25)
+        self.assertEqual(len(registrations), 29)
         for spec in registrations:
             with self.subTest(operation=spec.operation):
                 self.assertIsInstance(spec.resolution, bool)

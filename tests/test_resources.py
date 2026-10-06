@@ -37,7 +37,9 @@ class ResourceTest(ServerFixture):
                 resources = self.session(lambda client: client.list_resources()).resources
                 self.assertEqual(
                     {str(row.uri) for row in resources},
-                    set() if profile == "evs" else {"cadsr://registry/release"},
+                    set()
+                    if profile == "evs"
+                    else {"cadsr://registry/release", "cadsr://crosswalk/crdc"},
                 )
         with self.assertRaises(MCPError):
             self.read("ncit://concept/26.06e/C3262")
