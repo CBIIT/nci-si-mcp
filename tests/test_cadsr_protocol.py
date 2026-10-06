@@ -7,11 +7,83 @@ from unittest.mock import patch
 from fakes import data_element
 from nci_si_mcp.cli import build_parser
 from nci_si_mcp.release import RegistryState
+from test_cadsr_matching import cde_response, cde_row, vm_response, vm_row
 from test_server import ServerFixture
 
 
 @patch("nci_si_mcp.server.configure_logging")
 class CaDSRProtocolTest(ServerFixture):
+    def test_matching_is_private_even_alongside_governed_content(self, _):
+        async def calls(client):
+            return await asyncio.gather(
+                client.call_tool("match_data_elements", {"entities": [{"name": "Q"}]}),
+                client.call_tool("match_value_meanings", {"values": ["Q"]}),
+                client.call_tool("get_data_element", {"publicId": "123"}),
+            )
+
+        with (
+            patch.object(
+                self.context.cadsr,
+                "match_data_element",
+                return_value=cde_response(matches=[cde_row()])["matchResults"],
+            ),
+            patch.object(
+                self.context.cadsr,
+                "match_value_meanings",
+                return_value=vm_response(matches=[vm_row()])["matchResults"],
+            ),
+            patch.object(self.context.cadsr, "get_data_element", return_value=data_element()),
+        ):
+            cde, vm, content = self.session(calls)
+        for result in (cde, vm):
+            self.assertFalse(result.is_error)
+            self.assertEqual((result.meta["ttlMs"], result.meta["cacheScope"]), (0, "private"))
+            self.assertNotIn("_meta", result.structured_content)
+            self.assertEqual(len(result.structured_content["matches"]), 1)
+        self.assertEqual((content.meta["ttlMs"], content.meta["cacheScope"]), (3_600_000, "public"))
+
+    def test_empty_matching_is_private_and_invalid_nested_input_is_an_error(self, _):
+        with patch.object(
+            self.context.cadsr, "match_data_element", return_value=cde_response()["matchResults"]
+        ):
+            empty = self.session(
+                lambda client: client.call_tool(
+                    "match_data_elements", {"entities": [{"name": "Q"}]}
+                )
+            )
+        self.assertFalse(empty.is_error)
+        self.assertEqual(empty.structured_content["matches"], [])
+        self.assertEqual((empty.meta["ttlMs"], empty.meta["cacheScope"]), (0, "private"))
+        invalid = self.session(
+            lambda client: client.call_tool(
+                "match_data_elements",
+                {
+                    "entities": [{"name": "Q"}],
+                    "filters": {"classificationScheme": {"publicId": "123"}},
+                },
+            )
+        )
+        self.assertTrue(invalid.is_error)
+        self.assertEqual(invalid.structured_content["error"]["code"], "invalid_request")
+        self.assertEqual(
+            invalid.structured_content["error"]["details"]["parameter"],
+            "filters.classificationScheme",
+        )
+
+    def test_cli_parses_matching_entity_and_scheme_objects(self, _):
+        args = build_parser().parse_args(
+            [
+                "match-data-elements",
+                '{"name":"Q"}',
+                "--filters",
+                '{"classificationScheme":{"publicId":"123","version":"2"}}',
+            ]
+        )
+        self.assertEqual(args.entities, [{"name": "Q"}])
+        self.assertEqual(
+            args.filters, {"classificationScheme": {"publicId": "123", "version": "2"}}
+        )
+
     def test_concurrent_calls_keep_the_actual_cache_class_in_protocol_metadata(self, _):
         state = RegistryState(None, "2026-07-01T22:19", "releasedCDEsXML-OD.zip")
 

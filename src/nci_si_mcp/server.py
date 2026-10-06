@@ -20,7 +20,7 @@ from .results import Untruncated
 
 INSTRUCTIONS = (
     "NCI Thesaurus (NCIt) lookup and relationship traversal against live NCI EVS, "
-    "plus local indexed search and caDSR data-element lookup and registry discovery. "
+    "plus local indexed search and caDSR data-element lookup, matching and registry discovery. "
     "caDSR keyword search is a requested upstream capability not served today. Every item a tool "
     "returns carries a provenance record that names its terminology release or registry state, "
     "the surface that supplied it and the call's correlationId. A failed tool "
@@ -199,6 +199,9 @@ def _check_arguments(model: Any, arguments: Any) -> dict[str, Any]:
     except ValidationError as exc:
         error = exc.errors(include_input=False)[0]
         parameter = str(error["loc"][0]) if error["loc"] else "arguments"
+        if error["type"] == "missing" and len(error["loc"]) > 1:
+            # Name the incomplete object, as callers must supply its required fields.
+            parameter = ".".join(str(part) for part in error["loc"][:-1])
         raise InputValidationError(error["msg"], parameter) from None
     return {}
 

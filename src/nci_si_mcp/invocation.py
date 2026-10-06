@@ -110,6 +110,12 @@ def _platform_error(exc: Exception) -> PlatformError:
 
 def _envelope(operation: str, exc: Exception) -> dict[str, Any]:
     error = _platform_error(exc)
+    if operation in ("match_data_elements", "match_value_meanings") and error.code == "timeout":
+        error = PlatformError(
+            "timeout",
+            "Matching timed out. Retry later, or raise NCI_SI_MATCH_TIMEOUT_SECONDS.",
+            **error.details,
+        )
     if operation == "search_data_elements" and error.code == "upstream_unavailable":
         error = PlatformError(
             error.code,

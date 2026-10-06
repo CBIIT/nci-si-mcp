@@ -74,7 +74,7 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects twelve EVS tools, five caDSR tools, or both groups. Resources follow their group. CLI commands remain available in every profile |
+| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects twelve EVS tools, seven caDSR tools, or both groups. Resources follow their group. CLI commands remain available in every profile |
 | `NCI_SI_UPSTREAM_MODE` | `live` | `live` or `fixture`; selects the six base URLs below as a set (next paragraph) |
 | `NCI_SI_EVS_BASE_URL` | `https://api-evsrest.nci.nih.gov` | EVS REST endpoint (`http` or `https`) |
 | `NCI_SI_EVS_FHIR_BASE_URL` | `https://api-evsrest.nci.nih.gov/fhir/r4` | EVS FHIR endpoint |
@@ -94,7 +94,7 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 | `NCI_SI_INDEX_BATCH_SIZE` | `100` | Codes per EVS indexing request |
 | `NCI_SI_LOG_LEVEL` | `INFO` | Stderr diagnostic level; per-call audit records remain enabled at every level |
 
-The caDSR lookup and registry tools use upstream APIs; matching and form tools follow in Phase 3.
+The caDSR lookup, registry and matching tools use upstream APIs; form tools follow in Phase 3.
 Registry discovery reads the export folder's exact distribution row. The folder gives
 local server time without a zone, so `generatedAt` carries no offset (for example
 `2026-07-01T22:19`), not the ZIP file's HTTP timestamp. API content without a published registry
@@ -587,9 +587,18 @@ the configured upstream, never from a built-in fixture.
 - `list_contexts`: upstream context names as identifiers, with provenance and no invented definitions. Optional `limit` (100/1000), `cursor` and `registryRelease`. CLI: `list-contexts`.
 - `list_classification_schemes`: optional `context`, `limit` (100/1000), `cursor` and `registryRelease`; returns `capability_unavailable` until OP-C13 exists. Use `get_data_element` with include classificationSchemes to read an element's schemes and nested items. CLI: `list-classification-schemes`.
 - `resolve_registry_release`: no arguments. Returns published registry metadata if available, otherwise the exact export row's local date-time without an offset or identifier. TTL 0/public. CLI: `resolve-registry-release`.
+- `match_data_elements`: required `entities` (1–10 objects with `name`, optional `userTip` and `permissibleValues` strings). Optional `matchLimit` (10/100), `filters` and `registryRelease`. Optional `modelVariant` and `similarityThreshold` are rejected with `invalid_request`, citing C-6. Filters accept context, workflowStatus, registrationStatus and valueDomainType as text, and classificationScheme as `{publicId, version}` with both required. One object is sent per entity, matches retain entity/platform order with the platform's score, rule and matched text. Any failure fails the whole call. CLI: `match-data-elements '{"name":"Patient Gender"}'`; `--filters` takes a JSON object.
+- `match_value_meanings`: required `values` (1–10 strings), optional `strictness` (restricted by default, or unrestricted), `terminologyScope` (list of code-system codes) and `registryRelease`. Matches retain platform order, type, rule and identity; a missing concept/source, score or NA crosswalk is omitted. CLI: `match-value-meanings Male Female --strictness unrestricted`; repeat `--terminology-scope` for multiple codes.
+
+Matching results, including empty ones, use TTL 0/private. Calls use
+`NCI_SI_MATCH_TIMEOUT_SECONDS` (45 seconds by default); timeouts are errors, never empty
+results. Header filters must be printable ASCII; entity/value text stays unchanged in JSON.
+Unlisted matching pins are `release_not_available`; a published pin is
+`capability_unavailable` (`pinned matching`) because the matching APIs have no registryRelease
+field yet (C-1, upstream package #42). No unpinned match is labelled pinned.
 
 Each caDSR content tool accepts optional `registryRelease`. A pin must be listed upstream
-before any content request, and every content response must confirm it; absent/unlisted
+before any content request, and every supported pinned content response must confirm it; absent/unlisted
 pins return `release_not_available`, a missing or different confirmation `release_mismatch`.
 Unpinned content names only `{registry: cadsr}` in provenance. No item version or export date
 is a registry pin. Cursors bind all normalized arguments, including the pin and applied limit;
@@ -654,7 +663,8 @@ records. The tool listing stays the same across release channels and upstream av
 
 Tool results carry `ttlMs` and `cacheScope` in protocol `_meta`, separate from their JSON
 content. Release-pinned content uses 86,400,000 ms/public; unpinned caDSR content (including
-empty results) uses 3,600,000 ms/public. Discovery tools use 0 and `public`; tool errors use 0 and
+empty results) uses 3,600,000 ms/public. Computed matching results use 0/private.
+Discovery tools use 0 and `public`; tool errors use 0 and
 `private`. The hints describe freshness and sharing; they do not add a server-side cache.
 
 The four list methods and `server/discover` carry 86,400,000 ms and `public` as result

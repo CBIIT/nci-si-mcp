@@ -12,6 +12,7 @@ from .errors import ErrorCode
 from .validation import (
     DataElementConceptRole,
     EdgeType,
+    MatchedItemType,
     Polarity,
     ProvenanceSource,
     RelationshipKind,
@@ -31,6 +32,49 @@ class ErrorRecord(TypedDict):
 
 class ErrorResult(TypedDict):
     error: ErrorRecord
+
+
+class DataElementMatch(TypedDict):
+    entity: str
+    dataElement: DataElement
+    score: float
+    rule: str
+    matchedText: str
+
+
+class DataElementMatches(TypedDict):
+    matches: list[DataElementMatch]
+    provenance: NotRequired[Provenance]
+
+
+class MatchedRegistryItem(TypedDict):
+    itemType: MatchedItemType
+    publicId: str
+    version: str
+    name: str
+    concept: NotRequired[str]
+    evsSource: NotRequired[str]
+    context: NotRequired[str]
+    workflowStatus: NotRequired[str]
+    registrationStatus: NotRequired[str]
+    provenance: Provenance
+
+
+class MatchCrosswalk(TypedDict):
+    code: str
+    description: str
+
+
+class ValueMeaningMatch(TypedDict):
+    item: MatchedRegistryItem
+    rule: str
+    score: NotRequired[float]
+    crosswalk: NotRequired[MatchCrosswalk]
+
+
+class ValueMeaningMatches(TypedDict):
+    matches: list[ValueMeaningMatch]
+    provenance: NotRequired[Provenance]
 
 
 class ReleaseReference(TypedDict):

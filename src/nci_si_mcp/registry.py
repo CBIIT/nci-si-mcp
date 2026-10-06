@@ -7,9 +7,9 @@ import re
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field, make_dataclass
 from inspect import Parameter, Signature, getdoc, signature
-from typing import Any, Literal, get_args, get_origin, get_type_hints
+from typing import Any, Literal, get_args, get_origin, get_type_hints, is_typeddict
 
-from . import cadsr_content, content, handlers
+from . import cadsr_content, cadsr_matching, content, handlers
 from .audit import AuditClass, audited, secrets
 from .caching import invocation_policy
 from .context import Context
@@ -22,6 +22,7 @@ from .results import (
     ConceptSearch,
     ContextsResult,
     DataElement,
+    DataElementMatches,
     DataElementSearch,
     ErrorResult,
     Hierarchy,
@@ -37,6 +38,7 @@ from .results import (
     SubsetsResult,
     TerminologiesResult,
     TraversalResult,
+    ValueMeaningMatches,
     ValueSetExpansion,
 )
 
@@ -102,6 +104,36 @@ def _input_field(parameter: Parameter) -> tuple:
 
 
 SPECS = (
+    ToolSpec(
+        cadsr_matching.match_data_elements,
+        "cadsr",
+        DataElementMatches | ErrorResult,
+        False,
+        name="match_data_elements",
+        command="match-data-elements",
+        audit={
+            "entities": "hash",
+            "matchLimit": "plain",
+            "modelVariant": "hash",
+            "similarityThreshold": "plain",
+            "filters": "hash",
+            "registryRelease": "plain",
+        },
+    ),
+    ToolSpec(
+        cadsr_matching.match_value_meanings,
+        "cadsr",
+        ValueMeaningMatches | ErrorResult,
+        False,
+        name="match_value_meanings",
+        command="match-value-meanings",
+        audit={
+            "values": "hash",
+            "strictness": "plain",
+            "terminologyScope": "plain",
+            "registryRelease": "plain",
+        },
+    ),
     ToolSpec(
         cadsr_content.get_data_element,
         "cadsr",
@@ -462,9 +494,14 @@ def _argument_type(annotation: Any) -> tuple[Any, bool, tuple[Any, ...]]:
         return scalar, True, choices
     if get_origin(annotation) is Literal:
         return type(args[0]), False, tuple(sorted(args))
-    if get_origin(annotation) is dict:
-        return json.loads, False, ()
-    return annotation, False, ()
+    return _scalar_type(annotation), False, ()
+
+
+def _scalar_type(annotation: Any) -> Any:
+    """Structured CLI arguments are JSON objects; scalar arguments use their own parser."""
+    if get_origin(annotation) is dict or is_typeddict(annotation):
+        return json.loads
+    return annotation
 
 
 def _value_options(parameter: Parameter) -> dict[str, Any]:
