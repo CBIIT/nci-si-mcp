@@ -20,6 +20,14 @@ The CDE Match and LOV contracts are also recorded in
 `acceptance/fixtures/recorded/cadsr-contracts/`. API response properties are passed through;
 these tests validate the envelope and wire request, not the whole later tool projection.
 
+`tests/test_cadsr_matching.py` crafts matching records from those same definitions and tests
+their projection, ordering, limits and failures. VM Match uses `matchType=Restricted` (or
+Unrestricted) and `function=match`, following `spec/` and the successful request recorded in
+`acceptance/fixtures/recorded/cadsr/vm-match-male.json`. The published OpenAPI descriptions
+instead assign VM/Concept/BOTH to matchType and Restricted/Unrestricted to function; this
+conflict is recorded in [the #42 requirements package](https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-6011568485).
+There is no alternative-header fallback or matching registry-pin field.
+
 Keyword search is **requested OP-C03**, absent from the published contract. Its test envelope
 follows `acceptance/fixtures/crafted/OP-C03/search-no-match.json`; it is not evidence of a live
 search capability. A live type-E response stays an upstream error, with no alternate route.

@@ -42,6 +42,8 @@ class RegistryTest(ServerFixture):
             "list_contexts",
             "list_classification_schemes",
             "resolve_registry_release",
+            "match_data_elements",
+            "match_value_meanings",
         }
         expected = {"evs": evs, "cadsr": cadsr, "unified": evs | cadsr}
         for profile, names in expected.items():

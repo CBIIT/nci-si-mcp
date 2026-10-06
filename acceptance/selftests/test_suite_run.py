@@ -329,6 +329,8 @@ def test_semantic_without_index(tools):
         "list_contexts": "list_contexts",
         "list_classification_schemes": "list_classification_schemes",
         "resolve_registry_release": "resolve_registry_release",
+        "match_data_elements": "match_data_elements",
+        "match_value_meanings": "match_value_meanings",
         "resolve_release": "resolve_release",
         "list_terminologies": "list_terminologies",
         "get_concept": "get_concept",

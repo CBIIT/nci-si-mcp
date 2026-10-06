@@ -227,7 +227,8 @@ match_data_elements:
   summary: >-
     Data elements matched to described entities, scored and rule-attributed, at most
     matchLimit for each entity; the contract's default is 10, and the maximum of 100 is this
-    specification's, the contract stating none. modelVariant and similarityThreshold, which the
+    specification's, the contract stating none. The classificationScheme filter takes both
+    publicId and version. modelVariant and similarityThreshold, which the
     platform does not take, are an invalid request when given. At most 10 entities a call: the
     contract states no maximum, and one entity took 28.9 s (10 September 2026) against a match
     timeout of 45 s.

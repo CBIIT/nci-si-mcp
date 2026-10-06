@@ -197,6 +197,7 @@ ignore_names = [
     "registry", "generatedAt", "sourceDistribution", "conceptCode", "valueMeaning",
     "workflowStatus", "registrationStatus", "dateCreated", "dateModified", "permissibleValues",
     "valueDomain", "conceptAssociations", "alternateNames", "classificationSchemes", "dataElement",
+    "userTip", "valueDomainType", "classificationScheme", "matchedText", "itemType", "evsSource",
 ]
 
 [tool.basedpyright]
