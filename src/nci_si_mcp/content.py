@@ -363,7 +363,7 @@ def get_concepts(
     properties and semanticType, as for get_concept. Each concept carries its
     verified release, status and live provenance; unknown codes are named in missing.
     At most 650 supplied codes and a 7000-byte encoded request target are allowed;
-    larger inputs are invalid_request before any upstream call. One nonempty batch
+    larger inputs are invalid_request before a content request. One nonempty batch
     is one platform call, with counted HTTP retries; there is no per-code fan-out.
     An oversized response fails closed with bound_exceeded, never partial concepts.
 

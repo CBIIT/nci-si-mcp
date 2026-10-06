@@ -122,8 +122,11 @@ def _provenance(
 def _item_provenance(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
     origin = {key: raw[key] for key in ("publicId", "version", "dateModified") if key in raw}
     result = provenance | ({"upstream": origin} if origin else {})
-    if raw.get("licenseText"):
-        result = result | {"attribution": raw["licenseText"]}
+    attribution = raw.get("licenseText")
+    if attribution is not None:
+        if not isinstance(attribution, str):
+            _malformed("licence text")
+        result = result | {"attribution": attribution}
     return result
 
 

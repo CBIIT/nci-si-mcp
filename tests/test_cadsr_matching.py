@@ -177,6 +177,27 @@ class MatchingTest(ServerTestCase):
         self.assertIn("requirements package C-6", result["error"]["message"])
         self.assertEqual(server.seen, [])
 
+    def test_same_name_with_different_descriptions_uses_distinct_matching_requests(self):
+        entities = [
+            {"name": "Q", "userTip": "first", "permissibleValues": ["A"]},
+            {"name": "Q", "userTip": "second", "permissibleValues": ["A"]},
+            {"name": "Q", "userTip": "second", "permissibleValues": ["B"]},
+        ]
+        identifiers = ["123", "124", "125"]
+        server = self.serve(*(reply(cde_response(matches=[cde_row(code)])) for code in identifiers))
+        result = self.call(server, entities=entities)
+        self.assertEqual(
+            [match["dataElement"]["publicId"] for match in result["matches"]], identifiers
+        )
+        self.assertEqual(
+            [json.loads(body) for body in server.bodies],
+            [
+                {"entity": "Q", "entityUserTip": "first", "pvvmData": [{"name": "A"}]},
+                {"entity": "Q", "entityUserTip": "second", "pvvmData": [{"name": "A"}]},
+                {"entity": "Q", "entityUserTip": "second", "pvvmData": [{"name": "B"}]},
+            ],
+        )
+
     def test_a_later_entity_failure_is_not_a_partial_success(self):
         server = self.serve(
             reply(cde_response("Q", [cde_row()])), reply({"apiResponse": {"type": "E"}})

@@ -14,6 +14,58 @@ from test_server import ServerFixture
 
 @patch("nci_si_mcp.server.configure_logging")
 class CaDSRProtocolTest(ServerFixture):
+    def test_cadsr_licence_text_is_preserved_or_rejected_before_mcp_serialization(self, _):
+        for licence in ("", "Upstream attribution", 7, {"unexpected": "object"}):
+            with (
+                self.subTest(licence=licence),
+                patch.object(
+                    self.context.cadsr,
+                    "get_data_element",
+                    return_value=data_element(licenseText=licence),
+                ),
+            ):
+                result = self.session(
+                    lambda client: client.call_tool("get_data_element", {"publicId": "123"})
+                )
+                if isinstance(licence, str):
+                    self.assertFalse(result.is_error)
+                    self.assertEqual(
+                        result.structured_content["provenance"]["attribution"], licence
+                    )
+                else:
+                    self.assertTrue(result.is_error)
+                    self.assertIsNotNone(result.structured_content)
+                    self.assertEqual(
+                        result.structured_content["error"]["code"], "upstream_unavailable"
+                    )
+
+    def test_real_mcp_preserves_large_integer_matching_scores(self, _):
+        score = 10**400
+
+        async def calls(client):
+            return await asyncio.gather(
+                client.call_tool("match_data_elements", {"entities": [{"name": "Q"}]}),
+                client.call_tool("match_value_meanings", {"values": ["Q"]}),
+            )
+
+        with (
+            patch.object(
+                self.context.cadsr,
+                "match_data_element",
+                return_value=cde_response(matches=[cde_row(score=score)])["matchResults"],
+            ),
+            patch.object(
+                self.context.cadsr,
+                "match_value_meanings",
+                return_value=vm_response(matches=[vm_row(score=score)])["matchResults"],
+            ),
+        ):
+            results = self.session(calls)
+        for result in results:
+            with self.subTest(result=result):
+                self.assertFalse(result.is_error)
+                self.assertEqual(result.structured_content["matches"][0]["score"], score)
+
     def test_form_and_crosswalk_resource_keep_governed_policy_alongside_matching(self, _):
         async def calls(client):
             return await asyncio.gather(

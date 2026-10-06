@@ -204,8 +204,8 @@ Unit tests render `tools/list` in every configured profile, validate every schem
 success/error results, and reject malformed records. They assert byte-identical listings
 across release channels, upstream modes, calls and upstream failure (M1.2), and check rendered
 descriptions for unfinished text and unsupported values against behavior (A2.3, A2.4).
-Profiles select the current inventory: twelve EVS tools for `evs` and `unified`, no tools yet
-for `cadsr`. The legacy MCP names and caDSR stub are removed. An input schema states no
+Profiles select the current inventory: twelve tools for `evs`, ten for `cadsr`, and all
+twenty-two for `unified`. The legacy MCP names and caDSR stub are removed. An input schema states no
 `maximum` for a bounded argument: a value above it is applied as the maximum (the tools'
 `bounds` in `spec/tools.yaml`), and the argument's description states its default and maximum.
 
@@ -396,7 +396,7 @@ Errors remain 0/private. Specific behaviours:
 
 ### 6.2 Tools (`seam/tools.py`)
 
-- `find_data_elements_for_concept` → SPARQL join with optional subsumption expansion (bounded, per `Budget`); falls back to caDSR REST `/DataElements/Concept` with its timeout when SSIS is unavailable, except where a release is given (REST cannot name the NCIt release: `release_not_available`) or `includePermissibleValues` asks for the reverse lookup (REST has none: `capability_unavailable`); both release identities recorded (`provenance.release` and `provenance.registry`).
+- `find_data_elements_for_concept` → SPARQL join with optional subsumption expansion (bounded, per `Budget`); the surface must name the effective NCIt release, whether explicit or implicitly selected (X-22). caDSR REST cannot confirm that release and therefore cannot serve as a content fallback: `release_not_available`. REST also lacks the reverse permissible-value lookup (`capability_unavailable`). Both content states are recorded (`provenance.release` and `provenance.registry`).
 - `get_concept_for_permissible_value` → SPARQL lookup of a data element's value; the concept record of the pinned release from EVS; by `permissibleValueId` `capability_unavailable` (OP-C10).
 - `resolve_stored_value` → GDC via `NCIt_Maps_To_GDC` (mapset and FHIR ConceptMap agree; the mapset is named in provenance); other commons via `getCRDCList`; `confidence` asserted or none, `evidence` naming each source; no stored value with a coverage statement otherwise. Never returns the preferred term as a stored value.
 - `get_release_alignment(maxIntervalDays = 31)` → NCIt release, caDSR export date, SI graph dates, `intervalDays`, and a warning naming the threshold when `intervalDays` exceeds it; `ttlMs` 0.
