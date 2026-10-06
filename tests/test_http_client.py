@@ -41,6 +41,10 @@ class Reply:
 
 
 class Handler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        self.server.bodies.append(self.rfile.read(int(self.headers["Content-Length"])))
+        self.do_GET()
+
     def do_GET(self):
         self.server.seen.append((self.path, {k.lower(): v for k, v in self.headers.items()}))
         reply = self.server.script.pop(0) if self.server.script else Reply()
@@ -65,7 +69,7 @@ class ServerTestCase(unittest.TestCase):
         """A server that answers with `script` in turn, then with OK; returns it."""
 
         server = HTTPServer(("127.0.0.1", 0), Handler)
-        server.script, server.seen = list(script), []
+        server.script, server.seen, server.bodies = list(script), [], []
         thread = threading.Thread(
             target=server.serve_forever, kwargs={"poll_interval": 0.01}, daemon=True
         )

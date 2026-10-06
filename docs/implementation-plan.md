@@ -138,7 +138,7 @@ Serialisation: every tool handler returns a dataclass or raises a `PlatformError
 
 ### 3.2 Provenance (`platform/provenance.py`)
 
-Extend `models.py`'s per-concept fields into one `ProvenanceEnvelope` attached **per item** (A4.4), with the fields of the specification's provenance record (`spec/records.yaml`), and a `TraversalProvenance` adding those of its traversal record. For caDSR, `release` carries the export date and says that no registry identifier exists (A3.8.2). The `raw` payload is dropped from MCP results and kept only behind the CLI flag.
+Extend `models.py`'s per-concept fields into one `ProvenanceEnvelope` attached **per item** (A4.4), with the fields of the specification's provenance record (`spec/records.yaml`), and a `TraversalProvenance` adding those of its traversal record. For unpinned caDSR API content, `release` is `{registry: cadsr}` with neither identifier nor date; the export date does not identify newer API content (A3.8.2). The `raw` payload is dropped from MCP results and kept only behind the CLI flag.
 
 `Truncation` carries the fields of the specification's truncation record (`spec/records.yaml`): `omitted` is always a number, with `exact` false where it is only a lower bound or an estimate (A5.4).
 
@@ -148,7 +148,7 @@ Extend `models.py`'s per-concept fields into one `ProvenanceEnvelope` attached *
 
 **EVS.** `resolve_evs_release(terminology, channel)` calls `/metadata/terminologies?terminology=…&latest=true&tag={channel}` and requires exactly one row. It replaces `select_monthly_ncit_release`; `latest` is channel-scoped, and the one-row query moves the selection upstream. Zero or several rows, or a row without a version, raise `release_not_available`; `requested` names the requested channel and optional `found` lists the ambiguous versions. The serialized release contains `terminology`, `channel`, `version` and `date`; the pinned path stays internal. Content requests address `/concept/{terminology}_{release}/…`; a 404 with `Terminology not found` maps to `release_not_available`. The payload's `version` is compared as a second guard and a mismatch is `release_mismatch`, never silently accepted. The first #18 slice exposes `resolve_release(terminology, channel?)` as the flat release record plus provenance and `alternatives`: other served version identifiers for the same terminology, deduplicated in listing order. The channel query remains authoritative; the unfiltered listing supplies alternatives. `list_terminologies` selects each terminology's sole latest row, scoped to the configured channel for NCIt. Both are uncached status results and report top-level errors. The legacy MCP names are removed. CLI release reports use `selected_release`; resources require explicit versions, with all moving aliases removed.
 
-**caDSR.** The pure `registry_state(generation_date, upstream_identifier, source_distribution=…)` builds the specification's `registry_release` record: `{published, identifier?, generatedAt, sourceDistribution}`. Without a published release, `published` is false, `identifier` is absent, and the export's `Last-Modified` for `releasedCDEsXML-OD.zip` becomes an ISO-8601 UTC `generatedAt`. When a registry release appears upstream (C-1), `published` is true and its identifier and own ISO-8601 date are passed through unchanged. `sourceDistribution` names the distribution the caller read the date from. A missing or invalid date, blank supplied identifier or missing distribution raises `RegistryMetadataError`; the shared error path reports `upstream_unavailable` with `surface: cadsr`. No identifier or date is invented, and registry reproducibility is not achievable while no registry release is published. The instrumented HEAD request and tool exposure belong to #31.
+**caDSR.** The pure `registry_state(generation_date, upstream_identifier, source_distribution=…)` builds the specification's `registry_release` record: `{published, identifier?, generatedAt, sourceDistribution}`. Without a published release, `published` is false, `identifier` is absent, and the export folder's row for `releasedCDEsXML-OD.zip` supplies ISO-8601 local `generatedAt` at minute precision without an offset (for example `2026-07-01T22:19`). The folder gives local server time with no zone; the client never assumes one or substitutes the ZIP's HTTP timestamp. When a registry release appears upstream (C-1), `published` is true and its identifier and own ISO-8601 date are passed through unchanged. `sourceDistribution` names the distribution the caller read the date from. A missing or invalid date, blank supplied identifier or missing distribution raises `RegistryMetadataError`; the shared error path reports `upstream_unavailable` with `surface: cadsr`. No identifier or date is invented, and registry reproducibility is not achievable while no registry release is published. The instrumented folder GET and exact-link row parser belong to #31; tool exposure belongs to #33. A missing or duplicate distribution row or unparsable date fails closed without a HEAD fallback.
 
 **Shared SI.** Every SSIS call records the identity of each graph it touched, read from the content graphs' `owl:versionInfo` / `dc:date` with two queries and no property paths, and cached with the SSIS release-alignment TTL (§3.6). These queries belong to #36.
 
@@ -156,7 +156,7 @@ Extend `models.py`'s per-concept fields into one `ProvenanceEnvelope` attached *
 
 One client for all surfaces, replacing `EVSClient._get_json` and the per-module ad hoc calls:
 
-- Always sends `Accept: application/json` (several caDSR routes return HTML otherwise) and the correlation header (M7.1).
+- JSON API GET/POST requests send `Accept: application/json` (several caDSR routes return HTML otherwise); the export listing explicitly requests bounded text. Both carry the correlation header (M7.1).
 - Retries only `5xx` and connection errors, with jittered backoff, **and counts every attempt against the call's `Budget`** (A5.3). Honours `Retry-After` on `429`.
 - Classifies the response before returning it (§3.1): status, content type, webMethods envelope, FHIR `OperationOutcome`.
 - Exposes a request-log hook. In production it feeds the audit record; under the acceptance suite it is what the fixture server mirrors.
@@ -324,25 +324,35 @@ The furnished resources, EVS and caDSR, and the prompt templates are specified i
 
 ## 5. caDSR module
 
-### 5.1 Client (`cadsr/client.py`)
+### 5.1 Client (`cadsr.py`)
 
-Built on `platform/http.py`. Endpoints, all verified live:
+Implemented in the existing flat package over `http_client.HttpClient`, injected through `Context`.
+No caDSR credentials have been issued: client tests use contract-crafted responses and recorded
+reference evidence, not live registry content or a runtime fixture fallback. JSON contract URLs
+are listed in `tests/fixtures/cadsr/README.md`. API transports use Basic auth when configured;
+the export transport never receives it. Matching uses `NCI_SI_MATCH_TIMEOUT_SECONDS` (45 seconds
+by default), other requests `NCI_SI_TIMEOUT_SECONDS` (30 seconds). The client caps responses at
+10 MiB and transport attempts at three, with the shared backoff and audit path.
+
+The published Data Element contract advertises `/rad/NCIAPI.v1_0:NciApiRad`; the client retains
+the recorded `/rad/NCIAPI/1.0/api` alias. The following routes include documented future consumers;
+only those needed by this phase are implemented, and requested upstream operations are labeled:
 
 | Operation | Route | Rules |
 |---|---|---|
 | data element by public id | `GET /rad/NCIAPI/1.0/api/DataElement/{id}` | `version` is the **item's** version, exposed as such |
 | data elements by concept | `GET /rad/NCIAPI/1.0/api/DataElements/Concept?conceptCode=&headerOnly=true` | single concept only; 9.7–20 s measured — tool declares a 30 s timeout |
 | CRDC crosswalk | `GET …/DataElements/getCRDCList` | unparameterised; cached per export date |
-| data element search | `GET …/DataElement/search?…` | **1,000 cap, no paging**: a result of exactly 1,000 rows is reported as truncated with `bound` `upstream_cap`; `totalKnown` filled from `getJSON`'s `recordCounter` where the query can be expressed there gives `omitted` exactly; where it cannot, `omitted` is 0 with `exact` false, which says only that more may exist, and the missing count is an entry in the upstream requirements package (A5.4 cannot be met without it) |
+| data element search | `GET …/DataElement/search?keyword={q}&pageSize={n}` | **Requested OP-C03, not served today (C-3).** Tested against crafted OP-C03 fixtures; no filter or registry-release parameters, fallback route or synthetic result. The live route interprets search as a public id and returns type E, left as `upstream_unavailable` in #31. #33 decides the tool-level capability policy. The 1,000 cap belongs to the documented filtered list paths, not a served search. |
 | contexts, item types, workflow statuses | `GET /rad/NCILovAPI/1.0/api/getContextNames` etc. | enumerations; definitions are absent upstream and the result says so |
 | classification schemes | from the data-element payload's `ClassificationSchemes[]` with nested items | first-class objects |
 | forms | `GET /rad/NCIFormAPI.v2_0:NciFormApiRad/Form/{publicId}` and `/Form/query` | keyword search requires `publicId` or `protocolId` upstream; a keyword-only request is `invalid_request` with that stated |
 | models and crosswalk mappings | `GET /rad/NCIModelAPI/1.0/api/Models`, `/CrossWalkMappings/Download` | feed `get_code_map` |
 | CDE Match | `POST /rad/NCIAPI.v2_0.cdeMatch.api:cdeMatch_rad/cdeMatch` | built from the **JSON** contract, not the documentation page (which declares a dev host); 28.9 s measured — 45 s timeout, structured timeout error |
 | VM Match | `POST /rad/vmMatch/v1/vmMatch` | 15.5 s measured; same handling |
-| export date | `HEAD https://cadsr.nci.nih.gov/ftp/caDSR_Downloads/CDE/XML/releasedCDEsXML-OD.zip` | `Last-Modified` → registry state |
+| export date | `GET https://cadsr.nci.nih.gov/ftp/caDSR_Downloads/CDE/XML/` | Exact `releasedCDEsXML-OD.zip` link row → local ISO date-time, minute precision, no offset; no HEAD fallback |
 
-All matching calls hold any credential server-side (both contracts declare `401`, neither enforced it when tested; the module is correct under either outcome).
+Matching credentials stay server-side. CDE Match sends one `apiinput` object per entity, never an array fallback; transport retries repeat the identical request. VM Match sends the contract array with `matchType`, `function` and optional `evsTerminologyCodes` headers. A 401 propagates explicitly. CDE Match and LOV now refuse anonymous calls in the recorded evidence; this is not a claim that either operation is public. The recorded unknown-form type-E envelope remains an upstream failure under X-15; #35 must decide any operation-specific not-found interpretation without matching message text.
 
 ### 5.2 Tools (`cadsr/tools.py`)
 
