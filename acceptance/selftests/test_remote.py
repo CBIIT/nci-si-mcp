@@ -23,6 +23,7 @@ import pytest
 from conftest import LICENCE_KEY, STAND_IN
 from restart_stub import stop
 
+from nci_si_acceptance import client
 from nci_si_acceptance.client import Target, open_remote_session, wait_for_endpoint
 from nci_si_acceptance.fixture_server import FixtureServer, FixtureSet
 from nci_si_acceptance.remote import StateHook, announcement, probe
@@ -150,6 +151,29 @@ def test_a_remote_server_is_tested_over_streamable_http_with_the_credential_on_e
     sent = stub.credentials.read_text(encoding="utf-8").splitlines()
     assert sent
     assert set(sent) == {CREDENTIAL}
+
+
+def test_stateful_remote_calls_establish_and_reuse_an_http_session(stub, monkeypatch):
+    exchanges = []
+    note_refusal = client._note_refusal
+
+    async def record(statuses, response):
+        exchanges.append(
+            (response.request.headers.get("Mcp-Session-Id"), response.headers.get("Mcp-Session-Id"))
+        )
+        await note_refusal(statuses, response)
+
+    monkeypatch.setattr(client, "_note_refusal", record)
+    with open_remote_session(stub.url, CREDENTIAL, timeout=30, stateful=True) as session:
+        arguments = {"terminology": "ncit", "code": "invalid", "release": "26.09d"}
+        first = session.call_tool("get_concept", arguments)
+        second = session.call_tool("get_concept", arguments)
+    replies = (first, second)
+    assert all(reply.is_error for reply in replies)
+    assert first.structured_content["error"]["code"] == "invalid_request"
+    issued = {received for _, received in exchanges if received}
+    assert len(issued) == 1
+    assert sum(sent in issued for sent, _ in exchanges) >= len(replies)
 
 
 def test_the_credential_appears_in_no_output_of_the_harness(remote):

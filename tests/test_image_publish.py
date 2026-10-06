@@ -16,6 +16,10 @@ class PublicationService:
     def __init__(self, *, public=True, fail=None):
         self.public, self.fail = public, fail
         self.image = None
+        self.local_images = {
+            "nci-si-mcp:verified": self.digest,
+            "nci-si-mcp:unverified": "ghcr.io/new-org/project@sha256:" + "b" * 64,
+        }
         self.assets = {}
         self.notes = "Release description\n"
 
@@ -35,6 +39,7 @@ class PublicationService:
         return commands[operation](*args)
 
     def run_tag(self, *args):
+        self.local_images[args[3]] = self.local_images[args[2]]
         return ""
 
     def run_push(self, *args):
@@ -42,10 +47,16 @@ class PublicationService:
         return ""
 
     def run_image(self, *args):
-        return json.dumps([self.digest])
+        return json.dumps([self.local_images[args[3]]])
 
     def run___config(self, *args):
-        if not self.public or self.image != "ghcr.io/new-org/project:v0.15.0":
+        # A mutable tag can be public while the digest we are releasing is unavailable.
+        public_refs = {self.image: True, self.digest: self.public}
+        if (
+            self.image != "ghcr.io/new-org/project:v0.15.0"
+            or not public_refs.get(args[-1], False)
+            or any(Path(args[2]).iterdir())
+        ):
             raise subprocess.CalledProcessError(1, "anonymous manifest check")
         return ""
 

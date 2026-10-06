@@ -1,14 +1,38 @@
 import io
+import select
+import signal
 import subprocess
 import sys
 import unittest
 from contextlib import redirect_stdout
 from copy import deepcopy
+from unittest.mock import patch
 
 from scripts.acceptance_http import UNPREPARED, stop, verdict
 
 
 class HTTPVerdictTest(unittest.TestCase):
+    def test_cleanup_kills_and_reaps_an_owned_child_that_ignores_termination(self):
+        script = (
+            "import signal,time; signal.signal(signal.SIGTERM,signal.SIG_IGN); "
+            "print('ready',flush=True); time.sleep(300)"
+        )
+        process = subprocess.Popen(  # noqa: S603 - fixed test child, reaped in finally
+            [sys.executable, "-c", script], stdout=subprocess.PIPE, text=True
+        )
+        wait = process.wait
+        try:
+            self.assertTrue(select.select([process.stdout], [], [], 5)[0])
+            self.assertEqual(process.stdout.readline().strip(), "ready")
+            with patch.object(process, "wait", side_effect=lambda timeout: wait(timeout=0.1)):
+                stop(process)
+            self.assertEqual(process.returncode, -signal.SIGKILL)
+        finally:
+            if process.poll() is None:
+                process.kill()
+            wait(timeout=5)
+            process.stdout.close()
+
     def report(self):
         return {
             "transport": "streamable-http",

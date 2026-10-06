@@ -3,6 +3,21 @@
 See the [method and reproduction commands](../../benchmark.md). These are sequential
 workstation measurements, not Cloud One capacity or production latency commitments.
 
+## Mutation review
+
+The [mutation report](mutation-review.json) records 62 manually targeted mutations across
+workflows, HTTP/container publication, and measurement/acceptance tooling. The original
+suites caught 44; regression tests close all 14 real gaps. Four survivors are equivalent
+under the current call paths, with reasons recorded individually. This is a targeted review,
+not an exhaustive mutation score.
+
+Each mutation ran alone against the complete unit suite or acceptance self-test suite in
+an isolated checkout of the recorded baseline commit. The report preserves exact edits,
+commands, failing test identifiers, test hashes and source restoration hashes. To reproduce,
+apply one recorded edit to that baseline, run its command, then restore the file before the
+next edit. For a regression retest, first copy the recorded regression tests from this release
+and confirm that the unmodified baseline passes. No mutation remains in the shipped sources.
+
 ## Acceptance
 
 | Run | Passed | Skipped / not live | Failed gates | Unrun gates |

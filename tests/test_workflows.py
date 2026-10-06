@@ -317,7 +317,17 @@ class CohortTest(WorkflowFixture):
                 self.assertEqual(result["codes"], expected[:maximum])
                 self.assertEqual(len(result["excluded"]), len(exclusions))
                 self.assertEqual({r["code"] for r in result["excluded"]}, {"C2"})
-                self.assertEqual(result["truncation"]["occurred"], truncated)
+                expected_cut = {"occurred": False}
+                if truncated:
+                    expected_cut = {
+                        "occurred": True,
+                        "bound": "nodes",
+                        "limit": maximum,
+                        "reached": maximum,
+                        "omitted": 1,
+                        "exact": False,
+                    }
+                self.assertEqual(result["truncation"], expected_cut)
 
     def test_singleton_is_complete_and_start_counts_in_node_limit(self):
         self.evs.concepts["C1"] = concept("C1", active=True)

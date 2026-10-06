@@ -1,4 +1,6 @@
 import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,6 +10,37 @@ from scripts import container_lock, image_scan
 
 
 class ContainerGateTest(unittest.TestCase):
+    def test_scan_command_blocks_publication_with_a_nonzero_exit_status(self):
+        for severity, status in (("HIGH", 1), ("CRITICAL", 1), ("MEDIUM", 0)):
+            with self.subTest(severity=severity), tempfile.TemporaryDirectory() as directory:
+                report = Path(directory) / "scan.json"
+                report.write_text(
+                    json.dumps(
+                        {
+                            "Results": [
+                                {
+                                    "Vulnerabilities": [
+                                        {
+                                            "Severity": severity,
+                                            "VulnerabilityID": "example",
+                                            "PkgName": "package",
+                                            "FixedVersion": "",
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    )
+                )
+                process = subprocess.run(  # noqa: S603 - local scanner with a generated report
+                    [sys.executable, image_scan.__file__, str(report)],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(process.returncode, status, process.stderr)
+                self.assertIn(f"Publication gate: {status} High/Critical findings", process.stdout)
+
     def test_current_lock_checks_and_version_or_hash_drift_fails(self):
         container_lock.check()
         original = container_lock.LOCK.read_text()

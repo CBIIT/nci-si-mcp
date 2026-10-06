@@ -1,0 +1,2270 @@
+{
+  "baselineCommit": "19016c6cb89a7b35c00bb2a2d0766ca2cebf8ee9",
+  "method": "Three independent, manually targeted mutation passes after five-pass review convergence. This is not an exhaustive mutation score.",
+  "execution": "Each single mutant ran against the complete unit suite or complete acceptance self-test suite, in an isolated checkout with verified local imports. Original bytes were restored and SHA-256 checked after every mutant. New tests were copied only after each original campaign ended, then a green full baseline preceded each full-suite survivor retest.",
+  "infrastructure": "Two initial sandbox baselines could not bind local fixture sockets. They were rerun successfully with loopback access and were not counted as mutation results.",
+  "groups": {
+    "workflows": {
+      "baselines": {
+        "unit": {
+          "command": [
+            "pdm",
+            "run",
+            "test",
+            "-n",
+            "4",
+            "--dist",
+            "worksteal"
+          ],
+          "exitCode": 0,
+          "summary": [
+            "============================ 1365 passed in 21.00s ============================="
+          ],
+          "failingTests": []
+        }
+      },
+      "regressionBaselines": {
+        "unit": {
+          "command": [
+            "pdm",
+            "run",
+            "test",
+            "-n",
+            "4",
+            "--dist",
+            "worksteal"
+          ],
+          "exitCode": 0,
+          "summary": [
+            "============================ 1367 passed in 33.47s ============================="
+          ],
+          "failingTests": []
+        }
+      },
+      "regressionTestHashes": {
+        "tests/test_workflows.py": "ce0fec79c0a2d81cf4cf74d538a0a95fcab08d65e818c890e1fe5d04182cbf6f",
+        "tests/test_workflow_mutations.py": "a273a0048814116297fb18c29a99410e06b389329f29079e46ed3bf4589c473a"
+      }
+    },
+    "transport": {
+      "baselines": {
+        "unit": {
+          "command": [
+            "pdm",
+            "run",
+            "test",
+            "-n",
+            "4",
+            "--dist",
+            "worksteal"
+          ],
+          "exitCode": 0,
+          "summary": [
+            "============================ 1365 passed in 22.99s ============================="
+          ],
+          "failingTests": []
+        }
+      },
+      "regressionBaselines": {
+        "unit": {
+          "command": [
+            "pdm",
+            "run",
+            "test",
+            "-n",
+            "4",
+            "--dist",
+            "worksteal"
+          ],
+          "exitCode": 0,
+          "summary": [
+            "============================ 1370 passed in 30.30s ============================="
+          ],
+          "failingTests": []
+        }
+      },
+      "regressionTestHashes": {
+        "tests/test_http_launch.py": "13d0b53d3c491fa5d9c02c50ab91fdc5aeee3cd1222c6e44b3d9e891b585e6fc",
+        "tests/test_container_mutations.py": "e6bdebeac2f222921a94e4c536bbd34af219cd32b43fa0024df49a31ec805a39",
+        "tests/test_container_gates.py": "e9e3f08e8e788c8e2bc7a1d3afe84c0e43cb69692c5f3c99a5f2320fe9cb51f3",
+        "tests/test_image_publish.py": "42953637dd57ab739a632f0c18b009fe129d634168def77e7d7a26124d01c660",
+        "tests/test_container_smoke.py": "39433a74ead711761ba81f240a38f165480a6ffaa9209ceaa86bcf790a72155c"
+      }
+    },
+    "tooling": {
+      "baselines": {
+        "unit": {
+          "command": [
+            "pdm",
+            "run",
+            "test",
+            "-n",
+            "4",
+            "--dist",
+            "worksteal"
+          ],
+          "exitCode": 0,
+          "summary": [
+            "============================ 1365 passed in 21.32s ============================="
+          ],
+          "failingTests": []
+        },
+        "acceptance": {
+          "command": [
+            "pdm",
+            "run",
+            "acceptance-selftest"
+          ],
+          "exitCode": 0,
+          "summary": [
+            "======================= 863 passed in 190.78s (0:03:10) ========================"
+          ],
+          "failingTests": []
+        }
+      },
+      "regressionBaselines": {
+        "unit": {
+          "command": [
+            "pdm",
+            "run",
+            "test",
+            "-n",
+            "4",
+            "--dist",
+            "worksteal"
+          ],
+          "exitCode": 0,
+          "summary": [
+            "============================ 1368 passed in 25.72s ============================="
+          ],
+          "failingTests": []
+        },
+        "acceptance": {
+          "command": [
+            "pdm",
+            "run",
+            "acceptance-selftest"
+          ],
+          "exitCode": 0,
+          "summary": [
+            "======================= 864 passed in 190.91s (0:03:10) ========================"
+          ],
+          "failingTests": []
+        }
+      },
+      "regressionTestHashes": {
+        "tests/test_benchmark_mutations.py": "16968202e4108a455a37202a9b0f2bc1520cb18268a885792eb55ceda35201c7",
+        "tests/test_http_runner.py": "d3496ebd57ae01523696d996fc5e7b75ed39b0a848dfe10547bac1e2a368ff8e",
+        "acceptance/selftests/test_remote.py": "5994dd28a04529354828e58d9e595db160d47c1b3dfeb367d4736b0e649881f7"
+      }
+    }
+  },
+  "mutations": [
+    {
+      "id": "W01",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/workflows.py",
+      "old": "if len(rows) <= seam.MAX_RESULTS:",
+      "new": "if len(rows) < seam.MAX_RESULTS:",
+      "purpose": "Exact hop maximum incorrectly truncates",
+      "originalSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "restoredSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1365 passed in 21.32s ========================"
+        ],
+        "failingTests": [
+          "SUBFAILED(elements='1000', values='1000') tests/test_workflows.py::GroundTest::test_each_sentinel_cut_is_independent_with_full_hop_records"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "W02",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/workflows.py",
+      "old": "return found[0][\"concept\"][\"code\"]",
+      "new": "return found[-1][\"concept\"][\"code\"]",
+      "purpose": "Text grounding selects last search result",
+      "originalSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "restoredSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1364 passed in 23.91s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_workflows.py::GroundTest::test_text_uses_first_default_search_result_and_pins_its_concept_read"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "W03",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/workflows.py",
+      "old": "        pin = None if implicit_selection() else selected.version",
+      "new": "        pin = selected.version",
+      "purpose": "Force the nested get_concept read to explicit selection, discarding discovered release.date and changing completion audit selection; the shared implicit flag still preserves private caching.",
+      "originalSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "restoredSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "initialOutcome": "survived",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 0,
+        "summary": [
+          "============================ 1365 passed in 25.02s ============================="
+        ],
+        "failingTests": []
+      },
+      "regressionRetest": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1366 passed in 38.30s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_workflow_mutations.py::GroundReleaseTest::test_nested_reads_preserve_implicit_selection_and_its_release_date"
+        ]
+      },
+      "disposition": "real gap closed by regression test"
+    },
+    {
+      "id": "W04",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/workflows.py",
+      "old": "if total is not None and current_total != total:",
+      "new": "if False:",
+      "purpose": "Changing GDC total is accepted",
+      "originalSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "restoredSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1364 passed in 26.11s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_workflows.py::GroundTest::test_changing_gdc_total_is_not_a_complete_grounding"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "W05",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/workflows.py",
+      "old": "if len(result) > seam.MAX_RESULTS:",
+      "new": "if len(result) >= seam.MAX_RESULTS:",
+      "purpose": "GDC stops without sentinel at exact page boundary",
+      "originalSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "restoredSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1364 passed in 27.04s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_workflows.py::GroundTest::test_large_gdc_hop_pages_to_sentinel_without_cutting_other_hops"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "W06",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/workflows.py",
+      "old": "        if edge[\"sourceCode\"] == code and edge[\"provenance\"].get(\"polarity\") == \"negative\"",
+      "new": "        if edge[\"provenance\"].get(\"polarity\") == \"negative\"",
+      "purpose": "The only caller passes a graph constructed from one seed with depth=1 and outgoing role only. Every emitted edge necessarily has sourceCode equal to seed; content._edge does not reverse role edges.",
+      "originalSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "restoredSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "initialOutcome": "survived",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 0,
+        "summary": [
+          "============================ 1365 passed in 28.33s ============================="
+        ],
+        "failingTests": []
+      },
+      "disposition": "equivalent",
+      "equivalenceReason": "The only caller passes a graph constructed from one seed with depth=1 and outgoing role only. Every emitted edge necessarily has sourceCode equal to seed; content._edge does not reverse role edges."
+    },
+    {
+      "id": "W07",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/workflows.py",
+      "old": "budget.depth, budget.nodes = depth, maximum + len(withheld) + 1",
+      "new": "budget.depth, budget.nodes = depth, maximum + len(withheld)",
+      "purpose": "Removing the extra candidate node prevents _cohort_cut from rewriting the traversal bound to the public maxNodes when withheld nodes consumed part of the internal allowance.",
+      "originalSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "restoredSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "initialOutcome": "survived",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 0,
+        "summary": [
+          "============================ 1365 passed in 30.10s ============================="
+        ],
+        "failingTests": []
+      },
+      "regressionRetest": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 2 failed, 1367 passed in 30.51s ========================"
+        ],
+        "failingTests": [
+          "SUBFAILED(negative='False', maximum='2') tests/test_workflows.py::CohortTest::test_equals_fine_grained_composition_with_both_modes_and_node_cut",
+          "SUBFAILED(negative='True', maximum='2') tests/test_workflows.py::CohortTest::test_equals_fine_grained_composition_with_both_modes_and_node_cut"
+        ]
+      },
+      "disposition": "real gap closed by regression test"
+    },
+    {
+      "id": "W08",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/workflows.py",
+      "old": "if role_cut[\"occurred\"] and role_cut[\"bound\"] != \"depth\":",
+      "new": "if role_cut[\"occurred\"]:",
+      "purpose": "Expected role depth cut masks cohort truncation",
+      "originalSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "restoredSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 3 failed, 1364 passed in 33.02s ========================"
+        ],
+        "failingTests": [
+          "SUBFAILED(negative='False', maximum='200') tests/test_workflows.py::CohortTest::test_equals_fine_grained_composition_with_both_modes_and_node_cut",
+          "SUBFAILED(negative='True', maximum='200') tests/test_workflows.py::CohortTest::test_equals_fine_grained_composition_with_both_modes_and_node_cut",
+          "FAILED tests/test_workflows.py::CohortTest::test_request_exhaustion_is_reported_instead_of_an_unverified_complete_cohort"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "W09",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/workflows.py",
+      "old": "withheld = set() if negative else {row[\"code\"] for row in excluded}",
+      "new": "withheld = {row[\"code\"] for row in excluded}",
+      "purpose": "includeNegative ignored",
+      "originalSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "restoredSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 3 failed, 1364 passed in 37.51s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_workflows.py::CohortTest::test_depth_cut_is_preserved - Ass...",
+          "SUBFAILED(negative='True', maximum='2') tests/test_workflows.py::CohortTest::test_equals_fine_grained_composition_with_both_modes_and_node_cut",
+          "SUBFAILED(negative='True', maximum='200') tests/test_workflows.py::CohortTest::test_equals_fine_grained_composition_with_both_modes_and_node_cut"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "W10",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/workflows.py",
+      "old": "if batch not in responses:",
+      "new": "if True:",
+      "purpose": "Repeated sample requests are not reused",
+      "originalSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "restoredSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 2 failed, 1363 passed in 37.49s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_workflows.py::HarmonizationTest::test_duplicate_columns_reuse_requests_without_losing_rows",
+          "FAILED tests/test_workflows.py::HarmonizationTest::test_sample_batches_preserve_all_alignments_and_reuse_shared_batches"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "W11",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/workflows.py",
+      "old": "headers = cadsr_matching._vm_headers(\"restricted\", None)",
+      "new": "headers = cadsr_matching._vm_headers(\"moderate\", None)",
+      "purpose": "Dictionary alignment uses wrong VM strictness",
+      "originalSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "restoredSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 5 failed, 1361 passed in 36.84s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_workflows.py::HarmonizationTest::test_columns_keep_order_and_descriptions_and_align_samples",
+          "FAILED tests/test_workflows.py::HarmonizationTest::test_duplicate_columns_reuse_requests_without_losing_rows",
+          "FAILED tests/test_workflows.py::HarmonizationTest::test_retry_and_later_matching_share_budget_and_one_audit_completion",
+          "FAILED tests/test_workflows.py::HarmonizationTest::test_sample_batches_preserve_all_alignments_and_reuse_shared_batches",
+          "SUBFAILED(tool=\"'harmonize_data_dictionary'\") tests/test_benchmark.py::BenchmarkTest::test_all_representative_calls_produce_successful_correlated_fixture_evidence"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "W12",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/workflows.py",
+      "old": "\"unmatched\": [column[\"name\"] for column in results if not column[\"matches\"]]",
+      "new": "\"unmatched\": [column[\"name\"] for column in results if column[\"matches\"]]",
+      "purpose": "Unmatched list is inverted",
+      "originalSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "restoredSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1364 passed in 38.08s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_workflows.py::HarmonizationTest::test_columns_keep_order_and_descriptions_and_align_samples"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "W13",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/cadsr_matching.py",
+      "old": "key = json.dumps(entity, sort_keys=True)",
+      "new": "key = entity[\"entity\"]",
+      "purpose": "Entity request reuse ignores description",
+      "originalSha256": "b684392e5102c0968e19f34a24ea3a9e94c01e6530ff6ea7ac3c07a30939838d",
+      "restoredSha256": "b684392e5102c0968e19f34a24ea3a9e94c01e6530ff6ea7ac3c07a30939838d",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1364 passed in 37.14s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_cadsr_matching.py::MatchingTest::test_same_name_with_different_descriptions_uses_distinct_matching_requests"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "W14",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/cadsr_matching.py",
+      "old": "groups.append(_cde_matches(responses[key], entity[\"entity\"], size, provenance))",
+      "new": "groups.insert(0, _cde_matches(responses[key], entity[\"entity\"], size, provenance))",
+      "purpose": "Entity groups reverse caller order",
+      "originalSha256": "b684392e5102c0968e19f34a24ea3a9e94c01e6530ff6ea7ac3c07a30939838d",
+      "restoredSha256": "b684392e5102c0968e19f34a24ea3a9e94c01e6530ff6ea7ac3c07a30939838d",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 4 failed, 1361 passed in 34.91s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_cadsr_matching.py::MatchingTest::test_each_entity_is_a_single_object_with_exact_text_and_bounded_ordered_matches",
+          "FAILED tests/test_cadsr_matching.py::MatchingTest::test_same_name_with_different_descriptions_uses_distinct_matching_requests",
+          "FAILED tests/test_cadsr_matching_mutations.py::MatchingBoundariesTest::test_ten_entities_are_accepted_with_default_match_limit",
+          "FAILED tests/test_workflows.py::HarmonizationTest::test_columns_keep_order_and_descriptions_and_align_samples"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "W15",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/seam.py",
+      "old": "if _identifier(row.get(\"sourceCode\"), r\"C[1-9][0-9]*\", \"GDC source code\", \"evs\") == code",
+      "new": "if code in _identifier(row.get(\"sourceCode\"), r\"C[1-9][0-9]*\", \"GDC source code\", \"evs\")",
+      "purpose": "GDC mappings accept substring source codes",
+      "originalSha256": "41c8079c64b04554a67b8e09e46df122d6d11b4de8b75738c18d899880d2cbcc",
+      "restoredSha256": "41c8079c64b04554a67b8e09e46df122d6d11b4de8b75738c18d899880d2cbcc",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 3 failed, 1362 passed in 35.87s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_workflows.py::GroundTest::test_stored_hop_filters_exact_codes_and_preserves_literals_and_attribution",
+          "FAILED tests/test_seam.py::SeamTest::test_gdc_keeps_only_exact_concept_maps_and_counts_returned_values",
+          "FAILED tests/test_seam.py::SeamTest::test_gdc_reads_later_pages_before_filtering_and_counting_exact_matches"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "W16",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/seam.py",
+      "old": "provenance = _attributed(mapset, provenance)\n    return source, provenance",
+      "new": "return source, provenance",
+      "purpose": "Mapset attribution omitted",
+      "originalSha256": "41c8079c64b04554a67b8e09e46df122d6d11b4de8b75738c18d899880d2cbcc",
+      "restoredSha256": "41c8079c64b04554a67b8e09e46df122d6d11b4de8b75738c18d899880d2cbcc",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1364 passed in 34.66s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_seam.py::SeamTest::test_gdc_malformed_licence_text_is_not_silently_discarded"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "W17",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/server.py",
+      "old": "if set(template[\"tools\"]) <= tools:",
+      "new": "if set(template[\"tools\"]) & tools:",
+      "purpose": "Partial profiles receive unavailable-tool prompts",
+      "originalSha256": "996ef728e60e19f34589a96b4208a59a7d1096c9388aa6910eb7724beb19c5ee",
+      "restoredSha256": "996ef728e60e19f34589a96b4208a59a7d1096c9388aa6910eb7724beb19c5ee",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 2 failed, 1365 passed in 33.46s ========================"
+        ],
+        "failingTests": [
+          "SUBFAILED(profile=\"'evs'\") tests/test_prompts.py::PromptTest::test_module_profiles_list_no_cross_module_prompts",
+          "SUBFAILED(profile=\"'cadsr'\") tests/test_prompts.py::PromptTest::test_module_profiles_list_no_cross_module_prompts"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "W18",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/server.py",
+      "old": "values = {a[\"name\"]: \"\" for a in template[\"arguments\"] if not a[\"required\"]}",
+      "new": "values = {a[\"name\"]: \"\" for a in template[\"arguments\"]}",
+      "purpose": "MCP Prompt.render validates all required arguments before calling fn; supplied argument values override defaults in values|arguments. Extra required defaults cannot affect any reachable MCP prompt call.",
+      "originalSha256": "996ef728e60e19f34589a96b4208a59a7d1096c9388aa6910eb7724beb19c5ee",
+      "restoredSha256": "996ef728e60e19f34589a96b4208a59a7d1096c9388aa6910eb7724beb19c5ee",
+      "initialOutcome": "survived",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 0,
+        "summary": [
+          "============================ 1365 passed in 36.54s ============================="
+        ],
+        "failingTests": []
+      },
+      "disposition": "equivalent",
+      "equivalenceReason": "MCP Prompt.render validates all required arguments before calling fn; supplied argument values override defaults in values|arguments. Extra required defaults cannot affect any reachable MCP prompt call."
+    },
+    {
+      "id": "W19",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/registry.py",
+      "old": "audit={\"registryRelease\": \"plain\", \"columns\": \"hash\", \"filters\": \"hash\"}",
+      "new": "audit={\"registryRelease\": \"plain\", \"columns\": \"plain\", \"filters\": \"hash\"}",
+      "purpose": "Changing columns audit classification to plain emits caller supplied names, descriptions and sample values instead of their hash, including on invalid input.",
+      "originalSha256": "40f8ffe6703527ef6fbbef9849d2514acfd9d0edf50e90a6c5463b0753c6e592",
+      "restoredSha256": "40f8ffe6703527ef6fbbef9849d2514acfd9d0edf50e90a6c5463b0753c6e592",
+      "initialOutcome": "survived",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 0,
+        "summary": [
+          "============================ 1365 passed in 34.66s ============================="
+        ],
+        "failingTests": []
+      },
+      "regressionRetest": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1366 passed in 29.12s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_workflow_mutations.py::GroundReleaseTest::test_dictionary_input_is_hashed_even_when_a_later_column_is_invalid"
+        ]
+      },
+      "disposition": "real gap closed by regression test"
+    },
+    {
+      "id": "W20",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/results.py",
+      "old": "    storedValues: NotRequired[list[StoredValue]]\n    provenance: Provenance\n    truncation: Truncation",
+      "new": "    storedValues: list[StoredValue]\n    provenance: Provenance\n    truncation: Truncation",
+      "purpose": "Grounded optional storedValues becomes required on wire",
+      "originalSha256": "80be4f03fd8b541d7ec0aa23693dc406ca40a2733d3d199e2639c39e71335ee2",
+      "restoredSha256": "80be4f03fd8b541d7ec0aa23693dc406ca40a2733d3d199e2639c39e71335ee2",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1364 passed in 32.57s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_benchmark.py::BenchmarkTest::test_all_representative_calls_produce_successful_correlated_fixture_evidence"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "W21",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/workflows.py",
+      "old": "cadsr_matching._text(sample, \"columns.sampleValues\")",
+      "new": "cadsr_matching._text(sample, \"values\")",
+      "purpose": "Nested validation exposes private helper parameter instead of public columns path",
+      "originalSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "restoredSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 2 failed, 1365 passed in 32.42s ========================"
+        ],
+        "failingTests": [
+          "SUBFAILED(column=\"{'name': 'Q', 'sampleValues': [' ']}\") tests/test_workflow_validation.py::DictionaryValidationTest::test_invalid_columns_name_public_fields_before_any_upstream_request",
+          "SUBFAILED(column=\"{'name': 'Q', 'sampleValues': [None]}\") tests/test_workflow_validation.py::DictionaryValidationTest::test_invalid_columns_name_public_fields_before_any_upstream_request"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "W22",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/workflows.py",
+      "old": "for batch in batched(values, 10, strict=False):",
+      "new": "for batch in batched(values[:10], 10, strict=False):",
+      "purpose": "Samples after first batch are silently omitted",
+      "originalSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "restoredSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1364 passed in 32.93s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_workflows.py::HarmonizationTest::test_sample_batches_preserve_all_alignments_and_reuse_shared_batches"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "W23",
+      "group": "workflows",
+      "file": "src/nci_si_mcp/workflows.py",
+      "old": "\"edges\": edges + [row[\"edge\"] for row in excluded]",
+      "new": "\"edges\": []",
+      "purpose": "Cohort loses hierarchy and exclusion evidence",
+      "originalSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "restoredSha256": "1f13cea6a1d01f9b7a19556a66a6bd6eefd3dbae7a28da79084bbc1df25bf2cd",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 4 failed, 1365 passed in 32.85s ========================"
+        ],
+        "failingTests": [
+          "SUBFAILED(negative='False', maximum='2') tests/test_workflows.py::CohortTest::test_edges_preserve_hierarchy_and_each_exclusion_after_member_cut",
+          "SUBFAILED(negative='False', maximum='200') tests/test_workflows.py::CohortTest::test_edges_preserve_hierarchy_and_each_exclusion_after_member_cut",
+          "SUBFAILED(negative='True', maximum='2') tests/test_workflows.py::CohortTest::test_edges_preserve_hierarchy_and_each_exclusion_after_member_cut",
+          "SUBFAILED(negative='True', maximum='200') tests/test_workflows.py::CohortTest::test_edges_preserve_hierarchy_and_each_exclusion_after_member_cut"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "T01",
+      "group": "transport",
+      "file": "src/nci_si_mcp/transport.py",
+      "old": "enable_dns_rebinding_protection=True,",
+      "new": "enable_dns_rebinding_protection=False,",
+      "purpose": "Killed by existing behavioral tests; see failing_tests and full-suite log.",
+      "originalSha256": "baaee70639db40f12b326d1049db6e580859135ee391b6413546b2e58fe3e5eb",
+      "restoredSha256": "baaee70639db40f12b326d1049db6e580859135ee391b6413546b2e58fe3e5eb",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1364 passed in 24.15s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_transport.py::HTTPTest::test_host_and_origin_allow_lists_cover_health_and_mcp_even_on_wildcard_bind"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "T02",
+      "group": "transport",
+      "file": "src/nci_si_mcp/transport.py",
+      "old": "stateless_http=settings.http_sessions == \"stateless\",",
+      "new": "stateless_http=True,",
+      "purpose": "Killed by existing behavioral tests; see failing_tests and full-suite log.",
+      "originalSha256": "baaee70639db40f12b326d1049db6e580859135ee391b6413546b2e58fe3e5eb",
+      "restoredSha256": "baaee70639db40f12b326d1049db6e580859135ee391b6413546b2e58fe3e5eb",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 4 failed, 1361 passed in 25.85s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_transport.py::HTTPTest::test_content_failure_holds_pin_and_withdrawal_asks_for_new_session",
+          "FAILED tests/test_transport.py::HTTPTest::test_stateful_session_belongs_to_one_process_and_explicit_calls_do_not_repin",
+          "FAILED tests/test_transport.py::HTTPTest::test_terminated_session_cannot_be_reused_and_new_session_can_advance",
+          "FAILED tests/test_transport.py::HTTPAuthTest::test_auth_and_scope_rejections_never_invoke_tools_or_log_caller_content"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "T03",
+      "group": "transport",
+      "file": "src/nci_si_mcp/transport.py",
+      "old": "max_request_body_size=settings.http_max_request_bytes,",
+      "new": "max_request_body_size=1024**3,",
+      "purpose": "Killed by existing behavioral tests; see failing_tests and full-suite log.",
+      "originalSha256": "baaee70639db40f12b326d1049db6e580859135ee391b6413546b2e58fe3e5eb",
+      "restoredSha256": "baaee70639db40f12b326d1049db6e580859135ee391b6413546b2e58fe3e5eb",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1364 passed in 26.25s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_transport.py::HTTPTest::test_declared_and_chunked_oversize_bodies_are_refused_before_parsing_or_execution"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "T04",
+      "group": "transport",
+      "file": "src/nci_si_mcp/transport.py",
+      "old": "        context.index.verify_active(context.embedding_provider)",
+      "new": "        return None",
+      "purpose": "Killed by existing behavioral tests; see failing_tests and full-suite log.",
+      "originalSha256": "baaee70639db40f12b326d1049db6e580859135ee391b6413546b2e58fe3e5eb",
+      "restoredSha256": "baaee70639db40f12b326d1049db6e580859135ee391b6413546b2e58fe3e5eb",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 3 failed, 1362 passed in 27.77s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_transport.py::HTTPTest::test_health_and_readiness_do_not_read_upstream_and_verify_a_required_index",
+          "FAILED tests/test_transport.py::HTTPTest::test_health_responds_while_readiness_waits_for_index_storage",
+          "FAILED tests/test_transport.py::HTTPTest::test_readiness_logs_only_failure_transitions_without_exception_messages"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "T05",
+      "group": "transport",
+      "file": "src/nci_si_mcp/transport.py",
+      "old": "proxy_headers=False,",
+      "new": "proxy_headers=True,",
+      "purpose": "Accept forwarded headers and allow client identity or scheme rewriting.",
+      "originalSha256": "baaee70639db40f12b326d1049db6e580859135ee391b6413546b2e58fe3e5eb",
+      "restoredSha256": "baaee70639db40f12b326d1049db6e580859135ee391b6413546b2e58fe3e5eb",
+      "initialOutcome": "survived",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 0,
+        "summary": [
+          "============================ 1365 passed in 29.47s ============================="
+        ],
+        "failingTests": []
+      },
+      "regressionRetest": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1369 passed in 38.74s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_http_launch.py::HTTPLaunchTest::test_forwarded_headers_do_not_rewrite_client_identity_or_scheme"
+        ]
+      },
+      "disposition": "real gap closed by regression test"
+    },
+    {
+      "id": "T06",
+      "group": "transport",
+      "file": "src/nci_si_mcp/config.py",
+      "old": " or urlsplit(checked).path:",
+      "new": ":",
+      "purpose": "Killed by existing behavioral tests; see failing_tests and full-suite log.",
+      "originalSha256": "301e136f229e777a31e57eed9b7f05bb25f13cf1eb8e1a016a130ff36de65252",
+      "restoredSha256": "301e136f229e777a31e57eed9b7f05bb25f13cf1eb8e1a016a130ff36de65252",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 2 failed, 1365 passed in 33.06s ========================"
+        ],
+        "failingTests": [
+          "SUBFAILED(variable=\"'NCI_SI_HTTP_ALLOWED_HOSTS'\", value=\"'host/path'\") tests/test_config.py::SettingsTest::test_invalid_http_configuration_is_rejected_at_startup",
+          "SUBFAILED(variable=\"'NCI_SI_HTTP_ALLOWED_ORIGINS'\", value=\"'https://host/path'\") tests/test_config.py::SettingsTest::test_invalid_http_configuration_is_rejected_at_startup"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "T07",
+      "group": "transport",
+      "file": "src/nci_si_mcp/cli.py",
+      "old": "settings = replace(settings, transport=args.transport)",
+      "new": "settings = settings",
+      "purpose": "Killed by existing behavioral tests; see failing_tests and full-suite log.",
+      "originalSha256": "b4e979c7376772ac73fc361272948c76f09bd48af52edc68db082a8f68200bc0",
+      "restoredSha256": "b4e979c7376772ac73fc361272948c76f09bd48af52edc68db082a8f68200bc0",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 4 failed, 1362 passed in 35.94s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_cli.py::MainTest::test_explicit_stdio_overrides_http_environment",
+          "FAILED tests/test_cli.py::MainTest::test_http_startup_failure_stays_on_stderr",
+          "SUBFAILED(arguments=\"('--transport', 'streamable-http')\") tests/test_cli.py::MainTest::test_http_transport_can_be_selected_by_environment_or_cli_override",
+          "FAILED tests/test_cli.py::MainTest::test_http_transport_can_be_selected_by_environment_or_cli_override"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "T08",
+      "group": "transport",
+      "file": "src/nci_si_mcp/container_entry.py",
+      "old": "SentenceTransformersProvider(settings.embedding_model, local_files_only=True)",
+      "new": "SentenceTransformersProvider(settings.embedding_model, local_files_only=False)",
+      "purpose": "Permit network model loading during container startup.",
+      "originalSha256": "5b0801428c3e4fa20f7abfd48178ede29666887f73755aadfc3ea3062760cc41",
+      "restoredSha256": "5b0801428c3e4fa20f7abfd48178ede29666887f73755aadfc3ea3062760cc41",
+      "initialOutcome": "survived",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 0,
+        "summary": [
+          "============================ 1365 passed in 37.84s ============================="
+        ],
+        "failingTests": []
+      },
+      "regressionRetest": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1369 passed in 37.90s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_container_mutations.py::ContainerOfflineTest::test_startup_serves_an_external_model_with_network_loading_disabled"
+        ]
+      },
+      "disposition": "real gap closed by regression test"
+    },
+    {
+      "id": "T09",
+      "group": "transport",
+      "file": "src/nci_si_mcp/container_entry.py",
+      "old": "            index.verify_active(provider)",
+      "new": "            pass",
+      "purpose": "Skip active-index verification during container startup.",
+      "originalSha256": "5b0801428c3e4fa20f7abfd48178ede29666887f73755aadfc3ea3062760cc41",
+      "restoredSha256": "5b0801428c3e4fa20f7abfd48178ede29666887f73755aadfc3ea3062760cc41",
+      "initialOutcome": "survived",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 0,
+        "summary": [
+          "============================ 1365 passed in 36.60s ============================="
+        ],
+        "failingTests": []
+      },
+      "regressionRetest": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1369 passed in 40.05s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_container_mutations.py::ContainerOfflineTest::test_legacy_active_index_fails_startup_until_operator_rebuilds_it"
+        ]
+      },
+      "disposition": "real gap closed by regression test"
+    },
+    {
+      "id": "T10",
+      "group": "transport",
+      "file": "src/nci_si_mcp/container_entry.py",
+      "old": "        errorType=type(error).__name__,",
+      "new": "        errorType=str(error),",
+      "purpose": "Killed by existing behavioral tests; see failing_tests and full-suite log.",
+      "originalSha256": "5b0801428c3e4fa20f7abfd48178ede29666887f73755aadfc3ea3062760cc41",
+      "restoredSha256": "5b0801428c3e4fa20f7abfd48178ede29666887f73755aadfc3ea3062760cc41",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 2 failed, 1363 passed in 37.91s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_container.py::ContainerTest::test_bad_model_setting_names_the_variable_without_its_value",
+          "FAILED tests/test_container.py::ContainerTest::test_startup_reports_one_safe_asset_failure"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "T11",
+      "group": "transport",
+      "file": "src/nci_si_mcp/embeddings.py",
+      "old": "return snapshot_download(model_name, local_files_only=True)",
+      "new": "return snapshot_download(model_name, local_files_only=False)",
+      "purpose": "Killed by existing behavioral tests; see failing_tests and full-suite log.",
+      "originalSha256": "3e139e3618265638c9dc4a95ab6c244fbdda1e9e8b9f59d6d4fddab4e3b2151f",
+      "restoredSha256": "3e139e3618265638c9dc4a95ab6c244fbdda1e9e8b9f59d6d4fddab4e3b2151f",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1364 passed in 38.04s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_container.py::ContainerTest::test_cached_model_loads_offline_without_changing_manifest_identity"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "T12",
+      "group": "transport",
+      "file": "src/nci_si_mcp/index.py",
+      "old": "            return self._searchable_manifest(conn, provider, None, None)",
+      "new": "            return self._active_manifest(conn)",
+      "purpose": "Killed by existing behavioral tests; see failing_tests and full-suite log.",
+      "originalSha256": "54d28d8768b0e27eca974c48b6534931e8465d8fc274c49ceac70d91c29c0e16",
+      "restoredSha256": "54d28d8768b0e27eca974c48b6534931e8465d8fc274c49ceac70d91c29c0e16",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 3 failed, 1362 passed in 35.82s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_transport.py::HTTPTest::test_health_and_readiness_do_not_read_upstream_and_verify_a_required_index",
+          "FAILED tests/test_transport.py::HTTPTest::test_health_responds_while_readiness_waits_for_index_storage",
+          "FAILED tests/test_transport.py::HTTPTest::test_readiness_logs_only_failure_transitions_without_exception_messages"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "T13",
+      "group": "transport",
+      "file": "scripts/container_lock.py",
+      "old": "        if version != expected:",
+      "new": "        if False:",
+      "purpose": "Killed by existing behavioral tests; see failing_tests and full-suite log.",
+      "originalSha256": "d551b3f5728a5b506419b8556a8d1f9babafb37fb802a4de3ef31658b5ddcd53",
+      "restoredSha256": "d551b3f5728a5b506419b8556a8d1f9babafb37fb802a4de3ef31658b5ddcd53",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1364 passed in 35.73s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_container_gates.py::ContainerGateTest::test_resolved_version_must_match_pdm_and_torch_must_be_cpu"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "T14",
+      "group": "transport",
+      "file": "scripts/image_scan.py",
+      "old": "if item[\"Severity\"] in {\"HIGH\", \"CRITICAL\"}",
+      "new": "if item[\"Severity\"] in {\"HIGH\", \"CRITICAL\"} and item.get(\"FixedVersion\")",
+      "purpose": "Killed by existing behavioral tests; see failing_tests and full-suite log.",
+      "originalSha256": "abb5f31415ddb563a1693d04564e3ec3e742b1adf7c69afc5adc865e9afe437d",
+      "restoredSha256": "abb5f31415ddb563a1693d04564e3ec3e742b1adf7c69afc5adc865e9afe437d",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1364 passed in 35.47s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_container_gates.py::ContainerGateTest::test_scan_blocks_high_and_critical_even_without_a_fix"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "T15",
+      "group": "transport",
+      "file": "scripts/image_scan.py",
+      "old": "    return int(bool(blocked))",
+      "new": "    return 0",
+      "purpose": "Return success from the scanner CLI despite blocking findings.",
+      "originalSha256": "abb5f31415ddb563a1693d04564e3ec3e742b1adf7c69afc5adc865e9afe437d",
+      "restoredSha256": "abb5f31415ddb563a1693d04564e3ec3e742b1adf7c69afc5adc865e9afe437d",
+      "initialOutcome": "survived",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 0,
+        "summary": [
+          "============================ 1365 passed in 34.20s ============================="
+        ],
+        "failingTests": []
+      },
+      "regressionRetest": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 2 failed, 1370 passed in 43.30s ========================"
+        ],
+        "failingTests": [
+          "SUBFAILED(severity=\"'HIGH'\") tests/test_container_gates.py::ContainerGateTest::test_scan_command_blocks_publication_with_a_nonzero_exit_status",
+          "SUBFAILED(severity=\"'CRITICAL'\") tests/test_container_gates.py::ContainerGateTest::test_scan_command_blocks_publication_with_a_nonzero_exit_status"
+        ]
+      },
+      "disposition": "real gap closed by regression test"
+    },
+    {
+      "id": "T16",
+      "group": "transport",
+      "file": "scripts/image_publish.py",
+      "old": "        run(\"docker\", \"--config\", directory, \"manifest\", \"inspect\", digest)",
+      "new": "        run(\"docker\", \"--config\", directory, \"manifest\", \"inspect\", f\"{image}:{tag}\")",
+      "purpose": "Check public visibility by tag instead of the published digest.",
+      "originalSha256": "23d0c18ce4a7528836bded161f89522f2d45964e53bfdd9cae4e6f2abf06b84b",
+      "restoredSha256": "23d0c18ce4a7528836bded161f89522f2d45964e53bfdd9cae4e6f2abf06b84b",
+      "initialOutcome": "survived",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 0,
+        "summary": [
+          "============================ 1365 passed in 33.96s ============================="
+        ],
+        "failingTests": []
+      },
+      "regressionRetest": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1369 passed in 34.60s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_image_publish.py::ImagePublicationTest::test_private_package_cannot_be_reported_as_public"
+        ]
+      },
+      "disposition": "real gap closed by regression test"
+    },
+    {
+      "id": "T17",
+      "group": "transport",
+      "file": "scripts/image_publish.py",
+      "old": "run(\"docker\", \"tag\", \"nci-si-mcp:verified\", f\"{image}:{tag}\")",
+      "new": "run(\"docker\", \"tag\", \"nci-si-mcp:unverified\", f\"{image}:{tag}\")",
+      "purpose": "Publish an unverified local image instead of the scanned image.",
+      "originalSha256": "23d0c18ce4a7528836bded161f89522f2d45964e53bfdd9cae4e6f2abf06b84b",
+      "restoredSha256": "23d0c18ce4a7528836bded161f89522f2d45964e53bfdd9cae4e6f2abf06b84b",
+      "initialOutcome": "survived",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 0,
+        "summary": [
+          "============================ 1365 passed in 37.82s ============================="
+        ],
+        "failingTests": []
+      },
+      "regressionRetest": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1369 passed in 32.77s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_image_publish.py::ImagePublicationTest::test_transferred_repository_digest_and_reports_are_named_in_notes"
+        ]
+      },
+      "disposition": "real gap closed by regression test"
+    },
+    {
+      "id": "T18",
+      "group": "transport",
+      "file": "scripts/container_smoke.py",
+      "old": "            retained_builds(args.image, assets)",
+      "new": "            pass",
+      "purpose": "Omit the retained-build check from container smoke verification.",
+      "originalSha256": "b7587c1d8bc77d078ea2023a092fd6c3c296fef7bc4f27b332a8d44fb8543a0e",
+      "restoredSha256": "b7587c1d8bc77d078ea2023a092fd6c3c296fef7bc4f27b332a8d44fb8543a0e",
+      "initialOutcome": "survived",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 0,
+        "summary": [
+          "============================ 1365 passed in 32.15s ============================="
+        ],
+        "failingTests": []
+      },
+      "regressionRetest": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1370 passed in 29.75s ========================"
+        ],
+        "failingTests": [
+          "SUBFAILED(changed='True') tests/test_container_smoke.py::SmokeCommandTest::test_changed_build_fails_the_command_and_reaps_assets"
+        ]
+      },
+      "disposition": "real gap closed by regression test"
+    },
+    {
+      "id": "T19",
+      "group": "transport",
+      "file": "src/nci_si_mcp/transport.py",
+      "old": "        available = error is None",
+      "new": "        available = not error",
+      "purpose": "Equivalent: _readiness_error returns None or nonempty exception class names, so error is None and not error are identical for all reachable outputs.",
+      "originalSha256": "baaee70639db40f12b326d1049db6e580859135ee391b6413546b2e58fe3e5eb",
+      "restoredSha256": "baaee70639db40f12b326d1049db6e580859135ee391b6413546b2e58fe3e5eb",
+      "initialOutcome": "survived",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 0,
+        "summary": [
+          "============================ 1365 passed in 33.41s ============================="
+        ],
+        "failingTests": []
+      },
+      "disposition": "equivalent",
+      "equivalenceReason": "Equivalent: _readiness_error returns None or nonempty exception class names, so error is None and not error are identical for all reachable outputs."
+    },
+    {
+      "id": "T20",
+      "group": "transport",
+      "file": "scripts/image_scan.py",
+      "old": "    return int(bool(blocked))",
+      "new": "    return 1 if blocked else 0",
+      "purpose": "Equivalent: int(bool(blocked)) and 1 if blocked else 0 return identical integers for the list returned by findings.",
+      "originalSha256": "abb5f31415ddb563a1693d04564e3ec3e742b1adf7c69afc5adc865e9afe437d",
+      "restoredSha256": "abb5f31415ddb563a1693d04564e3ec3e742b1adf7c69afc5adc865e9afe437d",
+      "initialOutcome": "survived",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 0,
+        "summary": [
+          "============================ 1365 passed in 33.56s ============================="
+        ],
+        "failingTests": []
+      },
+      "disposition": "equivalent",
+      "equivalenceReason": "Equivalent: int(bool(blocked)) and 1 if blocked else 0 return identical integers for the list returned by findings."
+    },
+    {
+      "id": "T21",
+      "group": "transport",
+      "file": "src/nci_si_mcp/transport.py",
+      "old": "error = await run_in_threadpool(\n            _readiness_error, context, bool(settings.http_require_index)\n        )",
+      "new": "error = _readiness_error(context, bool(settings.http_require_index))",
+      "purpose": "Killed by existing behavioral tests; see failing_tests and full-suite log.",
+      "originalSha256": "baaee70639db40f12b326d1049db6e580859135ee391b6413546b2e58fe3e5eb",
+      "restoredSha256": "baaee70639db40f12b326d1049db6e580859135ee391b6413546b2e58fe3e5eb",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1364 passed in 33.00s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_transport.py::HTTPTest::test_health_responds_while_readiness_waits_for_index_storage"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "T22",
+      "group": "transport",
+      "file": "scripts/image_publish.py",
+      "old": "    run(\"docker\", \"push\", f\"{image}:{tag}\")",
+      "new": "    pass",
+      "purpose": "Killed by existing behavioral tests; see failing_tests and full-suite log.",
+      "originalSha256": "23d0c18ce4a7528836bded161f89522f2d45964e53bfdd9cae4e6f2abf06b84b",
+      "restoredSha256": "23d0c18ce4a7528836bded161f89522f2d45964e53bfdd9cae4e6f2abf06b84b",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1364 passed in 31.75s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_image_publish.py::ImagePublicationTest::test_transferred_repository_digest_and_reports_are_named_in_notes"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "T23",
+      "group": "transport",
+      "file": "scripts/image_publish.py",
+      "old": "    run(\n        \"gh\",\n        \"release\",\n        \"upload\",\n        tag,\n        str(evidence / \"scan.json\"),\n        str(evidence / \"sbom.cdx.json\"),\n        str(evidence / \"image-digest.txt\"),\n        \"--clobber\",\n    )",
+      "new": "    pass",
+      "purpose": "Killed by existing behavioral tests; see failing_tests and full-suite log.",
+      "originalSha256": "23d0c18ce4a7528836bded161f89522f2d45964e53bfdd9cae4e6f2abf06b84b",
+      "restoredSha256": "23d0c18ce4a7528836bded161f89522f2d45964e53bfdd9cae4e6f2abf06b84b",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 2 failed, 1364 passed in 34.13s ========================"
+        ],
+        "failingTests": [
+          "SUBFAILED(operation=\"'upload'\") tests/test_image_publish.py::ImagePublicationTest::test_publication_failures_never_announce_success",
+          "FAILED tests/test_image_publish.py::ImagePublicationTest::test_transferred_repository_digest_and_reports_are_named_in_notes"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "T24",
+      "group": "transport",
+      "file": "scripts/image_publish.py",
+      "old": "    run(\"gh\", \"release\", \"edit\", tag, \"--notes-file\", str(notes))",
+      "new": "    pass",
+      "purpose": "Killed by existing behavioral tests; see failing_tests and full-suite log.",
+      "originalSha256": "23d0c18ce4a7528836bded161f89522f2d45964e53bfdd9cae4e6f2abf06b84b",
+      "restoredSha256": "23d0c18ce4a7528836bded161f89522f2d45964e53bfdd9cae4e6f2abf06b84b",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 2 failed, 1364 passed in 39.58s ========================"
+        ],
+        "failingTests": [
+          "SUBFAILED(operation=\"'edit'\") tests/test_image_publish.py::ImagePublicationTest::test_publication_failures_never_announce_success",
+          "FAILED tests/test_image_publish.py::ImagePublicationTest::test_transferred_repository_digest_and_reports_are_named_in_notes"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "E01",
+      "group": "tooling",
+      "file": "scripts/benchmark.py",
+      "old": "(record,) = found",
+      "new": "record = found[0]",
+      "purpose": "Accept duplicate correlated completion records",
+      "originalSha256": "807d6cc00172034e3a7ea54ae907f4d9184d2e842bf53be2c39ee7859fc64a3d",
+      "restoredSha256": "807d6cc00172034e3a7ea54ae907f4d9184d2e842bf53be2c39ee7859fc64a3d",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 2 failed, 1365 passed in 34.82s ========================"
+        ],
+        "failingTests": [
+          "SUBFAILED(log=\"''\") tests/test_benchmark.py::BenchmarkTest::test_only_one_correlated_completion_with_actual_attempts_is_evidence",
+          "SUBFAILED(log='\\'{\"event\": \"call_completed\", \"correlationId\": \"call\", \"tool\": \"get_concept\", \"outboundRequests\": 3}\\\\n{\"event\": \"call_completed\", \"correlationId\": \"call\", \"tool\": \"get_concept\", \"outboundRequests\": 3}\\'') tests/test_benchmark.py::BenchmarkTest::test_only_one_correlated_completion_with_actual_attempts_is_evidence"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "E02",
+      "group": "tooling",
+      "file": "scripts/benchmark.py",
+      "old": "if content is None or reply.is_error != (record[\"status\"] == \"error\"):",
+      "new": "if content is None:",
+      "purpose": "Accept disagreement between protocol error and audit status",
+      "originalSha256": "807d6cc00172034e3a7ea54ae907f4d9184d2e842bf53be2c39ee7859fc64a3d",
+      "restoredSha256": "807d6cc00172034e3a7ea54ae907f4d9184d2e842bf53be2c39ee7859fc64a3d",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1365 passed in 37.26s ========================"
+        ],
+        "failingTests": [
+          "SUBFAILED(reply=\"namespace(structured_content={'answer': []}, is_error=False)\") tests/test_benchmark.py::BenchmarkTest::test_missing_content_or_disagreeing_mcp_error_does_not_become_a_measurement"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "E03",
+      "group": "tooling",
+      "file": "scripts/benchmark.py",
+      "old": "\"errorRate\": sum(sample[\"error\"] for sample in samples) / len(samples),",
+      "new": "\"errorRate\": 0,",
+      "purpose": "Suppress measured tool errors in aggregate",
+      "originalSha256": "807d6cc00172034e3a7ea54ae907f4d9184d2e842bf53be2c39ee7859fc64a3d",
+      "restoredSha256": "807d6cc00172034e3a7ea54ae907f4d9184d2e842bf53be2c39ee7859fc64a3d",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1364 passed in 36.78s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_benchmark.py::BenchmarkTest::test_nearest_rank_and_error_calls_remain_in_the_distribution"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "E04",
+      "group": "tooling",
+      "file": "scripts/benchmark.py",
+      "old": "save(output, report)  # An interrupted first case must not leave an older successful report.",
+      "new": "pass  # Do not invalidate previous evidence before starting.",
+      "purpose": "Leave stale complete evidence on interrupted first case",
+      "originalSha256": "807d6cc00172034e3a7ea54ae907f4d9184d2e842bf53be2c39ee7859fc64a3d",
+      "restoredSha256": "807d6cc00172034e3a7ea54ae907f4d9184d2e842bf53be2c39ee7859fc64a3d",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1364 passed in 37.17s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_benchmark.py::BenchmarkTest::test_an_interrupted_first_case_cannot_leave_a_stale_successful_report"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "E05",
+      "group": "tooling",
+      "file": "scripts/benchmark.py",
+      "old": "if upstream and unmatched_requests(upstream.log()):",
+      "new": "if False:",
+      "purpose": "Accept missing fixture coverage as benchmark evidence",
+      "originalSha256": "807d6cc00172034e3a7ea54ae907f4d9184d2e842bf53be2c39ee7859fc64a3d",
+      "restoredSha256": "807d6cc00172034e3a7ea54ae907f4d9184d2e842bf53be2c39ee7859fc64a3d",
+      "initialOutcome": "survived",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 0,
+        "summary": [
+          "============================ 1365 passed in 37.82s ============================="
+        ],
+        "failingTests": []
+      },
+      "regressionRetest": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1367 passed in 27.29s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_benchmark_mutations.py::BenchmarkBoundaryTest::test_unrecorded_fixture_response_cannot_be_published_as_complete_evidence"
+        ]
+      },
+      "disposition": "real gap closed by regression test"
+    },
+    {
+      "id": "E06",
+      "group": "tooling",
+      "file": "scripts/benchmark.py",
+      "old": "timeout=CLIENT_TIMEOUT_SECONDS",
+      "new": "timeout=None",
+      "purpose": "Drop extended benchmark timeout needed for upstream retries",
+      "originalSha256": "807d6cc00172034e3a7ea54ae907f4d9184d2e842bf53be2c39ee7859fc64a3d",
+      "restoredSha256": "807d6cc00172034e3a7ea54ae907f4d9184d2e842bf53be2c39ee7859fc64a3d",
+      "initialOutcome": "survived",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 0,
+        "summary": [
+          "============================ 1365 passed in 36.47s ============================="
+        ],
+        "failingTests": []
+      },
+      "regressionRetest": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1367 passed in 23.39s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_benchmark_mutations.py::BenchmarkBoundaryTest::test_benchmark_session_uses_its_own_timeout_instead_of_the_harness_default"
+        ]
+      },
+      "disposition": "real gap closed by regression test"
+    },
+    {
+      "id": "E07",
+      "group": "tooling",
+      "file": "scripts/upstream_requirements.py",
+      "old": "if observed[\"outcome\"] not in FAILED:",
+      "new": "if False:",
+      "purpose": "Qualify unrun live evidence",
+      "originalSha256": "463a358bd433a84bf9abb6cbc9ab8c7da66adfd19287e444c2b3f08f91c1c57c",
+      "restoredSha256": "463a358bd433a84bf9abb6cbc9ab8c7da66adfd19287e444c2b3f08f91c1c57c",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1365 passed in 35.20s ========================"
+        ],
+        "failingTests": [
+          "SUBFAILED(change=\"'unrun'\") tests/test_upstream_requirements.py::PackageTests::test_stale_unrun_unrelated_or_fixture_failure_cannot_be_a_live_exception"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "E08",
+      "group": "tooling",
+      "file": "scripts/upstream_requirements.py",
+      "old": "if fixture[\"tests\"][nodeid][\"outcome\"] != \"passed\":",
+      "new": "if False:",
+      "purpose": "Excuse fixture failures through live qualifications",
+      "originalSha256": "463a358bd433a84bf9abb6cbc9ab8c7da66adfd19287e444c2b3f08f91c1c57c",
+      "restoredSha256": "463a358bd433a84bf9abb6cbc9ab8c7da66adfd19287e444c2b3f08f91c1c57c",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1365 passed in 36.02s ========================"
+        ],
+        "failingTests": [
+          "SUBFAILED(change=\"'fixture-failure'\") tests/test_upstream_requirements.py::PackageTests::test_stale_unrun_unrelated_or_fixture_failure_cannot_be_a_live_exception"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "E09",
+      "group": "tooling",
+      "file": "scripts/upstream_requirements.py",
+      "old": "if nodeid.split(\"[\", 1)[0] not in entry[\"tests\"]:",
+      "new": "if False:",
+      "purpose": "Qualify an unrelated test against an entry",
+      "originalSha256": "463a358bd433a84bf9abb6cbc9ab8c7da66adfd19287e444c2b3f08f91c1c57c",
+      "restoredSha256": "463a358bd433a84bf9abb6cbc9ab8c7da66adfd19287e444c2b3f08f91c1c57c",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1365 passed in 34.46s ========================"
+        ],
+        "failingTests": [
+          "SUBFAILED(change=\"'unrelated'\") tests/test_upstream_requirements.py::PackageTests::test_stale_unrun_unrelated_or_fixture_failure_cannot_be_a_live_exception"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "E10",
+      "group": "tooling",
+      "file": "scripts/acceptance_http.py",
+      "old": "and observed == wanted",
+      "new": "and all(outcome == wanted[name] for name, outcome in observed.items())",
+      "purpose": "Accept incomplete remote fixture report",
+      "originalSha256": "24018a02b9714c3fc4a691ec575f071d42434e257e4b3a497ec75af8efb7969e",
+      "restoredSha256": "24018a02b9714c3fc4a691ec575f071d42434e257e4b3a497ec75af8efb7969e",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1365 passed in 33.89s ========================"
+        ],
+        "failingTests": [
+          "SUBFAILED(changed=\"{'tests': {'tests/test_evs.py::test_an_index_mode_for_a_terminology_without_an_index_is_invalid[none-hybrid]': {'outc...est_evs.py::test_an_index_mode_for_a_terminology_without_an_index_is_invalid[none-semantic]': {'outcome': 'skipped'}}}\") tests/test_http_runner.py::HTTPVerdictTest::test_missing_cases_wrong_transport_and_failed_gates_cannot_pass"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "E11",
+      "group": "tooling",
+      "file": "scripts/acceptance_http.py",
+      "old": "and not report[\"failed_gates\"]",
+      "new": "and True",
+      "purpose": "Accept failed remote suite gates",
+      "originalSha256": "24018a02b9714c3fc4a691ec575f071d42434e257e4b3a497ec75af8efb7969e",
+      "restoredSha256": "24018a02b9714c3fc4a691ec575f071d42434e257e4b3a497ec75af8efb7969e",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1365 passed in 37.32s ========================"
+        ],
+        "failingTests": [
+          "SUBFAILED(changed=\"{'failed_gates': ['inventory']}\") tests/test_http_runner.py::HTTPVerdictTest::test_missing_cases_wrong_transport_and_failed_gates_cannot_pass"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "E12",
+      "group": "tooling",
+      "file": "scripts/acceptance_http.py",
+      "old": "process.kill()\n        process.wait(timeout=10)",
+      "new": "pass",
+      "purpose": "Leave a process that ignores terminate running and unreaped",
+      "originalSha256": "24018a02b9714c3fc4a691ec575f071d42434e257e4b3a497ec75af8efb7969e",
+      "restoredSha256": "24018a02b9714c3fc4a691ec575f071d42434e257e4b3a497ec75af8efb7969e",
+      "initialOutcome": "survived",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 0,
+        "summary": [
+          "============================ 1365 passed in 32.63s ============================="
+        ],
+        "failingTests": []
+      },
+      "regressionRetest": {
+        "command": [
+          "pdm",
+          "run",
+          "test",
+          "-n",
+          "4",
+          "--dist",
+          "worksteal"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "======================= 1 failed, 1367 passed in 26.35s ========================"
+        ],
+        "failingTests": [
+          "FAILED tests/test_http_runner.py::HTTPVerdictTest::test_cleanup_kills_and_reaps_an_owned_child_that_ignores_termination"
+        ]
+      },
+      "disposition": "real gap closed by regression test"
+    },
+    {
+      "id": "E13",
+      "group": "tooling",
+      "file": "acceptance/src/nci_si_acceptance/client.py",
+      "old": "read_timeout_seconds=READ_TIMEOUT_SECONDS if timeout is None else timeout,",
+      "new": "read_timeout_seconds=READ_TIMEOUT_SECONDS,",
+      "purpose": "Ignore explicit stdio read timeout",
+      "originalSha256": "f10a17e4f20e7b97f41754593ef8ab207263014f07f8ec48ca11a887ee0d4824",
+      "restoredSha256": "f10a17e4f20e7b97f41754593ef8ab207263014f07f8ec48ca11a887ee0d4824",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "acceptance-selftest"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "================== 1 failed, 862 passed in 236.49s (0:03:56) ==================="
+        ],
+        "failingTests": [
+          "FAILED selftests/test_client.py::test_a_session_lists_and_gets_prompts_and_lists_and_reads_resources"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    },
+    {
+      "id": "E14",
+      "group": "tooling",
+      "file": "acceptance/src/nci_si_acceptance/client.py",
+      "old": "mode=\"legacy\" if stateful else \"auto\",",
+      "new": "mode=\"auto\",",
+      "purpose": "Lose stateful remote protocol handshake",
+      "originalSha256": "f10a17e4f20e7b97f41754593ef8ab207263014f07f8ec48ca11a887ee0d4824",
+      "restoredSha256": "f10a17e4f20e7b97f41754593ef8ab207263014f07f8ec48ca11a887ee0d4824",
+      "initialOutcome": "survived",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "acceptance-selftest"
+        ],
+        "exitCode": 0,
+        "summary": [
+          "======================= 863 passed in 248.69s (0:04:08) ========================"
+        ],
+        "failingTests": []
+      },
+      "regressionRetest": {
+        "command": [
+          "pdm",
+          "run",
+          "acceptance-selftest"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "================== 1 failed, 863 passed in 175.81s (0:02:55) ==================="
+        ],
+        "failingTests": [
+          "FAILED selftests/test_remote.py::test_stateful_remote_calls_establish_and_reuse_an_http_session"
+        ]
+      },
+      "disposition": "real gap closed by regression test"
+    },
+    {
+      "id": "E15",
+      "group": "tooling",
+      "file": "acceptance/src/nci_si_acceptance/suite.py",
+      "old": "(OWN_SERVER, \"mcp_session\")",
+      "new": "(OWN_SERVER,)",
+      "purpose": "Stop isolating session-specific remote tests",
+      "originalSha256": "b4e57d5353455aae2a5fe975045cb2778f23c1d94581d87612945bc998333895",
+      "restoredSha256": "b4e57d5353455aae2a5fe975045cb2778f23c1d94581d87612945bc998333895",
+      "initialOutcome": "killed",
+      "initialRun": {
+        "command": [
+          "pdm",
+          "run",
+          "acceptance-selftest"
+        ],
+        "exitCode": 1,
+        "summary": [
+          "================== 1 failed, 862 passed in 157.63s (0:02:37) ==================="
+        ],
+        "failingTests": [
+          "FAILED selftests/test_suite.py::test_a_remote_server_without_a_state_hook_skips_the_tests_needing_a_server_of_its_own"
+        ]
+      },
+      "disposition": "caught by existing tests"
+    }
+  ],
+  "counts": {
+    "total": 62,
+    "caughtInitially": 44,
+    "realGapsClosed": 14,
+    "equivalent": 4
+  }
+}
