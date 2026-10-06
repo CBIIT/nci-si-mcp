@@ -507,14 +507,15 @@ not. The same fields everywhere:
 
 | Field | Value |
 | --- | --- |
-| `release` | `{terminology, identifier, date}` of the NCIt release the item was read from; `date` is left out when EVS gave none |
-| `source` | `evs_rest` for live EVS, `evs_index` for the local index |
+| `release` | `{terminology, identifier, date}` of the terminology release the item was read from; `date` is left out when EVS gave none |
+| `source` | `evs_rest` for EVS REST, `evs_fhir` for EVS FHIR expansion, `evs_index` for the local NCIt index |
 | `servedBy` | `live` or `index` |
 | `retrievedAt` | When the item was retrieved; for an indexed concept, when it was indexed |
-| `sourceUri` | The EVS URL of the resource that holds the item, without query: the concept, or for a descendant edge its start code's `descendants`. Left out of a search that found nothing, which no upstream URL produced |
+| `sourceUri` | The upstream URL used for the item: a concept, relationship catalogue, traversal endpoint or FHIR expansion. It may include query parameters, such as the expansion's canonical value-set URL. Optional on empty results; absent for a local search with no hits |
 | `correlationId` | The call's `_meta.correlationId`, or one the server generated; the same in every item of the call and in the error record |
-| `upstream` | What EVS said of the item's origin, unchanged: its `terminology` and `version`. Present for a concept and for a traversal start code, whose payload was read in full; left out where EVS said nothing (a node named by a relation list, an edge) |
-| `graphs`, `registry`, `attribution` | Never supplied: they belong to the Shared SI Service, to caDSR content and to answers that carry licence text |
+| `upstream` | Origin fields the platform supplied, unchanged: REST `terminology` and `version`, or FHIR value-set `url` and `version`. Omitted where the returned item carried none; hydrated concepts retain their own origin fields |
+| `attribution` | Licence or copyright text supplied upstream for that item. Omitted when none was supplied; an edge's licence is not copied onto its target concept |
+| `graphs`, `registry` | Not yet supplied: these belong to the Shared SI Service and caDSR content |
 
 An item reached by traversal adds `depth` (an edge has that of the node it reaches; the start
 codes have 0); and, for any item but a start code, `relationship` (`kind`; for a role or
