@@ -182,10 +182,12 @@ class EmbeddingConfigurationTest(unittest.TestCase):
             def __init__(self, name):
                 self.name = name
 
-            def encode(self, texts, normalize_embeddings):
+            def encode(self, texts, normalize_embeddings, show_progress_bar=True):
                 # Like the library, it takes a list and returns rows that are not lists.
                 if not isinstance(texts, list):
                     raise TypeError(type(texts))
+                if show_progress_bar:
+                    raise ValueError("Progress output would corrupt structured diagnostics")
                 return [(len(text), int(normalize_embeddings), len(self.name)) for text in texts]
 
         library = types.SimpleNamespace(SentenceTransformer=FakeModel)

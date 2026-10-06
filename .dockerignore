@@ -1,0 +1,7 @@
+# Only the wheel and hash lock belong in the build context.
+**
+!Dockerfile
+!container/
+!container/requirements-amd64.txt
+!dist/
+!dist/*.whl

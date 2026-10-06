@@ -1,0 +1,64 @@
+import json
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+from scripts import container_lock, image_scan
+
+
+class ContainerGateTest(unittest.TestCase):
+    def test_current_lock_checks_and_version_or_hash_drift_fails(self):
+        container_lock.check()
+        original = container_lock.LOCK.read_text()
+        with tempfile.TemporaryDirectory() as directory:
+            lock = Path(directory) / "requirements.txt"
+            with patch.object(container_lock, "LOCK", lock):
+                for changed in (
+                    original.replace("# PDM: ", "# PDM: stale"),
+                    original.replace("mcp==2.2.0", "mcp==0.0.0"),
+                    original.replace("--hash=sha256:", "--hash=sha256:invalid", 1),
+                    original.replace("torch-2.14.1%2Bcpu", "torch-0.0.0%2Bcpu"),
+                ):
+                    with self.subTest(lock=changed[:80]):
+                        lock.write_text(changed)
+                        with self.assertRaises(ValueError):
+                            container_lock.check()
+
+    def test_resolved_version_must_match_pdm_and_torch_must_be_cpu(self):
+        report = {
+            "install": [
+                {
+                    "metadata": {"name": "torch", "version": "2.14.1+cpu"},
+                    "download_info": {
+                        "url": "https://download.pytorch.org/whl/cpu/torch.whl",
+                        "archive_info": {"hashes": {"sha256": "a" * 64}},
+                    },
+                }
+            ]
+        }
+        with patch.object(container_lock, "versions", return_value={"torch": "2.14.1"}):
+            text = container_lock.render(report)
+            self.assertIn("torch @ https://download.pytorch.org/whl/cpu/", text)
+            self.assertIn("--hash=sha256:" + "a" * 64, text)
+            report["install"][0]["metadata"]["version"] = "2.14.0+cpu"
+            with self.assertRaisesRegex(ValueError, "PDM requires"):
+                container_lock.render(report)
+            report["install"][0]["metadata"]["version"] = "2.14.1+cpu"
+            report["install"][0]["download_info"]["url"] = "https://example.org/torch.whl"
+            with self.assertRaisesRegex(ValueError, "CPU wheel index"):
+                container_lock.render(report)
+
+    def test_scan_blocks_high_and_critical_even_without_a_fix(self):
+        vulnerabilities = [
+            {"Severity": "HIGH", "VulnerabilityID": "one", "FixedVersion": ""},
+            {"Severity": "CRITICAL", "VulnerabilityID": "two", "FixedVersion": "1.1"},
+            {"Severity": "MEDIUM", "VulnerabilityID": "three"},
+        ]
+        report = {"Results": [{"Vulnerabilities": vulnerabilities}]}
+        self.assertEqual(
+            [v["VulnerabilityID"] for v in image_scan.findings(report)], ["one", "two"]
+        )
+        self.assertEqual(image_scan.findings({"Results": [{"Target": "clean"}]}), [])
+        with self.assertRaises(ValueError):
+            image_scan.findings(json.loads('{"Results": []}'))

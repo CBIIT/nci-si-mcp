@@ -1,0 +1,45 @@
+name: Build and verify the server image
+description: Build one amd64 CPU image, exercise external assets and retain its SBOM and scan.
+outputs:
+  image:
+    description: Local image name
+    value: nci-si-mcp:verified
+runs:
+  using: composite
+  steps:
+    - uses: $/.github/actions/setup
+    - name: Check dependency lock and build wheel
+      shell: bash
+      run: |
+        pdm run python scripts/container_lock.py check
+        export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+        pdm build --no-sdist
+    - name: Build the image
+      shell: bash
+      env:
+        REPOSITORY: ${{ github.repository }}
+      run: |
+        mkdir -p tmp/image
+        version="$(pdm run python -c 'from importlib.metadata import version; print(version("nci-si-mcp"))')"
+        docker build --platform linux/amd64 --load --build-arg "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" --build-arg "VERSION=$version" --build-arg "REVISION=$(git rev-parse HEAD)" --build-arg "SOURCE=https://github.com/$REPOSITORY" -t nci-si-mcp:verified .
+        docker save --output tmp/image/image.tar nci-si-mcp:verified
+    - name: Exercise the built image
+      shell: bash
+      run: pdm run python scripts/container_smoke.py nci-si-mcp:verified
+    - name: Produce complete vulnerability report and SBOM
+      shell: bash
+      run: |
+        docker run --rm -v "$PWD/tmp/image:/evidence" -v nci-si-trivy-cache:/root/.cache/trivy docker.io/aquasec/trivy@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa image --input /evidence/image.tar --scanners vuln --format json --output /evidence/scan.json
+        docker run --rm -v "$PWD/tmp/image:/evidence" -v nci-si-trivy-cache:/root/.cache/trivy docker.io/aquasec/trivy@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa image --input /evidence/image.tar --format cyclonedx --output /evidence/sbom.cdx.json
+    - name: Enforce zero High and Critical
+      shell: bash
+      run: pdm run python scripts/image_scan.py tmp/image/scan.json
+    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+      if: ${{ always() }}
+      with:
+        name: image-security-evidence
+        path: |
+          tmp/image/scan.json
+          tmp/image/sbom.cdx.json
+        if-no-files-found: warn
+        retention-days: 30

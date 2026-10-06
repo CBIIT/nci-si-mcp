@@ -42,6 +42,9 @@ export NCI_SI_EMBEDDING_MODEL=cambridgeltl/SapBERT-from-PubMedBERT-fulltext
 
 ## Connect a client
 
+For a container deployment with an external index and model, follow the short
+[container runbook](docs/container.md).
+
 For remote clients, run `pdm run nci-si-mcp serve --transport streamable-http` and connect to
 `http://127.0.0.1:8000/mcp`. See [remote transport](docs/transport.md) for session modes,
 replica routing, readiness and authentication hooks.
@@ -104,7 +107,7 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 | `NCI_SI_HTTP_MAX_REQUEST_BYTES` | `4194304` | Maximum HTTP request body bytes, including chunked bodies; oversized requests return 413 before parsing |
 | `NCI_SI_HTTP_ALLOWED_HOSTS` | `127.0.0.1:*,localhost:*,[::1]:*` | Comma-separated permitted Host authorities, exact or wildcard port; add the public authority when using a proxy |
 | `NCI_SI_HTTP_ALLOWED_ORIGINS` | `http://127.0.0.1:*,http://localhost:*,http://[::1]:*` | Permitted Origin authorities, exact or wildcard port; requests without Origin are allowed |
-| `NCI_SI_HTTP_REQUIRE_INDEX` | `0` | Set to 1 when deployment supplies an index: readiness requires an active build compatible with the configured embedding model. With 0 an absent index permits live tools; an existing active build is still verified |
+| `NCI_SI_HTTP_REQUIRE_INDEX` | `0` | Numeric switch (only 0 or 1), following the settings' numeric parsing rather than introducing a separate boolean syntax. Set to 1 when deployment supplies an index: readiness requires an active build compatible with the configured embedding model. With 0 an absent index permits live tools; an existing active build is still verified |
 
 The caDSR lookup, registry, matching, form and code-map tools use upstream APIs.
 Registry discovery reads the export folder's exact distribution row. The folder gives

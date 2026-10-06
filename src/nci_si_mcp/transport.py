@@ -54,14 +54,14 @@ def _auth_refusal(message: Message) -> bool:
     )
 
 
-def _ready(context: Context, require_index: bool) -> bool:
+def _readiness_error(context: Context, require_index: bool) -> str | None:
     try:
         if not require_index and context.index.get_active_manifest() is None:
-            return True
+            return None
         context.index.verify_active(context.embedding_provider)
-    except IndexStorageError, IndexCompatibilityError, NoActiveIndexError, PlatformError:
-        return False
-    return True
+    except (IndexStorageError, IndexCompatibilityError, NoActiveIndexError, PlatformError) as exc:
+        return type(exc).__name__
+    return None
 
 
 def create_http_app(
@@ -88,13 +88,23 @@ def create_http_app(
         json_response=True,
         max_request_body_size=settings.http_max_request_bytes,
         transport_security=security,
+        session_idle_timeout=1800,
+        max_sessions=10_000,
     )
 
     def health(request: Any) -> JSONResponse:
         return JSONResponse({"status": "ok"})
 
-    def ready(request: Any) -> JSONResponse:
-        available = _ready(context, bool(settings.http_require_index))
+    was_ready = True
+
+    async def ready(request: Any) -> JSONResponse:
+        # Run on the event loop so overlapping probes cannot duplicate a transition.
+        nonlocal was_ready
+        error = _readiness_error(context, bool(settings.http_require_index))
+        available = error is None
+        if was_ready and not available:
+            emit(logger, logging.WARNING, "http_not_ready", errorType=error)
+        was_ready = available
         return JSONResponse(
             {"status": "ready" if available else "not_ready"},
             status_code=200 if available else 503,
