@@ -49,7 +49,7 @@ class CaDSRContentTest(CaDSRFixture):
         self.assertEqual([path for path, _ in server.seen], ["/NCIAPI/1.0/api/DataElement/123"])
 
     def test_unpublished_pin_fails_before_content_access(self):
-        server = self.serve(Reply(404))
+        server = self.serve(Reply(404, body=b""))
         result = self.call(server, publicId="123", registryRelease="2026.07.02")
         self.assertEqual(result["error"]["code"], "release_not_available")
         self.assertEqual(result["error"]["details"], {"requested": "2026.07.02", "source": "cadsr"})
@@ -99,8 +99,8 @@ class CaDSRContentTest(CaDSRFixture):
         self.assertIn("get_data_element", message)
         self.assertTrue(
             message.endswith(
-                "Retrying will not help until caDSR adds it. Use get_data_element by public "
-                "id or question text meanwhile."
+                "if this persists, the cause is likely that, and get_data_element by "
+                "publicId or questionText is available."
             )
         )
         self.assertEqual(len(server.seen), 1)
@@ -185,7 +185,7 @@ class CaDSRContentTest(CaDSRFixture):
         self.assertNotIn("totalKnown", first)
 
     def test_export_registry_tool_is_uncached_and_keeps_local_time(self):
-        server = self.serve(Reply(404), Reply(body=LISTING.encode()))
+        server = self.serve(Reply(404, body=b""), Reply(body=LISTING.encode()))
         result = self.call(server, "resolve_registry_release")
         self.assertEqual(
             result,

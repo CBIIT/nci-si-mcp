@@ -506,20 +506,22 @@ def search_concepts(
     """
     limit = bounded(limit, MAX_INDEX_SEARCH_LIMIT, "limit")
     _search_options(query, mode, retired)
-    selected = select(context, terminology, release)
     indexed = mode in ("semantic", "hybrid")
     arguments = {
         "tool": "search_concepts",
         "terminology": terminology,
-        "release": selected.version,
+        "release": release,
         "query": query,
         "mode": mode,
         "limit": limit,
         "retired": retired,
     }
-    position = cursors.decode(cursor, arguments, indexed=indexed)
     if indexed and terminology != "ncit":
         raise InputValidationError("The interim index supports only ncit", "terminology")
+    cursors.validate_before_selection(cursor, arguments, indexed=indexed)
+    selected = select(context, terminology, release)
+    arguments["release"] = selected.version
+    position = cursors.decode(cursor, arguments, indexed=indexed)
     try:
         status = _retired_status(context, selected) if retired == "only" else None
         handler = _indexed_search if indexed else _live_search
@@ -720,39 +722,41 @@ def get_concept_hierarchy(
     if direction != "pathsToRoot":
         depth = bounded(depth, HARD_MAX_DEPTH, "depth")
         limit = bounded(limit, HARD_MAX_NODES, "limit")
-    budget = Budget(depth=depth, paged=True)
-    with budgeted(budget):
-        selected = select(context, terminology, release)
-        if direction == "pathsToRoot":
-            return _paths_to_root(context, selected, code)
-        return _hierarchy(context, selected, code, direction, depth, limit, cursor, budget)
-
-
-def _hierarchy(
-    context: Context,
-    selected: ReleaseContext,
-    code: str,
-    direction: str,
-    depth: int,
-    limit: int,
-    cursor: str | None,
-    budget: Budget,
-) -> dict[str, Any]:
     arguments = {
-        "terminology": selected.terminology,
-        "release": selected.version,
+        "terminology": terminology,
+        "release": release,
         "code": code,
         "direction": direction,
         "depth": depth,
         "limit": limit,
     }
+    if direction != "pathsToRoot":
+        cursors.validate_before_selection(cursor, arguments)
+    budget = Budget(depth=depth, paged=True)
+    with budgeted(budget):
+        selected = select(context, terminology, release)
+        if direction == "pathsToRoot":
+            return _paths_to_root(context, selected, code)
+        arguments["release"] = selected.version
+        return _hierarchy(context, selected, arguments, cursor, budget)
+
+
+def _hierarchy(
+    context: Context,
+    selected: ReleaseContext,
+    arguments: dict[str, Any],
+    cursor: str | None,
+    budget: Budget,
+) -> dict[str, Any]:
     offset = cursors.decode(cursor, arguments).offset
     # The hierarchy has a page allowance, not a total node or edge allowance.
     # Reserve the seed and a lookahead node; replay remains request-bounded.
-    budget.nodes = offset + limit + 2
+    budget.nodes = offset + arguments["limit"] + 2
     budget.edges = budget.nodes**2
-    graph = _hierarchy_replay(context, selected, code, direction, budget, cursor)
-    return _hierarchy_page(graph, arguments, offset, limit)
+    graph = _hierarchy_replay(
+        context, selected, arguments["code"], arguments["direction"], budget, cursor
+    )
+    return _hierarchy_page(graph, arguments, offset, arguments["limit"])
 
 
 def _hierarchy_page(

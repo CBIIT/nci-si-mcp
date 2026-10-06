@@ -251,7 +251,7 @@ class CaDSRClientTest(ServerTestCase):
 
     def test_export_origin_gets_no_authorization_even_with_a_configured_credential(self):
         credential = "fixture:" + uuid4().hex
-        api = self.serve(Reply(404))
+        api = self.serve(Reply(404, body=b""))
         export = self.serve(Reply(body=LISTING.encode()))
         result = self.cadsr(api, export, cadsr_credential=credential).resolve_registry_release()
         self.assertEqual(result.generated_at, "2026-07-01T22:19")
