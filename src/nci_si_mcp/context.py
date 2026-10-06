@@ -8,6 +8,7 @@ from .embeddings import EmbeddingProvider, create_embedding_provider
 from .evs import LICENSE_KEY_HEADER, EVSClient
 from .http_client import HttpClient
 from .index import LocalIndex
+from .ssis import SSISClient
 
 
 class Context:
@@ -17,11 +18,13 @@ class Context:
         *,
         evs: EVSClient | None = None,
         cadsr: CaDSRClient | None = None,
+        ssis: SSISClient | None = None,
         index: LocalIndex | None = None,
         embedding_provider: EmbeddingProvider | None = None,
     ) -> None:
         self.settings = settings
         self.cadsr = cadsr or CaDSRClient(settings)
+        self.ssis = ssis or SSISClient(settings)
         self.evs = evs or EVSClient(
             settings.evs_base_url,
             settings.timeout_seconds,

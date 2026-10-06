@@ -88,7 +88,6 @@ class SSISClientTest(ServerTestCase):
                 "C17357",
                 {"expand_descendants": True},
             ),
-            ("values-of-2200604", "get_permissible_values", "2200604", {}),
         ):
             with self.subTest(name=name):
                 fixture = recording(f"ssis-sparql/{name}.json")
@@ -101,6 +100,23 @@ class SSISClientTest(ServerTestCase):
                 query = parse_qs(server.bodies[0].decode())["query"][0]
                 self.assertEqual(query.split(), fixture["request"]["form"]["query"].split())
                 self.assertNotIn("OPTION", query)
+
+    def test_value_query_keeps_versions_and_values_without_main_concepts(self):
+        rows = [
+            {"version": {"type": "literal", "value": "2.10"}},
+            {
+                "version": {"type": "literal", "value": "2.9"},
+                "value": {"type": "literal", "value": "Male"},
+            },
+        ]
+        server = self.serve(sparql_reply(rows))
+        result = self.ssis(server).get_permissible_values("123")
+        self.assertEqual(result, [{"version": "2.10"}, {"version": "2.9", "value": "Male"}])
+        query = parse_qs(server.bodies[0].decode())["query"][0]
+        self.assertEqual(query.count("OPTIONAL"), 2)
+        self.assertIn("VALUES ?role { cadsr:main_concept }", query)
+        self.assertNotIn("minor_concept", query)
+        self.assertTrue(query.endswith("LIMIT 1001"))
 
     def test_maximum_plus_one_retains_the_sentinel_and_rejects_an_unbounded_answer(self):
         fixture = recording("ssis-sparql/data-elements-c17357.json")
@@ -118,7 +134,6 @@ class SSISClientTest(ServerTestCase):
         for method, arguments, body in (
             ("get_graph_names", (), {"graph": []}),
             ("get_data_elements_for_dec", ("2226947",), {"results": []}),
-            ("get_graph_identities", (), {"results": {"bindings": []}}),
             ("find_data_elements", ("C17357",), {"results": {"bindings": []}}),
             ("find_permissible_values", ("C17357",), {"results": {"bindings": []}}),
             ("get_permissible_values", ("2200604",), {"results": {"bindings": []}}),
@@ -192,7 +207,7 @@ class SSISClientTest(ServerTestCase):
         original = recording("ssis-sparql/graph-identities.json")["response"]["body"]["results"][
             "bindings"
         ]
-        for rows in (original[:1], original[:1] * 2, original + original[:1], original * 2):
+        for rows in ([], original[:1], original[:1] * 2, original + original[:1], original * 2):
             with self.subTest(count=len(rows)):
                 with self.assertRaises(PlatformError) as raised:
                     self.ssis(self.serve(sparql_reply(rows))).get_graph_identities()
@@ -213,26 +228,34 @@ class SSISClientTest(ServerTestCase):
         server = self.serve(Reply(403, body=b"<html>Request blocked</html>"))
         client = self.ssis(server)
         result = call(
-            "find_data_elements_for_concept", lambda: {"items": client.find_data_elements("C17357")}
+            "find_data_elements_for_concept",
+            lambda client=client: {"items": client.find_data_elements("C17357")},
         )
         self.assertEqual(result["error"]["code"], "upstream_unavailable")
         self.assertEqual(result["error"]["details"]["status"], 403)
-        self.assertEqual(result["error"]["details"]["reason"], "query rejected by inspection layer")
-        self.assertEqual(len(server.bodies), 1)
-
-    def test_other_http_rejections_keep_the_original_status(self):
-        server = self.serve(Reply(401, body=b"unauthorized"))
-        client = self.ssis(server)
-        result = call(
-            "find_data_elements_for_concept", lambda: {"items": client.find_data_elements("C17357")}
-        )
-        self.assertEqual(result["error"]["code"], "upstream_unavailable")
-        self.assertEqual(result["error"]["details"]["status"], 401)
         self.assertNotIn("reason", result["error"]["details"])
         self.assertEqual(len(server.bodies), 1)
 
+    def test_other_http_rejections_keep_the_original_status(self):
+        for status in (401, 403):
+            with self.subTest(status=status):
+                server = self.serve(Reply(status, body=b'{"message":"Access denied"}'))
+                client = self.ssis(server)
+                result = call(
+                    "find_data_elements_for_concept",
+                    lambda client=client: {"items": client.find_data_elements("C17357")},
+                )
+                self.assertEqual(result["error"]["code"], "upstream_unavailable")
+                self.assertEqual(result["error"]["details"]["status"], status)
+                self.assertNotIn("reason", result["error"]["details"])
+                self.assertNotIn("inspection layer", result["error"]["message"])
+                self.assertEqual(len(server.bodies), 1)
+
     def test_ssis_clients_never_send_the_cadsr_credential(self):
-        server = self.serve(Reply(body=b'{"graph": []}'), sparql_reply([]))
+        rows = recording("ssis-sparql/graph-identities.json")["response"]["body"]["results"][
+            "bindings"
+        ]
+        server = self.serve(Reply(body=b'{"graph": []}'), sparql_reply(rows))
         client = SSISClient(
             Settings(
                 ssis_facade_url=server.url,
@@ -241,7 +264,9 @@ class SSISClientTest(ServerTestCase):
             )
         )
         self.assertEqual(client.get_graph_names(), [])
-        self.assertEqual(client.get_graph_identities(), [])
+        self.assertEqual(
+            {row["graph"] for row in client.get_graph_identities()}, {NCIT_GRAPH, CADSR_GRAPH}
+        )
         self.assertTrue(all("authorization" not in headers for _, headers in server.seen))
 
 

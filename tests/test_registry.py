@@ -48,14 +48,25 @@ class RegistryTest(ServerFixture):
             "match_data_elements",
             "match_value_meanings",
         }
-        expected = {"evs": evs, "cadsr": cadsr, "unified": evs | cadsr}
+        seam = {
+            "find_data_elements_for_concept",
+            "get_concept_for_permissible_value",
+            "resolve_stored_value",
+            "get_release_alignment",
+        }
+        expected = {"evs": evs, "cadsr": cadsr, "unified": evs | cadsr | seam}
         for profile, names in expected.items():
             with self.subTest(profile=profile):
                 self.settings = replace(self.settings, profile=profile)
                 tools = self.session(lambda client: client.list_tools()).tools
                 self.assertEqual({tool.name for tool in tools}, names)
                 for tool in tools:
-                    self.assertEqual(tool.meta["group"], "evs" if tool.name in evs else "cadsr")
+                    groups = {
+                        **dict.fromkeys(evs, "evs"),
+                        **dict.fromkeys(cadsr, "cadsr"),
+                        **dict.fromkeys(seam, "cross-domain"),
+                    }
+                    self.assertEqual(tool.meta["group"], groups[tool.name])
 
     def test_every_tool_advertises_all_four_read_only_annotations(self):
         tools = self.session(lambda client: client.list_tools()).tools

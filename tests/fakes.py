@@ -1,10 +1,43 @@
 """Shared test doubles. Nothing here touches the network."""
 
+from copy import deepcopy
 from urllib.parse import urlencode
 
 from nci_si_mcp.config import DEFAULT_EXCLUSION_ROLE_CODES
 from nci_si_mcp.evs import INDEX_INCLUDE, LOOKUP_INCLUDE, EVSNotFoundError, verify_content
 from nci_si_mcp.release import ReleaseContext
+from nci_si_mcp.ssis import CADSR_GRAPH, NCIT_GRAPH, SSISClient
+
+
+class FakeSSIS(SSISClient):
+    """Offline graph rows; records the actual remaining query allowance."""
+
+    def __init__(self, settings):
+        super().__init__(settings)
+        self.graphs = [
+            {"graph": NCIT_GRAPH, "version": "26.06e", "date": "June 29, 2026"},
+            {"graph": CADSR_GRAPH, "date": "2026-06-01"},
+        ]
+        self.elements = []
+        self.values = []
+        self.element_values = []
+        self.calls = []
+
+    def get_graph_identities(self):
+        self.calls.append(("identities",))
+        return deepcopy(self.graphs)
+
+    def find_data_elements(self, concept_code, *, expand_descendants=False, maximum=1000):
+        self.calls.append(("elements", concept_code, expand_descendants, maximum))
+        return deepcopy(self.elements[: maximum + 1])
+
+    def find_permissible_values(self, concept_code, *, expand_descendants=False, maximum=1000):
+        self.calls.append(("values", concept_code, expand_descendants, maximum))
+        return deepcopy(self.values[: maximum + 1])
+
+    def get_permissible_values(self, public_id, *, maximum=1000):
+        self.calls.append(("element_values", public_id, maximum))
+        return deepcopy(self.element_values[: maximum + 1])
 
 
 def catalogue_rows(kind, version="26.06e", terminology="ncit"):

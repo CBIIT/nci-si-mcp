@@ -1033,6 +1033,160 @@ record:
   # it, each carrying the answer of a recording: the live run shows
   # the gap.
   derived:
+    - fixture: crafted/ssis-sparql/values-of-2200604-optional.json
+      operation: OP-S04
+      rationale: Preserve the latest version without values and values without main concepts; minor concepts do not compete.
+      from: recorded/ssis-sparql/values-of-2200604.json
+      path: /sparql
+      method: POST
+      headers: {Accept: application/sparql-results+json}
+      requirement: get_concept_for_permissible_value; latest numeric version first, exact value and main concept only.
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT DISTINCT ?version ?value ?concept ?role
+          WHERE {
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              ?element cadsr:publicId "2200604" ;
+                mdr:version ?version .
+              OPTIONAL {
+                ?element mdr:permitted_value ?pv .
+                ?pv mdr:value ?value .
+                OPTIONAL {
+                  VALUES ?role { cadsr:main_concept }
+                  ?pv cadsr:has_concept ?node .
+                  ?node ?role ?concept .
+                }
+              }
+            }
+          }
+          ORDER BY ?version ?value ?role ?concept
+          LIMIT 1001
+    - fixture: crafted/ssis-sparql/graph-identities-bounded.json
+      operation: OP-S01
+      rationale: Bounded query under the shared result cap; reuses the recorded answer as crafted.
+      from: recorded/ssis-sparql/graph-identities.json
+      path: /sparql
+      method: POST
+      headers: {Accept: application/sparql-results+json}
+      requirement: A3.7.1 and M6.1; bounded identities or remaining shared result capacity plus one sentinel.
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT ?graph ?version ?date
+          WHERE {
+            VALUES ?graph { <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> <http://cbiit.nci.nih.gov/caDSR> }
+            GRAPH ?graph {
+              ?ontology dc:date ?date .
+              OPTIONAL { ?ontology owl:versionInfo ?version }
+            }
+          }
+          LIMIT 3
+    - fixture: crafted/ssis-sparql/values-c17357-bounded.json
+      operation: OP-S04
+      rationale: Bounded query under the shared result cap; reuses the recorded answer as crafted.
+      from: recorded/ssis-sparql/values-c17357.json
+      path: /sparql
+      method: POST
+      headers: {Accept: application/sparql-results+json}
+      requirement: A3.7.1 and M6.1; bounded identities or remaining shared result capacity plus one sentinel.
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT DISTINCT ?id ?version ?value ?concept
+          WHERE {
+            VALUES ?concept { ncit:C17357 }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+              ?node ?role ?concept .
+              ?pv cadsr:has_concept ?node ;
+                mdr:value ?value .
+              ?element mdr:permitted_value ?pv ;
+                cadsr:publicId ?id ;
+                mdr:version ?version .
+            }
+          }
+          ORDER BY ?id ?version ?value ?concept
+          LIMIT 984
+    - fixture: crafted/ssis-sparql/values-c17357-descendants-bounded.json
+      operation: OP-S04
+      rationale: Bounded query under the shared result cap; reuses the recorded answer as crafted.
+      from: recorded/ssis-sparql/values-c17357-descendants.json
+      path: /sparql
+      method: POST
+      headers: {Accept: application/sparql-results+json}
+      requirement: A3.7.1 and M6.1; bounded identities or remaining shared result capacity plus one sentinel.
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT DISTINCT ?id ?version ?value ?concept
+          WHERE {
+            GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> {
+              ?concept rdfs:subClassOf* ncit:C17357 .
+            }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+              ?node ?role ?concept .
+              ?pv cadsr:has_concept ?node ;
+                mdr:value ?value .
+              ?element mdr:permitted_value ?pv ;
+                cadsr:publicId ?id ;
+                mdr:version ?version .
+            }
+          }
+          ORDER BY ?id ?version ?value ?concept
+          LIMIT 974
+    - fixture: crafted/ssis-sparql/values-c4817-bounded.json
+      operation: OP-S04
+      rationale: Bounded query under the shared result cap; reuses the recorded answer as crafted.
+      from: recorded/ssis-sparql/values-c4817.json
+      path: /sparql
+      method: POST
+      headers: {Accept: application/sparql-results+json}
+      requirement: A3.7.1 and M6.1; bounded identities or remaining shared result capacity plus one sentinel.
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT DISTINCT ?id ?version ?value ?concept
+          WHERE {
+            VALUES ?concept { ncit:C4817 }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+              ?node ?role ?concept .
+              ?pv cadsr:has_concept ?node ;
+                mdr:value ?value .
+              ?element mdr:permitted_value ?pv ;
+                cadsr:publicId ?id ;
+                mdr:version ?version .
+            }
+          }
+          ORDER BY ?id ?version ?value ?concept
+          LIMIT 965
     - fixture: crafted/OP-E06/subset-gdc.json
       operation: OP-E06
       rationale: The pinned subset path a requirement prescribes, carrying the unpinned answer.

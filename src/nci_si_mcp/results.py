@@ -11,6 +11,7 @@ from typing import Any, Literal, NotRequired, TypedDict
 from .errors import ErrorCode
 from .validation import (
     DataElementConceptRole,
+    DatasetName,
     EdgeType,
     MatchedItemType,
     Polarity,
@@ -19,6 +20,7 @@ from .validation import (
     ReleaseChannel,
     SearchMode,
     ServedBy,
+    StoredValueConfidence,
     TruncationBound,
 )
 
@@ -128,6 +130,14 @@ class Provenance(TypedDict):
     sourceUri: NotRequired[str]
     upstream: NotRequired[dict[str, Any]]
     attribution: NotRequired[str]
+    registry: NotRequired[RegistryReference]
+    graphs: NotRequired[list[GraphReference]]
+
+
+class GraphReference(TypedDict):
+    graph: str
+    date: str
+    version: NotRequired[str]
 
 
 class Relationship(TypedDict):
@@ -292,6 +302,79 @@ class ConceptBatch(TypedDict):
     concepts: list[Concept]
     missing: list[str]
     provenance: NotRequired[Provenance]
+
+
+class DataElementUse(TypedDict):
+    dataElement: RegistryItemIdentity
+    provenance: Provenance
+
+
+class ValueUse(TypedDict):
+    dataElement: CodeMapIdentity
+    value: str
+    conceptCode: str
+    conceptTerminology: Literal["ncit"]
+    provenance: Provenance
+
+
+class DataElementUses(TypedDict):
+    dataElements: list[DataElementUse]
+    permissibleValues: NotRequired[list[ValueUse]]
+    truncation: Truncation
+    nextCursor: NotRequired[str]
+    provenance: NotRequired[Provenance]
+
+
+class PermissibleValueIdentity(TypedDict):
+    dataElement: CodeMapIdentity
+    value: str
+
+
+class PermissibleValueConcept(Concept):
+    permissibleValue: PermissibleValueIdentity
+
+
+class MapsetSource(TypedDict):
+    mapset: str
+    version: str
+
+
+class CrosswalkSource(TypedDict):
+    crosswalk: Literal["CRDC"]
+    dataElement: CodeMapIdentity
+
+
+class StoredValue(TypedDict):
+    value: str
+    field: str
+    source: MapsetSource | CrosswalkSource
+    provenance: Provenance
+
+
+class StoredValueEvidence(TypedDict):
+    sources: list[MapsetSource | CrosswalkSource]
+    valueLevelBinding: bool
+    coverage: int
+
+
+class StoredValuesResult(TypedDict):
+    storedValues: list[StoredValue]
+    confidence: StoredValueConfidence
+    evidence: StoredValueEvidence
+    provenance: NotRequired[Provenance]
+
+
+class DatasetRelease(TypedDict):
+    name: DatasetName
+    version: NotRequired[str]
+    date: str
+    provenance: Provenance
+
+
+class ReleaseAlignment(TypedDict):
+    datasets: list[DatasetRelease]
+    intervalDays: int
+    warning: NotRequired[str]
 
 
 class Replacement(TypedDict):
