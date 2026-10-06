@@ -108,7 +108,7 @@ def test_with_a_commons_the_stored_values_are_the_ones_it_uses_for_the_concept(
     content = _ok(_ground(tools, pinned, commons="GDC"))
 
     assert {(value["value"], value["field"]) for value in content["storedValues"]} == {
-        (each["targetName"], each["targetCode"]) for each in maps
+        (each["targetName"], each["targetCode"]) for each in maps if each["sourceCode"] == EWING
     }
 
 
@@ -193,7 +193,12 @@ def test_the_cohort_is_the_concept_and_its_descendants_less_its_own_exclusions(
 ):
     # The tool asked about first: a server without it shows NOT IMPLEMENTED, whatever the
     # tools it is compared with return.
-    content = _ok(tools.call(COHORT, pinned | {"conceptCode": EWING, "includeNegative": negative}))
+    content = _ok(
+        tools.call(
+            COHORT,
+            {"release": pinned["release"], "conceptCode": EWING, "includeNegative": negative},
+        )
+    )
     descendants, exclusions = _cohort_parts(tools, pinned)
     excluded = {code for code, _ in exclusions}
     # The scenario's concept excludes one of its own descendants, so withholding shows.
@@ -213,7 +218,11 @@ def test_the_cohort_is_the_concept_and_its_descendants_less_its_own_exclusions(
 def test_max_nodes_counts_the_codes_the_concept_included(tools, pinned):
     maximum = 2
 
-    content = _ok(tools.call(COHORT, pinned | {"conceptCode": EWING, "maxNodes": maximum}))
+    content = _ok(
+        tools.call(
+            COHORT, {"release": pinned["release"], "conceptCode": EWING, "maxNodes": maximum}
+        )
+    )
 
     codes = content["codes"]
     truncation = content["truncation"]

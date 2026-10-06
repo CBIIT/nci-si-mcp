@@ -119,7 +119,7 @@ def test_the_readme_on_disk_is_what_the_expected_outcomes_generate():
 def test_a_readme_that_is_not_current_fails_the_check_and_is_rewritten_without_it(tmp_path):
     stale = tmp_path / "README.md"
     text = README.read_text(encoding="utf-8")
-    stale.write_text(text.replace("NOT IMPLEMENTED:", "NOT DONE:"), encoding="utf-8")
+    stale.write_text(text.replace(BEGIN, BEGIN + "\nstale table"), encoding="utf-8")
 
     failed = run_status("--check", "--readme", str(stale))
     written = run_status("--readme", str(stale))

@@ -187,15 +187,27 @@ def match_data_elements(
     size = bounded(matchLimit, 100, "matchLimit")
     headers = _headers(filters, size)
     release = _matching_release(context, registryRelease)
+    groups, provenance = match_entities(context, inputs, headers, release, size)
+    return _result([match for group in groups for match in group], provenance)
+
+
+def match_entities(
+    context: Context,
+    inputs: list[dict[str, Any]],
+    headers: dict[str, str],
+    release: dict[str, str],
+    size: int,
+) -> tuple[list[list[dict[str, Any]]], dict[str, Any]]:
+    """Read validated entities under the caller's registry state, retaining each group."""
     provenance = records._provenance(context, release, CDE_MATCH)
-    matches = []
+    groups = []
     responses: dict[str, dict[str, Any]] = {}
     for entity in inputs:
         key = json.dumps(entity, sort_keys=True)
         if key not in responses:
             responses[key] = context.cadsr.match_data_element(entity, headers)
-        matches.extend(_cde_matches(responses[key], entity["entity"], size, provenance))
-    return _result(matches, provenance)
+        groups.append(_cde_matches(responses[key], entity["entity"], size, provenance))
+    return groups, provenance
 
 
 def _vm_headers(strictness: str, scope: list[str] | None) -> dict[str, str]:
@@ -278,6 +290,14 @@ def match_value_meanings(
     inputs = [_text(value, "values") for value in _list(values, "values")]
     headers = _vm_headers(strictness, terminologyScope)
     release = _matching_release(context, registryRelease)
+    matches, provenance = match_values(context, inputs, headers, release)
+    return _result(matches, provenance)
+
+
+def match_values(
+    context: Context, inputs: list[str], headers: dict[str, str], release: dict[str, str]
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Read validated values using the same state as the surrounding workflow."""
     provenance = records._provenance(context, release, VM_MATCH)
     response = context.cadsr.match_value_meanings([{"name": value} for value in inputs], headers)
-    return _result(_vm_matches(response, inputs, provenance), provenance)
+    return _vm_matches(response, inputs, provenance), provenance

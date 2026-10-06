@@ -1,0 +1,26 @@
+{
+  "kind": "recorded",
+  "recorded_on": "2026-10-06",
+  "request": {
+    "surface": "evs",
+    "method": "GET",
+    "path": "/api/v1/concept/ncit_26.09d/C222395",
+    "params": {
+      "include": [
+        "minimal,children"
+      ]
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "code": "C222395",
+      "name": "Refractory Childhood Ewing Sarcoma",
+      "terminology": "ncit",
+      "version": "26.09d",
+      "conceptStatus": "DEFAULT",
+      "leaf": true,
+      "active": true
+    }
+  }
+}

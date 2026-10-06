@@ -100,6 +100,7 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 | `cadsr.py` | Injectable caDSR client for data elements, forms, context names, crosswalks, matching and registry metadata. JSON contracts govern API shapes; keyword search is the requested OP-C03 operation, currently unserved. Match POSTs use a separate 45-second transport; only API transports hold Basic auth. Export listing reads are credential-free and parse the exact distribution row without guessing a timezone. Future verified registry pins must be echoed by content responses. | `http_client.py`, `release.py`, `config.py` |
 | `cadsr_content.py` | Eight content/registry tools and their resources: validates selectors and pins, projects upstream element/form/map records, pages retrieved lists with argument-bound cursors, emits per-item provenance and selects the actual cache class. Unsupported capabilities fail explicitly. | `cadsr.py`, `release.py`, `cursor.py`, `caching.py`, `models.py` |
 | `cadsr_matching.py` | Two matching tools validate all inputs before calls, translate documented bodies/headers and preserve upstream order, identity, rules and optional fields. Computed results use 0/private. Missing pin transport fails closed; any entity failure fails the whole call. | `cadsr.py`, `cadsr_content.py`, `caching.py`, `validation.py` |
+| `workflows.py` | Ground values through independently bounded hops, expand cohorts from child hierarchy and root exclusions, and harmonize dictionary columns under one registry state. Each chain shares a request budget and effective content states; the fine-grained producers supply the content. | `content.py`, `seam.py`, `cadsr_matching.py`, `bounds.py` |
 | `ssis.py` | Shared SI façade and bounded SPARQL client. Fixed templates accept validated identifiers; content queries retain one sentinel row. Both graphs' actual dates and optional versions are returned unchanged. Empty content lists succeed; identity reads require exactly both graphs. Malformed responses and HTTP rejections fail without claiming an unverified cause. | `http_client.py`, `config.py`, `validation.py` |
 | `seam.py` | Four cross-domain handlers: graph-verified uses with one combined page/cap, latest-version exact permissible-value resolution, literal GDC/CRDC stored values, and four-dataset release alignment. Reuses call/session selection, budgets and content projection; never invents registry releases or stored values. | `ssis.py`, `evs.py`, `cadsr_content.py`, `content.py`, `cursor.py` |
 | `fhir.py` | Reads and verifies the unpinned NCIt value-set expansion, projects members and applies inactive filtering and local offset paging. | `http_client.py`, release, shared models |
@@ -382,7 +383,10 @@ MCP resources:
 - `ncit://index/manifest/{release}`
 
 The `evs` profile exposes twelve EVS tools; `cadsr` exposes ten caDSR tools;
-`unified` exposes both. caDSR data-element resources (latest or named item version) and the
+`unified` exposes both plus four cross-domain and three workflow tools (29 total), and four
+furnished prompts. Prompt templates are packaged in `data/prompts.json`, with a test requiring
+exact equality with `spec/prompts.yaml`; only profiles containing every named tool expose them.
+caDSR data-element resources (latest or named item version) and the
 concrete registry-state resource carry unpinned provenance and a short public cache hint.
 Each tool has group metadata and read-only, idempotent,
 non-destructive, open-world annotations. EVS resources are available in `evs` and `unified`

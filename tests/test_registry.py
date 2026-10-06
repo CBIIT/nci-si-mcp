@@ -55,7 +55,8 @@ class RegistryTest(ServerFixture):
             "resolve_stored_value",
             "get_release_alignment",
         }
-        expected = {"evs": evs, "cadsr": cadsr, "unified": evs | cadsr | seam}
+        workflows = {"ground_value", "expand_cohort", "harmonize_data_dictionary"}
+        expected = {"evs": evs, "cadsr": cadsr, "unified": evs | cadsr | seam | workflows}
         for profile, names in expected.items():
             with self.subTest(profile=profile):
                 self.settings = replace(self.settings, profile=profile)
@@ -66,6 +67,7 @@ class RegistryTest(ServerFixture):
                         **dict.fromkeys(evs, "evs"),
                         **dict.fromkeys(cadsr, "cadsr"),
                         **dict.fromkeys(seam, "cross-domain"),
+                        **dict.fromkeys(workflows, "workflow"),
                     }
                     self.assertEqual(tool.meta["group"], groups[tool.name])
 

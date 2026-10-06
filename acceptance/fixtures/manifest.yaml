@@ -1237,6 +1237,13 @@ record:
     # the nodes it reaches for their status (the node record, get_concept_hierarchy-2).
     minimal: [C3262, C3263, C3264, C3810, C7057, C7062, C9305, C27551, C27574]
 
+    # Recorded at 26.09d on 6 October 2026: depth-two cohort descendants, including
+    # their child lists for the bounded final-frontier continuation check.
+    minimal,children:
+      [C6621, C6622, C6623, C8801, C8802, C8803, C164080, C159208, C172634,
+       C173175, C181977, C186611, C189261, C213627, C213629, C213633, C222394,
+       C222395, C223537]
+
   # Real projections and batches the composed answers are checked against.
   samples:
     - /api/v1/concept/ncit_26.09d/C4817
