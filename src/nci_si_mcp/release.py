@@ -10,8 +10,7 @@ is the export's date and never an invented identifier (A3.8).
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
-from email.utils import parsedate_to_datetime
+from datetime import datetime
 from typing import Any
 
 from .errors import PlatformError, with_next_step
@@ -185,18 +184,17 @@ class RegistryMetadataError(ValueError):
 
 
 def _generation_date(value: str | None, published: bool) -> str:
-    """Validate a published ISO date, or convert the export's HTTP date to UTC."""
+    """Validate an ISO date; the export listing is local time at minute precision."""
 
     if not isinstance(value, str) or not value.strip():
         raise RegistryMetadataError("The caDSR generation date is missing or not text")
     try:
-        if published:
-            datetime.fromisoformat(value)
-            return value
-        parsed = parsedate_to_datetime(value)
-        if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=UTC)
-        return parsed.astimezone(UTC).isoformat()
+        parsed = datetime.fromisoformat(value)
+        if not published and (
+            parsed.tzinfo is not None or parsed.isoformat(timespec="minutes") != value
+        ):
+            raise ValueError
+        return value
     except ValueError, OverflowError:
         raise RegistryMetadataError("The caDSR generation date is invalid") from None
 
@@ -209,7 +207,8 @@ def registry_state(
 ) -> RegistryState:
     """The registry state from upstream metadata, never an invented identifier or date.
 
-    Without an identifier, `generation_date` is the export's `Last-Modified` HTTP date.
+    Without an identifier, `generation_date` is the export folder's ISO local date-time
+    at minute precision, without an offset. No timezone is assumed or converted.
     With one, it is that release's own ISO-8601 date, passed through unchanged. The caller
     names the distribution the date came from (`releasedCDEsXML-OD.zip` today).
     """

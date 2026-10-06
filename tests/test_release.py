@@ -242,28 +242,27 @@ class RegistryStateTest(unittest.TestCase):
                     self.assertIn("missing", error["message"])
 
     def test_no_registry_identifier_is_made_up_and_the_export_date_is_iso(self):
-        state = registry_result("Mon, 28 Sep 2026 14:03:00 GMT")
+        state = registry_result("2026-07-01T22:19")
 
         self.assertEqual(
             state,
             {
                 "published": False,
-                "generatedAt": "2026-09-28T14:03:00+00:00",
+                "generatedAt": "2026-07-01T22:19",
                 "sourceDistribution": EXPORT,
             },
         )
 
-    def test_an_offset_date_is_given_in_utc(self):
-        self.assertEqual(
-            registry_result("Mon, 28 Sep 2026 16:03:00 +0200")["generatedAt"],
-            "2026-09-28T14:03:00+00:00",
-        )
-
-    def test_an_http_date_without_a_zone_uses_utc(self):
-        self.assertEqual(
-            registry_result("Mon, 28 Sep 2026 14:03:00")["generatedAt"],
-            "2026-09-28T14:03:00+00:00",
-        )
+    def test_export_dates_never_assume_a_zone_or_change_precision(self):
+        for date in (
+            "2026-07-01T22:19Z",
+            "2026-07-01T22:19-04:00",
+            "2026-07-01",
+            "2026-07-01T22:19:00",
+            "Thu, 02 Jul 2026 02:19:40 GMT",
+        ):
+            with self.subTest(date=date):
+                self.assertEqual(registry_result(date)["error"]["code"], "upstream_unavailable")
 
     def test_a_missing_or_invalid_generation_date_fails_closed_in_either_state(self):
         for identifier in (None, "R2026.3"):
@@ -305,9 +304,7 @@ class RegistryStateTest(unittest.TestCase):
     def test_a_missing_source_distribution_is_not_a_registry_state(self):
         for distribution in (None, "", " ", 7):
             with self.subTest(distribution=distribution):
-                error = registry_result("Mon, 28 Sep 2026 14:03:00 GMT", distribution=distribution)[
-                    "error"
-                ]
+                error = registry_result("2026-07-01T22:19", distribution=distribution)["error"]
                 self.assertEqual(error["code"], "upstream_unavailable")
                 self.assertEqual(error["details"], {"surface": "cadsr"})
                 self.assertIn("distribution", error["message"])

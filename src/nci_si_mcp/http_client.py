@@ -1,7 +1,8 @@
 """The one HTTP client for the upstream platforms (docs/implementation-plan.md section 3.4).
 
-Every request carries `Accept: application/json` and the correlation identifier of the call in
-progress (M7.1). A 5xx, a 429 and a connection failure are retried with jittered backoff, a 429
+JSON API requests carry `Accept: application/json`; explicit export text requests ask for HTML.
+Both carry the correlation identifier of the call in progress (M7.1). A 5xx, a 429 and a
+connection failure are retried with jittered backoff, a 429
 after the wait the platform names; no other 4xx is retried. Every attempt is counted, reported in
 the error and handed to the request-log hook. A response is classified before it is returned: a
 failure masked as a success is an `upstream_unavailable` error (`upstream.parse_upstream_json`).
@@ -142,6 +143,9 @@ class _SameOriginRedirects(HTTPRedirectHandler):
     ) -> Request | None:
         if _origin(newurl) != _origin(req.full_url):
             raise HTTPError(req.full_url, code, "redirect to another origin refused", headers, fp)
+        # urllib can turn a redirected POST into a GET and discard the match body.
+        if req.get_method() == "POST":
+            raise HTTPError(req.full_url, code, "POST redirect refused", headers, fp)
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
@@ -201,7 +205,7 @@ def _declared_length(response: Any) -> int:
 
 
 class HttpClient:
-    """GET JSON documents from one platform under its base URL.
+    """Read JSON, post JSON, or explicitly read bounded export text under one base URL.
 
     `credentials` are headers sent on every request of this client and to no other host: a
     redirect to another origin is refused. `on_request`, `sleep` and `jitter` are public so
@@ -221,6 +225,7 @@ class HttpClient:
         max_response_bytes: int,
         size_bound: str,
         credentials: Mapping[str, str] | None = None,
+        redact_values: tuple[str, ...] = (),
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.label = label
@@ -230,6 +235,7 @@ class HttpClient:
         self.max_response_bytes = max_response_bytes
         self.size_bound = size_bound
         self.credentials = dict(credentials or {})
+        self.redact_values = redact_values
         self.on_request: Callable[[RequestRecord], None] | None = None
         self.sleep: Callable[[float], None] = time.sleep
         self.jitter: Callable[[float, float], float] = random.uniform
@@ -241,7 +247,7 @@ class HttpClient:
     def _redact(self, text: str) -> str:
         """`text` without any credential, which a platform can echo in an error message."""
 
-        for secret in self.credentials.values():
+        for secret in (*self.credentials.values(), *self.redact_values):
             text = text.replace(secret, "[redacted]")
         return text
 
@@ -254,12 +260,19 @@ class HttpClient:
             query = "?" + urlencode(filtered, doseq=True) if filtered else ""
         return f"{self.base_url}{path}{query}"
 
-    def _request(self, path: str, params: dict[str, Any] | None) -> Request:
-        headers = {"Accept": "application/json", **self.credentials}
+    def _request(
+        self,
+        path: str,
+        params: dict[str, Any] | None,
+        *,
+        headers: Mapping[str, str] | None = None,
+        data: bytes | None = None,
+    ) -> Request:
+        headers = {"Accept": "application/json", **(headers or {}), **self.credentials}
         if correlation_id := current_correlation_id():
             headers[CORRELATION_HEADER] = correlation_id
         # The base URL comes from Settings, which accepts only http and https.
-        return Request(self.url(path, params), headers=headers)  # noqa: S310
+        return Request(self.url(path, params), headers=headers, data=data)  # noqa: S310
 
     def _record(self, request: Request, attempt: _Attempt, elapsed: float) -> None:
         requested()
@@ -322,11 +335,20 @@ class HttpClient:
         if len(payload) < declared_length:
             # http.client returns a body cut short by a dropped connection without raising.
             raise IncompleteRead(payload, declared_length - len(payload))
-        return self._parse(payload, path, attempt)
+        return payload
 
-    def _parse(self, payload: bytes, path: str, attempt: _Attempt) -> Any:
+    def _parse(self, payload: bytes, path: str, attempt: _Attempt, json_response: bool) -> Any:
         try:
-            return parse_upstream_json(payload, f"{self.label} {path}")
+            if json_response:
+                return parse_upstream_json(payload, f"{self.label} {path}")
+            return payload.decode("utf-8")
+        except UnicodeDecodeError:
+            attempt.failure = "unusable_response"
+            raise UpstreamUnavailableError(
+                "The upstream text response is not UTF-8. Check the export URL.",
+                surface=self.surface,
+                attempts=attempt.number,
+            ) from None
         except PlatformError as exc:
             attempt.failure = "unusable_response"
             details = {**exc.details, "attempts": attempt.number}
@@ -374,14 +396,21 @@ class HttpClient:
         raise failure
 
     def _attempt(
-        self, request: Request, path: str, number: int, reject: Callable[[Any], str | None] | None
+        self,
+        request: Request,
+        path: str,
+        number: int,
+        reject: Callable[[Any], str | None] | None,
+        json_response: bool,
     ) -> Any:
         if budget := current_budget():
             budget.request()
         attempt = _Attempt(number)
         started = time.monotonic()
         try:
-            payload = self._exchange(request, path, attempt)
+            payload = self._parse(
+                self._exchange(request, path, attempt), path, attempt, json_response
+            )
             reason = reject(payload) if reject else None
             if reason is not None:
                 attempt.failure = "unusable_response"
@@ -455,13 +484,43 @@ class HttpClient:
         failure carries this response's status and actual attempt count.
         """
 
-        request = self._request(path, params)
+        return self._run(self._request(path, params), path, reject=reject)
+
+    def post_json(
+        self,
+        path: str,
+        body: Any,
+        *,
+        headers: Mapping[str, str] | None = None,
+    ) -> Any:
+        """POST JSON; every transport retry sends the identical body and headers."""
+        request = self._request(
+            path,
+            None,
+            data=json.dumps(body, allow_nan=False).encode("utf-8"),
+            headers={**(headers or {}), "Content-Type": "application/json"},
+        )
+        return self._run(request, path)
+
+    def get_text(self, path: str) -> str:
+        """Read an explicitly textual export listing with the same bounds and audit."""
+        request = self._request(path, None, headers={"Accept": "text/html"})
+        return self._run(request, path, json_response=False)
+
+    def _run(
+        self,
+        request: Request,
+        path: str,
+        *,
+        reject: Callable[[Any], str | None] | None = None,
+        json_response: bool = True,
+    ) -> Any:
         attempts = timeouts = 0
         last_http: dict[str, Any] = {}
         while True:
             attempts += 1
             try:
-                return self._attempt(request, path, attempts, reject)
+                return self._attempt(request, path, attempts, reject, json_response)
             except _Transient as failure:
                 timeouts += failure.timed_out
                 last_http = failure.http_details() or last_http

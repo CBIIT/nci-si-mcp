@@ -94,6 +94,12 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 | `NCI_SI_INDEX_BATCH_SIZE` | `100` | Codes per EVS indexing request |
 | `NCI_SI_LOG_LEVEL` | `INFO` | Stderr diagnostic level; per-call audit records remain enabled at every level |
 
+The caDSR client is available internally; its public tools are added in the subsequent Phase 3
+issues. Registry discovery reads the export folder's exact distribution row. The folder gives
+local server time without a zone, so `generatedAt` carries no offset (for example
+`2026-07-01T22:19`), not the ZIP file's HTTP timestamp. API content without a published registry
+release does not inherit that export date.
+
 The six base URLs are one set. In `live` mode a base URL that is not given takes its production
 default, and one that is given replaces that default. In `fixture` mode every one of the six must be given, so a fixture
 server cannot reach a production host by accident; a missing one stops startup, naming it. The

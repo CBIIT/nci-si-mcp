@@ -288,7 +288,8 @@ update them when behaviour changes.
   A 404 `Terminology not found` is `EVSReleaseNotFoundError`
   (`release_not_available`).
 - `release.registry_state` is the pure part of the caDSR registry state: no registry identifier is
-  ever made up. The `Last-Modified` HEAD request belongs to the caDSR client.
+  ever made up. The caDSR client reads the exact distribution row in the export folder;
+  its local date-time has minute precision and no timezone, which is preserved without an offset.
 - Every concept request uses `release.pinned_terminology` (for example `ncit_26.09d`) as the path
   segment, and `evs.verify_content` checks the terminology and version of each full concept at the client
   boundary. Content methods require a `ReleaseContext`; compact descendant entries name the
