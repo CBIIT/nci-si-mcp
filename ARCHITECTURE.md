@@ -1,82 +1,94 @@
 # NCI SI MCP Architecture
 
-This document describes the repository as implemented. The project is an
-EVS-first Python prototype that exposes NCI Thesaurus (NCIt) retrieval through
-both a command-line interface and a local Model Context Protocol (MCP) server.
+This document describes the implemented Python prototype: EVS terminology, caDSR metadata,
+Shared SI joins and composed workflows served through MCP over stdio or HTTP, with a CLI for
+index operations and the original EVS commands.
+The diagrams use Mermaid, rendered directly by GitHub. They follow the useful levels of the
+[C4 model](https://c4model.com/diagrams), with sequence, lifecycle and data views where needed.
+
+| View | Question it answers |
+| --- | --- |
+| [System context](#system-context) | Who uses the server, and which systems supply its content? |
+| [Components](#component-schema) | Where do adapters, business rules and storage live? |
+| [Request sequence](#an-indexed-search-call) | How do release selection, retrieval, errors and audit fit together? |
+| [Index lifecycle](#index-lifecycle) | When can a build serve requests, and how does rollback work? |
+| [Persistence schema](#persistence-schema) | How are concepts, fields and vectors related? |
+| [Local and cloud deployment](docs/deployment.md) | Which processes, assets and network boundaries does an operator need? |
+| [HTTP session routing](docs/transport.md#session-routing-sequence) | What happens when a known session reaches another replica? |
+| [Release pipeline](docs/container.md#release-pipeline) | How does a tested commit become a verified image? |
+
+## System context
+
+Arrows name requests or supplied assets. Upstream systems own their content; the local index
+holds retrieved NCIt snapshots. The acceptance harness can replace the upstreams with local
+recorded or contract-crafted fixtures, including caDSR until credentials are issued.
+
+```mermaid
+---
+config:
+  theme: neutral
+  look: classic
+  layout: dagre
+  flowchart:
+    wrappingWidth: 260
+---
+flowchart LR
+    Consumer["MCP client / application"]
+    Operator["Operator / developer"]
+    Suite["Acceptance harness"]
+    SI["NCI SI MCP prototype<br/>EVS · caDSR · cross-domain · workflows"]
+    EVS["NCI EVS<br/>REST and FHIR"]
+    CADSR["NCI caDSR<br/>APIs and export metadata"]
+    SSIS["Shared SI<br/>façade and SPARQL"]
+    Assets["Prepared NCIt index<br/>and matching embedding model"]
+    Consumer -->|"MCP: stdio or HTTP"| SI
+    Operator -->|"CLI: build, evaluate, activate"| SI
+    Suite -->|"MCP contract checks"| SI
+    Assets -. "operator supplies" .-> SI
+    SI -->|"release-pinned content / verified expansion"| EVS
+    SI -->|"metadata and matching requests"| CADSR
+    SI -->|"graph identity and cross-domain queries"| SSIS
+```
 
 ## Component schema
 
 ```mermaid
-flowchart LR
-    User["User or MCP client"]
+---
+config:
+  theme: neutral
+  look: classic
+  layout: dagre
+  flowchart:
+    wrappingWidth: 260
+---
+flowchart TB
+    CLI["CLI"] --> Boundary
+    MCP["MCP stdio / HTTP"] --> Boundary
+    Boundary["Registry + invocation boundary<br/>validate · select release · bound · audit"]
+    Boundary --> Workflows["Composed workflows"]
+    Boundary --> Seam["Cross-domain tools"]
+    Boundary --> Content["EVS tools"]
+    Boundary --> Metadata["caDSR tools"]
+    Workflows --> Producers["Shared content producers"]
+    Seam --> Producers
+    Content --> Producers
+    Metadata --> Producers
+    Producers --> Clients["EVS / caDSR / Shared SI clients"]
+    Producers --> Index["Local index + exact scoring"]
+    Clients --> Http["Bounded HTTP client"]
+    Http --> Upstreams["NCI upstreams"]
+    Index --> Embeddings["Embedding provider"]
+    Index --> SQLite[("SQLite<br/>snapshots · FTS · vectors")]
 
-    subgraph Interfaces["Interface layer"]
-        CLI["CLI<br/>cli.py"]
-        MCP["MCP stdio / HTTP server<br/>server.py, transport.py"]
-    end
-
-    subgraph Application["Application layer"]
-        Registry["Tool registry + invocation<br/>registry.py + invocation.py"]
-        Handlers["Business handlers<br/>handlers.py"]
-        Context["Shared collaborators<br/>context.py"]
-        Validation["Input validation<br/>validation.py"]
-        Eval["Retrieval evaluation<br/>evaluation.py"]
-    end
-
-    subgraph Domain["Domain and retrieval layer"]
-        EVS["EVS client + normalization<br/>evs.py"]
-        Http["Instrumented HTTP client<br/>http_client.py"]
-        Index["LocalIndex<br/>index.py"]
-        Retrieval["Exact field scoring<br/>index_scoring.py"]
-        Embeddings["Embedding providers<br/>embeddings.py"]
-        Traversal["Bounded graph traversal<br/>traversal.py"]
-        Models["Shared dataclasses<br/>models.py"]
-    end
-
-    subgraph Infrastructure["Infrastructure"]
-        EVSAPI["NCI EVS REST API"]
-        SQLite[("SQLite<br/>nci_si.sqlite3")]
-        ST["Optional sentence-transformers model"]
-        Env["Environment configuration<br/>config.py"]
-    end
-
-    User --> CLI
-    User --> MCP
-    CLI --> Registry
-    CLI --> MCP
-    MCP --> Registry
-
-    Env --> CLI
-    Env --> MCP
-    Handlers --> Validation
-    Handlers --> EVS
-    Handlers --> Index
-    Handlers --> Traversal
-    Handlers --> Embeddings
-    Handlers --> Eval
-    Env --> Context
-    Registry --> Handlers
-    Registry --> Context
-    Eval --> Index
-    Eval --> Embeddings
-    Index --> Validation
-
-    EVS --> Http
-    Http --> EVSAPI
-    Traversal --> EVS
-    Index --> Retrieval
-    Index --> Embeddings
-    Index --> SQLite
-    Embeddings -. "optional" .-> ST
-
-    EVS --> Models
-    Index --> Models
-    Traversal --> Models
 ```
 
-`errors.py` is used by every layer and is left out of the diagram. Also not
-drawn: `http_client.py` parses its response bodies with `upstream.py`, `index.py` calls the concept normalization in `evs.py`, and the registry derives both adapters' parameters from handler signatures,
-which use the closed value sets in `validation.py` and default limits in `bounds.py`, where `validation.py` also reads the hard node limit.
+This is a grouped dependency view, not an exhaustive import graph. Shared producers are the
+functions in the content modules, not a separate service; workflows and cross-domain tools
+compose them. `config.py` and
+`context.py` construct the injected collaborators; traversal, relationship catalogues and
+evaluation support the operations above. `models.py` and `results.py` define the records.
+The registry derives adapter parameters from handler signatures; closed choices live in
+`validation.py`. The shared boundary logs one completion record even when an invocation fails.
 
 ## Components
 
@@ -124,6 +136,51 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 
 ## Primary flows
 
+### An indexed search call
+
+This example is `search_concepts` in semantic/hybrid mode for NCIt. The release decision is
+shared for the call; a handshake session may already hold an implicit pin. Lexical/typeahead
+search instead reads EVS content, and CLI invocations do not retain a session pin.
+
+```mermaid
+---
+config:
+  theme: neutral
+  sequence:
+    actorMargin: 25
+    width: 120
+    mirrorActors: false
+---
+sequenceDiagram
+    autonumber
+    participant Client as MCP client
+    participant Adapter as MCP adapter
+    participant Call as Search handler
+    participant EVS as EVS release API
+    participant Index as Local index
+    participant Audit as JSON audit
+    Client->>Adapter: search_concepts<br/>(query, mode, release?)
+    Adapter->>Call: Validated arguments<br/>shared call scopes
+    alt Explicit release or existing session pin
+        Call->>Call: Select release<br/>without discovery
+    else First implicit call, or no session
+        Call->>EVS: Resolve configured<br/>NCIt channel
+        EVS-->>Call: Matching release<br/>or error
+        Note over Adapter,Call: Retain a successful implicit<br/>discovery only for a session
+    end
+    opt Release selection succeeded
+        Call->>Index: Verify model + release<br/>embed query + score snapshot
+        Index-->>Call: Page, count, provenance<br/>or expected failure
+    end
+    Call-->>Adapter: Result or error<br/>with correlationId
+    Adapter->>Audit: One completion record<br/>without result content
+    Adapter-->>Client: MCP result<br/>isError=true on failure
+```
+
+Input validation refusals are audited too and do not reach upstream. Unexpected exceptions
+are logged by type and propagate; they are never presented as empty success. HTTP admission
+and optional authentication precede this tool invocation (see [transport](docs/transport.md)).
+
 ### Build a local index
 
 1. `index-sample` enters through the CLI and invokes `handlers.index_codes` through the registry.
@@ -147,6 +204,43 @@ which use the closed value sets in `validation.py` and default limits in `bounds
 6. `index-activate` changes the active manifest in one transaction and deletes all builds
    except the new active build and its predecessor. Activating that predecessor is rollback.
    `index-rebuild` embeds stored payloads offline into an inactive snapshot.
+
+### Index lifecycle
+
+These are logical lifecycle stages, not extra database enum values: persisted `state` is
+`building` or `complete`; activation and evaluation evidence are separate. The diagram follows
+a production build. Developer samples have a separate activation path without the production
+evaluation gate. Failure leaves the current active build serving.
+A failed evaluation leaves its candidate complete and inactive.
+
+```mermaid
+---
+config:
+  theme: neutral
+  look: classic
+  layout: dagre
+---
+stateDiagram-v2
+    state "Building: short batch writes" as Building
+    state "Complete: inactive candidate" as Complete
+    state "Passing evaluation bound to this build" as Evaluated
+    state "Active: serves indexed reads" as Active
+    state "Retained predecessor" as Previous
+    state "Removed" as Removed
+    [*] --> Building: reconciled pinned input or offline rebuild
+    Building --> Complete: final completion transaction
+    Building --> Removed: later build reaps interrupted work after lease check
+    Complete --> Evaluated: calibrated evaluation passes
+    Evaluated --> Active: explicit index-activate
+    Active --> Previous: another build activates
+    Previous --> Active: explicit rollback activation
+    Previous --> Removed: another activation no longer retains it
+    Removed --> [*]
+```
+
+Activation keeps only the selected build and the former active build, deleting other snapshots
+in the same transaction. Distribution to serving replicas is a separate operator step in the
+[deployment view](docs/deployment.md#cloud-one-reference-layout).
 
 ### Search
 

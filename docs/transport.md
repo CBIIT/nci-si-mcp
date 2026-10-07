@@ -34,6 +34,57 @@ releases per call under X-22. Session affinity cannot create a release pin for t
 Native list/resource cache fields also belong to the 2026 protocol: the SDK removes them for
 older clients. Tool hints in `_meta` remain available on handshake protocols.
 
+### Session routing sequence
+
+This sequence applies to **stateful handshake sessions**, not stateless or single-exchange
+calls. The load balancer owns affinity; the SDK does not forward an unknown session to another
+process. See the [deployment views](deployment.md) for the local and cloud boundaries.
+
+```mermaid
+---
+config:
+  theme: neutral
+  sequence:
+    actorMargin: 25
+    width: 120
+    mirrorActors: false
+---
+sequenceDiagram
+    participant Client as MCP client
+    participant LB as Load balancer
+    participant A as Replica A
+    participant B as Replica B
+    Client->>LB: Initialize handshake session
+    LB->>A: New session
+    A-->>LB: Mcp-Session-Id: S
+    LB-->>Client: Mcp-Session-Id: S
+    Client->>LB: NCIt call without release, session S
+    LB->>A: Affinity routes S to its owner
+    A->>A: Discover and retain first implicit release
+    A-->>LB: Result naming that release
+    LB-->>Client: Result
+    Client->>LB: Another call, session S
+    alt Correct affinity and session still exists
+        LB->>A: Same process, session S
+        A->>A: Reuse held release for implicit NCIt call
+        A-->>LB: Result
+        LB-->>Client: Result
+    else Misroute, restart or expiry loses the session
+        LB->>B: Process without session S
+        B-->>LB: HTTP 404 - Session not found
+        LB-->>Client: HTTP 404 - Session not found
+        Client->>LB: Reinitialize without old session ID
+        LB->>B: New session
+        B-->>LB: New session ID
+        LB-->>Client: New session ID
+        Note over Client,B: First implicit call may select a newer release
+    end
+```
+
+With stateless HTTP, either replica can answer each call and there is no session pin to
+recover. Passing an explicit release keeps the requested content version stable; it does not
+make an expired stateful session ID valid.
+
 ## Admission and readiness
 
 Host and Origin allow-lists remain enabled on all bind addresses and cover health routes too.

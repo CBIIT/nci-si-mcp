@@ -68,6 +68,14 @@ jobs:
           if awk -v total="$total" 'BEGIN { exit !(total <= 95) }'; then
             echo "::warning title=Coverage is not above 95%::${total}%. Cover the untested behaviour; do not pad."
           fi
+      - name: Export measured server coverage
+        run: pdm run coverage json -o tmp/coverage/server.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: badge-coverage-server
+          path: tmp/coverage/server.json
+          if-no-files-found: error
+          retention-days: 30
 
   # The acceptance suite against the server built from this checkout, on the recorded and crafted
   # upstream answers: a ratchet over individual tests. Every test must have the outcome in
@@ -181,7 +189,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # The self-tests' coverage over both shards, with the harness's minimum
+  # The self-tests' coverage over all three shards, with the harness's minimum
   # (acceptance/pyproject.toml); falling short of the aim is reported, not enforced.
   coverage:
     name: coverage
@@ -207,3 +215,62 @@ jobs:
           if awk -v total="$total" 'BEGIN { exit !(total <= 95) }'; then
             echo "::warning title=Self-test coverage is not above 95%::${total}%. Cover the untested behaviour; do not pad."
           fi
+      - name: Export measured harness coverage
+        run: pdm run coverage json --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest -o tmp/coverage/harness.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: badge-coverage-harness
+          path: tmp/coverage/harness.json
+          if-no-files-found: error
+          retention-days: 30
+
+  coverage-badges:
+    name: publish coverage badges
+    needs: [quality, test, coverage, acceptance, acceptance-http, image]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write  # generated data branch only; never modify main
+    concurrency:
+      group: coverage-badges-main
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: $/.github/actions/setup
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          pattern: badge-coverage-*
+          merge-multiple: true
+          path: tmp/coverage
+      - name: Render badges and source measurements
+        run: pdm run python scripts/coverage_badges.py tmp/coverage tmp/coverage-badges
+      - name: Publish generated badge data
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          current="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
+          if [ "$current" != "$GITHUB_SHA" ]; then
+            echo "main has moved; leave publication to its successful CI run."
+            exit 0
+          fi
+          gh auth setup-git
+          directory="$RUNNER_TEMP/coverage-badges"
+          git init --quiet --initial-branch=coverage-badges "$directory"
+          git -C "$directory" remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          existing="$(git -C "$directory" ls-remote --heads origin coverage-badges)"
+          if [ -n "$existing" ]; then
+            git -C "$directory" fetch --depth=1 origin coverage-badges
+            git -C "$directory" reset --hard FETCH_HEAD
+          fi
+          cp tmp/coverage-badges/*.json "$directory/"
+          git -C "$directory" config user.name "Coverage CI"
+          git -C "$directory" config user.email "github-actions[bot]@users.noreply.github.com"
+          git -C "$directory" add server.json harness.json provenance.json
+          if git -C "$directory" diff --cached --quiet; then exit 0; fi
+          git -C "$directory" commit -m "ci: refresh coverage badges"
+          git -C "$directory" push origin HEAD:refs/heads/coverage-badges

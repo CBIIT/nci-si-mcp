@@ -38,6 +38,12 @@ The acceptance suite and its self-tests use pytest directly.
 
 ## Test levels
 
+The [behavioural story catalogue](docs/behavioural-tests.md) documents every MCP acceptance
+case for domain reviewers. Keep its authored narratives and function assignments in
+`acceptance/stories.yaml` aligned with test changes, then run `pdm run acceptance-stories`.
+`pdm run acceptance-stories --check` verifies completeness and freshness; the harness
+self-tests enforce the same check in CI.
+
 Put each regression at the lowest level that can reproduce it, then use broader tests to
 check the connections between components. This follows the
 [test pyramid](https://testing.googleblog.com/2015/04/just-say-no-to-more-end-to-end-tests.html);
@@ -56,6 +62,21 @@ assertion's sensitivity is uncertain. Image-only checks run in the container CI 
 fixtures verify contracts, including crafted caDSR responses; they do not verify deployment
 against live caDSR without issued credentials. The separate live acceptance workflow checks
 upstream drift where credentials and services are available.
+
+## Coverage badges
+
+CI exports separate JSON coverage reports for the server and the complete, combined harness
+self-tests. After every CI gate passes on a push to `main`, the badge job writes measured
+line-plus-branch percentages and their source counts, commit and run URL to the dedicated
+`coverage-badges` branch. It never commits to `main`, publishes from a PR, or replaces data
+from a newer main commit with an older run. Failed runs leave the previous measurements
+visible; use the adjacent CI badge to see main's current status.
+
+The README uses [Shields endpoint badges](https://shields.io/badges/endpoint-badge), so no
+coverage-service account, extra credential or manual percentage update is needed. GitHub and
+Shields cache images, so a successful publication may take a few minutes to appear. Before
+the first successful publication, the endpoints do not exist. Do not delete `coverage-badges`
+during feature-branch cleanup; it is generated publication data.
 
 ## Standards
 

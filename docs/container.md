@@ -5,6 +5,8 @@ production design remains with the hosting team: no AWS credentials, roles, infr
 or identity provider are configured here. The default image accepts **unauthenticated
 clients** and must remain on a private network until the approved identity integration is
 configured through the [transport hooks](transport.md#authentication-and-authorization-hooks).
+The [deployment diagrams](deployment.md) show local stdio, a local container, and the proposed
+Cloud One layout, including storage, network and session boundaries.
 
 ## Start with external assets
 
@@ -59,6 +61,35 @@ does not synchronize local files or sessions across replicas.
 
 ## Build and release evidence
 
+### Release pipeline
+
+The image and its external data/model assets have separate lifecycles. This repository's
+pipeline publishes the image; the operator prepares assets and chooses when to deploy it.
+
+```mermaid
+---
+config:
+  theme: neutral
+  look: classic
+  layout: dagre
+  flowchart:
+    wrappingWidth: 260
+---
+flowchart TB
+    PR["Reviewed pull request<br/>local gates + green PR CI"]
+    PR -->|"head clearance; squash merge"| Main["Green CI on main merge commit"]
+    Main --> Release["Release workflow<br/>eligible tag + wheel + amd64 image"]
+    Release --> Gate["Image verification<br/>offline HTTP smoke + SBOM<br/>zero High / Critical findings"]
+    Gate --> Publish["Public GHCR digest + release evidence<br/>anonymous digest access verified"]
+    Publish -. "operator selects digest" .-> Deploy["Deploy with prepared index<br/>and matching model"]
+```
+
+PR builds never publish. A successful tag/release job alone does not imply successful image
+publication: the image job must finish too. Audit and CodeQL also run on main; neither replaces
+the image scan. [Publication recovery](#scan-policy-and-publication) is described below.
+
+### Local builds and dependency lock
+
 Run `pdm build --no-sdist` in a tagged checkout, then
 `docker build --platform linux/amd64 -t nci-si-mcp:local .`.
 Keep exactly one current wheel in `dist/`. Run
@@ -82,6 +113,8 @@ pdm run python scripts/container_lock.py check
 
 Remove `tmp/container-lock` afterwards. Installation requires hashes. The check fails if
 PDM runtime versions drift; ordinary developer dependencies are unchanged.
+
+### Scan policy and publication
 
 The initial [candidate scan evidence](../container/base-scans.json) records image identities,
 scanner metadata and every High finding. On 6 October 2026, Python slim-trixie

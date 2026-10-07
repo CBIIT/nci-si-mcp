@@ -24,10 +24,36 @@ SELFTEST_SHARD=1/3 pdm run acceptance-selftest       # one of three shards, as C
 pdm run acceptance-record                            # re-record fixtures/recorded/ from live
 pdm run acceptance-craft                             # rebuild the crafted scenarios
 pdm run acceptance-register                          # regenerate request-forms/ from the manifest
+pdm run acceptance-stories                           # regenerate the complete domain story catalogue
+pdm run acceptance-stories --check                   # verify its mapping and generated content
 pdm run spec-render                                  # regenerate docs/specification.md from spec/
 ```
 
 ## Writing a test
+
+To read the behaviours without starting with Python, use these views:
+
+| Reader's question | Where to look |
+|---|---|
+| Why does this behaviour matter to a domain user? | [Complete user-story catalogue](../docs/behavioural-tests.md), covering every collected MCP acceptance case |
+| What must a caller observe, and which tests check it? | [Requirements and test citations](../docs/specification.md#4-requirements), generated from `spec/` and collected tests |
+| What upstream situation does a fixture simulate? | Scenario sections in the [EVS](request-forms/evs.md#scenarios), [caDSR](request-forms/cadsr.md#scenarios) and [Shared SI](request-forms/ssis.md#scenarios) request registers |
+| How do tools compose into a user task? | [Workflow tools and prompts](../docs/specification.md#workflow-tools) |
+| What passed in a particular run? | [The acceptance report](#the-report), with per-tool counts; its JSON retains individual test outcomes |
+
+The story catalogue groups related tests under a user goal and Given/When/Then narrative.
+Each test function has an authored behaviour description in [`stories.yaml`](stories.yaml);
+the renderer collects every parameter variant and its requirement citations from pytest.
+Expandable evidence lists every exact case. The fixture register separately describes
+upstream conditions. Implementation unit tests and harness self-tests are outside this MCP
+catalogue.
+
+When adding or renaming a test function, add or update its explicit assignment and description
+in `stories.yaml`. Review the narrative when changing an existing test's behaviour. Run
+`pdm run acceptance-stories` after changing tests, parameter variants, citations or narratives;
+do not edit the generated guide. The harness self-tests check fresh collection against the
+mapping and document, rejecting undocumented functions, stale references, duplicate assignments,
+missing narrative fields and stale generated content. Collection runs no server or test.
 
 A test calls a required tool by its name, `tools.call("get_concept", {...})`, and names the tool
 it is for with `@pytest.mark.tool("get_concept")`; a protocol gate is marked `gate`. A gate that cannot

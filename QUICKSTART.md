@@ -43,7 +43,8 @@ export NCI_SI_EMBEDDING_MODEL=cambridgeltl/SapBERT-from-PubMedBERT-fulltext
 ## Connect a client
 
 For a container deployment with an external index and model, follow the short
-[container runbook](docs/container.md).
+[container runbook](docs/container.md). The [deployment diagrams](docs/deployment.md) compare
+local stdio, a local HTTP container and the proposed cloud layout.
 
 For remote clients, run `pdm run nci-si-mcp serve --transport streamable-http` and connect to
 `http://127.0.0.1:8000/mcp`. See [remote transport](docs/transport.md) for session modes,

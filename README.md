@@ -1,8 +1,14 @@
 # NCI SI MCP
 
-[![CI](https://github.com/hniedner/nci-si-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/hniedner/nci-si-mcp/actions/workflows/ci.yml)
+[![CI](https://github.com/CBIIT/nci-si-mcp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/CBIIT/nci-si-mcp/actions/workflows/ci.yml?query=branch%3Amain)
+[![CodeQL](https://github.com/CBIIT/nci-si-mcp/actions/workflows/github-code-scanning/codeql/badge.svg?branch=main)](https://github.com/CBIIT/nci-si-mcp/actions/workflows/github-code-scanning/codeql?query=branch%3Amain)
+[![Server coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FCBIIT%2Fnci-si-mcp%2Fcoverage-badges%2Fserver.json)](https://github.com/CBIIT/nci-si-mcp/blob/coverage-badges/provenance.json)
+[![Harness coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FCBIIT%2Fnci-si-mcp%2Fcoverage-badges%2Fharness.json)](https://github.com/CBIIT/nci-si-mcp/blob/coverage-badges/provenance.json)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue.svg)](pyproject.toml)
+
+CI and CodeQL badges track `main`. Coverage badges show combined line and branch coverage
+from successful main CI, with the measured commit and run linked; they are not acceptance pass rates.
 
 The government-furnished prototype of the Model Context Protocol (MCP) server for the NCI
 Semantic Infrastructure, and the acceptance suite it and its successors are measured by. Two
@@ -25,14 +31,21 @@ pdm run acceptance           # the acceptance suite against it, on recorded upst
 
 ```mermaid
 flowchart LR
-    suite["Acceptance suite"] -- "MCP over stdio" --> server["Server under test"]
+    suite["Acceptance suite"] -- "MCP over stdio / HTTP" --> server["Server under test"]
     server -- "fixture mode" --> fixtures["Fixture server<br/>recorded and crafted answers"]
     server -- "live mode" --> live["EVS · caDSR · Shared SI"]
     fixtures -. "request log" .-> suite
 ```
 
-The suite tests the MCP tool surface of whatever server it starts, against fixtures or the live
-services; it knows nothing of the server's code.
+The suite tests the MCP tool surface of a server it starts or connects to, against fixtures or
+the live services; it knows nothing of the server's code.
+
+[Architecture diagrams](ARCHITECTURE.md) cover system context, components, request flow,
+index lifecycle and data. [Deployment diagrams](docs/deployment.md) show local stdio, local
+containers and the proposed Cloud One layout.
+
+[Behavioural test stories](docs/behavioural-tests.md) document every MCP acceptance case,
+grouped by user goal, with expected answers, failure cases and links to executable evidence.
 
 ## Status
 
