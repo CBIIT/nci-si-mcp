@@ -87,6 +87,18 @@ def test_each_test_counts_once_with_its_worst_phase():
     assert report["tests"]["t.py::test_a"]["outcome"] == "failed"
 
 
+def test_a_later_skip_does_not_erase_a_failure_or_its_missing_fixture_evidence():
+    missing = ["GET evs /api/v1/version {}"]
+    report = collected(
+        (phase("call", "failed", unmatched=missing), "get_concept", False),
+        (phase("teardown", "skipped", reason="cleanup skipped"), "get_concept", False),
+    )
+
+    assert report["tools"]["get_concept"]["outcome"] == "NO FIXTURE"
+    assert report["tests"]["t.py::test_a"]["unmatched"] == missing
+    assert report["tests"]["t.py::test_a"]["outcome"] == "no_fixture"
+
+
 def test_a_failure_from_a_missing_fixture_is_its_own_outcome_and_names_the_request():
     missing = ["GET evs /api/v1/version {}"]
     report = collected(
@@ -357,6 +369,18 @@ def test_the_command_says_a_fixture_run_alone_is_not_the_final_outcome(tmp_path,
     assert "Size of the tools/list result: not measured, no server started." in output
 
 
+def test_live_failures_are_not_excused_when_no_limitations_file_is_supplied(tmp_path, capsys):
+    fixture = tmp_path / "fixture.json"
+    live = tmp_path / "live.json"
+    fixture.write_text(json.dumps(run({"get_form": "PASS"})), encoding="utf-8")
+    failed = run({}, {"t.py::form": live_test("get_form", "failed")}) | {"mode": "live"}
+    live.write_text(json.dumps(failed), encoding="utf-8")
+
+    assert main([str(fixture), "--live", str(live)]) == 0
+
+    assert "| `get_form` | cadsr | FAIL | 0 / 0 / 0 / 0 | — |  |" in capsys.readouterr().out
+
+
 def test_the_report_records_the_transport_of_the_run():
     assert Collector().report("fixture")["transport"] == "stdio"
 
@@ -385,6 +409,18 @@ def test_a_failure_shows_the_credential_of_a_remote_server_nowhere(monkeypatch):
     assert str(failed.longrepr) == "assert 'x' == '[authorization withheld]'"
     assert failed.sections == [("Captured stdout call", "sent [authorization withheld]\nand more")]
     assert skipped.longrepr == ("t.py", 1, "Skipped: needs a server")
+
+
+def test_an_unrelated_failure_keeps_its_rich_traceback(monkeypatch):
+    monkeypatch.setenv("NCI_SI_ACCEPTANCE_AUTHORIZATION", "Bearer private-token")
+    traceback = SimpleNamespace(reprcrash="AssertionError: expected concept C1")
+    failed = phase("call", "failed")
+    failed.longrepr = traceback
+
+    withhold_from(failed)
+
+    assert failed.longrepr is traceback
+    assert failed.longrepr.reprcrash == "AssertionError: expected concept C1"
 
 
 def test_a_credential_with_quotes_and_non_ascii_is_withheld_from_the_report_file(

@@ -128,3 +128,15 @@ def test_a_readme_that_is_not_current_fails_the_check_and_is_rewritten_without_i
     assert "is not current" in failed.stderr
     assert written.returncode == 0
     assert stale.read_text(encoding="utf-8") == text
+
+
+def test_failed_collection_cannot_replace_the_existing_readme(tmp_path, monkeypatch):
+    readme = tmp_path / "README.md"
+    text = f"before\n{BEGIN}\nold status\n{END}\nafter\n"
+    readme.write_text(text, encoding="utf-8")
+    monkeypatch.setattr(status.pytest, "main", lambda *args, **kwargs: pytest.ExitCode.USAGE_ERROR)
+
+    with pytest.raises(SystemExit, match="collecting the suite failed with exit status 4"):
+        status.main(["--readme", str(readme)])
+
+    assert readme.read_text(encoding="utf-8") == text

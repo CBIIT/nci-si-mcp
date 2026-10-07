@@ -29,7 +29,12 @@ def _fhir_error(data: dict[str, Any]) -> str | None:
     issues = data.get("issue")
     if data.get("resourceType") != "OperationOutcome" or not isinstance(issues, list):
         return None
-    severities = {issue.get("severity") for issue in issues if isinstance(issue, dict)}
+    severities = {
+        severity
+        for issue in issues
+        if isinstance(issue, dict)
+        if isinstance(severity := issue.get("severity"), str)
+    }
     if severities & _FHIR_ERROR_SEVERITIES:
         return "a FHIR OperationOutcome that reports an error"
     return None

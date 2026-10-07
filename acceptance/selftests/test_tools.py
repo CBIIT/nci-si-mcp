@@ -7,7 +7,23 @@ from mcp.shared.exceptions import MCPError
 from mcp_types import METHOD_NOT_FOUND
 
 from nci_si_acceptance.spec import TOOLS, Listing
-from nci_si_acceptance.tools import NOT_IMPLEMENTED, Tools
+from nci_si_acceptance.tools import NOT_IMPLEMENTED, Process, Tools
+
+
+def test_process_evidence_includes_nested_binary_files_and_stderr(tmp_path):
+    log = tmp_path / "stderr.log"
+    data = tmp_path / "data"
+    nested = data / "build" / "vectors"
+    nested.mkdir(parents=True)
+    log.write_text("stderr evidence\n", encoding="utf-8")
+    (data / "manifest.json").write_text("manifest evidence", encoding="utf-8")
+    (nested / "fields.bin").write_bytes(b"\xffstored evidence\xfe")
+
+    written = Process(log, data, ()).written()
+
+    assert written.startswith("stderr evidence\n")
+    assert "manifest evidence" in written
+    assert "\ufffdstored evidence\ufffd" in written
 
 
 class Session:

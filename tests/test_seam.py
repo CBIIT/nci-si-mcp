@@ -9,6 +9,7 @@ from fakes import FakeEVS, FakeSSIS, concept, release
 from nci_si_mcp.caching import cache_call
 from nci_si_mcp.config import Settings
 from nci_si_mcp.context import Context
+from nci_si_mcp.cursor import decode, encode
 from nci_si_mcp.evs import EVSClient
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.release_selection import SessionRelease, session_scope
@@ -38,6 +39,40 @@ def gdc_map(code="C1", version="26.06e"):
 
 
 class SeamTest(unittest.TestCase):
+    def test_invalid_graph_dates_fail_without_returning_joined_content(self):
+        for graph in self.ssis.graphs:
+            with self.subTest(graph=graph["graph"]):
+                original = graph["date"]
+                graph["date"] = "not a dataset date"
+                try:
+                    result = self.call(conceptCode="C1", release="26.06e")
+                finally:
+                    graph["date"] = original
+                self.assertEqual(result["error"]["code"], "upstream_unavailable")
+                self.assertEqual(result["error"]["details"]["surface"], "ssis")
+                self.assertNotIn("dataElements", result)
+
+    def test_cursor_at_or_beyond_the_end_is_invalid_instead_of_an_empty_success(self):
+        self.ssis.elements = [element(123), element(456)]
+        arguments = {
+            "conceptCode": "C1",
+            "terminology": "ncit",
+            "release": "26.06e",
+            "expandDescendants": False,
+            "includePermissibleValues": False,
+            "limit": 1,
+        }
+        first = self.call(**arguments)
+        applied = arguments | {"tool": "find_data_elements_for_concept"}
+        position = decode(first["nextCursor"], applied, indexed=True)
+        for offset in (len(self.ssis.elements), len(self.ssis.elements) + 1):
+            with self.subTest(offset=offset):
+                token = encode(applied, offset, position.build_id)
+                result = self.call(**arguments, cursor=token)
+                self.assertEqual(result["error"]["code"], "invalid_request")
+                self.assertEqual(result["error"]["details"]["parameter"], "cursor")
+                self.assertNotIn("dataElements", result)
+
     def setUp(self):
         directory = TemporaryDirectory()
         self.addCleanup(directory.cleanup)

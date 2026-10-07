@@ -10,6 +10,63 @@ from scripts import container_lock, image_scan
 
 
 class ContainerGateTest(unittest.TestCase):
+    def test_generation_keeps_cpu_roots_and_hashes_for_each_resolved_dependency(self):
+        pins = {"torch": "2.14.1", "numpy": "2.5.0", "sentence-transformers": "5.1.0"}
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "generated"
+            lock = target / "requirements.txt"
+            with (
+                patch.object(container_lock, "versions", return_value=pins),
+                patch.object(container_lock, "LOCK", lock),
+                patch("sys.argv", ["container_lock.py", "prepare", str(target)]),
+            ):
+                container_lock.main()
+                roots = (target / "roots.txt").read_text().splitlines()
+                self.assertEqual(roots[:3], ["mcp", "numpy", "sentence-transformers"])
+                self.assertEqual(
+                    set((target / "constraints.txt").read_text().splitlines()),
+                    {"torch==2.14.1", "numpy==2.5.0", "sentence-transformers==5.1.0"},
+                )
+                report = {
+                    "install": [
+                        self.resolved("torch", "2.14.1+cpu", roots[-1].split(" @ ")[1], "a"),
+                        self.resolved("NumPy", "2.5.0", "https://example.test/numpy.whl", "b"),
+                    ]
+                }
+                resolution = target / "resolution.json"
+                resolution.write_text(json.dumps(report))
+                with patch("sys.argv", ["container_lock.py", "write", str(resolution)]):
+                    container_lock.main()
+                rendered = lock.read_text()
+                requirements = {line for line in rendered.splitlines() if not line.startswith("#")}
+                self.assertEqual(
+                    requirements,
+                    {
+                        roots[-1] + " --hash=sha256:" + "a" * 64,
+                        "numpy==2.5.0 --hash=sha256:" + "b" * 64,
+                    },
+                )
+                with patch("sys.argv", ["container_lock.py", "check"]):
+                    container_lock.main()
+                report["install"][0]["metadata"]["version"] = "wrong-version"
+                resolution.write_text(json.dumps(report))
+                with (
+                    patch("sys.argv", ["container_lock.py", "write", str(resolution)]),
+                    self.assertRaisesRegex(ValueError, "PDM requires"),
+                ):
+                    container_lock.main()
+                self.assertEqual(lock.read_text(), rendered)
+
+    @staticmethod
+    def resolved(name, version, url, digest):
+        return {
+            "metadata": {"name": name, "version": version},
+            "download_info": {
+                "url": url,
+                "archive_info": {"hashes": {"sha256": digest * 64}},
+            },
+        }
+
     def test_scan_command_blocks_publication_with_a_nonzero_exit_status(self):
         for severity, status in (("HIGH", 1), ("CRITICAL", 1), ("MEDIUM", 0)):
             with self.subTest(severity=severity), tempfile.TemporaryDirectory() as directory:

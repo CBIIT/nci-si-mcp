@@ -185,8 +185,6 @@ def _winners(np: Any, scores: Any, concepts: Any, kinds: Any, count: int) -> tup
 
 def _page_indices(np: Any, scores: Any, exact: Any, offset: int, limit: int) -> Any:
     count = min(offset + limit, len(scores))
-    if not count:
-        return np.empty(0, dtype=np.int64)
     partition = np.argpartition(scores, len(scores) - count)[-count:]
     threshold = scores[partition].min()
     above = np.flatnonzero(scores > threshold)

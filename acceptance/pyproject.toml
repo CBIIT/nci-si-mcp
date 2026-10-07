@@ -44,6 +44,8 @@ markers = [
 [tool.coverage.run]
 branch = true
 source = ["nci_si_acceptance"]
+# Renderer and report CLI tests execute in child interpreters.
+patch = ["subprocess"]
 
 [tool.coverage.report]
 fail_under = 90
