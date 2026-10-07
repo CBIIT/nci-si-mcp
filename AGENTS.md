@@ -11,7 +11,7 @@ acceptance suite it and its successors are measured by. Two Statements of Work b
 EVS v2.1 and caDSR v1.1. It is a prototype, not a production service. The server never returns
 caDSR or other upstream content it did not retrieve. Until NCI issues caDSR credentials,
 caDSR behavior is built and tested against fixtures crafted from the published contracts.
-The milestones and issues on GitHub (Phase 0 to 5) are the plan. README.md gives the current
+The milestones and issues on GitHub (Phases 0 to 6) are the plan. README.md gives the current
 status per tool group; QUICKSTART.md holds the usage details.
 
 Documentation, from short to detailed: `README.md` (what the repository is, who it is for, the
