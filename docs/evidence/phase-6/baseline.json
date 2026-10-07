@@ -1,0 +1,43 @@
+{
+  "purpose": "Phase 6 implementation comparison point; not furnished-suite approval",
+  "captured_on": "2026-10-07",
+  "source_commit": "bb50f91d5c034fbba37c69077e372b2d12450928",
+  "spec_git_tree": "fcd454f25cd7da30cff7ca06ec87d87ebd2d4cc3",
+  "suite": {
+    "version": "0.15.2.dev1+gbb50f91",
+    "fixture_set": "ncit_26.09d, recorded 2026-10-06",
+    "digest": "93c8490094d828486a3fcff27c9181cee2740cd1b2ae0f589e7b821e445e95c0"
+  },
+  "fixture_acceptance": {
+    "command": "prepared pdm run acceptance -n 4 --report=fixture.json",
+    "case_count": 944,
+    "outcomes": {
+      "passed": 944
+    },
+    "inventory_source": "acceptance/expected/fixture.json at source_commit",
+    "inventory_sha256": "875d74168e7b1c4c881696b8a0b542c46bc8f7398da6b9372b54c6ac9a513ef4",
+    "inventory_encoding": "UTF-8 json.dumps(sorted(nodeids), ensure_ascii=True, separators=(',', ':')); no newline",
+    "expected_file_sha256": "59612f50d2089536f98258d6ae942f3b89c0b4424ac46851b57105d56e229264",
+    "fresh_report_matches_expected": true
+  },
+  "server_tests": {
+    "command": "pdm run test",
+    "passed": 1414,
+    "statements": 5456,
+    "covered_lines": 5456,
+    "branches": 1386,
+    "covered_branches": 1385,
+    "missing_branches": 1,
+    "combined_coverage_percent": 99.98538439052909
+  },
+  "harness_selftests": {
+    "command": "env -u NCI_SI_ACCEPTANCE_PREPARE pdm run acceptance-selftest",
+    "passed": 901,
+    "combined_coverage_percent_rounded": 99.57
+  },
+  "limitations": [
+    "Offline fixture evidence; not live caDSR, model, identity-provider or production validation.",
+    "Initial sandbox runs failed to bind loopback sockets; successful full reruns had loopback permission.",
+    "No source, spec, acceptance or coverage configuration changed for these measurements."
+  ]
+}

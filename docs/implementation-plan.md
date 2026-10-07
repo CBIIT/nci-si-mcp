@@ -559,6 +559,7 @@ Each phase ends with the unit suite green, the acceptance suite's expected outco
 | **Furnished package** | §1.2: the tag and the Prototype Baseline Package, with the baseline run report against that commit, naming the tools whose tests have never passed against any implementation | the tag is on the commit the report ran against and both SOWs' package checklists are met (#3); cut when the owner decides, not before Phase 3 is done (*Project Plan* §7: "repository Phases 0–3 to the point where both modules yield a meaningful baseline report") |
 | **4 · Cross-domain** | §6 | cross-domain tools PASS; both release identities on every result |
 | **5 · Workflows, remote transport, audit** | §7, §3.8, §3.9 | workflow tools PASS; unified profile accepted under the specification's §4 |
+| **6 · SI architecture alignment, access control and assisted workflows** | §14: approved portable access contracts, conditional evaluation and integrations | approved behavior passes its tests; optional no-go/defer decisions remain explicit; documentation and release evidence match the delivered scope |
 
 Work proceeds in the order of the table above until award. What remains at the furnished commit is the contractors' work under the two Statements of Work, and the specification is what the Prototype Baseline Assessment measures the prototype against.
 
@@ -573,3 +574,27 @@ Work proceeds in the order of the table above until award. What remains at the f
 ## 13. Non-goals
 
 No NCIm vectorisation or local NCIm graph; no hosted vector database; no writes to any registry or terminology; no re-embedding or index operation after the period of performance; no implementation of upstream API changes — every upstream gap this specification works around is an entry in the upstream requirements package, and the workaround is removed when the gap closes.
+
+## 14. Phase 6: SI architecture alignment
+
+Added 7 October 2026; the historical *Updated* date at the top still identifies the original
+prototype analysis. Design credit: **Semantic Infrastructure (SI) team**, *MCP Architecture*,
+SI Team Meeting, 1 October 2026. The proposed MCP was not built; this codebase supersedes it.
+
+The [architecture decision](decisions/001-si-architecture-alignment.md) records the
+[approved portable contracts](https://github.com/CBIIT/nci-si-mcp/issues/176#issuecomment-6043097407),
+their activation issues, reserved acceptance mappings and separate deferred production decisions.
+It is a plan, not a replacement for active `spec/`; amendments, implementation, generated reference,
+acceptance tests and user-facing documentation land together in each owning issue.
+
+Use `milestone/phase-6` and the [issue checklist](https://github.com/CBIIT/nci-si-mcp/issues/175),
+one issue at a time: #176 contracts/evidence, #177 caller permissions and private responses,
+#178 portable secured HTTP, #179 client-baseline evaluation, #180 conditional ask pilot,
+#181 bounded wxMCP integration assessment, then #182 assurance and release. Issue PRs target
+the milestone; full review and independent mutation review precede its PR merge into main.
+
+Every executable behavior begins with a failing observable test, then the smallest correct
+implementation and a green refactor. Retain high line and branch coverage through useful
+boundary/error/concurrency assertions. Document new behavior in the same PR, including domain
+stories, examples and architecture/deployment changes. The #176 documentation-only change moves
+no expected acceptance outcomes and does not approve the separate furnished baseline.
