@@ -141,3 +141,8 @@ When CI passes on `main`, the release workflow tags that commit `vX.Y.Z` and cre
 release. Nothing else is needed: no file holds the version, and the workflow never commits to
 `main`. If a release is missing although `main` is green, start the Release workflow by hand
 (`gh workflow run release.yml`). Version 1.0.0 is tagged by hand.
+
+For the complete fixture ratchet, supply the furnished secured adapter explicitly:
+`NCI_SI_ACCEPTANCE_SECURITY_SERVER='python ../scripts/permissions_fixture.py'` alongside the
+index preparation environment. CI sets this for this checkout; successors must supply their
+own adapter. Without it the secured cases report NOT RUN, not a security pass.

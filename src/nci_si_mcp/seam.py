@@ -17,6 +17,7 @@ from .context import Context
 from .errors import InputValidationError, PlatformError, call_correlation_id
 from .evs import verify_release
 from .models import ProvenanceEnvelope, Truncation, release_ref, utc_now_iso
+from .permissions import require, require_operation
 from .release import ReleaseContext, resolve_evs_release, served_evs_release
 from .release_selection import implicit_selection, select
 from .ssis import NCIT_GRAPH, GraphIdentity
@@ -352,10 +353,12 @@ def get_concept_for_permissible_value(
     explicitly pinned mixed results a short public TTL.
     """
     element, value = _value_options(permissibleValueId, dataElementId, value, release)
+    require_operation("get_concept_for_permissible_value", {})
     with budgeted(current_budget() or Budget()):
         selected = _selected(context, release)
         graphs = _graphs(context, selected)
         version, code = _latest_value(context.ssis.get_permissible_values(element), value)
+        require("get_concept")
         raw = context.evs.get_concept(code, release=selected, include="minimal")
         if raw.get("code") != code:
             _malformed("concept identity", "evs")
@@ -545,6 +548,7 @@ def resolve_stored_value(
     unpinned-source content a short public TTL. All reads share the request budget.
     """
     _stored_options(conceptCode, commons, dataElementId)
+    require_operation("resolve_stored_value", {"commons": commons})
     with budgeted(current_budget() or Budget()):
         selected = _selected(context, release)
         result = (

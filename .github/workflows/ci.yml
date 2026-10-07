@@ -97,6 +97,7 @@ jobs:
       # report is a run that did not happen.
       - name: Run the suite against the fixtures
         env:
+          NCI_SI_ACCEPTANCE_SECURITY_SERVER: python ../scripts/permissions_fixture.py
           # The README's prepare step: it builds the interim NCIt index every server starts from.
           NCI_SI_ACCEPTANCE_PREPARE: 'nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")'
         run: |

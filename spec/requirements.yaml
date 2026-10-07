@@ -9,7 +9,7 @@
 
 # Protocol gates: once per server, before any tool test.
 P-1:
-  statement: tools/list names every tool of the profile under test, and no other.
+  statement: In trusted-local mode tools/list names every tool of the profile under test, and no other; secured selection is tested by X-25.
   basis: [M1.2, M1.5]
 P-2:
   statement: Every tool declares an outputSchema that is valid JSON Schema and covers the error record, admitting one and refusing one with a code outside its closed set or with no code.
@@ -21,7 +21,7 @@ P-4:
   statement: Tool names are verb-led, lowercase and underscore-separated.
   basis: [A2.1]
 P-5:
-  statement: tools/list, prompts/list, resources/list and resources/templates/list each carry a positive ttlMs and cacheScope public.
+  statement: In trusted-local mode tools/list, prompts/list, resources/list and resources/templates/list each carry a positive ttlMs and cacheScope public; secured hints override this under X-27.
   basis: [M2.1, M2.2]
 P-6:
   statement: tools/list is the same after content calls, a release-pinned EVS call among them, and while the platform is unavailable.
@@ -337,3 +337,14 @@ expand_cohort-1:
 harmonize_data_dictionary-1:
   statement: One upstream match call per column, its description as the entity's user tip; unmatched columns listed by name; each sample value aligned to the value meanings vmMatch gives; one registry state across all matches; without registryRelease the registry is unpinned, as X-21 reads it.
   basis: [harmonize_data_dictionary, data_element_match]
+
+# Approved caller-policy contracts (ADR labels AUTH-1 through AUTH-3).
+X-25:
+  statement: In secured mode each verified caller sees only permitted profile tools, prompts and resources; guessed targets are refused with permission_denied before restricted reads. The catalogue is stable for fixed authority.
+  basis: [M1.2, M1.6, M5.2, error]
+X-26:
+  statement: Compound operations preflight every argument-selected permission and recheck restricted producers before new work, including direct internal client paths; allowing a parent never grants a denied child.
+  basis: [M1.6, A6.0]
+X-27:
+  statement: Secured responses and denials are private and no-store; each request and continuation checks current policy, expired or unavailable policy denies, and concurrent principals cannot reuse another caller's authority or session release pin.
+  basis: [M1.6, M2.4, M2.6, A7.5]

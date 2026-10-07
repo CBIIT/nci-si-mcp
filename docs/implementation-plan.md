@@ -130,6 +130,7 @@ Implemented with the ten-value `ErrorCode` literal in `errors.py` and the `_ERRO
 | `bound_exceeded` | — | bound, limit, reached |
 | `capability_unavailable` | — | the capability |
 | `cursor_expired` | — | the cursor's release, the current one |
+| `permission_denied` | Missing, expired, unavailable or insufficient caller policy in secured mode | None; generic next step only |
 | `internal_error` | `startup_failed`, `no_active_index`, `index_incompatible`, `index_storage_error`, missing exclusion codes | `missingCodes` only for missing exclusions |
 
 Two rules. **An empty result is never an error**: a tool that matched nothing returns its normal shape with an empty collection and a complete provenance envelope. **A platform failure carried inside a `2xx` body is an error**: the HTTP client (§3.4) recognises the webMethods envelope (`apiResponse.type == "E"`), FHIR `OperationOutcome` with severity `error`, and an HTML body where JSON was requested, and raises `upstream_unavailable` before any tool sees the payload.

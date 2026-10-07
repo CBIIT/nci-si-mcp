@@ -163,6 +163,9 @@ def run_suite(port: int, socket_path: Path) -> int:
         "NCI_SI_ACCEPTANCE_URL": f"http://127.0.0.1:{port}/mcp",
         "NCI_SI_ACCEPTANCE_MODE": "fixture",
         "NCI_SI_ACCEPTANCE_PREPARED": "1",
+        "NCI_SI_ACCEPTANCE_SECURITY_SERVER": shlex.join(
+            [sys.executable, str(ROOT / "scripts/permissions_fixture.py")]
+        ),
         "NCI_SI_ACCEPTANCE_STATE_HOOK": command,
     }
     REPORT.unlink(missing_ok=True)

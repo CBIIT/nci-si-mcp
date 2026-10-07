@@ -12,6 +12,7 @@ from .caching import select_cache_hint
 from .cadsr import CDE_MATCH, VM_MATCH
 from .context import Context
 from .errors import InputValidationError, PlatformError
+from .permissions import require
 from .validation import (
     MatchedItemType,
     MatchStrictness,
@@ -199,12 +200,14 @@ def match_entities(
     size: int,
 ) -> tuple[list[list[dict[str, Any]]], dict[str, Any]]:
     """Read validated entities under the caller's registry state, retaining each group."""
+    require("match_data_elements")
     provenance = records._provenance(context, release, CDE_MATCH)
     groups = []
     responses: dict[str, dict[str, Any]] = {}
     for entity in inputs:
         key = json.dumps(entity, sort_keys=True)
         if key not in responses:
+            require("match_data_elements")
             responses[key] = context.cadsr.match_data_element(entity, headers)
         groups.append(_cde_matches(responses[key], entity["entity"], size, provenance))
     return groups, provenance
@@ -298,6 +301,7 @@ def match_values(
     context: Context, inputs: list[str], headers: dict[str, str], release: dict[str, str]
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Read validated values using the same state as the surrounding workflow."""
+    require("match_value_meanings")
     provenance = records._provenance(context, release, VM_MATCH)
     response = context.cadsr.match_value_meanings([{"name": value} for value in inputs], headers)
     return _vm_matches(response, inputs, provenance), provenance

@@ -8,7 +8,8 @@ The diagrams use Mermaid, rendered directly by GitHub. They follow the useful le
 
 The [Phase 6 architecture decision](docs/decisions/001-si-architecture-alignment.md) maps the
 Semantic Infrastructure team's proposal to this implementation and records approved future
-access contracts. Those additions remain pending; the diagrams below describe implemented behavior.
+access contracts. Portable caller enforcement is implemented; production identity integration
+remains pending. The [caller-permission flow](docs/caller-permissions.md) shows the opt-in boundary.
 
 | View | Question it answers |
 | --- | --- |
@@ -104,6 +105,8 @@ The registry derives adapter parameters from handler signatures; closed choices 
 | `container_entry.py` | Starts the same server with externally supplied assets, verifies the index and loads the model offline; startup failures name the asset and error class without library messages. It never builds or activates an index. | `context.py`, `embeddings.py`, `transport.py` |
 | `transport.py` | Stateful or stateless HTTP over the shared adapter; SDK authentication and scope hooks, Host/Origin admission, body cap, local readiness and token-free auth diagnostics. Sessions belong to one process. | `server.py`, optional MCP/Starlette/Uvicorn |
 | `server.py` | Registers profile-selected tools, five resource templates and two concrete resources from the registry on an `mcp` 2.x `MCPServer`, and flags error records as protocol errors. Middleware carries cache decisions from SDK worker threads into tool `_meta` and resource fields, without inspecting content or matching names. Undeclared successful responses fail. SDK hints cover lists/discovery. | `registry.py`, `caching.py`, optional `mcp` package |
+| `permissions.py` | Immutable request authority, capability checks and compound dependencies |
+| `server_permissions.py` | Caller-filtered MCP surfaces and session ownership |
 | `registry.py` | Declares each operation once with its handler, output union, optional cache default and adapter exposure. Handlers that own the complete cache policy omit the default. Derives input models, CLI arguments and MCP parameters from handler signatures; selects tools by profile and invokes all producers through one boundary. | `handlers.py`, `invocation.py`, `caching.py`, `results.py` |
 | `context.py` | Holds injectable settings, clients, index and embedding provider shared by a server or CLI invocation. | EVS client, local index, embeddings |
 | `audit.py` | Emits one redacted JSON completion record per invocation, classifies parameters from the registry, counts actual HTTP attempts in request-scoped state, and formats diagnostics. | Correlation context, standard-library logging and SHA-256 |
@@ -625,3 +628,9 @@ HTTP uses the same adapter and registry as stdio. SDK sessions and their implici
 belong to one process: stateful replicas require affinity, while stateless requests resolve
 omitted releases per call. [Transport details](docs/transport.md) cover reconnection, health,
 readiness and authentication injection.
+
+### Caller authority
+
+`permissions.py` scopes immutable caller authority across registry and nested producer calls.
+`server_permissions.py` filters MCP surfaces and protects invocation; `transport.py` applies
+HTTP no-store to secured responses. See the [security flow and capability map](docs/caller-permissions.md).

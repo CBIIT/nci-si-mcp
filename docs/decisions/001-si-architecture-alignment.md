@@ -1,10 +1,11 @@
 # SI architecture alignment
 
-**Status:** portable decisions D1–D5 approved; implementation pending.
+**Status:** D1–D3 portable enforcement implemented by #177; stock secured configuration and
+production identity integration remain #178. D4–D5 later integrations retain their gates.
 **Date:** 7 October 2026. **Delivery:** [Phase 6 plan, #175](https://github.com/CBIIT/nci-si-mcp/issues/175).
 The [owner decision on #176](https://github.com/CBIIT/nci-si-mcp/issues/176#issuecomment-6043097407)
 approves the [issue plan](https://github.com/CBIIT/nci-si-mcp/issues/176#issuecomment-6043062487).
-This record does not activate a new runtime contract; `spec/` remains the source of record.
+`spec/` remains the source of record; #177 activates the caller-policy and denial contracts.
 
 Design credit belongs to the **Semantic Infrastructure (SI) team**, *MCP Architecture*, SI Team
 Meeting, 1 October 2026, slides 2–4 (source: `MCP High Level Architecture SI Team Meeting - 20261001.pptx`).
@@ -17,7 +18,7 @@ implementation to migrate. Its single deployable and semantic core are retained.
 | --- | --- | --- |
 | Unified MCP and domain tools | `server.py`, `registry.py`, content and workflow modules | Implemented; reuse the same handlers and records. |
 | EVS, caDSR and Shared SI access | `evs.py`, `cadsr.py`, `ssis.py`, shared `http_client.py` | Implemented; caDSR fixture evidence is not live credentialed validation. |
-| Authentication, authorization and audit | SDK auth injection in `transport.py`; static profiles; `audit.py` | Caller policy and stock secured entry point approved for #177/#178, not yet implemented. |
+| Authentication, authorization and audit | SDK auth injection in `transport.py`; static profiles; `audit.py` | Portable caller policy implemented in #177; stock secured entry point remains #178. |
 | Focused MCP addresses | One `/mcp` address | D4 retains one address. No aliases without a demonstrated consumer need and decision. |
 | `ask(question)` planner | Deterministic workflows and client prompt templates | Conditional: measure the client baseline in #179; a server pilot needs its own decision in #180. |
 | wxMCP integration | Direct MCP is the conformance reference | Bounded evaluation in #181; no replacement or platform adoption approved. |
@@ -25,8 +26,9 @@ implementation to migrate. Its single deployable and semantic core are retained.
 
 ## Approved portable decisions
 
-These decisions are adopted for implementation, not claims about the current server. The
-owning issue changes behavior, `spec/`, its generated reference and acceptance tests together.
+The owning issue changes behavior, `spec/`, its generated reference and acceptance tests together.
+Portable enforcement and the permission_denied record are implemented in #177; later integrations
+remain subject to their separate decisions.
 
 | Decision | Approved contract | Activation |
 | --- | --- | --- |
@@ -71,7 +73,7 @@ D3 distinguishes a forbidden operation from bad input or an unavailable platform
 HTTP authentication failures remain SDK 401 responses; transport scope refusal uses the SDK's
 403 path. An authenticated operation denied by the module uses its structured `permission_denied`
 error, not an empty result. All paths preserve safe correlation/audit and reveal no credential.
-This record does not add the code to active output schemas ahead of #177.
+The #177 output schemas include this code.
 
 D2 governs actual response headers as well as MCP hints, including supported protocol versions
 without native hint fields. A private catalogue alone does not protect a cached tool/resource
@@ -113,8 +115,8 @@ credential delegation, weaker conformance or more than its approved budget.
 
 ## Acceptance mapping and evidence
 
-The following identifiers are reserved **in this decision record only**. Their owning issues
-activate requirements and executable assertions together; no active requirement is weakened or
+AUTH-1–AUTH-3 below are now executable as X-25–X-27; the other identifiers remain reserved
+**in this decision record only**. Their owning issues activate requirements and assertions together; no active requirement is weakened or
 marked failing merely to reserve a future feature. Each new behavioral case gets a domain story
 and remains covered by the generated catalogue's completeness check.
 
@@ -137,7 +139,10 @@ a furnished-suite approval, new tag or change to `acceptance/approved.yaml` (mil
 
 Implementation uses strict red/green/refactor TDD with observable assertions and retained red/green
 evidence in issue PRs. Inspect line and branch misses rather than relaxing exclusions or thresholds.
-This documentation-only issue expects no acceptance outcome movement. Documentation, generated
+#176 was documentation-only; #177 adds secured fixture cases without changing unrestricted outcomes. Documentation, generated
 specification, usage examples, diagrams and behavioral stories move with each implementing change.
 Mandatory security gaps block completion; optional integrations can complete as owner-approved
 deferred/off with their unexecuted checks visible. Neither a skip nor a fixture run proves live readiness.
+
+The ADR labels AUTH-1, AUTH-2 and AUTH-3 map to executable requirements X-25, X-26 and
+X-27 respectively. This preserves the established P-/X-/tool requirement-ID convention.

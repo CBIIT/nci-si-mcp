@@ -352,6 +352,7 @@ class Verifier:
 class HTTPAuthTest(ServerFixture):
     def assert_rejection(self, response, logged, expected):
         self.assertEqual(response.status_code, expected)
+        self.assertEqual(response.headers["cache-control"], "no-store")
         records = [json.loads(JsonFormatter().format(record)) for record in logged.records]
         auth_records = [r for r in records if r["event"] == "http_auth_rejected"]
         self.assertEqual([r["status"] for r in auth_records], [expected])

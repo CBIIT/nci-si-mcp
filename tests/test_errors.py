@@ -16,6 +16,7 @@ from nci_si_mcp.server import INSTRUCTIONS
 # The `code` values of the error record in spec/records.yaml.
 SPEC_CODES = {
     "invalid_request",
+    "permission_denied",
     "not_found",
     "release_not_available",
     "release_mismatch",

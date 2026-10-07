@@ -152,7 +152,7 @@ def test_the_specification_document_is_what_spec_renders(pytester, monkeypatch):
     on_disk = DOCUMENT.read_text(encoding="utf-8")
 
     assert on_disk == render(citations(collect_suite(pytester, monkeypatch)))
-    assert "| P-1 | tools/list names every tool" in on_disk
+    assert "| P-1 | In trusted-local mode tools/list names every tool" in on_disk
     assert (
         "*Why A5.7.* NCIt's exclusion relationships are exactly eight roles, R135 to R142."
         in on_disk

@@ -16,6 +16,7 @@ from .config import Settings, configure_logging
 from .context import Context
 from .errors import InputValidationError, is_error_record
 from .invocation import call
+from .permissions import AuthorityResolver
 from .registry import SPECS, ToolSpec, invoke
 from .release_selection import SessionRelease, session_scope
 from .results import Untruncated
@@ -33,7 +34,8 @@ INSTRUCTIONS = (
     "call is flagged as an error. Failures the server handles carry the error record "
     "{error: {code, message, details?, correlationId}}: code is one of invalid_request, "
     "not_found, release_not_available, release_mismatch, upstream_unavailable, timeout, "
-    "bound_exceeded, capability_unavailable, cursor_expired or internal_error, and message "
+    "bound_exceeded, capability_unavailable, cursor_expired, permission_denied or internal_error, "
+    "and message "
     "names the next step; correlationId echoes the _meta.correlationId of the call, or is "
     "generated. Invalid tool arguments use the same error record."
 )
@@ -45,6 +47,7 @@ def create_mcp(
     context: Context | None = None,
     auth: AuthSettings | None = None,
     token_verifier: TokenVerifier | None = None,
+    authority_resolver: AuthorityResolver | None = None,
 ):
     # Optional dependencies are imported only when building the MCP adapter.
     try:
@@ -64,6 +67,9 @@ def create_mcp(
     resolved_settings = settings or Settings.from_env()
     configure_logging(resolved_settings.log_level)
     context = context or Context(resolved_settings)
+    from .server_permissions import authorization
+
+    protected = authority_resolver is not None or auth is not None
     mcp = MCPServer(
         "nci-si-mcp",
         instructions=INSTRUCTIONS,
@@ -81,8 +87,13 @@ def create_mcp(
             CacheHint(ttl_ms=LONG_TTL_MS, scope="public"),
         ),
         middleware=[
+            _audit_tools(context, resolved_settings.profile, protected=protected),
+            *(
+                [authorization(resolved_settings.profile, authority_resolver, _session_state)]
+                if protected
+                else []
+            ),
             _cache_results,
-            _audit_tools(context, resolved_settings.profile),
             _validate_inputs(resolved_settings.profile),
             _release_session,
         ],
@@ -174,8 +185,9 @@ def _callback(
     return callback
 
 
-def _audit_tools(context: Context, profile: str) -> Callable[..., Any]:
+def _audit_tools(context: Context, profile: str, *, protected: bool = False) -> Callable[..., Any]:
     specs = {spec.name: spec for spec in SPECS if spec.name and spec.visible_in(profile)}
+    fields = {name: {} if protected else spec.audit for name, spec in specs.items()}
     hidden = secrets(context.settings.evs_license_key, context.settings.cadsr_credential)
 
     async def record_call(ctx: Any, call_next: Callable[[Any], Awaitable[Any]]) -> Any:
@@ -188,7 +200,7 @@ def _audit_tools(context: Context, profile: str) -> Callable[..., Any]:
         with audited(
             name if spec else compact(hashed(name)),
             arguments if isinstance(arguments, dict) else {"arguments": arguments},
-            spec.audit if spec else {},
+            fields.get(name, {}),
             hidden,
             (ctx.meta or {}).get("correlationId"),
         ) as record:
@@ -270,19 +282,22 @@ async def _cache_results(ctx: Any, call_next: Callable[[Any], Awaitable[Any]]) -
 
 
 async def _release_session(ctx: Any, call_next: Callable[[Any], Awaitable[Any]]) -> Any:
+    state = _session_state(ctx)
+    pin = None
+    if state is not None:
+        pin = state.setdefault("nci_si_implicit_release", SessionRelease())
+    with session_scope(pin):
+        return await call_next(ctx)
+
+
+def _session_state(ctx: Any) -> dict[str, Any] | None:
     # MCP 2 creates ServerSession per request. Its connection owns the validated
     # HTTP session, not the proxy or an untrusted Mcp-Session-Id header.
     connection = ctx.session._connection
     if ctx.request is None:
         # A stdio lifespan is one session, including the SDK's envelope protocol
         # which creates a fresh Connection for each request on that same stream.
-        state = ctx.lifespan_context
-    elif connection.session_id is not None:
-        state = connection.state
-    else:
-        state = None
-    pin = None
-    if state is not None:
-        pin = state.setdefault("nci_si_implicit_release", SessionRelease())
-    with session_scope(pin):
-        return await call_next(ctx)
+        return ctx.lifespan_context
+    if connection.session_id is not None:
+        return connection.state
+    return None

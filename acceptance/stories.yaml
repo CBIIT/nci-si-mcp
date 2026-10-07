@@ -477,3 +477,20 @@
   tests:
     tests/test_workflow.py::test_each_column_is_matched_once_and_the_unmatched_are_listed: Each column is submitted once with its description; Freezer Shelf Label remains unmatched and candidate records retain the registry state.
     tests/test_workflow.py::test_a_column_s_sample_values_align_to_the_value_meanings_vmmatch_gives: Patient Gender's sample-value alignments match the source's value-meaning and concept answers.
+
+- id: governed-caller-access
+  title: Use only the information my account is allowed to retrieve
+  goal: As a domain user, I want the server to show my permitted capabilities and protect information outside my access.
+  given: Two authenticated fixture callers have different EVS and caDSR permissions; the server retains upstream ownership of content and rights.
+  when: They discover tools, retrieve content, compose workflows, or lose permission while connected.
+  then: Each caller sees only its permitted surface, denied work makes no restricted upstream reads, policy changes take effect on the next request, and protected responses cannot be shared by an HTTP cache.
+  tests:
+    tests/test_permissions.py::test_each_caller_sees_only_its_permitted_tools_and_resources: Each account sees its own tools and resource templates; restricted prompts are absent.
+    tests/test_permissions.py::test_a_guessed_tool_is_refused_without_upstream_reads_or_sensitive_logs: Guessing a hidden tool does not retrieve content or expose the supplied value in logs.
+    tests/test_permissions.py::test_guessed_resources_and_prompts_cannot_bypass_permissions: A resource address or prompt name cannot bypass the same access rules.
+    tests/test_permissions.py::test_explicit_release_content_and_discovery_disable_shared_http_caching: Pinning a release does not make protected content or discovery safe for a shared cache.
+    tests/test_permissions.py::test_revoked_and_expired_policy_deny_the_next_request: A connected account cannot continue retrieving content after its permission is revoked or expires.
+    tests/test_permissions.py::test_allowed_workflows_cannot_read_denied_children: Permission to start a workflow does not grant its restricted child operations.
+    tests/test_permissions.py::test_concurrent_verified_callers_keep_separate_catalogues_and_results: Simultaneous EVS and caDSR users cannot inherit each other's access.
+    tests/test_permissions.py::test_grounding_checks_each_selected_child_before_any_read: Grounding checks every selected search, concept, join and stored-value dependency before retrieving anything.
+    tests/test_permissions.py::test_missing_policy_never_falls_back_to_trusted_local_access: An unavailable account policy produces a refusal rather than unrestricted local access.
