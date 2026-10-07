@@ -146,9 +146,11 @@ def serve(image: str, assets: Path) -> None:
         for line in (logs.stdout + logs.stderr).splitlines():
             json.loads(line)
     finally:
-        logs = docker("logs", name, check=False)
-        (ROOT / "tmp/container-smoke.log").write_text(logs.stdout + logs.stderr)
-        docker("rm", "-f", name, check=False)
+        try:
+            logs = docker("logs", name, check=False)
+            (ROOT / "tmp/container-smoke.log").write_text(logs.stdout + logs.stderr)
+        finally:
+            docker("rm", "-f", name, check=False)
 
 
 def retained_builds(image: str, assets: Path) -> None:

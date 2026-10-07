@@ -2,6 +2,7 @@ import json
 import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 from unittest.mock import patch
 
@@ -396,6 +397,19 @@ class StorageTest(IndexTestCase):
 
 
 class MigrationTest(IndexTestCase):
+    def test_legacy_migration_preserves_explicit_embedding_dimensions(self):
+        self.legacy_database([("26.06e", RAW_CONCEPTS[0])])
+        with closing(sqlite3.connect(str(self.path / "nci_si.sqlite3"))) as conn, conn:
+            payload = json.loads(conn.execute("SELECT payload FROM manifests").fetchone()[0])
+            # Migration retains the recorded identity; only a rebuild reconciles old vectors.
+            payload["embedding_dimensions"] = 768
+            conn.execute("UPDATE manifests SET payload = ?", (json.dumps(payload),))
+        index = LocalIndex(self.path)
+        manifest = index.get_active_manifest()
+        self.assertEqual(manifest.embedding_dimensions, 768)
+        self.assertTrue(manifest.needs_rebuild)
+        self.assertEqual(index.get_concept("C40704").raw, RAW_CONCEPTS[0])
+
     def test_a_second_opener_preserves_the_migration_completed_before_it_gets_the_lock(self):
         self.legacy_database([("26.06e", RAW_CONCEPTS[0])])
         connect, directory, completed = sqlite3.connect, self.path, []

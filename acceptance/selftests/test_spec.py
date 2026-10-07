@@ -215,6 +215,7 @@ def test_what_a_tool_states_of_its_arguments_and_items_names_what_it_takes_and_r
         ("get_concept_for_permissible_value", "value", {"permissibleValueId"}),
         ("get_concept_for_permissible_value", "permissibleValueId", {"dataElementId", "value"}),
         ("search_concepts", "query", set()),
+        ("list_terminologies", "code", set()),
     ],
 )
 def test_the_alternatives_of_a_parameter_are_those_given_in_its_place(tool, name, others):

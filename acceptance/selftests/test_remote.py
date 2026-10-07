@@ -15,15 +15,17 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from contextlib import suppress
+from contextlib import nullcontext, suppress
 from dataclasses import dataclass, replace
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from conftest import LICENCE_KEY, STAND_IN
 from restart_stub import stop
 
 from nci_si_acceptance import client
+from nci_si_acceptance import remote as remote_module
 from nci_si_acceptance.client import Target, open_remote_session, wait_for_endpoint
 from nci_si_acceptance.fixture_server import FixtureServer, FixtureSet
 from nci_si_acceptance.remote import StateHook, announcement, probe
@@ -472,6 +474,27 @@ def test_the_fixture_server_listens_where_it_is_told(stub):
 # ---- the checks before the first test, called directly
 
 PINNED = {"terminology": "ncit"}
+
+
+def test_a_profile_without_release_discovery_can_pass_the_probe(monkeypatch):
+    session = SimpleNamespace(
+        list_tools=lambda: SimpleNamespace(tools=[SimpleNamespace(name="get_form")])
+    )
+    monkeypatch.setattr(
+        remote_module, "open_remote_session", lambda *_args, **_kwargs: nullcontext(session)
+    )
+    upstream = FixtureServer(FixtureSet({}, {}))
+
+    assert probe("http://server.example/mcp", None, upstream, PINNED) is None
+    assert upstream.log() == []
+
+
+@pytest.mark.parametrize("settings", [{"url": "http://server.example/mcp"}, {"state_hook": "true"}])
+def test_a_state_hook_requires_both_a_remote_endpoint_and_a_command(tmp_path, settings):
+    target = Target("fixture", [], **settings)
+
+    with pytest.raises(ValueError, match="needs a remote server and the operator's hook"):
+        StateHook(target, FixtureServer(FixtureSet({}, {})), tmp_path / "hook.log")
 
 
 def test_the_operator_is_told_the_urls_the_server_reaches_the_fixture_server_by(stub):

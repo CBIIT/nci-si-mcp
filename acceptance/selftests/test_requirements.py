@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+from nci_si_acceptance import document
 from nci_si_acceptance.document import DOCUMENT, GROUPS, render
 from nci_si_acceptance.requirements import citations, load_requirements, never_runs, problems
 from nci_si_acceptance.spec import PROMPTS, REQUIRED_TOOLS, RESOURCES, TOOLS, is_basis
@@ -193,6 +194,17 @@ def test_the_command_writes_the_rendered_specification(tmp_path):
 
     assert completed.returncode == 0, completed.stdout + completed.stderr
     assert output.read_text(encoding="utf-8") == DOCUMENT.read_text(encoding="utf-8")
+
+
+def test_failed_collection_cannot_replace_the_existing_specification(tmp_path, monkeypatch):
+    output = tmp_path / "specification.md"
+    output.write_text("existing specification\n", encoding="utf-8")
+    monkeypatch.setattr(
+        document.pytest, "main", lambda *args, **kwargs: pytest.ExitCode.USAGE_ERROR
+    )
+
+    assert document.main(["--output", str(output)]) == pytest.ExitCode.USAGE_ERROR
+    assert output.read_text(encoding="utf-8") == "existing specification\n"
 
 
 def test_the_required_tools_are_the_twenty_nine_of_four_groups_each_rendered():

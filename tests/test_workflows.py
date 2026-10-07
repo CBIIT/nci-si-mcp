@@ -12,6 +12,7 @@ from nci_si_mcp.bounds import Budget, current_budget
 from nci_si_mcp.caching import cache_call
 from nci_si_mcp.config import Settings
 from nci_si_mcp.context import Context
+from nci_si_mcp.http_client import UpstreamTooLargeError
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.release_selection import SessionRelease, session_scope
 from test_bounds import BudgetEVS
@@ -251,6 +252,30 @@ class GroundTest(WorkflowFixture):
 
 
 class CohortTest(WorkflowFixture):
+    def test_unread_exclusions_keep_cohort_incomplete_even_when_children_are_complete(self):
+        original = self.evs.get_concepts_by_codes
+
+        def read(codes, release, include):
+            if "roles" in include.split(","):
+                raise UpstreamTooLargeError("Role response exceeds the limit")
+            return original(codes, release, include)
+
+        with patch.object(self.evs, "get_concepts_by_codes", side_effect=read):
+            result = self.call("expand_cohort", conceptCode="C1")
+        self.assertEqual(set(result["codes"]), {"C1", "C2", "C3", "C4"})
+        self.assertEqual(result["excluded"], [])
+        self.assertEqual(
+            result["truncation"],
+            {
+                "occurred": True,
+                "bound": "upstream_cap",
+                "limit": self.evs.max_response_bytes,
+                "reached": self.evs.max_response_bytes,
+                "omitted": 1,
+                "exact": False,
+            },
+        )
+
     def setUp(self):
         super().setUp()
         self.evs.concepts = {

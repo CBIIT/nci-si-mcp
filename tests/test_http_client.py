@@ -10,6 +10,7 @@ import time
 import traceback
 import unittest
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from email.utils import formatdate
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import ClassVar
@@ -191,6 +192,28 @@ class RetryTest(ServerTestCase):
 
 
 class RetryAfterTest(ServerTestCase):
+    def test_obsolete_http_dates_use_utc_and_honor_the_named_delay(self):
+        for value, day in (
+            ("Sun Nov  6 08:49:37 1994", 6),
+            ("Wed Nov 16 08:49:37 1994", 16),
+            ("Sunday, 06-Nov-94 08:49:37 GMT", 6),
+        ):
+            with self.subTest(value=value), patch("nci_si_mcp.http_client.datetime") as clock:
+                clock.now.return_value = datetime(1994, 11, day, 8, 49, 7, tzinfo=UTC)
+                server = self.serve(Reply(429, headers={"Retry-After": value}))
+                self.assertEqual(self.client(server).get_json("/x"), {"ok": True})
+                self.assertEqual(self.waits, [30.0])
+                self.assertEqual(len(server.seen), 2)
+
+    def test_a_retry_date_without_a_timezone_uses_backoff_instead_of_crashing(self):
+        for value in ("Thu, 01 Jan 2099 00:00:00", "Thu, 01 Jan 2099 00:00:00 -0000"):
+            with self.subTest(value=value):
+                server = self.serve(Reply(429, headers={"Retry-After": value}))
+                result = self.client(server).get_json("/x")
+                self.assertEqual(result, {"ok": True})
+                self.assertEqual(self.waits, [0.25])
+                self.assertEqual(len(server.seen), 2)
+
     def test_a_429_is_asked_again_after_the_seconds_it_names(self):
         server = self.serve(Reply(429, headers={"Retry-After": "7"}))
 

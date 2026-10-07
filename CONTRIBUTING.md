@@ -32,8 +32,30 @@ pdm run pre-commit install     # run the gates on every commit
 | `pdm run spec-render` | Regenerate [docs/specification.md](docs/specification.md) from `spec/`, after any change there |
 | `pandoc -f gfm docs/specification.md -o specification.docx` | The Word copy of the specification, a build product: never committed or edited |
 
-The tests are `unittest.TestCase` classes, run by pytest. None contacts EVS: `FakeEVS` in
-`tests/fakes.py` stands in for the client, and the client's own tests replace `urlopen`.
+The server tests are `unittest.TestCase` classes, run by pytest. They are offline:
+`tests/fakes.py` supplies shared doubles, and client integration tests use local HTTP fixtures.
+The acceptance suite and its self-tests use pytest directly.
+
+## Test levels
+
+Put each regression at the lowest level that can reproduce it, then use broader tests to
+check the connections between components. This follows the
+[test pyramid](https://testing.googleblog.com/2015/04/just-say-no-to-more-end-to-end-tests.html);
+parameterized contract cases do not need an arbitrary ratio of test counts.
+
+| Level | What exercises it here |
+| --- | --- |
+| Unit | Parsers, validation, ranking, truncation and report verdicts in `tests/` and `acceptance/selftests/` |
+| Integration | Real SQLite migrations/builds/rollback, HTTP retries against local servers, and owned subprocess cleanup |
+| API | The real MCP client in `tests/test_server.py`; HTTP authentication, sessions and health in `tests/test_transport.py` |
+| End to end | Prepared fixture acceptance through the real stdio server; `pdm run acceptance-http` through a listening HTTP server; the CI container smoke through the built image, external model/index, readiness and graceful shutdown |
+
+Coverage includes lines, branches and Python subprocesses for the server and harness suites.
+It identifies execution gaps, not missing assertions: use a targeted mutation when an
+assertion's sensitivity is uncertain. Image-only checks run in the container CI job. The
+fixtures verify contracts, including crafted caDSR responses; they do not verify deployment
+against live caDSR without issued credentials. The separate live acceptance workflow checks
+upstream drift where credentials and services are available.
 
 ## Standards
 

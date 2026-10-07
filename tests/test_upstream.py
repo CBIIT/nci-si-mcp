@@ -71,6 +71,16 @@ class ParseUpstreamJsonTest(unittest.TestCase):
                 outcome = {**OUTCOME, "issue": issues}
                 self.assertIn("OperationOutcome", self.failure(body(outcome)))
 
+    def test_malformed_sibling_severity_does_not_hide_a_fhir_error(self):
+        for malformed in ([], {}, ["error"], {"severity": "fatal"}):
+            with self.subTest(severity=malformed):
+                malformed_issue = {"severity": malformed}
+                for severity in ("error", "fatal"):
+                    outcome = {**OUTCOME, "issue": [malformed_issue, {"severity": severity}]}
+                    self.assertIn("OperationOutcome", self.failure(body(outcome)))
+                without_error = {**OUTCOME, "issue": [malformed_issue]}
+                self.assertEqual(parse_upstream_json(body(without_error), "EVS /x"), without_error)
+
     def test_a_fhir_operation_outcome_without_an_error_is_content(self):
         for issues in ([{"severity": "warning"}], [], "oops", [7]):
             with self.subTest(issues=issues):

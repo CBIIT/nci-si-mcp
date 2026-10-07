@@ -126,6 +126,8 @@ pythonpath = ["tests", "scripts/validation"]
 [tool.coverage.run]
 branch = true
 source = ["nci_si_mcp"]
+# CLI and transport tests launch Python children; include their executed code.
+patch = ["subprocess"]
 
 # The checked minimum; standard 3 in CONTRIBUTING.md gives the aim and the reason for the gap.
 [tool.coverage.report]

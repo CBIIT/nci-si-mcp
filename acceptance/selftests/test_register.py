@@ -1,5 +1,6 @@
 """The register of request forms is generated from the manifest and is current."""
 
+import json
 import shutil
 
 import pytest
@@ -16,6 +17,22 @@ def test_the_register_on_disk_is_what_the_manifest_generates():
     on_disk = {path.name: path.read_text(encoding="utf-8") for path in REGISTER.glob("*.md")}
 
     assert on_disk == VIEWS
+
+
+def test_an_empty_recording_has_no_request_table_that_implies_evidence(tmp_path):
+    manifest = {"evs": {"release": "ncit_26.09d"}, "record": {"requests": []}}
+    (tmp_path / "manifest.yaml").write_text(yaml.safe_dump(manifest), encoding="utf-8")
+    recorded = tmp_path / "recorded" / "evs"
+    recorded.mkdir(parents=True)
+    (recorded / "terminologies.json").write_text(
+        json.dumps({"response": {"body": []}}), encoding="utf-8"
+    )
+
+    views = render(tmp_path)
+
+    assert set(views) == set(VIEWS)
+    assert all(section(view, "## Requests") == ["", "None yet.", ""] for view in views.values())
+    assert "## Query texts" not in views["ssis.md"]
 
 
 def test_every_form_names_its_operation_and_why_it_has_this_form():

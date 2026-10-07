@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import random
+import re
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -186,6 +187,13 @@ def _retry_after_seconds(value: str | None) -> float | None:
         when = parsedate_to_datetime(value)
     except TypeError, ValueError:
         return None
+    if when.tzinfo is None:
+        # HTTP's obsolete asctime form implies UTC (RFC 9110 section 5.6.7).
+        # Other zone-less email dates are not HTTP dates.
+        asctime = r"[A-Z][a-z]{2} [A-Z][a-z]{2} [ 0-9][0-9] [0-9]{2}:[0-9]{2}:[0-9]{2} [0-9]{4}"
+        if not re.fullmatch(asctime, value):
+            return None
+        when = when.replace(tzinfo=UTC)
     return max(0.0, (when - datetime.now(UTC)).total_seconds())
 
 
