@@ -67,6 +67,9 @@ Portable [caller permissions](docs/caller-permissions.md) and the
 policy checks. The default remains trusted-local; production
 identity-provider integration is not enabled.
 
+The [assisted-task evaluation](docs/assisted-evaluation.md) measures deterministic
+fixture workflows. No internal LLM or server-side `ask` capability is enabled.
+
 The [validation and benchmark evidence](docs/benchmark.md) separates fixture acceptance,
 live protocol coverage and representative live tool measurements. caDSR credentialed content
 remains contract-fixture evidence until credentials are issued. The

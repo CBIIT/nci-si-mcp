@@ -99,8 +99,9 @@ must leave retrieved evidence unchanged and clearly separate generation from ret
 result is computed: **0/private even with an explicit release**, with protected HTTP no-store;
 child-call cache hints cannot overwrite this. No ask tool is added to discovery by this record.
 
-#179 measures a domain-reviewed, held-out task set against deterministic and external-client
-baselines. Pre-register success, evidence support, correct identities/releases, abstention,
+#179 delivers an [offline fixture baseline](../assisted-evaluation.md); fresh independent
+domain review and actual external-model planning remain unmeasured. The target evaluation
+requires a domain-reviewed, held-out task set. Pre-register success, evidence support, correct identities/releases, abstention,
 request bounds, failures/incomplete runs, latency, tokens and cost before measurement. The
 baseline can establish an unmet need, not server-side superiority. #180 needs paired candidate
 evidence under comparable models, data, releases and budgets before shipping. Offline model
