@@ -21,7 +21,7 @@ implementation to migrate. Its single deployable and semantic core are retained.
 | Authentication, authorization and audit | SDK authentication and policy, required HTTP entry point, `audit.py` | Portable implementation in #177/#178; production identity remains deferred/off. |
 | Focused MCP addresses | One `/mcp` address | D4 retains one address. No aliases without a demonstrated consumer need and decision. |
 | `ask(question)` planner | Deterministic workflows and client prompt templates | Conditional: measure the client baseline in #179; a server pilot needs its own decision in #180. |
-| wxMCP integration | Direct MCP is the conformance reference | Bounded evaluation in #181; no replacement or platform adoption approved. |
+| wxMCP integration | Direct MCP is the conformance reference | [Versioned desk assessment](../wxmcp-assessment.md) in #181; runtime checks unexecuted, defer recommended, owner disposition pending. |
 | Protocol DB | No implemented client or published contract used here | Deferred until contracts, access and scope exist. |
 
 ## Approved portable decisions

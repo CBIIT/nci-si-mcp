@@ -6,6 +6,9 @@ index operations and the original EVS commands.
 The diagrams use Mermaid, rendered directly by GitHub. They follow the useful levels of the
 [C4 model](https://c4model.com/diagrams), with sequence, lifecycle and data views where needed.
 
+The [wxMCP desk assessment](docs/wxmcp-assessment.md) records version-specific integration
+gaps and unexecuted checks; it adds no gateway or runtime dependency.
+
 The [Phase 6 architecture decision](docs/decisions/001-si-architecture-alignment.md) maps the
 Semantic Infrastructure team's proposal to this implementation and records approved future
 access contracts. Portable caller enforcement is implemented; production identity integration
