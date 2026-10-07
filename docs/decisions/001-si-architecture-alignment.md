@@ -1,7 +1,7 @@
 # SI architecture alignment
 
-**Status:** D1–D3 portable enforcement implemented by #177; stock secured configuration and
-production identity integration remain #178. D4–D5 later integrations retain their gates.
+**Status:** D1–D3 portable enforcement implemented by #177; #178 adds required HTTP configuration
+and identity binding. Production identity remains deferred/off; D5 integrations retain their gates.
 **Date:** 7 October 2026. **Delivery:** [Phase 6 plan, #175](https://github.com/CBIIT/nci-si-mcp/issues/175).
 The [owner decision on #176](https://github.com/CBIIT/nci-si-mcp/issues/176#issuecomment-6043097407)
 approves the [issue plan](https://github.com/CBIIT/nci-si-mcp/issues/176#issuecomment-6043062487).
@@ -18,7 +18,7 @@ implementation to migrate. Its single deployable and semantic core are retained.
 | --- | --- | --- |
 | Unified MCP and domain tools | `server.py`, `registry.py`, content and workflow modules | Implemented; reuse the same handlers and records. |
 | EVS, caDSR and Shared SI access | `evs.py`, `cadsr.py`, `ssis.py`, shared `http_client.py` | Implemented; caDSR fixture evidence is not live credentialed validation. |
-| Authentication, authorization and audit | SDK auth injection in `transport.py`; static profiles; `audit.py` | Portable caller policy implemented in #177; stock secured entry point remains #178. |
+| Authentication, authorization and audit | SDK authentication and policy, required HTTP entry point, `audit.py` | Portable implementation in #177/#178; production identity remains deferred/off. |
 | Focused MCP addresses | One `/mcp` address | D4 retains one address. No aliases without a demonstrated consumer need and decision. |
 | `ask(question)` planner | Deterministic workflows and client prompt templates | Conditional: measure the client baseline in #179; a server pilot needs its own decision in #180. |
 | wxMCP integration | Direct MCP is the conformance reference | Bounded evaluation in #181; no replacement or platform adoption approved. |

@@ -85,6 +85,13 @@ def create_http_app(
     from starlette.responses import JSONResponse
     from starlette.routing import Route
 
+    if settings.http_auth_mode == "required":
+        from .http_auth import configured_auth
+
+        integration = configured_auth(settings)
+        auth = integration.auth
+        token_verifier = integration.token_verifier
+        authority_resolver = integration.authority_resolver
     context = context or Context(settings)
     mcp = create_mcp(
         settings,

@@ -58,6 +58,44 @@ class SecuredServer:
         )
 
 
+@pytest.mark.requirement("X-28")
+@pytest.mark.parametrize(
+    "headers",
+    [
+        {},
+        {"Authorization": "Bearer not-a-valid-token"},
+        {"X-Forwarded-User": "evs", "X-Forwarded-Tenant": "tenant"},
+    ],
+    ids=["missing", "invalid", "spoofed"],
+)
+def test_unauthenticated_and_spoofed_callers_cannot_enter_mcp(secured_server, upstream, headers):
+    response = httpx2.post(
+        secured_server.endpoint,
+        headers=headers,
+        json={
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/list",
+        },
+    )
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.headers["cache-control"] == "no-store"
+    assert "www-authenticate" in response.headers
+    assert upstream.log() == []
+
+
+@pytest.mark.requirement("X-28")
+def test_public_probes_reveal_only_status_and_reject_an_untrusted_host(secured_server):
+    base = secured_server.endpoint.removesuffix("/mcp")
+    for path, expected in (("/health", "ok"), ("/ready", "ready")):
+        response = httpx2.get(base + path)
+        assert response.status_code == HTTPStatus.OK
+        assert response.json() == {"status": expected}
+        assert response.headers["cache-control"] == "no-store"
+        refused = httpx2.get(base + path, headers={"Host": "untrusted.example"})
+        assert refused.status_code == HTTPStatus.MISDIRECTED_REQUEST
+
+
 def _port():
     with socket.socket() as listener:
         listener.bind(("127.0.0.1", 0))

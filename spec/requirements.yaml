@@ -348,3 +348,6 @@ X-26:
 X-27:
   statement: Secured responses and denials are private and no-store; each request and continuation checks current policy, expired or unavailable policy denies, and concurrent principals cannot reuse another caller's authority or session release pin.
   basis: [M1.6, M2.4, M2.6, A7.5]
+X-28:
+  statement: Governed HTTP rejects missing or invalid authentication and untrusted forwarded identity before MCP execution. Public health and readiness disclose status only, enforce Host admission, and forbid response caching. Required authentication cannot silently start without its approved integration.
+  basis: [M1.6, M2.6, A6.0]

@@ -8,6 +8,7 @@ import json
 import os
 from dataclasses import replace
 from pathlib import Path
+from time import time
 
 import uvicorn
 from mcp.server.auth.middleware.auth_context import get_access_token
@@ -15,6 +16,7 @@ from mcp.server.auth.provider import AccessToken
 from mcp.server.auth.settings import AuthSettings
 
 from nci_si_mcp.config import Settings
+from nci_si_mcp.http_auth import HTTPAuthIntegration
 from nci_si_mcp.permissions import Authority, Principal
 from nci_si_mcp.transport import create_http_app
 
@@ -38,6 +40,7 @@ class FixturePolicy:
             claims={"iss": "https://fixture.invalid"},
             scopes=["mcp"],
             resource=self.resource,
+            expires_at=int(time()) + 300,
         )
 
     async def resolve(self) -> Authority | None:
@@ -55,13 +58,9 @@ class FixturePolicy:
         )
 
 
-def main() -> None:
-    settings = Settings.from_env()
+def integration(settings: Settings) -> HTTPAuthIntegration:
     if settings.upstream_mode != "fixture":
         raise RuntimeError("This test adapter requires fixture upstreams")
-    settings = replace(
-        settings, http_host="127.0.0.1", http_port=int(os.environ["NCI_SI_TEST_HTTP_PORT"])
-    )
     resource = f"http://127.0.0.1:{settings.http_port}/mcp"
     policy = FixturePolicy(Path(os.environ["NCI_SI_TEST_AUTHORITY_FILE"]), resource)
     auth = AuthSettings.model_validate(
@@ -72,9 +71,18 @@ def main() -> None:
             "validate_token_resource": True,
         }
     )
-    app = create_http_app(
-        settings, auth=auth, token_verifier=policy, authority_resolver=policy.resolve
+    return HTTPAuthIntegration(auth, policy, policy.resolve)
+
+
+def main() -> None:
+    settings = replace(
+        Settings.from_env(),
+        http_host="127.0.0.1",
+        http_port=int(os.environ["NCI_SI_TEST_HTTP_PORT"]),
+        http_auth_mode="required",
+        http_auth_factory="permissions_fixture:integration",
     )
+    app = create_http_app(settings)
     uvicorn.run(
         app,
         host="127.0.0.1",

@@ -109,17 +109,18 @@ claim that upstream services are currently reachable.
 
 ## Authentication and authorization hooks
 
-The default is unauthenticated. An integrator supplies the NCI-approved mechanism through
-`transport.create_http_app(settings, auth=..., token_verifier=...)`: these are the SDK's
-`AuthSettings` and `TokenVerifier`, with required scopes enforced before MCP dispatch. The SDK
-also checks the authenticated principal against the owner of a known session. This prototype
-does not choose a production identity provider or store a transport credential in configuration.
+The local default is trusted-local. The [required-auth entry point](governed-http.md) loads an
+operator-installed integration with SDK `AuthSettings`, `TokenVerifier` and a caller-policy
+resolver. It refuses startup without all three and binds policy to verified token identity.
+The SDK enforces audience and required scopes before MCP dispatch; session ownership also
+includes the applicable tenant. Embedders can supply these collaborators to `create_http_app`.
+This prototype does not choose a production identity provider or store a transport credential.
 
 Missing/invalid credentials return HTTP 401; insufficient scope returns HTTP 403. Refused
 requests never reach the registry or emit a tool completion audit containing caller content.
 They emit one `http_auth_rejected` JSON diagnostic with the status, without the token or body.
-The eventual production security configuration is required before public exposure. Consumer
-audit integration and its acceptance evidence follow in #41.
+Production security approval is required before public exposure. Completion audit remains in
+the shared invocation boundary; auth refusal diagnostics contain neither token nor body.
 
 ## Reproducing the remote fixture gate
 
