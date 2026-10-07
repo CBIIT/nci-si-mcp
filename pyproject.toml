@@ -115,6 +115,7 @@ acceptance-craft = "python -m nci_si_acceptance.craft"
 acceptance-expected = "python -m nci_si_acceptance.expected"
 acceptance-status = "python -m nci_si_acceptance.status"
 acceptance-register = "python -m nci_si_acceptance.register"
+acceptance-stories = "python -m nci_si_acceptance.stories"
 acceptance-index-codes = "python -m nci_si_acceptance.suite"
 spec-render = "python -m nci_si_acceptance.document"
 

@@ -1,0 +1,479 @@
+- id: discover-tools
+  title: Discover a dependable set of operations
+  goal: As an application designer, I want a clear and stable list of supported operations so users are not offered actions the service cannot perform.
+  given: An application connects using the EVS, caDSR or unified profile selected for the run.
+  when: It asks which tools exist, what their inputs mean and whether they modify data.
+  then: The list matches the profile, uses the agreed names and arguments, describes supported behaviour only, and stays stable after content calls and during an upstream outage.
+  tests:
+    tests/test_protocol.py::test_tools_list_names_the_tools_of_the_profile_and_no_other: The available tool names are exactly those of the selected profile.
+    tests/test_protocol.py::test_no_description_holds_placeholder_or_debug_text: Tool and schema descriptions contain no unfinished or debugging text.
+    tests/test_protocol.py::test_no_description_or_schema_shows_what_the_tool_does_not_offer: Descriptions and examples do not advertise options that the specification excludes.
+    tests/test_protocol.py::test_tool_names_are_verb_led_lowercase_and_underscore_separated: Names follow the common action-led naming convention.
+    tests/test_protocol.py::test_tools_list_is_the_same_after_a_content_call: Retrieving content does not change the advertised tool definitions.
+    tests/test_protocol.py::test_tools_list_is_the_same_while_the_platform_is_unavailable: A source outage does not make tools disappear or change their definitions.
+    tests/test_protocol.py::test_every_tool_is_annotated_read_only_idempotent_and_open_world: Tools declare that they read external data, do not destroy it, and are safe to repeat.
+    tests/test_protocol.py::test_each_tool_takes_the_parameters_the_specification_names: Input names and which inputs are mandatory match the specification.
+
+- id: interpretable-answers
+  title: Receive answers and errors an application can interpret
+  goal: As an application designer, I want predictable answer structures so that a domain user sees the correct result or explanation.
+  given: Each tool declares the structure of its successful answers and errors.
+  when: The application receives a normal answer or provokes an upstream failure.
+  then: Both responses follow the declared structure, and the declaration admits valid errors while rejecting malformed ones.
+  tests:
+    tests/test_protocol.py::test_every_output_schema_admits_the_error_record_and_refuses_a_malformed_one: Every tool has a valid result schema that accepts the defined errors but rejects an unknown or missing error code.
+    tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema: Actual successful results conform to each tool's declared result structure.
+    tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema: Actual failure results conform to that structure too.
+    tests/test_crosscutting.py::test_a_result_is_an_object: The answer is a named record rather than an unlabelled list or scalar.
+
+- id: prompts-and-resources
+  title: Use guided tasks and directly addressable records
+  goal: As a domain user working through an MCP application, I want task guidance and reusable record addresses that agree with the tools.
+  given: The profile advertises prompts, fixed resources and parameterized resource addresses.
+  when: The application lists them, asks for a prompt, or reads a record through its address.
+  then: The offered guidance uses the correct tools in the stated order; records agree with their corresponding tool on identity and release and carry provenance and appropriate reuse hints.
+  tests:
+    tests/test_protocol.py::test_prompts_list_names_the_prompts_of_the_profile_with_their_arguments: The listed prompts and their required inputs match the profile's specification.
+    tests/test_protocol.py::test_a_prompt_returns_messages_naming_the_tools_it_states_and_only_tools_of_the_profile: Prompt instructions are nonempty and name the stated, available tools in the stated order.
+    tests/test_protocol.py::test_resources_list_the_concrete_resources_and_templates_list_the_templates_of_the_profile: The resource and address-template lists match the profile exactly.
+    tests/test_protocol.py::test_a_uri_no_resource_or_template_matches_is_an_error_and_never_content: An address outside the supported resource forms produces an error, not invented content.
+    tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer: Reading each resource gives the declared data format and agrees with its tool on identity and, where applicable, release.
+    tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record: Resource content identifies its source and retrieval time, including the unpinned caDSR registry state.
+    tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds: Each resource carries reuse duration and sharing rules appropriate to its content.
+    tests/test_protocol.py::test_the_index_manifest_states_what_the_index_holds: The index description identifies its concept count, embedding configuration, build time and provenance.
+
+- id: trace-an-answer
+  title: Trace an answer back to its source
+  goal: As a data steward, I want to establish where each answer came from and how related concepts were reached.
+  given: A call returns content directly or by following terminology relationships.
+  when: I inspect the answer's provenance and the request identifier supplied by my application.
+  then: Source, retrieval time and method are available, traversal explains its route, upstream attribution fields are preserved, and the request identifier follows the call through the upstream systems and back.
+  tests:
+    tests/test_protocol.py::test_a_correlation_identifier_goes_upstream_and_comes_back: The caller's correlation identifier appears on every upstream request and in the returned provenance.
+    tests/test_crosscutting.py::test_every_item_carries_its_provenance: Every returned item has the required source, release, retrieval time and delivery information.
+    tests/test_crosscutting.py::test_an_item_reached_by_traversal_says_how: Related items identify depth, relationship, direction and polarity, including genuinely traversed items.
+    tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them: Codes have their terminology stated separately instead of embedding a prefix or a web address.
+    tests/test_crosscutting.py::test_what_the_platform_says_of_an_item_s_origin_is_passed_through: Origin fields supplied by the source are retained unchanged.
+
+- id: choose-release
+  title: Choose the terminology release deliberately
+  goal: As a terminology curator, I want the release I requested so that an unrelated update cannot silently change my evidence.
+  given: The source may identify both weekly and monthly releases as current, or may no longer serve a requested release.
+  when: I resolve a channel or request content at a particular release.
+  then: Resolution follows the channel tag, every item names the requested release, and missing, ambiguous or mismatched identity produces an error instead of a substitute answer.
+  tests:
+    tests/test_evs.py::test_a_channel_s_release_is_the_row_its_tag_names: Monthly and weekly each select their own tagged release even when the other appears first.
+    tests/test_evs.py::test_a_channel_whose_query_names_two_releases_fails_closed: Two releases claiming the same channel produce an error naming both candidates.
+    tests/test_evs.py::test_a_resolved_release_is_never_cached: Discovery is marked for immediate refresh rather than reuse as a cached current release.
+    tests/test_crosscutting.py::test_every_item_carries_the_release_requested: Each item identifies the release selected for the call.
+    tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed: An unserved release returns the specified availability or mismatch error and no substitute content.
+    tests/test_crosscutting.py::test_content_of_another_release_fails_closed: Content identifying a different release is rejected.
+
+- id: keep-session-release
+  title: Keep terminology consistent within a session
+  goal: As an analyst, I want related calls to use a consistent implicit NCIt release while retaining the ability to request another release explicitly.
+  given: A session has selected its first implicit release, and the source's current release can change later.
+  when: I make further calls, including an explicit release override, or the held release is withdrawn.
+  then: Implicit calls keep the session's release; an explicit override affects only its own call; withdrawal is reported without silently adopting the new release.
+  tests:
+    tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release: A call omitting the release identifies the resolved NCIt release in its answer.
+    tests/test_release_session.py::test_a_session_keeps_its_first_implicit_release_across_an_explicit_override: The first implicit release survives an explicit override and a source update.
+    tests/test_release_session.py::test_a_withdrawn_session_release_fails_without_switching_to_the_new_release: Withdrawal of the held release produces an error rather than a fresh implicit selection.
+
+- id: reuse-content
+  title: Reuse stable content without sharing private computed answers
+  goal: As an application designer, I want reuse instructions that preserve freshness and keep caller-specific computed results private.
+  given: Discovery lists, pinned terminology content, unpinned registry content and computed matches have different freshness needs.
+  when: The application reads the result's cache duration and sharing scope.
+  then: Stable lists and pinned content allow public reuse, registry content follows its shorter policy, and computed matching results are private and not reusable from a cache.
+  tests:
+    tests/test_protocol.py::test_each_list_may_be_cached_and_shared: Tool, prompt, resource and template lists carry positive reuse durations and public scope.
+    tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached: Explicitly pinned content permits positive-duration public reuse.
+    tests/test_crosscutting.py::test_a_cadsr_result_is_cached_as_what_it_holds_says: Registry content and computed matches receive their distinct required cache policies.
+
+- id: distinguish-empty-and-failed
+  title: Distinguish no matches from a service failure
+  goal: As a domain reviewer, I want to know whether nothing matched or retrieval failed so I do not interpret an outage as absence of relevant data.
+  given: A source can return an empty answer, refuse a request, return HTML instead of data, or put an error inside an apparently successful response.
+  when: I request content through an affected tool.
+  then: A valid search with no matches is an empty result with provenance; an unknown record identifier is not_found. Source failures and malformed responses are errors, with a source-declared invalid request distinguished where the contract requires it.
+  tests:
+    tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error: An unavailable source yields an upstream error or timeout, not empty success.
+    tests/test_crosscutting.py::test_a_failure_every_surface_masks_as_an_answer_is_an_upstream_error: Each supported source's success-shaped error response is recognized as failure.
+    tests/test_crosscutting.py::test_a_query_that_matches_nothing_is_an_empty_result_with_provenance: A valid search with no matches succeeds with an empty result, provenance and no continuation token.
+    tests/test_cadsr.py::test_a_server_that_leaves_out_accept_gets_html_and_never_parses_it: caDSR requests ask for JSON so that the expected content is retrieved rather than an HTML page.
+    tests/test_cadsr.py::test_a_failure_inside_an_http_200_is_an_error_never_an_empty_success: An unknown caDSR data element reported inside HTTP success is not_found, never empty success.
+    tests/test_cadsr.py::test_html_where_json_was_asked_for_is_an_upstream_error: HTML received instead of requested JSON is rejected as an upstream failure.
+    tests/test_cadsr.py::test_a_refusal_inside_an_http_200_is_an_invalid_request: A contract-defined caDSR request refusal is presented as an invalid request.
+
+- id: respect-upstream-capacity
+  title: Respect source capacity while obtaining an answer
+  goal: As a service operator, I want calls to avoid redundant retrieval and honour a source's retry delay.
+  given: A tool may need several upstream reads and a source may ask it to wait before retrying.
+  when: The tool executes a call or receives a rate-limit response.
+  then: It does not duplicate successful reads within the call and waits for the required delay before retrying the rate-limited endpoint.
+  tests:
+    tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call: Logged upstream requests contain no identical repeated request during the successful call.
+    tests/test_crosscutting.py::test_a_rate_limited_request_is_asked_once_more_after_the_wait: A rate-limited request is retried after the required wait, without an intervening request to that endpoint.
+
+- id: protect-credentials
+  title: Use upstream credentials without exposing them
+  goal: As a service operator, I want authorized upstream access without disclosing credentials to callers or diagnostic output.
+  given: The fixture service requires a synthetic licence key or caDSR credential.
+  when: A call succeeds or fails using that credential.
+  then: The credential reaches the intended source but is absent from returned content and, where the harness can inspect them, logs and written files.
+  tests:
+    tests/test_crosscutting.py::test_the_licence_key_reaches_the_platform_and_nothing_the_server_returns_or_logs: The licence key is sent upstream and is absent from answers, logs and files observable to this test transport.
+    tests/test_crosscutting.py::test_an_error_carries_no_licence_key: Error responses do not expose the licence key even when the upstream response includes it.
+    tests/test_crosscutting.py::test_the_cadsr_credential_reaches_the_platform_and_nothing_the_server_returns_or_logs: The caDSR credential is sent upstream and is absent from answers, logs and files observable to this test transport.
+
+- id: preserve-attribution
+  title: Preserve the source's licence attribution
+  goal: As a content consumer, I want the attribution supplied with an item without invented licence claims.
+  given: Different source answers may provide licence text, different text, or none.
+  when: I retrieve release-pinned content.
+  then: Attribution reproduces what that source supplied and adds no licence text of its own.
+  tests:
+    tests/test_crosscutting.py::test_licence_text_the_platform_gives_with_an_item_is_passed_through_unchanged: Supplied licence text is preserved exactly.
+    tests/test_crosscutting.py::test_no_item_carries_licence_text_the_platform_did_not_give_with_it: An item carries no additional licence text absent from the source answer.
+    tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none: Without source-provided licence text, attribution contains no licence text.
+
+- id: page-and-bound-results
+  title: Read long results without mistaking a page for the whole answer
+  goal: As an analyst, I want continuation to preserve my query and version while incomplete answers clearly state their limits.
+  given: A result contains more items than one page or a caller's bound allows.
+  when: I follow its continuation token or change an argument while attempting to continue.
+  then: Pages continue without repeats at the same release; incompatible arguments are refused; explicitly stating an already-applied default is allowed; truncation reports its bound and omitted magnitude.
+  tests:
+    tests/test_crosscutting.py::test_a_bound_reached_is_reported_with_how_much_was_left_out: A deliberately small limit yields explicit truncation information rather than an apparently complete answer.
+    tests/test_crosscutting.py::test_a_cursor_continues_with_the_next_items_of_the_same_release: Continuation gives the next items without overlap and preserves release identity.
+    tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request: Changing an applied argument invalidates the continuation token.
+    tests/test_crosscutting.py::test_a_cursor_with_a_left_out_argument_given_as_its_default_continues: An omitted argument can be stated as its original default on continuation.
+    tests/test_crosscutting.py::test_a_cursor_with_a_given_default_left_out_continues: An explicitly supplied default can be omitted on continuation without changing the query.
+    tests/test_crosscutting.py::test_a_cursor_without_an_argument_the_first_call_gave_is_an_invalid_request: Omitting a previously supplied non-default argument is refused.
+
+- id: preserve-input-intent
+  title: Preserve the caller's input and reject invalid identifiers
+  goal: As a domain user, I want my text to reach the source intact and invalid selections to be explained before retrieval.
+  given: Calls accept bounded numbers, optional defaults, identifiers and free text containing punctuation or query-like characters.
+  when: I submit those inputs across the supported tools.
+  then: Defaults behave consistently, values below the permitted minimum are refused, malformed identifiers never reach upstream, and valid text remains one unchanged input value.
+  tests:
+    tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default: Omitting an optional argument gives the same answer as supplying its stated default.
+    tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request: Zero and negative bounded arguments are rejected instead of silently raised to one.
+    tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it: Invalid identifier variants are refused before any upstream request can carry them.
+    tests/test_crosscutting.py::test_a_code_of_a_terminology_without_a_stated_form_goes_upstream_as_one_segment: A code without a specified local format remains a single encoded upstream path segment.
+    tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it: Free-text punctuation cannot split, truncate or change the value sent to the source.
+
+- id: registry-state
+  title: Know what registry state an answer represents
+  goal: As a data steward, I want an honest registry identity and reproducible pins only when caDSR actually publishes them.
+  given: caDSR may publish no registry release, or a fixture may exercise a future published release contract.
+  when: I resolve the registry state, request pinned content, or continue a registry query.
+  then: An unpublished state is not assigned an invented release; export metadata remains separate; a published requested release is sent and returned; unavailable releases and incompatible continuations fail.
+  tests:
+    tests/test_crosscutting.py::test_a_cadsr_item_without_a_registry_release_names_the_registry_alone: Unpinned items name the caDSR registry without an invented release identifier or date.
+    tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed: Asking for an unpublished registry release fails instead of falling back to unpinned content.
+    tests/test_cadsr.py::test_without_a_registry_release_the_export_date_stands_for_it: Registry status uses the export's reported date and distribution without claiming a published release.
+    tests/test_cadsr.py::test_a_published_registry_release_is_returned: A fixture-published registry release is returned as published with its identity.
+    tests/test_cadsr.py::test_a_published_registry_release_is_asked_for_and_named_with_its_date: Published-release content requests carry that release and retain its identity and date in provenance.
+    tests/test_cadsr.py::test_a_registry_release_cadsr_does_not_list_fails_closed_where_it_lists_some: A missing release is refused even when the registry publishes other releases.
+    tests/test_cadsr.py::test_a_cursor_keeps_the_registry_release_it_was_issued_with: A registry continuation token cannot be used with a different release.
+
+- id: terminology-catalogue
+  title: Find the terminologies the source actually serves
+  goal: As a terminology user, I want to discover the available terminologies and their current releases before selecting one.
+  given: EVS provides a terminology listing.
+  when: I request the available terminologies.
+  then: The result includes every terminology and current release represented by that source listing.
+  tests:
+    tests/test_evs.py::test_every_terminology_the_platform_serves_is_listed_with_its_current_release: No terminology offered by the source is left out of the listing.
+
+- id: concept-detail
+  title: Retrieve the concept details needed for a task
+  goal: As a terminology curator, I want selected concept details with the source's identity and status.
+  given: A concept has summary information and separately requestable sections.
+  when: I request its identity or one supported detail section.
+  then: The answer preserves the source's concept identity and status and returns the requested section without unrelated sections; unsupported section selections are refused.
+  tests:
+    tests/test_evs.py::test_an_include_value_returns_its_section_and_no_other: Each supported include choice returns its own section without other optional sections.
+    tests/test_evs.py::test_descendants_is_no_include_value: Descendants cannot be requested as a concept include section.
+    tests/test_evs.py::test_a_concept_carries_its_identity_and_the_status_the_platform_publishes: Code, terminology, name and active state are present, with the source's status where supplied.
+
+- id: batch-concepts
+  title: Retrieve several concepts without losing input order or missing codes
+  goal: As a data steward, I want to align a batch answer with my original code list and see which codes could not be retrieved.
+  given: The upstream batch endpoint can reorder results and omit unknown codes.
+  when: I request several concepts together.
+  then: Retrieval uses one batch request, returned concepts follow the requested order, and omitted codes appear explicitly as missing.
+  tests:
+    tests/test_evs.py::test_a_batch_is_one_upstream_request: A concept batch is obtained in one upstream request.
+    tests/test_evs.py::test_a_code_the_platform_leaves_out_of_a_batch_is_named_missing: A silently omitted upstream code is reported in the missing-code list.
+    tests/test_evs.py::test_a_batch_comes_back_in_request_order: Different requested code orders are retained in the batch answer.
+
+- id: lexical-search
+  title: Find terminology entries by text or a typed prefix
+  goal: As a terminology user, I want text search and typeahead to reflect the source's matches without invented rankings.
+  given: EVS provides ordered text matches, highlights for lexical search, and prefix matches for typeahead.
+  when: I search for text or request suggestions while typing.
+  then: Source order is retained; lexical pages carry the source's highlights and total; typeahead adds neither highlights nor scores that its source did not supply.
+  tests:
+    tests/test_evs.py::test_lexical_search_returns_the_platform_s_matches_in_its_order_a_page_at_a_time: Lexical search preserves source order, paging, highlights and known total without introducing a score.
+    tests/test_evs.py::test_typeahead_returns_the_platform_s_prefix_matches_in_its_order: Prefix suggestions preserve source order and omit unsupported scores and highlights.
+
+- id: indexed-search
+  title: Search the prepared terminology index with transparent ranking
+  goal: As an analyst, I want indexed search results tied to the selected terminology release and an explicit error when that index cannot serve my request.
+  given: A prepared fixture index supports semantic and hybrid search for its own terminology and release.
+  when: I search it and continue through ranked pages.
+  then: Results carry scores, matched fields and index provenance, the named concept is on the first page, and continuation follows ranking; missing or incompatible indexes are not treated as no matches.
+  tests:
+    tests/test_evs.py::test_index_search_returns_scored_indexed_concepts_and_the_named_one_first_page: Both index modes return descending scores and index provenance, with the exactly named concept on the first page and a total reflecting the index set.
+    tests/test_evs.py::test_an_index_search_s_cursor_continues_with_its_next_ranked_items: The continuation token selects the next ranked items.
+    tests/test_evs.py::test_an_index_mode_for_a_terminology_without_an_index_is_invalid: An index mode unsupported for the selected terminology is an invalid request.
+    tests/test_evs.py::test_an_index_search_for_another_release_fails_closed: A release different from the active index produces a release-mismatch error.
+    tests/test_evs.py::test_an_index_mode_without_an_index_is_unavailable: A missing index produces a capability-unavailable error rather than empty search results.
+
+- id: search-retired
+  title: Search retired concepts deliberately
+  goal: As a curator reviewing historical terminology, I want to include retired entries or select them alone without undocumented filtering.
+  given: The terminology listing defines which statuses count as retired, where it supports that distinction.
+  when: I search normally, request retired-only results, or provide an unsupported retirement option.
+  then: Retired entries remain in ordinary results, retired-only results contain only retired entries, and invalid options or unusable status definitions are refused across the relevant search modes.
+  tests:
+    tests/test_evs.py::test_retired_concepts_are_returned_with_the_others_by_default: Ordinary lexical search retains retired entries, including when the default is stated explicitly.
+    tests/test_evs.py::test_retired_only_returns_the_retired_concepts_alone: Retired-only lexical search excludes entries not marked retired by the source.
+    tests/test_evs.py::test_typeahead_takes_retired_only_as_lexical_search_does: Typeahead supports the same retired-only selection.
+    tests/test_evs.py::test_a_retired_value_outside_the_two_is_invalid: Unsupported retirement values, including an exclusion mode, are refused.
+    tests/test_evs.py::test_retired_only_where_the_status_is_none_the_search_selects_is_invalid: A retired status inconsistent with the terminology's concept-status list is rejected.
+    tests/test_evs.py::test_retired_only_where_the_listing_names_no_retired_status_is_invalid: Retired-only search is refused where the terminology supplies no retired status.
+    tests/test_evs.py::test_index_search_returns_retired_concepts_with_the_others_or_alone: Indexed search retains retired entries by default and can select them alone.
+    tests/test_evs.py::test_a_retired_value_outside_the_two_is_invalid_in_index_modes: Semantic and hybrid modes reject unsupported retirement values too.
+
+- id: hierarchy
+  title: Explore a concept's hierarchy with clear depth and paging
+  goal: As a terminology analyst, I want to explore parentage and descendants without assuming a bounded answer is complete.
+  given: The source supplies a hierarchy and ordered paths from a concept to the root.
+  when: I request paths, a depth above the permitted maximum, or several hierarchy pages.
+  then: Paths retain source order, depth is capped and reported when it limits the answer, and all pages together preserve the source's ordered concepts without repeats.
+  tests:
+    tests/test_evs.py::test_a_depth_above_the_maximum_is_applied_as_the_maximum_and_reported: Excessive depth is capped; deeper nodes are absent and continuation beyond the cap is reported as depth truncation.
+    tests/test_evs.py::test_paths_to_root_are_the_platform_s_paths_in_its_order: Every supplied path to the root is returned in the source's code order.
+    tests/test_evs.py::test_limit_is_a_page_the_cursor_continues_to_the_end: Hierarchy continuation pages reconstruct the source listing without duplicate concepts.
+
+- id: value-set
+  title: Read the requested slice of a value set
+  goal: As a form designer, I want the correct value-set members and counts when paging or excluding inactive members.
+  given: The upstream expansion can ignore paging and active-only parameters.
+  when: I request a count, offset or active-only selection.
+  then: The tool applies those selections to the retrieved members, keeps source order, and reports a total matching the selected population.
+  tests:
+    tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all: Count and offset select the correct ordered page even when the source ignores them.
+    tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive: Active-only removes inactive members and adjusts the total; default and false selections retain them with their status.
+
+- id: neighbourhood
+  title: Explore different relationship kinds without hiding limits or exclusions
+  goal: As a domain analyst, I want a balanced view of requested relationships and a clear distinction between positive and exclusion relationships.
+  given: A concept has several relationship kinds, potentially large inverse lists, and coded negative relationships.
+  when: I explore its neighbourhood with global or per-kind bounds and optional negative traversal.
+  then: One kind does not consume another's allowance, truncation identifies affected kinds, negative polarity follows relationship codes, and excluded links are followed only when requested.
+  tests:
+    tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other: A busy kind is reported as truncated while other requested kinds still contribute results.
+    tests/test_evs.py::test_budget_per_kind_bounds_the_nodes_each_kind_adds: A supplied per-kind allowance limits the nodes that kind contributes and records its truncation.
+    tests/test_evs.py::test_the_attempts_a_failed_call_reports_are_the_requests_it_made: A failed call's reported attempts agree with actual requests, including retries; this case does not prove every internal request-budget boundary.
+    tests/test_evs.py::test_polarity_follows_the_relationship_code_not_its_name: Renaming a relationship cannot change its negative or positive classification.
+    tests/test_evs.py::test_negative_edges_are_returned_marked_and_followed_only_when_included: Negative edges remain visible and marked, but traversal beyond them requires explicit inclusion.
+    tests/test_evs.py::test_a_node_limit_above_the_maximum_is_applied_as_the_maximum: An excessive node limit is capped and the result reports the applied maximum.
+
+- id: subsets-and-mappings
+  title: Find a concept's subset membership and external mappings
+  goal: As a curator, I want the memberships and mappings the source actually publishes, with an exact target-terminology selection.
+  given: A concept carries subset associations and mappings to other terminologies.
+  when: I list them, optionally selecting a target terminology.
+  then: Source identities, content and ordering are preserved, and only mappings to the exact requested target are kept.
+  tests:
+    tests/test_evs.py::test_the_subsets_are_the_concept_s_subset_associations_in_order: Subsets are the concept's published subset associations in source order.
+    tests/test_evs.py::test_the_mappings_are_the_concept_s_maps_unchanged_in_order: Mappings are passed through unchanged in source order.
+    tests/test_evs.py::test_target_terminology_keeps_the_maps_with_that_target_and_no_other: Target-terminology filtering uses exact matching, including case.
+
+- id: retired-replacements
+  title: Check whether an old code has a published replacement
+  goal: As a data steward maintaining historical records, I want to distinguish a retired code from an active one and see only replacements supplied by the source.
+  given: The fixture set contains retired and active concept codes.
+  when: I resolve a code's retirement status.
+  then: A retired code has its source status and published replacements, possibly none; an active code is marked active without an invented replacement.
+  tests:
+    tests/test_evs.py::test_a_retired_code_is_inactive_with_its_status_and_replacements: Retired entries retain their status and exactly the replacements named by the source.
+    tests/test_evs.py::test_an_active_code_is_active_with_its_status_and_no_replacement: Active entries report their status with no replacement.
+
+- id: relationship-catalogue
+  title: Interpret relationships using the release's catalogue
+  goal: As a terminology curator, I want complete relationship definitions and dependable exclusion semantics.
+  given: The release supplies roles and associations, and the terminology has a defined set of exclusion codes.
+  when: I list relationships or use a catalogue missing a required exclusion code.
+  then: All published relationships are listed, polarity follows codes rather than wording, and an incomplete exclusion catalogue causes an explicit error rather than a misleading graph.
+  tests:
+    tests/test_evs.py::test_every_relationship_of_the_catalogue_is_listed_by_code_name_and_kind: Every role and association is listed with code, name and kind.
+    tests/test_evs.py::test_a_relationship_s_polarity_follows_its_code_not_its_name: Catalogue polarity remains correct when source relationship names change.
+    tests/test_evs.py::test_a_catalogue_without_a_code_of_the_exclusion_set_fails_closed: Catalogue and neighbourhood calls reject a missing exclusion code and name what is absent.
+
+- id: data-element
+  title: Retrieve a data element without guessing its identity or version
+  goal: As a data steward, I want to reuse a data element's definition and optional sections while resolving familiar question text unambiguously.
+  given: The registry has versioned data elements and question text that may identify one, several or no records.
+  when: I request a data element by identity or question, and select optional details.
+  then: The record preserves its own fields, version and statuses; requested details are included; ambiguity identifies candidates; absence and an unsupported lookup route are distinguished.
+  tests:
+    tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses: The base record contains its own fields, selected version and source statuses without unrequested nested sections.
+    tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it: Each optional section matches the source and does not add other sections.
+    tests/test_cadsr.py::test_a_question_text_one_data_element_has_finds_it: The fixture question Sex of a Person resolves to its unique full data element.
+    tests/test_cadsr.py::test_a_question_text_several_have_is_an_invalid_request_naming_them: The fixture question Date of birth produces an ambiguity error naming candidate public identifiers.
+    tests/test_cadsr.py::test_a_long_name_lookup_is_unavailable_never_empty: Unsupported lookup by long name reports capability unavailable.
+    tests/test_cadsr.py::test_a_question_text_no_data_element_has_is_not_found: Question text with no matching data element reports not found.
+
+- id: registry-capabilities
+  title: Recognize registry features that are not available
+  goal: As a data steward, I want unavailable capabilities stated explicitly so I do not mistake an unsupported operation for an empty registry.
+  given: Some caDSR lookup, search or classification operations are not provided by the current upstream contract.
+  when: I request each unavailable capability represented by the acceptance cases.
+  then: The server reports capability unavailable rather than no matches or fabricated content.
+  tests:
+    tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty: Unsupported classification, permissible-value lookup and search options return the required unavailable-capability response.
+
+- id: data-element-search
+  title: Read data-element search pages and recognize an upstream cap
+  goal: As a data steward, I want search pages of the requested size and a clear warning when the source itself limits the results.
+  given: The fixture search endpoint can return more than a page and can stop at its own result cap.
+  when: I request a page or reach that upstream cap.
+  then: The page respects my limit, truncation names the upstream cap, and the tool does not invent an exact total the source did not supply.
+  tests:
+    tests/test_cadsr.py::test_a_search_s_page_is_the_limit_given: A requested page size determines the returned page.
+    tests/test_cadsr.py::test_a_search_the_platform_caps_reports_the_cap_and_no_total: An upstream-capped search reports its cap and at least one omission without a fabricated total.
+
+- id: matching-candidates
+  title: Review matching candidates with their source rules and limitations
+  goal: As a data steward, I want candidate data elements and value meanings attributed to the matching service so I can review them without mistaking a score for a guaranteed equivalence.
+  given: Contract-crafted caDSR responses contain candidates, matching rules and optional concepts; value-meaning candidates have no available crosswalks, and matching may take too long to answer.
+  when: I submit entities or values within the supported options and limits.
+  then: Candidates preserve source order and attribution, scores appear only where supplied, input groups remain identifiable, unsupported tuning is refused, and timeouts remain errors.
+  tests:
+    tests/test_cadsr.py::test_data_element_matches_are_scored_and_rule_attributed_as_the_platform_says: Data-element candidates retain the source's scores and matching rules.
+    tests/test_cadsr.py::test_each_entity_s_matches_are_named_for_it_in_the_order_given: Each input entity keeps its own ordered candidate list.
+    tests/test_cadsr.py::test_what_the_platform_does_not_take_is_an_invalid_request_never_ignored: Unsupported tuning options and excessive entity input are refused rather than ignored.
+    tests/test_cadsr.py::test_at_most_match_limit_matches_come_for_an_entity: Each entity returns no more than its requested match limit.
+    tests/test_cadsr.py::test_matching_slower_than_the_match_timeout_is_a_timeout: Both matching operations report a timeout when the fixture response exceeds the matching timeout.
+    tests/test_cadsr.py::test_value_meaning_matches_are_the_platform_s_in_its_order_with_their_rule: Value-meaning candidates retain source order, rules, item types and concepts, omitting unavailable crosswalks and unsupplied scores.
+    tests/test_cadsr.py::test_more_values_than_the_tool_takes_is_an_invalid_request: A value list above the supported maximum is rejected.
+    tests/test_cadsr.py::test_a_match_with_no_concept_has_none_never_null: A candidate without a source concept omits that optional concept instead of inventing one or inserting a null value.
+
+- id: forms
+  title: Retrieve the structure and status of a form
+  goal: As a form designer, I want a known form's modules, questions and status without hiding retired forms or inventing unsupported keyword retrieval.
+  given: Forms are identified by public identifier and may be retired, omit modules, or not exist.
+  when: I retrieve a form, choose whether to include modules, or provide an unsupported selector.
+  then: The source structure and status are preserved; unrequested modules stay absent; unsupported selectors and unknown forms produce distinct explanations.
+  tests:
+    tests/test_cadsr.py::test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too: Form modules and status match the source, including for a retired form.
+    tests/test_cadsr.py::test_a_form_without_its_modules_has_none: Requesting a form without modules omits that section.
+    tests/test_cadsr.py::test_a_form_keyword_is_an_invalid_request_saying_an_identifier_is_needed: Keyword retrieval is refused with an explanation that an identifier is needed.
+    tests/test_cadsr.py::test_an_unknown_form_answered_inside_an_http_200_is_not_found: The contract-defined unknown-form response is interpreted as not found despite HTTP success.
+
+- id: code-maps
+  title: Inspect crosswalk values and the contexts that use them
+  goal: As a data steward, I want a data element's actual crosswalk values and explicit evidence where value-level mapping is absent.
+  given: CRDC crosswalk entries identify data elements, their versions, users and any permissible-value bindings.
+  when: I request a data element's code map or select maps used by a context.
+  then: Values and coverage reflect the source, context matching is exact, missing value-level binding is stated, and an unsupported source-system selection is refused.
+  tests:
+    tests/test_cadsr.py::test_a_code_map_is_a_data_element_s_values_users_and_coverage: Each code map preserves data-element identity, values, users, coverage and source fields.
+    tests/test_cadsr.py::test_a_data_element_without_value_level_binding_says_so: An absent value binding is reported explicitly with no fabricated values.
+    tests/test_cadsr.py::test_a_context_selects_the_code_maps_it_uses: Selecting a context returns its maps without confusing a name with part of another name.
+    tests/test_cadsr.py::test_a_source_system_other_than_crdc_is_an_invalid_request: A source-system choice outside CRDC is rejected.
+
+- id: registry-contexts
+  title: Discover the registry's named contexts
+  goal: As a data steward, I want the context names caDSR actually provides so that I can select a supported organisational scope.
+  given: The registry supplies context names.
+  when: I list contexts.
+  then: The returned context names, which also identify each context, are those supplied by the registry.
+  tests:
+    tests/test_cadsr.py::test_the_contexts_are_the_registry_s_context_names: Context names match the source listing and also serve as their identifiers.
+
+- id: concept-uses
+  title: Find where a concept is used in metadata
+  goal: As a domain analyst, I want to trace a concept into data elements and permitted values while knowing which graph versions support the answer.
+  given: Shared SI supplies concept uses and identities for its NCIt and caDSR graphs.
+  when: I find data elements for an NCIt concept, optionally expanding descendants and including permissible values.
+  then: Uses come from the selected concept population, optional value uses are included when requested, provenance identifies both content states, and release mismatch or result caps are explicit.
+  tests:
+    tests/test_cross_domain.py::test_the_data_elements_are_the_concept_s_and_with_expansion_its_descendants_too: Concept-only and descendant-expanded searches return the corresponding source data-element uses.
+    tests/test_cross_domain.py::test_with_the_flag_the_permissible_values_that_stand_for_the_concept_come_too: Requested permissible-value uses represent the concept or selected descendants.
+    tests/test_cross_domain.py::test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_states: Answers preserve both graph identities and dates and distinguish NCIt release from registry state.
+    tests/test_cross_domain.py::test_a_release_other_than_the_ncit_graph_s_fails_closed: A requested release different from the NCIt graph is rejected.
+    tests/test_cross_domain.py::test_a_terminology_other_than_ncit_is_an_invalid_request: Concept-use queries reject unsupported terminologies.
+    tests/test_cross_domain.py::test_descendants_beyond_the_tool_s_maximum_are_truncated_with_how_much_was_left_out: An oversized descendant-use result is bounded and reports at least the known omitted amount.
+
+- id: permissible-value-concept
+  title: Resolve an exact permissible value to its concept
+  goal: As a data steward, I want the meaning of the exact value defined for a data element rather than a similar-looking value.
+  given: A data element has permissible values whose meanings refer to terminology concepts.
+  when: I supply the data element and an exact value, change its case or surrounding whitespace, or use an unsupported value-identifier route.
+  then: An exact match returns the concept at the effective release with both content states; nonmatching text is not found; the unsupported route is reported unavailable.
+  tests:
+    tests/test_cross_domain.py::test_a_value_resolves_to_the_concept_it_stands_for_naming_both_content_states: A permissible value resolves to its source concept and preserves terminology and registry provenance.
+    tests/test_cross_domain.py::test_a_value_the_data_element_does_not_have_as_given_is_not_found: Changed case, extra spaces and other nonmatching values are not silently normalized into a match.
+    tests/test_cross_domain.py::test_a_permissible_value_by_its_identifier_is_unavailable: Unsupported retrieval by permissible-value identifier reports capability unavailable.
+
+- id: stored-values
+  title: Find the values a data commons actually stores
+  goal: As a harmonization analyst, I want a commons' literal stored values with evidence, not a terminology label presented as though it were stored data.
+  given: GDC has a named mapping source and other supported commons use the CRDC crosswalk.
+  when: I resolve a concept to stored values in a selected commons.
+  then: Returned values follow that commons' mapping source with provenance and confidence; absent value-level binding is reported explicitly without substituting a preferred term.
+  tests:
+    tests/test_cross_domain.py::test_a_gdc_value_resolves_through_the_mapset_its_source_names: GDC values come from the named mapset with matching release identity and asserted evidence.
+    tests/test_cross_domain.py::test_another_commons_value_resolves_through_the_crdc_crosswalk: Other supported commons use the CRDC crosswalk and name each value's data element.
+    tests/test_cross_domain.py::test_a_commons_without_a_value_level_binding_stores_no_value_and_says_so: Without value binding, no stored value is invented and the evidence states the limitation and lack of confidence.
+
+- id: release-alignment
+  title: Compare how far apart the source datasets are dated
+  goal: As a data steward combining sources, I want to see their dates and whether their separation exceeds my tolerance.
+  given: The supported datasets expose release or registry dates.
+  when: I request alignment with a maximum interval.
+  then: Every dataset is identified, the largest pairwise date interval is reported, and a warning names the threshold only when that interval exceeds it.
+  tests:
+    tests/test_cross_domain.py::test_every_dataset_is_dated_with_the_largest_interval_and_a_warning_above_the_threshold: Alignment preserves all dataset dates, calculates the largest interval and checks warning behaviour above the default threshold and below a larger explicit threshold.
+
+- id: ground-value
+  title: Ground a clinical concept across terminology and metadata
+  goal: As a domain analyst, I want to trace Ewing Sarcoma from its NCIt concept into data-element uses, permissible values and optional commons values.
+  given: The fixtures provide concept C4817 and its uses, with separate scenarios for a changed release, unusual search order and a bounded retrieval step.
+  when: I ground the concept or text, optionally naming a commons.
+  then: Each step returns its source content under the appropriate content states; text follows the search's first result; release conflicts fail; and a bounded step does not discard independently retrieved steps.
+  tests:
+    tests/test_workflow.py::test_one_envelope_names_the_release_asked_for_and_the_registry_unpinned: The answer and registry-dependent items distinguish the selected NCIt release from the unpinned caDSR registry.
+    tests/test_workflow.py::test_content_of_another_ncit_release_on_either_surface_fails_closed: A different release on either the terminology or graph surface produces a release mismatch.
+    tests/test_workflow.py::test_each_hop_is_what_its_surface_answers_for_the_concept: Concept, data-element uses and permissible values match their sources; without a commons request there is no stored-value section.
+    tests/test_workflow.py::test_with_a_commons_the_stored_values_are_the_ones_it_uses_for_the_concept: Adding GDC returns the literal stored values and fields from its mapping source.
+    tests/test_workflow.py::test_a_text_resolves_to_the_first_result_search_concepts_gives_it: Text grounding uses the first search result even when another concept's name looks closer.
+    tests/test_workflow.py::test_a_hop_that_reaches_its_bound_leaves_the_others_complete: A capped data-element step reports its own truncation while the independent permissible-value step remains complete.
+
+- id: expand-cohort
+  title: Build a cohort code set with explicit exclusions
+  goal: As a researcher defining a terminology code set, I want descendants and exclusions to be visible and deliberate; this operation does not select patients.
+  given: A fixture root has descendants and exclusion relationships to some of them.
+  when: I expand the cohort with default exclusions, explicitly include negative relationships, or set a small node limit.
+  then: Membership follows the bounded hierarchy and the root's exclusions; exclusions remain explained even when included; the node limit counts the root too.
+  tests:
+    tests/test_workflow.py::test_the_cohort_is_the_concept_and_its_descendants_less_its_own_exclusions: Default membership removes the root's excluded codes; explicit negative inclusion retains them while both modes list the exclusion assertions.
+    tests/test_workflow.py::test_max_nodes_counts_the_codes_the_concept_included: A small node limit includes the root in its count and reports the truncated result size.
+
+- id: harmonize-dictionary
+  title: Harmonize a dictionary while keeping unmatched columns visible
+  goal: As a data steward, I want matching candidates and sample-value alignments for dictionary columns without losing fields the source cannot match.
+  given: The fixture dictionary contains Patient Gender and Freezer Shelf Label, with matches only for the first, and sample values with value-meaning matches.
+  when: I harmonize the dictionary with its descriptions and sample values.
+  then: Each column is matched once using its description, unmatched columns remain explicitly listed, and value alignments are those supplied by the matching service under the same registry state.
+  tests:
+    tests/test_workflow.py::test_each_column_is_matched_once_and_the_unmatched_are_listed: Each column is submitted once with its description; Freezer Shelf Label remains unmatched and candidate records retain the registry state.
+    tests/test_workflow.py::test_a_column_s_sample_values_align_to_the_value_meanings_vmmatch_gives: Patient Gender's sample-value alignments match the source's value-meaning and concept answers.
