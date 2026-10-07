@@ -11,6 +11,7 @@ from .cadsr import DATA_API, EXPORT_FOLDER, FORM_API, data_element_request
 from .context import Context
 from .errors import InputValidationError, PlatformError, call_correlation_id
 from .models import ProvenanceEnvelope, Truncation, utc_now_iso
+from .permissions import require
 from .release import RegistryMetadataError, registry_state
 from .validation import (
     CodeMapSource,
@@ -690,6 +691,7 @@ def read_code_maps(
     context: Context, release: dict[str, str], pin: str | None
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Read and project the crosswalk once, before a caller filters or pages it."""
+    require("get_code_map")
     rows = context.cadsr.get_crdc_list(registry_release=pin)
     provenance = _provenance(
         context, release, f"{DATA_API}/DataElements/getCRDCList", {"registryRelease": pin}

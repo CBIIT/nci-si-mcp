@@ -4,6 +4,8 @@ from collections.abc import Iterator
 from contextlib import contextmanager, nullcontext
 from contextvars import ContextVar
 
+from .permissions import secured
+
 LONG_TTL_MS = 86_400_000
 SHORT_TTL_MS = 3_600_000
 _decision: ContextVar[dict[str, int | str]] = ContextVar("cache_decision")
@@ -19,7 +21,7 @@ def cache_hint(
 ) -> dict[str, int | str]:
     """Select freshness and sharing for the producer's response class."""
 
-    private = any((error, computed, implicit))
+    private = any((error, computed, implicit, secured()))
     return {
         "ttlMs": 0 if resolution or private else SHORT_TTL_MS if unpinned else LONG_TTL_MS,
         "cacheScope": "private" if private else "public",

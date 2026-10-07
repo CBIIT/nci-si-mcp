@@ -793,7 +793,7 @@ error:
         capability not yet available (M1.2) and a cursor whose release is superseded (M2.4).
         release_not_available also covers a channel whose current release cannot be named, as
         when one channel's query names two releases (A3.6.3)
-      values: [invalid_request, not_found, release_not_available, release_mismatch,
+      values: [invalid_request, permission_denied, not_found, release_not_available, release_mismatch,
                upstream_unavailable, timeout, bound_exceeded, capability_unavailable,
                cursor_expired, internal_error]
       of: A2.5
@@ -811,6 +811,7 @@ error:
       content: The call's correlation identifier
       of: M7.1
   detail_keys:
+    permission_denied: {}
     invalid_request:
       parameter: The argument, or the setting, that was refused
       reason: Why it was refused, in words

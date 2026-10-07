@@ -14,6 +14,7 @@ from .audit import AuditClass, audited, secrets
 from .caching import invocation_policy
 from .context import Context
 from .invocation import call
+from .permissions import require
 from .release_selection import selection_scope
 from .results import (
     ClassificationSchemesResult,
@@ -610,6 +611,7 @@ def invoke(
     spec = OPERATIONS[operation]
 
     def produce() -> dict[str, Any]:
+        require(spec.operation)
         with invocation_policy(resolution=spec.resolution), selection_scope():
             return spec.handler(context, **spec.arguments(args, kwargs))
 

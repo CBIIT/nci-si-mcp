@@ -800,8 +800,15 @@ EVS wraps in a success status but that is an error envelope, an error
 | `bound_exceeded` | An EVS response exceeds `NCI_SI_EVS_MAX_RESPONSE_BYTES`, the request budget is exhausted before a graph is available, or hierarchy page replay exhausts its request budget | `bound`, `limit`, `reached` (for response size, the limit plus one when EVS declared no length) |
 | `capability_unavailable` | The requested terminology or operation is not supported yet, or an index resource has no active index; the MCP tool descriptions name the interim limits | `capability` |
 | `cursor_expired` | EVS no longer serves a hierarchy or live-search cursor’s release, or the active indexed-search build changed; restart the query. Same-release build replacement also expires a cursor, with equal release identifiers | `cursorRelease`, `currentRelease` |
+| `permission_denied` | Secured caller policy denies the operation, is missing, unavailable or expired; contact the service operator to review access | None; restricted identifiers and required permissions are not disclosed |
 | `internal_error` | `search` or `evaluate` was called before an index was built, the index was built with other embedding settings than the runtime uses, SQLite could not open, read or write the index file named in the message, a production evaluation or sample-isolation check refused an operator command, the selected build is unavailable or a concurrent writer changed the active build, (CLI only) the index, the embedding model or the MCP package could not be loaded at startup, or the selected relationship catalogue lacks configured exclusion codes | `missingCodes` for missing exclusions only; absent for other causes |
 
 The CLI `release-info` command succeeds during an EVS outage:
 the `evs_api` and `selected_release` fields then hold an error record
 next to the local index manifest.
+
+## Caller permissions
+
+The trusted-local default is unchanged. Embedders can inject verified per-request caller policy;
+see [caller permissions](docs/caller-permissions.md) for the capability map, denials, session
+ownership and private caching. Production identity integration is not yet enabled.

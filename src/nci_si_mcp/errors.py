@@ -11,6 +11,7 @@ from uuid import uuid4
 # The closed set of error codes: the specification's error record (spec/records.yaml).
 ErrorCode = Literal[
     "invalid_request",
+    "permission_denied",
     "not_found",
     "release_not_available",
     "release_mismatch",
