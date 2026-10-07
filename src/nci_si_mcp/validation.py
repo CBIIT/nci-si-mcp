@@ -66,6 +66,7 @@ UPSTREAM_MODES = frozenset(get_args(UpstreamMode))
 RELEASE_CHANNELS = frozenset(get_args(ReleaseChannel))
 TRANSPORTS = frozenset(get_args(Transport))
 HTTP_SESSIONS = frozenset(get_args(HTTPSessions))
+HTTP_AUTH_MODES = frozenset({"trusted-local", "required"})
 
 NCIT_CODE_RE = re.compile(r"C[0-9]+")
 SEARCH_MODES = frozenset(get_args(SearchMode))

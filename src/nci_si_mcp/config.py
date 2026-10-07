@@ -13,7 +13,14 @@ from urllib.parse import urlsplit
 
 from .audit import JsonFormatter
 from .embeddings import normalize_embedding_settings
-from .validation import HTTP_SESSIONS, PROFILES, RELEASE_CHANNELS, TRANSPORTS, UPSTREAM_MODES
+from .validation import (
+    HTTP_AUTH_MODES,
+    HTTP_SESSIONS,
+    PROFILES,
+    RELEASE_CHANNELS,
+    TRANSPORTS,
+    UPSTREAM_MODES,
+)
 
 # Upper bound for the timeout and backoff settings; socket timeouts overflow far above it.
 MAX_SECONDS = 3600
@@ -185,6 +192,7 @@ def _require_authorities(name: str, values: tuple[str, ...], *, origin: bool) ->
 
 
 def _require_http(settings: Settings) -> None:
+    _require_http_auth(settings)
     _require_choice("NCI_SI_TRANSPORT", settings.transport, TRANSPORTS)
     _require_choice("NCI_SI_HTTP_SESSIONS", settings.http_sessions, HTTP_SESSIONS)
     if not re.fullmatch(r"[A-Za-z0-9.:_-]+", settings.http_host):
@@ -194,6 +202,18 @@ def _require_http(settings: Settings) -> None:
     _require_between("NCI_SI_HTTP_REQUIRE_INDEX", settings.http_require_index, 0, 1)
     _require_authorities("NCI_SI_HTTP_ALLOWED_HOSTS", settings.http_allowed_hosts, origin=False)
     _require_authorities("NCI_SI_HTTP_ALLOWED_ORIGINS", settings.http_allowed_origins, origin=True)
+
+
+def _require_http_auth(settings: Settings) -> None:
+    _require_choice("NCI_SI_HTTP_AUTH_MODE", settings.http_auth_mode, HTTP_AUTH_MODES)
+    if not settings.http_auth_factory:
+        return
+    if settings.http_auth_mode != "required":
+        raise ValueError("NCI_SI_HTTP_AUTH_FACTORY requires required authentication mode")
+    if not re.fullmatch(
+        r"[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*:[A-Za-z_]\w*", settings.http_auth_factory
+    ):
+        raise ValueError("NCI_SI_HTTP_AUTH_FACTORY must name an installed module:factory")
 
 
 @dataclass(frozen=True, slots=True)
@@ -234,6 +254,8 @@ class Settings:
     http_allowed_hosts: tuple[str, ...] = DEFAULT_HTTP_HOSTS
     http_allowed_origins: tuple[str, ...] = DEFAULT_HTTP_ORIGINS
     http_require_index: int = 0
+    http_auth_mode: str = "trusted-local"
+    http_auth_factory: str | None = None
 
     def __post_init__(self) -> None:
         _require_choice("NCI_SI_PROFILE", self.profile, PROFILES)
@@ -301,6 +323,8 @@ class Settings:
             http_allowed_hosts=_env_list("NCI_SI_HTTP_ALLOWED_HOSTS", DEFAULT_HTTP_HOSTS),
             http_allowed_origins=_env_list("NCI_SI_HTTP_ALLOWED_ORIGINS", DEFAULT_HTTP_ORIGINS),
             http_require_index=_env_number("NCI_SI_HTTP_REQUIRE_INDEX", "0", int),
+            http_auth_mode=os.getenv("NCI_SI_HTTP_AUTH_MODE", "trusted-local"),
+            http_auth_factory=_env_optional("NCI_SI_HTTP_AUTH_FACTORY"),
         )
 
 

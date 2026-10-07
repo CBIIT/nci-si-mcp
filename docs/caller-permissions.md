@@ -7,6 +7,8 @@ Design credit: **Semantic Infrastructure (SI) team**, *MCP Architecture*, SI Tea
 The default CLI and stdio server remain trusted-local. Embedders opt into caller policy by
 supplying an asynchronous `authority_resolver` to `create_mcp` or `create_http_app`.
 Configuring SDK authentication also requires caller policy: missing policy fails closed.
+The [governed HTTP entry point](governed-http.md) loads a complete operator-installed integration
+in required mode and binds policy identity to the SDK-verified token on each request.
 The stock secured entry point and production identity integration are separate work in #178.
 
 The resolver runs for every request and returns an immutable `Authority`: verified

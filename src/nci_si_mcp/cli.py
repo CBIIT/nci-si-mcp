@@ -81,6 +81,8 @@ def _serve(settings: Settings, context: Context) -> int:
     if settings.transport == "streamable-http":
         run_http(settings, context)
     else:
+        if settings.http_auth_mode == "required":
+            raise ValueError("Required HTTP authentication cannot run over trusted-local stdio")
         create_mcp(settings, context=context).run()
     return 0
 

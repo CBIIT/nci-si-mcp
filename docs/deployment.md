@@ -141,10 +141,10 @@ Operational constraints apply whichever AWS services implement these boxes:
 - **Stage each replica before readiness.** Deploy a verified GHCR image digest, copy the
   prepared index and matching model, and inject settings and secrets through the environment.
   Each process exposes `/mcp`, `/health` and `/ready`; image evidence is attached to its release.
-- **Authentication is an integration task.** The stock entry point is unauthenticated.
-  Wire the approved SDK `AuthSettings` and `TokenVerifier` through `create_http_app`, or supply
-  the hosting team's approved access boundary. Configure the actual Host/Origin authorities;
-  the server does not automatically trust forwarded headers.
+- **Require approved authentication.** Set `NCI_SI_HTTP_AUTH_MODE=required` and install the
+  [governed HTTP integration](governed-http.md); absent integration fails before listening.
+  The local default remains trusted-local. Configure actual Host/Origin authorities;
+  forwarded identity headers never grant access. Production identity is still deferred/off.
 - **Stateless replicas are independent.** An omitted NCIt release resolves per call. Name a
   release explicitly when calls must agree across replicas or time. For stateful handshake
   clients, route each session to its owning process; a different replica returns 404.

@@ -494,3 +494,5 @@
     tests/test_permissions.py::test_concurrent_verified_callers_keep_separate_catalogues_and_results: Simultaneous EVS and caDSR users cannot inherit each other's access.
     tests/test_permissions.py::test_grounding_checks_each_selected_child_before_any_read: Grounding checks every selected search, concept, join and stored-value dependency before retrieving anything.
     tests/test_permissions.py::test_missing_policy_never_falls_back_to_trusted_local_access: An unavailable account policy produces a refusal rather than unrestricted local access.
+    tests/test_permissions.py::test_unauthenticated_and_spoofed_callers_cannot_enter_mcp: Missing credentials, invalid credentials and impersonation headers cannot reach MCP tools.
+    tests/test_permissions.py::test_public_probes_reveal_only_status_and_reject_an_untrusted_host: Operators can check service status without exposing content or bypassing hostname protection.

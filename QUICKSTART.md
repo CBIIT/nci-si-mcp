@@ -105,6 +105,8 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 | `NCI_SI_HTTP_HOST` | `127.0.0.1` | HTTP bind address; binding all interfaces does not relax the Host allow-list |
 | `NCI_SI_HTTP_PORT` | `8000` | HTTP port, 1–65535; MCP endpoint is /mcp |
 | `NCI_SI_HTTP_SESSIONS` | `stateful` | stateful retains each session's implicit release and needs process affinity; stateless resolves omitted releases per call and needs no affinity |
+| `NCI_SI_HTTP_AUTH_MODE` | `trusted-local` | `required` refuses HTTP startup without a complete approved integration; cannot serve stdio |
+| `NCI_SI_HTTP_AUTH_FACTORY` | unset | In required mode, an installed `module:factory` returning SDK authentication and caller policy; see [governed HTTP](docs/governed-http.md) |
 | `NCI_SI_HTTP_MAX_REQUEST_BYTES` | `4194304` | Maximum HTTP request body bytes, including chunked bodies; oversized requests return 413 before parsing |
 | `NCI_SI_HTTP_ALLOWED_HOSTS` | `127.0.0.1:*,localhost:*,[::1]:*` | Comma-separated permitted Host authorities, exact or wildcard port; add the public authority when using a proxy |
 | `NCI_SI_HTTP_ALLOWED_ORIGINS` | `http://127.0.0.1:*,http://localhost:*,http://[::1]:*` | Permitted Origin authorities, exact or wildcard port; requests without Origin are allowed |
