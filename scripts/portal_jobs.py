@@ -117,6 +117,24 @@ def _validate_execution(row: dict[str, Any]) -> None:
         if row[name] is not None:
             _timestamp(row[name])
     _validate_outcome(row)
+    _validate_phase(row)
+
+
+def _validate_phase(row: dict[str, Any]) -> None:
+    state = row["state"]
+    if state in ACTIVE:
+        if (row["finished_at"], row["exit_code"], row["reason"]) != (None, None, None):
+            raise ValueError("Active job has terminal facts")
+        if (row["started_at"] is not None) != (state == "running"):
+            raise ValueError("Invalid active job start")
+    elif row["finished_at"] is None:
+        raise ValueError("Terminal job has no finish time")
+    if state == "completed" and (row["exit_code"], row["reason"], row["started_at"] is None) != (
+        0,
+        None,
+        False,
+    ):
+        raise ValueError("Contradictory completed job")
 
 
 def _timestamp(value: Any) -> None:
@@ -314,9 +332,8 @@ class JobController:
             )
             result = {"state": "unavailable", "exit_code": None, "reason": "worker_error"}
         with self.condition:
+            # The executor owns cancellation and has already saved the terminal evidence.
             row.update(result, finished_at=_now())
-            if self.cancelled.is_set():
-                row.update(state="cancelled", reason="cancelled")
             self._prune()
             self._save()
 

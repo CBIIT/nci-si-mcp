@@ -12,9 +12,65 @@ from unittest.mock import patch
 
 from scripts import portal_jobs
 from scripts.portal_jobs import JobConflictError, JobController, QueueFullError
+from scripts.portal_store import EvidenceStore
+
+from test_portal_store import run_bundle
 
 
 class PortalJobsTest(unittest.TestCase):
+    def test_contradictory_execution_records_are_preserved_and_never_replayed(self):
+        controller = self.controller()
+        self.release.set()
+        controller.submit("1" * 32, "benchmark-http-fixture")
+        self.wait_for(controller, "1" * 32, "completed")
+        controller.close()
+        path = self.root / "jobs.json"
+        original = json.loads(path.read_text())
+        observed = self.observed.copy()
+        for changes in (
+            {"exit_code": 9},
+            {"reason": "deadline"},
+            {"started_at": None},
+            {"finished_at": None},
+            {"state": "pending"},
+            {"state": "running"},
+            {"state": "cancelled", "finished_at": None},
+        ):
+            with self.subTest(changes=changes):
+                changed = json.loads(json.dumps(original))
+                changed["jobs"][0].update(changes)
+                raw = json.dumps(changed)
+                path.write_text(raw)
+                with self.assertRaises(OSError), closing(self.controller()):
+                    pass
+                self.assertEqual(path.read_text(), raw)
+                self.assertEqual(self.observed, observed)
+
+    def test_cancel_during_finalization_preserves_the_saved_terminal_outcome(self):
+        controller = self.controller()
+        store = EvidenceStore(self.root / "evidence.sqlite")
+
+        def finalizing(job, _directory, _cancelled):
+            store.import_bundle(run_bundle(job["run_id"]))
+            self.started.set()
+            if not self.release.wait(3):
+                raise TimeoutError("Test did not release finalization")
+            return {"state": "completed", "exit_code": 0, "reason": None}
+
+        controller.execute = finalizing
+        controller.submit("1" * 32, "acceptance-http-fixture")
+        try:
+            self.assertTrue(self.started.wait(2))
+            controller.cancel("1" * 32)
+        finally:
+            self.release.set()
+        controller.close()
+        saved = store.get("1" * 32)["evidence"]
+        recorded = json.loads((self.root / "jobs.json").read_text())["jobs"][0]
+        self.assertEqual(recorded["state"], saved["state"])
+        self.assertEqual(recorded["state"], "completed")
+        self.assertIsNone(recorded["reason"])
+
     def test_concurrent_identical_submissions_start_only_one_worker(self):
         controller = self.controller()
         with ThreadPoolExecutor(max_workers=8) as pool:
@@ -137,7 +193,7 @@ class PortalJobsTest(unittest.TestCase):
         controller.close()
         path = self.root / "jobs.json"
         recorded = json.loads(path.read_text())
-        recorded["jobs"][0].update(state="running", finished_at=None)
+        recorded["jobs"][0].update(state="running", finished_at=None, exit_code=None, reason=None)
         path.write_text(json.dumps(recorded))
         reopened = self.controller()
         self.assertEqual(reopened.get("1" * 32)["state"], "interrupted")

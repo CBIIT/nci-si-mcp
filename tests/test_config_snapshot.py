@@ -13,6 +13,12 @@ from nci_si_mcp.config_snapshot import capture, read_snapshot, serving_snapshot,
 
 
 class ConfigurationSnapshotTest(unittest.TestCase):
+    def test_capture_time_cannot_be_relabelled_without_invalidating_the_revision(self):
+        snapshot = capture(Settings(), set())
+        snapshot["captured_at"] = "2000-01-01T00:00:00+00:00"
+        with self.assertRaisesRegex(ValueError, "revision mismatch"):
+            validate_snapshot(snapshot)
+
     def test_only_explicit_safe_fields_leave_the_selected_target(self):
         settings = Settings(
             cadsr_credential="PRIVATE:CREDENTIAL",

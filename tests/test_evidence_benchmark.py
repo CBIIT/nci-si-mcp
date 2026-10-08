@@ -78,7 +78,7 @@ def selection_manifest(native):
     }
 
 
-def selected_projection(native=None, change_selection=None, selected_from=None):
+def selected_projection(native=None, change_selection=None, selected_from=None, **changes):
     native = benchmark() if native is None else native
     manifest = selection_manifest(native if selected_from is None else selected_from)
     if change_selection:
@@ -89,11 +89,20 @@ def selected_projection(native=None, change_selection=None, selected_from=None):
         kind="benchmark",
         report_sha256=hashlib.sha256(raw).hexdigest(),
         selection_sha256=hashlib.sha256(selection).hexdigest(),
+        **changes,
     )
     return project_benchmark(json.dumps(record).encode(), raw, selection=selection)
 
 
 class BenchmarkProjectionTest(unittest.TestCase):
+    def test_complete_and_interrupted_runs_cannot_be_compared_in_either_order(self):
+        complete = selected_projection()
+        interrupted = selected_projection(state="interrupted", exit_code=None)
+        self.assertEqual(complete["fingerprint"], interrupted["fingerprint"])
+        for left, right in ((complete, interrupted), (interrupted, complete)):
+            with self.subTest(left=left["state"]):
+                self.assertEqual(comparable(left, right), (False, ["incomplete"]))
+
     def test_nonfinite_exponent_in_unprojected_conditions_is_rejected(self):
         raw = (
             json.dumps(benchmark())

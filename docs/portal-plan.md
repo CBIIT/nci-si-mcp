@@ -4,7 +4,8 @@ Design credit: **Semantic Infrastructure (SI) team**, MCP Architecture, 1 Octobe
 Baseline main `4bea455a5540d6a947f2aca5245f8ed703d5891c`, v0.16.0; branch `milestone/phase-7`.
 Existing capabilities: 29 tools, 964 fixture cases, HTTP acceptance, stdio benchmarks and
 Markdown/diagrams/stories. Phase 7 adds a public static website and a separate local results
-dashboard. Job controls and configuration proposals are subsequent issues in the order below.
+dashboard, bounded job controls and advisory configuration proposals. The delivery order below
+records how these capabilities were built; UAT/PROD platform integration remains deferred.
 
 ## Final owner-confirmed boundary
 

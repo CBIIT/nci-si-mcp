@@ -1,5 +1,6 @@
 """Local run controls admit same-origin fixed intents, never commands from another website."""
 
+import socket
 import threading
 import unittest
 from http.client import HTTPConnection
@@ -13,6 +14,27 @@ from scripts.portal_store import EvidenceStore
 
 
 class PortalActionsTest(unittest.TestCase):
+    def test_early_eof_cannot_admit_a_valid_form_prefix(self):
+        body = urlencode(self.intent)
+        connection = HTTPConnection("127.0.0.1", self.server.server_port, timeout=3)
+        self.addCleanup(connection.close)
+        connection.request(
+            "POST",
+            "/jobs",
+            body=body,
+            headers={
+                "Origin": self.origin,
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Content-Length": str(len(body) + 10),
+            },
+        )
+        connection.sock.shutdown(socket.SHUT_WR)
+        response = connection.getresponse()
+        self.assertEqual(response.status, 400)
+        response.read()
+        self.assertEqual(self.jobs.history(), [])
+        self.assertFalse(self.started.is_set())
+
     def setUp(self):
         temporary = TemporaryDirectory()
         self.addCleanup(temporary.cleanup)

@@ -39,8 +39,8 @@ Every field occurs exactly once. Unknown fields, duplicate keys and nonfinite nu
 including finite-looking JSON exponents such as `1e400` that overflow the parser's float.
 SHA-256 values contain 64 lowercase hexadecimal characters. No arbitrary labels, paths, URLs,
 credentials, result bodies or assertions of trust belong here. Limits are 64 KiB envelope and
-16 MiB report bytes. The later file reader must enforce limits during reading, before unbounded
-allocation. Errors do not echo rejected values.
+16 MiB report bytes. File readers enforce limits during reading, before unbounded allocation.
+Errors do not echo rejected values.
 
 Completed means zero process exit and an available report, **not** a passing or complete test
 inventory. Failed requires a known nonzero exit, with or without a report. Cancelled/interrupted
@@ -88,8 +88,9 @@ cannot distinguish an unstarted server from an unimplemented tool; the adapter p
 ambiguity. Raw aliases, suite labels and unmatched URLs are omitted from the projection.
 
 Each projected case carries a SHA-256 node ID, original story ID, expected/actual outcome and
-tool/gate attribution. The future dashboard resolves descriptions from the matching trusted
-catalogue, never treats node IDs as file paths or markup. Missing cases have a null outcome.
+tool/gate attribution. The dashboard displays the original story ID, rather than substituting
+today's narrative for historical evidence, and never treats node IDs as file paths or markup.
+Missing cases have a null outcome.
 `inventory_complete` means all selected cases were recorded in a terminated completed/failed
 run; **it does not mean all passed or ran to a verdict**. Skipped cases and failed processes
 remain visible. With no report, counts and tools are null, not invented zeroes.
@@ -143,7 +144,7 @@ config:
   layout: dagre
 ---
 flowchart LR
-    Wrapper["Execution wrapper<br/>planned in #199"] --> Envelope["Times · exit · source identity<br/>report and snapshot digests"]
+    Wrapper["Owned execution wrapper"] --> Envelope["Times · exit · source identity<br/>report and snapshot digests"]
     Runner["Acceptance / benchmark runner"] --> Raw["Native report<br/>may be absent or partial"]
     Original["Original catalogue · stories<br/>expectations · selection"] --> Validate
     Raw --> Validate["Strict schema + digest validation<br/>reconcile counts and samples"]
@@ -157,8 +158,8 @@ flowchart LR
 Text alternative: the wrapper records execution independently, the runner produces native
 results, and the validator checks both against original snapshots. Only the projection enters
 the local dashboard. UAT/PROD administration additionally needs the platform boundary; public
-documentation never consumes operational result records. The diagram distinguishes implemented
-validators from the dependent wrapper/dashboard work.
+documentation never consumes operational result records. The wrapper, validators and local
+dashboard are implemented; deployed platform integration remains deferred.
 
 The standard `pdm run test` and CI coverage measurement include these evidence modules alongside
 the core server. The existing 90% floor and above-95% aim apply; these are regression tests for

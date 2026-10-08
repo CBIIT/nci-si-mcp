@@ -8,6 +8,7 @@ import sys
 import threading
 import time
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -17,6 +18,43 @@ from scripts.operator_worker import clean_environment
 
 
 class OperatorProcessTest(unittest.TestCase):
+    def test_running_cancellation_reaps_normal_and_sigterm_resistant_workers(self):
+        for resistant in (False, True):
+            with self.subTest(resistant=resistant), TemporaryDirectory() as temporary:
+                directory = Path(temporary)
+                ready = directory / "ready"
+                late = directory / "late"
+                handler = "signal.SIG_IGN" if resistant else "signal.SIG_DFL"
+                code = (
+                    "import os,signal,time; "
+                    f"signal.signal(signal.SIGTERM, {handler}); "
+                    f"open({str(ready)!r},'w').write(str(os.getpid())); time.sleep(300); "
+                    f"open({str(late)!r},'w').write('unexpected')"
+                )
+                cancelled = threading.Event()
+                with ThreadPoolExecutor(max_workers=1) as pool:
+                    future = pool.submit(
+                        run_owned,
+                        [sys.executable, "-c", code],
+                        directory=directory,
+                        environment=clean_environment(directory),
+                        seconds=60,
+                        cancelled=cancelled,
+                    )
+                    try:
+                        deadline = time.monotonic() + 5
+                        while not ready.exists() and time.monotonic() < deadline:
+                            time.sleep(0.01)
+                        self.assertTrue(ready.exists())
+                    finally:
+                        cancelled.set()
+                    result = future.result(timeout=15)
+                self.assertEqual((result["state"], result["reason"]), ("cancelled", "cancelled"))
+                self.assertNotEqual(result["exit_code"], 0)
+                with self.assertRaises(ProcessLookupError):
+                    os.kill(int(ready.read_text()), 0)
+                self.assertFalse(late.exists())
+
     def test_successful_worker_cannot_bypass_report_size_or_symlink_checks(self):
         for linked, reason in ((False, "output_limit"), (True, "invalid_evidence")):
             with self.subTest(linked=linked), TemporaryDirectory() as temporary:

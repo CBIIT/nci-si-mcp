@@ -38,6 +38,20 @@ def run_bundle(run_id="1" * 32, state="completed", timestamp="2026-10-01T00:00:0
 
 
 class EvidenceStoreTest(unittest.TestCase):
+    def test_private_legacy_content_cannot_change_the_safe_view_record(self):
+        visible = []
+        for secret in ("FIRST-PRIVATE-CANARY", "SECOND-PRIVATE-CANARY"):
+            run_id = self.store.import_legacy(encoded({"secret": secret}), "acceptance")
+            record = self.store.get(run_id)
+            for key in ("sequence", "checksum"):
+                record.pop(key)
+            for key in ("run_id", "report_sha256"):
+                record["evidence"].pop(key)
+            visible.append(record)
+        self.assertEqual(visible[0], visible[1])
+        self.assertEqual(visible[0]["origin"], "local-import-unverified")
+        self.assertFalse(visible[0]["evidence"]["inventory_complete"])
+
     def setUp(self):
         self.directory = TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)

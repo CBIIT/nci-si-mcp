@@ -7,9 +7,12 @@ import subprocess
 import sys
 import time
 import uuid
+from contextlib import ExitStack
 from http import HTTPStatus
 from http.client import HTTPConnection
 from typing import Any
+
+from scripts.portal_jobs import ACTIVE
 
 COMPOSE = "container/compose.local.yaml"
 
@@ -108,7 +111,7 @@ def benchmark(admin: str) -> None:
             docker("exec", admin, "cat", "/state/evidence.jobs/jobs.json")
         )
         row = next(row for row in value["jobs"] if row["run_id"] == run_id)
-        if row["state"] not in {"queued", "running", "cancelling"}:
+        if row["state"] not in ACTIVE:
             require(row["state"] == "completed", f"Fixture benchmark ended as {row['state']}")
             status, page = request(8081, "/runs/" + run_id)
             require(
@@ -158,6 +161,22 @@ def _serving_probe(network: str, name: str) -> tuple[str, int]:
     return record["NetworkSettings"]["Networks"][network]["IPAddress"], port
 
 
+def _remove_owned(kind: str, name: str) -> None:
+    options = ("--all",) if kind == "container" else ()
+    found = docker(kind, "ls", *options, "--quiet", "--filter", f"name=^{name}$")
+    if found:
+        force = ("--force",) if kind == "container" else ()
+        docker(kind, "rm", *force, name)
+
+
+def cleanup(compose: tuple[str, ...], serving: str, network: str) -> None:
+    # Every owned cleanup is attempted even if an earlier engine operation fails.
+    with ExitStack() as pending:
+        pending.callback(_remove_owned, "network", network)
+        pending.callback(_remove_owned, "container", serving)
+        pending.callback(docker, *compose, "down", "--volumes")
+
+
 def main() -> None:
     project = "nci-si-smoke-" + uuid.uuid4().hex[:10]
     compose = ("compose", "-f", COMPOSE, "-p", project)
@@ -178,14 +197,14 @@ def main() -> None:
         require(
             request(port, "/health")[0] == HTTPStatus.OK, "Stopping admin stopped the serving MCP"
         )
-        print("Companion health, isolation, fixture benchmark and independent shutdown passed")
     finally:
-        if sys.exception() is not None:
-            print(docker(*compose, "ps", "--all", check=False))
-            print(docker(*compose, "logs", "--no-color", "--tail", "30", check=False))
-        docker(*compose, "down", "--volumes", check=False)
-        docker("rm", "-f", serving, check=False)
-        docker("network", "rm", network, check=False)
+        try:
+            if sys.exception() is not None:
+                print(docker(*compose, "ps", "--all", check=False))
+                print(docker(*compose, "logs", "--no-color", "--tail", "30", check=False))
+        finally:
+            cleanup(compose, serving, network)
+    print("Companion health, isolation, fixture benchmark and independent shutdown passed")
 
 
 if __name__ == "__main__":
