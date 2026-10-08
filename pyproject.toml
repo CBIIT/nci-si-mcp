@@ -159,6 +159,7 @@ source = [
     "scripts.companion_context",
     "scripts.companion_lock",
     "scripts.companion_entry",
+    "scripts.companion_relay",
     "scripts.portal",
     "scripts.portal_store",
     "scripts.portal_views",

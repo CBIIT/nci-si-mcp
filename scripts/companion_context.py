@@ -67,6 +67,7 @@ def _populate(root: Path, output: Path, requirements: str, commit: str) -> None:
     admin.mkdir()
     build_site(root, docs / "site")
     shutil.copyfile(root / "scripts/static_server.py", docs / "static_server.py")
+    shutil.copyfile(root / "scripts/companion_relay.py", docs / "companion_relay.py")
     shutil.copyfile(root / "container/Docs.Dockerfile", docs / "Dockerfile")
     shutil.copyfile(root / "container/Admin.Dockerfile", admin / "Dockerfile")
     (admin / "requirements.txt").write_text(requirements)

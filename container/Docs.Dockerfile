@@ -4,6 +4,7 @@ RUN dnf -y install python3.14
 RUN dnf clean all
 COPY site /site
 COPY static_server.py /app/static_server.py
+COPY companion_relay.py /app/companion_relay.py
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 USER 65532:65532
 EXPOSE 8080

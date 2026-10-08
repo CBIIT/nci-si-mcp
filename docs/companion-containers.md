@@ -10,6 +10,11 @@ Use Python 3.14+, PDM, Node.js and a Docker-compatible engine with Compose. Imag
 target Linux amd64; the Dockerfiles do not bake in an architecture. On Apple Silicon, the engine
 needs amd64 emulation. No registry login or institutional account is required.
 
+On macOS, use a dedicated project VM rather than another project's Podman machine.
+Select its Docker context explicitly with `DOCKER_CONTEXT` for builds, Compose and the
+smoke check; do not change a shared default connection. Confirm the endpoint with
+`docker context inspect "$DOCKER_CONTEXT"` before starting containers.
+
 Commit source changes first: the worker archive, application wheels and public documentation
 must identify the same clean checkout. No Git metadata or host credentials enter the contexts.
 
@@ -33,6 +38,10 @@ by restart are recorded as interrupted and are never retried automatically.
 The admin container offers only fixture acceptance and benchmark profiles. Owned disposable
 subprocesses share its bounded resource allocation and internal network. It has no serving
 MCP network, index/model volume, production credential, Docker socket or external network route.
+A small ingress relay publishes port 8081 on host loopback and forwards bytes only to
+`administration:8081`; request headers cannot select its destination. It has no evidence
+volume or serving network. This extra process supports Docker engines that do not publish
+ports for containers attached only to an internal network, without giving workers egress.
 Use the separately documented host CLI for explicitly authorized remote probes. This composition
 does not test production latency. Missing configuration is shown as unavailable; optionally mount
 an explicitly selected safe `serve --configuration-snapshot` artifact read-only at
@@ -58,7 +67,8 @@ belong to the serving service's deployment environment, not the validation conta
 ```mermaid
 flowchart LR
   browser["Local browser"] --> docs["Public docs · 8080"]
-  browser --> admin["Local admin · 8081"]
+  browser --> relay["Loopback ingress · 8081"]
+  relay --> admin["Local admin"]
   client["MCP client"] --> serving["Serving MCP · 8000"]
   subgraph offline["Internal validation network · resource bounded"]
     admin --> workers["Owned fixture subprocesses"]
@@ -72,6 +82,8 @@ flowchart LR
 Text alternative: the browser reaches separate docs and admin listeners. Fixture workers and
 evidence share only the internal validation network; they have no connection to the serving
 MCP. The serving process alone mounts its index/model and connects to authorized upstream APIs.
+The fixed admin relay bridges local browser ingress to the internal network without a
+configurable proxy target or operational storage.
 
 ## Verification and lifecycle
 

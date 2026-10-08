@@ -40,7 +40,7 @@ class CompanionContextTest(unittest.TestCase):
             self.assertEqual((output / "docs/site/index.html").read_text(), "Public documentation")
             self.assertEqual(
                 {p.name for p in (output / "docs").iterdir()},
-                {"site", "Dockerfile", "static_server.py"},
+                {"site", "Dockerfile", "static_server.py", "companion_relay.py"},
             )
 
     def test_source_change_during_build_leaves_no_publishable_context(self):

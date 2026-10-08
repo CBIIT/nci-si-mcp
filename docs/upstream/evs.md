@@ -40,7 +40,7 @@ Platform requirement/operation: **E-9**.
 Specification requirements: `search_concepts-3`, `search_concepts-5`, `search_concepts-8`.
 Source discussion: [issue evidence](https://github.com/hniedner/nci-si-mcp/issues/42).
 
-**Observation.** The furnished implementation performs semantic/hybrid retrieval locally; its lexical EVS request is not evidence of an upstream semantic operation.
+**Observation.** The furnished implementation performs embedding semantic/hybrid retrieval locally. The EVS team's response relayed on 8 October 2026 confirms that /search type controls lexical matching, while structured and ontology/relationship-aware retrieval, including SPARQL, are also available. Graph semantics do not establish an equivalent embedding-ranked operation; see team-responses-2026-10-08.md.
 
 **Reproduction.** Compare lexical OP-E08 with semantic/hybrid search using an activated full index and then without an index; use the recorded full-corpus evaluation, not fixture timing, for quality floors.
 

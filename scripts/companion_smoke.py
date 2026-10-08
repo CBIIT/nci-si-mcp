@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 import time
 import uuid
 from http import HTTPStatus
@@ -179,6 +180,9 @@ def main() -> None:
         )
         print("Companion health, isolation, fixture benchmark and independent shutdown passed")
     finally:
+        if sys.exception() is not None:
+            print(docker(*compose, "ps", "--all", check=False))
+            print(docker(*compose, "logs", "--no-color", "--tail", "30", check=False))
         docker(*compose, "down", "--volumes", check=False)
         docker("rm", "-f", serving, check=False)
         docker("network", "rm", network, check=False)

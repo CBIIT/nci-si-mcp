@@ -15,7 +15,9 @@ class CompanionCompositionTest(unittest.TestCase):
     def test_local_services_publish_only_loopback_and_have_resource_boundaries(self):
         for service in self.compose["services"].values():
             with self.subTest(service=service["image"]):
-                self.assertTrue(all(port.startswith("127.0.0.1:") for port in service["ports"]))
+                self.assertTrue(
+                    all(port.startswith("127.0.0.1:") for port in service.get("ports", []))
+                )
                 self.assertTrue(service["read_only"])
                 self.assertEqual(service["user"], "65532:65532")
                 self.assertEqual(service["cap_drop"], ["ALL"])
@@ -30,6 +32,9 @@ class CompanionCompositionTest(unittest.TestCase):
         self.assertTrue(self.compose["networks"]["validation"]["internal"])
         self.assertEqual(admin["volumes"], ["evidence:/state"])
         self.assertNotIn("environment", admin)
+        self.assertNotIn("ports", admin)
+        self.assertEqual(services["admin-ingress"]["networks"], ["access", "validation"])
+        self.assertNotIn("volumes", services["admin-ingress"])
         self.assertTrue(set(admin["networks"]).isdisjoint(services["mcp"]["networks"]))
         self.assertNotIn("volumes", services["documentation"])
 

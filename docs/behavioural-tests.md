@@ -70,14 +70,14 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| The available tool names are exactly those of the selected profile. | 1 | `P-1` | [Test](../acceptance/tests/test_protocol.py#L124) |
-| Tool and schema descriptions contain no unfinished or debugging text. | 1 | `P-3` | [Test](../acceptance/tests/test_protocol.py#L146) |
-| Descriptions and examples do not advertise options that the specification excludes. | 1 | `P-11` | [Test](../acceptance/tests/test_protocol.py#L209) |
-| Names follow the common action-led naming convention. | 1 | `P-4` | [Test](../acceptance/tests/test_protocol.py#L224) |
-| Retrieving content does not change the advertised tool definitions. | 1 | `P-6` | [Test](../acceptance/tests/test_protocol.py#L257) |
-| A source outage does not make tools disappear or change their definitions. | 1 | `P-6` | [Test](../acceptance/tests/test_protocol.py#L268) |
-| Tools declare that they read external data, do not destroy it, and are safe to repeat. | 1 | `P-10` | [Test](../acceptance/tests/test_protocol.py#L298) |
-| Input names and which inputs are mandatory match the specification. | 1 | `P-12` | [Test](../acceptance/tests/test_protocol.py#L309) |
+| The available tool names are exactly those of the selected profile. | 1 | [`P-1`](specification.md#requirement-P-1) | [Test](../acceptance/tests/test_protocol.py#L124) |
+| Tool and schema descriptions contain no unfinished or debugging text. | 1 | [`P-3`](specification.md#requirement-P-3) | [Test](../acceptance/tests/test_protocol.py#L146) |
+| Descriptions and examples do not advertise options that the specification excludes. | 1 | [`P-11`](specification.md#requirement-P-11) | [Test](../acceptance/tests/test_protocol.py#L209) |
+| Names follow the common action-led naming convention. | 1 | [`P-4`](specification.md#requirement-P-4) | [Test](../acceptance/tests/test_protocol.py#L224) |
+| Retrieving content does not change the advertised tool definitions. | 1 | [`P-6`](specification.md#requirement-P-6) | [Test](../acceptance/tests/test_protocol.py#L257) |
+| A source outage does not make tools disappear or change their definitions. | 1 | [`P-6`](specification.md#requirement-P-6) | [Test](../acceptance/tests/test_protocol.py#L268) |
+| Tools declare that they read external data, do not destroy it, and are safe to repeat. | 1 | [`P-10`](specification.md#requirement-P-10) | [Test](../acceptance/tests/test_protocol.py#L298) |
+| Input names and which inputs are mandatory match the specification. | 1 | [`P-12`](specification.md#requirement-P-12) | [Test](../acceptance/tests/test_protocol.py#L309) |
 
 <details>
 <summary>Exact executable cases (8)</summary>
@@ -107,10 +107,10 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Every tool has a valid result schema that accepts the defined errors but rejects an unknown or missing error code. | 1 | `P-2` | [Test](../acceptance/tests/test_protocol.py#L131) |
-| Actual successful results conform to each tool's declared result structure. | 26 | `X-6` | [Test](../acceptance/tests/test_crosscutting.py#L138) |
-| Actual failure results conform to that structure too. | 26 | `X-6` | [Test](../acceptance/tests/test_crosscutting.py#L294) |
-| The answer is a named record rather than an unlabelled list or scalar. | 26 | `X-14` | [Test](../acceptance/tests/test_crosscutting.py#L147) |
+| Every tool has a valid result schema that accepts the defined errors but rejects an unknown or missing error code. | 1 | [`P-2`](specification.md#requirement-P-2) | [Test](../acceptance/tests/test_protocol.py#L131) |
+| Actual successful results conform to each tool's declared result structure. | 26 | [`X-6`](specification.md#requirement-X-6) | [Test](../acceptance/tests/test_crosscutting.py#L138) |
+| Actual failure results conform to that structure too. | 26 | [`X-6`](specification.md#requirement-X-6) | [Test](../acceptance/tests/test_crosscutting.py#L294) |
+| The answer is a named record rather than an unlabelled list or scalar. | 26 | [`X-14`](specification.md#requirement-X-14) | [Test](../acceptance/tests/test_crosscutting.py#L147) |
 
 <details>
 <summary>Exact executable cases (79)</summary>
@@ -211,14 +211,14 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| The listed prompts and their required inputs match the profile's specification. | 1 | `P-8` | [Test](../acceptance/tests/test_protocol.py#L335) |
-| Prompt instructions are nonempty and name the stated, available tools in the stated order. | 1 | `P-8` | [Test](../acceptance/tests/test_protocol.py#L375) |
-| The resource and address-template lists match the profile exactly. | 1 | `P-8` | [Test](../acceptance/tests/test_protocol.py#L398) |
-| An address outside the supported resource forms produces an error, not invented content. | 2 | `P-9` | [Test](../acceptance/tests/test_protocol.py#L412) |
-| Reading each resource gives the declared data format and agrees with its tool on identity and, where applicable, release. | 7 | `P-9` | [Test](../acceptance/tests/test_protocol.py#L475) |
-| Resource content identifies its source and retrieval time, including the unpinned caDSR registry state. | 7 | `P-9` | [Test](../acceptance/tests/test_protocol.py#L500) |
-| Each resource carries reuse duration and sharing rules appropriate to its content. | 7 | `P-9` | [Test](../acceptance/tests/test_protocol.py#L522) |
-| The index description identifies its concept count, embedding configuration, build time and provenance. | 1 | `P-9` | [Test](../acceptance/tests/test_protocol.py#L537) |
+| The listed prompts and their required inputs match the profile's specification. | 1 | [`P-8`](specification.md#requirement-P-8) | [Test](../acceptance/tests/test_protocol.py#L335) |
+| Prompt instructions are nonempty and name the stated, available tools in the stated order. | 1 | [`P-8`](specification.md#requirement-P-8) | [Test](../acceptance/tests/test_protocol.py#L375) |
+| The resource and address-template lists match the profile exactly. | 1 | [`P-8`](specification.md#requirement-P-8) | [Test](../acceptance/tests/test_protocol.py#L398) |
+| An address outside the supported resource forms produces an error, not invented content. | 2 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L412) |
+| Reading each resource gives the declared data format and agrees with its tool on identity and, where applicable, release. | 7 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L475) |
+| Resource content identifies its source and retrieval time, including the unpinned caDSR registry state. | 7 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L500) |
+| Each resource carries reuse duration and sharing rules appropriate to its content. | 7 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L522) |
+| The index description identifies its concept count, embedding configuration, build time and provenance. | 1 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L537) |
 
 <details>
 <summary>Exact executable cases (27)</summary>
@@ -267,11 +267,11 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| The caller's correlation identifier appears on every upstream request and in the returned provenance. | 1 | `P-7` | [Test](../acceptance/tests/test_protocol.py#L279) |
-| Every returned item has the required source, release, retrieval time and delivery information. | 26 | `X-7` | [Test](../acceptance/tests/test_crosscutting.py#L153) |
-| Related items identify depth, relationship, direction and polarity, including genuinely traversed items. | 3 | `X-7` | [Test](../acceptance/tests/test_crosscutting.py#L164) |
-| Codes have their terminology stated separately instead of embedding a prefix or a web address. | 26 | `X-9` | [Test](../acceptance/tests/test_crosscutting.py#L176) |
-| Origin fields supplied by the source are retained unchanged. | 6 | `X-8` | [Test](../acceptance/tests/test_crosscutting.py#L466) |
+| The caller's correlation identifier appears on every upstream request and in the returned provenance. | 1 | [`P-7`](specification.md#requirement-P-7) | [Test](../acceptance/tests/test_protocol.py#L279) |
+| Every returned item has the required source, release, retrieval time and delivery information. | 26 | [`X-7`](specification.md#requirement-X-7) | [Test](../acceptance/tests/test_crosscutting.py#L153) |
+| Related items identify depth, relationship, direction and polarity, including genuinely traversed items. | 3 | [`X-7`](specification.md#requirement-X-7) | [Test](../acceptance/tests/test_crosscutting.py#L164) |
+| Codes have their terminology stated separately instead of embedding a prefix or a web address. | 26 | [`X-9`](specification.md#requirement-X-9) | [Test](../acceptance/tests/test_crosscutting.py#L176) |
+| Origin fields supplied by the source are retained unchanged. | 6 | [`X-8`](specification.md#requirement-X-8) | [Test](../acceptance/tests/test_crosscutting.py#L466) |
 
 <details>
 <summary>Exact executable cases (62)</summary>
@@ -355,12 +355,12 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Monthly and weekly each select their own tagged release even when the other appears first. | 2 | `resolve_release-1` | [Test](../acceptance/tests/test_evs.py#L40) |
-| Two releases claiming the same channel produce an error naming both candidates. | 1 | `resolve_release-2` | [Test](../acceptance/tests/test_evs.py#L58) |
-| Discovery is marked for immediate refresh rather than reuse as a cached current release. | 1 | `resolve_release-3` | [Test](../acceptance/tests/test_evs.py#L71) |
-| Each item identifies the release selected for the call. | 15 | `X-1` | [Test](../acceptance/tests/test_crosscutting.py#L130) |
-| An unserved release returns the specified availability or mismatch error and no substitute content. | 15 | `X-2` | [Test](../acceptance/tests/test_crosscutting.py#L268) |
-| Content identifying a different release is rejected. | 12 | `X-3` | [Test](../acceptance/tests/test_crosscutting.py#L278) |
+| Monthly and weekly each select their own tagged release even when the other appears first. | 2 | [`resolve_release-1`](specification.md#requirement-resolve_release-1) | [Test](../acceptance/tests/test_evs.py#L40) |
+| Two releases claiming the same channel produce an error naming both candidates. | 1 | [`resolve_release-2`](specification.md#requirement-resolve_release-2) | [Test](../acceptance/tests/test_evs.py#L58) |
+| Discovery is marked for immediate refresh rather than reuse as a cached current release. | 1 | [`resolve_release-3`](specification.md#requirement-resolve_release-3) | [Test](../acceptance/tests/test_evs.py#L71) |
+| Each item identifies the release selected for the call. | 15 | [`X-1`](specification.md#requirement-X-1) | [Test](../acceptance/tests/test_crosscutting.py#L130) |
+| An unserved release returns the specified availability or mismatch error and no substitute content. | 15 | [`X-2`](specification.md#requirement-X-2) | [Test](../acceptance/tests/test_crosscutting.py#L268) |
+| Content identifying a different release is rejected. | 12 | [`X-3`](specification.md#requirement-X-3) | [Test](../acceptance/tests/test_crosscutting.py#L278) |
 
 <details>
 <summary>Exact executable cases (46)</summary>
@@ -428,9 +428,9 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| A call omitting the release identifies the resolved NCIt release in its answer. | 15 | `X-22` | [Test](../acceptance/tests/test_crosscutting.py#L744) |
-| The first implicit release survives an explicit override and a source update. | 1 | `X-22` | [Test](../acceptance/tests/test_release_session.py#L11) |
-| Withdrawal of the held release produces an error rather than a fresh implicit selection. | 1 | `X-22` | [Test](../acceptance/tests/test_release_session.py#L30) |
+| A call omitting the release identifies the resolved NCIt release in its answer. | 15 | [`X-22`](specification.md#requirement-X-22) | [Test](../acceptance/tests/test_crosscutting.py#L744) |
+| The first implicit release survives an explicit override and a source update. | 1 | [`X-22`](specification.md#requirement-X-22) | [Test](../acceptance/tests/test_release_session.py#L11) |
+| Withdrawal of the held release produces an error rather than a fresh implicit selection. | 1 | [`X-22`](specification.md#requirement-X-22) | [Test](../acceptance/tests/test_release_session.py#L30) |
 
 <details>
 <summary>Exact executable cases (17)</summary>
@@ -469,9 +469,9 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Tool, prompt, resource and template lists carry positive reuse durations and public scope. | 4 | `P-5` | [Test](../acceptance/tests/test_protocol.py#L246) |
-| Explicitly pinned content permits positive-duration public reuse. | 15 | `X-13` | [Test](../acceptance/tests/test_crosscutting.py#L202) |
-| Registry content and computed matches receive their distinct required cache policies. | 9 | `X-13` | [Test](../acceptance/tests/test_crosscutting.py#L246) |
+| Tool, prompt, resource and template lists carry positive reuse durations and public scope. | 4 | [`P-5`](specification.md#requirement-P-5) | [Test](../acceptance/tests/test_protocol.py#L246) |
+| Explicitly pinned content permits positive-duration public reuse. | 15 | [`X-13`](specification.md#requirement-X-13) | [Test](../acceptance/tests/test_crosscutting.py#L202) |
+| Registry content and computed matches receive their distinct required cache policies. | 9 | [`X-13`](specification.md#requirement-X-13) | [Test](../acceptance/tests/test_crosscutting.py#L246) |
 
 <details>
 <summary>Exact executable cases (28)</summary>
@@ -521,13 +521,13 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| An unavailable source yields an upstream error or timeout, not empty success. | 26 | `X-5` | [Test](../acceptance/tests/test_crosscutting.py#L286) |
-| Each supported source's success-shaped error response is recognized as failure. | 1 | `X-15` | [Test](../acceptance/tests/test_crosscutting.py#L429) |
-| A valid search with no matches succeeds with an empty result, provenance and no continuation token. | 6 | `X-4` | [Test](../acceptance/tests/test_crosscutting.py#L450) |
-| caDSR requests ask for JSON so that the expected content is retrieved rather than an HTML page. | 1 | `X-15` | [Test](../acceptance/tests/test_cadsr.py#L42) |
-| An unknown caDSR data element reported inside HTTP success is not_found, never empty success. | 1 | `X-15` | [Test](../acceptance/tests/test_cadsr.py#L60) |
-| HTML received instead of requested JSON is rejected as an upstream failure. | 1 | `X-15` | [Test](../acceptance/tests/test_cadsr.py#L72) |
-| A contract-defined caDSR request refusal is presented as an invalid request. | 1 | `X-15` | [Test](../acceptance/tests/test_cadsr.py#L86) |
+| An unavailable source yields an upstream error or timeout, not empty success. | 26 | [`X-5`](specification.md#requirement-X-5) | [Test](../acceptance/tests/test_crosscutting.py#L286) |
+| Each supported source's success-shaped error response is recognized as failure. | 1 | [`X-15`](specification.md#requirement-X-15) | [Test](../acceptance/tests/test_crosscutting.py#L429) |
+| A valid search with no matches succeeds with an empty result, provenance and no continuation token. | 6 | [`X-4`](specification.md#requirement-X-4) | [Test](../acceptance/tests/test_crosscutting.py#L450) |
+| caDSR requests ask for JSON so that the expected content is retrieved rather than an HTML page. | 1 | [`X-15`](specification.md#requirement-X-15) | [Test](../acceptance/tests/test_cadsr.py#L42) |
+| An unknown caDSR data element reported inside HTTP success is not_found, never empty success. | 1 | [`X-15`](specification.md#requirement-X-15) | [Test](../acceptance/tests/test_cadsr.py#L60) |
+| HTML received instead of requested JSON is rejected as an upstream failure. | 1 | [`X-15`](specification.md#requirement-X-15) | [Test](../acceptance/tests/test_cadsr.py#L72) |
+| A contract-defined caDSR request refusal is presented as an invalid request. | 1 | [`X-15`](specification.md#requirement-X-15) | [Test](../acceptance/tests/test_cadsr.py#L86) |
 
 <details>
 <summary>Exact executable cases (37)</summary>
@@ -586,8 +586,8 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Logged upstream requests contain no identical repeated request during the successful call. | 26 | `X-11` | [Test](../acceptance/tests/test_crosscutting.py#L188) |
-| A rate-limited request is retried after the required wait, without an intervening request to that endpoint. | 2 | `X-16` | [Test](../acceptance/tests/test_crosscutting.py#L399) |
+| Logged upstream requests contain no identical repeated request during the successful call. | 26 | [`X-11`](specification.md#requirement-X-11) | [Test](../acceptance/tests/test_crosscutting.py#L188) |
+| A rate-limited request is retried after the required wait, without an intervening request to that endpoint. | 2 | [`X-16`](specification.md#requirement-X-16) | [Test](../acceptance/tests/test_crosscutting.py#L399) |
 
 <details>
 <summary>Exact executable cases (28)</summary>
@@ -637,9 +637,9 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| The licence key is sent upstream and is absent from answers, logs and files observable to this test transport. | 1 | `X-12` | [Test](../acceptance/tests/test_crosscutting.py#L321) |
-| Error responses do not expose the licence key even when the upstream response includes it. | 1 | `X-12` | [Test](../acceptance/tests/test_crosscutting.py#L336) |
-| The caDSR credential is sent upstream and is absent from answers, logs and files observable to this test transport. | 1 | `X-12` | [Test](../acceptance/tests/test_crosscutting.py#L356) |
+| The licence key is sent upstream and is absent from answers, logs and files observable to this test transport. | 1 | [`X-12`](specification.md#requirement-X-12) | [Test](../acceptance/tests/test_crosscutting.py#L321) |
+| Error responses do not expose the licence key even when the upstream response includes it. | 1 | [`X-12`](specification.md#requirement-X-12) | [Test](../acceptance/tests/test_crosscutting.py#L336) |
+| The caDSR credential is sent upstream and is absent from answers, logs and files observable to this test transport. | 1 | [`X-12`](specification.md#requirement-X-12) | [Test](../acceptance/tests/test_crosscutting.py#L356) |
 
 <details>
 <summary>Exact executable cases (3)</summary>
@@ -664,9 +664,9 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Supplied licence text is preserved exactly. | 4 | `X-19` | [Test](../acceptance/tests/test_crosscutting.py#L801) |
-| An item carries no additional licence text absent from the source answer. | 4 | `X-19` | [Test](../acceptance/tests/test_crosscutting.py#L819) |
-| Without source-provided licence text, attribution contains no licence text. | 15 | `X-19` | [Test](../acceptance/tests/test_crosscutting.py#L836) |
+| Supplied licence text is preserved exactly. | 4 | [`X-19`](specification.md#requirement-X-19) | [Test](../acceptance/tests/test_crosscutting.py#L801) |
+| An item carries no additional licence text absent from the source answer. | 4 | [`X-19`](specification.md#requirement-X-19) | [Test](../acceptance/tests/test_crosscutting.py#L819) |
+| Without source-provided licence text, attribution contains no licence text. | 15 | [`X-19`](specification.md#requirement-X-19) | [Test](../acceptance/tests/test_crosscutting.py#L836) |
 
 <details>
 <summary>Exact executable cases (23)</summary>
@@ -711,12 +711,12 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| A deliberately small limit yields explicit truncation information rather than an apparently complete answer. | 4 | `X-10` | [Test](../acceptance/tests/test_crosscutting.py#L490) |
-| Continuation gives the next items without overlap and preserves release identity. | 7 | `X-17` | [Test](../acceptance/tests/test_crosscutting.py#L536) |
-| Changing an applied argument invalidates the continuation token. | 21 | `X-17` | [Test](../acceptance/tests/test_crosscutting.py#L581) |
-| An omitted argument can be stated as its original default on continuation. | 6 | `X-17` | [Test](../acceptance/tests/test_crosscutting.py#L615) |
-| An explicitly supplied default can be omitted on continuation without changing the query. | 6 | `X-17` | [Test](../acceptance/tests/test_crosscutting.py#L633) |
-| Omitting a previously supplied non-default argument is refused. | 5 | `X-17` | [Test](../acceptance/tests/test_crosscutting.py#L659) |
+| A deliberately small limit yields explicit truncation information rather than an apparently complete answer. | 4 | [`X-10`](specification.md#requirement-X-10) | [Test](../acceptance/tests/test_crosscutting.py#L490) |
+| Continuation gives the next items without overlap and preserves release identity. | 7 | [`X-17`](specification.md#requirement-X-17) | [Test](../acceptance/tests/test_crosscutting.py#L536) |
+| Changing an applied argument invalidates the continuation token. | 21 | [`X-17`](specification.md#requirement-X-17) | [Test](../acceptance/tests/test_crosscutting.py#L581) |
+| An omitted argument can be stated as its original default on continuation. | 6 | [`X-17`](specification.md#requirement-X-17) | [Test](../acceptance/tests/test_crosscutting.py#L615) |
+| An explicitly supplied default can be omitted on continuation without changing the query. | 6 | [`X-17`](specification.md#requirement-X-17) | [Test](../acceptance/tests/test_crosscutting.py#L633) |
+| Omitting a previously supplied non-default argument is refused. | 5 | [`X-17`](specification.md#requirement-X-17) | [Test](../acceptance/tests/test_crosscutting.py#L659) |
 
 <details>
 <summary>Exact executable cases (49)</summary>
@@ -787,11 +787,11 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Omitting an optional argument gives the same answer as supplying its stated default. | 16 | `X-20` | [Test](../acceptance/tests/test_crosscutting.py#L704) |
-| Zero and negative bounded arguments are rejected instead of silently raised to one. | 30 | `X-18` | [Test](../acceptance/tests/test_crosscutting.py#L735) |
-| Invalid identifier variants are refused before any upstream request can carry them. | 312 | `X-23` | [Test](../acceptance/tests/test_crosscutting.py#L932) |
-| A code without a specified local format remains a single encoded upstream path segment. | 1 | `X-23` | [Test](../acceptance/tests/test_crosscutting.py#L962) |
-| Free-text punctuation cannot split, truncate or change the value sent to the source. | 11 | `X-24` | [Test](../acceptance/tests/test_crosscutting.py#L1041) |
+| Omitting an optional argument gives the same answer as supplying its stated default. | 16 | [`X-20`](specification.md#requirement-X-20) | [Test](../acceptance/tests/test_crosscutting.py#L704) |
+| Zero and negative bounded arguments are rejected instead of silently raised to one. | 30 | [`X-18`](specification.md#requirement-X-18) | [Test](../acceptance/tests/test_crosscutting.py#L735) |
+| Invalid identifier variants are refused before any upstream request can carry them. | 312 | [`X-23`](specification.md#requirement-X-23) | [Test](../acceptance/tests/test_crosscutting.py#L932) |
+| A code without a specified local format remains a single encoded upstream path segment. | 1 | [`X-23`](specification.md#requirement-X-23) | [Test](../acceptance/tests/test_crosscutting.py#L962) |
+| Free-text punctuation cannot split, truncate or change the value sent to the source. | 11 | [`X-24`](specification.md#requirement-X-24) | [Test](../acceptance/tests/test_crosscutting.py#L1041) |
 
 <details>
 <summary>Exact executable cases (370)</summary>
@@ -1183,13 +1183,13 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Unpinned items name the caDSR registry without an invented release identifier or date. | 9 | `X-21` | [Test](../acceptance/tests/test_crosscutting.py#L220) |
-| Asking for an unpublished registry release fails instead of falling back to unpinned content. | 9 | `X-21` | [Test](../acceptance/tests/test_crosscutting.py#L236) |
-| Registry status uses the export's reported date and distribution without claiming a published release. | 1 | `resolve_registry_release-1` | [Test](../acceptance/tests/test_cadsr.py#L116) |
-| A fixture-published registry release is returned as published with its identity. | 1 | `resolve_registry_release-1` | [Test](../acceptance/tests/test_cadsr.py#L732) |
-| Published-release content requests carry that release and retain its identity and date in provenance. | 1 | `X-21` | [Test](../acceptance/tests/test_cadsr.py#L746) |
-| A missing release is refused even when the registry publishes other releases. | 1 | `X-21` | [Test](../acceptance/tests/test_cadsr.py#L768) |
-| A registry continuation token cannot be used with a different release. | 2 | `X-17` | [Test](../acceptance/tests/test_cadsr.py#L781) |
+| Unpinned items name the caDSR registry without an invented release identifier or date. | 9 | [`X-21`](specification.md#requirement-X-21) | [Test](../acceptance/tests/test_crosscutting.py#L220) |
+| Asking for an unpublished registry release fails instead of falling back to unpinned content. | 9 | [`X-21`](specification.md#requirement-X-21) | [Test](../acceptance/tests/test_crosscutting.py#L236) |
+| Registry status uses the export's reported date and distribution without claiming a published release. | 1 | [`resolve_registry_release-1`](specification.md#requirement-resolve_registry_release-1) | [Test](../acceptance/tests/test_cadsr.py#L116) |
+| A fixture-published registry release is returned as published with its identity. | 1 | [`resolve_registry_release-1`](specification.md#requirement-resolve_registry_release-1) | [Test](../acceptance/tests/test_cadsr.py#L732) |
+| Published-release content requests carry that release and retain its identity and date in provenance. | 1 | [`X-21`](specification.md#requirement-X-21) | [Test](../acceptance/tests/test_cadsr.py#L746) |
+| A missing release is refused even when the registry publishes other releases. | 1 | [`X-21`](specification.md#requirement-X-21) | [Test](../acceptance/tests/test_cadsr.py#L768) |
+| A registry continuation token cannot be used with a different release. | 2 | [`X-17`](specification.md#requirement-X-17) | [Test](../acceptance/tests/test_cadsr.py#L781) |
 
 <details>
 <summary>Exact executable cases (24)</summary>
@@ -1235,7 +1235,7 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| No terminology offered by the source is left out of the listing. | 1 | `list_terminologies-1` | [Test](../acceptance/tests/test_evs.py#L183) |
+| No terminology offered by the source is left out of the listing. | 1 | [`list_terminologies-1`](specification.md#requirement-list_terminologies-1) | [Test](../acceptance/tests/test_evs.py#L183) |
 
 <details>
 <summary>Exact executable cases (1)</summary>
@@ -1258,9 +1258,9 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Each supported include choice returns its own section without other optional sections. | 4 | `get_concept-1` | [Test](../acceptance/tests/test_evs.py#L94) |
-| Descendants cannot be requested as a concept include section. | 1 | `get_concept-2` | [Test](../acceptance/tests/test_evs.py#L108) |
-| Code, terminology, name and active state are present, with the source's status where supplied. | 2 | `get_concept-3` | [Test](../acceptance/tests/test_evs.py#L118) |
+| Each supported include choice returns its own section without other optional sections. | 4 | [`get_concept-1`](specification.md#requirement-get_concept-1) | [Test](../acceptance/tests/test_evs.py#L94) |
+| Descendants cannot be requested as a concept include section. | 1 | [`get_concept-2`](specification.md#requirement-get_concept-2) | [Test](../acceptance/tests/test_evs.py#L108) |
+| Code, terminology, name and active state are present, with the source's status where supplied. | 2 | [`get_concept-3`](specification.md#requirement-get_concept-3) | [Test](../acceptance/tests/test_evs.py#L118) |
 
 <details>
 <summary>Exact executable cases (7)</summary>
@@ -1289,9 +1289,9 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| A concept batch is obtained in one upstream request. | 1 | `get_concepts-1` | [Test](../acceptance/tests/test_evs.py#L149) |
-| A silently omitted upstream code is reported in the missing-code list. | 1 | `get_concepts-2` | [Test](../acceptance/tests/test_evs.py#L162) |
-| Different requested code orders are retained in the batch answer. | 2 | `get_concepts-3` | [Test](../acceptance/tests/test_evs.py#L173) |
+| A concept batch is obtained in one upstream request. | 1 | [`get_concepts-1`](specification.md#requirement-get_concepts-1) | [Test](../acceptance/tests/test_evs.py#L149) |
+| A silently omitted upstream code is reported in the missing-code list. | 1 | [`get_concepts-2`](specification.md#requirement-get_concepts-2) | [Test](../acceptance/tests/test_evs.py#L162) |
+| Different requested code orders are retained in the batch answer. | 2 | [`get_concepts-3`](specification.md#requirement-get_concepts-3) | [Test](../acceptance/tests/test_evs.py#L173) |
 
 <details>
 <summary>Exact executable cases (4)</summary>
@@ -1317,8 +1317,8 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Lexical search preserves source order, paging, highlights and known total without introducing a score. | 1 | `search_concepts-1` | [Test](../acceptance/tests/test_evs.py#L242) |
-| Prefix suggestions preserve source order and omit unsupported scores and highlights. | 1 | `search_concepts-2` | [Test](../acceptance/tests/test_evs.py#L257) |
+| Lexical search preserves source order, paging, highlights and known total without introducing a score. | 1 | [`search_concepts-1`](specification.md#requirement-search_concepts-1) | [Test](../acceptance/tests/test_evs.py#L242) |
+| Prefix suggestions preserve source order and omit unsupported scores and highlights. | 1 | [`search_concepts-2`](specification.md#requirement-search_concepts-2) | [Test](../acceptance/tests/test_evs.py#L257) |
 
 <details>
 <summary>Exact executable cases (2)</summary>
@@ -1342,11 +1342,11 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Both index modes return descending scores and index provenance, with the exactly named concept on the first page and a total reflecting the index set. | 2 | `search_concepts-3` | [Test](../acceptance/tests/test_evs.py#L460) |
-| The continuation token selects the next ranked items. | 2 | `X-17`, `search_concepts-3` | [Test](../acceptance/tests/test_evs.py#L491) |
-| An index mode unsupported for the selected terminology is an invalid request. | 4 | `search_concepts-4` | [Test](../acceptance/tests/test_evs.py#L509) |
-| A release different from the active index produces a release-mismatch error. | 2 | `search_concepts-5` | [Test](../acceptance/tests/test_evs.py#L526) |
-| A missing index produces a capability-unavailable error rather than empty search results. | 2 | `search_concepts-8` | [Test](../acceptance/tests/test_evs.py#L575) |
+| Both index modes return descending scores and index provenance, with the exactly named concept on the first page and a total reflecting the index set. | 2 | [`search_concepts-3`](specification.md#requirement-search_concepts-3) | [Test](../acceptance/tests/test_evs.py#L460) |
+| The continuation token selects the next ranked items. | 2 | [`X-17`](specification.md#requirement-X-17), [`search_concepts-3`](specification.md#requirement-search_concepts-3) | [Test](../acceptance/tests/test_evs.py#L491) |
+| An index mode unsupported for the selected terminology is an invalid request. | 4 | [`search_concepts-4`](specification.md#requirement-search_concepts-4) | [Test](../acceptance/tests/test_evs.py#L509) |
+| A release different from the active index produces a release-mismatch error. | 2 | [`search_concepts-5`](specification.md#requirement-search_concepts-5) | [Test](../acceptance/tests/test_evs.py#L526) |
+| A missing index produces a capability-unavailable error rather than empty search results. | 2 | [`search_concepts-8`](specification.md#requirement-search_concepts-8) | [Test](../acceptance/tests/test_evs.py#L575) |
 
 <details>
 <summary>Exact executable cases (12)</summary>
@@ -1380,14 +1380,14 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Ordinary lexical search retains retired entries, including when the default is stated explicitly. | 2 | `search_concepts-6` | [Test](../acceptance/tests/test_evs.py#L315) |
-| Retired-only lexical search excludes entries not marked retired by the source. | 1 | `search_concepts-6` | [Test](../acceptance/tests/test_evs.py#L328) |
-| Typeahead supports the same retired-only selection. | 1 | `search_concepts-6` | [Test](../acceptance/tests/test_evs.py#L349) |
-| Unsupported retirement values, including an exclusion mode, are refused. | 3 | `search_concepts-6` | [Test](../acceptance/tests/test_evs.py#L361) |
-| A retired status inconsistent with the terminology's concept-status list is rejected. | 1 | `search_concepts-7` | [Test](../acceptance/tests/test_evs.py#L371) |
-| Retired-only search is refused where the terminology supplies no retired status. | 1 | `search_concepts-7` | [Test](../acceptance/tests/test_evs.py#L389) |
-| Indexed search retains retired entries by default and can select them alone. | 2 | `search_concepts-6` | [Test](../acceptance/tests/test_evs.py#L544) |
-| Semantic and hybrid modes reject unsupported retirement values too. | 6 | `search_concepts-6` | [Test](../acceptance/tests/test_evs.py#L564) |
+| Ordinary lexical search retains retired entries, including when the default is stated explicitly. | 2 | [`search_concepts-6`](specification.md#requirement-search_concepts-6) | [Test](../acceptance/tests/test_evs.py#L315) |
+| Retired-only lexical search excludes entries not marked retired by the source. | 1 | [`search_concepts-6`](specification.md#requirement-search_concepts-6) | [Test](../acceptance/tests/test_evs.py#L328) |
+| Typeahead supports the same retired-only selection. | 1 | [`search_concepts-6`](specification.md#requirement-search_concepts-6) | [Test](../acceptance/tests/test_evs.py#L349) |
+| Unsupported retirement values, including an exclusion mode, are refused. | 3 | [`search_concepts-6`](specification.md#requirement-search_concepts-6) | [Test](../acceptance/tests/test_evs.py#L361) |
+| A retired status inconsistent with the terminology's concept-status list is rejected. | 1 | [`search_concepts-7`](specification.md#requirement-search_concepts-7) | [Test](../acceptance/tests/test_evs.py#L371) |
+| Retired-only search is refused where the terminology supplies no retired status. | 1 | [`search_concepts-7`](specification.md#requirement-search_concepts-7) | [Test](../acceptance/tests/test_evs.py#L389) |
+| Indexed search retains retired entries by default and can select them alone. | 2 | [`search_concepts-6`](specification.md#requirement-search_concepts-6) | [Test](../acceptance/tests/test_evs.py#L544) |
+| Semantic and hybrid modes reject unsupported retirement values too. | 6 | [`search_concepts-6`](specification.md#requirement-search_concepts-6) | [Test](../acceptance/tests/test_evs.py#L564) |
 
 <details>
 <summary>Exact executable cases (17)</summary>
@@ -1426,9 +1426,9 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Excessive depth is capped; deeper nodes are absent and continuation beyond the cap is reported as depth truncation. | 1 | `get_concept_hierarchy-1` | [Test](../acceptance/tests/test_evs.py#L718) |
-| Every supplied path to the root is returned in the source's code order. | 1 | `get_concept_hierarchy-2` | [Test](../acceptance/tests/test_evs.py#L736) |
-| Hierarchy continuation pages reconstruct the source listing without duplicate concepts. | 1 | `get_concept_hierarchy-3` | [Test](../acceptance/tests/test_evs.py#L751) |
+| Excessive depth is capped; deeper nodes are absent and continuation beyond the cap is reported as depth truncation. | 1 | [`get_concept_hierarchy-1`](specification.md#requirement-get_concept_hierarchy-1) | [Test](../acceptance/tests/test_evs.py#L718) |
+| Every supplied path to the root is returned in the source's code order. | 1 | [`get_concept_hierarchy-2`](specification.md#requirement-get_concept_hierarchy-2) | [Test](../acceptance/tests/test_evs.py#L736) |
+| Hierarchy continuation pages reconstruct the source listing without duplicate concepts. | 1 | [`get_concept_hierarchy-3`](specification.md#requirement-get_concept_hierarchy-3) | [Test](../acceptance/tests/test_evs.py#L751) |
 
 <details>
 <summary>Exact executable cases (3)</summary>
@@ -1453,8 +1453,8 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Count and offset select the correct ordered page even when the source ignores them. | 3 | `expand_value_set-1` | [Test](../acceptance/tests/test_evs.py#L616) |
-| Active-only removes inactive members and adjusts the total; default and false selections retain them with their status. | 3 | `expand_value_set-2` | [Test](../acceptance/tests/test_evs.py#L638) |
+| Count and offset select the correct ordered page even when the source ignores them. | 3 | [`expand_value_set-1`](specification.md#requirement-expand_value_set-1) | [Test](../acceptance/tests/test_evs.py#L616) |
+| Active-only removes inactive members and adjusts the total; default and false selections retain them with their status. | 3 | [`expand_value_set-2`](specification.md#requirement-expand_value_set-2) | [Test](../acceptance/tests/test_evs.py#L638) |
 
 <details>
 <summary>Exact executable cases (6)</summary>
@@ -1482,12 +1482,12 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| A busy kind is reported as truncated while other requested kinds still contribute results. | 4 | `get_concept_neighborhood-1` | [Test](../acceptance/tests/test_evs.py#L772) |
-| A supplied per-kind allowance limits the nodes that kind contributes and records its truncation. | 2 | `get_concept_neighborhood-6` | [Test](../acceptance/tests/test_evs.py#L802) |
-| A failed call's reported attempts agree with actual requests, including retries; this case does not prove every internal request-budget boundary. | 2 | `get_concept_neighborhood-5` | [Test](../acceptance/tests/test_evs.py#L846) |
-| Renaming a relationship cannot change its negative or positive classification. | 1 | `get_concept_neighborhood-2` | [Test](../acceptance/tests/test_evs.py#L874) |
-| Negative edges remain visible and marked, but traversal beyond them requires explicit inclusion. | 2 | `get_concept_neighborhood-3` | [Test](../acceptance/tests/test_evs.py#L919) |
-| An excessive node limit is capped and the result reports the applied maximum. | 1 | `get_concept_neighborhood-4` | [Test](../acceptance/tests/test_evs.py#L947) |
+| A busy kind is reported as truncated while other requested kinds still contribute results. | 4 | [`get_concept_neighborhood-1`](specification.md#requirement-get_concept_neighborhood-1) | [Test](../acceptance/tests/test_evs.py#L772) |
+| A supplied per-kind allowance limits the nodes that kind contributes and records its truncation. | 2 | [`get_concept_neighborhood-6`](specification.md#requirement-get_concept_neighborhood-6) | [Test](../acceptance/tests/test_evs.py#L802) |
+| A failed call's reported attempts agree with actual requests, including retries; this case does not prove every internal request-budget boundary. | 2 | [`get_concept_neighborhood-5`](specification.md#requirement-get_concept_neighborhood-5) | [Test](../acceptance/tests/test_evs.py#L846) |
+| Renaming a relationship cannot change its negative or positive classification. | 1 | [`get_concept_neighborhood-2`](specification.md#requirement-get_concept_neighborhood-2) | [Test](../acceptance/tests/test_evs.py#L874) |
+| Negative edges remain visible and marked, but traversal beyond them requires explicit inclusion. | 2 | [`get_concept_neighborhood-3`](specification.md#requirement-get_concept_neighborhood-3) | [Test](../acceptance/tests/test_evs.py#L919) |
+| An excessive node limit is capped and the result reports the applied maximum. | 1 | [`get_concept_neighborhood-4`](specification.md#requirement-get_concept_neighborhood-4) | [Test](../acceptance/tests/test_evs.py#L947) |
 
 <details>
 <summary>Exact executable cases (12)</summary>
@@ -1521,9 +1521,9 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Subsets are the concept's published subset associations in source order. | 1 | `get_concept_subsets-1` | [Test](../acceptance/tests/test_evs.py#L967) |
-| Mappings are passed through unchanged in source order. | 1 | `get_concept_mappings-1` | [Test](../acceptance/tests/test_evs.py#L994) |
-| Target-terminology filtering uses exact matching, including case. | 1 | `get_concept_mappings-2` | [Test](../acceptance/tests/test_evs.py#L1004) |
+| Subsets are the concept's published subset associations in source order. | 1 | [`get_concept_subsets-1`](specification.md#requirement-get_concept_subsets-1) | [Test](../acceptance/tests/test_evs.py#L967) |
+| Mappings are passed through unchanged in source order. | 1 | [`get_concept_mappings-1`](specification.md#requirement-get_concept_mappings-1) | [Test](../acceptance/tests/test_evs.py#L994) |
+| Target-terminology filtering uses exact matching, including case. | 1 | [`get_concept_mappings-2`](specification.md#requirement-get_concept_mappings-2) | [Test](../acceptance/tests/test_evs.py#L1004) |
 
 <details>
 <summary>Exact executable cases (3)</summary>
@@ -1548,8 +1548,8 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Retired entries retain their status and exactly the replacements named by the source. | 2 | `resolve_retired_code-1` | [Test](../acceptance/tests/test_evs.py#L1055) |
-| Active entries report their status with no replacement. | 1 | `resolve_retired_code-2` | [Test](../acceptance/tests/test_evs.py#L1083) |
+| Retired entries retain their status and exactly the replacements named by the source. | 2 | [`resolve_retired_code-1`](specification.md#requirement-resolve_retired_code-1) | [Test](../acceptance/tests/test_evs.py#L1055) |
+| Active entries report their status with no replacement. | 1 | [`resolve_retired_code-2`](specification.md#requirement-resolve_retired_code-2) | [Test](../acceptance/tests/test_evs.py#L1083) |
 
 <details>
 <summary>Exact executable cases (3)</summary>
@@ -1574,9 +1574,9 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Every role and association is listed with code, name and kind. | 1 | `list_relationships-1` | [Test](../acceptance/tests/test_evs.py#L1106) |
-| Catalogue polarity remains correct when source relationship names change. | 1 | `list_relationships-2` | [Test](../acceptance/tests/test_evs.py#L1126) |
-| Catalogue and neighbourhood calls reject a missing exclusion code and name what is absent. | 2 | `list_relationships-3` | [Test](../acceptance/tests/test_evs.py#L1150) |
+| Every role and association is listed with code, name and kind. | 1 | [`list_relationships-1`](specification.md#requirement-list_relationships-1) | [Test](../acceptance/tests/test_evs.py#L1106) |
+| Catalogue polarity remains correct when source relationship names change. | 1 | [`list_relationships-2`](specification.md#requirement-list_relationships-2) | [Test](../acceptance/tests/test_evs.py#L1126) |
+| Catalogue and neighbourhood calls reject a missing exclusion code and name what is absent. | 2 | [`list_relationships-3`](specification.md#requirement-list_relationships-3) | [Test](../acceptance/tests/test_evs.py#L1150) |
 
 <details>
 <summary>Exact executable cases (4)</summary>
@@ -1602,12 +1602,12 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| The base record contains its own fields, selected version and source statuses without unrequested nested sections. | 2 | `get_data_element-1` | [Test](../acceptance/tests/test_cadsr.py#L137) |
-| Each optional section matches the source and does not add other sections. | 5 | `get_data_element-1` | [Test](../acceptance/tests/test_cadsr.py#L230) |
-| The fixture question Sex of a Person resolves to its unique full data element. | 1 | `get_data_element-2` | [Test](../acceptance/tests/test_cadsr.py#L248) |
-| The fixture question Date of birth produces an ambiguity error naming candidate public identifiers. | 1 | `get_data_element-2` | [Test](../acceptance/tests/test_cadsr.py#L262) |
-| Unsupported lookup by long name reports capability unavailable. | 1 | `get_data_element-2` | [Test](../acceptance/tests/test_cadsr.py#L280) |
-| Question text with no matching data element reports not found. | 1 | `get_data_element-2` | [Test](../acceptance/tests/test_cadsr.py#L525) |
+| The base record contains its own fields, selected version and source statuses without unrequested nested sections. | 2 | [`get_data_element-1`](specification.md#requirement-get_data_element-1) | [Test](../acceptance/tests/test_cadsr.py#L137) |
+| Each optional section matches the source and does not add other sections. | 5 | [`get_data_element-1`](specification.md#requirement-get_data_element-1) | [Test](../acceptance/tests/test_cadsr.py#L230) |
+| The fixture question Sex of a Person resolves to its unique full data element. | 1 | [`get_data_element-2`](specification.md#requirement-get_data_element-2) | [Test](../acceptance/tests/test_cadsr.py#L248) |
+| The fixture question Date of birth produces an ambiguity error naming candidate public identifiers. | 1 | [`get_data_element-2`](specification.md#requirement-get_data_element-2) | [Test](../acceptance/tests/test_cadsr.py#L262) |
+| Unsupported lookup by long name reports capability unavailable. | 1 | [`get_data_element-2`](specification.md#requirement-get_data_element-2) | [Test](../acceptance/tests/test_cadsr.py#L280) |
+| Question text with no matching data element reports not found. | 1 | [`get_data_element-2`](specification.md#requirement-get_data_element-2) | [Test](../acceptance/tests/test_cadsr.py#L525) |
 
 <details>
 <summary>Exact executable cases (11)</summary>
@@ -1640,7 +1640,7 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Unsupported classification, permissible-value lookup and search options return the required unavailable-capability response. | 4 | `get_permissible_value-1`, `list_contexts-1`, `search_data_elements-1` | [Test](../acceptance/tests/test_cadsr.py#L518) |
+| Unsupported classification, permissible-value lookup and search options return the required unavailable-capability response. | 4 | [`get_permissible_value-1`](specification.md#requirement-get_permissible_value-1), [`list_contexts-1`](specification.md#requirement-list_contexts-1), [`search_data_elements-1`](specification.md#requirement-search_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L518) |
 
 <details>
 <summary>Exact executable cases (4)</summary>
@@ -1666,8 +1666,8 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| A requested page size determines the returned page. | 1 | `search_data_elements-1` | [Test](../acceptance/tests/test_cadsr.py#L541) |
-| An upstream-capped search reports its cap and at least one omission without a fabricated total. | 1 | `search_data_elements-1` | [Test](../acceptance/tests/test_cadsr.py#L553) |
+| A requested page size determines the returned page. | 1 | [`search_data_elements-1`](specification.md#requirement-search_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L541) |
+| An upstream-capped search reports its cap and at least one omission without a fabricated total. | 1 | [`search_data_elements-1`](specification.md#requirement-search_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L553) |
 
 <details>
 <summary>Exact executable cases (2)</summary>
@@ -1691,14 +1691,14 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Data-element candidates retain the source's scores and matching rules. | 1 | `match_data_elements-1` | [Test](../acceptance/tests/test_cadsr.py#L577) |
-| Each input entity keeps its own ordered candidate list. | 1 | `match_data_elements-1` | [Test](../acceptance/tests/test_cadsr.py#L601) |
-| Unsupported tuning options and excessive entity input are refused rather than ignored. | 3 | `match_data_elements-1` | [Test](../acceptance/tests/test_cadsr.py#L620) |
-| Each entity returns no more than its requested match limit. | 1 | `match_data_elements-1` | [Test](../acceptance/tests/test_cadsr.py#L643) |
-| Both matching operations report a timeout when the fixture response exceeds the matching timeout. | 2 | `match_data_elements-1`, `match_value_meanings-1` | [Test](../acceptance/tests/test_cadsr.py#L674) |
-| Value-meaning candidates retain source order, rules, item types and concepts, omitting unavailable crosswalks and unsupplied scores. | 1 | `match_value_meanings-1` | [Test](../acceptance/tests/test_cadsr.py#L364) |
-| A value list above the supported maximum is rejected. | 1 | `match_value_meanings-1` | [Test](../acceptance/tests/test_cadsr.py#L388) |
-| A candidate without a source concept omits that optional concept instead of inventing one or inserting a null value. | 1 | `match_value_meanings-1` | [Test](../acceptance/tests/test_cadsr.py#L689) |
+| Data-element candidates retain the source's scores and matching rules. | 1 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L577) |
+| Each input entity keeps its own ordered candidate list. | 1 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L601) |
+| Unsupported tuning options and excessive entity input are refused rather than ignored. | 3 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L620) |
+| Each entity returns no more than its requested match limit. | 1 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L643) |
+| Both matching operations report a timeout when the fixture response exceeds the matching timeout. | 2 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1), [`match_value_meanings-1`](specification.md#requirement-match_value_meanings-1) | [Test](../acceptance/tests/test_cadsr.py#L674) |
+| Value-meaning candidates retain source order, rules, item types and concepts, omitting unavailable crosswalks and unsupplied scores. | 1 | [`match_value_meanings-1`](specification.md#requirement-match_value_meanings-1) | [Test](../acceptance/tests/test_cadsr.py#L364) |
+| A value list above the supported maximum is rejected. | 1 | [`match_value_meanings-1`](specification.md#requirement-match_value_meanings-1) | [Test](../acceptance/tests/test_cadsr.py#L388) |
+| A candidate without a source concept omits that optional concept instead of inventing one or inserting a null value. | 1 | [`match_value_meanings-1`](specification.md#requirement-match_value_meanings-1) | [Test](../acceptance/tests/test_cadsr.py#L689) |
 
 <details>
 <summary>Exact executable cases (11)</summary>
@@ -1731,10 +1731,10 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Form modules and status match the source, including for a retired form. | 1 | `get_form-1` | [Test](../acceptance/tests/test_cadsr.py#L291) |
-| Requesting a form without modules omits that section. | 1 | `get_form-1` | [Test](../acceptance/tests/test_cadsr.py#L305) |
-| Keyword retrieval is refused with an explanation that an identifier is needed. | 1 | `get_form-1` | [Test](../acceptance/tests/test_cadsr.py#L316) |
-| The contract-defined unknown-form response is interpreted as not found despite HTTP success. | 1 | `X-15` | [Test](../acceptance/tests/test_cadsr.py#L325) |
+| Form modules and status match the source, including for a retired form. | 1 | [`get_form-1`](specification.md#requirement-get_form-1) | [Test](../acceptance/tests/test_cadsr.py#L291) |
+| Requesting a form without modules omits that section. | 1 | [`get_form-1`](specification.md#requirement-get_form-1) | [Test](../acceptance/tests/test_cadsr.py#L305) |
+| Keyword retrieval is refused with an explanation that an identifier is needed. | 1 | [`get_form-1`](specification.md#requirement-get_form-1) | [Test](../acceptance/tests/test_cadsr.py#L316) |
+| The contract-defined unknown-form response is interpreted as not found despite HTTP success. | 1 | [`X-15`](specification.md#requirement-X-15) | [Test](../acceptance/tests/test_cadsr.py#L325) |
 
 <details>
 <summary>Exact executable cases (4)</summary>
@@ -1760,10 +1760,10 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Each code map preserves data-element identity, values, users, coverage and source fields. | 1 | `get_code_map-1` | [Test](../acceptance/tests/test_cadsr.py#L409) |
-| An absent value binding is reported explicitly with no fabricated values. | 1 | `get_code_map-1` | [Test](../acceptance/tests/test_cadsr.py#L447) |
-| Selecting a context returns its maps without confusing a name with part of another name. | 2 | `get_code_map-1` | [Test](../acceptance/tests/test_cadsr.py#L458) |
-| A source-system choice outside CRDC is rejected. | 1 | `get_code_map-1` | [Test](../acceptance/tests/test_cadsr.py#L473) |
+| Each code map preserves data-element identity, values, users, coverage and source fields. | 1 | [`get_code_map-1`](specification.md#requirement-get_code_map-1) | [Test](../acceptance/tests/test_cadsr.py#L409) |
+| An absent value binding is reported explicitly with no fabricated values. | 1 | [`get_code_map-1`](specification.md#requirement-get_code_map-1) | [Test](../acceptance/tests/test_cadsr.py#L447) |
+| Selecting a context returns its maps without confusing a name with part of another name. | 2 | [`get_code_map-1`](specification.md#requirement-get_code_map-1) | [Test](../acceptance/tests/test_cadsr.py#L458) |
+| A source-system choice outside CRDC is rejected. | 1 | [`get_code_map-1`](specification.md#requirement-get_code_map-1) | [Test](../acceptance/tests/test_cadsr.py#L473) |
 
 <details>
 <summary>Exact executable cases (5)</summary>
@@ -1790,7 +1790,7 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Context names match the source listing and also serve as their identifiers. | 1 | `list_contexts-1` | [Test](../acceptance/tests/test_cadsr.py#L705) |
+| Context names match the source listing and also serve as their identifiers. | 1 | [`list_contexts-1`](specification.md#requirement-list_contexts-1) | [Test](../acceptance/tests/test_cadsr.py#L705) |
 
 <details>
 <summary>Exact executable cases (1)</summary>
@@ -1813,12 +1813,12 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Concept-only and descendant-expanded searches return the corresponding source data-element uses. | 2 | `find_data_elements_for_concept-1` | [Test](../acceptance/tests/test_cross_domain.py#L58) |
-| Requested permissible-value uses represent the concept or selected descendants. | 2 | `find_data_elements_for_concept-2` | [Test](../acceptance/tests/test_cross_domain.py#L77) |
-| Answers preserve both graph identities and dates and distinguish NCIt release from registry state. | 1 | `find_data_elements_for_concept-3` | [Test](../acceptance/tests/test_cross_domain.py#L106) |
-| A requested release different from the NCIt graph is rejected. | 1 | `find_data_elements_for_concept-4` | [Test](../acceptance/tests/test_cross_domain.py#L134) |
-| Concept-use queries reject unsupported terminologies. | 1 | `find_data_elements_for_concept-4` | [Test](../acceptance/tests/test_cross_domain.py#L152) |
-| An oversized descendant-use result is bounded and reports at least the known omitted amount. | 1 | `find_data_elements_for_concept-5` | [Test](../acceptance/tests/test_cross_domain.py#L160) |
+| Concept-only and descendant-expanded searches return the corresponding source data-element uses. | 2 | [`find_data_elements_for_concept-1`](specification.md#requirement-find_data_elements_for_concept-1) | [Test](../acceptance/tests/test_cross_domain.py#L58) |
+| Requested permissible-value uses represent the concept or selected descendants. | 2 | [`find_data_elements_for_concept-2`](specification.md#requirement-find_data_elements_for_concept-2) | [Test](../acceptance/tests/test_cross_domain.py#L77) |
+| Answers preserve both graph identities and dates and distinguish NCIt release from registry state. | 1 | [`find_data_elements_for_concept-3`](specification.md#requirement-find_data_elements_for_concept-3) | [Test](../acceptance/tests/test_cross_domain.py#L106) |
+| A requested release different from the NCIt graph is rejected. | 1 | [`find_data_elements_for_concept-4`](specification.md#requirement-find_data_elements_for_concept-4) | [Test](../acceptance/tests/test_cross_domain.py#L134) |
+| Concept-use queries reject unsupported terminologies. | 1 | [`find_data_elements_for_concept-4`](specification.md#requirement-find_data_elements_for_concept-4) | [Test](../acceptance/tests/test_cross_domain.py#L152) |
+| An oversized descendant-use result is bounded and reports at least the known omitted amount. | 1 | [`find_data_elements_for_concept-5`](specification.md#requirement-find_data_elements_for_concept-5) | [Test](../acceptance/tests/test_cross_domain.py#L160) |
 
 <details>
 <summary>Exact executable cases (8)</summary>
@@ -1848,9 +1848,9 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| A permissible value resolves to its source concept and preserves terminology and registry provenance. | 1 | `get_concept_for_permissible_value-1` | [Test](../acceptance/tests/test_cross_domain.py#L223) |
-| Changed case, extra spaces and other nonmatching values are not silently normalized into a match. | 4 | `get_concept_for_permissible_value-3` | [Test](../acceptance/tests/test_cross_domain.py#L246) |
-| Unsupported retrieval by permissible-value identifier reports capability unavailable. | 1 | `get_concept_for_permissible_value-2` | [Test](../acceptance/tests/test_cross_domain.py#L263) |
+| A permissible value resolves to its source concept and preserves terminology and registry provenance. | 1 | [`get_concept_for_permissible_value-1`](specification.md#requirement-get_concept_for_permissible_value-1) | [Test](../acceptance/tests/test_cross_domain.py#L223) |
+| Changed case, extra spaces and other nonmatching values are not silently normalized into a match. | 4 | [`get_concept_for_permissible_value-3`](specification.md#requirement-get_concept_for_permissible_value-3) | [Test](../acceptance/tests/test_cross_domain.py#L246) |
+| Unsupported retrieval by permissible-value identifier reports capability unavailable. | 1 | [`get_concept_for_permissible_value-2`](specification.md#requirement-get_concept_for_permissible_value-2) | [Test](../acceptance/tests/test_cross_domain.py#L263) |
 
 <details>
 <summary>Exact executable cases (6)</summary>
@@ -1878,9 +1878,9 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| GDC values come from the named mapset with matching release identity and asserted evidence. | 1 | `resolve_stored_value-1` | [Test](../acceptance/tests/test_cross_domain.py#L278) |
-| Other supported commons use the CRDC crosswalk and name each value's data element. | 1 | `resolve_stored_value-2` | [Test](../acceptance/tests/test_cross_domain.py#L331) |
-| Without value binding, no stored value is invented and the evidence states the limitation and lack of confidence. | 1 | `resolve_stored_value-3` | [Test](../acceptance/tests/test_cross_domain.py#L351) |
+| GDC values come from the named mapset with matching release identity and asserted evidence. | 1 | [`resolve_stored_value-1`](specification.md#requirement-resolve_stored_value-1) | [Test](../acceptance/tests/test_cross_domain.py#L278) |
+| Other supported commons use the CRDC crosswalk and name each value's data element. | 1 | [`resolve_stored_value-2`](specification.md#requirement-resolve_stored_value-2) | [Test](../acceptance/tests/test_cross_domain.py#L331) |
+| Without value binding, no stored value is invented and the evidence states the limitation and lack of confidence. | 1 | [`resolve_stored_value-3`](specification.md#requirement-resolve_stored_value-3) | [Test](../acceptance/tests/test_cross_domain.py#L351) |
 
 <details>
 <summary>Exact executable cases (3)</summary>
@@ -1905,7 +1905,7 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Alignment preserves all dataset dates, calculates the largest interval and checks warning behaviour above the default threshold and below a larger explicit threshold. | 2 | `get_release_alignment-1` | [Test](../acceptance/tests/test_cross_domain.py#L382) |
+| Alignment preserves all dataset dates, calculates the largest interval and checks warning behaviour above the default threshold and below a larger explicit threshold. | 2 | [`get_release_alignment-1`](specification.md#requirement-get_release_alignment-1) | [Test](../acceptance/tests/test_cross_domain.py#L382) |
 
 <details>
 <summary>Exact executable cases (2)</summary>
@@ -1929,12 +1929,12 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| The answer and registry-dependent items distinguish the selected NCIt release from the unpinned caDSR registry. | 1 | `ground_value-1` | [Test](../acceptance/tests/test_workflow.py#L47) |
-| A different release on either the terminology or graph surface produces a release mismatch. | 2 | `ground_value-1` | [Test](../acceptance/tests/test_workflow.py#L67) |
-| Concept, data-element uses and permissible values match their sources; without a commons request there is no stored-value section. | 1 | `ground_value-2` | [Test](../acceptance/tests/test_workflow.py#L80) |
-| Adding GDC returns the literal stored values and fields from its mapping source. | 1 | `ground_value-2` | [Test](../acceptance/tests/test_workflow.py#L100) |
-| Text grounding uses the first search result even when another concept's name looks closer. | 1 | `ground_value-3` | [Test](../acceptance/tests/test_workflow.py#L116) |
-| A capped data-element step reports its own truncation while the independent permissible-value step remains complete. | 1 | `ground_value-4` | [Test](../acceptance/tests/test_workflow.py#L134) |
+| The answer and registry-dependent items distinguish the selected NCIt release from the unpinned caDSR registry. | 1 | [`ground_value-1`](specification.md#requirement-ground_value-1) | [Test](../acceptance/tests/test_workflow.py#L47) |
+| A different release on either the terminology or graph surface produces a release mismatch. | 2 | [`ground_value-1`](specification.md#requirement-ground_value-1) | [Test](../acceptance/tests/test_workflow.py#L67) |
+| Concept, data-element uses and permissible values match their sources; without a commons request there is no stored-value section. | 1 | [`ground_value-2`](specification.md#requirement-ground_value-2) | [Test](../acceptance/tests/test_workflow.py#L80) |
+| Adding GDC returns the literal stored values and fields from its mapping source. | 1 | [`ground_value-2`](specification.md#requirement-ground_value-2) | [Test](../acceptance/tests/test_workflow.py#L100) |
+| Text grounding uses the first search result even when another concept's name looks closer. | 1 | [`ground_value-3`](specification.md#requirement-ground_value-3) | [Test](../acceptance/tests/test_workflow.py#L116) |
+| A capped data-element step reports its own truncation while the independent permissible-value step remains complete. | 1 | [`ground_value-4`](specification.md#requirement-ground_value-4) | [Test](../acceptance/tests/test_workflow.py#L134) |
 
 <details>
 <summary>Exact executable cases (7)</summary>
@@ -1963,8 +1963,8 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Default membership removes the root's excluded codes; explicit negative inclusion retains them while both modes list the exclusion assertions. | 2 | `expand_cohort-1` | [Test](../acceptance/tests/test_workflow.py#L187) |
-| A small node limit includes the root in its count and reports the truncated result size. | 1 | `expand_cohort-1` | [Test](../acceptance/tests/test_workflow.py#L216) |
+| Default membership removes the root's excluded codes; explicit negative inclusion retains them while both modes list the exclusion assertions. | 2 | [`expand_cohort-1`](specification.md#requirement-expand_cohort-1) | [Test](../acceptance/tests/test_workflow.py#L187) |
+| A small node limit includes the root in its count and reports the truncated result size. | 1 | [`expand_cohort-1`](specification.md#requirement-expand_cohort-1) | [Test](../acceptance/tests/test_workflow.py#L216) |
 
 <details>
 <summary>Exact executable cases (3)</summary>
@@ -1989,8 +1989,8 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Each column is submitted once with its description; Freezer Shelf Label remains unmatched and candidate records retain the registry state. | 1 | `harmonize_data_dictionary-1` | [Test](../acceptance/tests/test_workflow.py#L255) |
-| Patient Gender's sample-value alignments match the source's value-meaning and concept answers. | 1 | `harmonize_data_dictionary-1` | [Test](../acceptance/tests/test_workflow.py#L275) |
+| Each column is submitted once with its description; Freezer Shelf Label remains unmatched and candidate records retain the registry state. | 1 | [`harmonize_data_dictionary-1`](specification.md#requirement-harmonize_data_dictionary-1) | [Test](../acceptance/tests/test_workflow.py#L255) |
+| Patient Gender's sample-value alignments match the source's value-meaning and concept answers. | 1 | [`harmonize_data_dictionary-1`](specification.md#requirement-harmonize_data_dictionary-1) | [Test](../acceptance/tests/test_workflow.py#L275) |
 
 <details>
 <summary>Exact executable cases (2)</summary>
@@ -2014,17 +2014,17 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Each account sees its own tools and resource templates; restricted prompts are absent. | 2 | `X-25` | [Test](../acceptance/tests/test_permissions.py#L162) |
-| Guessing a hidden tool does not retrieve content or expose the supplied value in logs. | 1 | `X-25`, `X-27` | [Test](../acceptance/tests/test_permissions.py#L180) |
-| A resource address or prompt name cannot bypass the same access rules. | 1 | `X-25` | [Test](../acceptance/tests/test_permissions.py#L195) |
-| Pinning a release does not make protected content or discovery safe for a shared cache. | 1 | `X-27` | [Test](../acceptance/tests/test_permissions.py#L207) |
-| A connected account cannot continue retrieving content after its permission is revoked or expires. | 1 | `X-27` | [Test](../acceptance/tests/test_permissions.py#L221) |
-| Permission to start a workflow does not grant its restricted child operations. | 3 | `X-26` | [Test](../acceptance/tests/test_permissions.py#L238) |
-| Simultaneous EVS and caDSR users cannot inherit each other's access. | 1 | `X-27` | [Test](../acceptance/tests/test_permissions.py#L257) |
-| Grounding checks every selected search, concept, join and stored-value dependency before retrieving anything. | 5 | `X-26` | [Test](../acceptance/tests/test_permissions.py#L279) |
-| An unavailable account policy produces a refusal rather than unrestricted local access. | 1 | `X-27` | [Test](../acceptance/tests/test_permissions.py#L308) |
-| Missing credentials, invalid credentials and impersonation headers cannot reach MCP tools. | 3 | `X-28` | [Test](../acceptance/tests/test_permissions.py#L61) |
-| Operators can check service status without exposing content or bypassing hostname protection. | 1 | `X-28` | [Test](../acceptance/tests/test_permissions.py#L87) |
+| Each account sees its own tools and resource templates; restricted prompts are absent. | 2 | [`X-25`](specification.md#requirement-X-25) | [Test](../acceptance/tests/test_permissions.py#L162) |
+| Guessing a hidden tool does not retrieve content or expose the supplied value in logs. | 1 | [`X-25`](specification.md#requirement-X-25), [`X-27`](specification.md#requirement-X-27) | [Test](../acceptance/tests/test_permissions.py#L180) |
+| A resource address or prompt name cannot bypass the same access rules. | 1 | [`X-25`](specification.md#requirement-X-25) | [Test](../acceptance/tests/test_permissions.py#L195) |
+| Pinning a release does not make protected content or discovery safe for a shared cache. | 1 | [`X-27`](specification.md#requirement-X-27) | [Test](../acceptance/tests/test_permissions.py#L207) |
+| A connected account cannot continue retrieving content after its permission is revoked or expires. | 1 | [`X-27`](specification.md#requirement-X-27) | [Test](../acceptance/tests/test_permissions.py#L221) |
+| Permission to start a workflow does not grant its restricted child operations. | 3 | [`X-26`](specification.md#requirement-X-26) | [Test](../acceptance/tests/test_permissions.py#L238) |
+| Simultaneous EVS and caDSR users cannot inherit each other's access. | 1 | [`X-27`](specification.md#requirement-X-27) | [Test](../acceptance/tests/test_permissions.py#L257) |
+| Grounding checks every selected search, concept, join and stored-value dependency before retrieving anything. | 5 | [`X-26`](specification.md#requirement-X-26) | [Test](../acceptance/tests/test_permissions.py#L279) |
+| An unavailable account policy produces a refusal rather than unrestricted local access. | 1 | [`X-27`](specification.md#requirement-X-27) | [Test](../acceptance/tests/test_permissions.py#L308) |
+| Missing credentials, invalid credentials and impersonation headers cannot reach MCP tools. | 3 | [`X-28`](specification.md#requirement-X-28) | [Test](../acceptance/tests/test_permissions.py#L61) |
+| Operators can check service status without exposing content or bypassing hostname protection. | 1 | [`X-28`](specification.md#requirement-X-28) | [Test](../acceptance/tests/test_permissions.py#L87) |
 
 <details>
 <summary>Exact executable cases (20)</summary>

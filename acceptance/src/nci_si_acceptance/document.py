@@ -232,7 +232,8 @@ def _requirements(cited: dict[str, tuple[str, ...]]) -> list[str]:
     lines = ["## 4. Requirements", ""]
     for section, title in SECTIONS.items():
         rows = [
-            f"| {key} | {_cell(entry['statement'])} | {', '.join(entry['basis'])} "
+            f'| <a id="requirement-{key}"></a>{key} | '
+            f"{_cell(entry['statement'])} | {', '.join(entry['basis'])} "
             f"| {_status(key, entry, tests)} |"
             for key, entry in requirements.items()
             if _section(key) == section
