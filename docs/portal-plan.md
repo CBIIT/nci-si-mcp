@@ -3,9 +3,14 @@
 Design credit: **Semantic Infrastructure (SI) team**, MCP Architecture, 1 October 2026.
 Baseline main `4bea455a5540d6a947f2aca5245f8ed703d5891c`, v0.16.0; branch `milestone/phase-7`.
 Existing capabilities: 29 tools, 964 fixture cases, HTTP acceptance, stdio benchmarks and
-Markdown/diagrams/stories. No website or job/configuration administration API exists.
+Markdown/diagrams/stories. Phase 7 adds a public static website and a separate local results
+dashboard. Job controls and configuration proposals are subsequent issues in the order below.
 
 ## Final owner-confirmed boundary
+
+Owner addition, 8 October 2026: #196 also verifies Section 508 and applicable federal/HHS
+website requirements using the [government website assurance plan](government-site-assurance.md).
+Record measured checks separately from deployment-only obligations and unverified manual checks.
 
 The repository, source and normal engineering CI remain public; no repository status or access
 setting changes. Local development exposes documentation, results, test/benchmark controls and
