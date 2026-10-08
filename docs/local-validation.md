@@ -84,6 +84,46 @@ The browser cannot supply targets, credentials, commands or state-changing hooks
 a local operator to probe that endpoint; it does not enable deployed UAT/PROD administration.
 See the [profile limits](benchmark.md#bounded-http-measurements) before measuring a remote service.
 
+## Configuration evidence and proposals
+
+The **Configuration** page reads an explicitly selected local target's startup snapshot.
+Start the target and companion in separate terminals, using the same **new** file:
+
+```bash
+pdm run nci-si-mcp serve --configuration-snapshot tmp/local-target.json
+pdm run portal serve --configuration-snapshot tmp/local-target.json
+```
+
+The parent directory must already exist. Add `--transport streamable-http` to the target command
+when needed; the snapshot captures the exact settings after that override. The target creates its
+snapshot exclusively and removes its unchanged record when serving ends normally. A second
+target cannot overwrite it. An abrupt termination can leave an old snapshot: inspect its target
+and capture time, confirm the process has stopped, then remove that owned file before restarting.
+
+Values are **recorded startup settings**, not a live health check or remote configuration discovery.
+The page identifies the target instance, UTC capture time, package version and content revision.
+Default/environment/CLI labels describe where the target obtained each setting; the companion's
+own environment supplies no target values. Missing or malformed evidence stays unavailable.
+Historical snapshots do not establish freshness or that a target still exists.
+
+The allowlist exposes profile, upstream mode, release channel, transport/session mode,
+index-required state, timeouts, retry limits/backoff, response-size limit, index batch size and
+log level. Credentials and their presence, paths, endpoints, model/provider settings and identity
+or trust-policy configuration are excluded. New settings default to excluded.
+
+Choose a tuning setting and **Preview proposal** to see the recorded before/after values.
+Timeouts, attempts, backoff, response bytes, batch size and log level are proposable; server
+validation checks their types and ranges. The form names the observed instance and revision,
+so a replaced snapshot or stale form returns a conflict instead of preparing a proposal for a
+different target. **Nothing is applied or saved**: the proposal page is an advisory review aid.
+It changes neither the snapshot nor process settings or environment. Copy the reviewed change
+into the deployment owner's normal change process. Environment/IaC remains authoritative;
+restart, coordinated replica rollout and rollback are outside this interface. Recheck the actual
+deployment before implementing any historical proposal.
+
+No local account is required. Same-origin forms and fixed fields prevent browser-supplied paths,
+commands or arbitrary environment changes. UAT/PROD exposure remains disabled under #197.
+
 ## Interpret results
 
 - Latest attempt follows an atomic **local import sequence**, not a supplied timestamp.

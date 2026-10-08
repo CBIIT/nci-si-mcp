@@ -13,6 +13,7 @@ calls cost under these recorded conditions?” Neither replaces a deployment rea
 <nav class="help-nav" aria-label="Guide topics">
 <a href="#getting-started">Get started</a><a href="#run-controls">Run checks</a>
 <a href="#run-status">Run status</a>
+<a href="#configuration">Configuration</a>
 <a href="#acceptance">Acceptance results</a><a href="#benchmarks">Benchmarks</a>
 <a href="#provenance">Evidence provenance</a></nav>
 <section id="getting-started"><h2>Get started</h2>
@@ -28,6 +29,25 @@ cases by tool or story, or choose two benchmark runs to compare their recorded c
 <p>Import is a terminal operation. Use the same <code>--store</code> option before the subcommand
 when importing into a custom store. Local use requires no account.</p>
 </section>
+<section id="configuration"><h2>Recorded configuration and proposals</h2>
+<p>Start the selected MCP with <code>serve --configuration-snapshot PATH</code>, then start
+the companion with <code>portal serve --configuration-snapshot PATH</code>. Use the same new,
+local file path; the parent directory must exist. A running target owns that file and removes
+its unchanged snapshot on normal shutdown. An abrupt stop can leave historical evidence;
+inspect it before removing it to restart. Do not overwrite another target's record.</p>
+<p>The <a href="/configuration">Configuration</a> page shows only a curated set of safe values
+captured at startup, with target instance, capture time and revision. It does not prove that
+the process is still running or describe an unknown remote deployment. Default means no
+environment or CLI override was supplied; environment and CLI identify the target's source.
+No value is inferred from the companion's environment.
+Missing or invalid evidence stays unknown.</p>
+<p>Select a tuning setting and enter a proposed value to preview the recorded before/after
+change. Timeouts and retry backoff accept numbers; attempts, response bytes and batch size
+require integers; log level uses its named choices. Existing server validation applies.
+A changed target/revision requires reloading the form. A proposal is not saved or applied:
+the deployment owner reviews it and changes the authoritative environment or IaC, arranging
+restart, replica coordination and rollback. This interface cannot change authentication,
+trusted origins, credentials, endpoints, index activation or its own access boundary.</p></section>
 <section id="run-controls"><h2>Run checks and recover interrupted work</h2>
 <p>Open <a href="/jobs">Run checks</a>, choose a fixed validation profile and select
 <strong>Start validation run</strong>. Fixture acceptance checks behavior against recorded or

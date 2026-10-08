@@ -17,6 +17,8 @@ from scripts.portal import _parser, _remote, main
 from scripts.portal_http import create_server
 from scripts.portal_store import EvidenceStore
 
+from nci_si_mcp.config import Settings
+from nci_si_mcp.config_snapshot import capture
 from test_portal_store import run_bundle
 
 
@@ -71,6 +73,52 @@ class PortalCLITest(unittest.TestCase):
             self.assertEqual([status for status, _ in observed], [200, 200])
             self.assertIn("benchmark-http-fixture", observed[0][1])
             self.assertNotIn("benchmark-http-remote", observed[0][1])
+
+    def test_selected_configuration_snapshot_is_served_without_companion_environment_inference(
+        self,
+    ):
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            snapshot = root / "target.json"
+            snapshot.write_text(json.dumps(capture(Settings(timeout_seconds=17), set())))
+            observed = []
+
+            def inspect(server):
+                thread = threading.Thread(target=server.handle_request)
+                thread.start()
+                connection = HTTPConnection("127.0.0.1", server.server_port, timeout=3)
+                try:
+                    connection.request("GET", "/configuration")
+                    response = connection.getresponse()
+                    observed.append((response.status, response.read().decode()))
+                finally:
+                    connection.close()
+                    thread.join(timeout=3)
+                raise KeyboardInterrupt
+
+            with (
+                patch(
+                    "sys.argv",
+                    [
+                        "portal",
+                        "--store",
+                        str(root / "store.sqlite"),
+                        "serve",
+                        "--port",
+                        "0",
+                        "--configuration-snapshot",
+                        str(snapshot),
+                    ],
+                ),
+                patch.object(HTTPServer, "serve_forever", inspect),
+                patch.dict("os.environ", {"NCI_SI_TIMEOUT_SECONDS": "91"}),
+                redirect_stdout(io.StringIO()),
+            ):
+                main()
+            self.assertEqual(observed[0][0], 200)
+            self.assertIn("Recorded startup configuration", observed[0][1])
+            self.assertIn("<td>17</td>", observed[0][1])
+            self.assertNotIn("<td>91</td>", observed[0][1])
 
     def test_serve_command_closes_its_listener_on_local_interrupt(self):
         with TemporaryDirectory() as temporary:

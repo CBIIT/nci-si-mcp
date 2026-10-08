@@ -5,13 +5,17 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import re
 import sys
+from contextlib import nullcontext
 from dataclasses import replace
+from pathlib import Path
 from typing import Any, TextIO
 
 from .audit import emit
 from .config import Settings, configure_logging
+from .config_snapshot import serving_snapshot
 from .context import Context
 from .errors import PlatformError, correlated, is_error_record, serialise, with_next_step
 from .registry import SPECS, cli_arguments, invoke
@@ -31,6 +35,11 @@ def build_parser() -> argparse.ArgumentParser:
     subcommands = parser.add_subparsers(dest="command", required=True)
     serve = subcommands.add_parser("serve", help="Run the MCP server")
     serve.add_argument("--transport", choices=sorted(TRANSPORTS), default=None)
+    serve.add_argument(
+        "--configuration-snapshot",
+        type=Path,
+        help="Write an opt-in safe startup snapshot to a new local file",
+    )
     for spec in SPECS:
         if spec.command:
             command = subcommands.add_parser(spec.command, help=spec.description.splitlines()[0])
@@ -87,6 +96,21 @@ def _serve(settings: Settings, context: Context) -> int:
     return 0
 
 
+def _serve_recorded(settings: Settings, context: Context, args: argparse.Namespace) -> int:
+    recording = (
+        serving_snapshot(
+            args.configuration_snapshot,
+            settings,
+            set(os.environ),
+            cli_transport=args.transport is not None,
+        )
+        if args.configuration_snapshot is not None
+        else nullcontext()
+    )
+    with recording:
+        return _serve(settings, context)
+
+
 def _main(args: argparse.Namespace) -> int:
     # The MCP server speaks its protocol on stdout, so its failures go to stderr.
     serve = args.command == "serve"
@@ -99,7 +123,7 @@ def _main(args: argparse.Namespace) -> int:
     try:
         context = Context(settings)
         if serve:
-            return _serve(settings, context)
+            return _serve_recorded(settings, context, args)
     except _STARTUP_ERRORS as exc:
         emit(logger, logging.DEBUG, "startup_failed", errorType=type(exc).__name__)
         message = with_next_step(f"{type(exc).__name__}: {exc}", "Fix the cause named and rerun.")
