@@ -72,6 +72,10 @@ fixture workflows. Internal `ask` orchestration and wxMCP integration are
 [deferred to Backlog with research criteria](docs/deferred-capabilities.md); neither is enabled.
 The [Phase 6 assurance matrix](docs/phase-6-assurance.md) records compatibility and limitations.
 
+[Phase 7](docs/portal-plan.md) is in development: public documentation and locally usable
+validation/configuration tools. UAT/PROD administration will use platform-provided access
+controls; local development and the public repository remain accessible without a new login.
+
 The [validation and benchmark evidence](docs/benchmark.md) separates fixture acceptance,
 live protocol coverage and representative live tool measurements. caDSR credentialed content
 remains contract-fixture evidence until credentials are issued. The

@@ -25,6 +25,7 @@ remains pending. The [caller-permission flow](docs/caller-permissions.md) shows 
 | [Local and cloud deployment](docs/deployment.md) | Which processes, assets and network boundaries does an operator need? |
 | [HTTP session routing](docs/transport.md#session-routing-sequence) | What happens when a known session reaches another replica? |
 | [Release pipeline](docs/container.md#release-pipeline) | How does a tested commit become a verified image? |
+| [Validation evidence](docs/evidence-contract.md#evidence-flow) | How are results bound to their original run without inventing completeness or trust? |
 
 ## System context
 
