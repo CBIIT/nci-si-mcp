@@ -127,19 +127,22 @@ M1:
   title: A static, self-describing tool surface
   rules:
     M1.1: Each tool description stands alone, naming its domain, its object and how it pins a release, without reference to another tool.
-    M1.2: The tool surface does not vary with the terminology, the release pinned or what the platform offers today; a capability not yet available is a tool returning a structured unavailable error, never an absent tool.
+    M1.2: For a fixed effective caller authority and deployment profile, the tool surface does not vary with the terminology, the release pinned or what the platform offers today; a capability not yet available is a tool returning a structured unavailable error, never an absent tool. Opt-in secured mode intersects the profile with verified caller permissions on every request; trusted-local mode retains the unrestricted profile surface.
     M1.3: Each tool's group (evs, cadsr, cross-domain, workflow) is carried in its metadata.
     # M1.4: owner decision, 2 October 2026.
     M1.4: Every tool declares the read-only annotations readOnlyHint true, destructiveHint false, idempotentHint true and openWorldHint true.
-    M1.5: A server serves one profile, which decides which tools tools/list names and nothing else. The profile evs serves the EVS tools, cadsr the caDSR tools, and unified all four groups; the cross-domain and workflow tools need both modules, so only unified has them (A1.4).
+    M1.5: A server serves one profile, which selects the maximum MCP surface; caller policy may narrow it (M1.6). The profile evs serves the EVS tools, cadsr the caDSR tools, and unified all four groups; the cross-domain and workflow tools need both modules, so only unified has them (A1.4).
+    M1.6: In secured mode the profile is an upper bound on exposed tools, prompts and resources. Every invocation and continuation reauthorizes from a verified identity and current immutable policy snapshot, including issuer, subject, applicable tenant/client, permissions, policy version and expiry. Missing, unavailable or expired policy fails closed. Unknown permissions grant nothing. Restricted targets, including guessed names, return permission_denied with a generic next step and correlationId, without restricted identifiers or required permissions. Compound operations check all argument-selected dependencies before restricted reads, including direct internal producer calls; new child operations cannot start after policy expiry. Upstream authorization remains authoritative.
 M2:
+  # Owner-approved D1-D3, Phase 6 issue 176.
   title: Caching hints
   rules:
     M2.1: tools/list, prompts/list, resources/list, resources/templates/list, resources/read and server/discover carry ttlMs and cacheScope.
     M2.2: "A result's ttlMs follows what it holds: release-pinned content 86,400,000 (long); governed content that no release pins (caDSR content while caDSR publishes no registry release) a short positive ttlMs, at most 3,600,000; a result computed from caller-supplied values (the tools marked computed in tools.yaml) 0; resolve_release, resolve_registry_release and get_release_alignment 0; a result that joins content of two states (a cross-domain or workflow result resting on release-pinned NCIt and on caDSR content) the shorter of their ttlMs. tools/list is long and public. Exception (X-22): a call that implicitly selects its NCIt release returns ttlMs 0 and cacheScope private, since its arguments do not key the effective release; explicit-release calls and resources retain their existing policy."
     M2.3: cacheScope is public for governed content, the resolve tools included, and private for results computed from caller-supplied values and for implicit NCIt release selection under M2.2.
-    M2.4: A cursor pins the release it was issued against; presented after that release is superseded, it is a structured error.
+    M2.4: A cursor pins the release it was issued against; presented after that release is superseded, it is a structured error. A cursor is never a permission grant; every page reauthorizes the caller.
     M2.5: "A tool result carries ttlMs and cacheScope in its _meta; the result of resources/read, as of the list methods, carries them as fields of the result, never in its _meta. The hint of a resource is of the class M2.2 gives what it holds, not necessarily its tool's own."
+    M2.6: "In opt-in secured mode, discovery, content and denials override M2.2/M2.3 with ttlMs 0 and cacheScope private, even for explicit releases. HTTP responses carry Cache-Control: no-store, including for protocols without native cache hints. There is no shared authenticated response cache. Cursors and session identifiers never grant permissions; each request and page uses fresh authority. Already delivered content cannot be recalled."
   why:
     M2.5: The protocol carries ttlMs and cacheScope as fields of the results of the list methods, resources/read and server/discover only (revision 2026-07-28), so a tool result needs a stated place for them.
 M3:
@@ -158,6 +161,7 @@ M5:
   title: Prompts and resources
   rules:
     M5.1: "The furnished prompt templates are listed by prompts/list with their arguments, and the furnished resources by resources/list (a URI without a variable, a concrete resource) and resources/templates/list (a URI template, with variables); a resource carries a URI template rather than arguments. A prompt names only tools present in the profile and is listed only in a profile that has every tool it names, so the evs and cadsr profiles list none and unified lists all four (spec/prompts.yaml). A server declares the prompts and resources capabilities even where its profile lists no prompt (evs, cadsr). resources/read of a URI that no listed resource or template matches, such as a concept URI without its release, is an error, never content."
+    M5.2: In secured mode a prompt is listed and rendered only when every tool it names is permitted within the profile. Resource listing and reads use the permission of their equivalent tool; templates grant no additional access. Discovery responses follow the same authority and private cache policy.
 M6:
   title: Pagination
   rules:

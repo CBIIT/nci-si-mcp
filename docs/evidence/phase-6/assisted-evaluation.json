@@ -1,0 +1,2043 @@
+{
+  "schema": 1,
+  "evidence_kind": "offline-fixture-mechanics",
+  "model": null,
+  "tokens": null,
+  "cost": null,
+  "generated_answer_support": "not evaluated",
+  "release": "26.09d",
+  "rows": [
+    {
+      "task": "concept",
+      "split": "development",
+      "arm": "deterministic",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/code": true,
+        "0/provenance/release/identifier": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 27.95662498101592,
+      "requests": 1,
+      "bytes": 455,
+      "result_sha256": "753793a240c24c8d1d323bf6eed15603a63fdf75fee2d85c7c5d6587f47ffb9b",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "concept",
+      "split": "development",
+      "arm": "deterministic",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/code": true,
+        "0/provenance/release/identifier": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 1.4986670576035976,
+      "requests": 1,
+      "bytes": 455,
+      "result_sha256": "c2a1204129f2442df3ca70cf3c1c72f1f8ffb0bb20d5fd55e911c7636895bb9a",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "concept",
+      "split": "development",
+      "arm": "deterministic",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/code": true,
+        "0/provenance/release/identifier": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 0.9238750208169222,
+      "requests": 1,
+      "bytes": 455,
+      "result_sha256": "203a45124f6f5a0e38882cba17785f304cc8f4b8fa371f79dae69aeb0cad7f71",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "concept",
+      "split": "development",
+      "arm": "scripted-client",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/code": true,
+        "0/provenance/release/identifier": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 10.719459038227797,
+      "requests": 1,
+      "bytes": 455,
+      "result_sha256": "e76ff67e18c54b50d9ab76b09a2e14acad484619ad8912a2bf1ab81d67d00a3c",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "concept",
+      "split": "development",
+      "arm": "scripted-client",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/code": true,
+        "0/provenance/release/identifier": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 1.7430000007152557,
+      "requests": 1,
+      "bytes": 455,
+      "result_sha256": "fb868a15bc37c7db937bc7890a0198cff8e5cd415c520906611e40fb433859fa",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "concept",
+      "split": "development",
+      "arm": "scripted-client",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/code": true,
+        "0/provenance/release/identifier": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 1.2992911506444216,
+      "requests": 1,
+      "bytes": 455,
+      "result_sha256": "5aff5c0299315f85871fef526254b96cfac9e42b8ae7bae767d29bd6794e8c55",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "grounding",
+      "split": "development",
+      "arm": "deterministic",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/concept/code": true,
+        "0/provenance/release/identifier": true,
+        "0/truncation/occurred": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 27.350708143785596,
+      "requests": 5,
+      "bytes": 57172,
+      "result_sha256": "959bba25ee5d649c89238f838b70b9b2665ffe0d52d10bffe84e5f2c904fef30",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "grounding",
+      "split": "development",
+      "arm": "deterministic",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/concept/code": true,
+        "0/provenance/release/identifier": true,
+        "0/truncation/occurred": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 11.478583794087172,
+      "requests": 5,
+      "bytes": 57172,
+      "result_sha256": "ca46c73db837f1502fcdd25365748fc082da8330e5b0876c7daa1076b5789f24",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "grounding",
+      "split": "development",
+      "arm": "deterministic",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/concept/code": true,
+        "0/provenance/release/identifier": true,
+        "0/truncation/occurred": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 11.525916866958141,
+      "requests": 5,
+      "bytes": 57172,
+      "result_sha256": "435061efdad03d6ef728d404b6eef2a795ce30fdb371a64e158da78756221ba9",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "grounding",
+      "split": "development",
+      "arm": "scripted-client",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/concept/code": true,
+        "0/provenance/release/identifier": true,
+        "0/truncation/occurred": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 25.15358291566372,
+      "requests": 5,
+      "bytes": 57172,
+      "result_sha256": "4f95215e34232eebcf8592f89bc4b33b74a33e022f80c4a802b667caa0171b1f",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "grounding",
+      "split": "development",
+      "arm": "scripted-client",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/concept/code": true,
+        "0/provenance/release/identifier": true,
+        "0/truncation/occurred": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 12.65525002963841,
+      "requests": 5,
+      "bytes": 57172,
+      "result_sha256": "3f843d65a72f91d0c5e8eaf00cf601abc768017bfe8e0bde5cbda5d580e89533",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "grounding",
+      "split": "development",
+      "arm": "scripted-client",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/concept/code": true,
+        "0/provenance/release/identifier": true,
+        "0/truncation/occurred": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 11.983958072960377,
+      "requests": 5,
+      "bytes": 57172,
+      "result_sha256": "72a10a5eeafb4a1cab3e094f39e1f7f8b670dfec7afbdf35ce78576c9cb61952",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "data-element",
+      "split": "development",
+      "arm": "deterministic",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/publicId": true,
+        "0/version": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 16.514375107362866,
+      "requests": 1,
+      "bytes": 575,
+      "result_sha256": "d0fcc2776459006e61c24fcce7f47d39d618fac82b6ffd869cf58b2606f1c92e",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "data-element",
+      "split": "development",
+      "arm": "deterministic",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/publicId": true,
+        "0/version": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 1.986500108614564,
+      "requests": 1,
+      "bytes": 575,
+      "result_sha256": "e26515329b3c72bbda5d1ec33daf41a5415ab165cdc58fb80dd1f78a0dfd5c6a",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "data-element",
+      "split": "development",
+      "arm": "deterministic",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/publicId": true,
+        "0/version": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 1.4980831183493137,
+      "requests": 1,
+      "bytes": 575,
+      "result_sha256": "1c05e9268bd6cacae8882dad58a886b47115c0e0909900c090cf1ec2467185e3",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "data-element",
+      "split": "development",
+      "arm": "scripted-client",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/publicId": true,
+        "0/version": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 18.34241603501141,
+      "requests": 1,
+      "bytes": 575,
+      "result_sha256": "7e875d4101db4188842c07a506602ec4bccc57325da00cb78284099548bad7f0",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "data-element",
+      "split": "development",
+      "arm": "scripted-client",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/publicId": true,
+        "0/version": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 1.9350419752299786,
+      "requests": 1,
+      "bytes": 575,
+      "result_sha256": "de01cf694f67961cd0abd2b5e5946f05500844e0ed576a833ada953aaef1b408",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "data-element",
+      "split": "development",
+      "arm": "scripted-client",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/publicId": true,
+        "0/version": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 1.4518750831484795,
+      "requests": 1,
+      "bytes": 575,
+      "result_sha256": "76df60d35ef67ef4a15ca84b8c93aa11684c78de9e351a15128a112f24095ecc",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "form",
+      "split": "development",
+      "arm": "deterministic",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/publicId": true,
+        "0/version": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 14.690165873616934,
+      "requests": 1,
+      "bytes": 112516,
+      "result_sha256": "49b15502fc89dc63502952baf26981658f2aadb3b0d8bb2e523d55d8fe042068",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "form",
+      "split": "development",
+      "arm": "deterministic",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/publicId": true,
+        "0/version": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 5.123291164636612,
+      "requests": 1,
+      "bytes": 112516,
+      "result_sha256": "1061d0f7356f313b4642b1b9aa45b1b027c1555ae51923114fb4b8a4fac7dd9b",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "form",
+      "split": "development",
+      "arm": "deterministic",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/publicId": true,
+        "0/version": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 4.978375043720007,
+      "requests": 1,
+      "bytes": 112516,
+      "result_sha256": "ace3cbc614e95a49cabedfb0ae7e1fc3a7f7c1fe0f4e7e4cb39893b746d6d070",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "form",
+      "split": "development",
+      "arm": "scripted-client",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/publicId": true,
+        "0/version": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 14.537709066644311,
+      "requests": 1,
+      "bytes": 112516,
+      "result_sha256": "2d381ecf901f423dd31e73f2ab7b3fddf10e18c9627cb7424ec68c3beaef8db0",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "form",
+      "split": "development",
+      "arm": "scripted-client",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/publicId": true,
+        "0/version": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 5.183500004932284,
+      "requests": 1,
+      "bytes": 112516,
+      "result_sha256": "c75fe094531ec272cb4a9c394e0857bff1da9b9acffc32cfe5161ae4b8480500",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "form",
+      "split": "development",
+      "arm": "scripted-client",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/publicId": true,
+        "0/version": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 4.7122088726609945,
+      "requests": 1,
+      "bytes": 112516,
+      "result_sha256": "c9b461782c6c346f8f2d9f9c937c49a0d88c28975e45780e8737f248f1cf8fda",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "dictionary",
+      "split": "development",
+      "arm": "deterministic",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/unmatched": true,
+        "0/columns/0/name": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 22.684207884594798,
+      "requests": 3,
+      "bytes": 7531,
+      "result_sha256": "6535b195d171ac5422c292e873b3ff1788d9f5b767b49292f8db6bb58ad68286",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "dictionary",
+      "split": "development",
+      "arm": "deterministic",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/unmatched": true,
+        "0/columns/0/name": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 4.10329201258719,
+      "requests": 3,
+      "bytes": 7531,
+      "result_sha256": "d7e731b19eabfc270740f641573da2a3cbd8b3b90c4b8583dbd7ee5966ac750f",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "dictionary",
+      "split": "development",
+      "arm": "deterministic",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/unmatched": true,
+        "0/columns/0/name": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 3.82033409550786,
+      "requests": 3,
+      "bytes": 7531,
+      "result_sha256": "90877fac1aac783c9197b04c0ebe5bc7c9ffb360bf2fc13c5a838f196a744bf1",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "dictionary",
+      "split": "development",
+      "arm": "scripted-client",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/unmatched": true,
+        "0/columns/0/name": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 22.50766707584262,
+      "requests": 3,
+      "bytes": 7531,
+      "result_sha256": "8fda02b57b64380ac33467300170cba4dd777296bc025a1ad4fad7d7a92842cc",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "dictionary",
+      "split": "development",
+      "arm": "scripted-client",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/unmatched": true,
+        "0/columns/0/name": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 3.8293329998850822,
+      "requests": 3,
+      "bytes": 7531,
+      "result_sha256": "350e46534c8edf41e615fdb16dd22e2a04a93b6be7489316f517344994e2809b",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "dictionary",
+      "split": "development",
+      "arm": "scripted-client",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": true,
+      "expected_outcome": "content",
+      "checks": {
+        "0/unmatched": true,
+        "0/columns/0/name": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true,
+        "complete_content": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 3.3649590332061052,
+      "requests": 3,
+      "bytes": 7531,
+      "result_sha256": "baadb5b455823dfc52db93833b8778819c65eebf1fc46c131fdb8e110a861c7a",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "unavailable-registry-operation",
+      "split": "development",
+      "arm": "deterministic",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 0.6932499818503857,
+      "requests": 0,
+      "bytes": 317,
+      "result_sha256": "825133cada01561d9369d65d86fe58fcb174017dcd207f0fe2d39565707925d4",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "unavailable-registry-operation",
+      "split": "development",
+      "arm": "deterministic",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 0.5939998663961887,
+      "requests": 0,
+      "bytes": 317,
+      "result_sha256": "571a185e5529c46c432fc97cad4cdcd16c7a7bfda218624e53ad5eaf2ac26d66",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "unavailable-registry-operation",
+      "split": "development",
+      "arm": "deterministic",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 0.5764579400420189,
+      "requests": 0,
+      "bytes": 317,
+      "result_sha256": "55d70716739e93dc78595fe6efce0504add95df3818efb7ddf925382f9716822",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "unavailable-registry-operation",
+      "split": "development",
+      "arm": "scripted-client",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 0.7474580779671669,
+      "requests": 0,
+      "bytes": 317,
+      "result_sha256": "e67105787c7e232946530d944d66e562f23ae42fb4570c53d583dcd0d7925f5b",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "unavailable-registry-operation",
+      "split": "development",
+      "arm": "scripted-client",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 0.6343750283122063,
+      "requests": 0,
+      "bytes": 317,
+      "result_sha256": "a1c18861171edcd29887db63fd53baa87926fe1b92b76a177fe0e2ed4110209d",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "unavailable-registry-operation",
+      "split": "development",
+      "arm": "scripted-client",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 0.5922499112784863,
+      "requests": 0,
+      "bytes": 317,
+      "result_sha256": "5a7bb1717ed238fcdaae9f68f64ca47bcc2a527991a4962427fab5650770dbf5",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "graph-release-disagreement",
+      "split": "held-out",
+      "arm": "deterministic",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 2.610707888379693,
+      "requests": 3,
+      "bytes": 310,
+      "result_sha256": "a3ea1d91db11e6342c4abefdd7a3b4784387bea9b9e3ac5b0a832503a1c2d967",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "graph-release-disagreement",
+      "split": "held-out",
+      "arm": "deterministic",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 2.205916913226247,
+      "requests": 3,
+      "bytes": 310,
+      "result_sha256": "ee79f315ee197fce7c950b0408268e87538cd41dd742ce35f36d50149e7775c7",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "graph-release-disagreement",
+      "split": "held-out",
+      "arm": "deterministic",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 1.8622919451445341,
+      "requests": 3,
+      "bytes": 310,
+      "result_sha256": "dc249c6e394aa79096b5afe672d6b685107e2aef54c32e156849024936279761",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "graph-release-disagreement",
+      "split": "held-out",
+      "arm": "scripted-client",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 2.702082972973585,
+      "requests": 3,
+      "bytes": 310,
+      "result_sha256": "f96e7ac33de3362419f887cd0df2ec4b92087185236641b3956e57e1822989ef",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "graph-release-disagreement",
+      "split": "held-out",
+      "arm": "scripted-client",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 2.1521251183003187,
+      "requests": 3,
+      "bytes": 310,
+      "result_sha256": "554ad6b615c76214fe6ac6447ae7bd63f196f01f84bdb6b06fc7e311a5d6cb6c",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "graph-release-disagreement",
+      "split": "held-out",
+      "arm": "scripted-client",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 1.863584155216813,
+      "requests": 3,
+      "bytes": 310,
+      "result_sha256": "77b2eb8f13ebec8c4cf4e372cb144d5f1d37941b952dec17018a761c9a5ccef5",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "unknown-value",
+      "split": "held-out",
+      "arm": "deterministic",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 2.6306251529604197,
+      "requests": 3,
+      "bytes": 182,
+      "result_sha256": "2aa85ef12f854cb771fec9e0b8d1b57b98b4a069f9feef1a6cd7cbddc2bbd19c",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "unknown-value",
+      "split": "held-out",
+      "arm": "deterministic",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 1.9063330255448818,
+      "requests": 3,
+      "bytes": 182,
+      "result_sha256": "e18f36f1e087d1e3bb9c44d3ab90ff60eb7cf3fde6358ed3c2f1b1b15b88f9f5",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "unknown-value",
+      "split": "held-out",
+      "arm": "deterministic",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 2.034249948337674,
+      "requests": 3,
+      "bytes": 182,
+      "result_sha256": "2be3bf940c7da7d77ca0f11391623c8626655bedb28ff91b84328454b116bca9",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "unknown-value",
+      "split": "held-out",
+      "arm": "scripted-client",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 2.4605831131339073,
+      "requests": 3,
+      "bytes": 182,
+      "result_sha256": "6381a66598d3a3631b20624b81f640aacd411a847bfc284776be977c3426b9a9",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "unknown-value",
+      "split": "held-out",
+      "arm": "scripted-client",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 2.4004580918699503,
+      "requests": 3,
+      "bytes": 182,
+      "result_sha256": "4ede69de1ca20275fecc53cd12756418ef47b871a58bc4aaf98df2749e25ad9c",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "unknown-value",
+      "split": "held-out",
+      "arm": "scripted-client",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 2.1339580416679382,
+      "requests": 3,
+      "bytes": 182,
+      "result_sha256": "e9e9e6fdff8f387c271c8e517cf6355b5f76009905d6e1d26c11b1fb271a7e60",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "ambiguous-selection",
+      "split": "held-out",
+      "arm": "deterministic",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 1.4948330353945494,
+      "requests": 1,
+      "bytes": 650,
+      "result_sha256": "440677e88646dcaf59f268bdcf28da1107a650e8a0c74ec5dc073fad46d38800",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "ambiguous-selection",
+      "split": "held-out",
+      "arm": "deterministic",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 1.1824588291347027,
+      "requests": 1,
+      "bytes": 650,
+      "result_sha256": "40f27e4d57aa6b1db150e2abab6cabda7be42c0a1291d1e7ae780036a2073057",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "ambiguous-selection",
+      "split": "held-out",
+      "arm": "deterministic",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 0.9878329001367092,
+      "requests": 1,
+      "bytes": 650,
+      "result_sha256": "0db9284b3e7f26b390d7e77126cd025cf09da6d2ec72489c703160f739597314",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "ambiguous-selection",
+      "split": "held-out",
+      "arm": "scripted-client",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 1.5929159708321095,
+      "requests": 1,
+      "bytes": 650,
+      "result_sha256": "ca0f6daa4040e7cfdef45fc8fc69b48880cb8632f6815239897fed4f4159b01c",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "ambiguous-selection",
+      "split": "held-out",
+      "arm": "scripted-client",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 1.124667003750801,
+      "requests": 1,
+      "bytes": 650,
+      "result_sha256": "2a162c53291f6eb004a67d90d2b3a45649244952356eb89d88a1a5562eec2885",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "ambiguous-selection",
+      "split": "held-out",
+      "arm": "scripted-client",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 0.9737079963088036,
+      "requests": 1,
+      "bytes": 650,
+      "result_sha256": "c7e6cbef0cc64080cd469ef2efd49fa3a23f50c0cd507e1213d2cf2f0ca6a826",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "denied-workflow-child",
+      "split": "held-out",
+      "arm": "deterministic",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 0.736915972083807,
+      "requests": 0,
+      "bytes": 186,
+      "result_sha256": "b91b4b35fe91ed2c055c48e8cd240d85dd4b70f88065097fff0d7a607ecf1869",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "denied-workflow-child",
+      "split": "held-out",
+      "arm": "deterministic",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 0.46012504026293755,
+      "requests": 0,
+      "bytes": 186,
+      "result_sha256": "52e2a01ffcf2a7575a0a9f95741fbbd93ab5afdbe2a83f72c6d3d5e88fb1da34",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "denied-workflow-child",
+      "split": "held-out",
+      "arm": "deterministic",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 0.40262495167553425,
+      "requests": 0,
+      "bytes": 186,
+      "result_sha256": "38bc3f1a2b7f1e248549c034bf84a2972b1d8c83d9981957006e4d8431abdd2b",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "denied-workflow-child",
+      "split": "held-out",
+      "arm": "scripted-client",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 0.7802920881658792,
+      "requests": 0,
+      "bytes": 186,
+      "result_sha256": "e1f9c4183b9393047b61be200a3e60c4189cce2818b1a7cd43128d7aa94e23cb",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "denied-workflow-child",
+      "split": "held-out",
+      "arm": "scripted-client",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 0.6844161543995142,
+      "requests": 0,
+      "bytes": 186,
+      "result_sha256": "4584da6f42cee798af812ed8c44f7b47a8ffb89f0fe8f9e3f6a6427f2089fe66",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "denied-workflow-child",
+      "split": "held-out",
+      "arm": "scripted-client",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 0.6197921466082335,
+      "requests": 0,
+      "bytes": 186,
+      "result_sha256": "20fdb38a6bf6ab60bd2fdffe7e31f4540549603dc9e42987509e9f006e51a9cd",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "bounded-neighborhood",
+      "split": "held-out",
+      "arm": "deterministic",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "partial",
+      "checks": {
+        "0/truncation/occurred": true,
+        "0/truncation/bound": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 19.334624987095594,
+      "requests": 4,
+      "bytes": 2343,
+      "result_sha256": "6fdd6ea5ad88943cf66a2668984a994b347712f22da30d3d46934a74512284bd",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "bounded-neighborhood",
+      "split": "held-out",
+      "arm": "deterministic",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "partial",
+      "checks": {
+        "0/truncation/occurred": true,
+        "0/truncation/bound": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 4.906584043055773,
+      "requests": 4,
+      "bytes": 2343,
+      "result_sha256": "3b7dac8fff26fb711d07f78b2789a359428c4576343974f93ceb971805cc7ab6",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "bounded-neighborhood",
+      "split": "held-out",
+      "arm": "deterministic",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "partial",
+      "checks": {
+        "0/truncation/occurred": true,
+        "0/truncation/bound": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 4.326166119426489,
+      "requests": 4,
+      "bytes": 2343,
+      "result_sha256": "dca23a38d7bbd2e1952a3b3b685a4c17010bc127dffc8f0cb803728fe6d59083",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "bounded-neighborhood",
+      "split": "held-out",
+      "arm": "scripted-client",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "partial",
+      "checks": {
+        "0/truncation/occurred": true,
+        "0/truncation/bound": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 21.031917072832584,
+      "requests": 4,
+      "bytes": 2343,
+      "result_sha256": "222d7fe6b7e4dd18c58f6e4971bca11a4c0d475f60c19c0072c0b8023389eda1",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "bounded-neighborhood",
+      "split": "held-out",
+      "arm": "scripted-client",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "partial",
+      "checks": {
+        "0/truncation/occurred": true,
+        "0/truncation/bound": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 5.183917004615068,
+      "requests": 4,
+      "bytes": 2343,
+      "result_sha256": "74b6c6c076f8c621d097d086d78362255c349fbe88dabcbb2b48f0ea00a96df9",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "bounded-neighborhood",
+      "split": "held-out",
+      "arm": "scripted-client",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "partial",
+      "checks": {
+        "0/truncation/occurred": true,
+        "0/truncation/bound": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 5.475667072460055,
+      "requests": 4,
+      "bytes": 2343,
+      "result_sha256": "06843a822c684f9be3767a87b6a49cb1c6b73dcf04fc631bc090252ca40ca149",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
+    },
+    {
+      "task": "hostile-identifier",
+      "split": "held-out",
+      "arm": "deterministic",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 0.7808341179043055,
+      "requests": 0,
+      "bytes": 250,
+      "result_sha256": "711c826a619510387c860ba325096918cafc58a60eef6f6450e98759e95de275",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "hostile-identifier",
+      "split": "held-out",
+      "arm": "deterministic",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 0.6505001801997423,
+      "requests": 0,
+      "bytes": 250,
+      "result_sha256": "7e6d96b7e4a62b229f81c12f1e09ce9a56f56894c1d0babee0db7b597c16f3c2",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "hostile-identifier",
+      "split": "held-out",
+      "arm": "deterministic",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 0.5096250679343939,
+      "requests": 0,
+      "bytes": 250,
+      "result_sha256": "562b5e1384afcabe4e8ddd1c84a3d4b777c487a1efaa14f5706e0b94d7af5ea8",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "hostile-identifier",
+      "split": "held-out",
+      "arm": "scripted-client",
+      "repetition": 0,
+      "condition": "first-in-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 0.7966659031808376,
+      "requests": 0,
+      "bytes": 250,
+      "result_sha256": "2f36e25d3a969689afedd6f47cb1cd07a2c4d862dd2d6e157a2f95942ce2ed74",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "hostile-identifier",
+      "split": "held-out",
+      "arm": "scripted-client",
+      "repetition": 1,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 0.5631670355796814,
+      "requests": 0,
+      "bytes": 250,
+      "result_sha256": "a23afca174244407810f18a6a58f5d1baf9c1e52266e37aed146c40a021d2d7e",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    },
+    {
+      "task": "hostile-identifier",
+      "split": "held-out",
+      "arm": "scripted-client",
+      "repetition": 2,
+      "condition": "warm-session",
+      "status": "completed",
+      "correct": true,
+      "content_obtained": false,
+      "expected_outcome": "refusal",
+      "checks": {
+        "0/error/code": true,
+        "complete_evidence": true,
+        "recorded_upstream": true,
+        "protocol_consistent": true
+      },
+      "within_request_bound": true,
+      "elapsed_ms": 0.7314169779419899,
+      "requests": 0,
+      "bytes": 250,
+      "result_sha256": "fc1252552204636cd864dba060af50d59f5e5efc84b5cc2b8487815bb5fef68b",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
+    }
+  ],
+  "summary": {
+    "deterministic": {
+      "runs": 36,
+      "correct": 36,
+      "correct_rate": 1.0,
+      "content_obtained": 15,
+      "latency_ms": {
+        "samples": 36,
+        "p50": 2.010375028476119,
+        "p95": 27.350708143785596
+      }
+    },
+    "scripted-client": {
+      "runs": 36,
+      "correct": 36,
+      "correct_rate": 1.0,
+      "content_obtained": 15,
+      "latency_ms": {
+        "samples": 36,
+        "p50": 2.1430415799841285,
+        "p95": 22.50766707584262
+      }
+    }
+  },
+  "by_split": {
+    "development": {
+      "runs": 36,
+      "correct": 36,
+      "correct_rate": 1.0,
+      "content_obtained": 30,
+      "latency_ms": {
+        "samples": 36,
+        "p50": 4.407750442624092,
+        "p95": 27.350708143785596
+      }
+    },
+    "held-out": {
+      "runs": 36,
+      "correct": 36,
+      "correct_rate": 1.0,
+      "content_obtained": 0,
+      "latency_ms": {
+        "samples": 36,
+        "p50": 1.7276039579883218,
+        "p95": 19.334624987095594
+      }
+    }
+  },
+  "by_condition": {
+    "first-in-session": {
+      "runs": 24,
+      "correct": 24,
+      "correct_rate": 1.0,
+      "content_obtained": 10,
+      "latency_ms": {
+        "samples": 24,
+        "p50": 6.710771005600691,
+        "p95": 27.350708143785596
+      }
+    },
+    "warm-session": {
+      "runs": 48,
+      "correct": 48,
+      "correct_rate": 1.0,
+      "content_obtained": 20,
+      "latency_ms": {
+        "samples": 48,
+        "p50": 1.8849585903808475,
+        "p95": 11.525916866958141
+      }
+    }
+  },
+  "limits": {
+    "deadline_seconds": 30,
+    "repetitions": 3
+  },
+  "environment": {
+    "base_commit": "5531a2d17da853ce85937fb0464efcfb2a966267",
+    "working_tree_dirty": true,
+    "python": "3.14.7",
+    "mcp": "2.2.0",
+    "source_sha256": {
+      "evaluation/assisted-tasks.yaml": "265ad57b924dcb5288f9122e4cfdace028cd240690a59bae72d71e5b388b0f4f",
+      "scripts/assisted_evaluation.py": "714b5804ff34d1959aa99b3cf5f98d8b2460d6bec4a0a9eb6eaca65f98f95dc2",
+      "src/nci_si_mcp/task_evaluation.py": "66b6d4fffeb3f0136d2b696db9104088053e6f4a3aab2bf9099d106179b70c97",
+      "pdm.lock": "6b0dd69afd8055d93a3a13d63e12331d80c01213367dba03db470743408e6396"
+    }
+  }
+}

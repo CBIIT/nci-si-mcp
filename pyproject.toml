@@ -191,6 +191,8 @@ paths = ["src", "tests", "scripts", "acceptance"]
 min_confidence = 60
 ignore_decorators = ["@mcp.tool", "@tool", "@mcp.resource", "@resource", "@pytest.fixture"]
 ignore_names = [
+    # Principal equality binds the tenant too; dataclasses reads this field implicitly.
+    "tenant",
     "row_factory", "built_at", "index_path", "state",
     "evaluation_version", "evaluation_score", "synonyms", "matchedOn", "totalKnown", "builtAt",
     "correlationId", "servedBy", "retrievedAt", "sourceUri", "perKind", "nextCursor",

@@ -12,6 +12,7 @@ from .catalogue import exclusion_codes, load_catalogue
 from .context import Context
 from .errors import InputValidationError, PlatformError
 from .models import Truncation
+from .permissions import require, require_operation
 from .release import ReleaseContext
 from .release_selection import implicit_selection
 from .validation import bounded, validate_identifier
@@ -46,6 +47,7 @@ def _ground_registry(context: Context, requested: str | None) -> None:
 
 
 def _text_code(context: Context, text: str, selected: ReleaseContext) -> str:
+    require("search_concepts")
     pin = None if implicit_selection() else selected.version
     found = content.search_concepts(context, "ncit", text, pin)["results"]
     if not found:
@@ -66,6 +68,7 @@ def _hop(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, An
 def _ground_hops(
     context: Context, selected: ReleaseContext, code: str, commons: str | None
 ) -> dict[str, Any]:
+    require("find_data_elements_for_concept")
     graphs = seam._graphs(context, selected)
     provenance = seam._provenance(context, selected, graphs)
     elements = context.ssis.find_data_elements(code, maximum=seam.MAX_RESULTS)
@@ -94,16 +97,19 @@ def _bounded_hops(
 def _stored_hop(
     context: Context, selected: ReleaseContext, code: str, commons: str
 ) -> list[dict[str, Any]]:
+    require_operation("resolve_stored_value", {"commons": commons})
     if commons != "GDC":
         return seam._crosswalk(context, selected, code, commons, None)["storedValues"]
     return _gdc_hop(context, selected, code)
 
 
 def _gdc_hop(context: Context, selected: ReleaseContext, code: str) -> list[dict[str, Any]]:
+    require("resolve_stored_value")
     source, provenance = seam.gdc_provenance(context, selected)
     result: list[dict[str, Any]] = []
     offset, total = 0, None
     while total is None or offset < total:
+        require("resolve_stored_value")
         rows, current_total = context.evs.get_gdc_maps(code, offset)
         if total is not None and current_total != total:
             seam._malformed("changing GDC mapping total", "evs")
@@ -135,6 +141,7 @@ def ground_value(
     release joins use the shorter constituent TTL/public.
     """
     _ground_options(conceptCode, text, commons)
+    require_operation("ground_value", {"text": text, "commons": commons})
     if release is not None:
         validate_identifier(release, r"[A-Za-z0-9][A-Za-z0-9._-]*", "release")
     with budgeted(current_budget() or Budget()):
@@ -142,6 +149,7 @@ def ground_value(
         selected = seam._selected(context, release)
         code = conceptCode if conceptCode is not None else _text_code(context, text or "", selected)
         pin = None if implicit_selection() else selected.version
+        require("get_concept")
         concept = content.get_concept(context, "ncit", code, pin)
         result = {"concept": concept} | _ground_hops(context, selected, code, commons)
     seam._mixed_cache()
@@ -197,6 +205,7 @@ def harmonize_data_dictionary(
     """
     prepared = [_column(column) for column in cadsr_matching._list(columns, "columns")]
     headers = cadsr_matching._headers(filters, 10)
+    require_operation("harmonize_data_dictionary", {"columns": columns})
     with budgeted(current_budget() or Budget()):
         state = cadsr_matching._matching_release(context, registryRelease)
         groups, provenance = cadsr_matching.match_entities(
@@ -241,6 +250,7 @@ def _cohort(
     context: Context, selected: ReleaseContext, code: str, budget: Budget, negative: bool
 ) -> dict[str, Any]:
     depth, maximum = budget.depth, budget.nodes
+    require("get_concept_neighborhood")
     exclusions = exclusion_codes(context.settings, "ncit")
     load_catalogue(context.evs, selected, exclusions)
     # Roles are read independently: a small cohort bound must not hide an exclusion.
@@ -252,6 +262,7 @@ def _cohort(
     withheld = set() if negative else {row["code"] for row in excluded}
     budget.depth, budget.nodes = depth, maximum + len(withheld) + 1
     budget.edges = budget.nodes**2
+    require("get_concept_hierarchy")
     graph = content._graph_record(content._graph(context, selected, code, ["child"], budget))
     return _cohort_result(graph, roles, excluded, withheld, maximum)
 
@@ -306,6 +317,7 @@ def expand_cohort(
     session pin and 0/private caching; an explicit release uses long/public.
     """
     validate_identifier(conceptCode, r"C[1-9][0-9]*", "conceptCode")
+    require_operation("expand_cohort", {})
     if type(includeNegative) is not bool:
         raise InputValidationError("includeNegative must be boolean", "includeNegative")
     budget = Budget(

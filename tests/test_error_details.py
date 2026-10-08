@@ -18,6 +18,7 @@ from nci_si_acceptance.spec import RECORDS
 from nci_si_mcp import invocation as invocation_module
 from nci_si_mcp.errors import ErrorCode
 from nci_si_mcp.evs import EVSClient, verify_release
+from nci_si_mcp.permissions import authority_scope
 from nci_si_mcp.registry import invoke
 from test_docs import QUICKSTART, section
 from test_evs_client import FakeResponse
@@ -64,6 +65,8 @@ class DetailKeysTest(HandlerTestCase):
     def raise_sites(self):
         """(code, details) of an error from each place that raises one with details."""
 
+        with authority_scope(None):
+            denied = from_the_record(invoke(self.context, "get_concept", "ncit", "C1"))
         absent_manifest = from_the_record(invoke(self.context, "index_resource", "26.06e"))
         no_index = from_the_record(invoke(self.context, "search", "tumor"))
         self.index()
@@ -72,6 +75,7 @@ class DetailKeysTest(HandlerTestCase):
         mismatch = from_the_record(invoke(self.context, "lookup", "C3262"))
         del self.evs.concepts["C40704"]
         return [
+            denied,
             absent_manifest,
             no_index,
             from_the_record(invoke(self.context, "search", " ")),

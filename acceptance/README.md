@@ -284,3 +284,20 @@ What the check is and is not:
   against a harness installed from another checkout is refused.
 - The suite version in the report comes from install metadata (the nearest tag), so run
   `pdm install` after a tag. The digest alone decides approval.
+
+## Secured caller fixtures
+
+The additive X-25–X-27 cases use `NCI_SI_ACCEPTANCE_SECURITY_SERVER`, an operator-supplied
+command that starts a loopback HTTP server. The furnished repository's CI and HTTP gate supply `scripts/permissions_fixture.py`. For a
+local fixture run set `NCI_SI_ACCEPTANCE_SECURITY_SERVER='python ../scripts/permissions_fixture.py'`
+alongside the preparation environment. Successors provide their own adapter;
+the suite imports no prototype code. Without an adapter these cases explicitly report NOT RUN.
+They are fixture-only, not evidence of production identity or revocation behavior.
+
+The adapter receives the normal fixture upstream environment plus `NCI_SI_TEST_HTTP_PORT`
+and `NCI_SI_TEST_AUTHORITY_FILE`. The JSON file contains generated `tokens` keyed by fixture
+actor and `policies` containing each actor's `capabilities` (tool names) and Unix-second
+`expires_at`. Missing policy denies. The adapter authenticates tokens, reloads policy on each
+request, binds only loopback, and exposes `/mcp` and `/health`. The harness owns and reaps the
+process; test tokens are never production credentials and must not appear in logs. This is a
+test-adapter contract, not a proposed production policy format or identity-provider choice.

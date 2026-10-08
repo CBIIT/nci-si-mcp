@@ -11,7 +11,7 @@ acceptance suite it and its successors are measured by. Two Statements of Work b
 EVS v2.1 and caDSR v1.1. It is a prototype, not a production service. The server never returns
 caDSR or other upstream content it did not retrieve. Until NCI issues caDSR credentials,
 caDSR behavior is built and tested against fixtures crafted from the published contracts.
-The milestones and issues on GitHub (Phase 0 to 5) are the plan. README.md gives the current
+The milestones and issues on GitHub (Phases 0 to 6) are the plan. README.md gives the current
 status per tool group; QUICKSTART.md holds the usage details.
 
 Documentation, from short to detailed: `README.md` (what the repository is, who it is for, the
@@ -64,7 +64,7 @@ pdm run pytest tests/test_handlers.py -k LookupTest
 pdm run lint                              # ruff check + basedpyright, the fast check
 pdm run fmt                               # ruff format
 pdm run pre-commit run --all-files        # every hook, as the CI quality job runs them
-NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")' pdm run acceptance -n 4 --report=fixture.json  # fixture mode, prepared as in CI
+NCI_SI_ACCEPTANCE_SECURITY_SERVER='python ../scripts/permissions_fixture.py' NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")' pdm run acceptance -n 4 --report=fixture.json  # fixture mode, prepared as in CI
 pdm run acceptance-expected check acceptance/fixture.json    # the report against the expected outcomes
 pdm run acceptance-expected update acceptance/fixture.json   # rewrite the expected outcomes
 pdm run acceptance-status                 # regenerate the README status table
@@ -248,7 +248,7 @@ not logged. Diagnostic verbosity does not suppress the required completion recor
 
 ### One error path
 
-The error codes are the ten of the specification's error record (`spec/records.yaml`), closed in
+The error codes are those of the specification's error record (`spec/records.yaml`), closed in
 `errors.py` as `ErrorCode`. A failure is a `PlatformError`: its code, a message that names the
 caller's next step, and the `details` that code lists in `docs/implementation-plan.md` §3.1. `errors.serialise` is
 the only function that turns one into the result, `{"error": {"code", "message", "details"?,

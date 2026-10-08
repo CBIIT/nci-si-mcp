@@ -10,6 +10,7 @@ from .config import Settings
 from .context import Context
 from .errors import PlatformError
 from .index import IndexCompatibilityError, IndexStorageError, NoActiveIndexError
+from .permissions import AuthorityResolver
 from .server import create_mcp
 
 if TYPE_CHECKING:
@@ -24,10 +25,11 @@ logger = logging.getLogger(__name__)
 class HTTPBoundary:
     """Protect all HTTP routes and record only the status of authentication refusals."""
 
-    def __init__(self, app: ASGIApp, security: Any) -> None:
+    def __init__(self, app: ASGIApp, security: Any, protected: bool = False) -> None:
         from mcp.server.transport_security import TransportSecurityMiddleware
 
         self.app = app
+        self.protected = protected
         self.security = TransportSecurityMiddleware(security)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -36,15 +38,20 @@ class HTTPBoundary:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
-        if refused := await self.security.validate_request(Request(scope)):
-            await refused(scope, receive, send)
-            return
 
         async def report(message: Message) -> None:
+            if message["type"] == "http.response.start" and self.protected:
+                headers = [
+                    (k, v) for k, v in message.get("headers", []) if k.lower() != b"cache-control"
+                ]
+                message = {**message, "headers": [*headers, (b"cache-control", b"no-store")]}
             if message["type"] == "http.response.start" and _auth_refusal(message):
                 emit(logger, logging.WARNING, "http_auth_rejected", status=message["status"])
             await send(message)
 
+        if refused := await self.security.validate_request(Request(scope)):
+            await refused(scope, receive, report)
+            return
         await self.app(scope, receive, report)
 
 
@@ -70,6 +77,7 @@ def create_http_app(
     context: Context | None = None,
     auth: AuthSettings | None = None,
     token_verifier: TokenVerifier | None = None,
+    authority_resolver: AuthorityResolver | None = None,
 ) -> Starlette:
     """Inject an approved auth provider here; the default accepts unauthenticated clients."""
     from mcp.server.transport_security import TransportSecuritySettings
@@ -77,8 +85,21 @@ def create_http_app(
     from starlette.responses import JSONResponse
     from starlette.routing import Route
 
+    if settings.http_auth_mode == "required":
+        from .http_auth import configured_auth
+
+        integration = configured_auth(settings)
+        auth = integration.auth
+        token_verifier = integration.token_verifier
+        authority_resolver = integration.authority_resolver
     context = context or Context(settings)
-    mcp = create_mcp(settings, context=context, auth=auth, token_verifier=token_verifier)
+    mcp = create_mcp(
+        settings,
+        context=context,
+        auth=auth,
+        token_verifier=token_verifier,
+        authority_resolver=authority_resolver,
+    )
     security = TransportSecuritySettings(
         enable_dns_rebinding_protection=True,
         allowed_hosts=list(settings.http_allowed_hosts),
@@ -115,7 +136,11 @@ def create_http_app(
         )
 
     app.routes.extend([Route("/health", health), Route("/ready", ready)])
-    app.add_middleware(HTTPBoundary, security=security)
+    app.add_middleware(
+        HTTPBoundary,
+        security=security,
+        protected=auth is not None or authority_resolver is not None,
+    )
     return app
 
 
