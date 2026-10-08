@@ -1,0 +1,23 @@
+:root {
+  --md-text-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --md-code-font: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --md-primary-fg-color: #174a68;
+  --md-accent-fg-color: #075d82;
+}
+.md-header { background: #174a68; color: #fff; }
+.md-header .md-search__button { background: #fff; color: #183c50; }
+.md-banner { background: #e8f1f5; color: #183c50; }
+.md-banner a { color: #124f70; text-decoration: underline; }
+.md-typeset { line-height: 1.65; }
+.md-typeset h1 { color: #174a68; font-weight: 650; }
+.md-typeset a { text-decoration: underline; text-underline-offset: .15em; }
+.md-typeset table:not([class]) th { background: #edf3f6; color: #183c50; }
+:focus-visible { outline: 3px solid #ad4e00 !important; outline-offset: 3px; }
+.md-typeset pre { overflow-x: auto; }
+.md-typeset .mermaid { overflow-x: auto; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; }
+}
+@media print {
+  .md-header, .md-sidebar, .md-search { display: none; }
+}

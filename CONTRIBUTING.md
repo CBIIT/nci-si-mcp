@@ -1,5 +1,9 @@
 # Contributing
 
+The [documentation website guide](docs/documentation-site.md) explains its pinned build,
+local preview, reviewed page allowlist and source/version labels. Update the relevant documents
+and diagrams with each behavior change; the website reuses those sources.
+
 How to work on this repository. What it is, and its status, is in [README.md](README.md); how to
 install and run the server is in [QUICKSTART.md](QUICKSTART.md); how it is built is in
 [ARCHITECTURE.md](ARCHITECTURE.md).

@@ -1,5 +1,8 @@
 # Quickstart
 
+Prefer a searchable website with the same instructions and diagrams? Follow the
+[local documentation preview](docs/documentation-site.md#build-and-preview); no account is needed.
+
 How to install and run the prototype server, what it serves, and how it fails. What this repository
 is, and the status of each tool group, is in [README.md](README.md).
 
