@@ -122,6 +122,7 @@ acceptance-stories = "python -m nci_si_acceptance.stories"
 acceptance-index-codes = "python -m nci_si_acceptance.suite"
 spec-render = "python -m nci_si_acceptance.document"
 docs-build = "python -m scripts.docs_site"
+portal = "python -m scripts.portal"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -137,6 +138,11 @@ source = [
     "scripts.evidence_benchmark",
     "scripts.docs_site",
     "scripts.docs_links",
+    "scripts.portal",
+    "scripts.portal_store",
+    "scripts.portal_views",
+    "scripts.portal_http",
+    "scripts.portal_help",
 ]
 # CLI and transport tests launch Python children; include their executed code.
 patch = ["subprocess"]

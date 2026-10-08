@@ -70,8 +70,14 @@ issue covers the complete accessibility matrix. This is not a WCAG certification
 
 ## Deployment boundary
 
+Each CI run builds a separate `documentation-preview-<commit>` artifact with a 30-day lifetime.
+It contains only the checked static site, never validation reports or the local evidence store.
+Download and serve it over HTTP to review that commit. Uploading this artifact neither deploys
+a website nor promotes pull-request content into a release. The lifetime is an engineering
+retention setting, not an agency records schedule.
+
 The documentation artifact can be served by an ordinary static host or a separate companion
-container. The local results dashboard, controls and configuration views are separate Phase 7
-work. Their UAT/PROD deployment must remain disabled until the platform supplies the approved
+container. The [local results dashboard](local-validation.md) uses a separate loopback listener;
+controls and configuration views are later Phase 7 work. UAT/PROD administration must remain disabled until the platform supplies the approved
 authentication and explicit maintainer authorization integration (#197). Documentation remains
 anonymous. The repository's public status and upstream EVS/caDSR access controls are unchanged.

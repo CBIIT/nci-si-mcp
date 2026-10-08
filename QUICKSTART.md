@@ -2,6 +2,8 @@
 
 Prefer a searchable website with the same instructions and diagrams? Follow the
 [local documentation preview](docs/documentation-site.md#build-and-preview); no account is needed.
+Run `pdm run portal serve` for the separate local evidence dashboard; the
+[validation guide](docs/local-validation.md) explains imports, history and comparisons.
 
 How to install and run the prototype server, what it serves, and how it fails. What this repository
 is, and the status of each tool group, is in [README.md](README.md).

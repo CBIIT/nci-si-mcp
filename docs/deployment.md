@@ -6,6 +6,31 @@ view is a **proposed reference layout**, not deployed infrastructure or an appro
 Solid arrows show calls, reads or output; dashed arrows show operator-supplied configuration
 and assets. Labels identify protocols and storage permissions.
 
+## Local documentation and validation companion
+
+Public documentation and local validation use separate listeners and directories. The
+[documentation builder](documentation-site.md) publishes only reviewed pages and assets;
+the [validation dashboard](local-validation.md) reads locally imported evidence. Both are
+accessible without login locally. The dashboard currently supports read-only browsing;
+run controls and configuration proposals are later Phase 7 work. It never reads the serving
+MCP index or fetches upstream data while rendering results.
+
+```mermaid
+flowchart LR
+    Reader["Local browser"] -->|"HTTP: public docs"| Static["Static documentation preview"]
+    Reader -->|"HTTP: loopback only"| Portal["Local validation dashboard"]
+    Pages["Allowlisted pages and assets"] -->|"build"| Static
+    Import["CLI: validate original run bundle"] --> Store[("Private local evidence SQLite")]
+    Portal -->|"read safe projections"| Store
+```
+
+Text alternative: a browser reads documentation from a static preview and validation results
+from a separate loopback dashboard. A CLI validates original evidence before storing it locally;
+only safe projections reach dashboard pages. The documentation build has no path to this store.
+UAT/PROD administration remains disabled pending platform integration in #197; the public
+documentation site remains anonymous. See the [government website assurance plan](government-site-assurance.md)
+for accessibility and deployment-specific requirements still to verify.
+
 ## Local stdio
 
 The MCP client launches and owns one server process. No listening HTTP port is required. A

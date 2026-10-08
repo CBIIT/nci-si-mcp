@@ -28,10 +28,12 @@ nav = [
     { "Evaluation dataset" = "docs/evaluation/ncit-v1-notes.md" },
     { "Assisted task evaluation" = "docs/assisted-evaluation.md" },
     { "Run evidence contract" = "docs/evidence-contract.md" },
+    { "Local validation dashboard" = "docs/local-validation.md" },
   ] },
   { "Contributing and roadmap" = [
     { "Contributing" = "CONTRIBUTING.md" },
     { "Documentation website" = "docs/documentation-site.md" },
+    { "Government website assurance" = "docs/government-site-assurance.md" },
     { "Implementation plan" = "docs/implementation-plan.md" },
     { "Portal plan" = "docs/portal-plan.md" },
     { "Deferred capabilities" = "docs/deferred-capabilities.md" },
