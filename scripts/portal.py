@@ -1,13 +1,20 @@
-"""Import bounded local evidence and serve the read-only loopback validation companion."""
+"""Import bounded local evidence and serve the loopback validation companion."""
 
 from __future__ import annotations
 
 import argparse
-from contextlib import suppress
+import os
+from contextlib import closing, suppress
+from functools import partial
 from pathlib import Path
 
+from scripts.operator_execution import AUTHORIZATION, ROOT, RemoteProbe, execute_job
+from scripts.operator_source import head_commit
 from scripts.portal_http import create_server
+from scripts.portal_jobs import JobController
 from scripts.portal_store import MAX_BUNDLE_BYTES, EvidenceStore, load_bundle
+
+from nci_si_mcp.config import configure_logging
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -24,6 +31,8 @@ def _parser() -> argparse.ArgumentParser:
         "serve", help="Serve only on 127.0.0.1; no login is required locally"
     )
     serve.add_argument("--port", type=int, default=8081)
+    serve.add_argument("--allow-remote", action="store_true")
+    serve.add_argument("--remote-target", help="Explicitly allowed exact HTTPS MCP endpoint")
     return parser
 
 
@@ -44,13 +53,33 @@ def main() -> None:
     elif args.command == "legacy":
         print(_legacy(store, args.report, args.kind))
     else:
-        _serve(store, args.port)
+        remote = _remote(parser, args)
+        configure_logging("INFO")
+        _serve(store, args.port, retention=args.retention, remote=remote)
 
 
-def _serve(store: EvidenceStore, port: int) -> None:
-    with create_server(store, port=port) as server:
+def _remote(parser: argparse.ArgumentParser, args: argparse.Namespace) -> RemoteProbe | None:
+    if args.allow_remote != bool(args.remote_target):
+        parser.error("Remote probes require both --allow-remote and --remote-target")
+    if not args.allow_remote:
+        return None
+    try:
+        return RemoteProbe(args.remote_target, os.environ.get(AUTHORIZATION))
+    except ValueError:
+        parser.error("Remote probes require an exact HTTPS endpoint and a valid header")
+
+
+def _serve(store: EvidenceStore, port: int, *, retention: int, remote: RemoteProbe | None) -> None:
+    controller = JobController(
+        store.path.with_suffix(".jobs"),
+        execute=partial(execute_job, store=store, remote=remote),
+        commit=partial(head_commit, ROOT),
+        remote=remote is not None,
+        retention=retention,
+    )
+    with closing(controller), create_server(store, port=port, jobs=controller) as server:
         print(f"Local validation: http://127.0.0.1:{server.server_port}/", flush=True)
-        # Local Ctrl+C closes the listening socket through the outer context manager.
+        # Local Ctrl+C stops owned workers and closes both listener and ownership lease.
         with suppress(KeyboardInterrupt):
             server.serve_forever()
 

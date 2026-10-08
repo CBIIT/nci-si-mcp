@@ -3,7 +3,7 @@
 import unittest
 
 from scripts.evidence_http import PHASE_LABELS
-from scripts.portal_views import comparison_page, history_page, run_page
+from scripts.portal_views import comparison_page, history_page, page, run_page
 
 from test_evidence_acceptance import project
 from test_evidence_benchmark import project as benchmark_projection
@@ -11,6 +11,29 @@ from test_evidence_benchmark import selected_projection
 
 
 class PortalViewsTest(unittest.TestCase):
+    def test_every_page_exposes_nci_policies_and_ordered_agency_links(self):
+        html = page("Run checks", "<p>Content</p>")
+        footer = html.split("<footer>", 1)[1]
+        for label in (
+            "Disclaimer Policy",
+            "Accessibility",
+            "FOIA",
+            "HHS Vulnerability Disclosure",
+            "Privacy and Security",
+            "Back to top",
+        ):
+            self.assertIn(label, footer)
+        agencies = [
+            "U.S. Department of Health and Human Services",
+            "National Institutes of Health",
+            "National Cancer Institute",
+            "USA.gov",
+        ]
+        positions = [footer.index(label) for label in agencies]
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn('class="usa-skipnav skip" href="#main"', html)
+        self.assertNotIn("An official website of the United States government", html)
+
     def record(self, evidence):
         return {
             "sequence": 1,
@@ -104,9 +127,19 @@ class PortalViewsTest(unittest.TestCase):
         html = run_page(self.record(benchmark_projection()))
         self.assertIn("Samples", html)
         self.assertIn("Errors", html)
-        self.assertIn("<td>2</td><td>1</td><td>10.0</td><td>30.0</td>", html)
+        self.assertIn("<td>2</td><td>1</td><td>10.00</td><td>30.00</td>", html)
         self.assertIn("Low sample counts", html)
         self.assertIn("unknown blocks comparison", html)
+
+    def test_latency_display_rounds_without_changing_original_measurements(self):
+        evidence = benchmark_projection()
+        summary = evidence["cases"][0]["warm"]["summary"]
+        summary["p50Ms"] = 16.230375040322542
+        summary["p95Ms"] = None
+        html = run_page(self.record(evidence))
+        self.assertIn("<td>16.23</td><td>unknown</td>", html)
+        self.assertNotIn("16.230375040322542", html)
+        self.assertEqual(summary["p50Ms"], 16.230375040322542)
 
     def test_wide_result_tables_have_named_keyboard_scroll_regions(self):
         html = run_page(self.record(benchmark_projection()))

@@ -145,6 +145,12 @@ source = [
     "scripts.benchmark_http",
     "scripts.http_measurement",
     "scripts.operator_worker",
+    "scripts.operator_source",
+    "scripts.operator_inventory",
+    "scripts.operator_files",
+    "scripts.operator_process",
+    "scripts.operator_evidence",
+    "scripts.operator_execution",
     "scripts.benchmark_http_cli",
     "scripts.docs_site",
     "scripts.docs_links",
@@ -153,6 +159,9 @@ source = [
     "scripts.portal_views",
     "scripts.portal_http",
     "scripts.portal_help",
+    "scripts.portal_jobs",
+    "scripts.portal_actions",
+    "scripts.portal_job_views",
 ]
 # CLI and transport tests launch Python children; include their executed code.
 patch = ["subprocess"]

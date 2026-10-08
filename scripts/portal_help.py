@@ -11,7 +11,8 @@ def help_page() -> str:
 “did the tested behavior match the requirements?” Benchmarks answer “what did these measured
 calls cost under these recorded conditions?” Neither replaces a deployment readiness review.</p>
 <nav class="help-nav" aria-label="Guide topics">
-<a href="#getting-started">Get started</a><a href="#run-status">Run status</a>
+<a href="#getting-started">Get started</a><a href="#run-controls">Run checks</a>
+<a href="#run-status">Run status</a>
 <a href="#acceptance">Acceptance results</a><a href="#benchmarks">Benchmarks</a>
 <a href="#provenance">Evidence provenance</a></nav>
 <section id="getting-started"><h2>Get started</h2>
@@ -24,9 +25,32 @@ cases by tool or story, or choose two benchmark runs to compare their recorded c
 <p>If only an older report is available, use <code>pdm run portal legacy PATH_TO_REPORT
 --kind acceptance</code> (or <code>--kind benchmark</code>). Its bytes are retained as
 <strong>unverified</strong>; missing original inventory is never reconstructed as a pass.</p>
-<p>The current dashboard is read-only. Import is a terminal operation; running, cancelling and
-changing server settings are not available here yet. Use the same <code>--store</code> option
-before the subcommand when importing into a custom store. Local use requires no account.</p>
+<p>Import is a terminal operation. Use the same <code>--store</code> option before the subcommand
+when importing into a custom store. Local use requires no account.</p>
+</section>
+<section id="run-controls"><h2>Run checks and recover interrupted work</h2>
+<p>Open <a href="/jobs">Run checks</a>, choose a fixed validation profile and select
+<strong>Start validation run</strong>. Fixture acceptance checks behavior against recorded or
+crafted upstream responses. Fixture benchmarks measure representative calls against a disposable
+server. Neither establishes live-service readiness.</p>
+<p>Each run snapshots committed source; uncommitted edits are excluded. The run details record
+that commit separately from any remote server identity, which may be unknown. These controls
+do not change the serving MCP's configuration or index.</p>
+<p>One worker runs at a time, with at most two queued runs. Acceptance workers have a limit of
+900 seconds; benchmark workers have a limit of 240 seconds, including setup. Request and output
+limits also apply. A remote read-only benchmark is offered only when the operator explicitly
+enables an exact HTTPS target at startup. You cannot enter a target, command or credential here.</p>
+<p>Choose <strong>Refresh status</strong> to see progress. <strong>Cancel this run</strong> removes
+queued work or stops the owned worker and its processes. Cancellation cannot prove that an
+in-flight remote request stopped. A deadline or output limit preserves available evidence and
+reports the stop reason; missing outcomes are unknown, never passes.</p>
+<p>Interrupted work is never retried automatically. After a restart, abandoned pending or
+running jobs are marked interrupted. Inspect their available results before starting a new run.
+Resubmitting the same retained form intent returns the original job instead of creating a
+duplicate. A fresh form creates a new attempt.</p>
+<p>Run checks orders jobs by submission sequence. Results orders imported bundles by import
+sequence. A job without a validated bundle remains visible in Run checks even when it has no
+result link. Retention bounds both histories; archive needed evidence before it is pruned.</p>
 </section>
 <section id="run-status"><h2>Read run status</h2>
 <p><strong>Latest attempt</strong> is the most recently imported record, including interrupted or
@@ -61,7 +85,8 @@ Look at the run mode before drawing a conclusion.</p>
 <p><strong>Samples</strong> counts recorded calls; <strong>Errors</strong> counts failed calls.
 Always read both with latency. <strong>p50</strong> is the middle percentile and
 <strong>p95</strong> the 95th percentile, in milliseconds, using the native report's nearest-rank
-calculation. Few samples cannot support a reliable tail-latency or capacity claim.</p>
+calculation. Displayed milliseconds are rounded to two decimals; original measurements are
+retained unchanged. Few samples cannot support a reliable tail-latency or capacity claim.</p>
 <p>Cold and warm refer to the report's measurement procedure. A new HTTP session alone does not
 establish that a remote server, model or cache was cold. Client-side measurements cannot reveal
 unknown server-side activity.</p>

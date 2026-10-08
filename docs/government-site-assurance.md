@@ -5,6 +5,38 @@ Section 508 conformance or authorization to deploy**. It covers public documenta
 local administration companion, including complete user journeys. The owner requested this
 review on 8 October 2026. Design credit: the Semantic Infrastructure (SI) team.
 
+## NCI design and branding
+
+The owner supplied [NCI Digital Standards](https://www.cancer.gov/digital-standards) on
+8 October 2026. They apply to this project's NCI website design, including the documentation
+site and administration application. The earlier custom palette is superseded by
+[NCIDS color tokens](https://designsystem.cancer.gov/foundations/color).
+
+Use the [NCIDS components](https://designsystem.cancer.gov/components) and
+[adoption guidance](https://designsystem.cancer.gov/get-started/maturity-model) for the header,
+footer, skip navigation, typography and controls. Level 1 requires the header/footer/banner
+appearance and correct skip navigation; higher levels progressively adopt typography, colors
+and component code. We target consistent NCIDS presentation, but claim no assessed maturity
+level. The owner will organize OCPL review during production rollout and relay any change
+requests. That future review is not an implementation or Phase 7 release gate.
+
+| Requirement | Implementation and verification in Phase 7 |
+|---|---|
+| Palette | NCIDS cerulean, neutral, teal and state tokens; measure actual foreground/background pairs after changes |
+| Typography | NCIDS Poppins headings, Open Sans body and Roboto Mono code; locally supplied assets with provenance, no runtime font tracking |
+| Header/navigation | Consistent identity, home link, current section, responsive navigation, functional documentation search and skip link |
+| Footer policies | Disclaimer Policy, Accessibility, FOIA, HHS Vulnerability Disclosure, and NCIDS Privacy and Security link |
+| Agency links | HHS, NIH, NCI, USA.gov, in that order and with agency names spelled out |
+| Footer utilities | Relevant contact route and Back to top; no placeholder subscriptions or unrelated cancer-information controls |
+| Government banner | Official domain/HTTPS statements only on an approved deployment where they are true; local previews stay visibly prototypes |
+| Identity assets | Use published NCI identity assets; do not invent a blended logo. The owner handles production review separately |
+
+[NCIDS header](https://designsystem.cancer.gov/components/header),
+[NCIDS footer](https://designsystem.cancer.gov/components/footer),
+[NCIDS typography](https://designsystem.cancer.gov/foundations/typography).
+Component integration and repository-level public-site verification are release gates in #196;
+UAT/PROD exposure remains disabled under #197.
+
 ## Accessibility baseline
 
 The Revised Section 508 Standards incorporate WCAG 2.0 Level A and AA; our design target remains
@@ -27,7 +59,7 @@ Current evidence is limited to the issue tests and browser observations recorded
 documentation PR. The full matrix is pending #196. Unperformed checks must say **not verified**,
 with a reproducible procedure and responsible role. Fix confirmed defects in the active milestone.
 
-### Preliminary dashboard checks (8 October 2026)
+### Historical preliminary dashboard checks (8 October 2026, before NCIDS alignment)
 
 The #193 working implementation was checked using synthetic test evidence, not live acceptance
 results. Browser accessibility-tree inspection found named form controls and captioned tables;
