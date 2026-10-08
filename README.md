@@ -68,7 +68,9 @@ policy checks. The default remains trusted-local; production
 identity-provider integration is not enabled.
 
 The [assisted-task evaluation](docs/assisted-evaluation.md) measures deterministic
-fixture workflows. No internal LLM or server-side `ask` capability is enabled.
+fixture workflows. Internal `ask` orchestration and wxMCP integration are
+[deferred to Backlog with research criteria](docs/deferred-capabilities.md); neither is enabled.
+The [Phase 6 assurance matrix](docs/phase-6-assurance.md) records compatibility and limitations.
 
 The [validation and benchmark evidence](docs/benchmark.md) separates fixture acceptance,
 live protocol coverage and representative live tool measurements. caDSR credentialed content
