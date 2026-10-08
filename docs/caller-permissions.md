@@ -9,7 +9,8 @@ supplying an asynchronous `authority_resolver` to `create_mcp` or `create_http_a
 Configuring SDK authentication also requires caller policy: missing policy fails closed.
 The [governed HTTP entry point](governed-http.md) loads a complete operator-installed integration
 in required mode and binds policy identity to the SDK-verified token on each request.
-The stock secured entry point and production identity integration are separate work in #178.
+The stock secured entry point is implemented by #178; production identity integration
+remains disabled and unvalidated pending separate approval.
 
 The resolver runs for every request and returns an immutable `Authority`: verified
 `Principal` (issuer, subject and applicable tenant/client), a set of permitted tool names,

@@ -116,7 +116,7 @@ credential delegation, weaker conformance or more than its approved budget.
 
 ## Acceptance mapping and evidence
 
-AUTH-1–AUTH-3 below are now executable as X-25–X-27; the other identifiers remain reserved
+AUTH-1–AUTH-3 below are now executable as X-25–X-27, and HTTP-1 as X-28; the other identifiers remain reserved
 **in this decision record only**. Their owning issues activate requirements and assertions together; no active requirement is weakened or
 marked failing merely to reserve a future feature. Each new behavioral case gets a domain story
 and remains covered by the generated catalogue's completeness check.

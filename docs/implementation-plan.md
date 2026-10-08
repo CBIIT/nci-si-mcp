@@ -117,7 +117,7 @@ Implemented in the current flat package: `service.py` is retired. `registry.py` 
 
 ### 3.1 Error model (`platform/errors.py`)
 
-Implemented with the ten-value `ErrorCode` literal in `errors.py` and the `_ERROR_CODES` table at the shared boundary in `invocation.py`, using the codes of the specification's error record (`spec/records.yaml`): each failure carries its `code`, a message, the call's correlation identifier, and the `details` the caller needs for its next step. The prototype's codes map onto them as follows:
+Implemented with the closed `ErrorCode` literal in `errors.py` and the `_ERROR_CODES` table at the shared boundary in `invocation.py`, using the codes of the specification's error record (`spec/records.yaml`): each failure carries its `code`, a message, the call's correlation identifier, and the `details` the caller needs for its next step. The prototype's codes map onto them as follows:
 
 | Code | Replaces | `details` carry |
 |---|---|---|

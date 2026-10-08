@@ -57,13 +57,26 @@ def _complete_content(result: Any) -> bool:
     )
 
 
+def _protocol_consistent(results: list[Any], flags: Any) -> bool:
+    if not isinstance(flags, list) or len(flags) != len(results):
+        return False
+    return all(
+        isinstance(result, dict) and flag is ("error" in result)
+        for result, flag in zip(results, flags, strict=True)
+    )
+
+
 def _checks(task: dict[str, Any], record: dict[str, Any]) -> dict[str, bool]:
     checks = {
         path: _equal(_at(record.get("results", []), path), expected)
         for path, expected in task["expect"].items()
     }
     checks["complete_evidence"] = len(record.get("results", [])) == len(task["calls"])
-    checks["recorded_upstream"] = record.get("unmatched_requests", 0) == 0
+    unmatched = record.get("unmatched_requests")
+    checks["recorded_upstream"] = type(unmatched) is int and unmatched == 0
+    checks["protocol_consistent"] = _protocol_consistent(
+        record.get("results", []), record.get("protocol_errors")
+    )
     if task["outcome"] == "content":
         checks["complete_content"] = all(
             _complete_content(row) for row in record.get("results", [])

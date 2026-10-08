@@ -22,14 +22,18 @@
         "0/provenance/release/identifier": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 70.45316696166992,
+      "elapsed_ms": 27.95662498101592,
       "requests": 1,
       "bytes": 455,
-      "result_sha256": "530ea967a37b880d4f935741ef7b20d87612726c8e4e575055206d377709a50b",
-      "unmatched_requests": 0
+      "result_sha256": "753793a240c24c8d1d323bf6eed15603a63fdf75fee2d85c7c5d6587f47ffb9b",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "concept",
@@ -46,14 +50,18 @@
         "0/provenance/release/identifier": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 3.8242919836193323,
+      "elapsed_ms": 1.4986670576035976,
       "requests": 1,
       "bytes": 455,
-      "result_sha256": "f3e3411761573483540e4e2c10ef0da3357b08fbb9c0e619357f9e0c5ce336b1",
-      "unmatched_requests": 0
+      "result_sha256": "c2a1204129f2442df3ca70cf3c1c72f1f8ffb0bb20d5fd55e911c7636895bb9a",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "concept",
@@ -70,14 +78,18 @@
         "0/provenance/release/identifier": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 2.801791997626424,
+      "elapsed_ms": 0.9238750208169222,
       "requests": 1,
       "bytes": 455,
-      "result_sha256": "1fc26f9ec413ef81f6502e68678e9ad6cd32209b24aa082302fa05ffe08aa913",
-      "unmatched_requests": 0
+      "result_sha256": "203a45124f6f5a0e38882cba17785f304cc8f4b8fa371f79dae69aeb0cad7f71",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "concept",
@@ -94,14 +106,18 @@
         "0/provenance/release/identifier": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 24.16941709816456,
+      "elapsed_ms": 10.719459038227797,
       "requests": 1,
       "bytes": 455,
-      "result_sha256": "bbe7e75cf5b4926d38f3cfd3d08ed2bc101a4381d77521ac49d2402b0e284907",
-      "unmatched_requests": 0
+      "result_sha256": "e76ff67e18c54b50d9ab76b09a2e14acad484619ad8912a2bf1ab81d67d00a3c",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "concept",
@@ -118,14 +134,18 @@
         "0/provenance/release/identifier": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 2.815375104546547,
+      "elapsed_ms": 1.7430000007152557,
       "requests": 1,
       "bytes": 455,
-      "result_sha256": "c6061c3a37f3bb7fd64b25ee0c7a053bd4f200b1bcb98acba0d0a2ab2897d846",
-      "unmatched_requests": 0
+      "result_sha256": "fb868a15bc37c7db937bc7890a0198cff8e5cd415c520906611e40fb433859fa",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "concept",
@@ -142,14 +162,18 @@
         "0/provenance/release/identifier": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 2.445708028972149,
+      "elapsed_ms": 1.2992911506444216,
       "requests": 1,
       "bytes": 455,
-      "result_sha256": "765e4f13401e8cbf31548658d00ee36db96df7381aa07250df047a4b04386740",
-      "unmatched_requests": 0
+      "result_sha256": "5aff5c0299315f85871fef526254b96cfac9e42b8ae7bae767d29bd6794e8c55",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "grounding",
@@ -167,14 +191,18 @@
         "0/truncation/occurred": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 62.07033293321729,
+      "elapsed_ms": 27.350708143785596,
       "requests": 5,
       "bytes": 57172,
-      "result_sha256": "63fe8ba413041d058776665732c6a0462474ebe52ef5c6c29b66f41c6e74311d",
-      "unmatched_requests": 0
+      "result_sha256": "959bba25ee5d649c89238f838b70b9b2665ffe0d52d10bffe84e5f2c904fef30",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "grounding",
@@ -192,14 +220,18 @@
         "0/truncation/occurred": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 27.082290966063738,
+      "elapsed_ms": 11.478583794087172,
       "requests": 5,
       "bytes": 57172,
-      "result_sha256": "eaa6e241779ea794f0250e65a8f191f6f2e80e48c733c992784ce90338df9273",
-      "unmatched_requests": 0
+      "result_sha256": "ca46c73db837f1502fcdd25365748fc082da8330e5b0876c7daa1076b5789f24",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "grounding",
@@ -217,14 +249,18 @@
         "0/truncation/occurred": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 26.053874986246228,
+      "elapsed_ms": 11.525916866958141,
       "requests": 5,
       "bytes": 57172,
-      "result_sha256": "e56c608ec437f20065081161ac550478426d1d1935e7420db1efde57311dd8df",
-      "unmatched_requests": 0
+      "result_sha256": "435061efdad03d6ef728d404b6eef2a795ce30fdb371a64e158da78756221ba9",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "grounding",
@@ -242,14 +278,18 @@
         "0/truncation/occurred": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 56.91337515600026,
+      "elapsed_ms": 25.15358291566372,
       "requests": 5,
       "bytes": 57172,
-      "result_sha256": "255db4d86351b4254211cdedc9a8a42d5feeb1ff454cc34e504fbd688da57908",
-      "unmatched_requests": 0
+      "result_sha256": "4f95215e34232eebcf8592f89bc4b33b74a33e022f80c4a802b667caa0171b1f",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "grounding",
@@ -267,14 +307,18 @@
         "0/truncation/occurred": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 24.594292044639587,
+      "elapsed_ms": 12.65525002963841,
       "requests": 5,
       "bytes": 57172,
-      "result_sha256": "522b35766b8c5cf11869129358701a22a782124b44d65287dcf1f41c6a43506d",
-      "unmatched_requests": 0
+      "result_sha256": "3f843d65a72f91d0c5e8eaf00cf601abc768017bfe8e0bde5cbda5d580e89533",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "grounding",
@@ -292,14 +336,18 @@
         "0/truncation/occurred": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 24.477791972458363,
+      "elapsed_ms": 11.983958072960377,
       "requests": 5,
       "bytes": 57172,
-      "result_sha256": "ca8674a4a501705ed874c25c9cfb449d53bdd63582c1305c8582f941566e4dfa",
-      "unmatched_requests": 0
+      "result_sha256": "72a10a5eeafb4a1cab3e094f39e1f7f8b670dfec7afbdf35ce78576c9cb61952",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "data-element",
@@ -316,14 +364,18 @@
         "0/version": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 35.04012478515506,
+      "elapsed_ms": 16.514375107362866,
       "requests": 1,
       "bytes": 575,
-      "result_sha256": "7688c67601bd96af8749edc9723c2541821ac4c764e6f1e69c1895f42f68ddc7",
-      "unmatched_requests": 0
+      "result_sha256": "d0fcc2776459006e61c24fcce7f47d39d618fac82b6ffd869cf58b2606f1c92e",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "data-element",
@@ -340,14 +392,18 @@
         "0/version": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 4.022042034193873,
+      "elapsed_ms": 1.986500108614564,
       "requests": 1,
       "bytes": 575,
-      "result_sha256": "7409eaa47edf04d1f91dfa1ef2239d0dd1bfb88149af4cea7025f0e0af28f86b",
-      "unmatched_requests": 0
+      "result_sha256": "e26515329b3c72bbda5d1ec33daf41a5415ab165cdc58fb80dd1f78a0dfd5c6a",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "data-element",
@@ -364,14 +420,18 @@
         "0/version": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 3.308249870315194,
+      "elapsed_ms": 1.4980831183493137,
       "requests": 1,
       "bytes": 575,
-      "result_sha256": "5e4328111c9f21359311b72d6b73ef7161179fa101a0aa7d242ba51450bcca49",
-      "unmatched_requests": 0
+      "result_sha256": "1c05e9268bd6cacae8882dad58a886b47115c0e0909900c090cf1ec2467185e3",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "data-element",
@@ -388,14 +448,18 @@
         "0/version": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 37.60974993929267,
+      "elapsed_ms": 18.34241603501141,
       "requests": 1,
       "bytes": 575,
-      "result_sha256": "90810f8bab980d998c5a92097c7cc3de4ada2a2c6bbfa13115ea2cd6c69f374b",
-      "unmatched_requests": 0
+      "result_sha256": "7e875d4101db4188842c07a506602ec4bccc57325da00cb78284099548bad7f0",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "data-element",
@@ -412,14 +476,18 @@
         "0/version": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 3.726332914084196,
+      "elapsed_ms": 1.9350419752299786,
       "requests": 1,
       "bytes": 575,
-      "result_sha256": "e73f57c031ca1d67318625976970df003fa59f8dec08b8ae58d35b3da0ad5982",
-      "unmatched_requests": 0
+      "result_sha256": "de01cf694f67961cd0abd2b5e5946f05500844e0ed576a833ada953aaef1b408",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "data-element",
@@ -436,14 +504,18 @@
         "0/version": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 3.287459025159478,
+      "elapsed_ms": 1.4518750831484795,
       "requests": 1,
       "bytes": 575,
-      "result_sha256": "ec7f9e75087d8029a4bde3c2e9fb4b215afec4b775bc08b53e71c5bcefee66cd",
-      "unmatched_requests": 0
+      "result_sha256": "76df60d35ef67ef4a15ca84b8c93aa11684c78de9e351a15128a112f24095ecc",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "form",
@@ -460,14 +532,18 @@
         "0/version": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 32.14933397248387,
+      "elapsed_ms": 14.690165873616934,
       "requests": 1,
       "bytes": 112516,
-      "result_sha256": "6094dbdf662ac5a7ff031b216448266dad128939266e879ae43d721d52e6b78c",
-      "unmatched_requests": 0
+      "result_sha256": "49b15502fc89dc63502952baf26981658f2aadb3b0d8bb2e523d55d8fe042068",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "form",
@@ -484,14 +560,18 @@
         "0/version": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 10.992208030074835,
+      "elapsed_ms": 5.123291164636612,
       "requests": 1,
       "bytes": 112516,
-      "result_sha256": "2fce0dd22b488307f531327decd393be4b37def6d77f6438c01c30faccab9808",
-      "unmatched_requests": 0
+      "result_sha256": "1061d0f7356f313b4642b1b9aa45b1b027c1555ae51923114fb4b8a4fac7dd9b",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "form",
@@ -508,14 +588,18 @@
         "0/version": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 10.138500016182661,
+      "elapsed_ms": 4.978375043720007,
       "requests": 1,
       "bytes": 112516,
-      "result_sha256": "942f962a26cbdaf1b8db6714407be1e61e82da143fedcfba897fc69ac59ae915",
-      "unmatched_requests": 0
+      "result_sha256": "ace3cbc614e95a49cabedfb0ae7e1fc3a7f7c1fe0f4e7e4cb39893b746d6d070",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "form",
@@ -532,14 +616,18 @@
         "0/version": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 28.05266692303121,
+      "elapsed_ms": 14.537709066644311,
       "requests": 1,
       "bytes": 112516,
-      "result_sha256": "f8b0226cd065da535ba5dff996dab927112adc19566c347817310babf5798318",
-      "unmatched_requests": 0
+      "result_sha256": "2d381ecf901f423dd31e73f2ab7b3fddf10e18c9627cb7424ec68c3beaef8db0",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "form",
@@ -556,14 +644,18 @@
         "0/version": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 9.633040986955166,
+      "elapsed_ms": 5.183500004932284,
       "requests": 1,
       "bytes": 112516,
-      "result_sha256": "ec46a1fd3702f06147f6d15104021887c0cb8e10de1f745b290356ba423b91f5",
-      "unmatched_requests": 0
+      "result_sha256": "c75fe094531ec272cb4a9c394e0857bff1da9b9acffc32cfe5161ae4b8480500",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "form",
@@ -580,14 +672,18 @@
         "0/version": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 9.37683298252523,
+      "elapsed_ms": 4.7122088726609945,
       "requests": 1,
       "bytes": 112516,
-      "result_sha256": "888acd682e1ae587d39248575f5c91513ab3b321603090907010501372cfe03c",
-      "unmatched_requests": 0
+      "result_sha256": "c9b461782c6c346f8f2d9f9c937c49a0d88c28975e45780e8737f248f1cf8fda",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "dictionary",
@@ -604,14 +700,18 @@
         "0/columns/0/name": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 48.69883297942579,
+      "elapsed_ms": 22.684207884594798,
       "requests": 3,
       "bytes": 7531,
-      "result_sha256": "7e93d55c5f87425662ff126c85ce04c8144e475719e1cf8d40b95588a7e26404",
-      "unmatched_requests": 0
+      "result_sha256": "6535b195d171ac5422c292e873b3ff1788d9f5b767b49292f8db6bb58ad68286",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "dictionary",
@@ -628,14 +728,18 @@
         "0/columns/0/name": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 7.805083179846406,
+      "elapsed_ms": 4.10329201258719,
       "requests": 3,
       "bytes": 7531,
-      "result_sha256": "96eff7e41fa81ebd8644c668835e99981ece8a0230b97daf44b3a614deb5a432",
-      "unmatched_requests": 0
+      "result_sha256": "d7e731b19eabfc270740f641573da2a3cbd8b3b90c4b8583dbd7ee5966ac750f",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "dictionary",
@@ -652,14 +756,18 @@
         "0/columns/0/name": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 7.283749990165234,
+      "elapsed_ms": 3.82033409550786,
       "requests": 3,
       "bytes": 7531,
-      "result_sha256": "dfecd38d3829b6e53edd11618cfa1c3901606f39123a7a0d4b24e2823469a78a",
-      "unmatched_requests": 0
+      "result_sha256": "90877fac1aac783c9197b04c0ebe5bc7c9ffb360bf2fc13c5a838f196a744bf1",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "dictionary",
@@ -676,14 +784,18 @@
         "0/columns/0/name": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 42.65187494456768,
+      "elapsed_ms": 22.50766707584262,
       "requests": 3,
       "bytes": 7531,
-      "result_sha256": "cdd961c3f279a5aa8c8440da8cd92ac1b7faa92141c9c9d7640bfd85e3e31b0c",
-      "unmatched_requests": 0
+      "result_sha256": "8fda02b57b64380ac33467300170cba4dd777296bc025a1ad4fad7d7a92842cc",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "dictionary",
@@ -700,14 +812,18 @@
         "0/columns/0/name": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 7.207124959677458,
+      "elapsed_ms": 3.8293329998850822,
       "requests": 3,
       "bytes": 7531,
-      "result_sha256": "eaf364453ef19bc4dcd247e3e9a74f76556b2144eb0dcc40a985b7a7fd6f75f8",
-      "unmatched_requests": 0
+      "result_sha256": "350e46534c8edf41e615fdb16dd22e2a04a93b6be7489316f517344994e2809b",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "dictionary",
@@ -724,14 +840,18 @@
         "0/columns/0/name": true,
         "complete_evidence": true,
         "recorded_upstream": true,
+        "protocol_consistent": true,
         "complete_content": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 7.008000044152141,
+      "elapsed_ms": 3.3649590332061052,
       "requests": 3,
       "bytes": 7531,
-      "result_sha256": "7059a443d368592c55fb7b582f2eabd944e7a34eab50524b83e3d0e35d476a04",
-      "unmatched_requests": 0
+      "result_sha256": "baadb5b455823dfc52db93833b8778819c65eebf1fc46c131fdb8e110a861c7a",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "unavailable-registry-operation",
@@ -746,14 +866,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 1.176249934360385,
+      "elapsed_ms": 0.6932499818503857,
       "requests": 0,
       "bytes": 317,
-      "result_sha256": "e9788461b8e8e231c8eeaefc5401d2a79af568ac4a73870d6c1774daa99c7d6c",
-      "unmatched_requests": 0
+      "result_sha256": "825133cada01561d9369d65d86fe58fcb174017dcd207f0fe2d39565707925d4",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "unavailable-registry-operation",
@@ -768,14 +892,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 0.7844578940421343,
+      "elapsed_ms": 0.5939998663961887,
       "requests": 0,
       "bytes": 317,
-      "result_sha256": "6b8cb0165576cb9662b6190b0bb91523df25277c1857f3f0582ffcdd53267cf8",
-      "unmatched_requests": 0
+      "result_sha256": "571a185e5529c46c432fc97cad4cdcd16c7a7bfda218624e53ad5eaf2ac26d66",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "unavailable-registry-operation",
@@ -790,14 +918,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 0.6697499193251133,
+      "elapsed_ms": 0.5764579400420189,
       "requests": 0,
       "bytes": 317,
-      "result_sha256": "fccee8c2649b58d0cef920f3093a6ce342cdeec45eed6f524d62626af619323c",
-      "unmatched_requests": 0
+      "result_sha256": "55d70716739e93dc78595fe6efce0504add95df3818efb7ddf925382f9716822",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "unavailable-registry-operation",
@@ -812,14 +944,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 1.680999994277954,
+      "elapsed_ms": 0.7474580779671669,
       "requests": 0,
       "bytes": 317,
-      "result_sha256": "dda02333c720a10554b4c0494f0d1e99650040a6d7239dd22fbff6f1137d28a4",
-      "unmatched_requests": 0
+      "result_sha256": "e67105787c7e232946530d944d66e562f23ae42fb4570c53d583dcd0d7925f5b",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "unavailable-registry-operation",
@@ -834,14 +970,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 1.1372498702257872,
+      "elapsed_ms": 0.6343750283122063,
       "requests": 0,
       "bytes": 317,
-      "result_sha256": "f5c8eacff1d6c74a524f62acaa00fcef7328941126a3956d7aa97c3f136712e7",
-      "unmatched_requests": 0
+      "result_sha256": "a1c18861171edcd29887db63fd53baa87926fe1b92b76a177fe0e2ed4110209d",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "unavailable-registry-operation",
@@ -856,14 +996,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 1.5557920560240746,
+      "elapsed_ms": 0.5922499112784863,
       "requests": 0,
       "bytes": 317,
-      "result_sha256": "161cbf4e5dc0d0312104d8e6d11acc46a62073a9a311da3905d1afa0cd9b77c9",
-      "unmatched_requests": 0
+      "result_sha256": "5a7bb1717ed238fcdaae9f68f64ca47bcc2a527991a4962427fab5650770dbf5",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "graph-release-disagreement",
@@ -878,14 +1022,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 5.520292092114687,
+      "elapsed_ms": 2.610707888379693,
       "requests": 3,
       "bytes": 310,
-      "result_sha256": "d6eab3a2186f1588b1bc4ab3b10ad18f3567b6a0d3a63ab7d22eeed8ceaddf89",
-      "unmatched_requests": 0
+      "result_sha256": "a3ea1d91db11e6342c4abefdd7a3b4784387bea9b9e3ac5b0a832503a1c2d967",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "graph-release-disagreement",
@@ -900,14 +1048,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 5.356166046112776,
+      "elapsed_ms": 2.205916913226247,
       "requests": 3,
       "bytes": 310,
-      "result_sha256": "1578ab2c80d1a88c284f0c60b7c575378fd92ccc8219b782f4d7527e47207cce",
-      "unmatched_requests": 0
+      "result_sha256": "ee79f315ee197fce7c950b0408268e87538cd41dd742ce35f36d50149e7775c7",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "graph-release-disagreement",
@@ -922,14 +1074,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 4.788166144862771,
+      "elapsed_ms": 1.8622919451445341,
       "requests": 3,
       "bytes": 310,
-      "result_sha256": "e5de3856ab7ff3a07dd9e9f89138febdfbcc9b097a0e2e16db4856ef54bef826",
-      "unmatched_requests": 0
+      "result_sha256": "dc249c6e394aa79096b5afe672d6b685107e2aef54c32e156849024936279761",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "graph-release-disagreement",
@@ -944,14 +1100,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 7.162708090618253,
+      "elapsed_ms": 2.702082972973585,
       "requests": 3,
       "bytes": 310,
-      "result_sha256": "a3d691534c991682806a65555164ebf70884520a5558f7a5db32116cdc8836d5",
-      "unmatched_requests": 0
+      "result_sha256": "f96e7ac33de3362419f887cd0df2ec4b92087185236641b3956e57e1822989ef",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "graph-release-disagreement",
@@ -966,14 +1126,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 5.046250065788627,
+      "elapsed_ms": 2.1521251183003187,
       "requests": 3,
       "bytes": 310,
-      "result_sha256": "a5baabb14322d3697a73fc4f5b2ea3ba1829e7a9af06c379f863e6e12d1e22fc",
-      "unmatched_requests": 0
+      "result_sha256": "554ad6b615c76214fe6ac6447ae7bd63f196f01f84bdb6b06fc7e311a5d6cb6c",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "graph-release-disagreement",
@@ -988,14 +1152,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 5.644624819979072,
+      "elapsed_ms": 1.863584155216813,
       "requests": 3,
       "bytes": 310,
-      "result_sha256": "8a5ec52350137fb6ab0dfa5fe60e0a3336d8772b82523cdd5428fe283d77917f",
-      "unmatched_requests": 0
+      "result_sha256": "77b2eb8f13ebec8c4cf4e372cb144d5f1d37941b952dec17018a761c9a5ccef5",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "unknown-value",
@@ -1010,14 +1178,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 8.25700000859797,
+      "elapsed_ms": 2.6306251529604197,
       "requests": 3,
       "bytes": 182,
-      "result_sha256": "ce908887b289dd7dde5cd897cbc1d6bab3dd27295956904f5f0d88a6d3ee9e11",
-      "unmatched_requests": 0
+      "result_sha256": "2aa85ef12f854cb771fec9e0b8d1b57b98b4a069f9feef1a6cd7cbddc2bbd19c",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "unknown-value",
@@ -1032,14 +1204,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 6.623166846111417,
+      "elapsed_ms": 1.9063330255448818,
       "requests": 3,
       "bytes": 182,
-      "result_sha256": "48e4618789a67c7894c768e90935a5432a69f910811283d0cf7be7ed8ce6ce22",
-      "unmatched_requests": 0
+      "result_sha256": "e18f36f1e087d1e3bb9c44d3ab90ff60eb7cf3fde6358ed3c2f1b1b15b88f9f5",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "unknown-value",
@@ -1054,14 +1230,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 5.208499962463975,
+      "elapsed_ms": 2.034249948337674,
       "requests": 3,
       "bytes": 182,
-      "result_sha256": "ab0fd90b7d54fb55745c35075777152b6fe64990be5f677fd6f0d020038c7b31",
-      "unmatched_requests": 0
+      "result_sha256": "2be3bf940c7da7d77ca0f11391623c8626655bedb28ff91b84328454b116bca9",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "unknown-value",
@@ -1076,14 +1256,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 6.173749919980764,
+      "elapsed_ms": 2.4605831131339073,
       "requests": 3,
       "bytes": 182,
-      "result_sha256": "71a1aed26a56d5f57a7b81d34f880555e718da081c0e4b1156c8605561daa661",
-      "unmatched_requests": 0
+      "result_sha256": "6381a66598d3a3631b20624b81f640aacd411a847bfc284776be977c3426b9a9",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "unknown-value",
@@ -1098,14 +1282,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 5.605125101283193,
+      "elapsed_ms": 2.4004580918699503,
       "requests": 3,
       "bytes": 182,
-      "result_sha256": "3d9ff6926160765837080ef8bb608eec9fd1c8b4f931f7814c7871e4c4b823b2",
-      "unmatched_requests": 0
+      "result_sha256": "4ede69de1ca20275fecc53cd12756418ef47b871a58bc4aaf98df2749e25ad9c",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "unknown-value",
@@ -1120,14 +1308,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 5.60404104180634,
+      "elapsed_ms": 2.1339580416679382,
       "requests": 3,
       "bytes": 182,
-      "result_sha256": "6d73426b6d426a516408d125cbd769246f909febaf75b280de4fc97864a9c7d1",
-      "unmatched_requests": 0
+      "result_sha256": "e9e9e6fdff8f387c271c8e517cf6355b5f76009905d6e1d26c11b1fb271a7e60",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "ambiguous-selection",
@@ -1142,14 +1334,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 4.5022498816251755,
+      "elapsed_ms": 1.4948330353945494,
       "requests": 1,
       "bytes": 650,
-      "result_sha256": "0be93cdd8c59a6b7c979c39b5a5df120709f6e18bc297d8f09bdd130078650c1",
-      "unmatched_requests": 0
+      "result_sha256": "440677e88646dcaf59f268bdcf28da1107a650e8a0c74ec5dc073fad46d38800",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "ambiguous-selection",
@@ -1164,14 +1360,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 3.1637081410735846,
+      "elapsed_ms": 1.1824588291347027,
       "requests": 1,
       "bytes": 650,
-      "result_sha256": "d97c0c0d582bfc383ee6e3ca94694c9ed2e3a1efe5669b46428b24043b84f7d9",
-      "unmatched_requests": 0
+      "result_sha256": "40f27e4d57aa6b1db150e2abab6cabda7be42c0a1291d1e7ae780036a2073057",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "ambiguous-selection",
@@ -1186,14 +1386,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 2.3586249444633722,
+      "elapsed_ms": 0.9878329001367092,
       "requests": 1,
       "bytes": 650,
-      "result_sha256": "38c412eea36742b44e4d6db6ce0c34978fbcfec937a17a6e9f0d04fcdbfac0d0",
-      "unmatched_requests": 0
+      "result_sha256": "0db9284b3e7f26b390d7e77126cd025cf09da6d2ec72489c703160f739597314",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "ambiguous-selection",
@@ -1208,14 +1412,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 3.050833009183407,
+      "elapsed_ms": 1.5929159708321095,
       "requests": 1,
       "bytes": 650,
-      "result_sha256": "cb170ea32cf827a256fcc03480da92ba16a1658681ef645a5201dc0bb63dcfdd",
-      "unmatched_requests": 0
+      "result_sha256": "ca0f6daa4040e7cfdef45fc8fc69b48880cb8632f6815239897fed4f4159b01c",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "ambiguous-selection",
@@ -1230,14 +1438,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 2.7497499249875546,
+      "elapsed_ms": 1.124667003750801,
       "requests": 1,
       "bytes": 650,
-      "result_sha256": "2020a4a79f93c2c191eb6c8c030c8c294740ac16f993c7bafcc9af1da96fe0ad",
-      "unmatched_requests": 0
+      "result_sha256": "2a162c53291f6eb004a67d90d2b3a45649244952356eb89d88a1a5562eec2885",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "ambiguous-selection",
@@ -1252,14 +1464,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 3.783999942243099,
+      "elapsed_ms": 0.9737079963088036,
       "requests": 1,
       "bytes": 650,
-      "result_sha256": "6f7e06bc5e534c28c090c793d882b84e5c84716f70eafb60bef5640c9e25a556",
-      "unmatched_requests": 0
+      "result_sha256": "c7e6cbef0cc64080cd469ef2efd49fa3a23f50c0cd507e1213d2cf2f0ca6a826",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "denied-workflow-child",
@@ -1274,14 +1490,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 2.567082876339555,
+      "elapsed_ms": 0.736915972083807,
       "requests": 0,
       "bytes": 186,
-      "result_sha256": "82dbe57633c80cd6f77821d75864f00bbe767c09e619cc8bc36d47b15945fc61",
-      "unmatched_requests": 0
+      "result_sha256": "b91b4b35fe91ed2c055c48e8cd240d85dd4b70f88065097fff0d7a607ecf1869",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "denied-workflow-child",
@@ -1296,14 +1516,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 1.342790899798274,
+      "elapsed_ms": 0.46012504026293755,
       "requests": 0,
       "bytes": 186,
-      "result_sha256": "581383367ec9d5657802d02a1b97ad47a8c6594d73f020486a40563d5a123780",
-      "unmatched_requests": 0
+      "result_sha256": "52e2a01ffcf2a7575a0a9f95741fbbd93ab5afdbe2a83f72c6d3d5e88fb1da34",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "denied-workflow-child",
@@ -1318,14 +1542,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 1.5074999537318945,
+      "elapsed_ms": 0.40262495167553425,
       "requests": 0,
       "bytes": 186,
-      "result_sha256": "28021b1afac43fb459594aa25530f3de0ffc215cc513cbce9f05ade34296ccc6",
-      "unmatched_requests": 0
+      "result_sha256": "38bc3f1a2b7f1e248549c034bf84a2972b1d8c83d9981957006e4d8431abdd2b",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "denied-workflow-child",
@@ -1340,14 +1568,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 1.8257501069456339,
+      "elapsed_ms": 0.7802920881658792,
       "requests": 0,
       "bytes": 186,
-      "result_sha256": "9cf49ca2194f5a2fb95f66f7ff76e471fbfd47c5e09cb23b3a5b1d9bebcc26bc",
-      "unmatched_requests": 0
+      "result_sha256": "e1f9c4183b9393047b61be200a3e60c4189cce2818b1a7cd43128d7aa94e23cb",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "denied-workflow-child",
@@ -1362,14 +1594,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 1.5257499180734158,
+      "elapsed_ms": 0.6844161543995142,
       "requests": 0,
       "bytes": 186,
-      "result_sha256": "5cbac9acf9468d3e6b0581d00538317fb0096e37b0f93b2306db8b7b93cbd55c",
-      "unmatched_requests": 0
+      "result_sha256": "4584da6f42cee798af812ed8c44f7b47a8ffb89f0fe8f9e3f6a6427f2089fe66",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "denied-workflow-child",
@@ -1384,14 +1620,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 1.8846250604838133,
+      "elapsed_ms": 0.6197921466082335,
       "requests": 0,
       "bytes": 186,
-      "result_sha256": "d1a10159015bc31632e6f43e847d927719252d166a0c172b9908f6cf35ae0d9a",
-      "unmatched_requests": 0
+      "result_sha256": "20fdb38a6bf6ab60bd2fdffe7e31f4540549603dc9e42987509e9f006e51a9cd",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "bounded-neighborhood",
@@ -1407,14 +1647,18 @@
         "0/truncation/occurred": true,
         "0/truncation/bound": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 59.45666693150997,
+      "elapsed_ms": 19.334624987095594,
       "requests": 4,
       "bytes": 2343,
-      "result_sha256": "abade56ffdf55199f6a3b2d273499324de051e1507485c0e8c19ad5559c9ba6b",
-      "unmatched_requests": 0
+      "result_sha256": "6fdd6ea5ad88943cf66a2668984a994b347712f22da30d3d46934a74512284bd",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "bounded-neighborhood",
@@ -1430,14 +1674,18 @@
         "0/truncation/occurred": true,
         "0/truncation/bound": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 24.12887499667704,
+      "elapsed_ms": 4.906584043055773,
       "requests": 4,
       "bytes": 2343,
-      "result_sha256": "60a718a4e3da3e0f01cd5741afe12a38dc773bec9da99a266b903c77633d26d5",
-      "unmatched_requests": 0
+      "result_sha256": "3b7dac8fff26fb711d07f78b2789a359428c4576343974f93ceb971805cc7ab6",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "bounded-neighborhood",
@@ -1453,14 +1701,18 @@
         "0/truncation/occurred": true,
         "0/truncation/bound": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 18.12929194420576,
+      "elapsed_ms": 4.326166119426489,
       "requests": 4,
       "bytes": 2343,
-      "result_sha256": "9c8bc97791519523587e55f81ffe55f3d6f547a17162ee0cf6f65bf143ff7e5c",
-      "unmatched_requests": 0
+      "result_sha256": "dca23a38d7bbd2e1952a3b3b685a4c17010bc127dffc8f0cb803728fe6d59083",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "bounded-neighborhood",
@@ -1476,14 +1728,18 @@
         "0/truncation/occurred": true,
         "0/truncation/bound": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 51.6204999294132,
+      "elapsed_ms": 21.031917072832584,
       "requests": 4,
       "bytes": 2343,
-      "result_sha256": "56e5c624f91e2001180b29f22c62c31c7bc1b6e23bb140ecd8c24d830de0d0ff",
-      "unmatched_requests": 0
+      "result_sha256": "222d7fe6b7e4dd18c58f6e4971bca11a4c0d475f60c19c0072c0b8023389eda1",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "bounded-neighborhood",
@@ -1499,14 +1755,18 @@
         "0/truncation/occurred": true,
         "0/truncation/bound": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 11.052250163629651,
+      "elapsed_ms": 5.183917004615068,
       "requests": 4,
       "bytes": 2343,
-      "result_sha256": "e4235c15e4af4b4a253db1ac35cf69ed451e1fd04325e64acadf2eb751264d84",
-      "unmatched_requests": 0
+      "result_sha256": "74b6c6c076f8c621d097d086d78362255c349fbe88dabcbb2b48f0ea00a96df9",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "bounded-neighborhood",
@@ -1522,14 +1782,18 @@
         "0/truncation/occurred": true,
         "0/truncation/bound": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 12.98316614702344,
+      "elapsed_ms": 5.475667072460055,
       "requests": 4,
       "bytes": 2343,
-      "result_sha256": "4d2a6fc890326dd94adfdf26f56edea95e5a75a945f3b05cc19cbeddf07cbe9d",
-      "unmatched_requests": 0
+      "result_sha256": "06843a822c684f9be3767a87b6a49cb1c6b73dcf04fc631bc090252ca40ca149",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        false
+      ]
     },
     {
       "task": "hostile-identifier",
@@ -1544,14 +1808,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 2.1119159646332264,
+      "elapsed_ms": 0.7808341179043055,
       "requests": 0,
       "bytes": 250,
-      "result_sha256": "60ace7e772719aeb2c28799da8c8a6eb5b519a98bd460b5e14cae07de34a51b0",
-      "unmatched_requests": 0
+      "result_sha256": "711c826a619510387c860ba325096918cafc58a60eef6f6450e98759e95de275",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "hostile-identifier",
@@ -1566,14 +1834,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 2.1202920470386744,
+      "elapsed_ms": 0.6505001801997423,
       "requests": 0,
       "bytes": 250,
-      "result_sha256": "b48ceff1ef90b3bca1d0aa57246eba94d3df27d2bedc57470ec11aca4f7a6920",
-      "unmatched_requests": 0
+      "result_sha256": "7e6d96b7e4a62b229f81c12f1e09ce9a56f56894c1d0babee0db7b597c16f3c2",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "hostile-identifier",
@@ -1588,14 +1860,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 1.5033329837024212,
+      "elapsed_ms": 0.5096250679343939,
       "requests": 0,
       "bytes": 250,
-      "result_sha256": "eced8bde41fd0bb0dfaa2718f633f97412cfdcd2163c670b8f5cddcec565378e",
-      "unmatched_requests": 0
+      "result_sha256": "562b5e1384afcabe4e8ddd1c84a3d4b777c487a1efaa14f5706e0b94d7af5ea8",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "hostile-identifier",
@@ -1610,14 +1886,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 1.7578748520463705,
+      "elapsed_ms": 0.7966659031808376,
       "requests": 0,
       "bytes": 250,
-      "result_sha256": "dfe915a03b30d4ba2ca6fa65b48c9353eb1f7cf878c1e944226cdcc1f5a3ae39",
-      "unmatched_requests": 0
+      "result_sha256": "2f36e25d3a969689afedd6f47cb1cd07a2c4d862dd2d6e157a2f95942ce2ed74",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "hostile-identifier",
@@ -1632,14 +1912,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 1.3615831267088652,
+      "elapsed_ms": 0.5631670355796814,
       "requests": 0,
       "bytes": 250,
-      "result_sha256": "7956d3cf7b38fe281aa3c0d4e6ea1a7b71280756ba04147624d1c7200d72d8b8",
-      "unmatched_requests": 0
+      "result_sha256": "a23afca174244407810f18a6a58f5d1baf9c1e52266e37aed146c40a021d2d7e",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     },
     {
       "task": "hostile-identifier",
@@ -1654,14 +1938,18 @@
       "checks": {
         "0/error/code": true,
         "complete_evidence": true,
-        "recorded_upstream": true
+        "recorded_upstream": true,
+        "protocol_consistent": true
       },
       "within_request_bound": true,
-      "elapsed_ms": 1.3559579383581877,
+      "elapsed_ms": 0.7314169779419899,
       "requests": 0,
       "bytes": 250,
-      "result_sha256": "b08d894361bed65a1d0cbfea0f09a5a4a83cd78cf5792b3c9c5f7b6f2b408ce6",
-      "unmatched_requests": 0
+      "result_sha256": "fc1252552204636cd864dba060af50d59f5e5efc84b5cc2b8487815bb5fef68b",
+      "unmatched_requests": 0,
+      "protocol_errors": [
+        true
+      ]
     }
   ],
   "summary": {
@@ -1672,8 +1960,8 @@
       "content_obtained": 15,
       "latency_ms": {
         "samples": 36,
-        "p50": 5.282333004288375,
-        "p95": 62.07033293321729
+        "p50": 2.010375028476119,
+        "p95": 27.350708143785596
       }
     },
     "scripted-client": {
@@ -1683,8 +1971,8 @@
       "content_obtained": 15,
       "latency_ms": {
         "samples": 36,
-        "p50": 5.604583071544766,
-        "p95": 51.6204999294132
+        "p50": 2.1430415799841285,
+        "p95": 22.50766707584262
       }
     }
   },
@@ -1696,8 +1984,8 @@
       "content_obtained": 30,
       "latency_ms": {
         "samples": 36,
-        "p50": 8.590958081185818,
-        "p95": 62.07033293321729
+        "p50": 4.407750442624092,
+        "p95": 27.350708143785596
       }
     },
     "held-out": {
@@ -1707,8 +1995,8 @@
       "content_obtained": 0,
       "latency_ms": {
         "samples": 36,
-        "p50": 4.645208013243973,
-        "p95": 51.6204999294132
+        "p50": 1.7276039579883218,
+        "p95": 19.334624987095594
       }
     }
   },
@@ -1720,8 +2008,8 @@
       "content_obtained": 10,
       "latency_ms": {
         "samples": 24,
-        "p50": 16.213208553381264,
-        "p95": 62.07033293321729
+        "p50": 6.710771005600691,
+        "p95": 27.350708143785596
       }
     },
     "warm-session": {
@@ -1731,8 +2019,8 @@
       "content_obtained": 20,
       "latency_ms": {
         "samples": 48,
-        "p50": 4.405104089528322,
-        "p95": 24.594292044639587
+        "p50": 1.8849585903808475,
+        "p95": 11.525916866958141
       }
     }
   },
@@ -1741,14 +2029,14 @@
     "repetitions": 3
   },
   "environment": {
-    "base_commit": "001d05565204be0e04ca104a0b987308e4c46eb7",
+    "base_commit": "5531a2d17da853ce85937fb0464efcfb2a966267",
     "working_tree_dirty": true,
     "python": "3.14.7",
     "mcp": "2.2.0",
     "source_sha256": {
       "evaluation/assisted-tasks.yaml": "265ad57b924dcb5288f9122e4cfdace028cd240690a59bae72d71e5b388b0f4f",
-      "scripts/assisted_evaluation.py": "37339f27555b2be1e3b4c53509e45a7805a2f6f45068f7d8cf3c36c960b5f369",
-      "src/nci_si_mcp/task_evaluation.py": "7011cdbedef13950f0a8bd3d42af2d8e8b178d08b5541e03fc94d44ea3413acd",
+      "scripts/assisted_evaluation.py": "714b5804ff34d1959aa99b3cf5f98d8b2460d6bec4a0a9eb6eaca65f98f95dc2",
+      "src/nci_si_mcp/task_evaluation.py": "66b6d4fffeb3f0136d2b696db9104088053e6f4a3aab2bf9099d106179b70c97",
       "pdm.lock": "6b0dd69afd8055d93a3a13d63e12331d80c01213367dba03db470743408e6396"
     }
   }

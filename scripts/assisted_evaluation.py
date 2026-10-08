@@ -51,7 +51,7 @@ def planned_runs(plan: dict[str, Any]) -> list[dict[str, Any]]:
 
 async def execute(client: Any, task: dict[str, Any], arm: str, deadline: float) -> dict[str, Any]:
     start = perf_counter()
-    record: dict[str, Any] = {"status": "completed", "results": []}
+    record: dict[str, Any] = {"status": "completed", "results": [], "protocol_errors": []}
     try:
         # A JSON round trip is the deterministic planner double, not model inference.
         proposed = (
@@ -62,6 +62,7 @@ async def execute(client: Any, task: dict[str, Any], arm: str, deadline: float) 
             for call in calls:
                 answer = await client.call_tool(call["name"], call["arguments"])
                 record["results"].append(answer.structured_content)
+                record["protocol_errors"].append(answer.is_error)
                 if answer.is_error:
                     break
     except TimeoutError:
@@ -126,6 +127,7 @@ async def measure_task(
                 json.dumps(record["results"], sort_keys=True).encode()
             ).hexdigest()
             slot["unmatched_requests"] = record["unmatched_requests"]
+            slot["protocol_errors"] = record["protocol_errors"]
             if record["status"] == "cancelled":
                 raise asyncio.CancelledError
 

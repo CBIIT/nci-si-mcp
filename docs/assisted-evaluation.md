@@ -78,18 +78,20 @@ timeout and one attempt. Existing tool request bounds remain enforced, and the s
 per-task request ceiling is a scoring check. Cancellation cannot forcibly terminate an
 already executing synchronous request; that request retains its transport timeout.
 
-Scoring checks exact typed fields, record count, matched upstream requests, finite
+Scoring checks exact typed fields, record count, explicitly measured matched upstream requests,
+and agreement between each MCP error flag and its structured result. Missing or malformed
+protocol/provenance measurements cannot score as correct. It also checks finite
 nonnegative measurements and request bounds. Content with an error or reported
 truncation cannot score as complete. Failed, timed-out, cancelled and unstarted runs
 remain in the denominator. Measured failure latencies stay in the distribution; absent
 measurements are null. Exceptions propagate after writing the report; a completed run
 with incorrect outcomes exits nonzero. Scratch indexes/logs are deleted on exit.
-Reports keep checks and result hashes, not transcripts or credentials. Correlation IDs
+Reports keep checks, protocol error flags and result hashes, not transcripts or credentials. Correlation IDs
 can change result hashes between otherwise equivalent runs.
 
 Provenance includes Python/SDK versions, base commit, dirty-tree state and hashes of the
-task file, runner, scorer and lockfile. The committed measurement was taken while this
-issue was uncommitted; its source hashes identify the exact measured implementation.
+task file, runner, scorer and lockfile. The committed measurement was regenerated with the
+milestone review fixes still uncommitted; its source hashes identify the exact measured implementation.
 The base commit identifies the fixture/server baseline, not an assertion that it already
 contained the new runner. New source changes require a fresh report before citing them.
 

@@ -20,10 +20,51 @@ def run():
         "elapsed_ms": 10.0,
         "requests": 1,
         "bytes": 80,
+        "unmatched_requests": 0,
+        "protocol_errors": [False],
     }
 
 
 class TaskEvaluationTest(unittest.TestCase):
+    def test_fixture_provenance_requires_an_explicit_integer_zero(self):
+        for measurement in (None, False, 0.0, -1, 1):
+            with self.subTest(measurement=measurement):
+                record = run() | {"unmatched_requests": measurement}
+                self.assertFalse(assess(task(), record)["correct"])
+        record = run()
+        del record["unmatched_requests"]
+        self.assertFalse(assess(task(), record)["correct"])
+
+    def test_protocol_failure_cannot_be_scored_as_content(self):
+        row = assess(task(), run() | {"protocol_errors": [True]})
+        self.assertFalse(row["correct"])
+        self.assertFalse(row["content_obtained"])
+
+    def test_error_record_without_protocol_failure_cannot_score_as_refusal(self):
+        case = task() | {"expect": {"0/error/code": "permission_denied"}, "outcome": "refusal"}
+        record = run() | {"results": [{"error": {"code": "permission_denied"}}]}
+        self.assertFalse(assess(case, record)["correct"])
+
+    def test_missing_malformed_or_misaligned_protocol_flags_cannot_pass(self):
+        for flags in (None, False, [], [0], [None], ["false"], [False, False], {0: False}):
+            with self.subTest(flags=flags):
+                self.assertFalse(assess(task(), run() | {"protocol_errors": flags})["correct"])
+        record = run()
+        del record["protocol_errors"]
+        self.assertFalse(assess(task(), record)["correct"])
+
+    def test_protocol_evidence_checks_each_response_and_rejects_nonobjects(self):
+        record = run()
+        record["results"].append({"error": {"code": "permission_denied"}})
+        record["protocol_errors"] = [False, True]
+        case = task() | {"calls": task()["calls"] * 2, "outcome": "refusal"}
+        self.assertTrue(assess(case, record)["checks"]["protocol_consistent"])
+        record["protocol_errors"] = [True, True]
+        self.assertFalse(assess(case, record)["checks"]["protocol_consistent"])
+        record["results"] = [None]
+        record["protocol_errors"] = [False]
+        self.assertFalse(assess(task(), record)["checks"]["protocol_consistent"])
+
     def test_an_error_or_partial_record_is_never_scored_as_complete_content(self):
         for extra in (
             {"error": {"code": "upstream_unavailable"}},
@@ -70,7 +111,14 @@ class TaskEvaluationTest(unittest.TestCase):
 
     def test_correct_refusal_does_not_count_as_content_obtained(self):
         case = task() | {"expect": {"0/error/code": "capability_unavailable"}, "outcome": "refusal"}
-        row = assess(case, run() | {"results": [{"error": {"code": "capability_unavailable"}}]})
+        row = assess(
+            case,
+            run()
+            | {
+                "results": [{"error": {"code": "capability_unavailable"}}],
+                "protocol_errors": [True],
+            },
+        )
         self.assertTrue(row["correct"])
         self.assertFalse(row["content_obtained"])
 

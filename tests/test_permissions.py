@@ -20,7 +20,9 @@ from nci_si_mcp.permissions import (
 )
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.server import create_mcp
+from test_cadsr_matching import cde_response, cde_row
 from test_release_selection import initialize_http
+from test_seam import gdc_map
 from test_server import ServerFixture, pinned
 from test_transport import concept_response, http_app
 from test_transport import result as http_result
@@ -269,6 +271,61 @@ class SurfacePermissionTest(ServerFixture):
 
 
 class CompoundPermissionTest(WorkflowFixture):
+    def test_expiry_between_dictionary_columns_stops_matching_without_partial_content(self):
+        now = time()
+        requested = []
+
+        def match(entity, headers):
+            nonlocal now
+            requested.append(entity["entity"])
+            now += 120
+            return cde_response(entity["entity"], [cde_row()])["matchResults"]
+
+        with (
+            authority_scope(authority("harmonize_data_dictionary", "match_data_elements")),
+            patch("nci_si_mcp.permissions.time", side_effect=lambda: now),
+            patch.object(self.context.cadsr, "match_data_element", side_effect=match),
+        ):
+            result = self.call(
+                "harmonize_data_dictionary", columns=[{"name": "Q"}, {"name": "Later"}]
+            )
+        self.assertEqual(set(result), {"error"})
+        self.assertEqual(result["error"]["code"], "permission_denied")
+        self.assertEqual(requested, ["Q"])
+
+    def test_expiry_between_gdc_pages_stops_grounding_without_partial_content(self):
+        now = time()
+        requested = []
+
+        def maps(code, offset):
+            nonlocal now
+            requested.append((code, offset))
+            now += 120
+            return [gdc_map(code)], 2
+
+        with (
+            authority_scope(
+                authority(
+                    "ground_value",
+                    "get_concept",
+                    "find_data_elements_for_concept",
+                    "resolve_stored_value",
+                )
+            ),
+            patch("nci_si_mcp.permissions.time", side_effect=lambda: now),
+            patch.object(
+                self.evs,
+                "get_gdc_mapset",
+                create=True,
+                return_value={"code": "NCIt_Maps_To_GDC", "version": "26.06e"},
+            ),
+            patch.object(self.evs, "get_gdc_maps", create=True, side_effect=maps),
+        ):
+            result = self.call(conceptCode="C1", commons="GDC")
+        self.assertEqual(set(result), {"error"})
+        self.assertEqual(result["error"]["code"], "permission_denied")
+        self.assertEqual(requested, [("C1", 0)])
+
     def test_reused_producers_deny_before_direct_client_access(self):
         actions = [
             lambda: cadsr_matching.match_entities(self.context, [{"entity": "stage"}], {}, {}, 10),
