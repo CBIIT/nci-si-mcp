@@ -11,8 +11,8 @@ and assets. Labels identify protocols and storage permissions.
 Public documentation and local validation use separate listeners and directories. The
 [documentation builder](documentation-site.md) publishes only reviewed pages and assets;
 the [validation dashboard](local-validation.md) reads locally imported evidence. Both are
-accessible without login locally. The dashboard provides bounded run/cancel controls;
-configuration proposals are later Phase 7 work. It never reads the serving
+accessible without login locally. The dashboard provides bounded run/cancel controls and
+configuration proposals from an explicitly selected safe startup snapshot. It never reads the serving
 MCP index or fetches upstream data while rendering results.
 
 ```mermaid
@@ -25,13 +25,17 @@ flowchart LR
     Portal -->|"same-origin fixed run or cancel"| Queue["Durable local queue<br/>one worker · two waiting"]
     Queue --> Worker["Owned disposable worker<br/>committed source snapshot"]
     Worker -->|"bound report + original inventory"| Import
+    Target["Selected local MCP"] -->|"opt-in safe startup values"| Snapshot["Target instance + revision"]
+    Snapshot -->|"read only; no liveness claim"| Portal
+    Portal -->|"advisory before/after preview"| Proposal["Deployment owner review<br/>no apply or restart endpoint"]
 ```
 
 Text alternative: a browser reads documentation from a static preview and validation results
 from a separate loopback dashboard. A CLI validates original evidence before storing it locally;
 only safe projections reach dashboard pages. Fixed run controls use a durable queue and disposable
 workers; source snapshots and original inventory accompany measured results. The documentation
-build has no path to this store.
+build has no path to this store. A selected MCP may write a safe startup snapshot for the
+dashboard; revision-bound proposals never change that process or the deployment environment.
 UAT/PROD administration remains disabled pending platform integration in #197; the public
 documentation site remains anonymous. See the [government website assurance plan](government-site-assurance.md)
 for accessibility and deployment-specific requirements still to verify.

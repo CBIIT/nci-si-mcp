@@ -9,6 +9,8 @@ from typing import cast
 from urllib.parse import SplitResult, parse_qs, urlsplit
 
 from scripts.portal_actions import form_length, perform, same_origin
+from scripts.portal_configuration import ConfigurationConflictError, LocalConfiguration
+from scripts.portal_configuration_views import configuration_page, propose
 from scripts.portal_help import help_page
 from scripts.portal_job_views import job_page, jobs_page
 from scripts.portal_jobs import JobConflictError, JobController, QueueFullError
@@ -36,7 +38,10 @@ def _target(target: str) -> SplitResult:
 
 
 def _route(
-    store: EvidenceStore, target: str, jobs: JobController | None = None
+    store: EvidenceStore,
+    target: str,
+    jobs: JobController | None = None,
+    configuration: LocalConfiguration | None = None,
 ) -> tuple[int, str, str]:
     parts = _target(target)
     if parts.path == "/health":
@@ -45,14 +50,20 @@ def _route(
         return 200, "text/html", history_page(store.history())
     if parts.path == "/help":
         return 200, "text/html", help_page()
+    if parts.path == "/configuration":
+        _query(parts.query, set())
+        status, content = configuration_page(configuration or LocalConfiguration(None))
+        return status, "text/html", content
     if parts.path.startswith("/jobs"):
-        if parts.query:
-            raise ValueError("Job routes do not take query parameters")
-        return _job_route(store, jobs, parts.path)
+        return _job_route(store, jobs, parts.path, parts.query)
     return _result_route(store, parts.path, parts.query)
 
 
-def _job_route(store: EvidenceStore, jobs: JobController | None, path: str) -> tuple[int, str, str]:
+def _job_route(
+    store: EvidenceStore, jobs: JobController | None, path: str, query: str
+) -> tuple[int, str, str]:
+    if query:
+        raise ValueError("Job routes do not take query parameters")
     if jobs is None:
         return (
             503,
@@ -100,12 +111,15 @@ def create_server(
     *,
     port: int = 8081,
     jobs: JobController | None = None,
+    configuration: LocalConfiguration | None = None,
 ) -> HTTPServer:
     """Bind only the IPv4 loopback; deployment exposure is a later platform decision."""
-    return HTTPServer(("127.0.0.1", port), _handler(store, jobs))
+    return HTTPServer(("127.0.0.1", port), _handler(store, jobs, configuration))
 
 
-def _handler(store: EvidenceStore, jobs: JobController | None) -> type[BaseHTTPRequestHandler]:
+def _handler(
+    store: EvidenceStore, jobs: JobController | None, configuration: LocalConfiguration | None
+) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         timeout = 5
 
@@ -114,7 +128,7 @@ def _handler(store: EvidenceStore, jobs: JobController | None) -> type[BaseHTTPR
                 self._respond(403, "text/html", page("Forbidden", "<p>Local host required.</p>"))
                 return
             try:
-                status, media, content = _route(store, self.path, jobs)
+                status, media, content = _route(store, self.path, jobs, configuration)
             except EvidenceNotFoundError:
                 status, media, content = (
                     404,
@@ -141,12 +155,42 @@ def _handler(store: EvidenceStore, jobs: JobController | None) -> type[BaseHTTPR
             return len(hosts) == 1 and hosts[0] in {f"127.0.0.1:{port}", f"localhost:{port}"}
 
         def do_POST(self) -> None:
+            if self.path == "/configuration/proposals":
+                self._propose()
+                return
             if jobs is not None:
                 self._mutate(jobs)
                 return
             self._respond(
                 405, "text/html", page("Read-only", "<p>Run controls are not enabled.</p>")
             )
+
+        def _propose(self) -> None:
+            port = cast("HTTPServer", self.server).server_port
+            if not same_origin(self.headers, port):
+                self._respond(
+                    403, "text/html", page("Forbidden", "<p>Same-origin local form required.</p>")
+                )
+                return
+            try:
+                content = propose(configuration or LocalConfiguration(None), self._form_body())
+                status = 200
+            except (ValueError, OSError) as error:
+                status = _action_status(error)
+                content = page(
+                    "Proposal not accepted",
+                    "<p>Check the selected snapshot, setting and value. The target or revision "
+                    'may have changed; <a href="/configuration">reload configuration</a> '
+                    "before retrying. Nothing was applied.</p>",
+                )
+            self._respond(status, "text/html", content)
+
+        def _form_body(self) -> bytes:
+            length = form_length(self.headers)
+            raw = self.rfile.read(length)
+            if len(raw) != length:
+                raise ValueError("Incomplete form")
+            return raw
 
         def _mutate(self, controller: JobController) -> None:
             port = cast("HTTPServer", self.server).server_port
@@ -156,10 +200,7 @@ def _handler(store: EvidenceStore, jobs: JobController | None) -> type[BaseHTTPR
                 )
                 return
             try:
-                length = form_length(self.headers)
-                raw = self.rfile.read(length)
-                if len(raw) != length:
-                    raise ValueError("Incomplete form")
+                raw = self._form_body()
                 location = perform(controller, self.path, raw)
             except (ValueError, KeyError, OSError, QueueFullError) as error:
                 self._respond(
@@ -206,5 +247,11 @@ def _handler(store: EvidenceStore, jobs: JobController | None) -> type[BaseHTTPR
 
 
 def _action_status(error: Exception) -> int:
-    codes = ((QueueFullError, 429), (JobConflictError, 409), (KeyError, 404), (OSError, 503))
+    codes = (
+        (QueueFullError, 429),
+        (JobConflictError, 409),
+        (ConfigurationConflictError, 409),
+        (KeyError, 404),
+        (OSError, 503),
+    )
     return next((code for kind, code in codes if isinstance(error, kind)), 400)

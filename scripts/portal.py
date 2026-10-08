@@ -10,6 +10,7 @@ from pathlib import Path
 
 from scripts.operator_execution import AUTHORIZATION, ROOT, RemoteProbe, execute_job
 from scripts.operator_source import head_commit
+from scripts.portal_configuration import LocalConfiguration
 from scripts.portal_http import create_server
 from scripts.portal_jobs import JobController
 from scripts.portal_store import MAX_BUNDLE_BYTES, EvidenceStore, load_bundle
@@ -33,6 +34,11 @@ def _parser() -> argparse.ArgumentParser:
     serve.add_argument("--port", type=int, default=8081)
     serve.add_argument("--allow-remote", action="store_true")
     serve.add_argument("--remote-target", help="Explicitly allowed exact HTTPS MCP endpoint")
+    serve.add_argument(
+        "--configuration-snapshot",
+        type=Path,
+        help="Selected local target startup evidence; not live telemetry",
+    )
     return parser
 
 
@@ -55,7 +61,13 @@ def main() -> None:
     else:
         remote = _remote(parser, args)
         configure_logging("INFO")
-        _serve(store, args.port, retention=args.retention, remote=remote)
+        _serve(
+            store,
+            args.port,
+            retention=args.retention,
+            remote=remote,
+            configuration=LocalConfiguration(args.configuration_snapshot),
+        )
 
 
 def _remote(parser: argparse.ArgumentParser, args: argparse.Namespace) -> RemoteProbe | None:
@@ -69,7 +81,14 @@ def _remote(parser: argparse.ArgumentParser, args: argparse.Namespace) -> Remote
         parser.error("Remote probes require an exact HTTPS endpoint and a valid header")
 
 
-def _serve(store: EvidenceStore, port: int, *, retention: int, remote: RemoteProbe | None) -> None:
+def _serve(
+    store: EvidenceStore,
+    port: int,
+    *,
+    retention: int,
+    remote: RemoteProbe | None,
+    configuration: LocalConfiguration,
+) -> None:
     controller = JobController(
         store.path.with_suffix(".jobs"),
         execute=partial(execute_job, store=store, remote=remote),
@@ -77,7 +96,10 @@ def _serve(store: EvidenceStore, port: int, *, retention: int, remote: RemotePro
         remote=remote is not None,
         retention=retention,
     )
-    with closing(controller), create_server(store, port=port, jobs=controller) as server:
+    with (
+        closing(controller),
+        create_server(store, port=port, jobs=controller, configuration=configuration) as server,
+    ):
         print(f"Local validation: http://127.0.0.1:{server.server_port}/", flush=True)
         # Local Ctrl+C stops owned workers and closes both listener and ownership lease.
         with suppress(KeyboardInterrupt):

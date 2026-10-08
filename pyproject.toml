@@ -162,6 +162,8 @@ source = [
     "scripts.portal_jobs",
     "scripts.portal_actions",
     "scripts.portal_job_views",
+    "scripts.portal_configuration",
+    "scripts.portal_configuration_views",
 ]
 # CLI and transport tests launch Python children; include their executed code.
 patch = ["subprocess"]

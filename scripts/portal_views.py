@@ -72,6 +72,7 @@ def page(title: str, content: str) -> str:
 <body id="top"><a class="usa-skipnav skip" href="#main">Skip to content</a>
 <header class="topbar"><div class="shell"><span class="brand">NCI SI · Validation</span>
 <nav aria-label="Main"><a href="/">Results</a><a href="/jobs">Run checks</a>
+<a href="/configuration">Configuration</a>
 <a href="/help">Help &amp; guide</a></nav></div>
 </header><main id="main" class="shell"><p class="eyebrow">Local evidence workspace</p>
 <h1>{text(title)}</h1><p class="notice">No login is required locally.
