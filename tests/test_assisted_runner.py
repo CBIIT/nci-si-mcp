@@ -97,6 +97,18 @@ class AssistedRunnerTest(unittest.TestCase):
         self.assertEqual(record["results"], [])
         self.assertEqual(len(client.calls), 1)
 
+    def test_runner_enforces_deadline_when_the_tool_does_not_raise_timeout(self):
+        async def delayed_response(*args):
+            await asyncio.sleep(0.03)
+            return SimpleNamespace(is_error=False, structured_content={"code": "C1"})
+
+        client = SimpleNamespace(call_tool=AsyncMock(side_effect=delayed_response))
+        case = task() | {"calls": task()["calls"] * 2}
+        record = asyncio.run(execute(client, case, "deterministic", 0.001))
+        self.assertEqual(record["status"], "timeout")
+        self.assertEqual(record["results"], [])
+        self.assertEqual(client.call_tool.await_count, 1)
+
     def test_schedule_keeps_every_task_arm_and_repetition(self):
         plan = {
             "tasks": [{"id": "a", "split": "development"}, {"id": "b", "split": "held-out"}],
@@ -128,6 +140,34 @@ class AssistedRunnerTest(unittest.TestCase):
         record = asyncio.run(execute(client, task, "deterministic", 1))
         self.assertEqual(record["status"], "cancelled")
         self.assertEqual(record["results"], [])
+
+    def test_cancelled_task_stops_campaign_and_retains_unrun_slots(self):
+        plan = {
+            "tasks": [task() | {"split": "held-out"}],
+            "repetitions": 2,
+            "release": "26.09d",
+            "deadline_seconds": 10,
+        }
+        slots = planned_runs(plan)
+        cancelled = {
+            "status": "cancelled",
+            "results": [],
+            "protocol_errors": [],
+            "elapsed_ms": 1,
+            "bytes": 2,
+        }
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("scripts.assisted_evaluation.execute", AsyncMock(return_value=cancelled)),
+            self.assertRaises(asyncio.CancelledError),
+        ):
+            run(plan, slots, Path(directory))
+        report = build_report(plan, slots)
+        self.assertEqual(
+            [row["status"] for row in report["rows"]],
+            ["cancelled", "incomplete", "incomplete", "incomplete"],
+        )
+        self.assertTrue(all(not row["correct"] for row in report["rows"]))
 
     def test_unstarted_tasks_remain_failed_in_each_arm_and_split(self):
         plan = {

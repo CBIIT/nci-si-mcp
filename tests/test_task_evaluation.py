@@ -26,6 +26,13 @@ def run():
 
 
 class TaskEvaluationTest(unittest.TestCase):
+    def test_execution_plan_changes_cannot_rewrite_preregistered_recipe(self):
+        case = task()
+        execution = validate_plan(case, case["calls"])
+        execution[0]["arguments"]["code"] = "C2"
+        execution.append({"name": "get_concept", "arguments": {"code": "C3"}})
+        self.assertEqual(case["calls"], [{"name": "get_concept", "arguments": {"code": "C1"}}])
+
     def test_fixture_provenance_requires_an_explicit_integer_zero(self):
         for measurement in (None, False, 0.0, -1, 1):
             with self.subTest(measurement=measurement):
@@ -82,6 +89,19 @@ class TaskEvaluationTest(unittest.TestCase):
         case = task() | {"expect": {"0/active": True}}
         self.assertFalse(assess(case, run() | {"results": [{"active": 1}]})["correct"])
 
+    def test_response_count_must_match_recipe_even_when_each_response_is_valid(self):
+        record = run()
+        record["results"] *= 2
+        record["protocol_errors"] *= 2
+        self.assertFalse(assess(task(), record)["correct"])
+        case = task() | {"calls": task()["calls"] * 2}
+        self.assertFalse(assess(case, run())["correct"])
+
+    def test_a_task_without_expected_evidence_cannot_claim_success(self):
+        row = assess(task() | {"expect": {}}, run())
+        self.assertFalse(row["correct"])
+        self.assertFalse(row["content_obtained"])
+
     def test_plan_whitelist_and_argument_types_are_enforced(self):
         case = task() | {"calls": [{"name": "ask", "arguments": {}}]}
         with self.assertRaises(ValueError):
@@ -128,6 +148,7 @@ class TaskEvaluationTest(unittest.TestCase):
             {"requests": -1},
             {"requests": 0.5},
             {"elapsed_ms": float("nan")},
+            {"elapsed_ms": float("inf")},
             {"bytes": -1},
         ):
             with self.subTest(changes=changes):

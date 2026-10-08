@@ -22,7 +22,7 @@ from nci_si_mcp.registry import invoke
 from nci_si_mcp.server import create_mcp
 from test_cadsr_matching import cde_response, cde_row
 from test_release_selection import initialize_http
-from test_seam import gdc_map
+from test_seam import gdc_map, value_row
 from test_server import ServerFixture, pinned
 from test_transport import concept_response, http_app
 from test_transport import result as http_result
@@ -94,6 +94,17 @@ class AuthorityTest(unittest.TestCase):
 
 
 class RegistryPermissionTest(ServerFixture):
+    def test_incomplete_principal_cannot_retrieve_content_from_shared_registry(self):
+        for field in ("issuer", "subject"):
+            self.evs.calls.clear()
+            snapshot = authority("get_concept")
+            snapshot = replace(snapshot, principal=replace(snapshot.principal, **{field: ""}))
+            with self.subTest(field=field), authority_scope(snapshot):
+                result = invoke(self.context, "get_concept", **pinned(code="C3262"))
+                self.assertEqual(set(result), {"error"})
+                self.assertEqual(result["error"]["code"], "permission_denied")
+                self.assertEqual(self.evs.calls, [])
+
     def test_shared_producers_cannot_select_public_hints_under_caller_authority(self):
         with authority_scope(authority("get_concept")), cache_call() as hint:
             result = invoke(self.context, "get_concept", **pinned(code="C3262"))
@@ -120,6 +131,25 @@ class RegistryPermissionTest(ServerFixture):
 
 
 class SurfacePermissionTest(ServerFixture):
+    def test_expired_policy_refuses_catalogue_instead_of_looking_like_empty_access(self):
+        current = authority()
+
+        async def resolve():
+            return current
+
+        async def scenario():
+            nonlocal current
+            server = create_mcp(self.settings, context=self.context, authority_resolver=resolve)
+            async with Client(server, cache=None) as client:
+                self.assertEqual((await client.list_tools()).tools, [])
+                current = replace(current, expires_at=0)
+                with self.assertRaises(MCPError) as refused:
+                    await client.list_tools()
+                self.assertEqual(refused.exception.data["error"]["code"], "permission_denied")
+
+        asyncio.run(scenario())
+        self.assertEqual(self.evs.calls, [])
+
     def test_secured_stdio_cannot_reassign_a_sessions_principal(self):
         current = authority("get_concept")
 
@@ -271,6 +301,165 @@ class SurfacePermissionTest(ServerFixture):
 
 
 class CompoundPermissionTest(WorkflowFixture):
+    def test_expiry_during_cohort_roles_blocks_hierarchy_read(self):
+        now = time()
+        read = self.evs.get_concepts_by_codes
+        selections = []
+
+        def concepts(*args, **kwargs):
+            nonlocal now
+            selections.append(kwargs.get("include"))
+            rows = read(*args, **kwargs)
+            now += 120
+            return rows
+
+        with (
+            authority_scope(
+                authority("expand_cohort", "get_concept_neighborhood", "get_concept_hierarchy")
+            ),
+            patch("nci_si_mcp.permissions.time", side_effect=lambda: now),
+            patch.object(self.evs, "get_concepts_by_codes", side_effect=concepts),
+        ):
+            result = self.call("expand_cohort", conceptCode="C1")
+        self.assertEqual(set(result), {"error"})
+        self.assertEqual(result["error"]["code"], "permission_denied")
+        self.assertEqual(selections, ["minimal,roles"])
+
+    def test_expiry_during_search_blocks_grounding_concept_read(self):
+        now = time()
+
+        def search(*args, **kwargs):
+            nonlocal now
+            now += 120
+            return 1, [concept("C1", active=True)]
+
+        with (
+            authority_scope(
+                authority(
+                    "ground_value",
+                    "search_concepts",
+                    "get_concept",
+                    "find_data_elements_for_concept",
+                )
+            ),
+            patch("nci_si_mcp.permissions.time", side_effect=lambda: now),
+            patch.object(self.evs, "search_concepts", create=True, side_effect=search),
+        ):
+            result = self.call(text="Neoplasm")
+        self.assertEqual(set(result), {"error"})
+        self.assertEqual(result["error"]["code"], "permission_denied")
+        self.assertNotIn(("get_concept", "ncit_26.06e", "C1"), self.evs.calls)
+        self.assertEqual(self.ssis.calls, [])
+
+    def test_expiry_during_cohort_release_discovery_blocks_neighborhood_reads(self):
+        now = time()
+        read = self.evs.get_terminologies
+        release_reads = []
+
+        def releases(*args, **kwargs):
+            nonlocal now
+            rows = read(*args, **kwargs)
+            release_reads[:] = self.evs.calls
+            now += 120
+            return rows
+
+        with (
+            authority_scope(
+                authority("expand_cohort", "get_concept_neighborhood", "get_concept_hierarchy")
+            ),
+            patch("nci_si_mcp.permissions.time", side_effect=lambda: now),
+            patch.object(self.evs, "get_terminologies", side_effect=releases),
+        ):
+            result = self.call("expand_cohort", conceptCode="C1")
+        self.assertEqual(set(result), {"error"})
+        self.assertEqual(result["error"]["code"], "permission_denied")
+        self.assertEqual(self.evs.calls, release_reads)
+
+    def test_expiry_after_value_resolution_blocks_the_concept_child(self):
+        now = time()
+        self.ssis.element_values = [value_row()]
+        read = self.ssis.get_permissible_values
+
+        def values(*args, **kwargs):
+            nonlocal now
+            rows = read(*args, **kwargs)
+            now += 120
+            return rows
+
+        with (
+            authority_scope(authority("get_concept_for_permissible_value", "get_concept")),
+            patch("nci_si_mcp.permissions.time", side_effect=lambda: now),
+            patch.object(self.ssis, "get_permissible_values", side_effect=values),
+        ):
+            result = self.call(
+                "get_concept_for_permissible_value", dataElementId="123", value="Male"
+            )
+        self.assertEqual(set(result), {"error"})
+        self.assertEqual(result["error"]["code"], "permission_denied")
+        self.assertNotIn(("get_concept", "ncit_26.06e", "C1"), self.evs.calls)
+
+    def test_expiry_during_release_discovery_blocks_text_search(self):
+        now = time()
+        read = self.evs.get_terminologies
+
+        def releases(*args, **kwargs):
+            nonlocal now
+            rows = read(*args, **kwargs)
+            now += 120
+            return rows
+
+        with (
+            authority_scope(
+                authority(
+                    "ground_value",
+                    "search_concepts",
+                    "get_concept",
+                    "find_data_elements_for_concept",
+                )
+            ),
+            patch("nci_si_mcp.permissions.time", side_effect=lambda: now),
+            patch.object(self.evs, "get_terminologies", side_effect=releases),
+            patch.object(
+                self.evs, "search_concepts", create=True, return_value=(0, [])
+            ) as searches,
+        ):
+            result = self.call(text="Neoplasm")
+        self.assertEqual(set(result), {"error"})
+        self.assertEqual(result["error"]["code"], "permission_denied")
+        self.assertEqual(searches.call_count, 0)
+
+    def test_denied_dictionary_child_precedes_registry_pin_discovery(self):
+        with (
+            authority_scope(authority("harmonize_data_dictionary")),
+            patch.object(self.context.cadsr, "get_registry_releases", return_value=[]) as reads,
+        ):
+            result = self.call(
+                "harmonize_data_dictionary", columns=[{"name": "Q"}], registryRelease="published"
+            )
+        self.assertEqual(set(result), {"error"})
+        self.assertEqual(result["error"]["code"], "permission_denied")
+        self.assertEqual(reads.call_count, 0)
+
+    def test_denied_value_concept_child_precedes_graph_and_release_reads(self):
+        with authority_scope(authority("get_concept_for_permissible_value")):
+            result = self.call("get_concept_for_permissible_value", dataElementId="123", value="II")
+        self.assertEqual(set(result), {"error"})
+        self.assertEqual(result["error"]["code"], "permission_denied")
+        self.assertEqual(self.evs.calls, [])
+        self.assertEqual(self.ssis.calls, [])
+
+    def test_child_permissions_cannot_grant_the_direct_workflow_parent(self):
+        with (
+            authority_scope(authority("get_concept", "find_data_elements_for_concept")),
+            cache_call(),
+            correlated(),
+            self.assertRaises(PlatformError) as refused,
+        ):
+            workflows.ground_value(self.context, conceptCode="C1")
+        self.assertEqual(refused.exception.code, "permission_denied")
+        self.assertEqual(self.evs.calls, [])
+        self.assertEqual(self.ssis.calls, [])
+
     def test_expiry_between_dictionary_columns_stops_matching_without_partial_content(self):
         now = time()
         requested = []

@@ -75,8 +75,13 @@ The separate furnished-baseline milestone and `acceptance/approved.yaml` are unc
 ## Review and release evidence
 
 Issue PRs #183–#187 contain the implementation/desk-assessment gates and strict TDD evidence
-where behavior changed. The assurance PR and final milestone PR add current local gate results,
-the five review rounds, mutation dispositions, exact-head CI/clearance and post-merge verification.
+where behavior changed. The [assurance PR #188](https://github.com/CBIIT/nci-si-mcp/pull/188)
+and [milestone PR #189](https://github.com/CBIIT/nci-si-mcp/pull/189) record current local gate results,
+the five review passes, mutation dispositions, exact-head CI/clearance and post-merge verification.
+The [mutation evidence](evidence/phase-6/mutation-review.json) preserves all 97 targeted
+replacements and their test failures: 76 were caught initially, 20 real gaps were closed with
+regressions and full-suite rechecks, and one survivor is equivalent with its reason recorded.
+Every mutant was restored. This finite campaign does not claim exhaustive mutation coverage.
 The release is not considered complete until CI, Audit, CodeQL and Release pass on its merge
 commit, all remaining Phase 6 issues close, milestone 8 closes through the API, installed version
 metadata refreshes, and owned scratch/branches/processes are removed. Deferred Backlog issues
