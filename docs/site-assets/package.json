@@ -1,0 +1,8 @@
+{
+  "name": "nci-si-documentation-assets",
+  "private": true,
+  "description": "Pinned local diagram runtime for the public documentation build",
+  "dependencies": {
+    "mermaid": "11.17.2"
+  }
+}

@@ -45,6 +45,9 @@ lint = [
 audit = [
     "pip-audit>=2.9",
 ]
+docs = [
+    "zensical==0.0.68",
+]
 
 [tool.pdm]
 distribution = true
@@ -118,6 +121,7 @@ acceptance-register = "python -m nci_si_acceptance.register"
 acceptance-stories = "python -m nci_si_acceptance.stories"
 acceptance-index-codes = "python -m nci_si_acceptance.suite"
 spec-render = "python -m nci_si_acceptance.document"
+docs-build = "python -m scripts.docs_site"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -131,6 +135,8 @@ source = [
     "scripts.evidence_envelope",
     "scripts.evidence_acceptance",
     "scripts.evidence_benchmark",
+    "scripts.docs_site",
+    "scripts.docs_links",
 ]
 # CLI and transport tests launch Python children; include their executed code.
 patch = ["subprocess"]
@@ -208,6 +214,7 @@ ignore_names = [
     "pytest_*", "do_*", "log_message", "close_connection",
     "handle", "verify_token",
     "handle_starttag", "handle_endtag", "handle_data",
+    "handle_entityref", "handle_charref", "handle_comment", "handle_decl",
     "registry", "generatedAt", "sourceDistribution", "conceptCode", "valueMeaning",
     "workflowStatus", "registrationStatus", "dateCreated", "dateModified", "permissibleValues",
     "valueDomain", "conceptAssociations", "alternateNames", "classificationSchemes", "dataElement",

@@ -26,6 +26,8 @@ pdm run acceptance           # the acceptance suite against it, on recorded upst
 ```
 
 [QUICKSTART.md](QUICKSTART.md) has the rest: connecting a client, settings, tools and errors.
+For a searchable local website of these documents and diagrams, see
+[Documentation website](docs/documentation-site.md).
 
 ## How the pieces fit
 

@@ -3,7 +3,8 @@
 This document describes the implemented Python prototype: EVS terminology, caDSR metadata,
 Shared SI joins and composed workflows served through MCP over stdio or HTTP, with a CLI for
 index operations and the original EVS commands.
-The diagrams use Mermaid, rendered directly by GitHub. They follow the useful levels of the
+The diagrams use Mermaid, rendered by GitHub and the
+[public documentation build](docs/documentation-site.md). They follow the useful levels of the
 [C4 model](https://c4model.com/diagrams), with sequence, lifecycle and data views where needed.
 
 The [wxMCP desk assessment](docs/wxmcp-assessment.md) records version-specific integration

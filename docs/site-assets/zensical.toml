@@ -1,0 +1,60 @@
+[project]
+site_name = "NCI Semantic Infrastructure"
+site_description = "MCP prototype documentation, behavioral stories and deployment guidance"
+docs_dir = "content"
+site_dir = "site"
+use_directory_urls = false
+extra_css = ["assets/site.css"]
+nav = [
+  { "Start here" = [
+    { "Overview" = "README.md" },
+    { "Quickstart" = "QUICKSTART.md" },
+    { "Behavioral stories" = "docs/behavioural-tests.md" },
+  ] },
+  { "Architecture and deployment" = [
+    { "Architecture" = "ARCHITECTURE.md" },
+    { "Local and cloud deployment" = "docs/deployment.md" },
+    { "HTTP transport" = "docs/transport.md" },
+    { "Container operations" = "docs/container.md" },
+    { "Caller permissions" = "docs/caller-permissions.md" },
+    { "Governed HTTP boundary" = "docs/governed-http.md" },
+    { "SI architecture decision" = "docs/decisions/001-si-architecture-alignment.md" },
+  ] },
+  { "Contracts and evaluation" = [
+    { "Behavior specification" = "docs/specification.md" },
+    { "Acceptance suite" = "acceptance/README.md" },
+    { "Benchmark definitions" = "docs/benchmark.md" },
+    { "Retrieval evaluation" = "docs/retrieval-evaluation.md" },
+    { "Evaluation dataset" = "docs/evaluation/ncit-v1-notes.md" },
+    { "Assisted task evaluation" = "docs/assisted-evaluation.md" },
+    { "Run evidence contract" = "docs/evidence-contract.md" },
+  ] },
+  { "Contributing and roadmap" = [
+    { "Contributing" = "CONTRIBUTING.md" },
+    { "Documentation website" = "docs/documentation-site.md" },
+    { "Implementation plan" = "docs/implementation-plan.md" },
+    { "Portal plan" = "docs/portal-plan.md" },
+    { "Deferred capabilities" = "docs/deferred-capabilities.md" },
+    { "Gateway assessment" = "docs/wxmcp-assessment.md" },
+    { "Upstream contracts" = "docs/upstream/README.md" },
+    { "EVS" = "docs/upstream/evs.md" },
+    { "caDSR" = "docs/upstream/cadsr.md" },
+    { "Shared SI" = "docs/upstream/ssis.md" },
+  ] },
+]
+
+[project.theme]
+font = false
+custom_dir = "overrides"
+features = ["navigation.sections", "navigation.top", "search.highlight"]
+
+[project.markdown_extensions]
+toc.permalink = true
+pymdownx.superfences.custom_fences = [
+  { name = "mermaid", class = "mermaid", format = "pymdownx.superfences.fence_code_format" },
+]
+
+# Repository source references are resolved and checked by the final artifact validator.
+# Missing documentation, assets and anchors still fail that validation.
+[project.validation.links]
+not_found = "ignore"
