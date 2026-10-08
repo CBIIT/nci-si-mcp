@@ -33,21 +33,19 @@ class _StaticHandler(SimpleHTTPRequestHandler):
     def send_head(self) -> BytesIO | BinaryIO | None:
         root = Path(self.directory).resolve()
         target = Path(self.translate_path(self.path)).resolve()
-        if target.is_dir():
-            target = self._index_target(target)
         if not target.is_relative_to(root):
             self.send_error(404)
             return None
+        if target.is_dir():
+            # Validate each implicit index before probing it, including dangling symlinks.
+            for name in ("index.html", "index.htm"):
+                candidate = (target / name).resolve()
+                if not candidate.is_relative_to(root):
+                    self.send_error(404)
+                    return None
+                if candidate.is_file():
+                    break
         return super().send_head()
-
-    @staticmethod
-    def _index_target(directory: Path) -> Path:
-        # Match the stdlib's implicit index selection before checking containment.
-        for name in ("index.html", "index.htm"):
-            candidate = directory / name
-            if candidate.is_file():
-                return candidate.resolve()
-        return directory
 
     def list_directory(self, path: str | PathLike[str]) -> None:
         self.send_error(404)

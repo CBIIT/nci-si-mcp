@@ -78,6 +78,14 @@ class StaticServerTest(unittest.TestCase):
         self.assertEqual(status, 404)
         self.assertNotIn("PRIVATE-CANARY", body)
 
+    def test_dangling_external_index_is_rejected_before_falling_back_to_another_index(self):
+        directory = self.root / "site/empty"
+        (directory / "index.html").symlink_to(self.root / "not-yet-created")
+        (directory / "index.htm").write_text("<h1>Fallback</h1>")
+        status, _, body = self.request("/empty/")
+        self.assertEqual(status, 404)
+        self.assertNotIn("Fallback", body)
+
     def test_nested_htm_index_blocks_external_symlinks_but_serves_public_content(self):
         index = self.root / "site/empty/index.htm"
         index.symlink_to(self.root / "private.txt")
