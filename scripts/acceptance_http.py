@@ -15,6 +15,7 @@ import socket
 import socketserver
 import subprocess
 import sys
+from contextlib import chdir
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Thread
@@ -114,7 +115,10 @@ def state(socket_path: str) -> None:
     }
     with socket.socket(socket.AF_UNIX) as connection:
         connection.settimeout(30)
-        connection.connect(socket_path)
+        path = Path(socket_path).resolve()
+        # This hook is a dedicated child; short addresses avoid AF_UNIX's path limit.
+        with chdir(path.parent):
+            connection.connect(path.name)
         connection.sendall(json.dumps(settings).encode() + b"\n")
         if connection.recv(16) != b"ok\n":
             raise RuntimeError("The fixture server restart failed")
@@ -209,7 +213,10 @@ def run(*, report: Path | None = None, environment: dict[str, str] | None = None
         process = ServerProcess(directory, port, environment=environment)
         socket_path = directory / "control"
         try:
-            with socketserver.UnixStreamServer(str(socket_path), hook_handler(process)) as control:
+            # The runner owns its process. Restore cwd before starting the control thread.
+            with chdir(directory):
+                control = socketserver.UnixStreamServer("control", hook_handler(process))
+            with control:
                 thread = Thread(target=control.serve_forever, daemon=True)
                 thread.start()
                 try:

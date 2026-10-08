@@ -19,6 +19,29 @@ from scripts import acceptance_http
 
 
 class HTTPControlTest(unittest.TestCase):
+    def test_deep_worker_workspace_still_has_a_working_private_control_channel(self):
+        settings = []
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary) / ("nested-" * 20)
+            root.mkdir()
+
+            def suite(_port, socket_path, **_options):
+                with patch.dict(os.environ, {"NCI_SI_PROFILE": "fixture-profile"}, clear=True):
+                    acceptance_http.state(str(socket_path))
+                return 0
+
+            process = SimpleNamespace(restart=settings.append, close=lambda: None)
+            with (
+                patch.object(acceptance_http, "ROOT", root),
+                patch.object(acceptance_http, "prepare"),
+                patch.object(acceptance_http, "ServerProcess", return_value=process),
+                patch.object(acceptance_http, "run_suite", side_effect=suite),
+            ):
+                result = acceptance_http.run()
+            self.assertEqual(result, 0)
+            self.assertEqual(settings, [{"NCI_SI_PROFILE": "fixture-profile"}])
+            self.assertEqual(list((root / "tmp").iterdir()), [])
+
     def test_preparation_uses_supplied_environment_without_inherited_secrets(self):
         observed = []
 

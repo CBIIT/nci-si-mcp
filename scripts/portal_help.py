@@ -85,7 +85,8 @@ Look at the run mode before drawing a conclusion.</p>
 <p><strong>Samples</strong> counts recorded calls; <strong>Errors</strong> counts failed calls.
 Always read both with latency. <strong>p50</strong> is the middle percentile and
 <strong>p95</strong> the 95th percentile, in milliseconds, using the native report's nearest-rank
-calculation. Few samples cannot support a reliable tail-latency or capacity claim.</p>
+calculation. Displayed milliseconds are rounded to two decimals; original measurements are
+retained unchanged. Few samples cannot support a reliable tail-latency or capacity claim.</p>
 <p>Cold and warm refer to the report's measurement procedure. A new HTTP session alone does not
 establish that a remote server, model or cache was cold. Client-side measurements cannot reveal
 unknown server-side activity.</p>

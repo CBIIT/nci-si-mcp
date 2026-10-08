@@ -7,47 +7,55 @@ from typing import Any
 
 from scripts.evidence_benchmark import comparable
 
+FOIA_URL = (
+    "https://www.nih.gov/institutes-nih/nih-office-director/"
+    "office-communications-public-liaison/freedom-information-act-office"
+)
+
+# Published NCIDS tokens; full component/identity assurance is tracked in #196.
 STYLE = """
-:root{color-scheme:light;font:1rem/1.6 system-ui,-apple-system,sans-serif;color:#183c50;
-background:#f4f7fa}*{box-sizing:border-box}body{margin:0}a{color:#005e66;text-underline-offset:.2em}
+:root{color-scheme:light;font:1rem/1.6 system-ui,-apple-system,sans-serif;color:#1b1b1b;
+background:#f0f0f0}*{box-sizing:border-box}body{margin:0}a{color:#004971;text-underline-offset:.2em}
 a:hover{text-decoration-thickness:2px}h1,h2,h3{line-height:1.25;overflow-wrap:anywhere}
 h1{font-size:clamp(1.7rem,4vw,2.5rem);letter-spacing:-.03em;margin:.25rem 0 1rem}
 h2{font-size:1.35rem;margin-top:2rem}h3{font-size:1.1rem}p{max-width:78ch}
-.shell{max-width:78rem;margin:auto;padding:1.25rem 2rem}.topbar{background:#12364a;color:white}
+.shell{max-width:78rem;margin:auto;padding:1.25rem 2rem}.topbar{background:#00314b;color:white}
 .topbar .shell{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;
 align-items:center}
 .brand{font-size:1.1rem;font-weight:750;letter-spacing:.02em}.topbar a{color:white}
 nav{display:flex;gap:1.5rem;flex-wrap:wrap}
 .eyebrow{text-transform:uppercase;font-size:.75rem;letter-spacing:.1em;
-font-weight:750;color:#456477}.skip{position:absolute;left:1rem;top:-8rem;background:white;
-padding:.75rem;z-index:2}.skip:focus{top:.5rem}.notice{background:#e8f1f6;border-left:4px solid
-#34677f;padding:.75rem 1rem;border-radius:0 .4rem .4rem 0;font-size:.9rem;max-width:none}
+font-weight:750;color:#3d4551}.skip{position:absolute;left:1rem;top:-8rem;background:white;
+padding:.75rem;z-index:2}.skip:focus{top:.5rem}.notice{background:#d4e7f2;border-left:4px solid
+#004971;padding:.75rem 1rem;border-radius:0 .4rem .4rem 0;font-size:.9rem;max-width:none}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr));gap:1rem;
 margin:1.5rem 0}.card{background:white;border:1px solid #cbd8e1;border-radius:.65rem;
 padding:1.25rem;
 box-shadow:0 2px 5px #12364a08}.card h2{margin:0 0 1rem;font-size:1rem}.card p{margin:.5rem 0}
 .badge{display:inline-block;background:#edf3f6;border:1px solid #a6bbc7;border-radius:2rem;
 padding:.1rem .65rem;font-size:.8rem;font-weight:700;margin:.25rem .25rem .25rem 0}
-.interrupted,.failed,.cancelled{background:#fff1df;color:#704000;border-color:#c7a56d}
-.meta{color:#456477;font-size:.9rem}.run-list{list-style:none;padding:0;display:grid;gap:.6rem}
+.interrupted,.cancelled,.unavailable{background:#fdf2bf;color:#5c4809;border-color:#936f38}
+.failed{background:#fde2ea;color:#700824;border-color:#b60d43}
+.meta{color:#3d4551;font-size:.9rem}.run-list{list-style:none;padding:0;display:grid;gap:.6rem}
 .run-list li{background:white;border:1px solid #cbd8e1;border-radius:.5rem;padding:1rem 1.25rem}
 .run-link{font-weight:700}.scroll{overflow-x:auto;border:1px solid #cbd8e1;border-radius:.5rem;
 background:white;margin:1rem 0 1.5rem}table{border-collapse:collapse;width:100%;font-size:.9rem}
-caption{text-align:left;padding:.75rem 1rem;font-weight:700;color:#183c50}
+caption{text-align:left;padding:.75rem 1rem;font-weight:700;color:#1b1b1b}
 th,td{text-align:left;border-top:1px solid #d9e3ea;padding:.7rem 1rem;overflow-wrap:anywhere}
 th{background:#edf3f6;font-size:.8rem}tbody tr:nth-child(even){background:#f7fafc}
-:focus-visible{outline:3px solid #ad4e00;outline-offset:3px}
+:focus-visible{outline:3px solid #004971;outline-offset:3px}
 .topbar :focus-visible{outline-color:white}
 form{display:flex;gap:1rem;align-items:end;flex-wrap:wrap;background:white;border:1px solid #cbd8e1;
 border-radius:.5rem;padding:1.25rem;margin:1rem 0}label{display:grid;gap:.35rem;font-weight:650}
 input,select,button{font:inherit;max-width:100%;min-height:2.75rem;border:1px solid #7892a3;
-border-radius:.35rem;padding:.5rem .75rem}input,select{background:white;color:#183c50}
-button,.action{background:#005e66;color:white;font-weight:650;cursor:pointer;border-radius:.35rem}
-button:hover,.action:hover{background:#12364a}.action{display:inline-block;padding:.65rem 1rem;
+border-radius:.35rem;padding:.5rem .75rem}input,select{background:white;color:#1b1b1b}
+button,.action{background:#004971;color:white;font-weight:650;cursor:pointer;border-radius:.35rem}
+button:hover,.action:hover{background:#00314b}.action{display:inline-block;padding:.65rem 1rem;
 text-decoration:none}.help-link{font-size:.9rem}.help-nav{display:flex;flex-wrap:wrap;gap:1rem}
 code{overflow-wrap:anywhere;background:#edf3f6;padding:.1rem .25rem;border-radius:.2rem}
 pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#edf3f6;padding:1rem;border-radius:.4rem}
-footer{border-top:1px solid #cbd8e1;margin-top:2rem;font-size:.85rem;color:#456477}
+footer{border-top:1px solid #a9aeb1;margin-top:2rem;font-size:.85rem;color:#3d4551;background:white}
+footer ul{list-style:none;padding:0;display:flex;gap:.75rem 1.5rem;flex-wrap:wrap}
 section[id]{scroll-margin-top:1rem}@media(max-width:40rem){.shell{padding:1rem}form,label{width:100%}
 input,select{width:100%}th,td{padding:.5rem}.card{padding:1rem}}
 """
@@ -61,15 +69,31 @@ def page(title: str, content: str) -> str:
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{text(title)} · NCI SI local validation</title><style>{STYLE}</style></head>
-<body><a class="skip" href="#main">Skip to content</a>
+<body id="top"><a class="usa-skipnav skip" href="#main">Skip to content</a>
 <header class="topbar"><div class="shell"><span class="brand">NCI SI · Validation</span>
 <nav aria-label="Main"><a href="/">Results</a><a href="/jobs">Run checks</a>
 <a href="/help">Help &amp; guide</a></nav></div>
 </header><main id="main" class="shell"><p class="eyebrow">Local evidence workspace</p>
 <h1>{text(title)}</h1><p class="notice">No login is required locally.
 UAT/PROD administration is disabled pending platform integration.</p>
-{content}</main><footer><div class="shell">Prototype · Local validation workspace ·
-<a href="/help#provenance">Understand the evidence</a></div></footer></body></html>"""
+{content}</main><footer><div class="shell"><p><a href="#top">Back to top</a></p>
+<p>Prototype · Local validation workspace ·
+<a href="/help#provenance">Understand the evidence</a></p>
+<nav aria-label="Policies"><ul>
+<li><a href="https://www.cancer.gov/policies/disclaimer">Disclaimer Policy</a></li>
+<li><a href="https://www.cancer.gov/policies/accessibility">Accessibility</a></li>
+<li><a href="{FOIA_URL}">FOIA</a></li>
+<li><a href="https://www.hhs.gov/vulnerability-disclosure-policy">
+HHS Vulnerability Disclosure</a></li>
+<li><a href="https://www.cancer.gov/policies/privacy-security">Privacy and Security</a></li>
+</ul></nav>
+<p><a href="https://github.com/CBIIT/nci-si-mcp/issues">Contact project maintainers</a></p>
+<nav aria-label="Government agencies"><ul>
+<li><a href="https://www.hhs.gov">U.S. Department of Health and Human Services</a></li>
+<li><a href="https://www.nih.gov">National Institutes of Health</a></li>
+<li><a href="https://www.cancer.gov">National Cancer Institute</a></li>
+<li><a href="https://www.usa.gov">USA.gov</a></li>
+</ul></nav></div></footer></body></html>"""
 
 
 def _table(title: str, headers: list[str], rows: list[list[Any]]) -> str:
@@ -194,8 +218,8 @@ def _benchmark(evidence: dict[str, Any]) -> str:
                     label,
                     len(data["samples"]),
                     data["errors"],
-                    data["summary"].get("p50Ms"),
-                    data["summary"].get("p95Ms"),
+                    _latency(data["summary"].get("p50Ms")),
+                    _latency(data["summary"].get("p95Ms")),
                 ]
             )
     body += _table(
@@ -207,6 +231,10 @@ def _benchmark(evidence: dict[str, Any]) -> str:
         ["Dimension", "Digest (unknown blocks comparison)"],
         [[key, evidence["fingerprint"][key]] for key in sorted(evidence["fingerprint"])],
     )
+
+
+def _latency(value: float | None) -> str:
+    return "unknown" if value is None else f"{value:.2f}"
 
 
 def run_page(record: dict[str, Any], *, tool: str = "", story: str = "") -> str:

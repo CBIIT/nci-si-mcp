@@ -16,13 +16,16 @@ Open `http://127.0.0.1:8081/`; Ctrl+C closes the listener. `--port` changes the 
 there is no public bind option. Results have `no-store` responses, host checks and no external
 scripts or analytics. Tables, filters and comparisons work without JavaScript.
 
-The navy (`#12364a`), teal (`#005e66`) and pale slate (`#f4f7fa`) interface uses white cards to
-distinguish the latest attempt from the
-latest complete evidence. Amber statuses identify interrupted, cancelled or failed work with
-words as well as color. Choose **View run** to inspect a record. **Help & guide** is available
+The interface uses published NCIDS cerulean (`#00314b`, `#004971`) and neutral (`#f0f0f0`)
+colors, with white cards separating the latest attempt from complete evidence. Golden warning
+and cranberry failure statuses include words as well as color. Choose **View run** to inspect a
+record. **Help & guide** is available
 on every page; contextual links beside results explain status, filters, verdicts, provenance,
 latency percentiles and the conditions for a meaningful comparison. The guide is served locally
 at `/help`, requires no account and makes no third-party requests.
+NCI policy and agency links are in the footer. NCIDS component/typography integration is tracked
+in the [assurance plan](government-site-assurance.md). Production review is handled separately
+by the owner and does not block local development or the Phase 7 release.
 
 A bound bundle follows the [evidence contract](evidence-contract.md): `envelope.json`, optional
 `report.json`, and original `catalogue.json`, `stories.json`, `expectations.json`, `selection.json`
