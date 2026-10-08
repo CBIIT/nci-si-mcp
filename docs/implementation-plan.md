@@ -599,3 +599,8 @@ implementation and a green refactor. Retain high line and branch coverage throug
 boundary/error/concurrency assertions. Document new behavior in the same PR, including domain
 stories, examples and architecture/deployment changes. The #176 documentation-only change moves
 no expected acceptance outcomes and does not approve the separate furnished baseline.
+
+The owner deferred #180 and the remaining runtime/adoption work of #181 to Backlog on
+8 October 2026. The [research strategy](deferred-capabilities.md) records why, what would justify
+re-entry and the required decisions. The [Phase 6 assurance record](phase-6-assurance.md) covers
+the delivered scope; neither backlog issue is closed by the Phase 6 release.

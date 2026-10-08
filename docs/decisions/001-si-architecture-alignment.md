@@ -20,8 +20,8 @@ implementation to migrate. Its single deployable and semantic core are retained.
 | EVS, caDSR and Shared SI access | `evs.py`, `cadsr.py`, `ssis.py`, shared `http_client.py` | Implemented; caDSR fixture evidence is not live credentialed validation. |
 | Authentication, authorization and audit | SDK authentication and policy, required HTTP entry point, `audit.py` | Portable implementation in #177/#178; production identity remains deferred/off. |
 | Focused MCP addresses | One `/mcp` address | D4 retains one address. No aliases without a demonstrated consumer need and decision. |
-| `ask(question)` planner | Deterministic workflows and client prompt templates | Conditional: measure the client baseline in #179; a server pilot needs its own decision in #180. |
-| wxMCP integration | Direct MCP is the conformance reference | [Versioned desk assessment](../wxmcp-assessment.md) in #181; runtime checks unexecuted, defer recommended, owner disposition pending. |
+| `ask(question)` planner | Deterministic workflows and client prompt templates | Deferred to Backlog #180 by the owner; [research strategy](../deferred-capabilities.md) defines re-entry. #179 supplies fixture mechanics only. |
+| wxMCP integration | Direct MCP is the conformance reference | [Versioned desk assessment](../wxmcp-assessment.md) in #181; runtime/adoption work deferred to Backlog by the owner; runtime checks unexecuted. |
 | Protocol DB | No implemented client or published contract used here | Deferred until contracts, access and scope exist. |
 
 ## Approved portable decisions
@@ -91,8 +91,8 @@ silently. Test principal ownership independently of successful load-balancer rou
 | --- | --- | --- |
 | Production identity and hosting | Deferred/off under D4 | Approved issuer/audience, capability mapping, revocation freshness, proxy/network boundary, operator inputs and live integration evidence; security owner decision. |
 | Model/provider and transcript policy | Deferred/off under D5 | Approved model revision, spend and permitted data classes for the entire transcript: caller values, retrieved/licensed metadata, tool results and traces; retention, region, training use and egress policy. |
-| Server-side generated capability | Conditional, not approved | #179 unmet-need evidence, explicit A9.2 written amendment naming capability and owner, output schema and M1.4 annotation decision, then #180 paired shipping evidence and owner decision. |
-| wxMCP experiment/adoption | Desk evaluation only until its gate | Version-specific feasibility and approved effort/spend limits before hosted/adapter work; adoption separately scoped. No license purchase or infrastructure provisioning. |
+| Server-side generated capability | Owner-approved deferral to Backlog #180; absent |  #179 unmet-need evidence, explicit A9.2 written amendment naming capability and owner, output schema and M1.4 annotation decision, then #180 paired shipping evidence and owner decision. |
+| wxMCP experiment/adoption | Owner-approved deferral to Backlog #181; desk assessment delivered |  Version-specific feasibility and approved effort/spend limits before hosted/adapter work; adoption separately scoped. No license purchase or infrastructure provisioning. |
 
 Generated explanations are not a platform capability under current A9.2. A future amendment
 must leave retrieved evidence unchanged and clearly separate generation from retrieval. Any ask
@@ -147,3 +147,8 @@ deferred/off with their unexecuted checks visible. Neither a skip nor a fixture 
 
 The ADR labels AUTH-1, AUTH-2 and AUTH-3 map to executable requirements X-25, X-26 and
 X-27 respectively. This preserves the established P-/X-/tool requirement-ID convention.
+
+On 8 October 2026 the owner directed both conditional capabilities to Backlog and authorized
+Phase 6 completion. The [decision and research strategy](../deferred-capabilities.md) preserves
+their remaining questions; the [assurance matrix](../phase-6-assurance.md) distinguishes tested
+portable behavior from unexecuted production and experimental integrations.

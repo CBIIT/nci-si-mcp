@@ -1,7 +1,8 @@
 # WxMCPServer desk assessment
 
-**Recommendation: defer integration; retain direct MCP. Owner disposition pending on
-[#181](https://github.com/CBIIT/nci-si-mcp/issues/181).** This is a source-based assessment,
+**Owner decision: defer runtime integration and adoption; retain direct MCP.**
+[#181](https://github.com/CBIIT/nci-si-mcp/issues/181) remains open in Backlog; the
+[deferral and research strategy](deferred-capabilities.md) records the entry criteria. This is a source-based assessment,
 not a deployed gateway test, certification or judgment about every IBM offering.
 
 Design credit: the **Semantic Infrastructure (SI) team**, *MCP Architecture*, SI Team
@@ -100,4 +101,4 @@ the candidate endpoint, retaining every failure/unsupported/untested row. Record
 gateway build/configuration, runtime, protocol, release/data and equal request budgets. Report
 all failed/incomplete runs, latency and operational overhead. Do not change fixture expectations
 to make the integration pass. No gateway experiment or platform adoption is delivered by this
-desk assessment; its recommended defer remains pending explicit owner disposition.
+desk assessment. The owner approved deferral on 8 October 2026; runtime work remains in Backlog.
