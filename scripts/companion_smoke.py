@@ -56,6 +56,14 @@ def ready(port: int) -> None:
 
 
 def inspect_boundary(container: str) -> None:
+    installer = docker(
+        "exec",
+        container,
+        "python",
+        "-c",
+        "import importlib.util; print(importlib.util.find_spec('pip'))",
+    )
+    require(installer == "None", "Build-time package installer remains in runtime")
     record = json.loads(docker("inspect", container))[0]
     config = record["HostConfig"]
     require(config["ReadonlyRootfs"], "Companion root is writable")

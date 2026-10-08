@@ -9,6 +9,8 @@ COPY requirements.txt /build/requirements.txt
 RUN /opt/venv/bin/python -m pip install --require-hashes --only-binary=:all: --no-compile --no-cache-dir -r /build/requirements.txt
 COPY wheels/*.whl /build/
 RUN /opt/venv/bin/python -m pip install --no-deps --no-index --no-compile /build/*.whl
+# Package installation belongs to the build stage, not the running administrator.
+RUN /opt/venv/bin/python -m pip uninstall --yes pip
 FROM base AS runtime
 COPY --from=dependencies /opt/venv /opt/venv
 COPY app /app
