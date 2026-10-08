@@ -12,11 +12,35 @@ from contextlib import suppress
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from scripts.operator_process import LIFELINE, run_owned
+from scripts.operator_process import LIFELINE, MAX_REPORT_BYTES, run_owned
 from scripts.operator_worker import clean_environment
 
 
 class OperatorProcessTest(unittest.TestCase):
+    def test_successful_worker_cannot_bypass_report_size_or_symlink_checks(self):
+        for linked, reason in ((False, "output_limit"), (True, "invalid_evidence")):
+            with self.subTest(linked=linked), TemporaryDirectory() as temporary:
+                directory = Path(temporary)
+                bundle = directory / "bundle"
+                bundle.mkdir()
+                private = directory / "private"
+                private.write_text("PRIVATE-CANARY")
+                report = bundle / "report.json"
+                if linked:
+                    report.symlink_to(private)
+                else:
+                    with report.open("wb") as stream:
+                        stream.truncate(MAX_REPORT_BYTES + 1)
+                result = run_owned(
+                    [sys.executable, "-c", "pass"],
+                    directory=directory,
+                    environment=clean_environment(directory),
+                    seconds=5,
+                    cancelled=threading.Event(),
+                )
+                self.assertEqual((result["state"], result["reason"]), ("failed", reason))
+                self.assertEqual(private.read_text(), "PRIVATE-CANARY")
+
     def test_normal_worker_exit_stops_a_descendant_that_ignores_termination(self):
         with TemporaryDirectory() as temporary:
             directory = Path(temporary)

@@ -11,6 +11,20 @@ from scripts.operator_source import head_commit
 
 
 class CompanionContextTest(unittest.TestCase):
+    def test_dependency_lock_drift_does_not_produce_an_image_context(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "container").mkdir()
+            (root / "pdm.lock").write_bytes(Path("pdm.lock").read_bytes())
+            (root / "container/companion-requirements.txt").write_text("stale dependencies")
+            output = root / "context"
+            with (
+                patch("scripts.companion_context.clean_commit", return_value="a" * 40),
+                self.assertRaisesRegex(ValueError, "lock drifted"),
+            ):
+                prepare_context(root, output)
+            self.assertFalse(output.exists())
+
     @staticmethod
     def site(_root, output):
         output.mkdir()

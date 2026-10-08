@@ -111,12 +111,23 @@ def _result_route(store: EvidenceStore, path: str, query: str) -> tuple[int, str
     raise EvidenceNotFoundError("Route not found")
 
 
-def _asset(name: str) -> tuple[int, str, bytes]:
+def _asset(name: str) -> tuple[int, str, str | bytes]:
     if name not in FONT_FILES:
         raise EvidenceNotFoundError("No such asset")
     source = Path(__file__).resolve().parents[1] / "docs/site-assets/fonts" / name
     media = {".ttf": "font/ttf", ".txt": "text/plain", ".json": "application/json"}
-    return 200, media[source.suffix], source.read_bytes()
+    try:
+        content = source.read_bytes()
+    except OSError:
+        return (
+            503,
+            "text/html",
+            page(
+                "Local assets unavailable",
+                "<p>Restore the reviewed typography assets or rebuild the companion image.</p>",
+            ),
+        )
+    return 200, media[source.suffix], content
 
 
 def create_server(
