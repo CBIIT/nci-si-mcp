@@ -2,6 +2,7 @@
 
 import unittest
 
+from scripts.evidence_http import PHASE_LABELS
 from scripts.portal_views import comparison_page, history_page, run_page
 
 from test_evidence_acceptance import project
@@ -112,6 +113,16 @@ class PortalViewsTest(unittest.TestCase):
         self.assertIn('tabindex="0" role="region" aria-label="Benchmark measurements"', html)
         self.assertIn("<caption>Benchmark measurements</caption>", html)
         self.assertIn('<th scope="col">Samples</th>', html)
+
+    def test_http_results_label_client_sessions_and_show_excluded_warmup_errors(self):
+        evidence = benchmark_projection()
+        evidence["phase_labels"] = PHASE_LABELS
+        evidence["cases"][0]["warmups"] = evidence["cases"][0]["warm"]
+        html = run_page(self.record(evidence))
+        self.assertIn("First call in new client session", html)
+        self.assertIn("Warmed client session", html)
+        self.assertIn("Warm-up (excluded from measured phases)", html)
+        self.assertNotIn("<td>cold</td>", html)
 
     def test_unknown_fingerprints_block_comparison(self):
         record = self.record(benchmark_projection())

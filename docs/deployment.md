@@ -31,6 +31,27 @@ UAT/PROD administration remains disabled pending platform integration in #197; t
 documentation site remains anonymous. See the [government website assurance plan](government-site-assurance.md)
 for accessibility and deployment-specific requirements still to verify.
 
+### Disposable validation profiles
+
+```mermaid
+flowchart LR
+    CLI["Fixed local worker profile"] --> Work["Owned temporary workspace<br/>minimal environment · bounded client"]
+    Work -->|"loopback MCP HTTP"| Test["Owned test server<br/>disposable data"]
+    Test -->|"recorded HTTP contracts"| Fixtures["Owned fixture upstreams"]
+    Work --> Report["Private native report<br/>complete or partial"]
+    Remote["Explicit remote read-only probe"] -->|"exact allowlisted HTTPS target<br/>verified TLS · no redirects"| Endpoint["Authorized MCP endpoint<br/>no state hook or restart"]
+    Remote --> Report
+    Report -. "execution envelope and snapshots: #199" .-> Bundle["Validated local run bundle"]
+```
+
+Text alternative: the local worker owns temporary data, the test server and fixture upstreams,
+then reaps them. Remote probes are separate and never restart or prepare the remote service.
+Both produce native reports with honest partial states. The execution wrapper in #199 binds
+these reports to run identity and original snapshots for import. Local process isolation does
+not block OS network egress: the #195 container composition must use a private/no-egress fixture
+network, no published fixture ports, production mounts, inherited secrets or Docker socket.
+See [HTTP benchmark bounds](benchmark.md#bounded-http-measurements).
+
 ## Local stdio
 
 The MCP client launches and owns one server process. No listening HTTP port is required. A

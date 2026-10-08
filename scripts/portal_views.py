@@ -182,13 +182,14 @@ def _benchmark(evidence: dict[str, Any]) -> str:
         '<p><a href="/help#benchmarks">Reading latency, errors and comparison conditions</a></p>'
     )
     rows = []
+    labels = evidence.get("phase_labels", {"cold": "cold", "warm": "warm"})
     for case in evidence["cases"] or []:
-        for phase in ("cold", "warm"):
+        for phase, label in labels.items():
             data = case[phase]
             rows.append(
                 [
                     case["tool"],
-                    phase,
+                    label,
                     len(data["samples"]),
                     data["errors"],
                     data["summary"].get("p50Ms"),
@@ -202,7 +203,7 @@ def _benchmark(evidence: dict[str, Any]) -> str:
     return body + _table(
         "Comparison fingerprint",
         ["Dimension", "Digest (unknown blocks comparison)"],
-        [[key, value] for key, value in evidence["fingerprint"].items()],
+        [[key, evidence["fingerprint"][key]] for key in sorted(evidence["fingerprint"])],
     )
 
 
