@@ -211,7 +211,8 @@ def _case(case: Any, limits: Limits) -> tuple[dict[str, Any], bool]:
     return result, complete
 
 
-def _fingerprint(native: dict[str, Any], record: dict[str, Any], selection: bytes | None) -> dict:
+def http_fingerprint(native: dict[str, Any]) -> dict[str, str | None]:
+    """Comparable planned facts; unattested server and execution conditions remain unknown."""
     measured: dict[str, str | None] = dict.fromkeys(FINGERPRINT_FIELDS)
     for key in ("mode", "transport"):
         measured[key] = fingerprint_value(native[key])
@@ -225,7 +226,7 @@ def _fingerprint(native: dict[str, Any], record: dict[str, Any], selection: byte
     measured["workload"] = fingerprint_value(
         [{key: row[key] for key in ("tool", "arguments", "scenario")} for row in native["cases"]]
     )
-    return _selection(measured, native, record, selection)
+    return measured
 
 
 def _selection(measured: dict, native: dict, record: dict, selection: bytes | None) -> dict:
@@ -255,7 +256,7 @@ def project_http(
         "phase_labels": PHASE_LABELS,
         "inventory_complete": native["complete"] and record["state"] == "completed",
         "selection_verified": selection is not None,
-        "fingerprint": _fingerprint(native, record, selection),
+        "fingerprint": _selection(http_fingerprint(native), native, record, selection),
     }
     result["comparison_ready"] = comparable(result, result)[0]
     return result

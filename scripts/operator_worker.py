@@ -26,13 +26,22 @@ from nci_si_acceptance.suite import unmatched_requests
 FIXTURE_LIMITS = Limits(max_requests=500)
 
 
-def clean_environment(directory: Path) -> dict[str, str]:
+def clean_environment(directory: Path, *, source: Path | None = None) -> dict[str, str]:
     """Keep runtime discovery and locale, with all writable user paths owned by the run."""
+    source = acceptance_http.ROOT if source is None else source
     return {
         key: os.environ[key]
         for key in ("PATH", "LANG", "LC_ALL", "SYSTEMROOT")
         if key in os.environ
-    } | {"HOME": str(directory), "TMPDIR": str(directory)}
+    } | {
+        "HOME": str(directory),
+        "TMPDIR": str(directory),
+        "PYTHONDONTWRITEBYTECODE": "1",
+        # Always derive these paths from this worker's source; never inherit caller PYTHONPATH.
+        "PYTHONPATH": os.pathsep.join(
+            str(source / name) for name in ("src", "acceptance/src", ".")
+        ),
+    }
 
 
 def _ready(process: subprocess.Popen[bytes], port: int) -> None:

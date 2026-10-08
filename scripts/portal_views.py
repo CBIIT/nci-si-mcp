@@ -17,7 +17,8 @@ h2{font-size:1.35rem;margin-top:2rem}h3{font-size:1.1rem}p{max-width:78ch}
 .topbar .shell{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;
 align-items:center}
 .brand{font-size:1.1rem;font-weight:750;letter-spacing:.02em}.topbar a{color:white}
-nav{display:flex;gap:1.5rem}.eyebrow{text-transform:uppercase;font-size:.75rem;letter-spacing:.1em;
+nav{display:flex;gap:1.5rem;flex-wrap:wrap}
+.eyebrow{text-transform:uppercase;font-size:.75rem;letter-spacing:.1em;
 font-weight:750;color:#456477}.skip{position:absolute;left:1rem;top:-8rem;background:white;
 padding:.75rem;z-index:2}.skip:focus{top:.5rem}.notice{background:#e8f1f6;border-left:4px solid
 #34677f;padding:.75rem 1rem;border-radius:0 .4rem .4rem 0;font-size:.9rem;max-width:none}
@@ -62,11 +63,12 @@ def page(title: str, content: str) -> str:
 <title>{text(title)} · NCI SI local validation</title><style>{STYLE}</style></head>
 <body><a class="skip" href="#main">Skip to content</a>
 <header class="topbar"><div class="shell"><span class="brand">NCI SI · Validation</span>
-<nav aria-label="Main"><a href="/">Run history</a><a href="/help">Help &amp; guide</a></nav></div>
+<nav aria-label="Main"><a href="/">Results</a><a href="/jobs">Run checks</a>
+<a href="/help">Help &amp; guide</a></nav></div>
 </header><main id="main" class="shell"><p class="eyebrow">Local evidence workspace</p>
 <h1>{text(title)}</h1><p class="notice">No login is required locally.
 UAT/PROD administration is disabled pending platform integration.</p>
-{content}</main><footer><div class="shell">Prototype · Read-only local results ·
+{content}</main><footer><div class="shell">Prototype · Local validation workspace ·
 <a href="/help#provenance">Understand the evidence</a></div></footer></body></html>"""
 
 

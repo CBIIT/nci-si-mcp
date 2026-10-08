@@ -16,7 +16,8 @@ Open `http://127.0.0.1:8081/`; Ctrl+C closes the listener. `--port` changes the 
 there is no public bind option. Results have `no-store` responses, host checks and no external
 scripts or analytics. Tables, filters and comparisons work without JavaScript.
 
-The navy, teal and slate interface uses white cards to distinguish the latest attempt from the
+The navy (`#12364a`), teal (`#005e66`) and pale slate (`#f4f7fa`) interface uses white cards to
+distinguish the latest attempt from the
 latest complete evidence. Amber statuses identify interrupted, cancelled or failed work with
 words as well as color. Choose **View run** to inspect a record. **Help & guide** is available
 on every page; contextual links beside results explain status, filters, verdicts, provenance,
@@ -44,8 +45,39 @@ pdm run portal legacy docs/evidence/phase-5/benchmark-fixture.json --kind benchm
 ```
 
 Legacy import records a digest and retains the bytes locally; it does not interpret PASS or
-latency claims. #199 supplies new execution envelopes. Browser uploads and run controls are not
-enabled in this read-only stage.
+latency claims. Browser uploads are not enabled.
+
+## Run and cancel checks
+
+Choose **Run checks**, a validation profile, then **Start validation run**. The default profiles
+run HTTP acceptance checks or representative HTTP benchmarks against disposable fixture services.
+One worker runs at a time, with at most two queued jobs. Acceptance workers have a **900-second**
+deadline; benchmarks have **240 seconds**, including setup. Worker console output is discarded;
+reports are bounded to 16 MiB and complete evidence bundles to 24 MiB.
+
+Each job archives the committed checkout source and captures the original inventory before
+execution. **Uncommitted edits are excluded.** The installed Python environment supplies runtime
+dependencies; no installation or arbitrary command is accepted through the dashboard. Workers
+use separate fixture indexes and do not reconfigure the serving MCP.
+
+Use **Refresh status** to inspect progress and **Cancel this run** to stop queued or owned work.
+Available reports remain evidence, including failures and partial results. Missing results are
+unknown. Cancellation does not establish that an in-flight remote request stopped. After a
+restart, abandoned jobs are marked interrupted and never automatically retried. Repeating the
+same retained form submission returns its existing job; a fresh form creates a new attempt.
+
+Remote probes require explicit local startup configuration:
+
+```bash
+pdm run portal serve --allow-remote --remote-target https://approved.example/mcp
+```
+
+Replace the example with the exact approved HTTPS endpoint. If needed, provide its authorization
+header through `NCI_SI_BENCHMARK_AUTHORIZATION`, never through a URL or command argument. It is
+passed only to the explicitly enabled remote worker, not fixture workers or inventory collection.
+The browser cannot supply targets, credentials, commands or state-changing hooks. This enables
+a local operator to probe that endpoint; it does not enable deployed UAT/PROD administration.
+See the [profile limits](benchmark.md#bounded-http-measurements) before measuring a remote service.
 
 ## Interpret results
 
@@ -64,8 +96,7 @@ enabled in this read-only stage.
 HTTP benchmark views label first calls in new client sessions, warmed calls and warm-ups
 separately. A new session does not establish a cold server. Client timeouts retain their elapsed
 time and error status with an unknown result size. See [bounded HTTP profiles](benchmark.md#bounded-http-measurements)
-for the fixed local commands, remote opt-in and measurement limits. Browser execution controls
-remain the next issue, #199.
+for the fixed local commands, remote opt-in and measurement limits.
 
 ## Storage and retention
 
@@ -74,6 +105,13 @@ Use `--store` before the subcommand to choose another local file. Retention defa
 terminal records**; `--retention` accepts 1–1000. New successful imports atomically prune oldest
 local sequences; failed imports leave history unchanged. Pruning does not run merely on opening
 a store. ID-conflict checks cover retained records. Read failures report unavailable, never empty.
+
+The sibling `evidence.jobs/` directory holds the durable queue and bounded job workspaces.
+An exclusive process lock refuses a second controller over the same workspace. Job history uses
+submission sequence; imported results use import sequence. The same retention setting bounds
+terminal jobs independently of result imports. Completed source snapshots are removed after
+measurement; retained original inventories, bindings and reports support reproduction until
+pruned. Ctrl+C stops owned workers and releases the lock. A process failure is not a PASS result.
 
 Original bytes are retained for reproducibility and can contain private operational details.
 Do not publish, commit or copy this store into the public documentation artifact. An encoded

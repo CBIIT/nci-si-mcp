@@ -13,6 +13,25 @@ from scripts.operator_worker import _server, clean_environment, fixture_benchmar
 
 
 class OperatorEnvironmentTest(unittest.TestCase):
+    def test_child_imports_come_from_the_owned_source_root(self):
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            package = root / "src/nci_si_mcp"
+            package.mkdir(parents=True)
+            (package / "__init__.py").write_text("SOURCE_MARKER = 'owned snapshot'\n")
+            with patch("scripts.operator_worker.acceptance_http.ROOT", root):
+                environment = clean_environment(root)
+            result = subprocess.run(
+                [sys.executable, "-c", "import nci_si_mcp; print(nci_si_mcp.SOURCE_MARKER)"],
+                env=environment,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=10,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.strip(), "owned snapshot")
+
     def test_readiness_timeout_reaps_owned_child(self):
         spawn = subprocess.Popen
         children = []
@@ -112,6 +131,6 @@ class OperatorEnvironmentTest(unittest.TestCase):
         self.assertEqual(environment["LANG"], "en_US.UTF-8")
         self.assertNotIn("PRIVATE-CANARY", str(environment))
         self.assertNotIn("HTTPS_PROXY", environment)
-        self.assertNotIn("PYTHONPATH", environment)
+        self.assertNotIn("/untrusted/imports", environment.get("PYTHONPATH", ""))
         self.assertNotIn("SSH_AUTH_SOCK", environment)
         self.assertNotIn("NCI_SI_DATA_DIR", environment)

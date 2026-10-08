@@ -11,8 +11,8 @@ and assets. Labels identify protocols and storage permissions.
 Public documentation and local validation use separate listeners and directories. The
 [documentation builder](documentation-site.md) publishes only reviewed pages and assets;
 the [validation dashboard](local-validation.md) reads locally imported evidence. Both are
-accessible without login locally. The dashboard currently supports read-only browsing;
-run controls and configuration proposals are later Phase 7 work. It never reads the serving
+accessible without login locally. The dashboard provides bounded run/cancel controls;
+configuration proposals are later Phase 7 work. It never reads the serving
 MCP index or fetches upstream data while rendering results.
 
 ```mermaid
@@ -22,11 +22,16 @@ flowchart LR
     Pages["Allowlisted pages and assets"] -->|"build"| Static
     Import["CLI: validate original run bundle"] --> Store[("Private local evidence SQLite")]
     Portal -->|"read safe projections"| Store
+    Portal -->|"same-origin fixed run or cancel"| Queue["Durable local queue<br/>one worker · two waiting"]
+    Queue --> Worker["Owned disposable worker<br/>committed source snapshot"]
+    Worker -->|"bound report + original inventory"| Import
 ```
 
 Text alternative: a browser reads documentation from a static preview and validation results
 from a separate loopback dashboard. A CLI validates original evidence before storing it locally;
-only safe projections reach dashboard pages. The documentation build has no path to this store.
+only safe projections reach dashboard pages. Fixed run controls use a durable queue and disposable
+workers; source snapshots and original inventory accompany measured results. The documentation
+build has no path to this store.
 UAT/PROD administration remains disabled pending platform integration in #197; the public
 documentation site remains anonymous. See the [government website assurance plan](government-site-assurance.md)
 for accessibility and deployment-specific requirements still to verify.
@@ -41,12 +46,12 @@ flowchart LR
     Work --> Report["Private native report<br/>complete or partial"]
     Remote["Explicit remote read-only probe"] -->|"exact allowlisted HTTPS target<br/>verified TLS · no redirects"| Endpoint["Authorized MCP endpoint<br/>no state hook or restart"]
     Remote --> Report
-    Report -. "execution envelope and snapshots: #199" .-> Bundle["Validated local run bundle"]
+    Report -->|"execution envelope and original snapshots"| Bundle["Validated local run bundle"]
 ```
 
 Text alternative: the local worker owns temporary data, the test server and fixture upstreams,
 then reaps them. Remote probes are separate and never restart or prepare the remote service.
-Both produce native reports with honest partial states. The execution wrapper in #199 binds
+Both produce native reports with honest partial states. The local execution wrapper binds
 these reports to run identity and original snapshots for import. Local process isolation does
 not block OS network egress: the #195 container composition must use a private/no-egress fixture
 network, no published fixture ports, production mounts, inherited secrets or Docker socket.

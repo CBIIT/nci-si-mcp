@@ -81,6 +81,18 @@ def _group_reason(error: BaseExceptionGroup) -> str | None:
     return reasons[0] if reasons else None
 
 
+def conditions() -> dict[str, Any]:
+    """The same planned measurement definitions bind snapshots and resulting reports."""
+    return {
+        "cold": "first measured call in a new client session; not a cold server",
+        "warm": "same client session after the recorded warm-up calls",
+        "timing": "tool-call duration; setup excluded from latency, included in budget",
+        "concurrency": 1,
+        "remoteTermination": "not established by client cancellation",
+        "serverTelemetry": "unknown; no audit-fetch endpoint or trusted telemetry source",
+    }
+
+
 class _Campaign:
     def __init__(
         self,
@@ -109,14 +121,7 @@ class _Campaign:
             "limits": asdict(budget.limits),
             "targetSha256": hashlib.sha256(target.encode()).hexdigest(),
             "expectedCases": [case["tool"] for case in cases],
-            "conditions": {
-                "cold": "first measured call in a new client session; not a cold server",
-                "warm": "same client session after the recorded warm-up calls",
-                "timing": "tool-call duration; setup excluded from latency, included in budget",
-                "concurrency": 1,
-                "remoteTermination": "not established by client cancellation",
-                "serverTelemetry": "unknown; no audit-fetch endpoint or trusted telemetry source",
-            },
+            "conditions": conditions(),
             "cases": [
                 case
                 | {

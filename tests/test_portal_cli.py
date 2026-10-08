@@ -4,13 +4,16 @@ import io
 import json
 import subprocess
 import sys
+import threading
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
+from http.client import HTTPConnection
+from http.server import HTTPServer
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from scripts.portal import main
+from scripts.portal import _parser, _remote, main
 from scripts.portal_http import create_server
 from scripts.portal_store import EvidenceStore
 
@@ -18,6 +21,57 @@ from test_portal_store import run_bundle
 
 
 class PortalCLITest(unittest.TestCase):
+    def test_remote_profile_requires_both_explicit_opt_in_and_valid_exact_target(self):
+        parser = _parser()
+        for options in (
+            ["--allow-remote"],
+            ["--remote-target", "https://approved.example/mcp"],
+            ["--allow-remote", "--remote-target", "https://PRIVATE-CANARY@example/mcp"],
+        ):
+            with self.subTest(options=options), redirect_stderr(io.StringIO()) as errors:
+                args = parser.parse_args(["serve", *options])
+                with self.assertRaises(SystemExit) as raised:
+                    _remote(parser, args)
+                self.assertEqual(raised.exception.code, 2)
+                self.assertNotIn("PRIVATE-CANARY", errors.getvalue())
+        args = parser.parse_args(
+            ["serve", "--allow-remote", "--remote-target", "https://approved.example/mcp"]
+        )
+        with patch.dict("os.environ", {"NCI_SI_BENCHMARK_AUTHORIZATION": "Bearer PRIVATE-CANARY"}):
+            probe = _remote(parser, args)
+        self.assertEqual(probe.target, "https://approved.example/mcp")
+        self.assertEqual(probe.authorization, "Bearer PRIVATE-CANARY")
+        self.assertNotIn("PRIVATE-CANARY", repr(probe))
+
+    def test_serve_enables_fixed_controls_and_releases_workspace_on_interrupt(self):
+        with TemporaryDirectory() as temporary:
+            database = Path(temporary) / "history.sqlite"
+            observed = []
+
+            def inspect(server):
+                thread = threading.Thread(target=server.handle_request)
+                thread.start()
+                connection = HTTPConnection("127.0.0.1", server.server_port, timeout=3)
+                try:
+                    connection.request("GET", "/jobs")
+                    response = connection.getresponse()
+                    observed.append((response.status, response.read().decode()))
+                finally:
+                    connection.close()
+                    thread.join(timeout=3)
+                raise KeyboardInterrupt
+
+            with (
+                patch("sys.argv", ["portal", "--store", str(database), "serve", "--port", "0"]),
+                patch.object(HTTPServer, "serve_forever", inspect),
+                redirect_stdout(io.StringIO()),
+            ):
+                main()
+                main()
+            self.assertEqual([status for status, _ in observed], [200, 200])
+            self.assertIn("benchmark-http-fixture", observed[0][1])
+            self.assertNotIn("benchmark-http-remote", observed[0][1])
+
     def test_serve_command_closes_its_listener_on_local_interrupt(self):
         with TemporaryDirectory() as temporary:
             database = Path(temporary) / "history.sqlite"

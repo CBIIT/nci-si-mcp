@@ -1,4 +1,4 @@
-"""Read-only loopback evidence companion; UAT/PROD platform integration is not enabled."""
+"""Loopback evidence companion; UAT/PROD platform integration is not enabled."""
 
 from __future__ import annotations
 
@@ -6,9 +6,12 @@ import re
 import sqlite3
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import cast
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import SplitResult, parse_qs, urlsplit
 
+from scripts.portal_actions import form_length, perform, same_origin
 from scripts.portal_help import help_page
+from scripts.portal_job_views import job_page, jobs_page
+from scripts.portal_jobs import JobConflictError, JobController, QueueFullError
 from scripts.portal_store import EvidenceNotFoundError, EvidenceStore
 from scripts.portal_views import comparison_page, history_page, page, run_page
 
@@ -25,17 +28,55 @@ def _query(query: str, allowed: set[str]) -> dict[str, str]:
     return {key: items[0] for key, items in values.items()}
 
 
-def _route(store: EvidenceStore, target: str) -> tuple[int, str, str]:
+def _target(target: str) -> SplitResult:
     parts = urlsplit(target)
     if parts.scheme or parts.netloc or len(target) > MAX_TARGET:
         raise ValueError("Invalid local request target")
+    return parts
+
+
+def _route(
+    store: EvidenceStore, target: str, jobs: JobController | None = None
+) -> tuple[int, str, str]:
+    parts = _target(target)
     if parts.path == "/health":
         return 200, "application/json", '{"status":"ok","deployment":"local-only"}'
     if parts.path == "/":
         return 200, "text/html", history_page(store.history())
     if parts.path == "/help":
         return 200, "text/html", help_page()
+    if parts.path.startswith("/jobs"):
+        if parts.query:
+            raise ValueError("Job routes do not take query parameters")
+        return _job_route(store, jobs, parts.path)
     return _result_route(store, parts.path, parts.query)
+
+
+def _job_route(store: EvidenceStore, jobs: JobController | None, path: str) -> tuple[int, str, str]:
+    if jobs is None:
+        return (
+            503,
+            "text/html",
+            page("Run controls unavailable", "<p>This listener is read-only.</p>"),
+        )
+    if path == "/jobs":
+        return 200, "text/html", jobs_page(jobs.history(), jobs.profiles)
+    match = re.fullmatch(r"/jobs/([a-f0-9]{32})", path)
+    if match is None:
+        raise EvidenceNotFoundError("No such job route")
+    try:
+        row = jobs.get(match[1])
+    except KeyError:
+        raise EvidenceNotFoundError("No such job") from None
+    return 200, "text/html", job_page(row, has_evidence=_has_evidence(store, match[1]))
+
+
+def _has_evidence(store: EvidenceStore, run_id: str) -> bool:
+    try:
+        store.get(run_id)
+    except EvidenceNotFoundError:
+        return False
+    return True
 
 
 def _result_route(store: EvidenceStore, path: str, query: str) -> tuple[int, str, str]:
@@ -54,12 +95,17 @@ def _result_route(store: EvidenceStore, path: str, query: str) -> tuple[int, str
     raise EvidenceNotFoundError("Route not found")
 
 
-def create_server(store: EvidenceStore, *, port: int = 8081) -> HTTPServer:
+def create_server(
+    store: EvidenceStore,
+    *,
+    port: int = 8081,
+    jobs: JobController | None = None,
+) -> HTTPServer:
     """Bind only the IPv4 loopback; deployment exposure is a later platform decision."""
-    return HTTPServer(("127.0.0.1", port), _handler(store))
+    return HTTPServer(("127.0.0.1", port), _handler(store, jobs))
 
 
-def _handler(store: EvidenceStore) -> type[BaseHTTPRequestHandler]:
+def _handler(store: EvidenceStore, jobs: JobController | None) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         timeout = 5
 
@@ -68,7 +114,7 @@ def _handler(store: EvidenceStore) -> type[BaseHTTPRequestHandler]:
                 self._respond(403, "text/html", page("Forbidden", "<p>Local host required.</p>"))
                 return
             try:
-                status, media, content = _route(store, self.path)
+                status, media, content = _route(store, self.path, jobs)
             except EvidenceNotFoundError:
                 status, media, content = (
                     404,
@@ -95,17 +141,55 @@ def _handler(store: EvidenceStore) -> type[BaseHTTPRequestHandler]:
             return len(hosts) == 1 and hosts[0] in {f"127.0.0.1:{port}", f"localhost:{port}"}
 
         def do_POST(self) -> None:
+            if jobs is not None:
+                self._mutate(jobs)
+                return
             self._respond(
                 405, "text/html", page("Read-only", "<p>Run controls are not enabled.</p>")
             )
 
-        def _respond(self, status: int, media: str, content: str) -> None:
+        def _mutate(self, controller: JobController) -> None:
+            port = cast("HTTPServer", self.server).server_port
+            if not same_origin(self.headers, port):
+                self._respond(
+                    403, "text/html", page("Forbidden", "<p>Same-origin local form required.</p>")
+                )
+                return
+            try:
+                length = form_length(self.headers)
+                raw = self.rfile.read(length)
+                if len(raw) != length:
+                    raise ValueError("Incomplete form")
+                location = perform(controller, self.path, raw)
+            except (ValueError, KeyError, OSError, QueueFullError) as error:
+                self._respond(
+                    _action_status(error),
+                    "text/html",
+                    page(
+                        "Run request not accepted",
+                        "<p>Check the profile, queue and local storage. "
+                        '<a href="/jobs">Return to run controls</a>.</p>',
+                    ),
+                )
+                return
+            self._respond(
+                303,
+                "text/html",
+                page("Run status", "<p>Opening the recorded run.</p>"),
+                location=location,
+            )
+
+        def _respond(
+            self, status: int, media: str, content: str, *, location: str | None = None
+        ) -> None:
             raw = content.encode()
             self.send_response(status)
             self.send_header("Content-Type", media + "; charset=utf-8")
             self.send_header("Content-Length", str(len(raw)))
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
+            if location is not None:
+                self.send_header("Location", location)
             self.send_header(
                 "Content-Security-Policy",
                 "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; "
@@ -119,3 +203,8 @@ def _handler(store: EvidenceStore) -> type[BaseHTTPRequestHandler]:
             return
 
     return Handler
+
+
+def _action_status(error: Exception) -> int:
+    codes = ((QueueFullError, 429), (JobConflictError, 409), (KeyError, 404), (OSError, 503))
+    return next((code for kind, code in codes if isinstance(error, kind)), 400)
