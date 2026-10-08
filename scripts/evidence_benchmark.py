@@ -164,6 +164,8 @@ def _selection_fingerprint(
     fields(manifest, {"schema", "cases", "fingerprint"})
     require(type(manifest["schema"]) is int and manifest["schema"] == 1)
     _selected_cases(manifest["cases"], native)
+    # An interrupted report contains completed cases only; the wrapper retains the full plan.
+    measured["workload"] = fingerprint_value(manifest["cases"])
     fingerprint = manifest["fingerprint"]
     fields(fingerprint, FINGERPRINT_FIELDS)
     for key, value in fingerprint.items():

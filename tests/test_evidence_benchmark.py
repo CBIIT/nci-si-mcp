@@ -67,16 +67,20 @@ def project(native=None, **changes):
     return project_benchmark(json.dumps(record).encode(), raw)
 
 
-def selected_projection(native=None, change_selection=None):
-    native = benchmark() if native is None else native
+def selection_manifest(native):
     fingerprint = project(native)["fingerprint"]
-    manifest = {
+    return {
         "schema": 1,
         "cases": [
             {key: row[key] for key in ("tool", "arguments", "scenario")} for row in native["cases"]
         ],
         "fingerprint": {key: value or "a" * 64 for key, value in fingerprint.items()},
     }
+
+
+def selected_projection(native=None, change_selection=None, selected_from=None):
+    native = benchmark() if native is None else native
+    manifest = selection_manifest(native if selected_from is None else selected_from)
     if change_selection:
         change_selection(manifest)
     selection = json.dumps(manifest).encode()
@@ -90,6 +94,15 @@ def selected_projection(native=None, change_selection=None):
 
 
 class BenchmarkProjectionTest(unittest.TestCase):
+    def test_partial_report_keeps_the_full_independent_selection_without_faking_completion(self):
+        native = benchmark()
+        native.update(cases=[], complete=False)
+        result = selected_projection(native, selected_from=benchmark())
+        self.assertTrue(result["selection_verified"])
+        self.assertFalse(result["inventory_complete"])
+        self.assertEqual(result["missing"], ["get_concept"])
+        self.assertFalse(result["comparison_ready"])
+
     def test_committed_native_benchmarks_preserve_all_cases_without_promoting_provenance(self):
         directory = Path(__file__).resolve().parents[1] / "docs/evidence/phase-5"
         for mode in ("fixture", "live"):

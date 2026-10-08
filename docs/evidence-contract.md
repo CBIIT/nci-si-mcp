@@ -116,7 +116,9 @@ be present with a SHA-256 value or null. Values are digests of compact, sorted-k
 `hardware`, `environment`, `placement`, `warmup`, `samples`, `concurrency`, `timeouts`.
 
 The adapter independently recomputes mode, transport, conditions/definitions, observed workload
-and repetitions. Other facts require the wrapper's actual knowledge. Use null when unknown;
+and repetitions. For a partial report it checks each observed case against the full independent
+selection and fingerprints that plan; it never mistakes missing cases for completion.
+Other facts require the wrapper's actual knowledge. Use null when unknown;
 do not hash "unknown" to manufacture comparability. A known absence (for example, no index)
 is distinct from unknown and can be recorded by the wrapper. Without the independent selection,
 `selection_verified` and `comparison_ready` are false. `comparable` lists differing/unknown
