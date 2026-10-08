@@ -47,7 +47,7 @@ inventory. Failed requires a known nonzero exit, with or without a report. Cance
 may retain a partial report and unknown exit. Unavailable has no report. Client cancellation
 never proves remote server termination. An absent report must not become zero tests passed.
 
-The envelope and native acceptance/stdio benchmark projection libraries are implemented. They
+The envelope and native acceptance/stdio/HTTP benchmark projection libraries are implemented. They
 introduce no MCP endpoint or authentication service. Dashboard import/storage is #193; the
 execution wrapper and process lifecycle are #199. Historical metadata remains unknown rather
 than being synthesized from upload time. A historical report without a recorded envelope and
@@ -96,13 +96,20 @@ remain visible. With no report, counts and tools are null, not invented zeroes.
 
 ### Benchmark projection and comparisons
 
-`scripts.evidence_benchmark.project_benchmark` supports the existing native **stdio** format.
+`scripts.evidence_benchmark.project_benchmark` supports the existing native **stdio** format
+and dispatches explicitly versioned **HTTP** reports to `scripts.evidence_http`.
 It recomputes every cold/warm summary from finite nonnegative samples, checks error flags against
 response codes, repetitions, unique expected cases and completion. Both successful and failed
 calls contribute to nearest-rank p50/p95. Errors, sample counts and timing samples are retained;
 arguments, arbitrary labels, release text and machine names are not displayed. No-report runs
 have null cases, not a zero-error result. Measurements are bounded to signed 64-bit magnitudes.
-HTTP evidence needs its own explicit format in #194; relabelling stdio evidence as HTTP fails.
+Relabelling stdio evidence as HTTP fails. HTTP schema 1 requires campaign limits, termination
+state, admitted HTTP request count, target digest, ordered expected cases and three phases:
+first call in a new client session, warmed calls and separately recorded warm-ups. Limits,
+summary arithmetic, unique correlations, phase counts and request totals are checked. A client
+failure can have unknown result size; successful replies cannot. Server attempts/cache/commit/
+replica remain null. Neither native completion nor a completed envelope can conceal missing
+measurements. Target URL, case arguments and raw response content are not projected.
 Older benchmark files without `expectedCases` (including the committed Phase 5 interrupted
 example) are not upgraded by guessing the missing inventory; #193 presents them as unverified
 historical imports. Regression tests also exercise both complete committed Phase 5 reports.

@@ -2,13 +2,21 @@
 
 from __future__ import annotations
 
-import json
 import re
 from typing import Any, get_args
 
 from scripts.benchmark import summarize
 from scripts.evidence_acceptance import digest, fields, identifier, require
+from scripts.evidence_benchmark_common import (
+    FINGERPRINT_FIELDS,
+    MAX_MEASUREMENT,
+    _fingerprint_dimension,
+    _selected_cases,
+    comparable,
+    fingerprint_value,
+)
 from scripts.evidence_envelope import decode_json, validate_envelope
+from scripts.evidence_http import project_http
 
 from nci_si_mcp.errors import ErrorCode
 
@@ -35,30 +43,7 @@ _SAMPLE_FIELDS = {
     "error",
     "release",
 }
-FINGERPRINT_FIELDS = {
-    "mode",
-    "transport",
-    "definitions",
-    "workload",
-    "profile",
-    "release",
-    "index",
-    "model",
-    "hardware",
-    "environment",
-    "placement",
-    "warmup",
-    "samples",
-    "concurrency",
-    "timeouts",
-}
 MAX_REPETITIONS = 10_000
-MAX_MEASUREMENT = 2**63 - 1
-
-
-def fingerprint_value(value: Any) -> str:
-    """Fingerprint structured values; never expose raw arguments, URLs or machine labels."""
-    return digest(json.dumps(value, sort_keys=True, separators=(",", ":")).encode())
 
 
 def _header(report: Any) -> None:
@@ -173,28 +158,6 @@ def _selection_fingerprint(
     return fingerprint
 
 
-def _fingerprint_dimension(value: Any, measured: str | None) -> None:
-    if value is not None:
-        require(isinstance(value, str) and re.fullmatch(r"[a-f0-9]{64}", value) is not None)
-    if measured is not None:
-        require(value == measured)
-
-
-def _selected_cases(cases: Any, native: dict[str, Any]) -> None:
-    require(isinstance(cases, list))
-    for case in cases:
-        fields(case, {"tool", "arguments", "scenario"})
-        identifier(case["tool"])
-        require(isinstance(case["arguments"], dict))
-        require(case["scenario"] is None or isinstance(case["scenario"], str))
-    require([case["tool"] for case in cases] == native["expectedCases"])
-    selected = {case["tool"]: case for case in cases}
-    for row in native["cases"]:
-        require(
-            {key: row[key] for key in ("tool", "arguments", "scenario")} == selected[row["tool"]]
-        )
-
-
 def project_benchmark(
     envelope: bytes,
     report: bytes | None,
@@ -220,6 +183,8 @@ def project_benchmark(
             "fingerprint": dict.fromkeys(FINGERPRINT_FIELDS),
         }
     native = decode_json(report)
+    if isinstance(native, dict) and native.get("transport") == "streamable-http":
+        return project_http(record, native, selection)
     _header(native)
     cases, missing = _cases(native)
     result = record | {
@@ -233,22 +198,3 @@ def project_benchmark(
     }
     result["comparison_ready"] = comparable(result, result)[0]
     return result
-
-
-def _comparison_status(left: dict[str, Any], right: dict[str, Any]) -> list[str]:
-    reasons = []
-    if not (left["selection_verified"] and right["selection_verified"]):
-        reasons.append("unverified-selection")
-    if not (left["inventory_complete"] and right["inventory_complete"]):
-        reasons.append("incomplete")
-    return reasons
-
-
-def comparable(left: dict[str, Any], right: dict[str, Any]) -> tuple[bool, list[str]]:
-    """Compare validated projections; unknown or differing dimensions forbid speedup claims."""
-    reasons = _comparison_status(left, right)
-    for key in sorted(FINGERPRINT_FIELDS):
-        value = left["fingerprint"].get(key)
-        if value is None or value != right["fingerprint"].get(key):
-            reasons.append(key)
-    return not reasons, reasons

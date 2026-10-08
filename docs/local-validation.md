@@ -61,6 +61,12 @@ enabled in this read-only stage.
   and incomplete selections block comparison. Matching imported fingerprints still do not
   authenticate origin or establish an SLO/capacity claim.
 
+HTTP benchmark views label first calls in new client sessions, warmed calls and warm-ups
+separately. A new session does not establish a cold server. Client timeouts retain their elapsed
+time and error status with an unknown result size. See [bounded HTTP profiles](benchmark.md#bounded-http-measurements)
+for the fixed local commands, remote opt-in and measurement limits. Browser execution controls
+remain the next issue, #199.
+
 ## Storage and retention
 
 The default `.nci-si-portal/evidence.sqlite` is Git-ignored and separate from the MCP index.

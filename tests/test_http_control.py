@@ -19,6 +19,22 @@ from scripts import acceptance_http
 
 
 class HTTPControlTest(unittest.TestCase):
+    def test_preparation_uses_supplied_environment_without_inherited_secrets(self):
+        observed = []
+
+        def prepared(_command, *, env, **_options):
+            observed.append(env)
+
+        with (
+            TemporaryDirectory() as directory,
+            patch.dict(os.environ, {"AWS_SECRET_ACCESS_KEY": "PRIVATE-CANARY"}),
+            patch.object(acceptance_http.subprocess, "run", prepared),
+        ):
+            acceptance_http.prepare(Path(directory), environment={"HOME": directory})
+        self.assertEqual(observed[0]["HOME"], directory)
+        self.assertNotIn("PRIVATE-CANARY", str(observed))
+        self.assertTrue(observed[0]["NCI_SI_EVS_BASE_URL"].startswith("http://127.0.0.1:"))
+
     def test_unrecorded_preparation_request_cannot_be_treated_as_prepared(self):
         def prepare_with_an_unrecorded_request(_command, *, env, **_options):
             try:
@@ -39,8 +55,8 @@ class HTTPControlTest(unittest.TestCase):
         processes = []
         constructor = acceptance_http.ServerProcess
 
-        def opened(directory, port):
-            process = constructor(directory, port)
+        def opened(directory, port, **options):
+            process = constructor(directory, port, **options)
             processes.append(process)
             return process
 

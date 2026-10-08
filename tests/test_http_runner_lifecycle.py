@@ -62,6 +62,33 @@ class HTTPRunnerLifecycleTest(unittest.TestCase):
         self.assertEqual(self.run_with(incomplete, 0), 1)
         self.assertEqual(self.run_with(self.valid, 0), 0)
 
+    def test_operator_report_and_environment_are_isolated_from_default_ci_output(self):
+        private = self.directory / "operator.json"
+        self.report.write_text("Keep existing engineering result")
+        observed = []
+
+        def launch(command, **options):
+            observed.append((command, options["env"]))
+            private.write_text(json.dumps(self.valid))
+            return Mock(wait=Mock(return_value=0), poll=Mock(return_value=0))
+
+        with (
+            patch.object(runner.subprocess, "Popen", side_effect=launch),
+            redirect_stdout(io.StringIO()),
+        ):
+            result = runner.run_suite(
+                8000,
+                self.directory / "control",
+                report=private,
+                environment={"PATH": "controlled-path", "HOME": "isolated-home"},
+            )
+        self.assertEqual(result, 0)
+        self.assertEqual(self.report.read_text(), "Keep existing engineering result")
+        command, environment = observed[0]
+        self.assertIn("--report=" + str(private), command)
+        self.assertEqual(environment["HOME"], "isolated-home")
+        self.assertNotIn("AWS_SECRET_ACCESS_KEY", environment)
+
     def test_cancellation_reaps_the_owned_suite_process_before_propagating(self):
         child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(300)"])
         wait = child.wait

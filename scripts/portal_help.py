@@ -65,6 +65,10 @@ calculation. Few samples cannot support a reliable tail-latency or capacity clai
 <p>Cold and warm refer to the report's measurement procedure. A new HTTP session alone does not
 establish that a remote server, model or cache was cold. Client-side measurements cannot reveal
 unknown server-side activity.</p>
+<p>HTTP reports label the first call in a new client session separately from the warmed client
+session. Warm-up rows show their own samples and errors; they are excluded from the two measured
+phases. A client timeout remains a failed measured attempt with unknown result size, not a
+successful fast response.</p>
 <p>Comparison requires matching recorded conditions: transport, workload, environment, model,
 release/index, sample policy and other fingerprint dimensions. Unknown or mismatched dimensions
 block comparison and list the reason. Matching digests establish consistency of recorded values,
