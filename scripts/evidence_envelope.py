@@ -57,16 +57,15 @@ def _constant(_value: str) -> NoReturn:
     _reject()
 
 
-def _decode(raw: bytes) -> dict[str, Any]:
-    if len(raw) > MAX_ENVELOPE_BYTES:
+def decode_json(raw: bytes, maximum: int = MAX_REPORT_BYTES) -> Any:
+    """Read bounded strict JSON without echoing report content on parse failure."""
+    if len(raw) > maximum:
         _reject()
     try:
         record = json.loads(
             raw.decode("utf-8"), object_pairs_hook=_object, parse_constant=_constant
         )
     except ValueError, UnicodeError, RecursionError:
-        _reject()
-    if not isinstance(record, dict) or set(record) != _FIELDS:
         _reject()
     return record
 
@@ -143,7 +142,9 @@ def validate_envelope(raw: bytes, report: bytes | None) -> dict[str, Any]:
     bytes. Matching hashes establish binding only. A completed process is not a passing test run.
     Report schemas and catalogue/selection digests need their own validation before comparison.
     """
-    record = _decode(raw)
+    record = decode_json(raw, MAX_ENVELOPE_BYTES)
+    if not isinstance(record, dict) or set(record) != _FIELDS:
+        _reject()
     _classification(record)
     _identity(record)
     _report(record, report)

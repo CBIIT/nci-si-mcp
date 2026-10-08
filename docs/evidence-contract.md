@@ -46,15 +46,16 @@ inventory. Failed requires a known nonzero exit, with or without a report. Cance
 may retain a partial report and unknown exit. Unavailable has no report. Client cancellation
 never proves remote server termination. An absent report must not become zero tests passed.
 
-The current first implementation slice validates structure, byte limits, timestamps, termination
-consistency and report digest binding only. Safe report projections, actual catalogue/digest
-validation, wrapper generation, persistence and comparison remain pending in #191 and dependent
-issues. No CLI exporter, website, access service or deployed endpoint is introduced by this slice.
-Historical metadata remains unknown rather than being synthesized from upload time.
+The envelope and native acceptance/stdio benchmark projection libraries are implemented. They
+introduce no MCP endpoint or authentication service. Dashboard import/storage is #193; the
+execution wrapper and process lifecycle are #199. Historical metadata remains unknown rather
+than being synthesized from upload time. A historical report without a recorded envelope and
+original snapshots must be displayed as an unverified import, not passed to these validators
+with invented execution facts.
 
 ## Projection and comparison requirements
 
-Adapters will validate native report schemas before projecting summaries, preserving harness
+Adapters validate native report schemas before projecting summaries, preserving harness
 outcomes, selected/missing/unrun cases and original inventory/story/expectation identity.
 No raw exceptions, unmatched URLs, tool bodies or secrets are copied. A plausible report from
 an interrupted process never becomes a complete run.
@@ -64,6 +65,94 @@ Do not invent zero attempts or cold-cache state. Compare fingerprints covering m
 definitions, workload/profile, release/index/model, hardware/environment/client placement and
 warm-up/sample/concurrency/timeouts. Unknown or incompatible data blocks dependent claims.
 Show errors/sample counts with latency; this is not automatically SLO or capacity evidence.
+
+### Acceptance projection
+
+`scripts.evidence_acceptance.project_acceptance` takes the envelope, native report bytes (or
+null), and four original UTF-8 JSON snapshots. Each snapshot is bounded to 16 MiB and its exact
+bytes must match its envelope digest. Formatting changes therefore change the binding.
+
+| Snapshot | Contents |
+| --- | --- |
+| `catalogue` | `schema: 1`, `suite_digest`, original `tools` map of names to groups, and `cases` map of exact parametrized node IDs to `{tool, gate}` |
+| `stories` | Every original catalogue node ID mapped to its original story ID; narrative text stays in the versioned documentation |
+| `expectations` | Every original catalogue node ID mapped to its expected harness outcome |
+| `selection` | Nonempty, unique list of the exact selected catalogue node IDs |
+
+The report's suite digest, case attribution, gate lists, counts and tool outcomes are checked
+against those snapshots and individual results. Tool outcomes reuse the acceptance harness's
+`tool_outcome`; this adapter does not redefine PASS or the fixture ratchet. Historical tool
+inventories come from their original catalogue, not today's registry. Native alias-null reports
+cannot distinguish an unstarted server from an unimplemented tool; the adapter preserves that
+ambiguity. Raw aliases, suite labels and unmatched URLs are omitted from the projection.
+
+Each projected case carries a SHA-256 node ID, original story ID, expected/actual outcome and
+tool/gate attribution. The future dashboard resolves descriptions from the matching trusted
+catalogue, never treats node IDs as file paths or markup. Missing cases have a null outcome.
+`inventory_complete` means all selected cases were recorded in a terminated completed/failed
+run; **it does not mean all passed or ran to a verdict**. Skipped cases and failed processes
+remain visible. With no report, counts and tools are null, not invented zeroes.
+
+### Benchmark projection and comparisons
+
+`scripts.evidence_benchmark.project_benchmark` supports the existing native **stdio** format.
+It recomputes every cold/warm summary from finite nonnegative samples, checks error flags against
+response codes, repetitions, unique expected cases and completion. Both successful and failed
+calls contribute to nearest-rank p50/p95. Errors, sample counts and timing samples are retained;
+arguments, arbitrary labels, release text and machine names are not displayed. No-report runs
+have null cases, not a zero-error result. Measurements are bounded to signed 64-bit magnitudes.
+HTTP evidence needs its own explicit format in #194; relabelling stdio evidence as HTTP fails.
+Older benchmark files without `expectedCases` (including the committed Phase 5 interrupted
+example) are not upgraded by guessing the missing inventory; #193 presents them as unverified
+historical imports. Regression tests also exercise both complete committed Phase 5 reports.
+
+An optional independently recorded `selection` JSON snapshot contains `schema: 1`, `cases`
+(`tool`, `arguments`, `scenario`) and `fingerprint`. Its bytes bind to `selection_sha256`; its
+case definitions must agree with the native report. All 15 fingerprint dimensions below must
+be present with a SHA-256 value or null. Values are digests of compact, sorted-key JSON
+(`fingerprint_value`), not labels containing raw configuration or credentials.
+
+`mode`, `transport`, `definitions`, `workload`, `profile`, `release`, `index`, `model`,
+`hardware`, `environment`, `placement`, `warmup`, `samples`, `concurrency`, `timeouts`.
+
+The adapter independently recomputes mode, transport, conditions/definitions, observed workload
+and repetitions. Other facts require the wrapper's actual knowledge. Use null when unknown;
+do not hash "unknown" to manufacture comparability. A known absence (for example, no index)
+is distinct from unknown and can be recorded by the wrapper. Without the independent selection,
+`selection_verified` and `comparison_ready` are false. `comparable` lists differing/unknown
+dimensions, unverified selection and incomplete execution rather than offering a speedup.
+Agreement establishes comparison conditions only, not authenticity, SLO compliance or capacity.
+
+### Evidence flow
+
+```mermaid
+---
+config:
+  theme: neutral
+  look: classic
+  layout: dagre
+---
+flowchart LR
+    Wrapper["Execution wrapper<br/>planned in #199"] --> Envelope["Times · exit · source identity<br/>report and snapshot digests"]
+    Runner["Acceptance / benchmark runner"] --> Raw["Native report<br/>may be absent or partial"]
+    Original["Original catalogue · stories<br/>expectations · selection"] --> Validate
+    Raw --> Validate["Strict schema + digest validation<br/>reconcile counts and samples"]
+    Envelope --> Validate
+    Validate --> Projection["Safe projection<br/>missing and unknown stay explicit"]
+    Projection --> Local["Local dashboard · #193<br/>no application login"]
+    Projection -. "only after platform integration #197" .-> Admin["UAT/PROD admin surface<br/>platform authentication + authorization"]
+    Docs["Public documentation<br/>no operational evidence"]
+```
+
+Text alternative: the wrapper records execution independently, the runner produces native
+results, and the validator checks both against original snapshots. Only the projection enters
+the local dashboard. UAT/PROD administration additionally needs the platform boundary; public
+documentation never consumes operational result records. The diagram distinguishes implemented
+validators from the dependent wrapper/dashboard work.
+
+The standard `pdm run test` and CI coverage measurement include these evidence modules alongside
+the core server. The existing 90% floor and above-95% aim apply; these are regression tests for
+observable validation and projection behavior, not a separate relaxed portal threshold.
 
 The public documentation build excludes operational UAT/PROD records from pages, search indexes
 and downloads. Local result browsing has no login requirement. A shared UAT/PROD deployment must

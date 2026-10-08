@@ -98,7 +98,7 @@ parse_squash_commits = true
 
 [tool.pdm.scripts]
 # `test` is the whole suite with the coverage minimum; `pytest` runs a selection without it.
-test = "pytest --cov=nci_si_mcp --cov-report=term-missing"
+test = "pytest --cov --cov-report=term-missing"
 pytest = "pytest"
 # The fast check before a commit; the commit itself runs every hook.
 lint = { composite = ["ruff check .", "basedpyright"] }
@@ -126,7 +126,12 @@ pythonpath = ["tests", "scripts/validation"]
 
 [tool.coverage.run]
 branch = true
-source = ["nci_si_mcp"]
+source = [
+    "nci_si_mcp",
+    "scripts.evidence_envelope",
+    "scripts.evidence_acceptance",
+    "scripts.evidence_benchmark",
+]
 # CLI and transport tests launch Python children; include their executed code.
 patch = ["subprocess"]
 
