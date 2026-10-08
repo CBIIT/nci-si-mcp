@@ -96,6 +96,8 @@ retention setting, not an agency records schedule.
 
 The documentation artifact can be served by an ordinary static host or a separate companion
 container. The [local results dashboard](local-validation.md) uses a separate loopback listener;
-controls and configuration views are later Phase 7 work. UAT/PROD administration must remain disabled until the platform supplies the approved
+controls, benchmark results and advisory configuration views are available locally. The
+[companion containers](companion-containers.md) package the two services separately.
+UAT/PROD administration must remain disabled until the platform supplies the approved
 authentication and explicit maintainer authorization integration (#197). Documentation remains
 anonymous. The repository's public status and upstream EVS/caDSR access controls are unchanged.

@@ -17,6 +17,7 @@ def configuration_page(configuration: LocalConfiguration) -> tuple[int, str]:
             "Configuration unavailable",
             "<p>No usable target startup snapshot is selected. Remote configuration is "
             'unknown.</p><p><a href="/help#configuration">Set up configuration evidence</a>.</p>',
+            section="/configuration",
         )
     body = "<p>Recorded startup configuration, not a live-state or availability guarantee. "
     body += "The selected target may have stopped since capture. "
@@ -52,7 +53,7 @@ aria-describedby="proposal-help"></label>
 <button>Preview proposal</button></form><p id="proposal-help">Use the setting's existing type
 and range. Log level is DEBUG, INFO, WARNING, ERROR or CRITICAL.
 <a href="/help#configuration">Proposal help</a>.</p>'''
-    return 200, page("Configuration", body)
+    return 200, page("Configuration", body, section="/configuration")
 
 
 def propose(configuration: LocalConfiguration, raw: bytes) -> str:
@@ -91,4 +92,4 @@ def proposal_page(proposal: dict[str, Any]) -> str:
     body += "<p>Recheck the target configuration before implementing a proposal. "
     body += '<a href="/configuration">Return to configuration</a> · '
     body += '<a href="/help#configuration">Configuration help</a>.</p>'
-    return page("Configuration proposal", body)
+    return page("Configuration proposal", body, section="/configuration")

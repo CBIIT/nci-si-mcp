@@ -31,12 +31,34 @@ class PortalHTTPTest(unittest.TestCase):
         self.server.server_close()
         self.thread.join(timeout=2)
 
-    def request(self, path, *, method="GET", headers=None):
+    def request(self, path, *, method="GET", headers=None, raw=False):
         connection = HTTPConnection("127.0.0.1", self.server.server_port, timeout=3)
         self.addCleanup(connection.close)
         connection.request(method, path, headers=headers or {})
         response = connection.getresponse()
-        return response.status, dict(response.getheaders()), response.read().decode()
+        body = response.read()
+        return response.status, dict(response.getheaders()), body if raw else body.decode()
+
+    def test_local_typography_serves_exact_font_bytes_with_self_only_policy(self):
+        status, headers, body = self.request("/assets/open-sans.ttf", raw=True)
+        self.assertEqual(status, 200)
+        self.assertEqual(body, Path("docs/site-assets/fonts/open-sans.ttf").read_bytes())
+        self.assertEqual(headers["Content-Type"], "font/ttf")
+        self.assertEqual(int(headers["Content-Length"]), len(body))
+        self.assertIn("font-src 'self'", headers["Content-Security-Policy"])
+        _, _, page = self.request("/")
+        self.assertIn('url("/assets/open-sans.ttf")', page)
+        self.assertIn("font-family:Poppins", page)
+        self.assertIn('font-family:"Roboto Mono"', page)
+
+    def test_assets_expose_only_reviewed_fonts_and_their_licences(self):
+        status, _, body = self.request("/assets/poppins-OFL.txt")
+        self.assertEqual(status, 200)
+        self.assertIn("SIL OPEN FONT LICENSE", body)
+        for path in ("/assets/../../pyproject.toml", "/assets/evidence.sqlite", "/assets/"):
+            with self.subTest(path=path):
+                self.assertEqual(self.request(path)[0], 404)
+        self.assertEqual(self.request("/assets/open-sans.ttf?path=private")[0], 400)
 
     def test_history_and_filtered_results_are_accessible_without_login(self):
         status, headers, body = self.request("/")

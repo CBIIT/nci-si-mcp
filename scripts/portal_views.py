@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from html import escape
-from typing import Any
+from typing import Any, Literal
 
 from scripts.evidence_benchmark import comparable
 
@@ -12,11 +12,21 @@ FOIA_URL = (
     "office-communications-public-liaison/freedom-information-act-office"
 )
 
-# Published NCIDS tokens; full component/identity assurance is tracked in #196.
+# Published NCIDS colors and locally hosted typography; see government-site-assurance.md.
 STYLE = """
-:root{color-scheme:light;font:1rem/1.6 system-ui,-apple-system,sans-serif;color:#1b1b1b;
+@font-face{font-family:"Open Sans";src:url("/assets/open-sans.ttf") format("truetype");
+font-weight:300 800;font-display:swap}
+@font-face{font-family:Poppins;src:url("/assets/poppins-regular.ttf") format("truetype");
+font-weight:400;font-display:swap}
+@font-face{font-family:Poppins;src:url("/assets/poppins-semibold.ttf") format("truetype");
+font-weight:600;font-display:swap}
+@font-face{font-family:"Roboto Mono";src:url("/assets/roboto-mono.ttf") format("truetype");
+font-weight:100 700;font-display:swap}
+:root{color-scheme:light;font:1rem/1.6 "Open Sans",system-ui,sans-serif;color:#1b1b1b;
 background:#f0f0f0}*{box-sizing:border-box}body{margin:0}a{color:#004971;text-underline-offset:.2em}
 a:hover{text-decoration-thickness:2px}h1,h2,h3{line-height:1.25;overflow-wrap:anywhere}
+h1,h2,h3,.brand,.footer-identity strong{font-family:Poppins,sans-serif;font-weight:600}
+code,pre{font-family:"Roboto Mono",monospace}
 h1{font-size:clamp(1.7rem,4vw,2.5rem);letter-spacing:-.03em;margin:.25rem 0 1rem}
 h2{font-size:1.35rem;margin-top:2rem}h3{font-size:1.1rem}p{max-width:78ch}
 .shell{max-width:78rem;margin:auto;padding:1.25rem 2rem}.topbar{background:#00314b;color:white}
@@ -24,6 +34,7 @@ h2{font-size:1.35rem;margin-top:2rem}h3{font-size:1.1rem}p{max-width:78ch}
 align-items:center}
 .brand{font-size:1.1rem;font-weight:750;letter-spacing:.02em}.topbar a{color:white}
 nav{display:flex;gap:1.5rem;flex-wrap:wrap}
+nav a[aria-current]{font-weight:700;text-decoration-thickness:3px}
 .eyebrow{text-transform:uppercase;font-size:.75rem;letter-spacing:.1em;
 font-weight:750;color:#3d4551}.skip{position:absolute;left:1rem;top:-8rem;background:white;
 padding:.75rem;z-index:2}.skip:focus{top:.5rem}.notice{background:#d4e7f2;border-left:4px solid
@@ -78,15 +89,31 @@ def text(value: Any) -> str:
     return escape("unknown" if value is None else str(value), quote=True)
 
 
-def page(title: str, content: str) -> str:
+def _navigation(section: str | None) -> str:
+    links = []
+    for path, label in (
+        ("/", "Results"),
+        ("/jobs", "Run checks"),
+        ("/configuration", "Configuration"),
+        ("/help", "Help &amp; guide"),
+    ):
+        current = ' aria-current="true"' if path == section else ""
+        links.append(f'<a href="{path}"{current}>{label}</a>')
+    return '<nav aria-label="Main">' + "".join(links) + "</nav>"
+
+
+def page(
+    title: str,
+    content: str,
+    *,
+    section: Literal["/", "/jobs", "/configuration", "/help"] | None = None,
+) -> str:
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{text(title)} · NCI SI local validation</title><style>{STYLE}</style></head>
 <body id="top"><a class="usa-skipnav skip" href="#main">Skip to content</a>
-<header class="topbar"><div class="shell"><span class="brand">NCI SI · Validation</span>
-<nav aria-label="Main"><a href="/">Results</a><a href="/jobs">Run checks</a>
-<a href="/configuration">Configuration</a>
-<a href="/help">Help &amp; guide</a></nav></div>
+<header class="topbar"><div class="shell"><a class="brand" href="/">NCI SI · Validation</a>
+{_navigation(section)}</div>
 </header><main id="main" class="shell"><p class="eyebrow">Local evidence workspace</p>
 <h1>{text(title)}</h1><p class="notice">No login is required locally.
 UAT/PROD administration is disabled pending platform integration.</p>
@@ -151,7 +178,7 @@ def history_page(rows: list[dict[str, Any]]) -> str:
     )
     body += '<h2>Retained attempts</h2><ol class="run-list">'
     body += "".join(f"<li>{_run_link(row, '')}</li>" for row in rows)
-    return page("Validation history", body + "</ol>" + _comparison_form(rows))
+    return page("Validation history", body + "</ol>" + _comparison_form(rows), section="/")
 
 
 def _comparison_form(rows: list[dict[str, Any]]) -> str:
@@ -285,7 +312,7 @@ def run_page(record: dict[str, Any], *, tool: str = "", story: str = "") -> str:
         body += _acceptance(evidence, tool, story)
     else:
         body += _benchmark(evidence)
-    return page("Run " + evidence["run_id"], body)
+    return page("Run " + evidence["run_id"], body, section="/")
 
 
 def comparison_page(left: dict[str, Any], right: dict[str, Any]) -> str:
@@ -294,6 +321,7 @@ def comparison_page(left: dict[str, Any], right: dict[str, Any]) -> str:
         return page(
             "Benchmark comparison",
             "<p>Comparison unavailable: verified benchmark format required.</p>",
+            section="/",
         )
     ready, reasons = comparable(*evidence)
     if not ready:
@@ -303,9 +331,10 @@ def comparison_page(left: dict[str, Any], right: dict[str, Any]) -> str:
             + text(", ".join(reasons))
             + "</p><p>These recorded conditions are unknown, different or incomplete. "
             '<a href="/help#benchmarks">How to interpret comparison requirements</a>.</p>',
+            section="/",
         )
     body = "<p>Recorded fingerprints match. Imported origin and server identity remain unverified. "
     body += "These descriptive measurements establish no SLO or capacity claim.</p>"
     for row in evidence:
         body += "<h2>Run " + text(row["run_id"]) + "</h2>" + _benchmark(row)
-    return page("Benchmark comparison", body)
+    return page("Benchmark comparison", body, section="/")

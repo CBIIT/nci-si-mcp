@@ -16,6 +16,7 @@ from typing import Any
 
 from scripts.docs_links import rewrite_page
 from scripts.docs_stories import stage_story_pages
+from scripts.site_assets import FONT_FILES
 
 MAX_PAGE_BYTES = 2_097_152
 
@@ -138,16 +139,7 @@ def _assets(root: Path, workspace: Path) -> None:
         "mermaid.min.js": source / "node_modules/mermaid/dist/mermaid.min.js",
         "mermaid-LICENSE.txt": source / "node_modules/mermaid/LICENSE",
     }
-    for name in (
-        "poppins-regular.ttf",
-        "poppins-semibold.ttf",
-        "open-sans.ttf",
-        "roboto-mono.ttf",
-        "poppins-OFL.txt",
-        "open-sans-OFL.txt",
-        "roboto-mono-OFL.txt",
-        "sources.json",
-    ):
+    for name in FONT_FILES:
         files[name] = source / "fonts" / name
     for name, path in files.items():
         _unlinked(root, path.relative_to(root))

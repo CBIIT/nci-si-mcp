@@ -131,4 +131,5 @@ UAT/PROD access requires the separately approved platform integration.</p>
 </section>
 <p><a class="action" href="/">Return to run history</a></p>
 """,
+        section="/help",
     )

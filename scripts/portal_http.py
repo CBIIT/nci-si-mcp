@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import sqlite3
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
 from typing import cast
 from urllib.parse import SplitResult, parse_qs, urlsplit
 
@@ -16,6 +17,7 @@ from scripts.portal_job_views import job_page, jobs_page
 from scripts.portal_jobs import JobConflictError, JobController, QueueFullError
 from scripts.portal_store import EvidenceNotFoundError, EvidenceStore
 from scripts.portal_views import comparison_page, history_page, page, run_page
+from scripts.site_assets import FONT_FILES
 
 MAX_TARGET = 2048
 MAX_FILTER = 100
@@ -42,7 +44,7 @@ def _route(
     target: str,
     jobs: JobController | None = None,
     configuration: LocalConfiguration | None = None,
-) -> tuple[int, str, str]:
+) -> tuple[int, str, str | bytes]:
     parts = _target(target)
     if parts.path == "/health":
         return 200, "application/json", '{"status":"ok","deployment":"local-only"}'
@@ -90,7 +92,10 @@ def _has_evidence(store: EvidenceStore, run_id: str) -> bool:
     return True
 
 
-def _result_route(store: EvidenceStore, path: str, query: str) -> tuple[int, str, str]:
+def _result_route(store: EvidenceStore, path: str, query: str) -> tuple[int, str, str | bytes]:
+    if path.startswith("/assets/"):
+        _query(query, set())
+        return _asset(path.removeprefix("/assets/"))
     match = re.fullmatch(r"/runs/([a-f0-9]{32})", path)
     if match:
         return 200, "text/html", run_page(store.get(match[1]), **_query(query, {"tool", "story"}))
@@ -104,6 +109,14 @@ def _result_route(store: EvidenceStore, path: str, query: str) -> tuple[int, str
             comparison_page(store.get(values["left"]), store.get(values["right"])),
         )
     raise EvidenceNotFoundError("Route not found")
+
+
+def _asset(name: str) -> tuple[int, str, bytes]:
+    if name not in FONT_FILES:
+        raise EvidenceNotFoundError("No such asset")
+    source = Path(__file__).resolve().parents[1] / "docs/site-assets/fonts" / name
+    media = {".ttf": "font/ttf", ".txt": "text/plain", ".json": "application/json"}
+    return 200, media[source.suffix], source.read_bytes()
 
 
 def create_server(
@@ -222,11 +235,13 @@ def _handler(
             )
 
         def _respond(
-            self, status: int, media: str, content: str, *, location: str | None = None
+            self, status: int, media: str, content: str | bytes, *, location: str | None = None
         ) -> None:
-            raw = content.encode()
+            raw = content.encode() if isinstance(content, str) else content
             self.send_response(status)
-            self.send_header("Content-Type", media + "; charset=utf-8")
+            self.send_header(
+                "Content-Type", media if media == "font/ttf" else media + "; charset=utf-8"
+            )
             self.send_header("Content-Length", str(len(raw)))
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
@@ -234,8 +249,8 @@ def _handler(
                 self.send_header("Location", location)
             self.send_header(
                 "Content-Security-Policy",
-                "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; "
-                "frame-ancestors 'none'; base-uri 'none'",
+                "default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; "
+                "form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
             )
             self.end_headers()
             self.wfile.write(raw)

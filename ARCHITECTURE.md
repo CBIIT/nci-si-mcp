@@ -11,6 +11,15 @@ The [wxMCP desk assessment](docs/wxmcp-assessment.md) records version-specific i
 gaps and unexecuted checks; it adds no gateway or runtime dependency. Internal orchestration and
 gateway integration are [deferred with research criteria](docs/deferred-capabilities.md).
 
+The [documentation and validation companions](docs/companion-containers.md) are separate
+processes and images. The public build contains reviewed documentation only. The local admin
+stores original run bundles and renders safe projections; its fixed profiles run committed
+source in disposable workers, while configuration proposals remain advisory. Its container
+has an internal fixture network and its own evidence volume, with a fixed-destination ingress
+relay. It has no serving index/model, upstream credentials or Docker socket. See the
+[deployment views](docs/deployment.md#local-documentation-and-validation-companion) for data
+flows; UAT/PROD admin deployment remains disabled pending platform integration in #197.
+
 The [Phase 6 architecture decision](docs/decisions/001-si-architecture-alignment.md) maps the
 Semantic Infrastructure team's proposal to this implementation and records approved
 access contracts. Portable caller enforcement is implemented; production identity integration

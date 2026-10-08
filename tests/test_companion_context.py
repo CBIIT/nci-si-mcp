@@ -37,6 +37,11 @@ class CompanionContextTest(unittest.TestCase):
             self.assertTrue((output / "admin/app/src/nci_si_mcp/cli.py").is_file())
             self.assertFalse((output / "admin/app/.git").exists())
             self.assertFalse((output / "admin/app/tmp").exists())
+            self.assertEqual(
+                (output / "admin/app/docs/site-assets/fonts/open-sans.ttf").read_bytes(),
+                (root / "docs/site-assets/fonts/open-sans.ttf").read_bytes(),
+            )
+            self.assertFalse((output / "admin/app/docs/upstream").exists())
             self.assertEqual((output / "docs/site/index.html").read_text(), "Public documentation")
             self.assertEqual(
                 {p.name for p in (output / "docs").iterdir()},
