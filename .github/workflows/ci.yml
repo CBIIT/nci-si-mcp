@@ -16,6 +16,46 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  companions:
+    name: companion containers (amd64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: $/.github/actions/setup
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38  # v6
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - run: npm ci --prefix docs/site-assets --ignore-scripts
+      - run: pdm run python -m scripts.companion_context
+      - name: Build isolated local images
+        run: |
+          docker build --platform linux/amd64 --load -t nci-si-docs:local tmp/companion-context/docs
+          docker build --platform linux/amd64 --load -t nci-si-admin:local tmp/companion-context/admin
+      - name: Verify real runtime boundaries and fixture results
+        run: pdm run python -m scripts.companion_smoke
+      - name: Scan every companion and retain SBOMs
+        run: |
+          mkdir -p tmp/companion-security
+          for image in docs admin; do
+            docker save --output "tmp/companion-security/$image.tar" "nci-si-$image:local"
+            docker run --rm -v "$PWD/tmp/companion-security:/evidence" -v nci-si-trivy-cache:/root/.cache/trivy docker.io/aquasec/trivy@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa image --input "/evidence/$image.tar" --scanners vuln --format json --output "/evidence/$image-scan.json"
+            docker run --rm -v "$PWD/tmp/companion-security:/evidence" -v nci-si-trivy-cache:/root/.cache/trivy docker.io/aquasec/trivy@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa image --input "/evidence/$image.tar" --format cyclonedx --output "/evidence/$image-sbom.cdx.json"
+          done
+          pdm run python scripts/image_scan.py tmp/companion-security/docs-scan.json
+          pdm run python scripts/image_scan.py tmp/companion-security/admin-scan.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        if: ${{ always() }}
+        with:
+          name: companion-security-evidence
+          path: tmp/companion-security/*.json
+          if-no-files-found: warn
+          retention-days: 30
+
   documentation:
     name: documentation artifact
     runs-on: ubuntu-latest
@@ -254,7 +294,7 @@ jobs:
 
   coverage-badges:
     name: publish coverage badges
-    needs: [quality, test, coverage, acceptance, acceptance-http, image, documentation]
+    needs: [quality, test, coverage, acceptance, acceptance-http, image, documentation, companions]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10

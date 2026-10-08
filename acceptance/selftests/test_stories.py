@@ -9,7 +9,8 @@ from dataclasses import replace
 import pytest
 import yaml
 
-from nci_si_acceptance import stories
+from nci_si_acceptance import document, stories
+from nci_si_acceptance.requirements import load_requirements
 
 pytest_plugins = ["pytester"]
 
@@ -52,12 +53,25 @@ def test_multiple_parameter_cases_share_a_story_with_exact_evidence():
     rendered = stories.render([STORY], CASES)
 
     assert "2 MCP acceptance cases, 1 test functions, 1 user stories" in rendered
-    assert "| The returned item names the requested release. | 2 | `X-1` |" in rendered
+    assert (
+        "| The returned item names the requested release. | 2 | "
+        "[`X-1`](specification.md#requirement-X-1) |" in rendered
+    )
     assert '<a id="pinned-content"></a>\n\n## Keep the selected release' in rendered
     assert "../acceptance/tests/test_example.py#L20" in rendered
     assert "<summary>Exact executable cases (2)</summary>" in rendered
     for case in CASES:
         assert rendered.count(f"<code>{case.key}</code>") == 1
+
+
+def test_every_requirement_link_has_one_authoritative_destination():
+    keys = tuple(load_requirements())
+    rendered = stories.render([STORY], [replace(CASES[0], requirements=keys)])
+    specification = document.render({FUNCTION: keys})
+
+    for key in keys:
+        assert rendered.count(f"[`{key}`](specification.md#requirement-{key})") == 1
+        assert specification.count(f'<a id="requirement-{key}"></a>{key} |') == 1
 
 
 @pytest.mark.parametrize(

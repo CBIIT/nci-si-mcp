@@ -1,12 +1,13 @@
 """Validation jobs execute committed source, not mutable working-tree files or local secrets."""
 
+import json
 import subprocess
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from scripts.operator_source import SOURCE_PATHS, archive_source, head_commit
+from scripts.operator_source import SOURCE_PATHS, archive_source, head_commit, package_source
 
 
 class OperatorSourceTest(unittest.TestCase):
@@ -81,4 +82,42 @@ class OperatorSourceTest(unittest.TestCase):
             self.assertRaisesRegex(ValueError, "size bound"),
         ):
             archive_source(self.root, head_commit(self.root), self.output)
+        self.assertFalse(self.output.exists())
+
+    def test_image_source_runs_without_git_and_excludes_uncommitted_private_content(self):
+        (self.root / ".env").write_text("PRIVATE-CANARY")
+        (self.root / "src/tracked.txt").write_text("uncommitted")
+        image = self.root.parent / "image"
+        commit = package_source(self.root, image)
+        with patch(
+            "scripts.operator_source.subprocess.run", side_effect=AssertionError("No Git in image")
+        ):
+            self.assertEqual(head_commit(image), commit)
+            archive_source(image, commit, self.output)
+        self.assertEqual((self.output / "src/tracked.txt").read_text(), "committed")
+        self.assertFalse((self.output / ".env").exists())
+        self.assertFalse((image / ".git").exists())
+
+    def test_image_archive_tampering_is_rejected_before_creating_a_workspace(self):
+        image = self.root.parent / "image"
+        commit = package_source(self.root, image)
+        (image / "operator-source.tar").write_bytes(b"tampered")
+        with self.assertRaises(ValueError):
+            head_commit(image)
+        with self.assertRaises(ValueError):
+            archive_source(image, commit, self.output)
+        self.assertFalse(self.output.exists())
+
+    def test_image_cannot_claim_another_commit_or_execute_a_different_selection(self):
+        image = self.root.parent / "image"
+        commit = package_source(self.root, image)
+        with self.assertRaises(ValueError):
+            archive_source(image, "a" * 40, self.output)
+        path = image / "operator-source.json"
+        manifest = json.loads(path.read_text())
+        manifest["commit"] = "a" * 40
+        path.write_text(json.dumps(manifest))
+        with self.assertRaises(ValueError):
+            head_commit(image)
+        self.assertNotEqual(commit, "a" * 40)
         self.assertFalse(self.output.exists())

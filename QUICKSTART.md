@@ -1,5 +1,9 @@
 # Quickstart
 
+For the public documentation and local validation dashboard in isolated containers, see
+[Local companion containers](docs/companion-containers.md). UAT/PROD administration remains disabled
+pending platform identity integration; repository users need no local login.
+
 Prefer a searchable website with the same instructions and diagrams? Follow the
 [local documentation preview](docs/documentation-site.md#build-and-preview); no account is needed.
 Run `pdm run portal serve` for the separate local evidence dashboard; the

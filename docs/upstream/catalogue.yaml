@@ -25,7 +25,7 @@ entries:
     tests: ["tests/test_evs.py::test_index_search_returns_scored_indexed_concepts_and_the_named_one_first_page", "tests/test_evs.py::test_an_index_search_for_another_release_fails_closed", "tests/test_evs.py::test_an_index_mode_without_an_index_is_unavailable"]
     evidence: [docs/retrieval-evaluation.md, acceptance/request-forms/evs.md]
     source: https://github.com/hniedner/nci-si-mcp/issues/42
-    observation: The furnished implementation performs semantic/hybrid retrieval locally; its lexical EVS request is not evidence of an upstream semantic operation.
+    observation: The furnished implementation performs embedding semantic/hybrid retrieval locally. The EVS team's response relayed on 8 October 2026 confirms that /search type controls lexical matching, while structured and ontology/relationship-aware retrieval, including SPARQL, are also available. Graph semantics do not establish an equivalent embedding-ranked operation; see team-responses-2026-10-08.md.
     reproduction: Compare lexical OP-E08 with semantic/hybrid search using an activated full index and then without an index; use the recorded full-corpus evaluation, not fixture timing, for quality floors.
     expected: Provide release-addressable semantic/hybrid results, scores, paging, provenance and declared ranking behavior.
     impact: Operators currently distribute an embedding model and full index and maintain release compatibility.
@@ -250,7 +250,7 @@ entries:
     tests: ["tests/test_cross_domain.py::test_descendants_beyond_the_tool_s_maximum_are_truncated_with_how_much_was_left_out"]
     evidence: [acceptance/fixtures/recorded/ssis/graph-names.json, acceptance/fixtures/recorded/ssis/graph-names-without-limit.json, acceptance/fixtures/recorded/ssis/data-elements-without-dec.json, acceptance/fixtures/recorded/ssis/data-elements-of-object-class-c25190.json, acceptance/fixtures/recorded/ssis/graph-names-html.json]
     source: https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-5968943275
-    observation: Recorded responses hide missing-argument errors in HTTP 200 and cap the Person query at 1000. The issue reports 2088 graph rows, missing hierarchy graphs in discovery, resources/graph_name?resource_name=caDSR returning 500, and a listed empty NCIm graph; these latter probes are issue evidence, not fixture assertions.
+    observation: The missing-dec_pub_id recording is HTTP 200 with informational apiResponse type I and No data found, not a masked error; the team's response relayed on 8 October 2026 treats HTTP 400 for that invalid request as a backlog design improvement. with_concept_id takes a DEC public id, not an NCIt code. The Person query is capped at 1000. The issue reports 2088 graph rows, missing hierarchy graphs in discovery, resources/graph_name?resource_name=caDSR returning 500, and a listed empty NCIm graph; these latter probes are issue evidence, not fixture assertions. See team-responses-2026-10-08.md for the team's maintenance constraints and alternative endpoint guidance.
     reproduction: Use the linked graph_names and Person requests, compare the graph count, and repeat the issue's resource-name/NCIm probes without interpreting listed graphs as populated.
     expected: Signal truncation or paginate; list all loaded graphs with their roles; fix/document resource-name lookup; remove or populate empty advertised graphs; use 400 JSON for invalid arguments and default to JSON.
     impact: Consumers may accept incomplete joins, miss the complete hierarchy, or mistake a bad request for no data.

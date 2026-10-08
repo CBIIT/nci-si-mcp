@@ -131,7 +131,7 @@ def _example_rows(story: dict, cases: list[Case]) -> list[str]:
     for function, description in story["tests"].items():
         variants = [case for case in cases if case.function == function]
         requirements = sorted({key for case in variants for key in case.requirements})
-        basis = ", ".join(f"`{key}`" for key in requirements)
+        basis = ", ".join(f"[`{key}`](specification.md#requirement-{key})" for key in requirements)
         rows.append(
             f"| {_text(description)} | {len(variants)} | {basis} | "
             f"[Test]({_test_link(variants[0])}) |"

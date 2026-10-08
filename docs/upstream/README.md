@@ -5,6 +5,8 @@ then regenerate. `--check` verifies the checked-in output. No service is contact
 
 [EVS](evs.md) · [caDSR](cadsr.md) · [Shared SI](ssis.md) · [Source catalogue](catalogue.yaml)
 
+[Team responses recorded 8 October 2026](team-responses-2026-10-08.md) clarify upstream fixes, search capabilities and the Shared SI informational response.
+
 Acceptance report suite digest: `7f435ac6463e3aaca174f367cf55a9e6f9213509109bb75e7d4c4fe6742675d5`.
 Inputs: [fixture](../evidence/phase-5/acceptance-fixture.json) and
 [live](../evidence/phase-5/acceptance-live.json). These are recorded snapshots, not a new run.

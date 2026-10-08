@@ -88,6 +88,7 @@ def _serve(
     retention: int,
     remote: RemoteProbe | None,
     configuration: LocalConfiguration,
+    host: str = "127.0.0.1",
 ) -> None:
     controller = JobController(
         store.path.with_suffix(".jobs"),
@@ -98,7 +99,9 @@ def _serve(
     )
     with (
         closing(controller),
-        create_server(store, port=port, jobs=controller, configuration=configuration) as server,
+        create_server(
+            store, host=host, port=port, jobs=controller, configuration=configuration
+        ) as server,
     ):
         print(f"Local validation: http://127.0.0.1:{server.server_port}/", flush=True)
         # Local Ctrl+C stops owned workers and closes both listener and ownership lease.

@@ -19,8 +19,9 @@ class DocumentationBuildTest(unittest.TestCase):
         self.root = Path(self.directory.name)
         assets = self.root / "docs/site-assets"
         assets.mkdir(parents=True)
-        for name in ("site.css", "main.html"):
+        for name in ("site.css", "main.html", "search-placement.js"):
             shutil.copyfile(ROOT / "docs/site-assets" / name, assets / name)
+        shutil.copytree(ROOT / "docs/site-assets/fonts", assets / "fonts")
         vendor = assets / "node_modules/mermaid"
         (vendor / "dist").mkdir(parents=True)
         (vendor / "dist/mermaid.min.js").write_text("/* test runtime */")

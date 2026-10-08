@@ -110,11 +110,12 @@ def create_server(
     store: EvidenceStore,
     *,
     port: int = 8081,
+    host: str = "127.0.0.1",
     jobs: JobController | None = None,
     configuration: LocalConfiguration | None = None,
 ) -> HTTPServer:
-    """Bind only the IPv4 loopback; deployment exposure is a later platform decision."""
-    return HTTPServer(("127.0.0.1", port), _handler(store, jobs, configuration))
+    """Default to loopback; the local container entry binds its isolated network interface."""
+    return HTTPServer((host, port), _handler(store, jobs, configuration))
 
 
 def _handler(
