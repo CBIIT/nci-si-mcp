@@ -83,9 +83,15 @@ def execute_job(
         )
         return finish_evidence(job, directory, result, store)
     finally:
-        source = directory / "source"
-        if source.exists() and not source.is_symlink():
-            shutil.rmtree(source)
+        _clean_scratch(directory)
+
+
+def _clean_scratch(directory: Path) -> None:
+    # A killed worker cannot run TemporaryDirectory cleanup; the parent owns these paths.
+    paths = [directory / "source", *(directory / "bundle").glob("worker-*")]
+    for path in paths:
+        if path.is_dir() and not path.is_symlink():
+            shutil.rmtree(path)
 
 
 def _worker_command(profile: str, output: Path) -> list[str]:

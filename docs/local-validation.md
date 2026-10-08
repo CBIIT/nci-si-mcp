@@ -68,6 +68,8 @@ Available reports remain evidence, including failures and partial results. Missi
 unknown. Cancellation does not establish that an in-flight remote request stopped. After a
 restart, abandoned jobs are marked interrupted and never automatically retried. Repeating the
 same retained form submission returns its existing job; a fresh form creates a new attempt.
+After owned processes stop, the parent removes disposable source and worker scratch directories,
+including those left by cancellation, while retaining the original evidence bundle.
 
 Remote probes require explicit local startup configuration:
 

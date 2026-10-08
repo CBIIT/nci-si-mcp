@@ -92,3 +92,25 @@ class OperatorExecutionTest(unittest.TestCase):
         for target in ("http://approved.example/mcp", "https://secret@approved.example/mcp"):
             with self.subTest(target=target), self.assertRaises(ValueError):
                 RemoteProbe(target, None)
+
+    def test_cancelled_worker_scratch_is_removed_without_removing_bound_evidence(self):
+        def cancelled(_command, **options):
+            directory = options["directory"]
+            scratch = directory / "bundle/worker-interrupted"
+            scratch.mkdir(parents=True)
+            (scratch / "server.log").write_text("disposable diagnostics")
+            (directory / "bundle/selection.json").write_text("{}")
+            (directory / "source").mkdir()
+            return {"state": "cancelled", "exit_code": 130, "reason": "cancelled"}
+
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            job = {"run_id": "1" * 32, "profile": "benchmark-http-fixture", "commit": "a" * 40}
+            with patch("scripts.operator_execution.run_owned", side_effect=cancelled):
+                result = execute_job(
+                    job, root / "job", threading.Event(), store=EvidenceStore(root / "store.sqlite")
+                )
+            self.assertEqual(result["state"], "cancelled")
+            self.assertFalse((root / "job/bundle/worker-interrupted").exists())
+            self.assertFalse((root / "job/source").exists())
+            self.assertEqual((root / "job/bundle/selection.json").read_text(), "{}")
