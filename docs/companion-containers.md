@@ -10,10 +10,11 @@ Use Python 3.14+, PDM, Node.js and a Docker-compatible engine with Compose. Imag
 target Linux amd64; the Dockerfiles do not bake in an architecture. On Apple Silicon, the engine
 needs amd64 emulation. No registry login or institutional account is required.
 
-On macOS, use a dedicated project VM rather than another project's Podman machine.
-Select its Docker context explicitly with `DOCKER_CONTEXT` for builds, Compose and the
-smoke check; do not change a shared default connection. Confirm the endpoint with
-`docker context inspect "$DOCKER_CONTEXT"` before starting containers.
+On macOS, projects may share one authorized Podman VM. Use separate, explicitly named
+Compose projects, networks and volumes; do not reuse another project's containers or assets.
+Select the intended Docker context with `DOCKER_CONTEXT` for builds, Compose and the smoke
+check, and confirm its endpoint with `docker context inspect "$DOCKER_CONTEXT"`. Do not
+stop unrelated workloads, change shared VM settings or run a global prune during cleanup.
 
 Commit source changes first: the worker archive, application wheels and public documentation
 must identify the same clean checkout. No Git metadata or host credentials enter the contexts.

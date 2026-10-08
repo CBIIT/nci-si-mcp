@@ -44,7 +44,7 @@ def jobs_page(rows: list[dict[str, Any]], profiles: tuple[str, ...]) -> str:
     body += "Completeness does not mean PASS.</p></section></div>"
     body += '<h2>Run history</h2><ol class="run-list">'
     body += "".join(f"<li>{_link(row)}</li>" for row in rows)
-    return page("Run checks", body + "</ol>")
+    return page("Run checks", body + "</ol>", section="/jobs")
 
 
 def job_page(row: dict[str, Any], *, has_evidence: bool) -> str:
@@ -75,7 +75,7 @@ def job_page(row: dict[str, Any], *, has_evidence: bool) -> str:
             ["Stop reason", row["reason"]],
         ],
     )
-    return page(f"Validation run {row['sequence']}", body)
+    return page(f"Validation run {row['sequence']}", body, section="/jobs")
 
 
 def _cancel_form(row: dict[str, Any]) -> str:

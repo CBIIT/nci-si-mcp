@@ -14,6 +14,8 @@ the [validation dashboard](local-validation.md) reads locally imported evidence.
 accessible without login locally. The dashboard provides bounded run/cancel controls and
 configuration proposals from an explicitly selected safe startup snapshot. It never reads the serving
 MCP index or fetches upstream data while rendering results.
+The [container composition](companion-containers.md) implements the same separation with
+read-only images, an internal fixture network and a fixed-destination loopback admin relay.
 
 ```mermaid
 flowchart LR
@@ -57,8 +59,8 @@ Text alternative: the local worker owns temporary data, the test server and fixt
 then reaps them. Remote probes are separate and never restart or prepare the remote service.
 Both produce native reports with honest partial states. The local execution wrapper binds
 these reports to run identity and original snapshots for import. Local process isolation does
-not block OS network egress: the #195 container composition must use a private/no-egress fixture
-network, no published fixture ports, production mounts, inherited secrets or Docker socket.
+not block OS network egress. The container composition places fixture workers on an internal
+network with no published fixture ports, production mounts, inherited secrets or Docker socket.
 See [HTTP benchmark bounds](benchmark.md#bounded-http-measurements).
 
 ## Local stdio

@@ -56,6 +56,10 @@ class PortalJobsTest(unittest.TestCase):
             ("exit_code", True),
             ("sequence", -1),
             ("finished_at", "2026-01-01T00:00:00"),
+            ("profile", "unreviewed-command"),
+            ("state", "invented-success"),
+            ("run_id", "../outside"),
+            ("commit", None),
         ):
             with self.subTest(field=field):
                 changed = json.loads(json.dumps(original))
@@ -65,6 +69,28 @@ class PortalJobsTest(unittest.TestCase):
                 with self.assertRaises(OSError), closing(self.controller()):
                     pass
                 self.assertEqual(path.read_text(), raw)
+
+    def test_duplicated_jobs_or_regressed_sequence_are_preserved_without_replay(self):
+        controller = self.controller()
+        controller.submit("1" * 32, "benchmark-http-fixture")
+        controller.close()
+        path = self.root / "jobs.json"
+        original = json.loads(path.read_text())
+        row = original["jobs"][0]
+        invalid = (
+            {"next": 3, "jobs": [row, row | {"sequence": 2}]},
+            {"next": 3, "jobs": [row, row | {"run_id": "2" * 32}]},
+            original | {"next": row["sequence"]},
+        )
+        observed = self.observed.copy()
+        for changed in invalid:
+            with self.subTest(state=changed):
+                raw = json.dumps(changed)
+                path.write_text(raw)
+                with self.assertRaises(OSError), closing(self.controller()):
+                    pass
+                self.assertEqual(path.read_text(), raw)
+                self.assertEqual(self.observed, observed)
 
     def test_background_storage_failure_is_unavailable_and_starts_no_worker(self):
         controller = self.controller()

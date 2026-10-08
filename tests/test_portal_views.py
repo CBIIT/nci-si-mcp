@@ -3,6 +3,10 @@
 import unittest
 
 from scripts.evidence_http import PHASE_LABELS
+from scripts.portal_configuration import LocalConfiguration
+from scripts.portal_configuration_views import configuration_page
+from scripts.portal_help import help_page
+from scripts.portal_job_views import jobs_page
 from scripts.portal_views import comparison_page, history_page, page, run_page
 
 from test_evidence_acceptance import project
@@ -11,6 +15,20 @@ from test_evidence_benchmark import selected_projection
 
 
 class PortalViewsTest(unittest.TestCase):
+    def test_navigation_identifies_current_section_and_brand_returns_home(self):
+        pages = (
+            (history_page([]), "/"),
+            (jobs_page([], ()), "/jobs"),
+            (configuration_page(LocalConfiguration(None))[1], "/configuration"),
+            (help_page(), "/help"),
+        )
+        for html, current in pages:
+            with self.subTest(current=current):
+                self.assertIn('<a class="brand" href="/">NCI SI · Validation</a>', html)
+                navigation = html.split('<nav aria-label="Main">', 1)[1].split("</nav>", 1)[0]
+                self.assertEqual(navigation.count('aria-current="true"'), 1)
+                self.assertIn(f'href="{current}" aria-current="true"', navigation)
+
     def test_every_page_exposes_nci_policies_and_ordered_agency_links(self):
         html = page("Run checks", "<p>Content</p>")
         footer = html.split("<footer>", 1)[1]

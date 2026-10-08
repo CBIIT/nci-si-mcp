@@ -55,9 +55,64 @@ ICT Testing Baseline to organize automated, manual and assistive-technology evid
 | Resilience | Essential no-JavaScript reading, reduced motion, no flashing or unexpected timeouts |
 | Assistive technology | Screen-reader navigation and form feedback across representative complete journeys |
 
-Current evidence is limited to the issue tests and browser observations recorded on the
-documentation PR. The full matrix is pending #196. Unperformed checks must say **not verified**,
-with a reproducible procedure and responsible role. Fix confirmed defects in the active milestone.
+The repository evidence below records the #196 checks and their limits. Unperformed checks
+remain **not verified**, with procedures and responsible roles. Confirmed repository defects
+are fixed on the active branch; these checks do not certify the complete deployed experience.
+
+### Repository verification, 8 October 2026
+
+The packaging checks ran on PR #206 head `30662ecd379c1013f9dfb02f3b76b7ce26c3e655`;
+[CI run 37846044387](https://github.com/CBIIT/nci-si-mcp/actions/runs/37846044387)
+passed both container jobs and all test/quality jobs. Both companion scans reported zero
+findings at every severity on that run. Source at the start of #196 is milestone merge
+`064a901`; the typography/navigation changes below are part of #196, whose PR records the
+final checked head. Do not treat a past scan as a scan of later commits.
+
+| Area | Method and observed result | Limits |
+|---|---|---|
+| Public reading | Strict Zensical build and link validation; browser navigation overview → topic → story; expandable case evidence; requirement X-17 opens its exact specification entry | Representative browser journeys; the generator tests all 964 case assignments and every requirement destination |
+| Search | Browser keyboard activation, query and Escape dismissal of native Zensical search; desktop placement above page navigation, responsive header placement at narrow widths | Native browser/assistive-technology combinations still need the checks below |
+| Structure | HTML tests and browser accessibility tree show page titles, English language, main/navigation regions, ordered headings, labelled forms, captions and column headers; tables have named keyboard-scroll regions | Accessibility-tree inspection is not a screen-reader test |
+| Local controls | Browser submitted a fixture run, cancelled it and refreshed to Cancelled/exit 130; a second fixture benchmark completed with exit 0 and displayed its report; unknown provenance and sample limits stayed visible | Committed fixture workers, not live upstream performance; native select was opened with pointer input before keyboard selection |
+| Configuration | Browser showed unavailable state before snapshot selection; a disposable MCP wrote a real safe startup snapshot; proposal preview showed timeout 30 → 23 and explicitly said nothing was applied; snapshot value/revision remained unchanged | Snapshot is not a liveness claim; no remote configuration or deployment changes |
+| Navigation and typography | Regression tests pin home navigation, one current-section indication, local font bytes and a closed asset route; browser computed Open Sans body/Poppins heading styles | Font and licence digests checked against pinned source; no external font service |
+| Responsive presentation | 320px-wide review frames showed wrapping public story/cards and responsive search; normal-width admin proposal had no horizontal page overflow | Not a substitute for native 200% text enlargement/400% zoom or device testing |
+| Isolation and truthful evidence | Unit/integration/HTTP tests cover hash and inventory mismatches, historical story mapping, missing reports, interrupted jobs, atomic history, unknown metrics and finite worker/remote budgets; CI container probes confirm no fixture egress or serving mounts and shutdown independence | Local host-process isolation alone is not a network sandbox; actual UAT/PROD platform integration remains deferred |
+| Public/private separation | Documentation allowlist/canary tests reject raw operational artifacts; asset routes expose only named fonts/licences; deployment blueprint keeps admin disabled | Public repository engineering CI remains public by owner decision |
+
+Measured NCIDS foreground/background pairs using WCAG relative luminance: body `#1b1b1b`
+on `#f0f0f0` **15.11:1**; links `#004971` on white **9.58:1**; white header/footer text
+on `#00314b` **13.63:1**; table text on `#edf3f6` **15.38:1**; secondary text `#3d4551`
+on `#f0f0f0` **8.50:1**; admin focus `#004971` on `#f0f0f0` **8.41:1**;
+documentation focus `#ad4e00` on white **5.43:1**; documentation links `#01679d` on white
+**6.13:1**. These are declared pairs, not an exhaustive scan of every rendered state.
+
+### Explicitly unverified checks and repeatable procedures
+
+| Check | Procedure | Responsible role |
+|---|---|---|
+| Native assistive technology | With VoiceOver/Safari and the deployment-supported screen reader/browser, complete search → story → requirement; results → filter; run → cancel; configuration → invalid/valid proposal. Check reading order, labels, table navigation, errors and focus return | Accessibility tester |
+| Text enlargement and zoom | Enlarge text to 200%; at a 1280px viewport zoom to 400%. Complete the same journeys, including open menus and validation errors; check clipping, obscured focus and permitted two-dimensional table scrolling | Accessibility tester |
+| Complete keyboard-only journey | Repeat every journey using Tab/Shift+Tab, Enter, Space, arrows and Escape, without pointer assistance; include native selects and search dialog focus return | Accessibility tester |
+| All states and devices | Check native controls, error/disabled/hover/focus states, forced colors, reduced motion and supported mobile browsers; verify alternatives for every published diagram | Accessibility tester / documentation maintainer |
+| Deployed service | Verify actual HTTPS/domain/header behavior, contact/policy applicability, platform admin access and retention/records decisions | NCI deployment, privacy and records roles |
+
+The first four rows are explicit accessibility coverage limits, not claims that those checks
+passed. They remain in the assurance record for the accessibility assessment. The final row
+requires the real deployment; it does not require repository visibility changes or an
+institutional login for local users. OCPL review remains owner-managed at production rollout.
+
+### Privacy and storage inventory
+
+Public documentation serves local assets and a browser-side search index. No analytics,
+survey, account or runtime font CDN is added. External reference/policy links navigate only
+when followed. Admin pages render without client scripting; forms submit to the same local
+origin. Original run bundles and bounded queue history stay in the selected local evidence
+directory/volume; filtered HTML uses `no-store`. Safe configuration snapshots are opt-in local
+files and proposals are previews, not target writes. The public build never reads these stores.
+Container diagnostics go to stdout; raw reports, request query strings and credentials are
+not application diagnostics. Platform access logs and retention need a deployment-specific
+review and are not configured by this repository.
 
 ### Historical preliminary dashboard checks (8 October 2026, before NCIDS alignment)
 
