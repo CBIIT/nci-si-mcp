@@ -16,6 +16,7 @@ nav = [
     { "Local and cloud deployment" = "docs/deployment.md" },
     { "HTTP transport" = "docs/transport.md" },
     { "Container operations" = "docs/container.md" },
+    { "Local companion containers" = "docs/companion-containers.md" },
     { "Caller permissions" = "docs/caller-permissions.md" },
     { "Governed HTTP boundary" = "docs/governed-http.md" },
     { "SI architecture decision" = "docs/decisions/001-si-architecture-alignment.md" },

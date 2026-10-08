@@ -15,6 +15,7 @@ from tempfile import TemporaryDirectory
 from typing import Any
 
 from scripts.docs_links import rewrite_page
+from scripts.docs_stories import stage_story_pages
 
 MAX_PAGE_BYTES = 2_097_152
 
@@ -133,9 +134,21 @@ def _assets(root: Path, workspace: Path) -> None:
     assets.mkdir()
     files = {
         "site.css": source / "site.css",
+        "search-placement.js": source / "search-placement.js",
         "mermaid.min.js": source / "node_modules/mermaid/dist/mermaid.min.js",
         "mermaid-LICENSE.txt": source / "node_modules/mermaid/LICENSE",
     }
+    for name in (
+        "poppins-regular.ttf",
+        "poppins-semibold.ttf",
+        "open-sans.ttf",
+        "roboto-mono.ttf",
+        "poppins-OFL.txt",
+        "open-sans-OFL.txt",
+        "roboto-mono-OFL.txt",
+        "sources.json",
+    ):
+        files[name] = source / "fonts" / name
     for name, path in files.items():
         _unlinked(root, path.relative_to(root))
         shutil.copyfile(path, assets / name)
@@ -148,6 +161,8 @@ def _prepare(root: Path, workspace: Path, identity: dict[str, Any]) -> None:
     config = _unlinked(root, Path("docs/site-assets/zensical.toml")).read_text()
     pages = navigation_pages(tomllib.loads(config)["project"]["nav"])
     stage_pages(root, workspace / "content", pages)
+    if "docs/behavioural-tests.md" in pages:
+        stage_story_pages(workspace / "content")
     _assets(root, workspace)
     label = identity["release_tag"] or "development"
     label += " · " + identity["source_commit"][:12]

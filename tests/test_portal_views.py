@@ -29,7 +29,8 @@ class PortalViewsTest(unittest.TestCase):
             "National Cancer Institute",
             "USA.gov",
         ]
-        positions = [footer.index(label) for label in agencies]
+        agency_links = footer.split('aria-label="Government agencies"', 1)[1].split("</nav>", 1)[0]
+        positions = [agency_links.index(label) for label in agencies]
         self.assertEqual(positions, sorted(positions))
         self.assertIn('class="usa-skipnav skip" href="#main"', html)
         self.assertNotIn("An official website of the United States government", html)

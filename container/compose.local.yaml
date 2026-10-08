@@ -1,0 +1,58 @@
+# Local repository users only. Do not expose this admin service in UAT/PROD (#197).
+name: nci-si-local
+services:
+  documentation:
+    image: nci-si-docs:local
+    platform: linux/amd64
+    ports: ["127.0.0.1:8080:8080"]
+    networks: [documentation]
+    read_only: true
+    user: "65532:65532"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 32
+    mem_limit: 256m
+    cpus: 0.5
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m,mode=1777"]
+  administration:
+    image: nci-si-admin:local
+    platform: linux/amd64
+    ports: ["127.0.0.1:8081:8081"]
+    networks: [validation]
+    read_only: true
+    user: "65532:65532"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 2g
+    cpus: 2
+    stop_grace_period: 20s
+    volumes: ["evidence:/state"]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=256m,mode=1777"]
+  mcp:
+    profiles: [mcp]
+    image: nci-si-mcp:verified
+    platform: linux/amd64
+    ports: ["127.0.0.1:8000:8000"]
+    networks: [serving]
+    read_only: true
+    user: "65532:65532"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 8g
+    cpus: 4
+    environment:
+      NCI_SI_EMBEDDING_MODEL: /model
+    volumes:
+      - "${NCI_SI_LOCAL_INDEX:-../tmp/serving-index}:/data:ro"
+      - "${NCI_SI_LOCAL_MODEL:-../tmp/serving-model}:/model:ro"
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=256m,mode=1777", "/model-cache:rw,noexec,nosuid,size=16m,mode=1777"]
+networks:
+  documentation:
+    internal: true
+  validation:
+    internal: true
+  serving: {}
+volumes:
+  evidence: {}

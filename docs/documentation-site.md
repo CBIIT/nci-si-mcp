@@ -24,10 +24,28 @@ by the builder. No GitHub Pages, DNS or cloud settings are changed by these comm
 
 Zensical is pinned in the docs development group in `pdm.lock`. Mermaid is pinned separately
 in `docs/site-assets/package-lock.json`; npm lifecycle scripts are disabled. Neither is a core
-MCP runtime dependency. The site serves its diagram runtime, stylesheet, system fonts and
+MCP runtime dependency. The site serves its diagram runtime, stylesheet, fonts and
 search assets locally; external references remain ordinary links. Repository README badges
 become text links in the site, so browsing documentation does not fetch third-party badge images.
 Serve the artifact over HTTP; direct `file://` search is not a supported preview mode.
+
+The Zensical theme override uses the [NCI Design System color tokens](https://designsystem.cancer.gov/foundations/color)
+and [typography](https://designsystem.cancer.gov/foundations/typography): Poppins headings,
+Open Sans body text and Roboto Mono code. Font files and their upstream licenses are vendored
+under `docs/site-assets/fonts`; `sources.json` records the pinned source revision and SHA-256
+digests. No browser request to a font provider is needed. The compact blue footer retains
+agency and policy links, identifies this prototype, and links to project maintainers without
+social media widgets. Edit `main.html` and `site.css` there, then rebuild; the template itself
+is not a standalone web page.
+On wide screens, the native Zensical search control sits above “On this page.” It returns
+to the header when the right sidebar is hidden; the same control retains its keyboard shortcut.
+
+Behavioral stories use three levels: a six-topic overview, a topic page of user-story cards,
+and one page per story. The complete generated Markdown catalogue remains the source; the
+site build partitions it without changing the narratives, requirement links or exact case IDs.
+Individual case IDs stay inside expandable evidence sections. Tests reject omitted or duplicate
+stories and inconsistent case counts, and verify that every case survives exactly once.
+Existing story anchors on the catalogue still lead to the corresponding story page.
 
 ## What can be published
 

@@ -54,10 +54,23 @@ button:hover,.action:hover{background:#00314b}.action{display:inline-block;paddi
 text-decoration:none}.help-link{font-size:.9rem}.help-nav{display:flex;flex-wrap:wrap;gap:1rem}
 code{overflow-wrap:anywhere;background:#edf3f6;padding:.1rem .25rem;border-radius:.2rem}
 pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#edf3f6;padding:1rem;border-radius:.4rem}
-footer{border-top:1px solid #a9aeb1;margin-top:2rem;font-size:.85rem;color:#3d4551;background:white}
-footer ul{list-style:none;padding:0;display:flex;gap:.75rem 1.5rem;flex-wrap:wrap}
+footer{margin-top:2rem;font-size:.85rem;line-height:1.5;color:white;background:#00314b}
+footer .shell{padding-top:1.25rem;padding-bottom:1rem;display:grid;gap:1rem}
+footer a{color:white}footer :focus-visible{outline-color:white}
+footer p,footer ul{margin:0}.footer-main{display:flex;justify-content:space-between;
+align-items:start;gap:1rem 2rem;flex-wrap:wrap}
+.footer-identity strong{display:block;font-size:1.4rem;line-height:1.3}
+.footer-identity span{font-size:1rem}.footer-identity .footer-context{margin-top:.65rem}
+.footer-contact{text-align:right;margin-left:auto}
+.footer-contact h2{font-size:1.2rem;margin:0 0 .3rem}
+footer .footer-agencies{display:block;margin-top:.65rem}
+footer .footer-agencies ul{display:block}footer .footer-bottom{display:flex;
+justify-content:space-between;align-items:baseline;gap:.5rem 1.5rem;flex-wrap:wrap}
+footer ul{list-style:none;padding:0;display:flex;gap:.35rem 1.25rem;flex-wrap:wrap}
+footer a{display:inline-block;padding:.15rem 0}
 section[id]{scroll-margin-top:1rem}@media(max-width:40rem){.shell{padding:1rem}form,label{width:100%}
-input,select{width:100%}th,td{padding:.5rem}.card{padding:1rem}}
+input,select{width:100%}th,td{padding:.5rem}.card{padding:1rem}
+.footer-contact{text-align:left;margin-left:0}}
 """
 
 
@@ -77,24 +90,26 @@ def page(title: str, content: str) -> str:
 </header><main id="main" class="shell"><p class="eyebrow">Local evidence workspace</p>
 <h1>{text(title)}</h1><p class="notice">No login is required locally.
 UAT/PROD administration is disabled pending platform integration.</p>
-{content}</main><footer><div class="shell"><p><a href="#top">Back to top</a></p>
-<p>Prototype · Local validation workspace ·
-<a href="/help#provenance">Understand the evidence</a></p>
-<nav aria-label="Policies"><ul>
+{content}</main><footer><div class="shell"><div class="footer-main">
+<div class="footer-identity"><p><strong>National Cancer Institute</strong>
+<span>at the National Institutes of Health</span></p>
+<p class="footer-context">Semantic Infrastructure · Local validation prototype<br>
+<a href="/help#provenance">Understand the evidence</a></p></div>
+<div class="footer-contact"><h2>Contact us</h2>
+<a href="https://github.com/CBIIT/nci-si-mcp/issues">Contact project maintainers</a>
+<nav class="footer-agencies" aria-label="Government agencies"><ul>
+<li><a href="https://www.hhs.gov">U.S. Department of Health and Human Services</a></li>
+<li><a href="https://www.nih.gov">National Institutes of Health</a></li>
+<li><a href="https://www.cancer.gov">National Cancer Institute</a></li>
+<li><a href="https://www.usa.gov">USA.gov</a></li>
+</ul></nav></div></div><div class="footer-bottom"><nav aria-label="Policies"><ul>
 <li><a href="https://www.cancer.gov/policies/disclaimer">Disclaimer Policy</a></li>
 <li><a href="https://www.cancer.gov/policies/accessibility">Accessibility</a></li>
 <li><a href="{FOIA_URL}">FOIA</a></li>
 <li><a href="https://www.hhs.gov/vulnerability-disclosure-policy">
 HHS Vulnerability Disclosure</a></li>
 <li><a href="https://www.cancer.gov/policies/privacy-security">Privacy and Security</a></li>
-</ul></nav>
-<p><a href="https://github.com/CBIIT/nci-si-mcp/issues">Contact project maintainers</a></p>
-<nav aria-label="Government agencies"><ul>
-<li><a href="https://www.hhs.gov">U.S. Department of Health and Human Services</a></li>
-<li><a href="https://www.nih.gov">National Institutes of Health</a></li>
-<li><a href="https://www.cancer.gov">National Cancer Institute</a></li>
-<li><a href="https://www.usa.gov">USA.gov</a></li>
-</ul></nav></div></footer></body></html>"""
+</ul></nav><a href="#top">Back to top ↑</a></div></div></footer></body></html>"""
 
 
 def _table(title: str, headers: list[str], rows: list[list[Any]]) -> str:
