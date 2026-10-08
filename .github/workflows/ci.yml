@@ -34,8 +34,8 @@ jobs:
       - run: pdm run python -m scripts.companion_context
       - name: Build isolated local images
         run: |
-          docker build --platform linux/amd64 -t nci-si-docs:local tmp/companion-context/docs
-          docker build --platform linux/amd64 -t nci-si-admin:local tmp/companion-context/admin
+          docker build --platform linux/amd64 --load -t nci-si-docs:local tmp/companion-context/docs
+          docker build --platform linux/amd64 --load -t nci-si-admin:local tmp/companion-context/admin
       - name: Verify real runtime boundaries and fixture results
         run: pdm run python -m scripts.companion_smoke
       - name: Scan every companion and retain SBOMs

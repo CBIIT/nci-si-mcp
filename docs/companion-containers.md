@@ -17,8 +17,8 @@ must identify the same clean checkout. No Git metadata or host credentials enter
 pdm install -G docs
 npm ci --prefix docs/site-assets --ignore-scripts
 pdm run python -m scripts.companion_context
-docker build --platform linux/amd64 -t nci-si-docs:local tmp/companion-context/docs
-docker build --platform linux/amd64 -t nci-si-admin:local tmp/companion-context/admin
+docker build --platform linux/amd64 --load -t nci-si-docs:local tmp/companion-context/docs
+docker build --platform linux/amd64 --load -t nci-si-admin:local tmp/companion-context/admin
 docker compose -f container/compose.local.yaml up -d
 ```
 
