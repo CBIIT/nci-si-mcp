@@ -94,6 +94,16 @@ def selected_projection(native=None, change_selection=None, selected_from=None):
 
 
 class BenchmarkProjectionTest(unittest.TestCase):
+    def test_nonfinite_exponent_in_unprojected_conditions_is_rejected(self):
+        raw = (
+            json.dumps(benchmark())
+            .encode()
+            .replace(b'"clientTimeoutSeconds": 300', b'"clientTimeoutSeconds": 1e400')
+        )
+        record = envelope(kind="benchmark", report_sha256=hashlib.sha256(raw).hexdigest())
+        with self.assertRaises(EvidenceError):
+            project_benchmark(json.dumps(record).encode(), raw)
+
     def test_partial_report_keeps_the_full_independent_selection_without_faking_completion(self):
         native = benchmark()
         native.update(cases=[], complete=False)

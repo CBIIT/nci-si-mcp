@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from datetime import datetime
 from typing import Any, NoReturn
@@ -57,13 +58,23 @@ def _constant(_value: str) -> NoReturn:
     _reject()
 
 
+def _finite_float(value: str) -> float:
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        _reject()
+    return parsed
+
+
 def decode_json(raw: bytes, maximum: int = MAX_REPORT_BYTES) -> Any:
     """Read bounded strict JSON without echoing report content on parse failure."""
     if len(raw) > maximum:
         _reject()
     try:
         record = json.loads(
-            raw.decode("utf-8"), object_pairs_hook=_object, parse_constant=_constant
+            raw.decode("utf-8"),
+            object_pairs_hook=_object,
+            parse_constant=_constant,
+            parse_float=_finite_float,
         )
     except ValueError, UnicodeError, RecursionError:
         _reject()

@@ -35,7 +35,8 @@ deployment authorization or a passing test result.
 | `report_sha256` | SHA-256 of exact report bytes; null only when no report exists |
 | `server_commit` | Separately recorded server source commit or null; never inferred from the suite |
 
-Every field occurs exactly once. Unknown fields, duplicate keys and nonfinite numbers fail.
+Every field occurs exactly once. Unknown fields, duplicate keys and nonfinite numbers fail,
+including finite-looking JSON exponents such as `1e400` that overflow the parser's float.
 SHA-256 values contain 64 lowercase hexadecimal characters. No arbitrary labels, paths, URLs,
 credentials, result bodies or assertions of trust belong here. Limits are 64 KiB envelope and
 16 MiB report bytes. The later file reader must enforce limits during reading, before unbounded
