@@ -114,18 +114,18 @@ class UpsertTest(IndexTestCase):
         self.assertEqual(index.get_active_manifest(), manifest)
         self.assertEqual(self.counts(index), (2, 6, 1))
 
-        cached = index.get_concept("C3262")
+        cached = index.get_concept_snapshot("C3262")[1]
         self.assertEqual(cached.source, "active_cache")
         self.assertEqual(cached.release_version, "26.06e")
         self.assertEqual(cached.release_date, "2026-06-29")
         self.assertEqual(cached.to_stored()["raw"], RAW_CONCEPTS[1])
-        self.assertIsNone(index.get_concept("C999"))
+        self.assertIsNone(index.get_concept_snapshot("C999")[1])
 
     def test_cached_concept_keeps_the_time_it_was_fetched(self):
         index = self.build()
 
-        first = index.get_concept("C3262").retrieved_at
-        second = index.get_concept("C3262").retrieved_at
+        first = index.get_concept_snapshot("C3262")[1].retrieved_at
+        second = index.get_concept_snapshot("C3262")[1].retrieved_at
 
         self.assertEqual(first, second)
         self.assertEqual(index.search("tumor", self.provider)[0].concept.retrieved_at, first)
@@ -141,7 +141,7 @@ class UpsertTest(IndexTestCase):
 
         self.assertEqual(manifest.concept_count, 2)
         self.assertEqual(self.counts(index), (2, 4, 1))
-        self.assertEqual(index.get_concept("C3262").preferred_name, "Renamed Growth")
+        self.assertEqual(index.get_concept_snapshot("C3262")[1].preferred_name, "Renamed Growth")
         for mode in ("bm25", "vector"):
             hits = index.search("renamed", self.provider, mode=mode)
             self.assertEqual(hits[0].concept.code, "C3262", mode)
@@ -164,7 +164,7 @@ class UpsertTest(IndexTestCase):
         ):
             index.upsert_concepts([RAW_CONCEPTS[0]], None, self.provider)
         self.assertEqual(index.get_active_manifest().build_id, other.build_id)
-        self.assertEqual(index.get_concept("C3262").release_version, "other")
+        self.assertEqual(index.get_concept_snapshot("C3262")[1].release_version, "other")
 
     def test_indexing_another_release_replaces_the_previous_one(self):
         index = self.build()
@@ -177,8 +177,8 @@ class UpsertTest(IndexTestCase):
         self.assertEqual(manifest.release_version, "26.07d")
         self.assertEqual(manifest.concept_count, 1)
         self.assertEqual(self.counts(index), (1, 3, 1))
-        self.assertIsNone(index.get_concept("C40704"))
-        self.assertEqual(index.get_concept("C3262").release_version, "26.07d")
+        self.assertIsNone(index.get_concept_snapshot("C40704")[1])
+        self.assertEqual(index.get_concept_snapshot("C3262")[1].release_version, "26.07d")
         self.assertEqual(index.search("kinase", self.provider, mode="bm25"), [])
 
     def test_release_mismatch_is_rejected_and_keeps_the_previous_release(self):
@@ -218,13 +218,13 @@ class UpsertTest(IndexTestCase):
 
         self.assertEqual(manifest.concept_count, 1)
         self.assertEqual(self.counts(index), (1, 3, 1))
-        self.assertEqual(index.get_concept("C3262").preferred_name, "Later Name")
+        self.assertEqual(index.get_concept_snapshot("C3262")[1].preferred_name, "Later Name")
 
     def test_count_and_search_ignore_rows_of_an_inactive_release(self):
         index = self.build()
         index.build([concept("C9999", "Tumor Marker", version="26.99z")], None, self.provider)
         self.assertEqual(index.get_active_manifest().concept_count, 2)
-        self.assertIsNone(index.get_concept("C9999"))
+        self.assertIsNone(index.get_concept_snapshot("C9999")[1])
         for mode in ("bm25", "vector", "hybrid"):
             hits = index.search("tumor marker", self.provider, mode=mode)
             self.assertNotIn("C9999", [hit.concept.code for hit in hits])
@@ -248,7 +248,7 @@ class UpsertTest(IndexTestCase):
 
         self.assertEqual(index.get_active_manifest(), before)
         self.assertEqual(self.counts(index), (2, 6, 1))
-        self.assertEqual(index.get_concept("C40704").release_version, "26.06e")
+        self.assertEqual(index.get_concept_snapshot("C40704")[1].release_version, "26.06e")
 
     def test_a_different_embedding_space_cannot_join_the_active_release(self):
         providers = {
@@ -303,7 +303,7 @@ class StorageTest(IndexTestCase):
         reopened = LocalIndex(self.path)
         with reopened._connect() as conn:
             self.assertEqual(conn.execute("PRAGMA page_size").fetchone()[0], 4096)
-        self.assertEqual(reopened.get_concept("C3262").preferred_name, "Neoplasm")
+        self.assertEqual(reopened.get_concept_snapshot("C3262")[1].preferred_name, "Neoplasm")
         self.assertEqual(reopened.search("Neoplasm", self.provider)[0].concept.code, "C3262")
 
     def test_unusable_database_is_a_storage_error_naming_the_file(self):
@@ -441,7 +441,7 @@ class MigrationTest(IndexTestCase):
         manifest = index.get_active_manifest()
         self.assertEqual(manifest.embedding_dimensions, 768)
         self.assertTrue(manifest.needs_rebuild)
-        self.assertEqual(index.get_concept("C40704").raw, RAW_CONCEPTS[0])
+        self.assertEqual(index.get_concept_snapshot("C40704")[1].raw, RAW_CONCEPTS[0])
 
     def test_a_second_opener_preserves_the_migration_completed_before_it_gets_the_lock(self):
         self.legacy_database([("26.06e", RAW_CONCEPTS[0])])
@@ -461,7 +461,7 @@ class MigrationTest(IndexTestCase):
             index = LocalIndex(directory)
 
         self.assertEqual(index.get_active_manifest(), completed[0])
-        self.assertEqual(index.get_concept("C40704").raw, RAW_CONCEPTS[0])
+        self.assertEqual(index.get_concept_snapshot("C40704")[1].raw, RAW_CONCEPTS[0])
         self.assertEqual(len(index.list_builds()), 1)
 
     def legacy_database(self, releases):
@@ -521,7 +521,7 @@ class MigrationTest(IndexTestCase):
         index = LocalIndex(self.path)
         manifest = index.get_active_manifest()
         self.assertTrue(manifest.needs_rebuild)
-        self.assertEqual(index.get_concept("C40704").raw, RAW_CONCEPTS[0])
+        self.assertEqual(index.get_concept_snapshot("C40704")[1].raw, RAW_CONCEPTS[0])
         for mode in ("bm25", "vector", "hybrid"):
             with self.subTest(mode=mode), self.assertRaises(PlatformError) as raised:
                 index.search("kinase", self.provider, mode=mode)
@@ -556,8 +556,8 @@ class MigrationTest(IndexTestCase):
         self.assertEqual({item.release_version for item in builds}, {"26.05d", "26.06e"})
         older = next(item for item in builds if item.release_version == "26.05d")
         index.activate(older.build_id)
-        self.assertEqual(index.get_concept("C40704").release_version, "26.05d")
-        self.assertIsNone(index.get_concept("C3262"))
+        self.assertEqual(index.get_concept_snapshot("C40704")[1].release_version, "26.05d")
+        self.assertIsNone(index.get_concept_snapshot("C3262")[1])
 
 
 class SearchTest(IndexTestCase):
@@ -574,7 +574,7 @@ class SearchTest(IndexTestCase):
     def test_a_limit_reports_the_scored_concepts_it_left_out_exactly_in_a_small_index(self):
         index = self.build(synthetic_concepts(30))
 
-        hits, truncation = index.search_with_truncation(
+        hits, truncation, _ = index.search_snapshot(
             "alpha1", self.provider, limit=10, mode="hybrid"
         )
 
@@ -590,17 +590,13 @@ class SearchTest(IndexTestCase):
                 "exact": True,
             },
         )
-        _, everything = index.search_with_truncation(
-            "alpha1", self.provider, limit=30, mode="hybrid"
-        )
+        _, everything, _ = index.search_snapshot("alpha1", self.provider, limit=30, mode="hybrid")
         self.assertEqual(everything.to_dict(), {"occurred": False})
 
     def test_all_term_matches_are_counted_beyond_the_former_candidate_cap(self):
         index = self.build(synthetic_concepts(1200))
 
-        hits, truncation = index.search_with_truncation(
-            "alpha1", self.provider, limit=10, mode="bm25"
-        )
+        hits, truncation, _ = index.search_snapshot("alpha1", self.provider, limit=10, mode="bm25")
 
         # All 120 concepts naming alpha1 count, even beyond the former 100-candidate cap.
         self.assertEqual(len(hits), 10)

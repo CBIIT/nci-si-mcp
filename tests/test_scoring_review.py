@@ -103,6 +103,31 @@ class ScoringReviewTest(IndexTestCase):
         self.assertEqual((hits, total), ([], 0))
         self.assertEqual(manifest.concept_count, 1)
 
+    def test_a_retirement_filter_pages_exactly_over_a_mix_of_multi_field_concepts(self):
+        # Concepts carry several fields each, so the scan's arrays must be sized by the
+        # fields of the matching concepts only, while the page stays exact.
+        index = self.build(
+            [
+                concept("C1", "Alpha", synonyms=[{"name": "Alpha one"}], active=False),
+                concept("C2", "Alpha two", synonyms=[{"name": "Alpha too"}], active=True),
+                concept("C3", "Alpha three", active=False),
+                concept("C4", "Alpha four", synonyms=[{"name": "Alpha 4"}], active=True),
+            ]
+        )
+        retired_status = "Retired_Concept"
+        with index._connect() as conn:
+            conn.execute(
+                "UPDATE concepts SET status = ? WHERE code IN ('C1', 'C3')", (retired_status,)
+            )
+        first, total, _ = index.search_page(
+            "Alpha", self.provider, mode="vector", limit=1, retired_status=retired_status
+        )
+        second, _, _ = index.search_page(
+            "Alpha", self.provider, mode="vector", limit=1, offset=1, retired_status=retired_status
+        )
+        self.assertEqual(total, 2)
+        self.assertEqual({hit.concept.code for hit in first + second}, {"C1", "C3"})
+
     def test_nonbinary_vector_kind_storage_is_reported_as_database_corruption(self):
         index = self.build([concept("C1", "Alpha")])
         for kinds in ("x", 1):

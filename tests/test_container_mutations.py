@@ -53,7 +53,7 @@ class ContainerOfflineTest(ServerFixture):
         served = []
 
         def serve(_settings, context):
-            served.append(context.embedding_provider.embed(["abc"]))
+            served.append([row.tolist() for row in context.embedding_provider.embed(["abc"])])
 
         with patch.dict(
             sys.modules,

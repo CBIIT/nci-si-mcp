@@ -10,7 +10,8 @@ from __future__ import annotations
 import hashlib
 import math
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
+from importlib import import_module
 from pathlib import Path
 
 
@@ -19,7 +20,7 @@ class EmbeddingProvider(ABC):
     model: str
 
     @abstractmethod
-    def embed(self, texts: Iterable[str]) -> list[list[float]]:
+    def embed(self, texts: Iterable[str]) -> Sequence[Sequence[float]]:
         """Return one vector per text, all of one length."""
 
 
@@ -31,7 +32,7 @@ class HashingEmbeddingProvider(EmbeddingProvider):
         self.model = f"hashing-{dimensions}"
         self.dimensions = dimensions
 
-    def embed(self, texts: Iterable[str]) -> list[list[float]]:
+    def embed(self, texts: Iterable[str]) -> Sequence[Sequence[float]]:
         return [self._embed_one(text) for text in texts]
 
     def _embed_one(self, text: str) -> list[float]:
@@ -68,11 +69,12 @@ class SentenceTransformersProvider(EmbeddingProvider):
             else SentenceTransformer(model_name)
         )
 
-    def embed(self, texts: Iterable[str]) -> list[list[float]]:
+    def embed(self, texts: Iterable[str]) -> Sequence[Sequence[float]]:
         vectors = self._model.encode(
             list(texts), normalize_embeddings=True, show_progress_bar=False
         )
-        return [list(map(float, row)) for row in vectors]
+        # float32 rows go to storage as they are; vector_bytes packs them without Python floats.
+        return list(import_module("numpy").asarray(vectors, dtype="<f4"))
 
 
 def _local_model(model_name: str) -> str:
