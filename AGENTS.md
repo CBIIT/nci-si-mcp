@@ -55,7 +55,7 @@ These are the owner's rules. They apply to every change.
 ## Commands
 
 The project is managed with PDM (Python 3.14 or newer); `pdm install` builds `.venv` from
-`pdm.lock` with the test and lint tools and the `server` extra.
+`pdm.lock` with the test and lint tools and the `server` and `index` extras.
 
 ```bash
 pdm run test                              # whole suite, with the 90% coverage floor
@@ -77,10 +77,11 @@ pdm run spec-render                       # regenerate docs/specification.md fro
 - The tests are unittest-style and offline. They import shared doubles with `from fakes import
   ...`; `tests/` is on the path through the pytest configuration.
 - Hooks are never skipped (`--no-verify`, `SKIP=`). A failing hook is fixed. Besides Ruff and
-  basedpyright (`src` and `scripts` only), the hooks run `scripts/validation/check_complexity.py`
+  basedpyright (`src`, `scripts` and `acceptance/src`), the hooks run `scripts/validation/check_complexity.py`
   (every function below 8, nested ones and the tests included), `check_test_quality.py` (no test
   without a behaviour assertion; an assertion in a nested function or class that the test never
-  uses does not count), vulture, gitleaks and zizmor. All Python tools run from the PDM
+  uses does not count), vulture, gitleaks, zizmor and `scripts/upstream_requirements.py --check`
+  (the upstream requirement packages are the current render of their catalogue). All Python tools run from the PDM
   environment, so `pdm.lock` decides their versions.
 - `tests/test_docs.py`, `tests/test_server.py` and `tests/test_release_config.py` compare
   QUICKSTART.md, ARCHITECTURE.md and the title check with the code (settings and defaults, error
@@ -264,7 +265,8 @@ Rules learned the hard way:
 union, cache policy and adapter exposure; the handler signature supplies the shared input model,
 defaults and choices. Business operations live in `handlers.py` and, for the specification's
 content tools, `content.py`, with injectable collaborators in `context.Context`. Closed value
-sets live once in `validation.py`. Profiles select MCP tools only.
+sets live once in `validation.py`. A profile selects the tools, resources and prompts the server
+serves (M1.5, M1.6); caller policy can only narrow that surface.
 
 Each ToolSpec classifies its parameters as plain or hashed for audit. Undeclared parameters
 default to hashed. `audit.py` emits one JSON completion record per call, including validation
@@ -278,7 +280,7 @@ not logged. Diagnostic verbosity does not suppress the required completion recor
 
 The error codes are those of the specification's error record (`spec/records.yaml`), closed in
 `errors.py` as `ErrorCode`. A failure is a `PlatformError`: its code, a message that names the
-caller's next step, and the `details` that code lists in `docs/implementation-plan.md` §3.1. `errors.serialise` is
+caller's next step, and the `details` that `spec/records.yaml` lists for that code (`error.detail_keys`). `errors.serialise` is
 the only function that turns one into the result, `{"error": {"code", "message", "details"?,
 "correlationId"}}`; nothing builds that dict by hand. The audit boundary opens `errors.correlated()` once
 per call (the request's `_meta.correlationId`, else generated) for tools, resources and CLI.
@@ -297,7 +299,8 @@ as `upstream_unavailable`; every upstream client parses its bodies through it (i
 The reviewer-approved Form-by-ID exception lives in `cadsr._form_absence`: after public-id
 validation, only HTTP 200 with an explicit `form: null` and `apiResponse.type: E` is `not_found`.
 The recording `recorded/cadsr/form-unknown.json` has no other discriminator, so a genuine failure
-in exactly that shape is indistinguishable; #42 asks for an explicit absence signal. No message
+in exactly that shape is indistinguishable; the upstream package (`docs/upstream/cadsr.md`,
+cadsr-forms) asks caDSR for an explicit absence signal. No message
 matching or second request. Every other shape, status and operation keeps common X-15 handling.
 
 `http_client.HttpClient` is the one HTTP client. Its `Upstream*` errors reach the invocation

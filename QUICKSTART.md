@@ -1,21 +1,15 @@
 # Quickstart
 
-For the public documentation and local validation dashboard in isolated containers, see
-[Local companion containers](docs/companion-containers.md). UAT/PROD administration remains disabled
-pending platform identity integration; repository users need no local login.
-
-Prefer a searchable website with the same instructions and diagrams? Follow the
-[local documentation preview](docs/documentation-site.md#build-and-preview); no account is needed.
-Run `pdm run portal serve` for the separate local evidence dashboard; the
-[validation guide](docs/local-validation.md) explains runs, results and configuration proposals.
-To inspect a selected local server's safe startup settings, use the same new file with
-`nci-si-mcp serve --configuration-snapshot PATH` and
-`pdm run portal serve --configuration-snapshot PATH`.
-See [configuration evidence](docs/local-validation.md#configuration-evidence-and-proposals)
-for snapshot ownership, limitations and the proposal-only change flow.
-
 How to install and run the prototype server, what it serves, and how it fails. What this repository
 is, and the status of each tool group, is in [README.md](README.md).
+
+See also: the same instructions and diagrams as a searchable website
+([local documentation preview](docs/documentation-site.md#build-and-preview)); the documentation
+and validation dashboard in [local companion containers](docs/companion-containers.md); the
+[validation guide](docs/local-validation.md) for `pdm run portal serve`, runs, results and
+configuration proposals, including startup-settings snapshots
+(`nci-si-mcp serve --configuration-snapshot PATH`,
+[configuration evidence](docs/local-validation.md#configuration-evidence-and-proposals)).
 
 ## Install
 
@@ -33,10 +27,10 @@ indexed search). The commands below are written as `python -m nci_si_mcp.cli ...
 run them inside the environment (`eval $(pdm venv activate)`) or prefix them with `pdm run`.
 
 To run a released version without a checkout, install it from its tag; the
-[releases page](https://github.com/hniedner/nci-si-mcp/releases) lists the versions:
+[releases page](https://github.com/CBIIT/nci-si-mcp/releases) lists the versions:
 
 ```bash
-pip install "nci-si-mcp[server] @ git+https://github.com/hniedner/nci-si-mcp@vX.Y.Z"
+pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"
 nci-si-mcp serve
 ```
 
@@ -626,7 +620,7 @@ development; their tests use contract-crafted fixtures. Runtime responses always
 the configured upstream, never from a built-in fixture.
 
 - `get_data_element`: exactly one of `publicId`, `questionText` or `longName`. A preferred question with one candidate retrieves the full item; none is `not_found`, several is `invalid_request` naming candidates. Long-name lookup is unavailable (OP-C02). Optional `version` selects the item's version. Optional `include` selects permissibleValues, valueDomain, conceptAssociations, alternateNames or classificationSchemes; without it, only the base record is returned. Nested permissible values and schemes carry provenance. CLI: `get-data-element --public-id 2200604`.
-- `search_data_elements`: required `query`, optional `mode` (default lexical), `filters`, `limit` (10/100), `cursor` and `registryRelease`. The requested keyword route (OP-C03, C-3) is not served by caDSR today. Failures retain their original details and `upstream_unavailable` code, with conditional guidance: persistent failures may reflect the missing keyword capability; use `get_data_element` by public id or question text. Transient failures may still recover on retry. Semantic/hybrid modes (OP-C04) and nonempty filters are `capability_unavailable`. Successful upstream lists retain order and page locally; a 1,000-row response reports `upstream_cap`, numeric omitted at least one and exact false. `totalKnown` appears only for an upstream count. CLI: `search-data-elements QUERY`; `--filters` accepts a JSON object, but filters remain unavailable until #42.
+- `search_data_elements`: required `query`, optional `mode` (default lexical), `filters`, `limit` (10/100), `cursor` and `registryRelease`. The requested keyword route (OP-C03, C-3) is not served by caDSR today. Failures retain their original details and `upstream_unavailable` code, with conditional guidance: persistent failures may reflect the missing keyword capability; use `get_data_element` by public id or question text. Transient failures may still recover on retry. Semantic/hybrid modes (OP-C04) and nonempty filters are `capability_unavailable`. Successful upstream lists retain order and page locally; a 1,000-row response reports `upstream_cap`, numeric omitted at least one and exact false. `totalKnown` appears only for an upstream count. CLI: `search-data-elements QUERY`; `--filters` accepts a JSON object, but filters remain unavailable until caDSR serves the keyword route ([cadsr-search](docs/upstream/cadsr.md#cadsr-search)).
 - `list_contexts`: upstream context names as identifiers, with provenance and no invented definitions. Optional `limit` (100/1000), `cursor` and `registryRelease`. CLI: `list-contexts`.
 - `list_classification_schemes`: optional `context`, `limit` (100/1000), `cursor` and `registryRelease`; returns `capability_unavailable` until OP-C13 exists. Use `get_data_element` with include classificationSchemes to read an element's schemes and nested items. CLI: `list-classification-schemes`.
 - `resolve_registry_release`: no arguments. Returns published registry metadata if available, otherwise the exact export row's local date-time without an offset or identifier. TTL 0/public. CLI: `resolve-registry-release`.
@@ -652,7 +646,8 @@ Matching results, including empty ones, use TTL 0/private. Calls use
 results. Header filters must be printable ASCII; entity/value text stays unchanged in JSON.
 Unlisted matching pins are `release_not_available`; a published pin is
 `capability_unavailable` (`pinned matching`) because the matching APIs have no registryRelease
-field yet (C-1, upstream package #42). No unpinned match is labelled pinned.
+field yet (C-1, [cadsr-match-parameters](docs/upstream/cadsr.md#cadsr-match-parameters)). No
+unpinned match is labelled pinned.
 
 Workflow tools are available in `unified`:
 
@@ -672,7 +667,8 @@ The Form-by-ID API uses type E even for an unknown form. Only HTTP 200 with an e
 `form: null` and `apiResponse.type: E` on a validated id is interpreted as `not_found`.
 The recording has no other discriminator: a genuine platform failure in exactly that shape
 would also read as not found. Other operations, statuses and shapes retain normal upstream
-error handling. The #42 requirements package asks caDSR to make absence explicit.
+error handling. The upstream package ([cadsr-forms](docs/upstream/cadsr.md#cadsr-forms)) asks
+caDSR to make absence explicit.
 
 Each caDSR content tool accepts optional `registryRelease`. A pin must be listed upstream
 before any content request, and every supported pinned content response must confirm it; absent/unlisted
@@ -813,7 +809,7 @@ EVS wraps in a success status but that is an error envelope, an error
 | `release_not_available` | EVS did not name exactly one latest NCIt release for the channel (`requested` names the requested channel; optional `found` lists versions when several rows were returned), EVS no longer serves the pinned release, or a release resource names an unserved version or one with absent/ambiguous channel metadata | `requested`, `source`, `found` |
 | `release_mismatch` | The local index holds a different release than the requested one, or EVS served a concept of another release than the one requested | `requested`, `served` (a list of releases), `source` |
 | `upstream_unavailable` | EVS could not be reached or kept failing after the retries, rejected the request, or returned something unusable: a malformed, HTML or masked-error body, or a 404 from any request other than a single-concept lookup (check `NCI_SI_EVS_BASE_URL`) | `surface`, `status`, `attempts`, `retryAfter` (`status` and `retryAfter` where known) |
-| `timeout` | Every attempt at an EVS request timed out (`NCI_SI_TIMEOUT_SECONDS`) | `surface`, `seconds`, `attempts` |
+| `timeout` | Every attempt at an upstream request timed out (`NCI_SI_TIMEOUT_SECONDS`; `NCI_SI_MATCH_TIMEOUT_SECONDS` for caDSR matching) | `surface`, `seconds`, `attempts` |
 | `bound_exceeded` | An EVS response exceeds `NCI_SI_EVS_MAX_RESPONSE_BYTES`, the request budget is exhausted before a graph is available, or hierarchy page replay exhausts its request budget | `bound`, `limit`, `reached` (for response size, the limit plus one when EVS declared no length) |
 | `capability_unavailable` | The requested terminology or operation is not supported yet, or an index resource has no active index; the MCP tool descriptions name the interim limits | `capability` |
 | `cursor_expired` | EVS no longer serves a hierarchy or live-search cursor’s release, or the active indexed-search build changed; restart the query. Same-release build replacement also expires a cursor, with equal release identifiers | `cursorRelease`, `currentRelease` |

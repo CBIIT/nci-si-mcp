@@ -1,8 +1,8 @@
 # Local validation dashboard
 
 The companion displays acceptance and benchmark evidence on `127.0.0.1`, independently of the
-MCP server. Repository users need no account. UAT/PROD administration remains disabled pending
-platform integration in #197. Design credit: the Semantic Infrastructure (SI) team,
+MCP server. Repository users need no account; where administration may be exposed is recorded in
+[deployment.md](deployment.md). Design credit: the Semantic Infrastructure (SI) team,
 *MCP Architecture*, 1 October 2026.
 
 ## Open and import

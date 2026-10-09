@@ -144,4 +144,4 @@ distinct kinds of evidence: local refusals do not establish upstream access, whi
 journey requires successful content with the discovered release and matching provenance.
 Read the run's exact counts and skipped cases; the historical Phase 5 reports are unchanged.
 
-The [evidence directory](evidence/phase-5/) holds the measured samples and acceptance reports.
+The [evidence directory](evidence/phase-5/README.md) holds the measured samples and acceptance reports.
