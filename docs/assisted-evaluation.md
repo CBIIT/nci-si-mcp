@@ -66,12 +66,12 @@ This selection represents 10 of 41 stories and does not replace the 964-case sui
 
 ```bash
 pdm install
-pdm run python scripts/assisted_evaluation.py --output tmp/assisted-evaluation.json
+pdm run python -m scripts.assisted_evaluation --output tmp/assisted-evaluation.json
 ```
 
 The runner permits only the registered recipe and supported tools; it never executes
 model text, follows links or calls a provider. Hostile upstream text is preserved as
-data. Fixture mode explicitly supplies all six local upstream addresses. A fixed
+data. Fixture mode explicitly supplies all five local upstream addresses. A fixed
 30-second recipe deadline stops further calls; upstream requests have a five-second
 timeout and one attempt. Existing tool request bounds remain enforced, and the smaller
 per-task request ceiling is a scoring check. Cancellation cannot forcibly terminate an
