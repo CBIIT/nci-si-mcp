@@ -96,7 +96,6 @@ def test_in_fixture_mode_every_upstream_names_the_fixture_server(monkeypatch, tm
         "NCI_SI_EVS_FHIR_BASE_URL": "http://127.0.0.1:9/evs-fhir",
         "NCI_SI_CADSR_BASE_URL": "http://127.0.0.1:9/cadsr",
         "NCI_SI_CADSR_FTP_URL": "http://127.0.0.1:9/cadsr-ftp",
-        "NCI_SI_SSIS_FACADE_URL": "http://127.0.0.1:9/ssis",
         "NCI_SI_SSIS_SPARQL_URL": "http://127.0.0.1:9/ssis-sparql",
     }
     assert (environment["NCI_SI_UPSTREAM_MODE"], environment["NCI_SI_DATA_DIR"]) == (

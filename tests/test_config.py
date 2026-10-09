@@ -183,7 +183,6 @@ BASE_URL_VARIABLES = (
     "NCI_SI_EVS_FHIR_BASE_URL",
     "NCI_SI_CADSR_BASE_URL",
     "NCI_SI_CADSR_FTP_URL",
-    "NCI_SI_SSIS_FACADE_URL",
     "NCI_SI_SSIS_SPARQL_URL",
 )
 FIXTURE_URLS = {name: f"http://127.0.0.1:9/{name[7:].lower()}" for name in BASE_URL_VARIABLES}
@@ -258,7 +257,6 @@ class UpstreamUrlSetTest(unittest.TestCase):
         settings = settings_from()
 
         self.assertEqual(settings.evs_base_url, DEFAULT_EVS_BASE_URL)
-        self.assertEqual(settings.ssis_facade_url, "https://cadsrapi.cancer.gov")
         self.assertEqual(settings.ssis_sparql_url, "https://shared.semantics.cancer.gov")
         self.assertEqual(settings.evs_fhir_base_url, "https://api-evsrest.nci.nih.gov/fhir/r4")
         self.assertEqual(settings.cadsr_base_url, "https://cadsrapi.cancer.gov/rad")
@@ -266,11 +264,13 @@ class UpstreamUrlSetTest(unittest.TestCase):
 
     def test_a_url_given_in_live_mode_replaces_its_default_only(self):
         settings = settings_from(
-            NCI_SI_SSIS_FACADE_URL="http://localhost:8080/", NCI_SI_UPSTREAM_MODE="live"
+            NCI_SI_SSIS_SPARQL_URL="http://localhost:8080/", NCI_SI_UPSTREAM_MODE="live"
         )
 
-        self.assertEqual(settings.ssis_facade_url, "http://localhost:8080")
-        self.assertEqual(settings.ssis_sparql_url, "https://shared.semantics.cancer.gov")
+        self.assertEqual(settings.ssis_sparql_url, "http://localhost:8080")
+        for name, default in PRODUCTION_BASE_URLS.items():
+            if name != "ssis_sparql_url":
+                self.assertEqual(getattr(settings, name), default)
 
     def test_fixture_mode_takes_exactly_the_urls_given(self):
         settings = settings_from(NCI_SI_UPSTREAM_MODE="fixture", **FIXTURE_URLS)
@@ -418,7 +418,6 @@ class DefaultsMatchTheirSourcesTest(unittest.TestCase):
             ("evs_fhir_base_url", PRODUCTION_BASE_URLS["evs_fhir_base_url"], surfaces["evs-fhir"]),
             ("cadsr_base_url", PRODUCTION_BASE_URLS["cadsr_base_url"], surfaces["cadsr"]),
             ("cadsr_ftp_url", PRODUCTION_BASE_URLS["cadsr_ftp_url"], surfaces["cadsr-ftp"]),
-            ("ssis_facade_url", PRODUCTION_BASE_URLS["ssis_facade_url"], surfaces["ssis"]),
             ("ssis_sparql_url", PRODUCTION_BASE_URLS["ssis_sparql_url"], surfaces["ssis-sparql"]),
             ("exclusion_role_codes", DEFAULT_EXCLUSION_ROLE_CODES, tuple(spec_roles)),
         ):

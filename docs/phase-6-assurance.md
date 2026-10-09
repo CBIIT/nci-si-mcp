@@ -24,7 +24,7 @@ relationship. The [governed HTTP guide](governed-http.md) specifies the integrat
 | Stateful session ownership across issuer/tenant/client and replica restart/misrouting | `ProtectedHTTPTest`; `GovernedBoundaryTest.test_stateful_replicas_require_affinity_and_reauthentication_after_restart` | Affinity belongs to the load balancer. Another/restarted replica returns 404; no distributed session migration. |
 | Implicit NCIt pin, explicit override, content failure and withdrawal | `tests/test_transport.py::HTTPTest`; `tests/test_release_selection.py` | A new session can choose a newer release. Supply explicit release for multi-call stateless tasks. |
 | Required mode cannot silently become unrestricted stdio; probes/host admission | `RequiredAccessTest`; `GovernedBoundaryTest`; transport tests | Health/readiness disclose status only; readiness does not prove upstream availability. |
-| Evaluation scoring and reproducible fixed recipes | `tests/test_task_evaluation.py`; `tests/test_assisted_runner.py`; [measured report](assisted-evaluation.md) | Offline fixture mechanics; no model quality, generated-prose support or server-side benefit claim. |
+| Evaluation scoring and reproducible fixed recipes | `tests/test_assisted_scoring.py`; `tests/test_assisted_runner.py`; [measured report](assisted-evaluation.md) | Offline fixture mechanics; no model quality, generated-prose support or server-side benefit claim. |
 | Internal ask and wxMCP runtime | No executable path or public tool; [deferred research strategy](deferred-capabilities.md) | No pilot-on compatibility claim, provider dependency, gateway experiment or production adoption. |
 
 ## Upgrade, policy changes and safe rollback

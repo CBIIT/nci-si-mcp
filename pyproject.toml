@@ -134,43 +134,12 @@ pythonpath = ["tests", "scripts/validation"]
 
 [tool.coverage.run]
 branch = true
-source = [
-    "nci_si_mcp",
-    "scripts.evidence_envelope",
-    "scripts.evidence_acceptance",
-    "scripts.evidence_benchmark",
-    "scripts.evidence_benchmark_common",
-    "scripts.evidence_http",
-    "scripts.benchmark_limits",
-    "scripts.benchmark_transport",
-    "scripts.benchmark_http",
-    "scripts.http_measurement",
-    "scripts.operator_worker",
-    "scripts.operator_source",
-    "scripts.operator_inventory",
-    "scripts.operator_files",
-    "scripts.operator_process",
-    "scripts.operator_evidence",
-    "scripts.operator_execution",
-    "scripts.benchmark_http_cli",
-    "scripts.docs_site",
-    "scripts.docs_links",
-    "scripts.docs_stories",
-    "scripts.static_server",
-    "scripts.companion_context",
-    "scripts.companion_lock",
-    "scripts.companion_entry",
-    "scripts.companion_relay",
-    "scripts.portal",
-    "scripts.portal_store",
-    "scripts.portal_views",
-    "scripts.portal_http",
-    "scripts.portal_help",
-    "scripts.portal_jobs",
-    "scripts.portal_actions",
-    "scripts.portal_job_views",
-    "scripts.portal_configuration",
-    "scripts.portal_configuration_views",
+source = ["nci_si_mcp", "scripts"]
+# Every script is measured except these, each named with its reason. The patterns start with
+# a wildcard because a test's child process runs from another directory.
+omit = [
+    # A container entrypoint (container/Admin.Dockerfile) that nothing imports.
+    "*/scripts/companion_entry.py",
 ]
 # CLI and transport tests launch Python children; include their executed code.
 patch = ["subprocess"]

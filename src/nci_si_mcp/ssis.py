@@ -151,7 +151,7 @@ def _identity(row: dict[str, str]) -> GraphIdentity:
 
 
 class SSISClient:
-    """Minimal façade and bounded SPARQL operations used by the cross-domain tools.
+    """Bounded SPARQL operations used by the cross-domain tools.
 
     The graph version is input to #38's comparison with the effective release. This
     client neither compares it with EVS nor fabricates a registry release from a date.
@@ -166,30 +166,7 @@ class SSISClient:
             max_response_bytes=10 * 1024 * 1024,
             size_bound="ssis_response_bytes",
         )
-        self.http = transport(settings.ssis_facade_url, label="SSIS")
         self.sparql_http = transport(settings.ssis_sparql_url, label="SSIS_SPARQL")
-
-    def get_graph_names(self, limit: int = 100) -> list[str]:
-        """Swagger requires limit even though the endpoint otherwise returns HTTP 200."""
-        limit = bounded(limit, MAXIMUM, "limit")
-        payload = self.http.get_json("/si-api/v1/database/graph_names", {"limit": limit})
-        return _list(payload, "graph", str)
-
-    def get_data_elements_for_dec(self, dec_public_id: str) -> list[dict[str, Any]]:
-        """with_concept_id takes a DEC public id; its recorded upstream cap is 100."""
-        validate_identifier(dec_public_id, r"[1-9][0-9]*", "dec_pub_id")
-        payload = self.http.get_json(
-            "/si-api/v1/data_elements/with_concept_id",
-            {"graph_name": CADSR_GRAPH, "resource_name": "caDSR", "dec_pub_id": dec_public_id},
-        )
-        rows = _list(payload, "results", dict)
-        for row in rows:
-            if any(
-                not isinstance(row.get(key), str)
-                for key in ("entity", "identifier", "preferred_term")
-            ):
-                raise _malformed()
-        return rows
 
     def _query(self, query: str, required: tuple[str, ...], row_limit: int) -> list[dict[str, str]]:
         payload = self.sparql_http.post_form(

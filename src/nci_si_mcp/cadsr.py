@@ -19,7 +19,6 @@ from .validation import bounded, validate_identifier
 
 DATA_API = "/NCIAPI/1.0/api"
 FORM_API = "/NCIFormAPI.v2_0:NciFormApiRad"
-MODEL_API = "/NCIModelAPI/1.0/api"
 CDE_MATCH = "/NCIAPI.v2_0.cdeMatch.api:cdeMatch_rad/cdeMatch"
 VM_MATCH = "/vmMatch/v1/vmMatch"
 EXPORT_FOLDER = "/CDE/XML/"
@@ -266,12 +265,6 @@ class CaDSRClient:
         _verify_registry_pin(response, registry_release)
         _items(response, "DataElements")
         return response
-
-    def get_models(self) -> list[dict[str, Any]]:
-        return _items(self.http.get_json(f"{MODEL_API}/Models"), "modelQueryResults")
-
-    def get_crosswalk_mappings(self) -> list[dict[str, Any]]:
-        return _items(self.http.get_json(f"{MODEL_API}/CrossWalkMappings/Download"), "data")
 
     def match_data_element(self, entity: dict[str, Any], headers: dict[str, str]) -> dict[str, Any]:
         """Send one contract apiinput object, with no alternative-body retry."""

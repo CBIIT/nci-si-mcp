@@ -1,9 +1,6 @@
 """Shared SI contracts: recorded requests and malformed/empty distinctions, offline.
 
-Published https://cadsrapi.cancer.gov/SSISAdvQueries/v1/swagger.yaml (2026-10-06):
-graph_names requires limit; with_concept_id requires graph_name, resource_name and
-dec_pub_id, all strings. These tests pin those exact request parameters, independently
-of the client. The bounded identity template adds LIMIT 3 to the original recording;
+The bounded identity template adds LIMIT 3 to the original recording;
 its response is reused offline, not represented as a new live recording.
 """
 
@@ -12,7 +9,7 @@ import json
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs
 
 from nci_si_mcp.config import Settings
 from nci_si_mcp.errors import InputValidationError, PlatformError
@@ -33,27 +30,9 @@ def sparql_reply(rows):
 
 class SSISClientTest(ServerTestCase):
     def ssis(self, server):
-        client = SSISClient(Settings(ssis_facade_url=server.url, ssis_sparql_url=server.url))
-        client.http.sleep = lambda _: None
+        client = SSISClient(Settings(ssis_sparql_url=server.url))
         client.sparql_http.sleep = lambda _: None
         return client
-
-    def test_facade_graph_names_include_required_limit_and_json_accept(self):
-        fixture = recording("ssis/graph-names.json")
-        server = self.serve(Reply(body=json.dumps(fixture["response"]["body"]).encode()))
-        result = self.ssis(server).get_graph_names()
-        self.assertEqual(result, fixture["response"]["body"]["graph"])
-        self.assertEqual(server.seen[0][0], "/si-api/v1/database/graph_names?limit=100")
-        self.assertEqual(server.seen[0][1]["accept"], "application/json")
-
-    def test_facade_concept_operation_uses_the_dec_identifier_not_an_ncit_code(self):
-        fixture = recording("ssis/data-elements-of-dec-2226947.json")
-        server = self.serve(Reply(body=json.dumps(fixture["response"]["body"]).encode()))
-        result = self.ssis(server).get_data_elements_for_dec("2226947")
-        self.assertEqual(result, fixture["response"]["body"]["results"])
-        self.assertEqual(urlsplit(server.seen[0][0]).path, fixture["request"]["path"])
-        self.assertEqual(parse_qs(urlsplit(server.seen[0][0]).query), fixture["request"]["params"])
-        self.assertEqual(server.seen[0][1]["accept"], "application/json")
 
     def test_graph_identity_preserves_both_dates_and_optional_version_without_release_check(self):
         fixture = recording("ssis-sparql/graph-identities.json")
@@ -172,8 +151,6 @@ class SSISClientTest(ServerTestCase):
 
     def test_empty_lists_are_successful_for_every_operation(self):
         for method, arguments, body in (
-            ("get_graph_names", (), {"graph": []}),
-            ("get_data_elements_for_dec", ("2226947",), {"results": []}),
             ("find_data_elements", ("C17357",), {"results": {"bindings": []}}),
             ("find_permissible_values", ("C17357",), {"results": {"bindings": []}}),
             ("get_permissible_values", ("2200604",), {"results": {"bindings": []}}),
@@ -212,20 +189,6 @@ class SSISClientTest(ServerTestCase):
                     with self.assertRaises(PlatformError) as raised:
                         self.ssis(self.serve(sparql_reply([row]))).find_data_elements("C17357")
                     self.assertEqual(raised.exception.code, "upstream_unavailable")
-
-    def test_missing_facade_results_and_masked_failures_are_not_empty(self):
-        for method, arguments, body in (
-            ("get_graph_names", (), {}),
-            ("get_graph_names", (), {"graph": [3]}),
-            ("get_graph_names", (), {"apiResponse": {"type": "E"}}),
-            ("get_data_elements_for_dec", ("2226947",), {}),
-            ("get_data_elements_for_dec", ("2226947",), {"results": [{}]}),
-        ):
-            with self.subTest(method=method, body=body):
-                client = self.ssis(self.serve(Reply(body=json.dumps(body).encode())))
-                with self.assertRaises(PlatformError) as raised:
-                    getattr(client, method)(*arguments)
-                self.assertEqual(raised.exception.code, "upstream_unavailable")
 
     def test_invalid_graph_metadata_is_rejected_without_a_fabricated_identity(self):
         original = recording("ssis-sparql/graph-identities.json")["response"]["body"]["results"][
@@ -295,15 +258,13 @@ class SSISClientTest(ServerTestCase):
         rows = recording("ssis-sparql/graph-identities.json")["response"]["body"]["results"][
             "bindings"
         ]
-        server = self.serve(Reply(body=b'{"graph": []}'), sparql_reply(rows))
+        server = self.serve(sparql_reply(rows))
         client = SSISClient(
             Settings(
-                ssis_facade_url=server.url,
                 ssis_sparql_url=server.url,
                 cadsr_credential="fixture-only:secret",
             )
         )
-        self.assertEqual(client.get_graph_names(), [])
         self.assertEqual(
             {row["graph"] for row in client.get_graph_identities()}, {NCIT_GRAPH, CADSR_GRAPH}
         )
@@ -318,7 +279,6 @@ class SSISValidationTest(unittest.TestCase):
                 client.find_data_elements,
                 client.find_permissible_values,
                 client.get_permissible_values,
-                client.get_data_elements_for_dec,
             ):
                 for value in ("", "C17357>", '2200604"', "C17357}", None, 123):
                     with (
@@ -331,10 +291,7 @@ class SSISValidationTest(unittest.TestCase):
         client = SSISClient(Settings())
         with patch("nci_si_mcp.http_client._open", side_effect=AssertionError("Unexpected HTTP")):
             for value in (0, -1, True, 1.5, "2"):
-                with self.subTest(value=value):
-                    with self.assertRaises(InputValidationError):
-                        client.get_graph_names(value)
-                    with self.assertRaises(InputValidationError):
-                        client.find_data_elements("C17357", maximum=value)
+                with self.subTest(value=value), self.assertRaises(InputValidationError):
+                    client.find_data_elements("C17357", maximum=value)
             with self.assertRaises(InputValidationError):
                 client.find_data_elements("C17357", expand_descendants="true")

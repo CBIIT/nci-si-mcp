@@ -1,6 +1,6 @@
 import unittest
 
-from nci_si_mcp.task_evaluation import assess, summarize, validate_plan
+from scripts.assisted_scoring import assess, summarize, validate_plan
 
 
 def task():
@@ -25,7 +25,7 @@ def run():
     }
 
 
-class TaskEvaluationTest(unittest.TestCase):
+class AssistedScoringTest(unittest.TestCase):
     def test_execution_plan_changes_cannot_rewrite_preregistered_recipe(self):
         case = task()
         execution = validate_plan(case, case["calls"])

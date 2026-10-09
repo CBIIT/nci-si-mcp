@@ -148,11 +148,10 @@ class ClientBoundaryTest(ServerTestCase):
                 self.cadsr(server).resolve_registry_release()
             self.assertEqual(len(server.seen), 1)
 
-    def test_malformed_search_and_crosswalk_rows_are_structured_errors(self):
+    def test_malformed_search_rows_are_structured_errors(self):
         for body, name, args in (
             ({}, "search_data_elements", ("X", 10)),
             ({"DataElements": ["bad"]}, "search_data_elements", ("X", 10)),
-            ({"data": ["bad"]}, "get_crosswalk_mappings", ()),
         ):
             server = self.serve(reply(body))
             with self.subTest(body=body), self.assertRaises(PlatformError) as raised:

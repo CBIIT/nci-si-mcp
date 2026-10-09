@@ -12,7 +12,6 @@ The JSON documents are available from
 | Data Elements | `NCIAPI.v1_0:NciApiRad` | DataElement, DataElements, CRDCDataElements wrappers |
 | Forms | `NCIFormAPI.v2_0:NciFormApiRad` | form wrapper and version query |
 | Contexts | `NCILovAPI.v1_0:LovRad` | contextNames string array |
-| Models | `NCIModelAPI.v1_0:NciModelApiRad` | modelQueryResults and crosswalk data arrays |
 | CDE Match | `NCIAPI.v2_0.cdeMatch.api:cdeMatch_rad` | one apiinput object, endpoint headers, matchResults object |
 | VM Match | `NCIAPI.v1_0:vmMatchRad` | entities array, match headers, matchResults array |
 
