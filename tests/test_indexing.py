@@ -65,7 +65,7 @@ class FullBuildTest(ServerFixture):
             built.build_id,
         )
         self.context.index.activate(built.build_id)
-        self.assertFalse(self.context.index.get_concept("C1000").raw["active"])
+        self.assertFalse(self.context.index.get_concept_snapshot("C1000")[1].raw["active"])
 
     def test_shifted_page_duplicate_and_missing_concept_reject_before_database_write(self):
         first = [concept(f"C{number}") for number in range(1000)]

@@ -4,14 +4,23 @@ import json
 import sqlite3
 import struct
 from contextlib import closing
+from types import SimpleNamespace
 from unittest.mock import patch
 
+import numpy as np
+
 from fakes import concept
-from nci_si_mcp.embeddings import HashingEmbeddingProvider
+from nci_si_mcp.embeddings import HashingEmbeddingProvider, SentenceTransformersProvider
 from nci_si_mcp.errors import IndexCompatibilityError, IndexStorageError
 from nci_si_mcp.evs import normalize_concept
 from nci_si_mcp.index import LocalIndex
-from nci_si_mcp.index_storage import SCHEMA_VERSION, concept_fields, create_fts, fts_table
+from nci_si_mcp.index_storage import (
+    SCHEMA_VERSION,
+    concept_fields,
+    create_fts,
+    fts_table,
+    vector_bytes,
+)
 from nci_si_mcp.models import IndexManifest
 from test_index import IndexTestCase
 
@@ -89,7 +98,7 @@ class Float32MigrationTest(IndexTestCase):
         self.assertEqual(
             {m.build_id for m in index.list_builds()}, {active.build_id, older.build_id}
         )
-        self.assertEqual(index.get_concept("C1").raw, rows[0])
+        self.assertEqual(index.get_concept_snapshot("C1")[1].raw, rows[0])
         for mode in ("bm25", "vector", "hybrid"):
             with self.subTest(mode=mode):
                 hits = index.search("Kinase", self.provider, mode=mode)
@@ -135,7 +144,7 @@ class VectorIntegrityTest(IndexTestCase):
             ):
                 index.upsert_concepts([concept("C99", "New")], None, self.provider)
             self.assertEqual(index.get_active_manifest(), active)
-            self.assertIsNone(index.get_concept("C99"))
+            self.assertIsNone(index.get_concept_snapshot("C99")[1])
 
     def test_search_includes_all_concepts_beyond_the_former_scan_cutoff(self):
         provider = HashingEmbeddingProvider(dimensions=2)
@@ -183,3 +192,27 @@ class VectorIntegrityTest(IndexTestCase):
             hits = index.search("query", provider, mode="vector")
         self.assertEqual([hit.concept.code for hit in hits], ["C1", "C2"])
         self.assertEqual(hits[0].score, hits[1].score)
+
+
+class ArrayVectorTest(IndexTestCase):
+    """Model vectors reach storage as float32 arrays, byte-identical to the float-list path."""
+
+    def test_sentence_transformer_rows_are_float32_arrays_that_store_as_their_floats(self):
+        encoded = np.array([[0.25, -0.5, 1.0], [0.125, 0.0, -2.0]], dtype=np.float32)
+        provider = SentenceTransformersProvider.__new__(SentenceTransformersProvider)
+        provider._model = SimpleNamespace(encode=lambda texts, **options: encoded)
+
+        rows = provider.embed(["a", "b"])
+
+        self.assertEqual([row.dtype for row in rows], [np.dtype("<f4")] * 2)
+        self.assertEqual(vector_bytes(rows[0]), struct.pack("<3f", 0.25, -0.5, 1.0))
+        self.assertEqual(vector_bytes(rows[1]), vector_bytes([0.125, 0.0, -2.0]))
+
+    def test_a_float64_array_rounds_to_the_same_bytes_as_a_float_list(self):
+        values = [0.1, -2.5, 1e-3 + 1e-12]
+        self.assertEqual(vector_bytes(np.array(values)), vector_bytes(values))
+
+    def test_array_values_float32_cannot_store_are_rejected_as_incompatible(self):
+        for label, values in {"nan": [np.nan], "inf": [np.inf], "overflow": [1e300]}.items():
+            with self.subTest(label), self.assertRaises(IndexCompatibilityError):
+                vector_bytes(np.array(values))

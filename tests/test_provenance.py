@@ -551,7 +551,7 @@ class NoUpstreamUrlTest(ProvenanceTestCase):
 class RetrievedAtTest(ProvenanceTestCase):
     def test_an_indexed_concept_and_the_manifest_keep_the_time_they_were_stored_with(self):
         invoke(self.context, "index_codes", ["C3262"])
-        stored = self.context.index.get_concept("C3262").retrieved_at
+        stored = self.context.index.get_concept_snapshot("C3262")[1].retrieved_at
         built = self.context.index.get_active_manifest().built_at
 
         first = invoke(self.context, "search", "neoplasm")["hits"][0]["concept"]["provenance"]
@@ -761,7 +761,7 @@ class EdgeTypeProvenanceTest(ProvenanceTestCase):
 
 class ExactnessBoundaryTest(ProvenanceTestCase):
     def search(self, index, limit, mode):
-        return index.search_with_truncation("alpha1", HashingEmbeddingProvider(), limit, mode)[1]
+        return index.search_snapshot("alpha1", HashingEmbeddingProvider(), limit, mode)[1]
 
     def build(self, count):
         index = LocalIndex(self.path)

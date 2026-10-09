@@ -43,7 +43,7 @@ class StorageReviewTest(IndexTestCase):
         with self.assertRaisesRegex(PlatformError, "index-rebuild"):
             index.upsert_concepts([concept("C2")], None, self.provider)
         self.assertEqual(index.get_active_manifest(), active)
-        self.assertIsNone(index.get_concept("C2"))
+        self.assertIsNone(index.get_concept_snapshot("C2")[1])
 
     def test_expired_cursor_names_requested_and_current_releases(self):
         index = self.build([concept("C1")])
@@ -67,7 +67,7 @@ class StorageReviewTest(IndexTestCase):
         update_manifest(index, active)
         updated = index.upsert_concepts([concept("C2")], None, self.provider)
         self.assertEqual(updated.embedding_dimensions, self.provider.dimensions)
-        self.assertIsNotNone(index.get_concept("C2"))
+        self.assertIsNotNone(index.get_concept_snapshot("C2")[1])
 
     def test_declared_dimensions_are_not_replaced_by_stored_vector_width(self):
         index = self.build([concept("C1")])
@@ -196,7 +196,7 @@ class LegacyStorageReviewTest(IndexTestCase):
         with self.assertRaises(IndexBuildError) as raised:
             index.upsert_concepts([concept("C2")], None, self.provider)
         self.assertEqual(index.list_builds(), [active])
-        self.assertIsNone(index.get_concept("C2"))
+        self.assertIsNone(index.get_concept_snapshot("C2")[1])
         self.assertIn("separate data directory", str(raised.exception))
 
     def test_legacy_migration_derives_dimensions_and_retains_status(self):

@@ -361,7 +361,7 @@ update them when behaviour changes.
 every database access. `upsert_concepts` reads a consistent snapshot and checks
 compatibility before snapshot creation. Embeddings run outside transactions; each
 batch is written in a short transaction under a building manifest. Only completed builds activate.
-Sample activation checks that another writer has not changed the active build in the meantime.
+Sample activation checks that another writer has not changed the active build in the meantime; when it has, the new inactive build is deleted before the error is raised. Release mix and missing or duplicate codes are checked once, per batch, as fields are prepared. Model providers return float32 rows, which `vector_bytes` stores without Python floats.
 
 Schema 6 stores immutable builds keyed by an internal build id. Name, synonym and definition
 texts are deduplicated within each concept and embedded separately. Activation retains only

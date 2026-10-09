@@ -107,8 +107,11 @@ class ContainerTest(ServerFixture):
         with patch.dict(sys.modules, modules):
             provider = SentenceTransformersProvider("org/model", local_files_only=True)
             local = SentenceTransformersProvider(cached, local_files_only=True)
-        self.assertEqual((provider.model, provider.embed(["abc"])), ("org/model", [[3.0, 1.0]]))
-        self.assertEqual(local.embed(["ab"]), [[2.0, 1.0]])
+        self.assertEqual(
+            (provider.model, [row.tolist() for row in provider.embed(["abc"])]),
+            ("org/model", [[3.0, 1.0]]),
+        )
+        self.assertEqual([row.tolist() for row in local.embed(["ab"])], [[2.0, 1.0]])
 
     def test_bad_model_setting_names_the_variable_without_its_value(self):
         logging.disable(logging.NOTSET)

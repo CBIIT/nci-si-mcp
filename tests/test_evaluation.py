@@ -101,7 +101,7 @@ class EvaluationTest(unittest.TestCase):
                 self.assertEqual(result.hit_at_1, 1)
                 self.assertEqual(result.per_query[0].ranked_codes, ("C8",))
             self.assertEqual(index.get_active_manifest(), active)
-            self.assertIsNone(index.get_concept("C8"))
+            self.assertIsNone(index.get_concept_snapshot("C8")[1])
 
 
 if __name__ == "__main__":

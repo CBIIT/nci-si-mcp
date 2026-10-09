@@ -5,7 +5,7 @@ from __future__ import annotations
 import heapq
 import re
 import sqlite3
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from typing import Any, NamedTuple
 
 from .errors import IndexCompatibilityError, IndexStorageError, PlatformError
@@ -93,7 +93,7 @@ def _cosines(np: Any, rows: list[sqlite3.Row], query: Any, path: str) -> Any:
     return scores
 
 
-def _query(np: Any, values: list[float]) -> Any:
+def _query(np: Any, values: Sequence[float]) -> Any:
     query = np.asarray(values, dtype="<f4")
     if not np.isfinite(query).all():
         raise IndexCompatibilityError("The query embedding contains non-finite values")
@@ -125,9 +125,14 @@ def _scan(
     query: Any,
     codes: dict[str, int],
 ) -> tuple[Any, Any, Any, Any]:
+    scanned = (
+        "FROM concept_vectors WHERE build_id = ? AND (? IS NULL OR code IN "
+        "(SELECT code FROM concepts WHERE build_id = ? AND status = ?))"
+    )
+    arguments = (manifest.build_id, status, manifest.build_id, status)
     count = conn.execute(
-        "SELECT coalesce(sum(length(kinds)), 0) FROM concept_vectors WHERE build_id = ?",
-        (manifest.build_id,),
+        f"SELECT coalesce(sum(length(kinds)), 0) {scanned}",
+        arguments,
     ).fetchone()[0]
     cosines = np.empty(count, dtype=np.float32)
     concepts = np.empty(count, dtype=np.int32)
@@ -135,11 +140,7 @@ def _scan(
     bm25 = np.zeros(count, dtype=np.float64)
     offset = 0
     starts = {}
-    cursor = conn.execute(
-        "SELECT code, kinds, vector FROM concept_vectors WHERE build_id = ? "
-        "AND (? IS NULL OR code IN (SELECT code FROM concepts WHERE build_id = ? AND status = ?))",
-        (manifest.build_id, status, manifest.build_id, status),
-    )
+    cursor = conn.execute(f"SELECT code, kinds, vector {scanned}", arguments)
     while rows := cursor.fetchmany(256):
         scores = _cosines(np, rows, query, manifest.index_path)
         lengths = np.fromiter((len(row[1]) for row in rows), dtype=np.int32)
@@ -153,7 +154,7 @@ def _scan(
         starts.update((row[0], int(start)) for row, start in zip(rows, positions, strict=True))
         offset = end
     _scatter_bm25(conn, bm25, starts)
-    return cosines[:offset], concepts[:offset], kinds[:offset], bm25[:offset]
+    return cosines, concepts, kinds, bm25
 
 
 def _scatter_bm25(conn: sqlite3.Connection, bm25: Any, starts: dict[str, int]) -> None:
@@ -200,7 +201,7 @@ def _page_indices(np: Any, scores: Any, exact: Any, offset: int, limit: int) -> 
 def _vector_page(
     conn: sqlite3.Connection,
     manifest: IndexManifest,
-    values: list[float],
+    values: Sequence[float],
     mode: str,
     offset: int,
     limit: int,
@@ -284,7 +285,7 @@ def rank_page(
     conn: sqlite3.Connection,
     manifest: IndexManifest,
     query: str,
-    values: list[float] | None,
+    values: Sequence[float] | None,
     mode: str,
     offset: int,
     limit: int,
