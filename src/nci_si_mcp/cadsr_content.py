@@ -478,6 +478,9 @@ def _page(
     args: dict[str, Any],
     provenance: dict[str, Any],
 ) -> dict[str, Any]:
+    if offset and offset >= len(rows):
+        # The list is fetched again per page; one that shrank is not a clean last page.
+        raise InputValidationError("The cursor position is beyond this list", "cursor")
     page = rows[offset : offset + size]
     result: dict[str, Any] = {key: page}
     if offset + size < len(rows):

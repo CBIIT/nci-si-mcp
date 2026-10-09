@@ -98,8 +98,14 @@ class Truncation:
     per_kind: dict[str, Truncation] | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        data = asdict(self)
-        data.pop("per_kind")
+        data = {
+            "occurred": self.occurred,
+            "bound": self.bound,
+            "limit": self.limit,
+            "reached": self.reached,
+            "omitted": self.omitted,
+            "exact": self.exact,
+        }
         if self.per_kind is not None:
             data["perKind"] = {kind: record.to_dict() for kind, record in self.per_kind.items()}
         return {key: value for key, value in data.items() if value is not None}
@@ -253,9 +259,13 @@ class SearchHit:
     score_components: dict[str, float] = field(default_factory=dict)
 
     def to_dict(self, source_uri: str, include_raw: bool = False) -> dict[str, Any]:
-        data = asdict(self)
-        data["concept"] = self.concept.to_dict(source_uri, include_raw=include_raw)
-        return data
+        return {
+            "concept": self.concept.to_dict(source_uri, include_raw=include_raw),
+            "score": self.score,
+            "rank": self.rank,
+            "matched_on": self.matched_on,
+            "score_components": dict(self.score_components),
+        }
 
 
 def _with_provenance(item: Any) -> dict[str, Any]:
@@ -307,9 +317,12 @@ class TraversalResult:
     concepts: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        data = asdict(self)
-        data.pop("concepts")
-        data["nodes"] = [node.to_dict() for node in self.nodes]
-        data["edges"] = [edge.to_dict() for edge in self.edges]
-        data["truncation"] = self.truncation.to_dict()
-        return data
+        return {
+            "start_codes": list(self.start_codes),
+            "nodes": [node.to_dict() for node in self.nodes],
+            "edges": [edge.to_dict() for edge in self.edges],
+            "truncation": self.truncation.to_dict(),
+            "max_depth": self.max_depth,
+            "max_nodes": self.max_nodes,
+            "max_edges": self.max_edges,
+        }

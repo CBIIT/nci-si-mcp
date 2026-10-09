@@ -11,7 +11,7 @@ from inspect import Parameter, Signature
 from typing import TYPE_CHECKING, Annotated, Any, get_args, get_origin
 
 from . import __version__
-from .audit import audited, compact, hashed, secrets
+from .audit import audited, compact, hashed, result_text, secrets
 from .caching import LONG_TTL_MS, cache_call, cache_hint
 from .config import Settings, configure_logging
 from .context import Context
@@ -147,8 +147,10 @@ def create_mcp(
 
     def tool_call(spec: ToolSpec, arguments: dict[str, Any]) -> Any:
         result = invoke(context, spec.operation, **arguments)
+        text = compact(result)
+        result_text(text)
         return CallToolResult(
-            content=[TextContent(type="text", text=json.dumps(result, indent=2))],
+            content=[TextContent(type="text", text=text)],
             structured_content=result,
             is_error=is_error_record(result),
         )

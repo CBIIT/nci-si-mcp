@@ -422,6 +422,15 @@ class CaDSRContentTest(CaDSRFixture):
         self.assertEqual(set(second["contexts"][0]), {"name", "provenance"})
         self.assertNotIn("nextCursor", second)
 
+    def test_cursor_past_the_end_of_a_shrunk_list_is_invalid_not_an_empty_last_page(self):
+        server = self.serve(reply({"contextNames": ["B", "A"]}), reply({"contextNames": ["B"]}))
+        first = self.call(server, "list_contexts", limit=1)
+        second = self.call(server, "list_contexts", limit=1, cursor=first["nextCursor"])
+        self.assertEqual(second["error"]["code"], "invalid_request")
+        self.assertEqual(second["error"]["details"]["parameter"], "cursor")
+        self.assertIn("beyond this list", second["error"]["message"])
+        self.assertNotIn("contexts", second)
+
     def test_empty_context_list_is_short_lived_and_has_provenance(self):
         result = self.call(self.serve(reply({"contextNames": []})), "list_contexts")
         self.assertEqual(result["contexts"], [])

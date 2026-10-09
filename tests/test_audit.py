@@ -289,6 +289,18 @@ class AuditAdapterTest(ServerFixture):
         self.assertIsNone(current_correlation_id())
         self.assertNotIn("bug canary", stream.getvalue())
 
+    def test_result_size_is_the_size_of_the_text_sent_to_the_client(self):
+        self.evs.concepts["C3262"] = dict(self.evs.concepts["C3262"], name="Café")
+        with captured() as stream:
+            result = self.session(
+                lambda client: client.call_tool("get_concept", pinned(code="C3262"))
+            )
+
+        (record,) = records(stream)
+        text = result.content[0].text
+        self.assertEqual(json.loads(text), result.structured_content)
+        self.assertEqual(record["resultSize"], len(text.encode("utf-8")))
+
     def test_truncation_is_copied_with_per_kind_counts(self):
         with captured() as stream:
             failed, result = self.call("get_concept_neighborhood", code="C3262", maxNodes=1)
