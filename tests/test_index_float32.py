@@ -213,6 +213,12 @@ class ArrayVectorTest(IndexTestCase):
         self.assertEqual(vector_bytes(np.array(values)), vector_bytes(values))
 
     def test_array_values_float32_cannot_store_are_rejected_as_incompatible(self):
-        for label, values in {"nan": [np.nan], "inf": [np.inf], "overflow": [1e300]}.items():
-            with self.subTest(label), self.assertRaises(IndexCompatibilityError):
+        cases = {
+            "nan": ([np.nan], "non-finite values"),
+            "inf": ([np.inf], "non-finite values"),
+            "overflow": ([1e300], "cannot be stored as float32"),
+        }
+        for label, (values, reason) in cases.items():
+            with self.subTest(label), self.assertRaises(IndexCompatibilityError) as raised:
                 vector_bytes(np.array(values))
+            self.assertIn(reason, str(raised.exception))

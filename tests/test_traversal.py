@@ -961,10 +961,6 @@ class TraversalTest(unittest.TestCase):
         )
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class BoundedFrontierTest(unittest.TestCase):
     def test_a_fetched_frontier_keeps_only_the_keys_the_walk_uses(self):
         bulk = "x" * 1_000_000
@@ -1007,3 +1003,7 @@ class BoundedFrontierTest(unittest.TestCase):
             ],
         )
         self.assertLess(len(json.dumps(found)), 1000)
+
+
+if __name__ == "__main__":
+    unittest.main()

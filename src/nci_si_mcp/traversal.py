@@ -188,6 +188,7 @@ def _fetch_concepts(
 # What the walk reads of a concept (node fields) and of a relation item (the target, its
 # provenance). Anything else EVS sends is dropped as the batch is extracted, so a frontier
 # of hub concepts does not keep megabytes of relation payload while its kinds are followed.
+# A malformed relation list therefore fails here, at fetch time, not when a kind reads it.
 _NODE_FIELDS = ("code", "name", "active", "conceptStatus", "terminology", "version", "licenseText")
 _ITEM_FIELDS = (
     "code",
@@ -463,6 +464,7 @@ class _Walk:
                 len(self.edges),
                 self._kind_omitted(kind, "edges"),
             ),
+            # The bound is recorded only while per_kind is set (bounds.py), so 0 never shows.
             "kind_budget": lambda: (
                 self.budget.per_kind or 0,
                 self.budget.added_by_kind[first_kind],

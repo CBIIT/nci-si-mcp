@@ -99,8 +99,8 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 | `NCI_SI_SSIS_SPARQL_URL` | `https://shared.semantics.cancer.gov` | Shared Semantic Infrastructure SPARQL endpoint |
 | `NCI_SI_RELEASE_CHANNEL` | `monthly` | The default channel for discovery and CLI diagnostics: `monthly` or `weekly`. The release is the one EVS row that is latest and tagged with the channel; with none or several the call fails with a release-not-available error. MCP content tools use the release the caller supplies |
 | `NCI_SI_EXCLUSION_ROLE_CODES` | `R135,R136,R137,R138,R139,R140,R141,R142` | NCIt exclusion roles, a comma-separated list of codes (`R` and digits); checked against the requested release catalogue on each relationship listing or neighborhood call |
-| `NCI_SI_EVS_LICENSE_KEY` | unset | EVS licence key, sent as the `X-EVSRESTAPI-License-Key` header on EVS requests and to no other host. A credential: never logged, in no error message or string form |
-| `NCI_SI_CADSR_CREDENTIAL` | unset | caDSR credential as `user:password`; handled like the licence key |
+| `NCI_SI_EVS_LICENSE_KEY` | unset | EVS licence key, sent as the `X-EVSRESTAPI-License-Key` header on EVS requests and to no other host; at least 8 characters, so redaction never matches unrelated text. A credential: never logged, in no error message or string form |
+| `NCI_SI_CADSR_CREDENTIAL` | unset | caDSR credential as `user:password` (the password at least 8 characters); handled like the licence key |
 | `NCI_SI_TIMEOUT_SECONDS` | `30` | Per-request timeout |
 | `NCI_SI_MATCH_TIMEOUT_SECONDS` | `45` | Timeout of a caDSR match request |
 | `NCI_SI_EVS_MAX_ATTEMPTS` | `3` | Request attempts, 1 to 10. Only a 5xx, a 429 and a connection failure are retried; a 429 waits for its `Retry-After` (a platform that asks for more than 60 seconds is not asked again) |
