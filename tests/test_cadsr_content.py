@@ -94,7 +94,9 @@ class CaDSRContentTest(CaDSRFixture):
         server = self.serve(reply({"apiResponse": {"type": "E", "message": "untrusted wording"}}))
         result = self.call(server, "search_data_elements", query="patient")
         self.assertEqual(result["error"]["code"], "upstream_unavailable")
+        self.assertEqual(result["error"]["details"]["surface"], "cadsr")
         message = result["error"]["message"]
+        self.assertIn("webMethods error envelope", message)
         self.assertIn("OP-C03", message)
         self.assertIn("get_data_element", message)
         self.assertTrue(
@@ -131,12 +133,7 @@ class CaDSRContentTest(CaDSRFixture):
                 self.assertIn(diagnostic, result["error"]["message"])
                 self.assertNotIn("OP-C03", result["error"]["message"])
                 self.assertNotIn("get_data_element", result["error"]["message"])
-
-    def test_masked_search_answer_keeps_the_envelope_details_and_adds_the_hint(self):
-        server = self.serve(reply({"apiResponse": {"type": "E", "message": "untrusted wording"}}))
-        result = self.call(server, "search_data_elements", query="patient")
-        self.assertEqual(result["error"]["details"]["surface"], "cadsr")
-        self.assertIn("webMethods error envelope", result["error"]["message"])
+                self.assertEqual(len(server.seen), 1)
 
     def test_question_search_and_contexts_require_the_verified_pin_echo(self):
         row = {"identifier": "known", "generatedAt": "2026-07-01T22:19"}

@@ -391,6 +391,12 @@ class MainTest(unittest.TestCase):
             self.assertEqual(error["details"]["parameter"], "NCI_SI_HTTP_AUTH_MODE")
             create.assert_not_called()
 
+    def test_required_http_auth_does_not_stop_commands_that_never_serve(self, _):
+        code, info, stderr = self.run_cli("release-info", NCI_SI_HTTP_AUTH_MODE="required")
+
+        self.assertEqual((code, stderr), (0, ""))
+        self.assertEqual(info["selected_release"]["version"], "26.06e")
+
     def test_serve_failures_go_to_stderr(self, _):
         with patch("nci_si_mcp.cli.create_mcp", side_effect=RuntimeError("mcp is missing")):
             code, printed, stderr = self.run_cli("serve")
