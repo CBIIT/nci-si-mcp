@@ -7,7 +7,7 @@ from collections.abc import Awaitable, Callable
 from functools import update_wrapper
 from importlib.metadata import version
 from importlib.resources import files
-from inspect import Parameter, Signature, getsource
+from inspect import Parameter, Signature
 from typing import TYPE_CHECKING, Annotated, Any, get_args, get_origin
 
 from . import __version__
@@ -76,8 +76,9 @@ INSTRUCTIONS = (
 def _require_session_connection(session_type: type) -> None:
     # Stateful HTTP pins and secured-mode principal binding read the SDK's private
     # ServerSession._connection (see _session_state); fail at startup, not on the first call.
-    # It is set in __init__, so the class has no attribute to test for.
-    if "self._connection" not in getsource(session_type.__init__):
+    # It is set in __init__, so the class has no attribute to test for; the code object's
+    # names hold the attribute without needing the SDK's source files.
+    if "_connection" not in session_type.__init__.__code__.co_names:
         raise RuntimeError(
             f"mcp {version('mcp')} no longer gives ServerSession a '_connection' attribute, "
             "which HTTP session identity depends on; install the mcp version in pdm.lock"
