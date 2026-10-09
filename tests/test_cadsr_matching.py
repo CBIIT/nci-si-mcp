@@ -361,14 +361,19 @@ class MatchingTest(ServerTestCase):
                         )
                         self.assertIn("C-1", result["error"]["message"])
 
-    def test_timeout_names_the_matching_setting(self):
-        server = self.serve()
-        context = self.context(server, match_timeout_seconds=0.01)
-        with patch("nci_si_mcp.http_client._open", side_effect=TimeoutError):
-            result = invoke(context, "match_data_elements", entities=[{"name": "Q"}])
-        self.assertEqual(result["error"]["code"], "timeout")
-        self.assertIn("NCI_SI_MATCH_TIMEOUT_SECONDS", result["error"]["message"])
-        self.assertEqual(result["error"]["details"]["seconds"], 0.01)
+    def test_both_matching_timeouts_name_the_matching_setting_and_keep_details(self):
+        for operation, args in (
+            ("match_data_elements", {"entities": [{"name": "Q"}]}),
+            ("match_value_meanings", {"values": ["Q"]}),
+        ):
+            with self.subTest(operation=operation):
+                context = self.context(self.serve(), match_timeout_seconds=0.01)
+                with patch("nci_si_mcp.http_client._open", side_effect=TimeoutError):
+                    result = invoke(context, operation, **args)
+                self.assertEqual(result["error"]["code"], "timeout")
+                self.assertIn("NCI_SI_MATCH_TIMEOUT_SECONDS", result["error"]["message"])
+                self.assertEqual(result["error"]["details"]["seconds"], 0.01)
+                self.assertEqual(result["error"]["details"]["surface"], "cadsr")
 
     def test_empty_matches_have_complete_provenance_and_no_cache(self):
         server = self.serve(reply(vm_response()))

@@ -17,6 +17,11 @@ _NEXT_STEP = "Retry later; if it persists, check that the platform's base URL is
 _FHIR_ERROR_SEVERITIES = {"error", "fatal"}
 
 
+class MaskedSuccessError(PlatformError):
+    """`upstream_unavailable` for a platform error masked as a success response, so a caller
+    that knows what such an answer means can word it without reading the message."""
+
+
 def _webmethods_error(data: dict[str, Any]) -> str | None:
     envelope = data.get("apiResponse")
     if not isinstance(envelope, dict) or envelope.get("type") != "E":
@@ -71,7 +76,7 @@ def parse_upstream_json(payload: bytes, source: str) -> Any:
         ) from exc
     masked = _masked_error(data)
     if masked:
-        raise PlatformError(
+        raise MaskedSuccessError(
             "upstream_unavailable",
             f"{source} answered with {masked} in a success response. {_NEXT_STEP}",
             surface=_surface(source),

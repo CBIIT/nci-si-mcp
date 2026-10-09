@@ -295,7 +295,10 @@ the only function that turns one into the result, `{"error": {"code", "message",
 "correlationId"}}`; nothing builds that dict by hand. The audit boundary opens `errors.correlated()` once
 per call (the request's `_meta.correlationId`, else generated) for tools, resources and CLI.
 `registry.invoke` shares that scope and enters `invocation.call` for expected failures.
-It converts the expected exception types listed in `invocation._ERROR_CODES` (with the next
+The raisers own their wording (`cadsr_matching` the match-timeout step, `cadsr_content` the
+OP-C03 hint on `upstream.MaskedSuccessError` only); `invocation` never branches on a tool name.
+A result that embeds an error uses `invocation.error_record`, which logs no `call_failed`.
+`invocation.call` converts the expected exception types listed in `invocation._ERROR_CODES` (with the next
 step appended to their message and their `details` attribute carried over) and logs a warning; an
 exception gets the entry of its nearest listed class. To add a failure mode,
 raise a specific exception type and add it to that table, or raise a `PlatformError` where the

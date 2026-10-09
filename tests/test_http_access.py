@@ -8,7 +8,6 @@ from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.provider import AccessToken
 from mcp.server.auth.settings import AuthSettings
 
-from nci_si_mcp.cli import _serve
 from nci_si_mcp.config import Settings
 from nci_si_mcp.http_auth import HTTPAuthIntegration, configured_auth
 from nci_si_mcp.permissions import Authority, Principal
@@ -71,10 +70,6 @@ class RequiredAccessTest(GovernedFixture):
     def test_a_configured_resolver_cannot_grant_without_a_verified_transport_identity(self):
         bundle = configured_auth(self.configured())
         self.assertIsNone(asyncio.run(bundle.authority_resolver()))
-
-    def test_required_http_cannot_silently_launch_trusted_stdio(self):
-        with self.assertRaisesRegex(ValueError, "HTTP"):
-            _serve(replace(self.settings, http_auth_mode="required"), self.context)
 
     def test_incomplete_or_unbound_integration_never_starts(self):
         policy = LocalPolicy()

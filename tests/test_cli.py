@@ -377,6 +377,20 @@ class MainTest(unittest.TestCase):
         self.assertEqual(create.call_args.args[0].transport, "stdio")
         http.assert_not_called()
 
+    def test_required_http_auth_cannot_serve_stdio_whichever_way_stdio_is_chosen(self, _):
+        for arguments, environment in (
+            ((), {}),
+            (("--transport", "stdio"), {"NCI_SI_TRANSPORT": "streamable-http"}),
+        ):
+            with self.subTest(arguments=arguments), patch("nci_si_mcp.cli.create_mcp") as create:
+                code, printed, stderr = self.run_cli(
+                    "serve", *arguments, NCI_SI_HTTP_AUTH_MODE="required", **environment
+                )
+            error = json.loads(stderr)["error"]
+            self.assertEqual((code, printed, error["code"]), (1, None, "invalid_request"))
+            self.assertEqual(error["details"]["parameter"], "NCI_SI_HTTP_AUTH_MODE")
+            create.assert_not_called()
+
     def test_serve_failures_go_to_stderr(self, _):
         with patch("nci_si_mcp.cli.create_mcp", side_effect=RuntimeError("mcp is missing")):
             code, printed, stderr = self.run_cli("serve")

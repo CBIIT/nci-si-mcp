@@ -108,25 +108,10 @@ def _platform_error(exc: Exception) -> PlatformError:
     return PlatformError(code, with_next_step(str(exc), next_step), **details)
 
 
-def _envelope(operation: str, exc: Exception) -> dict[str, Any]:
-    error = _platform_error(exc)
-    if operation in ("match_data_elements", "match_value_meanings") and error.code == "timeout":
-        error = PlatformError(
-            "timeout",
-            "Matching timed out. Retry later, or raise NCI_SI_MATCH_TIMEOUT_SECONDS.",
-            **error.details,
-        )
-    if operation == "search_data_elements" and error.code == "upstream_unavailable":
-        error = PlatformError(
-            error.code,
-            error.message
-            + " caDSR does not yet serve keyword search (OP-C03, C-3); if this persists, "
-            "the cause is likely that, and get_data_element by publicId or questionText "
-            "is available.",
-            **error.details,
-        )
-    emit(logger, logging.WARNING, "call_failed", tool=operation, responseCode=error.code)
-    return serialise(error)
+def error_record(exc: Exception) -> dict[str, Any]:
+    """The error record of an expected failure, for a result that embeds it (no audit warning)."""
+
+    return serialise(_platform_error(exc))
 
 
 def call(operation: str, action: Callable[[], dict[str, Any]]) -> dict[str, Any]:
@@ -135,4 +120,6 @@ def call(operation: str, action: Callable[[], dict[str, Any]]) -> dict[str, Any]
     try:
         return action()
     except _EXPECTED_ERRORS as exc:
-        return _envelope(operation, exc)
+        error = _platform_error(exc)
+        emit(logger, logging.WARNING, "call_failed", tool=operation, responseCode=error.code)
+        return serialise(error)

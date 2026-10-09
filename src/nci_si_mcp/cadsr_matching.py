@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import math
 from collections import Counter
+from collections.abc import Callable
 from typing import Annotated, Any, NotRequired, TypedDict, get_args
 
 from . import cadsr_content as records
@@ -12,6 +13,7 @@ from .caching import select_cache_hint
 from .cadsr import CDE_MATCH, VM_MATCH
 from .context import Context
 from .errors import InputValidationError, PlatformError
+from .http_client import UpstreamTimeoutError
 from .parameters import (
     Described,
     MatchFilters,
@@ -228,6 +230,19 @@ def match_data_elements(
     return _result([match for group in groups for match in group], provenance)
 
 
+def _timed[T](request: Callable[..., T], *arguments: Any) -> T:
+    """Run a matching request; a timeout names the matching setting, not the general one."""
+
+    try:
+        return request(*arguments)
+    except UpstreamTimeoutError as exc:
+        raise PlatformError(
+            "timeout",
+            "Matching timed out. Retry later, or raise NCI_SI_MATCH_TIMEOUT_SECONDS.",
+            **exc.details,
+        ) from None
+
+
 def match_entities(
     context: Context,
     inputs: list[dict[str, Any]],
@@ -244,7 +259,7 @@ def match_entities(
         key = json.dumps(entity, sort_keys=True)
         if key not in responses:
             require("match_data_elements")
-            responses[key] = context.cadsr.match_data_element(entity, headers)
+            responses[key] = _timed(context.cadsr.match_data_element, entity, headers)
         groups.append(_cde_matches(responses[key], entity["entity"], size, provenance))
     return groups, provenance
 
@@ -363,5 +378,7 @@ def match_values(
     """Read validated values using the same state as the surrounding workflow."""
     require("match_value_meanings")
     provenance = records._provenance(context, release, VM_MATCH)
-    response = context.cadsr.match_value_meanings([{"name": value} for value in inputs], headers)
+    response = _timed(
+        context.cadsr.match_value_meanings, [{"name": value} for value in inputs], headers
+    )
     return _vm_matches(response, inputs, provenance), provenance

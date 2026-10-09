@@ -515,6 +515,14 @@ class StatusTest(HandlerTestCase):
         self.assert_error(result["evs_api"], "upstream_unavailable")
         self.assertEqual(result["selected_release"]["version"], "26.06e")
 
+    def test_release_info_embeds_an_error_without_logging_a_failed_call(self):
+        self.evs.errors = {"get_api_version": UpstreamUnavailableError("down")}
+
+        with self.assertNoLogs("nci_si_mcp.invocation", level="WARNING"):
+            result = invoke(self.context, "release_info")
+
+        self.assert_error(result["evs_api"], "upstream_unavailable")
+
     def test_release_info_survives_an_evs_outage(self):
         self.index("C3262")
         self.evs.errors = {"get_api_version": UpstreamUnavailableError("down")}

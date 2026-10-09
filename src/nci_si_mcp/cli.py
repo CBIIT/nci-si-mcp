@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, TextIO
 
 from .audit import emit
-from .config import Settings, configure_logging
+from .config import Settings, configure_logging, require_local_stdio_access
 from .config_snapshot import serving_snapshot
 from .context import Context
 from .errors import PlatformError, correlated, is_error_record, serialise, with_next_step
@@ -83,6 +83,9 @@ def _settings(args: argparse.Namespace) -> Settings:
     settings = Settings.from_env()
     if args.command == "serve" and args.transport is not None:
         settings = replace(settings, transport=args.transport)
+    if args.command == "serve" and settings.transport == "stdio":
+        # Checked after the override, and only where it applies: other commands never serve.
+        require_local_stdio_access(settings)
     return settings
 
 
@@ -90,8 +93,6 @@ def _serve(settings: Settings, context: Context) -> int:
     if settings.transport == "streamable-http":
         run_http(settings, context)
     else:
-        if settings.http_auth_mode == "required":
-            raise ValueError("Required HTTP authentication cannot run over trusted-local stdio")
         create_mcp(settings, context=context).run()
     return 0
 

@@ -36,7 +36,7 @@ from .evs import (
 from .http_client import UpstreamError, UpstreamUnavailableError
 from .index import require_index_release
 from .indexing import full_build
-from .invocation import _envelope
+from .invocation import error_record
 from .models import (
     IndexManifest,
     NcitConcept,
@@ -127,7 +127,9 @@ def list_terminologies(context: Context) -> dict[str, Any]:
     Returns terminologies, each with its name, release and live EVS provenance. Use it to see
     what can be read and at which release.
 
-    release_not_available when a current release is ambiguous or missing; upstream_unavailable
+    release_not_available when the current release of any one listed terminology is ambiguous
+    or missing: the whole listing fails closed rather than omit that terminology or guess its
+    release, so one terminology's metadata fault also hides the others; upstream_unavailable
     when EVS cannot answer, an empty listing included (it is unusable metadata, reported with
     its HTTP status and attempt count). No release is invented.
     """
@@ -162,7 +164,7 @@ def release_info(context: Context) -> dict[str, Any]:
         try:
             return fetch()
         except (EVSError, UpstreamError, PlatformError) as exc:
-            return _envelope("release_info", exc)
+            return error_record(exc)
 
     manifest = context.index.get_active_manifest()
     selected = evs_status(lambda: _release(context).to_dict())

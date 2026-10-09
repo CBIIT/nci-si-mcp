@@ -202,6 +202,16 @@ def _require_http(settings: Settings) -> None:
     _require_authorities("NCI_SI_HTTP_ALLOWED_ORIGINS", settings.http_allowed_origins, origin=True)
 
 
+def require_local_stdio_access(settings: Settings) -> None:
+    """Refuse to serve trusted-local stdio when HTTP authentication is required."""
+
+    if settings.http_auth_mode == "required":
+        raise ValueError(
+            "NCI_SI_HTTP_AUTH_MODE=required cannot serve over trusted-local stdio; "
+            "use --transport streamable-http or another auth mode"
+        )
+
+
 def _require_http_auth(settings: Settings) -> None:
     _require_choice("NCI_SI_HTTP_AUTH_MODE", settings.http_auth_mode, HTTP_AUTH_MODES)
     if not settings.http_auth_factory:
