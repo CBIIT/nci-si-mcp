@@ -23,7 +23,7 @@ class ConfigurationHTTPTest(unittest.TestCase):
         root = Path(temporary.name)
         self.path = root / "PRIVATE-target.json"
         self.snapshot = capture(
-            Settings(timeout_seconds=17, cadsr_credential="PRIVATE:SECRET"), set()
+            Settings(timeout_seconds=17, cadsr_credential="PRIVATE:SECRET-VALUE"), set()
         )
         self.path.write_text(json.dumps(self.snapshot))
         self.server = create_server(

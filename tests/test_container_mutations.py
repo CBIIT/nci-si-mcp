@@ -24,7 +24,7 @@ class OfflineModel:
 
 class ContainerOfflineTest(ServerFixture):
     def test_legacy_active_index_fails_startup_until_operator_rebuilds_it(self):
-        settings = replace(self.settings, transport="streamable-http", http_require_index=1)
+        settings = replace(self.settings, transport="streamable-http", http_require_index=True)
         self.context.index.upsert_concepts([concept("C1")], None, HashingEmbeddingProvider())
         legacy = replace(self.context.index.get_active_manifest(), needs_rebuild=True)
         update_manifest(self.context.index, legacy)
@@ -46,7 +46,7 @@ class ContainerOfflineTest(ServerFixture):
         settings = replace(
             self.settings,
             transport="streamable-http",
-            http_require_index=1,
+            http_require_index=True,
             embedding_provider="sentence-transformers",
             embedding_model=str(self.settings.data_dir),
         )

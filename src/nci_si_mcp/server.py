@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Awaitable, Callable
 from functools import update_wrapper
 from importlib.metadata import version
-from importlib.resources import files
 from inspect import Parameter, Signature
 from typing import TYPE_CHECKING, Annotated, Any, get_args, get_origin
 
@@ -19,9 +17,8 @@ from .errors import InputValidationError, is_error_record
 from .invocation import call
 from .parameters import Described
 from .permissions import AuthorityResolver
-from .registry import SPECS, ToolSpec, invoke
+from .registry import SPECS, ToolSpec, invoke, servable_prompts
 from .release_selection import SessionRelease, session_scope
-from .results import Untruncated
 
 if TYPE_CHECKING:
     from mcp.server.auth.provider import TokenVerifier
@@ -100,7 +97,7 @@ def create_mcp(
         from mcp.server.mcpserver.exceptions import ResourceError
         from mcp.server.session import ServerSession
         from mcp.types import CallToolResult, TextContent, ToolAnnotations
-        from pydantic import Field, RootModel, with_config
+        from pydantic import Field, RootModel
     except ImportError as exc:
         raise RuntimeError(
             "The MCP server needs the 'server' extra, which installs mcp>=2,<3 "
@@ -108,8 +105,6 @@ def create_mcp(
         ) from exc
 
     _require_session_connection(ServerSession)
-    # Only the complete truncation record is closed; upstream dictionaries stay extensible.
-    with_config(extra="forbid")(Untruncated)
     resolved_settings = settings or Settings.from_env()
     configure_logging(resolved_settings.log_level)
     context = context or Context(resolved_settings)
@@ -261,21 +256,18 @@ def _register_prompts(mcp: Any, profile: str) -> None:
     from mcp.server.mcpserver.prompts import Prompt
     from mcp.server.mcpserver.prompts.base import PromptArgument
 
-    # Packaged without a YAML dependency; test_prompts verifies equality with spec/.
-    templates = json.loads(files("nci_si_mcp").joinpath("data/prompts.json").read_text())
     tools = {spec.name for spec in SPECS if spec.name and spec.visible_in(profile)}
-    for name, template in templates.items():
-        if set(template["tools"]) <= tools:
-            mcp.add_prompt(
-                Prompt(
-                    name=name,
-                    title=template["title"],
-                    description=template["adds"],
-                    arguments=[PromptArgument(**argument) for argument in template["arguments"]],
-                    fn=_prompt_callback(template),
-                    context_kwarg=None,
-                )
+    for name, template in servable_prompts(tools).items():
+        mcp.add_prompt(
+            Prompt(
+                name=name,
+                title=template["title"],
+                description=template["adds"],
+                arguments=[PromptArgument(**argument) for argument in template["arguments"]],
+                fn=_prompt_callback(template),
+                context_kwarg=None,
             )
+        )
 
 
 def _prompt_callback(template: dict[str, Any]) -> Callable[..., str]:

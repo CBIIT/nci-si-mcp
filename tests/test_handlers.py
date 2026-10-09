@@ -608,10 +608,10 @@ class StatusTest(HandlerTestCase):
         self.assertEqual(context.embedding_provider.model, "hashing-128")
 
     def test_the_licence_key_setting_reaches_the_evs_client_and_only_it(self):
-        keyed = Context(Settings(data_dir=self.path, evs_license_key="a-key"))
+        keyed = Context(Settings(data_dir=self.path, evs_license_key="a-license-key"))
         plain = Context(Settings(data_dir=self.path))
 
-        self.assertEqual(keyed.evs.http.credentials, {LICENSE_KEY_HEADER: "a-key"})
+        self.assertEqual(keyed.evs.http.credentials, {LICENSE_KEY_HEADER: "a-license-key"})
         self.assertEqual(plain.evs.http.credentials, {})
 
 
