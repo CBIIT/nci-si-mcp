@@ -2,10 +2,10 @@
 # It is not intended for manual editing.
 
 [metadata]
-groups = ["default", "acceptance", "audit", "embeddings", "index", "lint", "server", "test"]
+groups = ["default", "acceptance", "audit", "docs", "embeddings", "index", "lint", "server", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.1"
-content_hash = "sha256:c4252ab9de76773401cec422ba417ed43ad9e309da8c5587f30fc07e982a7aab"
+content_hash = "sha256:15f82fe6562295d90be15142425e790345c0193f0cf293794086cc6b29f2b12d"
 
 [[metadata.targets]]
 requires_python = ">=3.14"
@@ -313,7 +313,7 @@ name = "click"
 version = "8.5.0"
 requires_python = ">=3.10"
 summary = "Composable command line interface toolkit"
-groups = ["acceptance", "embeddings", "server"]
+groups = ["acceptance", "docs", "embeddings", "server"]
 files = [
     {file = "click-8.5.0-py3-none-any.whl", hash = "sha256:255bc9599cf7748b4b1a446ccc735421bd08a2ae529a8b88597d3de5664ee360"},
     {file = "click-8.5.0.tar.gz", hash = "sha256:ba0d2089de75ea0310e2dde03160e6ca10009947fb95a182f9b54021bb272e34"},
@@ -681,6 +681,20 @@ files = [
 ]
 
 [[package]]
+name = "deepmerge"
+version = "3.0.1"
+requires_python = ">=3.8"
+summary = "A toolset for deeply merging Python dictionaries."
+groups = ["docs"]
+dependencies = [
+    "typing-extensions; python_version <= \"3.9\"",
+]
+files = [
+    {file = "deepmerge-3.0.1-py3-none-any.whl", hash = "sha256:35c96f6a68fcf90719a5b31d9f8042ecef6c00fb56836660d33455d0f5cfda65"},
+    {file = "deepmerge-3.0.1.tar.gz", hash = "sha256:35b39a4cb92cf328d6eca61cbbf65f68a37c2ceb3085f0f853cbb2e52a59fc23"},
+]
+
+[[package]]
 name = "defusedxml"
 version = "0.7.1"
 requires_python = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
@@ -912,7 +926,7 @@ name = "jinja2"
 version = "3.1.6"
 requires_python = ">=3.7"
 summary = "A very fast and expressive template engine."
-groups = ["embeddings"]
+groups = ["docs", "embeddings"]
 dependencies = [
     "MarkupSafe>=2.0",
 ]
@@ -996,6 +1010,17 @@ files = [
 ]
 
 [[package]]
+name = "markdown"
+version = "3.11"
+requires_python = ">=3.11"
+summary = "Python implementation of John Gruber's Markdown."
+groups = ["docs"]
+files = [
+    {file = "markdown-3.11-py3-none-any.whl", hash = "sha256:cd6c89e7eb308c8b332ed673215a52d208a43f8bacc030b1419376129408719e"},
+    {file = "markdown-3.11.tar.gz", hash = "sha256:180224db6aed87ba9ce1f2781ebcd5826253de8ff637112090e24b84502bbf9f"},
+]
+
+[[package]]
 name = "markdown-it-py"
 version = "4.2.0"
 requires_python = ">=3.10"
@@ -1014,7 +1039,7 @@ name = "markupsafe"
 version = "3.0.3"
 requires_python = ">=3.9"
 summary = "Safely add untrusted strings to HTML/XML markup."
-groups = ["embeddings"]
+groups = ["docs", "embeddings"]
 files = [
     {file = "markupsafe-3.0.3-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:e1cf1972137e83c5d4c136c43ced9ac51d0e124706ee1c8aa8532c1287fa8795"},
     {file = "markupsafe-3.0.3-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:116bb52f642a37c115f517494ea5feb03889e04df47eeff5b130b1808ce7c219"},
@@ -1563,6 +1588,17 @@ files = [
 ]
 
 [[package]]
+name = "pathspec"
+version = "1.1.1"
+requires_python = ">=3.9"
+summary = "Utility library for gitignore style pattern matching of file paths."
+groups = ["docs"]
+files = [
+    {file = "pathspec-1.1.1-py3-none-any.whl", hash = "sha256:a00ce642f577bf7f473932318056212bc4f8bfdf53128c78bbd5af0b9b20b189"},
+    {file = "pathspec-1.1.1.tar.gz", hash = "sha256:17db5ecd524104a120e173814c90367a96a98d07c45b2e10c2f3919fff91bf5a"},
+]
+
+[[package]]
 name = "pip"
 version = "26.2.1"
 requires_python = ">=3.10"
@@ -1771,7 +1807,7 @@ name = "pygments"
 version = "2.21.0"
 requires_python = ">=3.9"
 summary = "Pygments is a syntax highlighting package written in Python."
-groups = ["acceptance", "audit", "embeddings", "test"]
+groups = ["acceptance", "audit", "docs", "embeddings", "test"]
 files = [
     {file = "pygments-2.21.0-py3-none-any.whl", hash = "sha256:2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9"},
     {file = "pygments-2.21.0.tar.gz", hash = "sha256:610ca751c9bc2492b38eb9a38a7fbc93edbbb2d7182edaf34e66ae493dee5c8c"},
@@ -1805,6 +1841,21 @@ dependencies = [
 files = [
     {file = "pyjwt-2.15.1-py3-none-any.whl", hash = "sha256:42d59d631f7768a1028a64c7ff581a9bf7519804daf91fc5b6c56e30eec5e193"},
     {file = "pyjwt-2.15.1.tar.gz", hash = "sha256:4f259e80cdfb6b3fc18a7de51fd1ef9ec79652f25019bae68975ca2468a34df8"},
+]
+
+[[package]]
+name = "pymdown-extensions"
+version = "12.1"
+requires_python = ">=3.10"
+summary = "Extension pack for Python Markdown."
+groups = ["docs"]
+dependencies = [
+    "markdown>=3.6",
+    "pyyaml",
+]
+files = [
+    {file = "pymdown_extensions-12.1-py3-none-any.whl", hash = "sha256:4a254b771acfcddc6c110a7f4590d818f1f849e2d5aacf69b4b07c8dd2a9700d"},
+    {file = "pymdown_extensions-12.1.tar.gz", hash = "sha256:fdb8f47f5d7fd069d10ef2a7d8908e613d7865ff0419d544a0ffd3984e884f11"},
 ]
 
 [[package]]
@@ -1918,7 +1969,7 @@ name = "pyyaml"
 version = "6.0.3"
 requires_python = ">=3.8"
 summary = "YAML parser and emitter for Python"
-groups = ["acceptance", "embeddings", "lint"]
+groups = ["acceptance", "docs", "embeddings", "lint"]
 files = [
     {file = "pyyaml-6.0.3-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:8da9669d359f02c0b91ccc01cac4a67f16afec0dac22c2ad09f46bee0697eba8"},
     {file = "pyyaml-6.0.3-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:2283a07e2c21a2aa78d9c4442724ec1eb15f5e42a723b99cb3d822d48f5f7ad1"},
@@ -2504,7 +2555,7 @@ name = "tomli"
 version = "2.4.1"
 requires_python = ">=3.8"
 summary = "A lil' TOML parser"
-groups = ["audit"]
+groups = ["audit", "docs"]
 files = [
     {file = "tomli-2.4.1-cp314-cp314-macosx_10_15_x86_64.whl", hash = "sha256:fd0409a3653af6c147209d267a0e4243f0ae46b011aa978b1080359fddc9b6cf"},
     {file = "tomli-2.4.1-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:a120733b01c45e9a0c34aeef92bf0cf1d56cfe81ed9d47d562f9ed591a9828ac"},
@@ -2749,4 +2800,34 @@ dependencies = [
 files = [
     {file = "vulture-2.16-py3-none-any.whl", hash = "sha256:6e0f1c312cef1c87856957e5c2ca9608834a7c794c2180477f30bf0e4cc58eee"},
     {file = "vulture-2.16.tar.gz", hash = "sha256:f8d9f6e2af03011664a3c6c240c9765b3f392917d3135fddca6d6a68d359f717"},
+]
+
+[[package]]
+name = "zensical"
+version = "0.0.68"
+requires_python = ">=3.11"
+summary = "A modern static site generator built by the creators of Material for MkDocs"
+groups = ["docs"]
+dependencies = [
+    "click>=8.1.8",
+    "deepmerge>=2.0",
+    "jinja2>=3.1",
+    "markdown>=3.7",
+    "pathspec>=1.0.4",
+    "pygments>=2.20",
+    "pymdown-extensions>=11.0",
+    "pyyaml>=6.0.2",
+    "tomli>=2.4.0",
+]
+files = [
+    {file = "zensical-0.0.68-cp311-abi3-macosx_10_12_x86_64.whl", hash = "sha256:61fe8425f22a36dfd34962811f651c0a69faaf39e38518c90f55c09b381974df"},
+    {file = "zensical-0.0.68-cp311-abi3-macosx_11_0_arm64.whl", hash = "sha256:5b40756883e6ebe6638f91fffde6146a894731d52aee965d514202b7648be671"},
+    {file = "zensical-0.0.68-cp311-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c21a3d5e06e7c9c7761fbd7c9322cd6a69c4ea6d26db98e8110ac7bfdb70c921"},
+    {file = "zensical-0.0.68-cp311-abi3-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:46e5600dc78ca811f0079c3766038a46419bf6e9bdba30e3e1302a13b8ae9b9b"},
+    {file = "zensical-0.0.68-cp311-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:09cb5caf676375d1586e1d6d114e9b6812e0f153120a477246b80b1478243b0e"},
+    {file = "zensical-0.0.68-cp311-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:ac5015e27c17e8ab02c83b36858c56808dde7891a50c70a9498dbc3edd882874"},
+    {file = "zensical-0.0.68-cp311-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:d24a7caf0c14e5e3fb4ff1521ee5836c7fbf7767f59d3ecf2d9c01fd69ccfc2c"},
+    {file = "zensical-0.0.68-cp311-abi3-win_amd64.whl", hash = "sha256:cc2cfdaa046fd56f0f38684c069078615564e3dab1688aba54ae71681b3a0270"},
+    {file = "zensical-0.0.68-cp311-abi3-win_arm64.whl", hash = "sha256:f47a396ca7a7c60eefd5bb090f8974c94918937c7f7f41c316ecefd51eeec876"},
+    {file = "zensical-0.0.68.tar.gz", hash = "sha256:2acf102837eabae9a375106ee729f99c0ac0d36255c00fdcdd64dcf41409965c"},
 ]

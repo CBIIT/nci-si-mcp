@@ -6,6 +6,63 @@ view is a **proposed reference layout**, not deployed infrastructure or an appro
 Solid arrows show calls, reads or output; dashed arrows show operator-supplied configuration
 and assets. Labels identify protocols and storage permissions.
 
+## Local documentation and validation companion
+
+Public documentation and local validation use separate listeners and directories. The
+[documentation builder](documentation-site.md) publishes only reviewed pages and assets;
+the [validation dashboard](local-validation.md) reads locally imported evidence. Both are
+accessible without login locally. The dashboard provides bounded run/cancel controls and
+configuration proposals from an explicitly selected safe startup snapshot. It never reads the serving
+MCP index or fetches upstream data while rendering results.
+The [container composition](companion-containers.md) implements the same separation with
+read-only images, an internal fixture network and a fixed-destination loopback admin relay.
+
+```mermaid
+flowchart LR
+    Reader["Local browser"] -->|"HTTP: public docs"| Static["Static documentation preview"]
+    Reader -->|"HTTP: loopback only"| Portal["Local validation dashboard"]
+    Pages["Allowlisted pages and assets"] -->|"build"| Static
+    Import["CLI: validate original run bundle"] --> Store[("Private local evidence SQLite")]
+    Portal -->|"read safe projections"| Store
+    Portal -->|"same-origin fixed run or cancel"| Queue["Durable local queue<br/>one worker · two waiting"]
+    Queue --> Worker["Owned disposable worker<br/>committed source snapshot"]
+    Worker -->|"bound report + original inventory"| Import
+    Target["Selected local MCP"] -->|"opt-in safe startup values"| Snapshot["Target instance + revision"]
+    Snapshot -->|"read only; no liveness claim"| Portal
+    Portal -->|"advisory before/after preview"| Proposal["Deployment owner review<br/>no apply or restart endpoint"]
+```
+
+Text alternative: a browser reads documentation from a static preview and validation results
+from a separate loopback dashboard. A CLI validates original evidence before storing it locally;
+only safe projections reach dashboard pages. Fixed run controls use a durable queue and disposable
+workers; source snapshots and original inventory accompany measured results. The documentation
+build has no path to this store. A selected MCP may write a safe startup snapshot for the
+dashboard; revision-bound proposals never change that process or the deployment environment.
+UAT/PROD administration remains disabled pending platform integration in #197; the public
+documentation site remains anonymous. See the [government website assurance plan](government-site-assurance.md)
+for accessibility and deployment-specific requirements still to verify.
+
+### Disposable validation profiles
+
+```mermaid
+flowchart LR
+    CLI["Fixed local worker profile"] --> Work["Owned temporary workspace<br/>minimal environment · bounded client"]
+    Work -->|"loopback MCP HTTP"| Test["Owned test server<br/>disposable data"]
+    Test -->|"recorded HTTP contracts"| Fixtures["Owned fixture upstreams"]
+    Work --> Report["Private native report<br/>complete or partial"]
+    Remote["Explicit remote read-only probe"] -->|"exact allowlisted HTTPS target<br/>verified TLS · no redirects"| Endpoint["Authorized MCP endpoint<br/>no state hook or restart"]
+    Remote --> Report
+    Report -->|"execution envelope and original snapshots"| Bundle["Validated local run bundle"]
+```
+
+Text alternative: the local worker owns temporary data, the test server and fixture upstreams,
+then reaps them. Remote probes are separate and never restart or prepare the remote service.
+Both produce native reports with honest partial states. The local execution wrapper binds
+these reports to run identity and original snapshots for import. Local process isolation does
+not block OS network egress. The container composition places fixture workers on an internal
+network with no published fixture ports, production mounts, inherited secrets or Docker socket.
+See [HTTP benchmark bounds](benchmark.md#bounded-http-measurements).
+
 ## Local stdio
 
 The MCP client launches and owns one server process. No listening HTTP port is required. A

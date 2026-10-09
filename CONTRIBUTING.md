@@ -1,5 +1,9 @@
 # Contributing
 
+The [documentation website guide](docs/documentation-site.md) explains its pinned build,
+local preview, reviewed page allowlist and source/version labels. Update the relevant documents
+and diagrams with each behavior change; the website reuses those sources.
+
 How to work on this repository. What it is, and its status, is in [README.md](README.md); how to
 install and run the server is in [QUICKSTART.md](QUICKSTART.md); how it is built is in
 [ARCHITECTURE.md](ARCHITECTURE.md).
@@ -55,6 +59,14 @@ parameterized contract cases do not need an arbitrary ratio of test counts.
 | Integration | Real SQLite migrations/builds/rollback, HTTP retries against local servers, and owned subprocess cleanup |
 | API | The real MCP client in `tests/test_server.py`; HTTP authentication, sessions and health in `tests/test_transport.py` |
 | End to end | Prepared fixture acceptance through the real stdio server; `pdm run acceptance-http` through a listening HTTP server; the CI container smoke through the built image, external model/index, readiness and graceful shutdown |
+
+The companion follows the same pyramid: unit tests verify evidence projection, historical
+story mapping, proposals and rendering; real SQLite/filesystem/subprocess tests verify import,
+atomic history and bounded worker lifecycle; loopback HTTP tests verify controls and error
+responses. The `companion containers (amd64)` CI job builds both images and exercises a real
+fixture benchmark, result display, network/mount isolation and shutdown independence.
+Browser checks cover navigation, search, disclosures and complete local admin journeys; see
+the [assurance record](docs/government-site-assurance.md) for the manual methods and limitations.
 
 Coverage includes lines, branches and Python subprocesses for the server and harness suites.
 It identifies execution gaps, not missing assertions: use a targeted mutation when an

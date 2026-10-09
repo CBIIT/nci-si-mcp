@@ -15,6 +15,7 @@ import socket
 import socketserver
 import subprocess
 import sys
+from contextlib import chdir
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Thread
@@ -56,8 +57,11 @@ def stop(process: subprocess.Popen[bytes]) -> None:
 
 
 class ServerProcess:
-    def __init__(self, directory: Path, port: int) -> None:
+    def __init__(
+        self, directory: Path, port: int, *, environment: dict[str, str] | None = None
+    ) -> None:
         self.directory, self.port = directory, port
+        self.environment = dict(os.environ if environment is None else environment)
         self.process: subprocess.Popen[bytes] | None = None
         self.log = (directory / "server.log").open("ab")
 
@@ -74,7 +78,7 @@ class ServerProcess:
     def restart(self, settings: dict[str, str]) -> None:
         self.stop()
         environment = (
-            without_nci_si_settings(os.environ)
+            without_nci_si_settings(self.environment)
             | settings
             | {
                 "NCI_SI_DATA_DIR": str(self.directory / "index"),
@@ -111,19 +115,27 @@ def state(socket_path: str) -> None:
     }
     with socket.socket(socket.AF_UNIX) as connection:
         connection.settimeout(30)
-        connection.connect(socket_path)
+        path = Path(socket_path).resolve()
+        # This hook is a dedicated child; short addresses avoid AF_UNIX's path limit.
+        with chdir(path.parent):
+            connection.connect(path.name)
         connection.sendall(json.dumps(settings).encode() + b"\n")
         if connection.recv(16) != b"ok\n":
             raise RuntimeError("The fixture server restart failed")
 
 
-def prepare(directory: Path) -> None:
+def prepare(directory: Path, *, environment: dict[str, str] | None = None) -> None:
     manifest = yaml.safe_load((FIXTURES / "manifest.yaml").read_text())
     with FixtureServer(load_fixtures(FIXTURES)) as upstream:
         command = [sys.executable, "-m", "nci_si_mcp.cli", "index-sample", *index_set(manifest)]
+        settings = server_environment("fixture", directory / "index", upstream.url)
+        if environment is not None:
+            settings = environment | {
+                key: value for key, value in settings.items() if key.startswith("NCI_SI_")
+            }
         subprocess.run(  # noqa: S603 - fixture preparation with the project interpreter
             command,
-            env=server_environment("fixture", directory / "index", upstream.url),
+            env=settings,
             check=True,
             stdout=subprocess.DEVNULL,
             timeout=120,
@@ -157,9 +169,16 @@ def verdict(report: dict[str, Any], expected: set[str]) -> bool:
     )
 
 
-def run_suite(port: int, socket_path: Path) -> int:
+def run_suite(
+    port: int,
+    socket_path: Path,
+    *,
+    report: Path | None = None,
+    environment: dict[str, str] | None = None,
+) -> int:
+    output = REPORT if report is None else report
     command = shlex.join([sys.executable, str(Path(__file__).resolve()), "state", str(socket_path)])
-    environment = without_nci_si_settings(os.environ) | {
+    environment = without_nci_si_settings(os.environ if environment is None else environment) | {
         "NCI_SI_ACCEPTANCE_URL": f"http://127.0.0.1:{port}/mcp",
         "NCI_SI_ACCEPTANCE_MODE": "fixture",
         "NCI_SI_ACCEPTANCE_PREPARED": "1",
@@ -168,9 +187,9 @@ def run_suite(port: int, socket_path: Path) -> int:
         ),
         "NCI_SI_ACCEPTANCE_STATE_HOOK": command,
     }
-    REPORT.unlink(missing_ok=True)
+    output.unlink(missing_ok=True)
     suite = subprocess.Popen(  # noqa: S603 - the existing suite in this checkout
-        [sys.executable, "-m", "pytest", "tests", "-q", "-rs", "--report=" + str(REPORT)],
+        [sys.executable, "-m", "pytest", "tests", "-q", "-rs", "--report=" + str(output)],
         env=environment,
         cwd=ACCEPTANCE,
     )
@@ -178,27 +197,30 @@ def run_suite(port: int, socket_path: Path) -> int:
         status = suite.wait()
     finally:
         stop(suite)
-    if status or not REPORT.exists():
+    if status or not output.exists():
         return 1
-    report = json.loads(REPORT.read_text())
+    observed = json.loads(output.read_text())
     expected = set(json.loads((ACCEPTANCE / "expected/fixture.json").read_text()))
-    return 0 if verdict(report, expected) else 1
+    return 0 if verdict(observed, expected) else 1
 
 
-def run() -> int:
+def run(*, report: Path | None = None, environment: dict[str, str] | None = None) -> int:
     (ROOT / "tmp").mkdir(exist_ok=True)
     with TemporaryDirectory(prefix="http-", dir=ROOT / "tmp") as temporary:
         directory = Path(temporary)
-        prepare(directory)
+        prepare(directory, environment=environment)
         port = free_port()
-        process = ServerProcess(directory, port)
+        process = ServerProcess(directory, port, environment=environment)
         socket_path = directory / "control"
         try:
-            with socketserver.UnixStreamServer(str(socket_path), hook_handler(process)) as control:
+            # The runner owns its process. Restore cwd before starting the control thread.
+            with chdir(directory):
+                control = socketserver.UnixStreamServer("control", hook_handler(process))
+            with control:
                 thread = Thread(target=control.serve_forever, daemon=True)
                 thread.start()
                 try:
-                    return run_suite(port, socket_path)
+                    return run_suite(port, socket_path, report=report, environment=environment)
                 finally:
                     control.shutdown()
                     thread.join()

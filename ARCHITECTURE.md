@@ -3,12 +3,22 @@
 This document describes the implemented Python prototype: EVS terminology, caDSR metadata,
 Shared SI joins and composed workflows served through MCP over stdio or HTTP, with a CLI for
 index operations and the original EVS commands.
-The diagrams use Mermaid, rendered directly by GitHub. They follow the useful levels of the
+The diagrams use Mermaid, rendered by GitHub and the
+[public documentation build](docs/documentation-site.md). They follow the useful levels of the
 [C4 model](https://c4model.com/diagrams), with sequence, lifecycle and data views where needed.
 
 The [wxMCP desk assessment](docs/wxmcp-assessment.md) records version-specific integration
 gaps and unexecuted checks; it adds no gateway or runtime dependency. Internal orchestration and
 gateway integration are [deferred with research criteria](docs/deferred-capabilities.md).
+
+The [documentation and validation companions](docs/companion-containers.md) are separate
+processes and images. The public build contains reviewed documentation only. The local admin
+stores original run bundles and renders safe projections; its fixed profiles run committed
+source in disposable workers, while configuration proposals remain advisory. Its container
+has an internal fixture network and its own evidence volume, with a fixed-destination ingress
+relay. It has no serving index/model, upstream credentials or Docker socket. See the
+[deployment views](docs/deployment.md#local-documentation-and-validation-companion) for data
+flows; UAT/PROD admin deployment remains disabled pending platform integration in #197.
 
 The [Phase 6 architecture decision](docs/decisions/001-si-architecture-alignment.md) maps the
 Semantic Infrastructure team's proposal to this implementation and records approved
@@ -25,6 +35,7 @@ remains pending. The [caller-permission flow](docs/caller-permissions.md) shows 
 | [Local and cloud deployment](docs/deployment.md) | Which processes, assets and network boundaries does an operator need? |
 | [HTTP session routing](docs/transport.md#session-routing-sequence) | What happens when a known session reaches another replica? |
 | [Release pipeline](docs/container.md#release-pipeline) | How does a tested commit become a verified image? |
+| [Validation evidence](docs/evidence-contract.md#evidence-flow) | How are results bound to their original run without inventing completeness or trust? |
 
 ## System context
 
@@ -106,6 +117,7 @@ The registry derives adapter parameters from handler signatures; closed choices 
 | `caching.py` | Defines trusted-local producer-selected hints: explicitly release-pinned content and the static server surface (86,400,000 ms/public), unpinned caDSR content (3,600,000/public), resolution/status (0/public), and implicit NCIt calls, computed matching results or errors (0/private). Secured calls override these hints to zero/private. It contains no data cache. | Python standard library |
 | `bounds.py` | Owns traversal defaults and maxima and the per-call `Budget`. A context variable shares 200 HTTP attempts, including retries, release discovery and split batches, and restores the previous context on exit. The walker rotates kinds across each breadth-first frontier and counts newly admitted nodes against optional per-kind allowances. Neighborhood and CLI traversal preserve partial graphs on exhaustion; without graph content they raise `RequestBudgetError`, mapped to `bound_exceeded`. Hierarchy page replay always fails with `bound_exceeded` on request exhaustion. | Python standard library |
 | `cli.py` | Builds command arguments and dispatch from the registry; owns `serve` startup, reports configuration failures and exits 1 on an error record. | `registry.py`, `server.py` |
+| `config_snapshot.py` | Opt-in local startup evidence from the actual serving settings; explicit safe-field allowlist, target instance/revision and owned-file cleanup. No live-state or remote discovery claim; companion proposals never apply settings. | `config.py`, local validation companion |
 | `container_entry.py` | Starts the same server with externally supplied assets, verifies the index and loads the model offline; startup failures name the asset and error class without library messages. It never builds or activates an index. | `context.py`, `embeddings.py`, `transport.py` |
 | `transport.py` | Stateful or stateless HTTP over the shared adapter; SDK authentication and scope hooks, Host/Origin admission, body cap, local readiness and token-free auth diagnostics. Sessions belong to one process. | `server.py`, optional MCP/Starlette/Uvicorn |
 | `server.py` | Registers profile-selected tools, five resource templates and two concrete resources from the registry on an `mcp` 2.x `MCPServer`, and flags error records as protocol errors. Middleware carries cache decisions from SDK worker threads into tool `_meta` and resource fields, without inspecting content or matching names. Undeclared successful responses fail. SDK hints cover lists/discovery. | `registry.py`, `caching.py`, optional `mcp` package |

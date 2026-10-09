@@ -143,6 +143,9 @@ def overview(
         "[EVS](evs.md) · [caDSR](cadsr.md) · [Shared SI](ssis.md) · "
         "[Source catalogue](catalogue.yaml)",
         "",
+        "[Team responses recorded 8 October 2026](team-responses-2026-10-08.md) clarify "
+        "upstream fixes, search capabilities and the Shared SI informational response.",
+        "",
         f"Acceptance report suite digest: `{fixture['suite']['digest']}`.",
         "Inputs: [fixture](../evidence/phase-5/acceptance-fixture.json) and",
         "[live](../evidence/phase-5/acceptance-live.json). "

@@ -28,3 +28,7 @@ tmp/
 /acceptance/fixture.json
 /acceptance/http-fixture.json
 /acceptance/live.json
+
+# Installed documentation-only browser assets; the npm lock remains tracked.
+/docs/site-assets/node_modules/
+/.nci-si-portal/

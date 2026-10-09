@@ -10,7 +10,7 @@ Platform requirement/operation: **S-5; OP-S02; X-15**.
 Specification requirements: `X-15`, `find_data_elements_for_concept-5`.
 Source discussion: [issue evidence](https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-5968943275).
 
-**Observation.** Recorded responses hide missing-argument errors in HTTP 200 and cap the Person query at 1000. The issue reports 2088 graph rows, missing hierarchy graphs in discovery, resources/graph_name?resource_name=caDSR returning 500, and a listed empty NCIm graph; these latter probes are issue evidence, not fixture assertions.
+**Observation.** The missing-dec_pub_id recording is HTTP 200 with informational apiResponse type I and No data found, not a masked error; the team's response relayed on 8 October 2026 treats HTTP 400 for that invalid request as a backlog design improvement. with_concept_id takes a DEC public id, not an NCIt code. The Person query is capped at 1000. The issue reports 2088 graph rows, missing hierarchy graphs in discovery, resources/graph_name?resource_name=caDSR returning 500, and a listed empty NCIm graph; these latter probes are issue evidence, not fixture assertions. See team-responses-2026-10-08.md for the team's maintenance constraints and alternative endpoint guidance.
 
 **Reproduction.** Use the linked graph_names and Person requests, compare the graph count, and repeat the issue's resource-name/NCIm probes without interpreting listed graphs as populated.
 

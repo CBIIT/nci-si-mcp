@@ -1,5 +1,19 @@
 # Quickstart
 
+For the public documentation and local validation dashboard in isolated containers, see
+[Local companion containers](docs/companion-containers.md). UAT/PROD administration remains disabled
+pending platform identity integration; repository users need no local login.
+
+Prefer a searchable website with the same instructions and diagrams? Follow the
+[local documentation preview](docs/documentation-site.md#build-and-preview); no account is needed.
+Run `pdm run portal serve` for the separate local evidence dashboard; the
+[validation guide](docs/local-validation.md) explains runs, results and configuration proposals.
+To inspect a selected local server's safe startup settings, use the same new file with
+`nci-si-mcp serve --configuration-snapshot PATH` and
+`pdm run portal serve --configuration-snapshot PATH`.
+See [configuration evidence](docs/local-validation.md#configuration-evidence-and-proposals)
+for snapshot ownership, limitations and the proposal-only change flow.
+
 How to install and run the prototype server, what it serves, and how it fails. What this repository
 is, and the status of each tool group, is in [README.md](README.md).
 

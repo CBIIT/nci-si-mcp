@@ -1,0 +1,59 @@
+/* NCIDS typography and color tokens; fonts are licensed and hosted locally. */
+@font-face { font-family: "Open Sans"; src: url("open-sans.ttf") format("truetype"); font-weight: 300 800; font-display: swap; }
+@font-face { font-family: Poppins; src: url("poppins-regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: Poppins; src: url("poppins-semibold.ttf") format("truetype"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Roboto Mono"; src: url("roboto-mono.ttf") format("truetype"); font-weight: 100 700; font-display: swap; }
+:root {
+  --md-text-font: "Open Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --md-code-font: "Roboto Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --md-primary-fg-color: #00314b;
+  --md-accent-fg-color: #01679d;
+}
+.md-header { background: #00314b; color: #fff; }
+.md-header .md-search__button { background: #fff; color: #00314b; }
+.md-sidebar--secondary .md-search { display: block; padding: 0; margin: 0 0 1rem; }
+.md-sidebar--secondary .md-search__button { width: 100%; background: #fff; color: #00314b; border: 1px solid #a9aeb1; }
+.md-banner { background: #d4e7f2; color: #00314b; }
+.md-banner a { color: #124f70; text-decoration: underline; }
+.md-typeset { line-height: 1.65; }
+.md-typeset :is(h1,h2,h3,h4), .md-header__title { font-family: Poppins, sans-serif; }
+.md-typeset :is(h2,h3,h4) { color: #00314b; font-weight: 600; }
+.md-nav__link--active { color: #004971; font-weight: 700; }
+.md-nav__link:hover { color: #01679d; text-decoration: underline; }
+.md-header { border-bottom: 4px solid #007bbd; }
+.nci-footer { background: #00314b; color: #fff; font-size: .7rem; line-height: 1.5; }
+.nci-footer__inner { max-width: 61rem; margin: auto; padding: 1.25rem 1rem 1rem; }
+.nci-footer__main { display: flex; justify-content: space-between; gap: 1rem 2rem; flex-wrap: wrap; }
+.nci-footer__identity strong { display: block; font: 600 1.15rem/1.3 Poppins, sans-serif; }
+.nci-footer__identity span { font-size: .85rem; }
+.nci-footer p { margin: .4rem 0; }
+.nci-footer a { color: #fff; text-decoration: underline; text-underline-offset: .2em; display: inline-block; padding: .15rem 0; }
+.nci-footer a:hover { text-decoration-thickness: 2px; }
+.nci-footer :focus-visible { outline-color: #fff !important; }
+.nci-footer__contact { text-align: right; margin-left: auto; }
+.nci-footer__contact h2 { font: 600 1rem Poppins, sans-serif; margin: 0 0 .25rem; }
+.nci-footer ul { list-style: none; padding: 0; margin: .5rem 0 0; }
+.nci-footer__bottom { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem 1rem; flex-wrap: wrap; margin-top: .8rem; }
+.nci-footer__policies ul { display: flex; gap: .25rem 1rem; flex-wrap: wrap; margin: 0; }
+@media (max-width: 40rem) { .nci-footer__contact { text-align: left; margin-left: 0; } }
+.md-typeset h1 { color: #00314b; font-weight: 650; }
+.md-typeset a { text-decoration: underline; text-underline-offset: .15em; }
+.md-typeset table:not([class]) th { background: #edf3f6; color: #00314b; }
+:focus-visible { outline: 3px solid #ad4e00 !important; outline-offset: 3px; }
+.md-typeset pre { overflow-x: auto; }
+.md-typeset .mermaid { overflow-x: auto; }
+.story-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); gap: 1rem; margin: 1rem 0 2rem; }
+.md-typeset .story-card { border: 1px solid #dfe1e2; border-top: 4px solid #007bbd; border-radius: .25rem; padding: 1rem; background: #fff; }
+.md-typeset .story-card h2 { margin: 0 0 .65rem; font-size: 1rem; line-height: 1.4; }
+.md-typeset .story-card p { margin: .5rem 0; }
+.md-typeset .story-card__meta { color: #3d4551; font-size: .7rem; font-weight: 600; }
+.md-typeset details { border: 1px solid #a9aeb1; border-radius: .25rem; padding: .75rem 1rem; margin: 1rem 0; }
+.md-typeset summary { cursor: pointer; font-weight: 600; color: #004971; }
+.md-typeset blockquote { color: #3d4551; border-left-color: #007bbd; background: #f0f0f0; padding: .5rem .75rem; }
+.md-typeset details code { overflow-wrap: anywhere; white-space: normal; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; }
+}
+@media print {
+  .md-header, .md-sidebar, .md-search { display: none; }
+}

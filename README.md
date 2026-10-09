@@ -26,6 +26,9 @@ pdm run acceptance           # the acceptance suite against it, on recorded upst
 ```
 
 [QUICKSTART.md](QUICKSTART.md) has the rest: connecting a client, settings, tools and errors.
+For a searchable local website of these documents and diagrams, see
+[Documentation website](docs/documentation-site.md).
+For local acceptance and benchmark history, see the [validation dashboard](docs/local-validation.md).
 
 ## How the pieces fit
 
@@ -71,6 +74,11 @@ The [assisted-task evaluation](docs/assisted-evaluation.md) measures determinist
 fixture workflows. Internal `ask` orchestration and wxMCP integration are
 [deferred to Backlog with research criteria](docs/deferred-capabilities.md); neither is enabled.
 The [Phase 6 assurance matrix](docs/phase-6-assurance.md) records compatibility and limitations.
+
+[Phase 7](docs/portal-plan.md) provides public documentation, local validation and benchmark
+controls, and advisory configuration previews. UAT/PROD administration remains disabled pending
+platform access controls in #197; local development and the public repository remain accessible
+without a new login.
 
 The [validation and benchmark evidence](docs/benchmark.md) separates fixture acceptance,
 live protocol coverage and representative live tool measurements. caDSR credentialed content

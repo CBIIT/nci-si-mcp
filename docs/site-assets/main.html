@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block extrahead %}
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'">
+  <script src="{{ 'assets/mermaid.min.js' | url }}"></script>
+  <script defer src="{{ 'assets/search-placement.js' | url }}"></script>
+{% endblock %}
+{% block footer %}
+<footer class="nci-footer"><div class="nci-footer__inner">
+  <div class="nci-footer__main">
+    <div class="nci-footer__identity">
+      <strong>National Cancer Institute</strong>
+      <span>at the National Institutes of Health</span>
+      <p>Semantic Infrastructure · MCP prototype documentation</p>
+    </div>
+    <div class="nci-footer__contact">
+      <h2>Contact us</h2>
+      <a href="https://github.com/CBIIT/nci-si-mcp/issues">Contact project maintainers</a>
+      <nav aria-label="Government agencies"><ul>
+        <li><a href="https://www.hhs.gov">U.S. Department of Health and Human Services</a></li>
+        <li><a href="https://www.nih.gov">National Institutes of Health</a></li>
+        <li><a href="https://www.cancer.gov">National Cancer Institute</a></li>
+        <li><a href="https://www.usa.gov">USA.gov</a></li>
+      </ul></nav>
+    </div>
+  </div>
+  <div class="nci-footer__bottom">
+    <nav class="nci-footer__policies" aria-label="Policies"><ul>
+      <li><a href="https://www.cancer.gov/policies/disclaimer">Disclaimer Policy</a></li>
+      <li><a href="https://www.cancer.gov/policies/accessibility">Accessibility</a></li>
+      <li><a href="https://www.nih.gov/institutes-nih/nih-office-director/office-communications-public-liaison/freedom-information-act-office">FOIA</a></li>
+      <li><a href="https://www.hhs.gov/vulnerability-disclosure-policy">HHS Vulnerability Disclosure</a></li>
+      <li><a href="https://www.cancer.gov/policies/privacy-security">Privacy and Security</a></li>
+    </ul></nav>
+    <a href="#">Back to top ↑</a>
+  </div>
+</div></footer>
+{% endblock %}
+{% block announce %}
+  NCI SI MCP prototype · {{ config.extra.build.label }}
+{% endblock %}

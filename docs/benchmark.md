@@ -48,6 +48,70 @@ are not a load test, an SLO, or Cloud One capacity sizing. No index is prepared:
 lexical, and no sample supplies a production quality or latency floor. Full-corpus semantic
 retrieval has its own [evaluation evidence](retrieval-evaluation.md).
 
+## Bounded HTTP measurements
+
+The HTTP runner uses a separate version-1 report; the stdio commands and historical definitions
+above are unchanged. Design credit: the Semantic Infrastructure (SI) team. Run the fixed local
+profile with no credentials or application login:
+
+```bash
+pdm run operator-worker benchmark-http-fixture --output tmp/http-benchmark/report.json
+pdm run operator-worker acceptance-http-fixture --output tmp/http-acceptance/report.json
+```
+
+The benchmark profile runs all ten furnished examples, including the cross-domain workflows,
+against an owned HTTP server and recorded upstream fixtures. Five first-call and five warmed
+measurements per case follow one warm-up in the warmed session. Fixture credentials are
+synthetic. No production data directory or deployment environment is inherited. Acceptance
+uses its full prepared HTTP fixture suite and a private report path, retaining its four documented
+remote-unprepared skips. Temporary data, logs, control sockets and owned children are cleaned up.
+These processes use loopback, not an OS network sandbox: the network-isolated worker composition
+in #195 must deny external egress and publish no fixture ports. Do not deploy this local worker
+as a production administration endpoint.
+
+Remote measurements are a separate, explicitly authorized **read-only probe**, not a live
+conformance run. The target must exactly match a normalized HTTPS allowlist entry. TLS
+certificates are verified; redirects, URL credentials, query strings and fragments are rejected.
+There are no remote prepare/restart/state hooks. If required, supply the Authorization header
+through `NCI_SI_BENCHMARK_AUTHORIZATION` in the process environment, never a command argument.
+
+```bash
+pdm run benchmark-http --target https://approved.example/mcp --allow-target https://approved.example/mcp --allow-remote --case get_concept --output tmp/remote-probe/report.json
+```
+
+The example is a placeholder; select an endpoint you are authorized to measure. Furnished cases
+retain the requested NCIt release from the fixture manifest; this does not establish the release
+actually served remotely. A release refusal remains a measured error, not a successful lookup.
+
+| HTTP measurement | Meaning |
+| --- | --- |
+| First call | First measured call in a new **client session**, never claimed to be a cold server |
+| Warmed call | Same client session after recorded warm-ups; server cache state remains unknown |
+| Latency/size | Client tool-call duration and compact UTF-8 structured-result bytes; no result bodies retained |
+| Requests | HTTP requests admitted by this client, including setup, warm-ups and cleanup; **not upstream attempts** |
+| Errors | Tool errors and client failures remain explicit; a timeout has unknown result size |
+| Server telemetry | Upstream attempts, cache state, source commit and replica are unknown; no audit endpoint is invented |
+
+Concurrency is fixed at one. Defaults are 500 total HTTP requests, 120 seconds aggregate,
+15 seconds per operation, five measured repetitions and one warm-up. Remote CLI options can
+lower or raise these within hard bounds of 1,000 requests, 1,200 aggregate seconds, 120 seconds
+per operation, 20 repetitions and three warm-ups. Initialization is outside tool-call latency
+but inside the campaign budget. Fixture process startup has a separate 15-second readiness bound.
+Owned process termination waits up to ten seconds before killing and reaping the child.
+
+Cancellation and budget exhaustion stop new request admissions, preserve incomplete evidence
+and close client resources. They do not establish that in-flight remote work stopped. There is
+no whole-campaign retry. Reports are saved atomically before HTTP work and after each sample;
+all selected cases remain visible even when unmeasured. HTTP 4xx/5xx, redirects and oversized or
+compressed responses fail closed without retaining upstream bodies. The response limit is 8 MiB.
+
+p50/p95 use nearest rank and include errors; warm-ups have their own counts and are excluded
+from measured phases. Five samples are a small diagnostic sample, not an SLO or capacity claim.
+The [dashboard](local-validation.md) and [evidence projection](evidence-contract.md) preserve
+these definitions. Missing comparison dimensions block comparisons with other HTTP runs or
+historical stdio results. Raw reports alone are not execution envelopes; #199 supplies bound
+local run records and browser controls.
+
 ## Acceptance evidence and its limits
 
 Run the required gates and prepared fixture suite as described in

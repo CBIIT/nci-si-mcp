@@ -45,6 +45,9 @@ lint = [
 audit = [
     "pip-audit>=2.9",
 ]
+docs = [
+    "zensical==0.0.68",
+]
 
 [tool.pdm]
 distribution = true
@@ -98,7 +101,7 @@ parse_squash_commits = true
 
 [tool.pdm.scripts]
 # `test` is the whole suite with the coverage minimum; `pytest` runs a selection without it.
-test = "pytest --cov=nci_si_mcp --cov-report=term-missing"
+test = "pytest --cov --cov-report=term-missing"
 pytest = "pytest"
 # The fast check before a commit; the commit itself runs every hook.
 lint = { composite = ["ruff check .", "basedpyright"] }
@@ -110,6 +113,8 @@ acceptance = { cmd = "pytest", working_dir = "acceptance" }
 # two-CPU CI runners; more measured no faster.
 acceptance-selftest = { cmd = "pytest selftests -n 4 --dist worksteal --cov --cov-report=term-missing", working_dir = "acceptance" }
 acceptance-http = "python scripts/acceptance_http.py"
+operator-worker = "python -m scripts.operator_worker"
+benchmark-http = "python -m scripts.benchmark_http_cli"
 acceptance-record = "python -m nci_si_acceptance.record"
 acceptance-craft = "python -m nci_si_acceptance.craft"
 acceptance-expected = "python -m nci_si_acceptance.expected"
@@ -118,6 +123,8 @@ acceptance-register = "python -m nci_si_acceptance.register"
 acceptance-stories = "python -m nci_si_acceptance.stories"
 acceptance-index-codes = "python -m nci_si_acceptance.suite"
 spec-render = "python -m nci_si_acceptance.document"
+docs-build = "python -m scripts.docs_site"
+portal = "python -m scripts.portal"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -126,7 +133,44 @@ pythonpath = ["tests", "scripts/validation"]
 
 [tool.coverage.run]
 branch = true
-source = ["nci_si_mcp"]
+source = [
+    "nci_si_mcp",
+    "scripts.evidence_envelope",
+    "scripts.evidence_acceptance",
+    "scripts.evidence_benchmark",
+    "scripts.evidence_benchmark_common",
+    "scripts.evidence_http",
+    "scripts.benchmark_limits",
+    "scripts.benchmark_transport",
+    "scripts.benchmark_http",
+    "scripts.http_measurement",
+    "scripts.operator_worker",
+    "scripts.operator_source",
+    "scripts.operator_inventory",
+    "scripts.operator_files",
+    "scripts.operator_process",
+    "scripts.operator_evidence",
+    "scripts.operator_execution",
+    "scripts.benchmark_http_cli",
+    "scripts.docs_site",
+    "scripts.docs_links",
+    "scripts.docs_stories",
+    "scripts.static_server",
+    "scripts.companion_context",
+    "scripts.companion_lock",
+    "scripts.companion_entry",
+    "scripts.companion_relay",
+    "scripts.portal",
+    "scripts.portal_store",
+    "scripts.portal_views",
+    "scripts.portal_http",
+    "scripts.portal_help",
+    "scripts.portal_jobs",
+    "scripts.portal_actions",
+    "scripts.portal_job_views",
+    "scripts.portal_configuration",
+    "scripts.portal_configuration_views",
+]
 # CLI and transport tests launch Python children; include their executed code.
 patch = ["subprocess"]
 
@@ -191,6 +235,8 @@ paths = ["src", "tests", "scripts", "acceptance"]
 min_confidence = 60
 ignore_decorators = ["@mcp.tool", "@tool", "@mcp.resource", "@resource", "@pytest.fixture"]
 ignore_names = [
+    # Uvicorn reads this externally assigned shutdown flag in its server loop.
+    "should_exit",
     # Principal equality binds the tenant too; dataclasses reads this field implicitly.
     "tenant",
     "row_factory", "built_at", "index_path", "state",
@@ -201,8 +247,11 @@ ignore_names = [
     "active_index_compatible", "evs_api", "selected_release", "active_index",
     "__annotations__",
     "pytest_*", "do_*", "log_message", "close_connection",
+    # http.server/socketserver callbacks for the standalone documentation host.
+    "list_directory", "log_request", "handle_error",
     "handle", "verify_token",
     "handle_starttag", "handle_endtag", "handle_data",
+    "handle_entityref", "handle_charref", "handle_comment", "handle_decl",
     "registry", "generatedAt", "sourceDistribution", "conceptCode", "valueMeaning",
     "workflowStatus", "registrationStatus", "dateCreated", "dateModified", "permissibleValues",
     "valueDomain", "conceptAssociations", "alternateNames", "classificationSchemes", "dataElement",
