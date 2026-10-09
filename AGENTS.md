@@ -171,8 +171,15 @@ The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for t
    1. **Code review:** the engineering standards above, the architecture, and the scope.
    2. **Silent failures:** swallowed exceptions, broad `except`, fallbacks that hide an error,
       results that look complete but are not.
-   3. **Tests:** every behaviour added is asserted and could fail on a regression; edge cases
-      and error paths are covered.
+   3. **Tests:** apply the outside-in rules below to every changed behavioral claim. Identify
+      its caller scenario, owning interface and test, plausible regression, and observed
+      assertion failure under the original defect or a restored targeted mutation. Distinguish
+      setup failures from sensitivity evidence. Check exact error contracts, boundary cases,
+      and independent expected values. Challenge internal spies, duplicate claims and
+      development scaffolding; retain component tests with independent contracts. Before any
+      removal, show which remaining test preserves each distinct failure mechanism. Record
+      each finding's retention, replacement or removal rationale in the review table. Coverage
+      percentages and passing tests alone do not establish assertion quality or uniqueness.
    4. **Types and records:** invariants are expressed in the types, and records match `spec/`.
    5. **Comments and documentation:** docstrings, comments and documents say what the code
       does now.
@@ -358,6 +365,27 @@ traversal handler calls `select_edge_types` before resolving the release, so inv
 the network.
 
 ## Tests
+
+### Outside in test design and review
+
+Apply the [outside-in testing skill](https://gist.githubusercontent.com/imaurer/ac31f596bcfd7f46afe1c7dceedcba21/raw/faf1bfda7316a647cf0bd5a03d433dae5a7d4fa2/outside-in-tests.md)
+at this pinned revision, as summarized here. This tracked guidance is self-contained.
+
+- Describe the caller's scenario as Given/When/Then before implementation; demonstrate
+  the intended failure, implement the behavior, then review the tests for retention.
+- Prefer MCP, CLI and HTTP boundaries. Test a component directly when its interface owns
+  an independent contract, such as parsing, storage or ranking.
+- Retain observable behavior checks, boundary/input tables, externally relied-on contracts,
+  and demonstrated regressions. Remove development scaffolding that protects no distinct claim.
+- Identify each claim's owning test. Additional layers need a different failure mechanism
+  or contract, not repetition of the same assertion.
+- Before adding a test, identify its behavior, a plausible regression, the existing coverage
+  gap, and a real interface through which to exercise it. Avoid test-only production switches.
+- Review internal spies, setup-derived assertions and historical test groupings for coupling;
+  names should explain behavior. Neither mocking nor a unit-test label alone proves redundancy.
+- Use coverage to locate gaps and targeted mutations to evaluate sensitivity and uniqueness.
+  Replace a sole behavioral check before removing it; consolidate in small verified batches.
+  Correct product defects rather than weakening expectations to obtain green tests.
 
 `tests/fakes.py` holds `FakeEVS`, an in-memory stand-in for `EVSClient` that records calls,
 honours `include` and returns batches in the request's order rotated by one (EVS keeps no batch

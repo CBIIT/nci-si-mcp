@@ -82,6 +82,14 @@ upstream requests it made while it started. A test marked
 `live_capable` also runs in live mode, unless it selects a scenario; every other test runs
 against fixtures only.
 
+Live coverage includes protocol/discovery checks, ten caDSR argument-validation or declared
+capability cases that need neither credentials nor upstream content, and release-cache
+metadata. One bounded content journey discovers the current monthly NCIt release and retrieves
+`C4817`, checking its identity and provenance against that discovered release. It makes two MCP
+calls and prepares no index. Errors, empty content and mismatched provenance fail that journey;
+they are not accepted as alternatives to success. These checks do not certify all tool modes
+or caDSR content access. The report retains every fixture-only case as not run in live mode.
+
 A test that passes against fixtures and fails live means a fixture is wrong (corrected by
 re-recording, under change control) or the live service has changed: both are findings. One
 that passes live and fails against fixtures means the server behaves differently against

@@ -134,6 +134,10 @@ class PortalJobsTest(unittest.TestCase):
         original = json.loads(path.read_text())
         row = original["jobs"][0]
         invalid = (
+            [],
+            {"next": 2},
+            original | {"jobs": {}},
+            original | {"next": True},
             {"next": 3, "jobs": [row, row | {"sequence": 2}]},
             {"next": 3, "jobs": [row, row | {"run_id": "2" * 32}]},
             original | {"next": row["sequence"]},

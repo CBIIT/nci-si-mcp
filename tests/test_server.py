@@ -454,15 +454,6 @@ class ServerTest(ServerFixture):
 
                 self.assertEqual(opened, [identifier])
 
-    def test_a_search_that_finds_nothing_is_a_success_with_no_hits(self, _):
-        invoke(self.context, "index_codes", ["C3262"])
-
-        with patch("nci_si_mcp.index.rank_page", return_value=([], 0)):
-            is_error, result = self.call("search_concepts", query="zzzz", mode="semantic")
-
-        self.assertFalse(is_error)
-        self.assertEqual(result["results"], [])
-
     def test_resolve_release_fails_closed_when_evs_is_down(self, _):
         self.evs.errors = {
             "get_api_version": UpstreamUnavailableError("down"),

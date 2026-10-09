@@ -250,7 +250,7 @@ class LiveSearchTest(ServerFixture):
             result = self.search(retired="only")
         self.assertEqual(result["error"]["code"], "invalid_request")
 
-    def test_unusable_pages_and_wrong_release_fail_closed(self):
+    def test_unusable_pages_report_upstream_unavailable_without_results(self):
         row = concept("C1", active=True)
         pages = [
             {"total": True, "concepts": [row]},
@@ -258,13 +258,23 @@ class LiveSearchTest(ServerFixture):
             {"total": 1, "concepts": []},
             {"total": 0, "concepts": [row]},
             {"total": 1, "concepts": [None]},
-            {"total": 1, "concepts": [row | {"version": "other"}]},
         ]
         for page in pages:
             with self.subTest(page=page), self.replies([page]):
                 result = self.search()
-                self.assertIn(result["error"]["code"], {"upstream_unavailable", "release_mismatch"})
+                self.assertEqual(result["error"]["code"], "upstream_unavailable")
                 self.assertNotIn("results", result)
+
+    def test_wrong_release_search_page_reports_the_conflict_without_results(self):
+        row = concept("C1", active=True, version="26.01a")
+        with self.replies([{"total": 1, "concepts": [row]}]):
+            result = self.search()
+        self.assertEqual(result["error"]["code"], "release_mismatch")
+        self.assertEqual(
+            result["error"]["details"],
+            {"requested": "26.06e", "served": ["26.01a"], "source": "evs"},
+        )
+        self.assertNotIn("results", result)
 
     def test_withdrawn_cursor_discovers_current_only_after_the_pinned_failure(self):
         with self.replies([{"total": 2, "concepts": [concept("C1", active=True)]}]):

@@ -1,11 +1,14 @@
 """The local ingress relay transfers bytes only to its fixed administration service."""
 
+import json
 import socket
 import threading
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
 from unittest.mock import patch
 
-from scripts.companion_relay import transfer
+from scripts.companion_relay import Relay, Server, transfer
 
 
 class CompanionRelayTest(unittest.TestCase):
@@ -58,3 +61,41 @@ class CompanionRelayTest(unittest.TestCase):
         target.close()
         thread.join(timeout=2)
         self.assertFalse(thread.is_alive())
+
+    def test_connection_failure_is_private_and_next_request_is_served(self):
+        output, errors = StringIO(), StringIO()
+        outgoing, target = socket.socketpair()
+        self.addCleanup(outgoing.close)
+        self.addCleanup(target.close)
+        target.sendall(b"HTTP/1.0 200 OK\r\n\r\nhealthy")
+        with Server(("127.0.0.1", 0), Relay) as server:
+            server.timeout = 2
+
+            def serve():
+                server.handle_request()
+                server.handle_request()
+
+            with (
+                redirect_stdout(output),
+                redirect_stderr(errors),
+                patch(
+                    "scripts.companion_relay.socket.create_connection",
+                    side_effect=[ConnectionRefusedError("PRIVATE-CANARY"), outgoing],
+                ),
+            ):
+                thread = threading.Thread(target=serve, daemon=True)
+                thread.start()
+                self.addCleanup(thread.join, 3)
+                for expected in (b"", b"HTTP/1.0 200 OK\r\n\r\nhealthy"):
+                    with socket.socket() as client:
+                        client.settimeout(3)
+                        client.connect(server.server_address)
+                        with client.makefile("rb") as response:
+                            self.assertEqual(response.read(len(expected) or 1), expected)
+                thread.join(timeout=3)
+            self.assertFalse(thread.is_alive())
+        self.assertEqual(
+            json.loads(output.getvalue()),
+            {"event": "admin_relay_failed", "errorType": "ConnectionRefusedError"},
+        )
+        self.assertEqual(errors.getvalue(), "")

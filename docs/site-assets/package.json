@@ -11,9 +11,11 @@
     }
   },
   "scripts": {
-    "build": "node build-mermaid.mjs"
+    "build": "node build-mermaid.mjs",
+    "test:browser": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.0",
     "esbuild": "0.28.2"
   }
 }

@@ -46,10 +46,12 @@ class StoryPagesTest(unittest.TestCase):
             ("Exact executable cases (8)", "Cases unavailable"),
             ("**User goal:**", "**Missing goal:**"),
             ("## Discover a dependable", "Missing heading: Discover a dependable"),
-            ("**964 MCP acceptance cases,", "Missing inventory,"),
+            ("MCP acceptance cases,", "Missing inventory,"),
         ):
-            with self.subTest(before=before), self.assertRaises(ValueError):
-                partition_catalogue(self.source.replace(before, after, 1))
+            with self.subTest(before=before):
+                self.assertIn(before, self.source)
+                with self.assertRaises(ValueError):
+                    partition_catalogue(self.source.replace(before, after, 1))
 
     def test_existing_story_anchors_remain_links_to_the_new_pages(self):
         overview = partition_catalogue(self.source)["behavioural-tests.md"]

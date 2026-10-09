@@ -766,7 +766,8 @@ result means null. The result's content is not logged.
 Parameter audit classes are declared with the tool: identifiers, closed values and limits
 may be recorded; free text and unknown parameters are SHA-256 hashed. Hashes let operators
 correlate repeated inputs. They do **not** keep short, guessable terminology queries secret.
-Credentials and echoed credentials are redacted, even in correlation metadata. Exception
+Credentials and echoed credentials are redacted, even in correlation metadata and upstream
+`Retry-After` error details; redaction does not change the actual retry delay. Exception
 messages and raw upstream bodies are excluded; external diagnostic messages are hashed.
 The diagnostic log level does not disable audit completion records. The platform remains the
 authority for audit, quotas and authorisation; this prototype adds no audit database.
