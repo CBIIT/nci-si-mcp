@@ -6,7 +6,7 @@ import hashlib
 import json
 import re
 from datetime import date, datetime
-from typing import Any, NoReturn
+from typing import Annotated, Any, NoReturn
 
 from . import cadsr_content, content
 from . import cursor as cursors
@@ -17,6 +17,14 @@ from .context import Context
 from .errors import InputValidationError, PlatformError, call_correlation_id
 from .evs import verify_release
 from .models import ProvenanceEnvelope, Truncation, release_ref, utc_now_iso
+from .parameters import (
+    NCIT_CODE_FORM,
+    REGISTRY_ID_FORM,
+    Cursor,
+    Described,
+    NcitRelease,
+    count_bound,
+)
 from .permissions import require, require_operation
 from .release import ReleaseContext, resolve_evs_release, served_evs_release
 from .release_selection import implicit_selection, select
@@ -235,22 +243,42 @@ def _page_items(
 
 def find_data_elements_for_concept(
     context: Context,
-    conceptCode: str,  # noqa: N803
-    terminology: CrossDomainTerminology = "ncit",
-    release: str | None = None,
-    expandDescendants: bool = False,  # noqa: N803
-    includePermissibleValues: bool = False,  # noqa: N803
-    limit: int = 100,
-    cursor: str | None = None,
+    conceptCode: Annotated[  # noqa: N803
+        str, Described("NCIt code of the concept, for example C3262.", pattern=NCIT_CODE_FORM)
+    ],
+    terminology: Annotated[
+        CrossDomainTerminology,
+        Described("Terminology of the code; only ncit is served. Default ncit."),
+    ] = "ncit",
+    release: NcitRelease = None,
+    expandDescendants: Annotated[  # noqa: N803
+        bool,
+        Described(
+            "Also find the data elements that use a descendant of the concept. Default false."
+        ),
+    ] = False,
+    includePermissibleValues: Annotated[  # noqa: N803
+        bool,
+        Described(
+            "Also return the permissible values whose value meaning stands for the "
+            "concept. Default false."
+        ),
+    ] = False,
+    limit: Annotated[int, count_bound("Most results on a page.", 100, 1000)] = 100,
+    cursor: Cursor = None,
 ) -> dict[str, Any]:
-    """Find data-element and optional value uses of an NCIt concept or its descendants.
+    """Find the caDSR data elements that use an NCIt concept, and optionally the permissible values
+    that stand for it.
 
-    Omitted release uses the call/session's NCIt pin. The Shared SI graph must identify
-    that release; no unverified REST fallback is used. One page limit (default 100) and
-    one 1000-result cap cover data-element uses first, then value uses. Requested values
-    remain present on every page, possibly empty. Cursors bind arguments and graph/content
-    state. Sentinel cuts report inexact omissions; ordinary paging is not truncation.
-    Implicit content uses 0/private; explicit mixed content uses a short public TTL.
+    includePermissibleValues is the reverse lookup (OP-S04).
+
+    Returns dataElements and, when asked, permissibleValues (on every page, possibly empty),
+    with truncation and nextCursor. One page limit and one 1000-result cap cover data-element
+    uses first, then value uses; hitting the cap is inexact truncation, ordinary paging is not.
+
+    release_mismatch when the Shared SI graph holds another NCIt release (no unverified REST
+    fallback is used); release_not_available when it names none; cursor_expired when content
+    changed since the cursor; upstream_unavailable when a graph cannot be read.
     """
     _find_options(conceptCode, terminology, expandDescendants, includePermissibleValues)
     arguments = {
@@ -338,19 +366,43 @@ def _main_code(rows: list[dict[str, str]]) -> str:
 
 def get_concept_for_permissible_value(
     context: Context,
-    permissibleValueId: str | None = None,  # noqa: N803
-    dataElementId: str | None = None,  # noqa: N803
-    value: str | None = None,
-    release: str | None = None,
+    permissibleValueId: Annotated[  # noqa: N803
+        str | None,
+        Described(
+            "Requested from caDSR (OP-C10); not served yet, so a value is refused with "
+            "capability_unavailable. Leave unset and give dataElementId and value.",
+            pattern=REGISTRY_ID_FORM,
+        ),
+    ] = None,
+    dataElementId: Annotated[  # noqa: N803
+        str | None,
+        Described(
+            "Public id of the data element that lists the value, for example 2179689. "
+            "Give it with value.",
+            pattern=REGISTRY_ID_FORM,
+        ),
+    ] = None,
+    value: Annotated[
+        str | None,
+        Described(
+            "The permissible value exactly as the data element lists it, for example "
+            "male; compared by exact, case-sensitive equality. Give it with "
+            "dataElementId."
+        ),
+    ] = None,
+    release: NcitRelease = None,
 ) -> dict[str, Any]:
-    """Resolve an exact permissible value of a data element to its main NCIt concept.
+    """Find the NCIt concept that a permissible value of a data element stands for.
 
-    Select the latest numeric item version first (2.10 > 2.9), then compare the value
-    locally without trimming or case folding. Minor concepts are qualifiers. Missing or
-    conflicting main concepts report ambiguous registry data. Caller text never enters
-    SPARQL. permissibleValueId is explicitly unavailable (OP-C10). Omitted release uses
-    the call/session's NCIt pin; content names both states. Implicit calls use 0/private,
-    explicitly pinned mixed results a short public TTL.
+    permissibleValueId is capability_unavailable until caDSR serves it (OP-C10).
+
+    Returns the value's main concept from the data element's latest item version (numerically:
+    2.10 follows 2.9), with provenance naming both content states. The value is compared
+    exactly, without trimming or case folding; minor concepts are only qualifiers.
+
+    not_found when the latest version has no such value; upstream_unavailable naming the
+    candidates when the main concept is missing or conflicting (ambiguous registry data to
+    report to the provider); capability_unavailable for permissibleValueId (OP-C10).
     """
     element, value = _value_options(permissibleValueId, dataElementId, value, release)
     require_operation("get_concept_for_permissible_value", {})
@@ -533,19 +585,36 @@ def _crosswalk_values(
 
 def resolve_stored_value(
     context: Context,
-    conceptCode: str,  # noqa: N803
-    commons: str,
-    release: str | None = None,
-    dataElementId: str | None = None,  # noqa: N803
+    conceptCode: Annotated[  # noqa: N803
+        str,
+        Described(
+            "NCIt code of the concept whose stored value to find, for example C3262.",
+            pattern=NCIT_CODE_FORM,
+        ),
+    ],
+    commons: Annotated[str, Described("Data commons whose stored value to find, for example GDC.")],
+    release: NcitRelease = None,
+    dataElementId: Annotated[  # noqa: N803
+        str | None,
+        Described(
+            "Public id of one caDSR data element to restrict a CRDC commons to, for "
+            "example 2179689. The GDC cannot apply it.",
+            pattern=REGISTRY_ID_FORM,
+        ),
+    ] = None,
 ) -> dict[str, Any]:
-    """Resolve literal stored values through the GDC mapset or the CRDC crosswalk.
+    """Find the literal value a data commons stores for an NCIt concept, through the GDC mapset or
+    the CRDC crosswalk.
 
-    GDC term matches are filtered by exact source code and checked against the effective
-    release. Other commons use exact crosswalk membership and colon-separated concept
-    bindings. No binding means empty values, none confidence and coverage zero; never a
-    preferred-term substitute. dataElementId restricts CRDC; GDC cannot apply that selector.
-    Omitted release uses the call/session pin. Implicit content uses 0/private and explicit
-    unpinned-source content a short public TTL. All reads share the request budget.
+    commons is the GDC (its mapset) or a CRDC commons (the crosswalk).
+
+    Returns storedValues, each with its literal, confidence and evidence, and coverage. With no
+    binding there are no values, confidence none and coverage zero; the preferred term is never
+    substituted.
+
+    capability_unavailable for dataElementId on the GDC; release_mismatch when the GDC mapset is
+    another release; bound_exceeded when the GDC search exceeds the result bound;
+    upstream_unavailable when a source cannot be read.
     """
     _stored_options(conceptCode, commons, dataElementId)
     require_operation("resolve_stored_value", {"commons": commons})
@@ -623,12 +692,25 @@ def _alignment_datasets(context: Context) -> list[dict[str, Any]]:
     return datasets
 
 
-def get_release_alignment(context: Context, maxIntervalDays: int = 31) -> dict[str, Any]:  # noqa: N803
-    """Read NCIt, both Shared SI graphs and the caDSR export as four independent states.
+def get_release_alignment(
+    context: Context,
+    maxIntervalDays: Annotated[  # noqa: N803
+        int,
+        Described(
+            "Largest gap in days between the dates of the datasets before a warning is "
+            "added. Default 31; not below 0."
+        ),
+    ] = 31,
+) -> dict[str, Any]:
+    """Compare the dates of NCIt, both Shared SI graphs and the caDSR export, to see whether a join
+    of them describes one content state.
 
-    Dates are ISO calendar dates, without inventing a registry release. intervalDays is
-    the largest pairwise interval; warn only when it exceeds maxIntervalDays (default 31,
-    nonnegative). A graph difference is reported here, not rejected. Cache policy is 0/public.
+    Returns four independent states with ISO dates, intervalDays (the largest gap between any
+    two) and a warning only when intervalDays exceeds maxIntervalDays. A graph difference is
+    reported here, not rejected, and no registry release is invented.
+
+    invalid_request for a negative or non-integer threshold; upstream_unavailable when a state
+    cannot be read.
     """
     if type(maxIntervalDays) is not int or maxIntervalDays < 0:
         raise InputValidationError(

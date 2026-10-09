@@ -37,6 +37,7 @@ DEFECTS = [
     ("declares-no-shape", P2),
     ("one-code", P2),
     ("placeholder", P3),
+    ("generated-title", P3),
     ("misnamed", P4),
     ("no-ttl", P5, "tools"),
     ("prompts-no-ttl", P5, "prompts"),

@@ -7,7 +7,7 @@ from collections.abc import Awaitable, Callable
 from functools import update_wrapper
 from importlib.resources import files
 from inspect import Parameter, Signature
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any, get_args, get_origin
 
 from . import __version__
 from .audit import audited, compact, hashed, secrets
@@ -16,6 +16,7 @@ from .config import Settings, configure_logging
 from .context import Context
 from .errors import InputValidationError, is_error_record
 from .invocation import call
+from .parameters import Described
 from .permissions import AuthorityResolver
 from .registry import SPECS, ToolSpec, invoke
 from .release_selection import SessionRelease, session_scope
@@ -37,7 +38,37 @@ INSTRUCTIONS = (
     "bound_exceeded, capability_unavailable, cursor_expired, permission_denied or internal_error, "
     "and message "
     "names the next step; correlationId echoes the _meta.correlationId of the call, or is "
-    "generated. Invalid tool arguments use the same error record."
+    "generated. Invalid tool arguments use the same error record.\n\n"
+    "Releases: for NCIt, omitting release (or null) resolves the configured monthly or weekly "
+    "channel once, and the first implicit pin is reused within an MCP session. An explicit "
+    "release overrides it for that call only and never changes the pin. Other terminologies "
+    "require release. The CLI resolves anew per invocation.\n\n"
+    "Choosing a tool:\n"
+    "- One concept: get_concept; several codes: get_concepts; only a text: search_concepts "
+    "(results carry no sections, so read the concepts for definitions).\n"
+    "- Around a concept: get_concept_hierarchy for parents, children or paths to the root; "
+    "get_concept_neighborhood for roles and associations too; expand_cohort for its "
+    "descendants without the codes its exclusion roles withhold.\n"
+    "- Subsets: get_concept_subsets for the subsets a concept belongs to; expand_value_set "
+    "for the members of a subset.\n"
+    "- A data element: get_data_element by publicId or question text; match_data_elements "
+    "from a described column or field, the discovery route while search_data_elements is not "
+    "served; match_value_meanings for values.\n"
+    "- Concept to data elements: find_data_elements_for_concept. Data element to concepts: "
+    "get_data_element with include conceptAssociations. A permissible value to its concept: "
+    "get_concept_for_permissible_value.\n"
+    "- A CRDC field name to its data element and values: get_code_map (page it and match "
+    "crdcName). The value a commons stores for a concept: resolve_stored_value.\n"
+    "- A retired code to its replacement: resolve_retired_code. A code in another "
+    "terminology: get_concept_mappings. A caDSR form: get_form.\n"
+    "- Contexts and classification schemes: list_contexts; list_classification_schemes is not "
+    "served (OP-C13), so an element's own schemes come with get_data_element include "
+    "classificationSchemes. A permissible value alone is not served (OP-C10): read its data "
+    "element with include permissibleValues.\n"
+    "- Both sides of a text or code at once: ground_value. A whole data dictionary: "
+    "harmonize_data_dictionary.\n"
+    "- Which release: resolve_release, list_terminologies, resolve_registry_release. Call "
+    "get_release_alignment before joining NCIt content with caDSR content."
 )
 
 
@@ -129,6 +160,7 @@ def create_mcp(
                 meta={"group": spec.group},
                 structured_output=True,
             )
+            _serve_schemas(mcp, spec.name)
         if spec.uri and spec.visible_in(resolved_settings.profile):
             fn = _callback(spec, resource_call)
             mcp.resource(spec.uri, mime_type="application/json")(fn)
@@ -137,6 +169,75 @@ def create_mcp(
         register(spec)
     _register_prompts(mcp, resolved_settings.profile)
     return mcp
+
+
+def _serve_schemas(mcp: Any, name: str) -> None:
+    """Replace the schemas the SDK derived for tool `name` with the ones the server publishes.
+
+    pydantic's generated titles carry no meaning for a caller, so both schemas lose them; the
+    output schema is named for its tool instead. `mcp._tool_manager` is the one private seam: the
+    SDK offers no hook between deriving a schema and listing it."""
+
+    tool: Any = mcp._tool_manager.get_tool(name)
+    tool.parameters = _served_input_schema(_drop_titles(tool.parameters))
+    metadata = tool.fn_metadata
+    metadata.output_schema = {"title": f"{name} result", **_drop_titles(metadata.output_schema)}
+
+
+def _served_input_schema(schema: dict[str, Any]) -> dict[str, Any]:
+    """The input schema with the nested records' field descriptions, closed to other arguments.
+
+    The server refuses any argument the tool does not declare, so the schema says so."""
+
+    from .parameters import FIELD_DESCRIPTIONS
+
+    definitions = {
+        name: _described_record(record, FIELD_DESCRIPTIONS.get(name, {}))
+        for name, record in schema.get("$defs", {}).items()
+    }
+    return {
+        **schema,
+        **({"$defs": definitions} if definitions else {}),
+        "additionalProperties": False,
+    }
+
+
+def _described_record(record: dict[str, Any], descriptions: dict[str, str]) -> dict[str, Any]:
+    properties = {
+        name: {**spec, "description": descriptions[name]} if name in descriptions else spec
+        for name, spec in record["properties"].items()
+    }
+    return {**record, "properties": properties, "additionalProperties": False}
+
+
+def _field_annotation(annotation: Any) -> Any:
+    """`annotation` with its `Described` metadata as the pydantic `Field` that states it."""
+
+    from pydantic import Field
+
+    if get_origin(annotation) is not Annotated:
+        return annotation
+    base, *metadata = get_args(annotation)
+    fields = [Field(**m.field_arguments()) if isinstance(m, Described) else m for m in metadata]
+    return Annotated[(base, *fields)]
+
+
+def _drop_titles(node: Any) -> Any:
+    """`node` without its `title` keywords; the names under `properties` are kept."""
+
+    if isinstance(node, list):
+        return [_drop_titles(item) for item in node]
+    if not isinstance(node, dict):
+        return node
+    return {
+        key: _named(value) if key == "properties" else _drop_titles(value)
+        for key, value in node.items()
+        if key != "title"
+    }
+
+
+def _named(properties: Any) -> Any:
+    return {name: _drop_titles(schema) for name, schema in properties.items()}
 
 
 def _register_prompts(mcp: Any, profile: str) -> None:
@@ -177,7 +278,7 @@ def _callback(
     def callback(**arguments: Any) -> Any:
         return call(spec, arguments)
 
-    parameters = list(spec.parameters)
+    parameters = [p.replace(annotation=_field_annotation(p.annotation)) for p in spec.parameters]
     update_wrapper(callback, spec.handler)
     callback.__name__ = spec.name or spec.operation
     callback.__dict__["__signature__"] = Signature(parameters, return_annotation=output_type)
@@ -245,7 +346,10 @@ def _input_model(spec: ToolSpec) -> Any:
     from pydantic import ConfigDict, create_model
 
     fields: dict[str, Any] = {
-        p.name: (p.annotation, ... if p.default is Parameter.empty else p.default)
+        p.name: (
+            _field_annotation(p.annotation),
+            ... if p.default is Parameter.empty else p.default,
+        )
         for p in spec.parameters
     }
     return create_model(
