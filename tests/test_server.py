@@ -149,6 +149,23 @@ class ServerTest(ServerFixture):
         for term in ("depth", "exact=false", "budgetPerKind"):
             self.assertIn(term, tools["get_concept_neighborhood"].description)
 
+    def test_output_schemas_name_their_root_and_carry_no_generated_titles(self, _):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+
+        def text_titles(schema):
+            # A property named "title" holds a schema, not text; only text titles count.
+            if isinstance(schema, list):
+                return [found for item in schema for found in text_titles(item)]
+            if not isinstance(schema, dict):
+                return []
+            own = [schema["title"]] if isinstance(schema.get("title"), str) else []
+            return own + text_titles(list(schema.values()))
+
+        for name, tool in tools.items():
+            titles = text_titles(tool.output_schema)
+            self.assertEqual(titles, [f"{name} result"], name)
+            self.assertNotIn("RootModel", json.dumps(tool.output_schema))
+
     def test_quickstart_lists_exactly_the_public_tools(self, _):
         tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
 

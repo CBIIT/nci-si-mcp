@@ -129,6 +129,10 @@ def create_mcp(
                 meta={"group": spec.group},
                 structured_output=True,
             )
+            # The SDK derives the schema with pydantic's titles and the RootModel's
+            # type expression; publish the same schema without them.
+            tool: Any = mcp._tool_manager.get_tool(spec.name)
+            tool.fn_metadata.output_schema = _output_schema(record, f"{spec.name} result")
         if spec.uri and spec.visible_in(resolved_settings.profile):
             fn = _callback(spec, resource_call)
             mcp.resource(spec.uri, mime_type="application/json")(fn)
@@ -137,6 +141,39 @@ def create_mcp(
         register(spec)
     _register_prompts(mcp, resolved_settings.profile)
     return mcp
+
+
+def _output_schema(record: Any, title: str) -> dict[str, Any]:
+    """The schema of `record` as the SDK would publish it, without generated titles."""
+
+    from mcp.server.mcpserver.utilities.func_metadata import StrictJsonSchema, _inline_root_ref
+    from pydantic import RootModel, TypeAdapter
+
+    class WithoutTitles(StrictJsonSchema):
+        def generate(self, schema: Any, mode: Any = "validation") -> dict[str, Any]:
+            return _drop_titles(super().generate(schema, mode))
+
+    adapter = TypeAdapter(RootModel[record])
+    schema = _inline_root_ref(adapter.json_schema(schema_generator=WithoutTitles))
+    return {"title": title, **schema}
+
+
+def _drop_titles(node: Any) -> Any:
+    """`node` without its `title` keywords; the names under `properties` are kept."""
+
+    if isinstance(node, list):
+        return [_drop_titles(item) for item in node]
+    if not isinstance(node, dict):
+        return node
+    return {
+        key: _named(value) if key == "properties" else _drop_titles(value)
+        for key, value in node.items()
+        if key != "title"
+    }
+
+
+def _named(properties: Any) -> Any:
+    return {name: _drop_titles(schema) for name, schema in properties.items()}
 
 
 def _register_prompts(mcp: Any, profile: str) -> None:
