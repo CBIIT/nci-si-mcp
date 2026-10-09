@@ -382,6 +382,10 @@ class HttpClient:
             if exc.code == "upstream_unavailable":
                 details["attempts"] = attempt.number
             redacted = type(exc)(exc.code, self._redact(exc.message), **details)
+        except Exception:
+            # Whatever an interpretation raises, the request did not yield usable content.
+            attempt.failure = "unusable_response"
+            raise
         # Raised outside the handler, so that no chain holds the message as the platform
         # worded it: a platform can echo a header in its message.
         raise redacted

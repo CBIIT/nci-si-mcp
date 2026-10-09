@@ -370,6 +370,19 @@ class RequestLogTest(ServerTestCase):
 
         self.assertEqual([(r.status, r.failure) for r in records], [(200, "unusable_response")])
 
+    def test_an_interpretation_that_raises_is_recorded_as_a_failed_request(self):
+        def interpret(payload, status):
+            raise KeyError("shape")
+
+        records = []
+        client = self.client(self.serve(Reply(body=b"{}")))
+        client.on_request = records.append
+
+        with self.assertRaises(KeyError):
+            client.get_json("/x", interpret=interpret)
+
+        self.assertEqual([(r.status, r.failure) for r in records], [(200, "unusable_response")])
+
     def test_there_is_no_hook_unless_the_caller_sets_one(self):
         self.assertIsNone(self.client(self.serve()).on_request)
 
