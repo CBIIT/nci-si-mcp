@@ -13,6 +13,7 @@ from unittest.mock import patch
 
 import yaml
 from mcp.client import Client
+from mcp.server.session import ServerSession
 from mcp.shared.exceptions import MCPError
 
 from fakes import FakeEVS, concept, release
@@ -137,6 +138,19 @@ class ServerStartupTest(unittest.TestCase):
 
         self.assertIn("'server' extra", str(raised.exception))
         self.assertIn(f"Import failed: {raised.exception.__cause__}", str(raised.exception))
+
+    def test_sdk_session_without_the_connection_seam_fails_at_startup(self, _):
+        def renamed(self, *args, **kwargs):
+            self._link = None
+
+        with (
+            patch.object(ServerSession, "__init__", renamed),
+            self.assertRaises(RuntimeError) as raised,
+        ):
+            create_mcp(Settings())
+
+        self.assertIn("_connection", str(raised.exception))
+        self.assertIn(f"mcp {metadata.version('mcp')}", str(raised.exception))
 
 
 class ServerFixture(unittest.TestCase):

@@ -315,6 +315,18 @@ class StorageTest(IndexTestCase):
                 call()
             self.assertIn(str(index.db_path), str(raised.exception))
 
+    def test_sql_usage_error_propagates_as_a_bug_not_a_storage_failure(self):
+        index = self.build()
+
+        with (
+            self.assertRaises(sqlite3.OperationalError) as raised,
+            index._connect() as conn,
+        ):
+            conn.execute("SELECT nope FROM concepts")
+
+        self.assertNotIsInstance(raised.exception, IndexStorageError)
+        self.assertIn("no such column: nope", str(raised.exception))
+
     def test_database_that_cannot_be_opened_is_a_storage_error_naming_the_file(self):
         (self.path / "nci_si.sqlite3").mkdir()
 

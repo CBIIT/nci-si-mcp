@@ -1,4 +1,6 @@
 import asyncio
+import json
+import logging
 import unittest
 from dataclasses import FrozenInstanceError, replace
 from time import time
@@ -235,6 +237,10 @@ class SurfacePermissionTest(ServerFixture):
 
     def test_policy_is_resolved_again_for_calls_and_catalogues(self):
         current = authority("get_concept")
+        # ServerFixture silences logging; this test reads the diagnostic.
+        disabled = logging.root.manager.disable
+        logging.disable(logging.NOTSET)
+        self.addCleanup(logging.disable, disabled)
 
         async def resolve():
             if isinstance(current, Exception):
@@ -255,9 +261,14 @@ class SurfacePermissionTest(ServerFixture):
                     [t.name for t in (await client.list_tools()).tools], ["get_data_element"]
                 )
                 current = PolicyUnavailableError("private policy backend information")
-                failed = await client.call_tool("get_concept", pinned(code="C3262"))
+                with self.assertLogs("nci_si_mcp.server_permissions", level="WARNING") as logs:
+                    failed = await client.call_tool("get_concept", pinned(code="C3262"))
                 self.assertEqual(failed.structured_content["error"]["code"], "permission_denied")
                 self.assertNotIn("backend", str(failed))
+                record = json.loads(logs.records[0].getMessage())
+                self.assertEqual(record["event"], "policy_unavailable")
+                self.assertEqual(record["errorType"], "PolicyUnavailableError")
+                self.assertNotIn("backend", logs.records[0].getMessage())
                 current = authority("get_concept", policy_version="policy-3")
                 self.assertFalse(
                     (await client.call_tool("get_concept", pinned(code="C3262"))).is_error

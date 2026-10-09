@@ -220,6 +220,21 @@ def _check_sample_snapshot(conn: sqlite3.Connection, active: IndexManifest | Non
         raise IndexStateError("The active index changed during sample indexing; retry the sample")
 
 
+# SQLite result codes of the database file itself; other codes (SQL usage, constraints) are bugs.
+_STORAGE_ERROR_CODES = frozenset(
+    {
+        sqlite3.SQLITE_BUSY,
+        sqlite3.SQLITE_LOCKED,
+        sqlite3.SQLITE_IOERR,
+        sqlite3.SQLITE_CANTOPEN,
+        sqlite3.SQLITE_NOTADB,
+        sqlite3.SQLITE_CORRUPT,
+        sqlite3.SQLITE_FULL,
+        sqlite3.SQLITE_READONLY,
+    }
+)
+
+
 class LocalIndex:
     def __init__(self, data_dir: Path) -> None:
         self.data_dir = Path(data_dir)
@@ -239,7 +254,8 @@ class LocalIndex:
             finally:
                 conn.close()
         except sqlite3.Error as exc:
-            if isinstance(exc, sqlite3.OperationalError) or type(exc) is sqlite3.DatabaseError:
+            # The primary result code is the low byte; the rest names the sub-case.
+            if (exc.sqlite_errorcode or 0) & 0xFF in _STORAGE_ERROR_CODES:
                 raise IndexStorageError(f"{exc} ({self.db_path})") from exc
             raise
 
