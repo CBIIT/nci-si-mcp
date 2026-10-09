@@ -382,7 +382,10 @@ even a same-release replacement expires them. Count, page and provenance share o
 
 `traverse_ncit` walks all start codes one depth at a time, so nearer nodes claim the node and edge
 limits first whatever the order of start codes and edge types. Each depth is read with batched
-`get_concepts_by_codes` requests whose `include` names only the selected relation lists. Walks
+`get_concepts_by_codes` requests whose `include` names only the selected relation lists; each
+batch is cut down to the keys the walk uses as it is extracted, so a frontier's memory follows
+the node and edge limits, not the response sizes. One table (`EDGE_KINDS`) says, per edge type,
+the relation list, direction, include flag and whether it is a hierarchy link. Walks
 that follow inverse roles or inverse associations use batches of 10, because those lists run to
 megabytes for hub concepts; a batch that exceeds the response limit is halved, and a single
 concept that still exceeds it is kept unexpanded and counted against the `upstream_cap` bound of
