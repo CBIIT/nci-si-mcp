@@ -124,6 +124,8 @@ during feature-branch cleanup; it is generated publication data.
 3. **Coverage: 90% is the checked minimum, above 95% is the aim.** The gap is deliberate: it
    keeps anyone from writing tests for the number. Cover untested behaviour whenever you can.
    Never add a test that asserts nothing, or only that a mock was called.
+   The figure covers `src/` and every script in `scripts/` except those `omit`ted in
+   `pyproject.toml`, each with its reason there; omit nothing to raise the number.
 4. **Keep it simple, and say each thing once.** Follow the structure in ARCHITECTURE.md: thin
    adapters over the service, one error path, closed value sets in `validation.py`. No
    abstraction for a single use.

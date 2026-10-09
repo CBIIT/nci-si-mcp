@@ -117,7 +117,7 @@ last two and the suite's CI; each family below is operational, and what depends 
 | Server container | `container_lock.py`, `container_smoke.py`, `image_scan.py`, `image_publish.py`, `Dockerfile` | the CI `image` job, the Release workflow | the published image |
 | Documentation site | `docs_site.py`, `docs_links.py`, `docs_stories.py`, `site_assets.py`, `static_server.py`, `companion_context.py`, `companion_lock.py`, `container/Docs.Dockerfile` | `pdm run docs-build`; the `documentation` and `companions` jobs | the hosted site |
 | Validation companion | `portal*.py`, `operator_*.py`, `evidence_*.py`, `companion_entry.py`, `companion_relay.py`, `companion_smoke.py`, `container/Admin.Dockerfile`, `container/compose.local.yaml` | `pdm run portal`, `pdm run operator-worker`; the `companions` job | `docs/local-validation.md`, `docs/companion-containers.md` |
-| Benchmarks and evaluation | `benchmark*.py`, `http_measurement.py`, `assisted_evaluation.py` | `pdm run benchmark-http`; the companion's workers | `docs/benchmark.md`, `docs/assisted-evaluation.md` |
+| Benchmarks and evaluation | `benchmark*.py`, `http_measurement.py`, `assisted_evaluation.py`, `assisted_scoring.py` | `pdm run benchmark-http`; the companion's workers | `docs/benchmark.md`, `docs/assisted-evaluation.md` |
 | README badges | `coverage_badges.py` | the CI `coverage-badges` job | the README |
 
 A script that served an ephemeral purpose and is no longer needed to operate or maintain the

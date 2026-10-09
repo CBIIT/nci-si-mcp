@@ -91,12 +91,11 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects twelve EVS tools, ten caDSR tools, or all 29 tools including cross-domain and workflows. Unified also exposes four furnished prompts: the templates of `spec/prompts.yaml` with the arguments substituted, which make no content calls. Resources follow their group. CLI commands remain available in every profile |
-| `NCI_SI_UPSTREAM_MODE` | `live` | `live` or `fixture`; selects the six base URLs below as a set (next paragraph) |
+| `NCI_SI_UPSTREAM_MODE` | `live` | `live` or `fixture`; selects the five base URLs below as a set (next paragraph) |
 | `NCI_SI_EVS_BASE_URL` | `https://api-evsrest.nci.nih.gov` | EVS REST endpoint (`http` or `https`) |
 | `NCI_SI_EVS_FHIR_BASE_URL` | `https://api-evsrest.nci.nih.gov/fhir/r4` | EVS FHIR endpoint |
 | `NCI_SI_CADSR_BASE_URL` | `https://cadsrapi.cancer.gov/rad` | caDSR REST endpoint |
 | `NCI_SI_CADSR_FTP_URL` | `https://cadsr.nci.nih.gov/ftp/caDSR_Downloads` | caDSR export (FTP) endpoint |
-| `NCI_SI_SSIS_FACADE_URL` | `https://cadsrapi.cancer.gov` | Shared Semantic Infrastructure façade |
 | `NCI_SI_SSIS_SPARQL_URL` | `https://shared.semantics.cancer.gov` | Shared Semantic Infrastructure SPARQL endpoint |
 | `NCI_SI_RELEASE_CHANNEL` | `monthly` | The default channel for discovery and CLI diagnostics: `monthly` or `weekly`. The release is the one EVS row that is latest and tagged with the channel; with none or several the call fails with a release-not-available error. MCP content tools use the release the caller supplies |
 | `NCI_SI_EXCLUSION_ROLE_CODES` | `R135,R136,R137,R138,R139,R140,R141,R142` | NCIt exclusion roles, a comma-separated list of codes (`R` and digits); checked against the requested release catalogue on each relationship listing or neighborhood call |
@@ -126,8 +125,8 @@ local server time without a zone, so `generatedAt` carries no offset (for exampl
 `2026-07-01T22:19`), not the ZIP file's HTTP timestamp. API content without a published registry
 release does not inherit that export date.
 
-The six base URLs are one set. In `live` mode a base URL that is not given takes its production
-default, and one that is given replaces that default. In `fixture` mode every one of the six must be given, so a fixture
+The five base URLs are one set. In `live` mode a base URL that is not given takes its production
+default, and one that is given replaces that default. In `fixture` mode every one of the five must be given, so a fixture
 server cannot reach a production host by accident; a missing one stops startup, naming it. The
 server adds the platform's own paths to each base URL. A setting set to an empty value is
 rejected: unset it instead.

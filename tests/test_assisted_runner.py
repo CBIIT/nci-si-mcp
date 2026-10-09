@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, patch
 
 from scripts.assisted_evaluation import build_report, execute, main, planned_runs, run
 
-from test_task_evaluation import task
+from test_assisted_scoring import task
 
 
 class RecordingClient:

@@ -40,6 +40,7 @@ NeighborhoodKind = Literal[
 TruncationBound = Literal[
     "results", "depth", "nodes", "edges", "kind_budget", "requests", "upstream_cap"
 ]
+# "ssis_facade" is in the specification's closed set; this server does not emit it.
 ProvenanceSource = Literal[
     "evs_rest", "evs_fhir", "evs_index", "cadsr_rest", "cadsr_export", "ssis_facade", "ssis_sparql"
 ]
