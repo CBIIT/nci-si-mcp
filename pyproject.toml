@@ -135,13 +135,11 @@ pythonpath = ["tests", "scripts/validation"]
 [tool.coverage.run]
 branch = true
 source = ["nci_si_mcp", "scripts"]
-# Every script is measured except these, each named with its reason.
+# Every script is measured except these, each named with its reason. The patterns start with
+# a wildcard because a test's child process runs from another directory.
 omit = [
-    # Run only in CI against built container images: a unit test cannot reach them.
-    "scripts/companion_smoke.py",
-    "scripts/container_smoke.py",
-    # A container entrypoint (container/Admin.Dockerfile).
-    "scripts/companion_entry.py",
+    # A container entrypoint (container/Admin.Dockerfile) that nothing imports.
+    "*/scripts/companion_entry.py",
 ]
 # CLI and transport tests launch Python children; include their executed code.
 patch = ["subprocess"]
