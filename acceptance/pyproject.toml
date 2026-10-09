@@ -32,7 +32,7 @@ markers = [
     "mcp_session: use a handshake session for remote session-retention assertions",
     "tool(name): the required tool the test is for, in the per-tool report",
     "requirement(*ids): the requirements of spec/requirements.yaml the test enforces",
-    "gate: a protocol-level gate (a P requirement); a failure fails every tool",
+    "gate: a gate that fails every tool's verdict (P and X-25–X-28 requirements)",
     "scenario(*names): the scenarios active for the test, on a server process of its own",
     "own_server: the test runs on a server process of its own, with nothing cached from others",
     "live_capable: also runs in live mode",

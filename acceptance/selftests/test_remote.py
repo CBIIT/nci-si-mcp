@@ -53,6 +53,9 @@ USAGE_ERROR = 4
 PROMPTLY_SECONDS = 10
 ECHO = """
 import os
+import pytest
+
+pytestmark = pytest.mark.gate
 
 def test_echo(tools):
     assert "echoed" == os.environ["NCI_SI_ACCEPTANCE_AUTHORIZATION"]
@@ -121,6 +124,9 @@ def remote(compliant, monkeypatch, stub):
     monkeypatch.delenv("NCI_SI_ACCEPTANCE_SERVER")
     monkeypatch.delenv("NCI_SI_ACCEPTANCE_PREPARE")
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_URL", stub.url)
+    # Unbuffered output reaches the captured file descriptor at once; a harness line written
+    # while the test's output is captured is then lost, so the run proves it is shown anyway.
+    monkeypatch.setenv("PYTHONUNBUFFERED", "1")
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_AUTHORIZATION", CREDENTIAL)
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_FIXTURE_BIND", f"127.0.0.1:{stub.fixture_port}")
     # What the operator's restart command is given by the environment it runs in.

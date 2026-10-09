@@ -48,7 +48,6 @@ def report():
                 "group": "evs",
                 "outcome": "PASS",
                 "gates_only": False,
-                "implemented_as": "lookup",
                 "counts": {"passed": 1},
             }
         },
@@ -71,10 +70,28 @@ def project(native=None, context=None, **changes):
 
 
 class AcceptanceProjectionTest(unittest.TestCase):
-    def test_absent_tool_alias_preserves_not_implemented_without_claiming_availability(self):
+    def test_a_report_without_the_alias_field_keeps_its_verdict(self):
         native = report()
+        self.assertNotIn("implemented_as", native["tools"]["lookup"])
+        self.assertEqual(project(native)["tools"]["lookup"]["outcome"], "PASS")
+        native["tools"]["lookup"]["outcome"] = "FAIL"
+        with self.assertRaises(EvidenceError):
+            project(native)
+
+    def test_a_not_implemented_verdict_needs_no_alias_field(self):
+        native = report()
+        native["tools"]["lookup"]["outcome"] = "NOT IMPLEMENTED"
+        self.assertEqual(project(native)["tools"]["lookup"]["outcome"], "NOT IMPLEMENTED")
+
+    def test_a_recorded_report_with_the_alias_field_stays_valid_and_checked(self):
+        native = report()
+        native["tools"]["lookup"]["implemented_as"] = "lookup"
+        self.assertEqual(project(native)["tools"]["lookup"]["outcome"], "PASS")
         native["tools"]["lookup"].update(implemented_as=None, outcome="NOT IMPLEMENTED")
         self.assertEqual(project(native)["tools"]["lookup"]["outcome"], "NOT IMPLEMENTED")
+        native["tools"]["lookup"].update(implemented_as="lookup", outcome="NOT IMPLEMENTED")
+        with self.assertRaises(EvidenceError):
+            project(native)
 
     def test_unrun_gate_and_test_remain_unrun_and_incomplete(self):
         native = report()

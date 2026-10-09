@@ -5,7 +5,6 @@ does not import a server implementation or select a production identity provider
 """
 
 import json
-import os
 import secrets
 import shlex
 import socket
@@ -20,7 +19,12 @@ import httpx2
 import pytest
 from mcp.shared.exceptions import MCPError
 
-from nci_si_acceptance.client import open_remote_session, server_environment
+from nci_si_acceptance.client import (
+    ADAPTER_AUTHORITY_VARIABLE,
+    ADAPTER_PORT_VARIABLE,
+    open_remote_session,
+    server_environment,
+)
 
 
 class SecuredServer:
@@ -58,6 +62,7 @@ class SecuredServer:
         )
 
 
+@pytest.mark.gate
 @pytest.mark.requirement("X-28")
 @pytest.mark.parametrize(
     "headers",
@@ -84,6 +89,7 @@ def test_unauthenticated_and_spoofed_callers_cannot_enter_mcp(secured_server, up
     assert upstream.log() == []
 
 
+@pytest.mark.gate
 @pytest.mark.requirement("X-28")
 def test_public_probes_reveal_only_status_and_reject_an_untrusted_host(secured_server):
     base = secured_server.endpoint.removesuffix("/mcp")
@@ -132,8 +138,8 @@ def _process(command, environment, log):
 
 
 @pytest.fixture
-def secured_server(upstream, tmp_path):
-    command = os.environ.get("NCI_SI_ACCEPTANCE_SECURITY_SERVER")
+def secured_server(target, upstream, tmp_path):
+    command = target.security_server
     if not command:
         pytest.skip(
             "No secured fixture adapter supplied; this is not evidence of secured conformance"
@@ -146,8 +152,8 @@ def secured_server(upstream, tmp_path):
     endpoint = f"http://127.0.0.1:{port}"
     server = SecuredServer(tmp_path / "authority.json", endpoint + "/mcp")
     environment = server_environment("fixture", tmp_path / "data", upstream.url) | {
-        "NCI_SI_TEST_AUTHORITY_FILE": str(server.path),
-        "NCI_SI_TEST_HTTP_PORT": str(port),
+        ADAPTER_AUTHORITY_VARIABLE: str(server.path),
+        ADAPTER_PORT_VARIABLE: str(port),
     }
     server.log = tmp_path / "server.log"
     try:
@@ -159,6 +165,7 @@ def secured_server(upstream, tmp_path):
         server.log.unlink(missing_ok=True)
 
 
+@pytest.mark.gate
 @pytest.mark.requirement("X-25")
 @pytest.mark.parametrize("actor,tool", [("evs", "get_concept"), ("cadsr", "get_data_element")])
 def test_each_caller_sees_only_its_permitted_tools_and_resources(secured_server, actor, tool):
@@ -177,6 +184,7 @@ def test_each_caller_sees_only_its_permitted_tools_and_resources(secured_server,
         assert sorted(str(row.uri_template) for row in templates) == sorted(expected)
 
 
+@pytest.mark.gate
 @pytest.mark.requirement("X-25", "X-27")
 def test_a_guessed_tool_is_refused_without_upstream_reads_or_sensitive_logs(
     secured_server, upstream
@@ -192,6 +200,7 @@ def test_a_guessed_tool_is_refused_without_upstream_reads_or_sensitive_logs(
     assert "caller-sensitive-value" not in logged
 
 
+@pytest.mark.gate
 @pytest.mark.requirement("X-25")
 def test_guessed_resources_and_prompts_cannot_bypass_permissions(secured_server, upstream):
     with secured_server.connect("cadsr") as client:
@@ -204,6 +213,7 @@ def test_guessed_resources_and_prompts_cannot_bypass_permissions(secured_server,
     assert upstream.log() == []
 
 
+@pytest.mark.gate
 @pytest.mark.requirement("X-27")
 def test_explicit_release_content_and_discovery_disable_shared_http_caching(secured_server, pinned):
     for method, arguments in (
@@ -218,6 +228,7 @@ def test_explicit_release_content_and_discovery_disable_shared_http_caching(secu
         assert (hints["ttlMs"], hints["cacheScope"]) == (0, "private")
 
 
+@pytest.mark.gate
 @pytest.mark.requirement("X-27")
 def test_revoked_and_expired_policy_deny_the_next_request(secured_server, pinned, upstream):
     with secured_server.connect("evs") as client:
@@ -235,6 +246,7 @@ def test_revoked_and_expired_policy_deny_the_next_request(secured_server, pinned
             assert upstream.log() == before
 
 
+@pytest.mark.gate
 @pytest.mark.requirement("X-26")
 @pytest.mark.parametrize(
     "parent,arguments",
@@ -254,6 +266,7 @@ def test_allowed_workflows_cannot_read_denied_children(secured_server, upstream,
     assert upstream.log() == []
 
 
+@pytest.mark.gate
 @pytest.mark.requirement("X-27")
 def test_concurrent_verified_callers_keep_separate_catalogues_and_results(secured_server, pinned):
     together = Barrier(2)
@@ -276,6 +289,7 @@ def test_concurrent_verified_callers_keep_separate_catalogues_and_results(secure
     assert cadsr[2].structured_content["publicId"] == "2200604"
 
 
+@pytest.mark.gate
 @pytest.mark.requirement("X-26")
 @pytest.mark.parametrize(
     "missing",
@@ -305,6 +319,7 @@ def test_grounding_checks_each_selected_child_before_any_read(secured_server, up
     assert upstream.log() == []
 
 
+@pytest.mark.gate
 @pytest.mark.requirement("X-27")
 def test_missing_policy_never_falls_back_to_trusted_local_access(secured_server, pinned, upstream):
     del secured_server.policies["evs"]

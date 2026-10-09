@@ -71,6 +71,7 @@ FIXTURE_URL_VARIABLE = "NCI_SI_ACCEPTANCE_FIXTURE_URL"
 STATE_HOOK_VARIABLE = "NCI_SI_ACCEPTANCE_STATE_HOOK"
 STATE_HOOK_TIMEOUT_VARIABLE = "NCI_SI_ACCEPTANCE_STATE_HOOK_TIMEOUT"
 PREPARED_VARIABLE = "NCI_SI_ACCEPTANCE_PREPARED"
+SECURITY_SERVER_VARIABLE = "NCI_SI_ACCEPTANCE_SECURITY_SERVER"
 # The settings that mean something only for a remote server: naming one without the URL is a
 # usage error, never silently ignored.
 REMOTE_ONLY = (
@@ -80,6 +81,10 @@ REMOTE_ONLY = (
     STATE_HOOK_TIMEOUT_VARIABLE,
     PREPARED_VARIABLE,
 )
+# The settings the harness gives the secured fixture adapter: its loopback port and the file of
+# generated tokens and policies it rereads on every request.
+ADAPTER_PORT_VARIABLE = "NCI_SI_TEST_HTTP_PORT"
+ADAPTER_AUTHORITY_VARIABLE = "NCI_SI_TEST_AUTHORITY_FILE"
 # The file of concept codes the prepare command indexes, which the suite names to it.
 INDEX_CODES_VARIABLE = "NCI_SI_ACCEPTANCE_INDEX_CODES"
 DEFAULT_SERVER = "nci-si-mcp serve"
@@ -120,6 +125,9 @@ class Target:
     state_hook: str | None = None
     state_hook_timeout: float = DEFAULT_STATE_HOOK_TIMEOUT_SECONDS
     prepared: bool = False
+    # The command of the secured fixture adapter (X-25 to X-28), for a local and a remote target
+    # alike: the harness starts it itself beside the server under test.
+    security_server: str | None = None
 
     @classmethod
     def from_env(cls) -> Target:
@@ -129,23 +137,32 @@ class Target:
         profile = os.environ.get(PROFILE_VARIABLE, "unified")
         if profile not in PROFILES:
             raise ValueError(f"{PROFILE_VARIABLE} must be one of {', '.join(PROFILES)}")
-        prepare = os.environ.get(PREPARE_VARIABLE) or None
+        prepare = _text(PREPARE_VARIABLE)
         bind = _bind(os.environ.get(FIXTURE_BIND_VARIABLE))
+        security_server = _text(SECURITY_SERVER_VARIABLE)
         if (url := _endpoint()) is None:
             _refuse_remote_only()
-            return cls(mode, _command(), profile, prepare, fixture_bind=bind)
+            return cls(
+                mode,
+                _command(),
+                profile,
+                prepare,
+                fixture_bind=bind,
+                security_server=security_server,
+            )
         return cls(
             mode,
             [],
             profile,
             None,
             url,
-            os.environ.get(AUTHORIZATION_VARIABLE) or None,
+            _text(AUTHORIZATION_VARIABLE),
             bind,
             _fixture_url(),
-            os.environ.get(STATE_HOOK_VARIABLE) or None,
+            _text(STATE_HOOK_VARIABLE),
             _seconds(STATE_HOOK_TIMEOUT_VARIABLE, DEFAULT_STATE_HOOK_TIMEOUT_SECONDS),
             _declared(PREPARED_VARIABLE),
+            security_server,
         )
 
     @property
@@ -165,6 +182,12 @@ def _command() -> list[str]:
     if not command:
         raise ValueError(f"{SERVER_VARIABLE} must name a command")
     return command
+
+
+def _text(name: str) -> str | None:
+    """The setting `name`, or None where it is unset or empty."""
+
+    return os.environ.get(name) or None
 
 
 def _endpoint() -> str | None:
