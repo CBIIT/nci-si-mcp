@@ -267,14 +267,21 @@ def find_data_elements_for_concept(
     limit: Annotated[int, count_bound("Most results on a page.", 100, 1000)] = 100,
     cursor: Cursor = None,
 ) -> dict[str, Any]:
-    """Find data-element and optional value uses of an NCIt concept or its descendants.
+    """Find the caDSR data elements that use an NCIt concept, and optionally the permissible values
+    that stand for it.
 
-    Omitted release uses the call/session's NCIt pin. The Shared SI graph must identify
-    that release; no unverified REST fallback is used. One page limit (default 100) and
-    one 1000-result cap cover data-element uses first, then value uses. Requested values
-    remain present on every page, possibly empty. Cursors bind arguments and graph/content
-    state. Sentinel cuts report inexact omissions; ordinary paging is not truncation.
-    Implicit content uses 0/private; explicit mixed content uses a short public TTL.
+    conceptCode is the concept; terminology is ncit, the only one served. expandDescendants also
+    finds uses of its descendants; includePermissibleValues adds the permissible values whose
+    value meaning stands for it (the reverse lookup, OP-S04). Omit release to use the session's
+    pinned NCIt release; other terminologies need it.
+
+    Returns dataElements and, when asked, permissibleValues (on every page, possibly empty),
+    with truncation and nextCursor. One page limit and one 1000-result cap cover data-element
+    uses first, then value uses; hitting the cap is inexact truncation, ordinary paging is not.
+
+    release_mismatch when the Shared SI graph holds another NCIt release (no unverified REST
+    fallback is used); release_not_available when it names none; cursor_expired when content
+    changed since the cursor; upstream_unavailable when a graph cannot be read.
     """
     _find_options(conceptCode, terminology, expandDescendants, includePermissibleValues)
     arguments = {
@@ -388,14 +395,19 @@ def get_concept_for_permissible_value(
     ] = None,
     release: NcitRelease = None,
 ) -> dict[str, Any]:
-    """Resolve an exact permissible value of a data element to its main NCIt concept.
+    """Find the NCIt concept that a permissible value of a data element stands for.
 
-    Select the latest numeric item version first (2.10 > 2.9), then compare the value
-    locally without trimming or case folding. Minor concepts are qualifiers. Missing or
-    conflicting main concepts report ambiguous registry data. Caller text never enters
-    SPARQL. permissibleValueId is explicitly unavailable (OP-C10). Omitted release uses
-    the call/session's NCIt pin; content names both states. Implicit calls use 0/private,
-    explicitly pinned mixed results a short public TTL.
+    dataElementId and value (its exact text) select the value. permissibleValueId is requested
+    from caDSR (OP-C10) and is capability_unavailable until it serves it; leave it unset. Omit
+    release to use the session's pinned NCIt release; other terminologies need it.
+
+    Returns the value's main concept from the data element's latest item version (numerically:
+    2.10 follows 2.9), with provenance naming both content states. The value is compared
+    exactly, without trimming or case folding; minor concepts are only qualifiers.
+
+    not_found when the latest version has no such value; upstream_unavailable naming the
+    candidates when the main concept is missing or conflicting (ambiguous registry data to
+    report to the provider); capability_unavailable for permissibleValueId (OP-C10).
     """
     element, value = _value_options(permissibleValueId, dataElementId, value, release)
     require_operation("get_concept_for_permissible_value", {})
@@ -596,14 +608,20 @@ def resolve_stored_value(
         ),
     ] = None,
 ) -> dict[str, Any]:
-    """Resolve literal stored values through the GDC mapset or the CRDC crosswalk.
+    """Find the literal value a data commons stores for an NCIt concept, through the GDC mapset or
+    the CRDC crosswalk.
 
-    GDC term matches are filtered by exact source code and checked against the effective
-    release. Other commons use exact crosswalk membership and colon-separated concept
-    bindings. No binding means empty values, none confidence and coverage zero; never a
-    preferred-term substitute. dataElementId restricts CRDC; GDC cannot apply that selector.
-    Omitted release uses the call/session pin. Implicit content uses 0/private and explicit
-    unpinned-source content a short public TTL. All reads share the request budget.
+    conceptCode is the concept; commons names the data commons (GDC or a CRDC commons).
+    dataElementId restricts a CRDC commons to one data element; the GDC cannot apply it. Omit
+    release to use the session's pinned NCIt release; other terminologies need it.
+
+    Returns storedValues, each with its literal, confidence and evidence, and coverage. With no
+    binding there are no values, confidence none and coverage zero; the preferred term is never
+    substituted.
+
+    capability_unavailable for dataElementId on the GDC; release_mismatch when the GDC mapset is
+    another release; bound_exceeded when the GDC search exceeds the result bound;
+    upstream_unavailable when a source cannot be read.
     """
     _stored_options(conceptCode, commons, dataElementId)
     require_operation("resolve_stored_value", {"commons": commons})
@@ -691,11 +709,17 @@ def get_release_alignment(
         ),
     ] = 31,
 ) -> dict[str, Any]:
-    """Read NCIt, both Shared SI graphs and the caDSR export as four independent states.
+    """Compare the dates of NCIt, both Shared SI graphs and the caDSR export, to see whether a join
+    of them describes one content state.
 
-    Dates are ISO calendar dates, without inventing a registry release. intervalDays is
-    the largest pairwise interval; warn only when it exceeds maxIntervalDays (default 31,
-    nonnegative). A graph difference is reported here, not rejected. Cache policy is 0/public.
+    maxIntervalDays is the gap in days that raises a warning (default 31, not below 0).
+
+    Returns four independent states with ISO dates, intervalDays (the largest gap between any
+    two) and a warning only when intervalDays exceeds maxIntervalDays. A graph difference is
+    reported here, not rejected, and no registry release is invented.
+
+    invalid_request for a negative or non-integer threshold; upstream_unavailable when a state
+    cannot be read.
     """
     if type(maxIntervalDays) is not int or maxIntervalDays < 0:
         raise InputValidationError(

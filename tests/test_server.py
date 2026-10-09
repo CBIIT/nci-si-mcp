@@ -250,6 +250,63 @@ class ServerTest(ServerFixture):
         for (tool, name), form in forms.items():
             self.assertEqual(branch(prop(tool, name))["pattern"], form, (tool, name))
 
+    def test_first_sentences_say_what_the_tool_is_for_in_words_free_of_cache_vocabulary(self, _):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+        banned = re.compile(r"TTL|cache|budget|replay|0/private|\bpublic\b", re.IGNORECASE)
+
+        for name, tool in tools.items():
+            first = re.match(r"(.*?\.)(\s|$)", tool.description, flags=re.DOTALL)
+            self.assertIsNotNone(first, name)
+            self.assertNotIn("\n\n", first.group(1), name)
+            self.assertIsNone(banned.search(first.group(1)), (name, first.group(1)))
+
+    def test_no_description_names_another_served_tool(self, _):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+
+        for name, tool in tools.items():
+            named = [
+                other
+                for other in tools
+                if other != name and re.search(rf"\b{other}\b", tool.description)
+            ]
+            self.assertEqual(named, [], name)
+
+    def test_the_instructions_carry_the_tool_selection_map_and_the_release_rule_once(self, _):
+        decisions = [
+            ("get_concept", "get_concepts", "search_concepts"),
+            ("get_concept_hierarchy", "get_concept_neighborhood", "expand_cohort"),
+            ("get_concept_subsets", "expand_value_set"),
+            ("get_data_element", "search_data_elements", "match_data_elements"),
+            ("find_data_elements_for_concept", "get_data_element", "conceptAssociations"),
+            ("resolve_stored_value", "get_code_map"),
+            ("get_release_alignment",),
+        ]
+        lines = INSTRUCTIONS.splitlines()
+
+        for names in decisions:
+            self.assertTrue(any(all(n in line for n in names) for line in lines), names)
+        self.assertEqual(INSTRUCTIONS.count("first implicit pin"), 1)
+        tools = self.session(lambda client: client.list_tools()).tools
+        self.assertEqual([t.name for t in tools if "implicit pin" in t.description], [])
+
+    def test_every_upstream_gap_requirement_id_stays_in_the_description_that_stated_it(self, _):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+        # Requirement signals to the EVS and caDSR teams, taken from the descriptions of the
+        # milestone before the rewrite; removing one would silence the signal.
+        stated = {
+            "get_concept_for_permissible_value": {"OP-C10"},
+            "get_permissible_value": {"OP-C10"},
+            "match_data_elements": {"C-1", "C-6"},
+            "match_value_meanings": {"C-1"},
+            "get_data_element": {"OP-C02"},
+            "search_data_elements": {"OP-C03"},
+            "list_classification_schemes": {"OP-C13"},
+        }
+
+        for name, ids in stated.items():
+            found = set(re.findall(r"\bOP-[A-Z]\d+\b|\bC-\d+\b", tools[name].description))
+            self.assertLessEqual(ids, found, name)
+
     def test_the_three_matching_tools_share_one_filters_type_and_expand_value_set_is_ncit_only(
         self, _
     ):

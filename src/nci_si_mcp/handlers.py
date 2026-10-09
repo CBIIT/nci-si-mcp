@@ -86,14 +86,17 @@ def resolve_release(
         ),
     ] = None,
 ) -> dict[str, Any]:
-    """Resolve the current EVS terminology release by its monthly or weekly channel.
+    """Find the current release of an EVS terminology in its monthly or weekly channel.
 
-    Omitted channel uses NCI_SI_RELEASE_CHANNEL (monthly by default). Exactly one
-    release must be latest within that channel. The result names terminology,
-    channel, version and date; alternatives lists the other versions EVS serves
-    for that terminology. Pass the selected version to subsequent content calls.
-    Provenance identifies the live EVS listing. Discovery is never cached, and
-    an unavailable or ambiguous release is an error rather than a guessed version.
+    terminology is required. channel defaults to the server's configured channel (monthly unless
+    set otherwise).
+
+    Returns the terminology, channel, version and date of the release, the other versions EVS
+    serves in alternatives, and provenance naming the live EVS listing. Use it to learn which
+    release to name in later calls.
+
+    release_not_available when no single release is latest in that channel; upstream_unavailable
+    when EVS cannot answer. A guessed version is never returned, and discovery is always fresh.
     """
 
     terminology = validate_terminology(terminology)
@@ -118,15 +121,18 @@ def _alternatives(rows: list[dict[str, Any]], selected: dict[str, Any]) -> list[
 
 
 def list_terminologies(context: Context) -> dict[str, Any]:
-    """List the terminologies EVS serves and each terminology's current release.
+    """List the terminologies EVS serves, each with its current release.
 
-    NCIt uses the configured monthly or weekly channel (monthly by default),
-    because EVS can mark both channels latest. Other terminologies use their
-    sole latest row. Each item names its terminology, release and live EVS
-    provenance. Ambiguous or missing current releases fail closed. This current
-    listing is resolved anew on every call and is never cached. An empty unfiltered
-    upstream listing is unusable metadata (upstream_unavailable), with its actual
-    HTTP status and attempt count; no release is invented for empty provenance.
+    No arguments. NCIt is listed at the release of the configured channel (monthly unless set
+    otherwise), because EVS can mark both channels latest; every other terminology at its sole
+    latest release.
+
+    Returns terminologies, each with its name, release and live EVS provenance. Use it to see
+    what can be read and at which release.
+
+    release_not_available when a current release is ambiguous or missing; upstream_unavailable
+    when EVS cannot answer, an empty listing included (it is unusable metadata, reported with
+    its HTTP status and attempt count). No release is invented.
     """
 
     rows = current_terminologies(context.evs.get_terminologies(), context.settings.release_channel)

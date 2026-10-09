@@ -167,16 +167,21 @@ def ground_value(
     release: NcitRelease = None,
     registryRelease: RegistryRelease = None,  # noqa: N803
 ) -> dict[str, Any]:
-    """Ground a concept or the first default lexical search result across EVS and caDSR.
+    """Ground a concept, or a text that names one, in both EVS and caDSR: the concept, the data
+    elements and permissible values that use it, and optionally a commons' stored values.
 
-    Give exactly one of conceptCode/text. No text match is not_found; try other text
-    or a conceptCode. Read the chosen concept at the same effective NCIt release.
-    Each hop independently holds at most 1000 results; a sentinel cut reports a full
-    perHop truncation record. Without commons, storedValues is absent. Every joined
-    record names both content states. Registry pins fail closed when unavailable or
-    unaddressable; omitted registryRelease is unpinned. One request budget includes
-    retries. Omitted release uses the session pin and 0/private caching; explicit
-    release joins use the shorter constituent TTL/public.
+    Give exactly one of conceptCode and text; text takes the first result of a default lexical
+    search. commons adds that data commons' stored values. registryRelease is left unset today
+    (C-1). Omit release to use the session's pinned NCIt release; other terminologies need it.
+
+    Returns the concept, dataElements, permissibleValues and, with commons, storedValues; every
+    joined record names both content states. Each hop holds at most 1000 results; a cut reports
+    a full perHop truncation record and never cuts another hop.
+
+    not_found when text matches no concept (try other text or a conceptCode); invalid_request
+    unless exactly one of the two is given; capability_unavailable for a published registry pin
+    (C-1), release_not_available for an unpublished one; upstream_unavailable when a source
+    cannot be read.
     """
     _ground_options(conceptCode, text, commons)
     require_operation("ground_value", {"text": text, "commons": commons})
@@ -247,14 +252,19 @@ def harmonize_data_dictionary(
         ),
     ] = None,
 ) -> dict[str, Any]:
-    """Match 1-10 columns and align sample values against one caDSR registry state.
+    """Match the columns of a data dictionary to caDSR data elements, aligning their sample values,
+    in one call.
 
-    Each name is an entity and its description is entityUserTip; sample values use
-    restricted VM Match in batches of ten. Return columns in caller order, every
-    platform match and unmatched names. Identical requests are reused within the call.
-    All inputs are validated before requests; failures never become empty matches.
-    Omitted registryRelease is unpinned; unavailable or unaddressable pins fail closed.
-    One outbound budget counts retries. Caller-computed results are cached 0/private.
+    columns is 1 to 10 objects, each a name with an optional description and sampleValues.
+    filters narrow the data elements as for matching. registryRelease is left unset today (C-1);
+    every match names the same registry state.
+
+    Returns the columns in caller order, each with every platform match and its aligned sample
+    values, plus the names that matched nothing. Results are computed from the text given.
+
+    invalid_request for bad input, before any request. Any failed request fails the whole call
+    and never becomes an empty match: timeout, upstream_unavailable, capability_unavailable for
+    a published pin (C-1), release_not_available for an unpublished one.
     """
     prepared = [_column(column) for column in cadsr_matching._list(columns, "columns")]
     headers = cadsr_matching._headers(filters, 10)
@@ -373,15 +383,20 @@ def expand_cohort(
         int, count_bound("Most codes to return, the concept itself included.", 200, 1000)
     ] = 200,
 ) -> dict[str, Any]:
-    """Expand a cohort through children, excluding only the start concept's negative roles.
+    """Expand an NCIt concept into the cohort of its descendants, leaving out the codes its own
+    exclusion roles withhold.
 
-    Equivalent to child hierarchy to maxDepth plus the start's depth-one role
-    neighborhood. maxDepth defaults to 2 (maximum 4); maxNodes defaults to 200
-    (maximum 1000), counting the start. includeNegative defaults to false; true
-    retains excluded members but every exclusion assertion is still reported.
-    Descendants' exclusion roles do not govern the cohort. Bounds report omitted
-    content and one outbound budget includes retries. Omitted release uses the
-    session pin and 0/private caching; an explicit release uses long/public.
+    conceptCode is the cohort's root; maxDepth counts levels of children; maxNodes caps the
+    codes returned, the root included. includeNegative keeps the withheld codes in the result.
+    Omit release to use the session's pinned NCIt release; other terminologies need it.
+
+    Returns codes, excluded (every exclusion assertion, whether or not the code is kept), edges
+    and truncation naming any bound that omitted content. Only the root's exclusion roles govern
+    the cohort, not those of descendants.
+
+    not_found for an unknown code; bound_exceeded when the request limit is spent before a
+    result exists; release_not_available when the session's pinned release is withdrawn;
+    upstream_unavailable otherwise.
     """
     validate_identifier(conceptCode, r"C[1-9][0-9]*", "conceptCode")
     require_operation("expand_cohort", {})
