@@ -66,7 +66,9 @@ class UpstreamRejectedError(UpstreamError):
     empty_body is true only when the bounded error-body read succeeded with no bytes.
     """
 
-    empty_body = False
+    def __init__(self, message: str, /, *, empty_body: bool = False, **details: Any) -> None:
+        super().__init__(message, **details)
+        self.empty_body = empty_body
 
 
 class UpstreamTooLargeError(UpstreamError):
@@ -405,11 +407,13 @@ class HttpClient:
         exc.close()
         if exc.code == HTTPStatus.TOO_MANY_REQUESTS or exc.code >= HTTPStatus.INTERNAL_SERVER_ERROR:
             return _Transient(message, status=exc.code, retry_after=retry_after)
-        failure = UpstreamRejectedError(
-            message, surface=self.surface, status=exc.code, attempts=attempt.number
+        return UpstreamRejectedError(
+            message,
+            empty_body=empty_body,
+            surface=self.surface,
+            status=exc.code,
+            attempts=attempt.number,
         )
-        failure.empty_body = empty_body
-        return failure
 
     def _exchange(self, request: Request, path: str, attempt: _Attempt) -> Any:
         try:

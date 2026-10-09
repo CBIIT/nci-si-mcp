@@ -122,9 +122,7 @@ def create_http_app(
     async def ready(request: Any) -> JSONResponse:
         nonlocal was_ready
         # SQLite can wait on a writer; health and MCP requests must remain responsive.
-        error = await run_in_threadpool(
-            _readiness_error, context, bool(settings.http_require_index)
-        )
+        error = await run_in_threadpool(_readiness_error, context, settings.http_require_index)
         # Keep the transition atomic on the event loop after the storage check.
         available = error is None
         if was_ready and not available:

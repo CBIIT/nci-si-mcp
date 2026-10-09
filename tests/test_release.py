@@ -33,6 +33,24 @@ def fake_with(*rows):
 
 
 class ResolveEvsReleaseTest(unittest.TestCase):
+    def test_every_unavailable_release_is_one_record_with_its_own_next_step(self):
+        ambiguous = {**MONTHLY, "tags": {}}
+        cases = (
+            (lambda: served_evs_release([], "ncit", "26.09d", "monthly"), "resolve_release"),
+            (lambda: served_evs_release([ambiguous], "ncit", "26.09d", "monthly"), "metadata"),
+            (
+                lambda: resolve_evs_release(fake_with(), "ncit", "monthly"),
+                "NCI_SI_RELEASE_CHANNEL",
+            ),
+        )
+        for raiser, next_step in cases:
+            with self.subTest(next_step=next_step), self.assertRaises(PlatformError) as raised:
+                raiser()
+            error = raised.exception
+            self.assertEqual(error.code, "release_not_available")
+            self.assertEqual(error.details["source"], "evs")
+            self.assertIn(next_step, str(error))
+
     def test_explicit_served_identity_keeps_its_channel_date_and_pinned_path(self):
         resolved = served_evs_release([WEEKLY, MONTHLY], "ncit", "26.09c", "monthly")
         self.assertEqual(

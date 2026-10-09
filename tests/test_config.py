@@ -38,7 +38,8 @@ class SettingsTest(unittest.TestCase):
             (settings.transport, settings.http_sessions), ("streamable-http", "stateless")
         )
         self.assertEqual((settings.http_host, settings.http_port), ("::1", 8080))
-        self.assertEqual((settings.http_max_request_bytes, settings.http_require_index), (512, 1))
+        self.assertEqual(settings.http_max_request_bytes, 512)
+        self.assertIs(settings.http_require_index, True)
         self.assertEqual(settings.http_allowed_hosts, ("service.example:443", "localhost:*"))
         self.assertEqual(settings.http_allowed_origins, ("https://service.example",))
 
@@ -339,6 +340,26 @@ class SecretsTest(unittest.TestCase):
                 self.assertIn(variable, str(raised.exception))
                 self.assertNotIn("secret", str(raised.exception))
 
+    def test_a_secret_too_short_to_redact_safely_is_rejected(self):
+        # A short secret becomes a global substring replacement in every log record.
+        for variable, short, enough in (
+            ("NCI_SI_EVS_LICENSE_KEY", "k" * 7, "k" * 8),
+            ("NCI_SI_CADSR_CREDENTIAL", "user:" + "p" * 7, "user:" + "p" * 8),
+        ):
+            with self.subTest(variable=variable):
+                with self.assertRaises(ValueError) as raised:
+                    settings_from(**{variable: short})
+                self.assertIn(variable, str(raised.exception))
+                self.assertNotIn(short, str(raised.exception))
+                settings_from(**{variable: enough})
+
+    def test_the_index_requirement_is_a_boolean_read_from_zero_or_one(self):
+        self.assertIs(settings_from(NCI_SI_HTTP_REQUIRE_INDEX="1").http_require_index, True)
+        self.assertIs(settings_from(NCI_SI_HTTP_REQUIRE_INDEX="0").http_require_index, False)
+        self.assertIs(settings_from().http_require_index, False)
+        with self.assertRaisesRegex(ValueError, "NCI_SI_HTTP_REQUIRE_INDEX"):
+            settings_from(NCI_SI_HTTP_REQUIRE_INDEX="maybe")
+
     def test_loading_settings_logs_no_secret(self):
         with self.assertNoLogs(level=logging.DEBUG):
             settings_from(NCI_SI_EVS_LICENSE_KEY=LICENCE_KEY, NCI_SI_CADSR_CREDENTIAL=CREDENTIAL)
@@ -367,7 +388,7 @@ class SettingsEdgeCaseTest(unittest.TestCase):
         )
 
     def test_the_credential_splits_at_the_first_colon(self):
-        for credential in ("user:pa:ss", "user:pass:"):
+        for credential in ("user:pass:word", "user:password:"):
             with self.subTest(credential):
                 settings = Settings(cadsr_credential=credential)
                 self.assertEqual(settings.cadsr_credential, credential)

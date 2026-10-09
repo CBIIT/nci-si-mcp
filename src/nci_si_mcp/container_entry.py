@@ -8,13 +8,9 @@ import re
 from .audit import emit
 from .config import Settings, configure_logging
 from .context import Context
-from .embeddings import (
-    HashingEmbeddingProvider,
-    SentenceTransformersProvider,
-    create_embedding_provider,
-)
+from .embeddings import SentenceTransformersProvider, create_embedding_provider
 from .errors import PlatformError
-from .index import IndexCompatibilityError, LocalIndex, NoActiveIndexError
+from .index import LocalIndex, NoActiveIndexError
 from .server import create_mcp
 from .transport import run_http
 
@@ -40,21 +36,8 @@ def prepared_index(settings: Settings) -> LocalIndex:
     if settings.http_require_index and not (settings.data_dir / "nci_si.sqlite3").is_file():
         raise NoActiveIndexError("Supply the index in NCI_SI_DATA_DIR")
     index = LocalIndex(settings.data_dir)
-    manifest = index.get_active_manifest()
-    if manifest is None:
-        if settings.http_require_index:
-            raise NoActiveIndexError("Supply a completed active index")
-        return index
-    model = (
-        HashingEmbeddingProvider().model
-        if settings.embedding_provider == "hashing"
-        else settings.embedding_model
-    )
-    if (manifest.embedding_provider, manifest.embedding_model) != (
-        settings.embedding_provider,
-        model,
-    ):
-        raise IndexCompatibilityError("Configured model differs from the index manifest")
+    if index.get_active_manifest() is None and settings.http_require_index:
+        raise NoActiveIndexError("Supply a completed active index")
     return index
 
 

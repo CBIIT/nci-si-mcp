@@ -11,14 +11,14 @@ from fakes import concept
 from nci_si_mcp import container_entry
 from nci_si_mcp.audit import JsonFormatter
 from nci_si_mcp.embeddings import HashingEmbeddingProvider, SentenceTransformersProvider
-from nci_si_mcp.index import IndexCompatibilityError, NoActiveIndexError
+from nci_si_mcp.index import NoActiveIndexError
 from test_server import ServerFixture
 
 
 class ContainerTest(ServerFixture):
     def setUp(self):
         super().setUp()
-        self.settings = replace(self.settings, http_require_index=1, transport="streamable-http")
+        self.settings = replace(self.settings, http_require_index=True, transport="streamable-http")
 
     def index(self):
         self.context.index.upsert_concepts([concept("C1")], None, HashingEmbeddingProvider())
@@ -33,13 +33,29 @@ class ContainerTest(ServerFixture):
         with self.assertRaises(NoActiveIndexError):
             container_entry.prepared_index(self.settings)
         self.index()
+        self.assertEqual(
+            container_entry.prepared_index(self.settings).get_active_manifest().concept_count, 1
+        )
+
+    def test_an_index_built_for_another_model_stops_startup_naming_the_index(self):
+        logging.disable(logging.NOTSET)
+        self.index()
+        other_model = types.SimpleNamespace(name="sentence-transformers", model="other")
         wrong = replace(
             self.settings, embedding_provider="sentence-transformers", embedding_model="other"
         )
-        with self.assertRaises(IndexCompatibilityError):
-            container_entry.prepared_index(wrong)
+        with (
+            patch.object(container_entry.Settings, "from_env", return_value=wrong),
+            patch.object(container_entry, "configure_logging"),
+            patch.object(container_entry, "SentenceTransformersProvider", return_value=other_model),
+            patch.object(container_entry, "run_http") as serve,
+            self.assertLogs("nci_si_mcp.container_entry", level="ERROR") as logs,
+        ):
+            self.assertEqual(container_entry.main(), 1)
+        serve.assert_not_called()
+        records = [json.loads(JsonFormatter().format(record)) for record in logs.records]
         self.assertEqual(
-            container_entry.prepared_index(self.settings).get_active_manifest().concept_count, 1
+            [(r["asset"], r["errorType"]) for r in records], [("index", "IndexCompatibilityError")]
         )
 
     def test_startup_reports_one_safe_asset_failure(self):

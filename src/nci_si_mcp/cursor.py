@@ -1,7 +1,6 @@
 """Opaque continuation positions bound to applied arguments and optional index identity."""
 
 import base64
-import binascii
 import json
 import re
 from dataclasses import dataclass
@@ -72,7 +71,7 @@ def _payload(token: str) -> dict[str, Any]:
         raise InputValidationError("The cursor is empty or too long", "cursor")
     try:
         value = json.loads(base64.b64decode(token, altchars=b"-_", validate=True))
-    except ValueError, binascii.Error, UnicodeError, RecursionError:
+    except ValueError, UnicodeError, RecursionError:
         raise InputValidationError("The cursor is malformed", "cursor") from None
     if not isinstance(value, dict):
         raise InputValidationError("The cursor is not a continuation record", "cursor")

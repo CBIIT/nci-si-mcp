@@ -1,10 +1,8 @@
 """MCP surface selection using the same authority as the shared producers."""
 
-import json
 import logging
 import re
 from collections.abc import Awaitable, Callable
-from importlib.resources import files
 from typing import Any
 
 from mcp.shared.exceptions import MCPError
@@ -22,7 +20,7 @@ from .permissions import (
     permits,
     require_current,
 )
-from .registry import SPECS
+from .registry import SPECS, servable_prompts
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +33,6 @@ def authorization(
     """Resolve fresh trusted authority per request, never from MCP arguments or metadata."""
 
     specs = [spec for spec in SPECS if spec.visible_in(profile)]
-    prompts = json.loads(files("nci_si_mcp").joinpath("data/prompts.json").read_text())
 
     async def authorize(ctx: Any, call_next: Callable[[Any], Awaitable[Any]]) -> Any:
         try:
@@ -51,9 +48,9 @@ def authorization(
             try:
                 current = require_current()
                 _session_owner(session_state(ctx), current)
-                _check_target(ctx, specs, prompts)
+                _check_target(ctx, specs)
                 result = await call_next(ctx)
-                return _filter_result(ctx.method, result, specs, prompts)
+                return _filter_result(ctx.method, result, specs)
             except PlatformError as exc:
                 return _refusal(ctx.method, exc)
 
@@ -70,9 +67,9 @@ def _session_owner(state: dict[str, Any] | None, authority: Authority) -> None:
         deny()
 
 
-def _prompt_permitted(name: str, specs: list[Any], prompts: dict[str, Any]) -> bool:
+def _prompt_permitted(name: str, specs: list[Any]) -> bool:
     available = {spec.name for spec in specs if spec.name and permits(spec.operation)}
-    return name in prompts and set(prompts[name]["tools"]) <= available
+    return name in servable_prompts(available)
 
 
 def _resource_permitted(uri: str, specs: list[Any]) -> bool:
@@ -84,7 +81,7 @@ def _matches(template: str, uri: str) -> bool:
     return re.fullmatch(pattern, uri) is not None
 
 
-def _check_target(ctx: Any, specs: list[Any], prompts: dict[str, Any]) -> None:
+def _check_target(ctx: Any, specs: list[Any]) -> None:
     params = ctx.params or {}
     checks = {
         "tools/call": lambda: any(
@@ -93,18 +90,18 @@ def _check_target(ctx: Any, specs: list[Any], prompts: dict[str, Any]) -> None:
             if spec.name
         ),
         "resources/read": lambda: _resource_permitted(params.get("uri", ""), specs),
-        "prompts/get": lambda: _prompt_permitted(params.get("name", ""), specs, prompts),
+        "prompts/get": lambda: _prompt_permitted(params.get("name", ""), specs),
     }
     if ctx.method in checks and not checks[ctx.method]():
         deny()
 
 
-def _filter_result(method: str, result: Any, specs: list[Any], prompts: dict[str, Any]) -> Any:
+def _filter_result(method: str, result: Any, specs: list[Any]) -> Any:
     if result is None:
         return result
     filters = {
         "tools/list": ("tools", lambda row: permits(row["name"])),
-        "prompts/list": ("prompts", lambda row: _prompt_permitted(row["name"], specs, prompts)),
+        "prompts/list": ("prompts", lambda row: _prompt_permitted(row["name"], specs)),
         "resources/list": ("resources", lambda row: _resource_permitted(row["uri"], specs)),
         "resources/templates/list": (
             "resourceTemplates",

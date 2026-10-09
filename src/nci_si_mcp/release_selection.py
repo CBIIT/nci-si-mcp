@@ -22,7 +22,13 @@ if TYPE_CHECKING:
 
 @dataclass
 class SessionRelease:
-    """Only the implicit NCIt pin survives calls; the lock serializes first discovery."""
+    """Only the implicit NCIt pin survives calls; the lock serializes first discovery.
+
+    The lock is held across the EVS discovery request of a session's first implicit call, so
+    two concurrent first calls resolve once and agree on one pin. The cost is that a slow EVS
+    (see the 120 s IPv6 case in AGENTS.md) makes every other implicit call of that session wait
+    behind it until the pin is set; explicit releases never take the lock.
+    """
 
     selected: ReleaseContext | None = None
     lock: Lock = field(default_factory=Lock)

@@ -40,13 +40,20 @@ class ReleaseContext:
         }
 
 
-def _not_available(message: str, requested: str, found: list[str] | None = None) -> PlatformError:
+CHANNEL_NEXT_STEP = (
+    "Retry later, or set NCI_SI_RELEASE_CHANNEL to the other channel (monthly or weekly)"
+)
+
+
+def _not_available(
+    message: str,
+    requested: str,
+    found: list[str] | None = None,
+    next_step: str = CHANNEL_NEXT_STEP,
+) -> PlatformError:
     return PlatformError(
         "release_not_available",
-        with_next_step(
-            message,
-            "Retry later, or set NCI_SI_RELEASE_CHANNEL to the other channel (monthly or weekly)",
-        ),
+        with_next_step(message, next_step),
         requested=requested,
         source="evs",
         **({"found": found} if found else {}),
@@ -109,11 +116,10 @@ def served_evs_release(
         if row.get("terminology") == terminology and row.get("version") == version
     ]
     if len(matching) != 1:
-        raise PlatformError(
-            "release_not_available",
-            "EVS does not uniquely name this release. Read resolve_release for served versions.",
-            requested=version,
-            source="evs",
+        raise _not_available(
+            "EVS does not uniquely name this release",
+            version,
+            next_step="Read resolve_release for served versions",
         )
     row = matching[0]
     channel = _served_channel(row, version, preferred_channel)
@@ -133,11 +139,10 @@ def _served_channel(row: dict[str, Any], version: str, preferred: str) -> str:
     if preferred in channels:
         return preferred
     if len(channels) != 1:
-        raise PlatformError(
-            "release_not_available",
-            "EVS does not identify this release's channel. Retry after its metadata is corrected.",
-            requested=version,
-            source="evs",
+        raise _not_available(
+            "EVS does not identify this release's channel",
+            version,
+            next_step="Retry after its metadata is corrected",
         )
     return channels.pop()
 
