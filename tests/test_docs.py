@@ -223,6 +223,14 @@ class DocumentationTest(unittest.TestCase):
         }
         self.assertLessEqual(set(re.findall(r"(?<![\w-])--[a-z][a-z-]+", QUICKSTART)), flags)
 
+    def test_quickstart_cli_section_names_subcommands_the_cli_has(self):
+        (subcommands,) = build_parser()._subparsers._group_actions
+        cli = section(QUICKSTART, "MCP Tools").split("\n### CLI\n", 1)[1].split("\n### ", 1)[0]
+        named = set(re.findall(r"`([a-z][a-z-]+) ", cli))
+
+        self.assertTrue(named)
+        self.assertLessEqual(named, set(subcommands.choices))
+
     def test_quickstart_examples_parse_and_carry_the_provenance_field_set(self):
         blocks = re.findall(r"```json\n(.*?)\n```", QUICKSTART, flags=re.DOTALL)
         found = [record for block in blocks for record in provenances(json.loads(block))]

@@ -4,8 +4,8 @@
 
 The table lists each tool with its group and the one-line summary of `spec/tools.yaml`, so the
 guide cannot drift from the specification. It is written between two markers of QUICKSTART.md.
-`--check` writes nothing and exits with 1 when the guide is not current; a test of the unit suite
-runs it as well.
+`--check` writes nothing and exits with 1 when the guide is not current; the acceptance
+self-tests run it.
 """
 
 from __future__ import annotations
