@@ -7,7 +7,7 @@ argument (TypedDicts) are described with `describe_fields`, which the server add
 """
 
 from dataclasses import dataclass
-from typing import Annotated, Any
+from typing import Annotated, Any, TypedDict
 
 # The stated forms of the identifiers that go into an upstream path or query (spec/tools.yaml).
 TERMINOLOGY_FORM = "^[a-z][a-z0-9_]*$"
@@ -99,3 +99,36 @@ Cursor = Annotated[
         "Leave unset for the first page."
     ),
 ]
+
+
+# The filters of the three data-element matching tools share one type. A tool refuses the keys its
+# upstream route does not serve (search_data_elements takes no classificationScheme).
+class SchemeFilter(TypedDict):
+    publicId: str
+    version: str
+
+
+describe_fields(
+    SchemeFilter,
+    publicId="Public id of the classification scheme, for example 2200604.",
+    version="Version of the classification scheme, for example 1.0.",
+)
+
+
+class MatchFilters(TypedDict, total=False):
+    context: str
+    workflowStatus: str
+    registrationStatus: str
+    valueDomainType: str
+    classificationScheme: SchemeFilter
+
+
+describe_fields(
+    MatchFilters,
+    context="Only data elements of this caDSR context, for example NCIP.",
+    workflowStatus="Only data elements with this workflow status, for example RELEASED.",
+    registrationStatus="Only data elements with this registration status, for example Standard.",
+    valueDomainType="Only data elements with this value domain type, for example Enumerated.",
+    classificationScheme="Only data elements in this classification scheme; give both its "
+    "publicId and version.",
+)

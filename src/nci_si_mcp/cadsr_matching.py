@@ -12,7 +12,13 @@ from .caching import select_cache_hint
 from .cadsr import CDE_MATCH, VM_MATCH
 from .context import Context
 from .errors import InputValidationError, PlatformError
-from .parameters import Described, RegistryRelease, count_bound, describe_fields
+from .parameters import (
+    Described,
+    MatchFilters,
+    RegistryRelease,
+    count_bound,
+    describe_fields,
+)
 from .permissions import require
 from .validation import (
     MatchedItemType,
@@ -36,37 +42,6 @@ describe_fields(
     name="Name of the thing to match, for example Cancer Stage.",
     userTip="A sentence saying what it means, to help the match.",
     permissibleValues='Values it may take, for example ["Stage I", "Stage II"].',
-)
-
-
-class SchemeFilter(TypedDict):
-    publicId: str
-    version: str
-
-
-describe_fields(
-    SchemeFilter,
-    publicId="Public id of the classification scheme, for example 2200604.",
-    version="Version of the classification scheme, for example 1.0.",
-)
-
-
-class MatchFilters(TypedDict, total=False):
-    context: str
-    workflowStatus: str
-    registrationStatus: str
-    valueDomainType: str
-    classificationScheme: SchemeFilter
-
-
-describe_fields(
-    MatchFilters,
-    context="Only data elements of this caDSR context, for example NCIP.",
-    workflowStatus="Only data elements with this workflow status, for example RELEASED.",
-    registrationStatus="Only data elements with this registration status, for example Standard.",
-    valueDomainType="Only data elements with this value domain type, for example Enumerated.",
-    classificationScheme="Only data elements in this classification scheme; give both its "
-    "publicId and version.",
 )
 
 
@@ -148,7 +123,7 @@ def _matching_release(context: Context, pin: str | None) -> dict[str, str]:
         raise PlatformError(
             "capability_unavailable",
             "The matching APIs lack a registryRelease contract field (C-1 for matching, "
-            "upstream requirements package #42). Omit the pin until caDSR adds it.",
+            "docs/upstream/cadsr.md#cadsr-registry). Omit the pin until caDSR adds it.",
             capability="pinned matching",
         )
     return release
@@ -230,14 +205,22 @@ def match_data_elements(
     ] = None,
     registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
 ) -> dict[str, Any]:
-    """Match 1-10 described entities to caDSR data elements in caller/platform order.
+    """Find the caDSR data elements that best match described entities, such as the columns of a
+    data dictionary; the discovery route while keyword search is unavailable.
 
-    matchLimit defaults to 10, at most 100 per entity. modelVariant and similarityThreshold
-    are invalid_request (requirements package C-6). Filters are upstream headers;
-    classificationScheme requires both publicId and version. One apiinput object is sent
-    per entity; any failure fails the call, never a partial success. Matching uses the
-    configured match timeout (45 seconds by default). Results are computed, 0/private.
-    Registry pins fail closed: published pins cannot yet address matching (C-1).
+    entities is 1 to 10 objects, each a name with an optional userTip and permissibleValues.
+    matchLimit is per entity. filters narrow the data elements matched; a classification scheme
+    needs both publicId and version. modelVariant and similarityThreshold are invalid_request
+    (requirements package C-6); leave them unset. registryRelease is left unset: published pins
+    cannot yet address matching (C-1).
+
+    Returns matches in entity and platform order, each with the entity, data element, score,
+    matching rule and matched text. Results are computed from the text given.
+
+    One request goes out per entity and any failure fails the call, never a partial success:
+    timeout beyond the match limit (45 seconds by default), upstream_unavailable,
+    capability_unavailable for a published pin (C-1), release_not_available for an unpublished
+    one, invalid_request for bad input.
     """
     _reject_unsupported(modelVariant, similarityThreshold)
     inputs = [_entity(value) for value in _list(entities, "entities")]
@@ -356,14 +339,21 @@ def match_value_meanings(
     ] = None,
     registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
 ) -> dict[str, Any]:
-    """Match 1-10 values to caDSR value meanings and concepts in platform order.
+    """Find the caDSR value meanings, with their concepts, that best match given values, such as
+    the permissible values of a column.
 
-    strictness is restricted (default) or unrestricted, sent as matchType;
-    terminologyScope selects EVS code systems. Preserve rules, optional concept/source
-    and real crosswalks; empty or NA means no crosswalk and unscored matches have no score.
-    Matching uses the configured match timeout (45 seconds by default); failures are
-    errors, never empty successes. Results are computed, 0/private. Registry pins fail
-    closed because matching cannot yet address published registry releases (C-1).
+    values is 1 to 10 texts. strictness is restricted (the default) or unrestricted.
+    terminologyScope limits the EVS code systems searched. registryRelease is left unset:
+    matching cannot yet address published registry releases (C-1).
+
+    Returns matches in platform order, each with its type, rule, identity, context and workflow
+    status and, where the platform gives them, concept, source, registration status and score.
+    An empty or NA crosswalk means none, and an unscored match has no score. Results are
+    computed from the text given.
+
+    Any failure fails the call, never a partial or empty success: timeout beyond the match limit
+    (45 seconds by default), upstream_unavailable, capability_unavailable for a published pin
+    (C-1), release_not_available for an unpublished one, invalid_request for bad input.
     """
     inputs = [_text(value, "values") for value in _list(values, "values")]
     headers = _vm_headers(strictness, terminologyScope)

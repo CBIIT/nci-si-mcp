@@ -525,7 +525,10 @@ The tools, generated from `spec/tools.yaml` by `pdm run quickstart-tools`:
 <!-- tool-summaries:end -->
 
 [docs/specification.md](docs/specification.md#2-tools) gives each tool's inputs, bounds, defaults and
-result records. The description a client receives with each tool states the same contract.
+result records. The description a client receives with each tool says what the tool is for, what its arguments mean,
+what comes back and how it fails, and names the requirement (OP-*, C-*) of every capability the
+platform lacks. The server instructions carry what spans tools: the error record, the release rule and
+a map from each decision to the tool that serves it.
 The caDSR tools are available in `cadsr` and `unified`, the cross-domain and workflow tools in
 `unified`; caDSR credentials have not been issued, so their tests use contract-crafted fixtures.
 Runtime responses always come from the configured upstream, never from a built-in fixture.
@@ -569,8 +572,12 @@ new nodes. Edges to existing nodes do not spend that allowance. Mixed-kind walks
 report `perKind` truncation records when anything is dropped.
 
 Each traversal can make at most 200 HTTP attempts, including retries, split batches and status hydration.
-Hierarchy paging replays the pinned walk; exhausting its request budget returns
-`bound_exceeded` and asks the caller to narrow the query. Neighborhood and CLI traversal
+Hierarchy paging replays the pinned walk within those 200 attempts (roughly 9,900 nodes for an
+ordinary depth-one fanout at 50 per batch, fewer with retries or oversized responses);
+exhausting the request budget returns
+`bound_exceeded` and asks the caller to narrow the query. `list_relationships` shares the same 200
+attempts across its two catalogues, and the workflow tools share one outbound request budget,
+retries included. Neighborhood and CLI traversal
 return `bound_exceeded` before any graph is available; otherwise the partial graph reports
 the first bound that dropped anything, using `requests` if no earlier bound was reached. Unread kinds carry
 their own truncation record with `omitted: 0` and `exact: false` when the omitted
