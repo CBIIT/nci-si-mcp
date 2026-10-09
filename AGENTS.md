@@ -188,7 +188,8 @@ The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for t
 **The milestone, once all its issues are merged:**
 
 5. **Review the milestone branch in five passes to convergence before opening its pull
-   request,** each a separate agent or a fresh pass over the whole diff, split by module where the diff is large, with one focus each:
+   request,** each a separate agent or a fresh pass over the whole diff, split by module where
+   the diff is large, with one focus each:
    1. **Code review:** the engineering standards above, the architecture, and the scope.
    2. **Silent failures:** swallowed exceptions, broad `except`, fallbacks that hide an error,
       results that look complete but are not.

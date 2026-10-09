@@ -68,8 +68,9 @@ Fixture-mode outcome of each tool, from the expected outcomes of the 965 tests o
 [Caller permissions](docs/caller-permissions.md) and the
 [required-auth HTTP entry point](docs/governed-http.md) are available; the default stays
 trusted-local, and UAT/PROD administration is disabled
-([docs/deployment.md](docs/deployment.md) records where it may be exposed). The [validation and benchmark evidence](docs/benchmark.md)
-separates fixture acceptance, live protocol coverage and representative live measurements; caDSR
+([docs/deployment.md](docs/deployment.md) records where it may be exposed). The
+[validation and benchmark evidence](docs/benchmark.md) separates fixture acceptance, live
+protocol coverage and representative live measurements; caDSR
 credentialed content remains contract-fixture evidence until credentials are issued.
 
 The delivered phases are recorded, with their dates, in the
