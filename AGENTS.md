@@ -385,7 +385,9 @@ At the depth limit, forward kinds get a batched continuation check; descendant c
 child lists. A reported global node cut skips the check, and kinds already truncated are
 excluded. Selected inverse kinds at any nonempty frontier report depth with `omitted: 0`, `exact: false`
 without fetching their expensive lists just to check continuation. All reads share the request
-budget, and the first bound remains the one reported.
+budget, and the first bound remains the one reported, except that start codes the budget left
+unread are reported as `requests` for every selected edge type, replacing a depth claim made
+without them (an earlier real bound stays).
 
 `descendant` edges are opt-in (`edge_types`) and come from one `get_descendants` call per start
 code with `maxLevel = max_depth`. They are bucketed by the `level` EVS assigns and emitted together

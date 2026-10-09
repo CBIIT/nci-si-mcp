@@ -128,6 +128,21 @@ class TraversalBudgetTest(unittest.TestCase):
         self.assertGreaterEqual(result.truncation.omitted, 1)
         self.assertFalse(result.truncation.exact)
 
+    def test_start_codes_left_unread_by_the_budget_are_reported_for_inverse_only_walks(self):
+        client = BudgetEVS([concept("C1"), concept("C2")])
+        with patch("nci_si_mcp.traversal.INVERSE_BATCH_SIZE", 1):
+            result = walk(
+                client,
+                start_codes=["C1", "C2"],
+                direction="in",
+                max_depth=0,
+                edge_types=["inverse_role"],
+                requests=1,
+            )
+        self.assertEqual(codes(result), ["C1"])
+        self.assertEqual(result.truncation.bound, "requests")
+        self.assertGreaterEqual(result.truncation.omitted, 1)
+
     def test_request_exhaustion_does_not_hide_an_already_confirmed_missing_start(self):
         client = BudgetEVS([concept("C2")])
         with (

@@ -373,6 +373,18 @@ class _Walk:
         for kind in kinds:
             self.bounds_reached.setdefault((kind,), bound)
 
+    def _mark_unread_starts(
+        self, frontier: list[str], concepts: dict[str, dict[str, Any]], depth: int
+    ) -> None:
+        # A start code the budget left unread is missing from the nodes whichever edge types
+        # were selected, so every kind reports it. Only a depth claim, which was made without
+        # the unread starts, gives way; an earlier real bound remains the one reported.
+        if depth != 0 or set(frontier) <= concepts.keys():
+            return
+        for kind in self.edge_types:
+            if self.bounds_reached.get((kind,), "depth") == "depth":
+                self.bounds_reached[(kind,)] = "requests"
+
     def truncation(self) -> Truncation:
         """The record of the first bound that dropped anything, counting what it dropped.
 
@@ -485,6 +497,7 @@ class _Walk:
             concepts.update(found)
         if self.budget.exhausted:
             self._mark_unread(kinds, "requests")
+        self._mark_unread_starts(frontier, concepts, depth)
         self.concepts.update(_node_payloads(concepts))
         return concepts
 
