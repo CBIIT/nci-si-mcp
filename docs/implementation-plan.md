@@ -23,7 +23,7 @@ The Statements of Work frame and bound the scope; within it, the specification o
 | **Workflow** | 3 composite tools | `nci_si_mcp.workflows` |
 | **Acceptance suite** | Harness, fixture server, fixture set, direct tool dispatch, per-tool tests | `acceptance/` (separate package in this repository, separately versioned) |
 
-Twenty-nine tools in total, named and typed exactly as in the specification (`spec/tools.yaml`). Three profiles: `evs`, `cadsr`, `unified`. A profile determines which tools `tools/list` returns and nothing else (M1.5); the surface within a profile is static (M1.2).
+Twenty-nine tools in total, named and typed exactly as in the specification (`spec/tools.yaml`). Three profiles: `evs`, `cadsr`, `unified`. A profile selects the tools, resources and prompts the server serves (M1.5, M1.6); the surface within a profile is static (M1.2).
 
 ### 1.2 Baseline
 
@@ -117,25 +117,11 @@ Implemented in the current flat package: `service.py` is retired. `registry.py` 
 
 ### 3.1 Error model (`platform/errors.py`)
 
-Implemented with the closed `ErrorCode` literal in `errors.py` and the `_ERROR_CODES` table at the shared boundary in `invocation.py`, using the codes of the specification's error record (`spec/records.yaml`): each failure carries its `code`, a message, the call's correlation identifier, and the `details` the caller needs for its next step. The prototype's codes map onto them as follows:
-
-| Code | Replaces | `details` carry |
-|---|---|---|
-| `invalid_request` | `invalid_request`, `invalid_configuration` | parameter, reason |
-| `not_found` | `concept_not_found`, `concepts_missing` | identifiers not found |
-| `release_not_available` | `release_unresolved`, `release_not_active`, `index_not_active` | requested, source, found (optional, ambiguous channel versions) |
-| `release_mismatch` | `version_mismatch` | requested, served, source |
-| `upstream_unavailable` | `evs_unavailable`, `evs_invalid_response` | surface, status, attempts, retry-after |
-| `timeout` | — | surface, seconds waited |
-| `bound_exceeded` | — | bound, limit, reached |
-| `capability_unavailable` | — | the capability |
-| `cursor_expired` | — | the cursor's release, the current one |
-| `permission_denied` | Missing, expired, unavailable or insufficient caller policy in secured mode | None; generic next step only |
-| `internal_error` | `startup_failed`, `no_active_index`, `index_incompatible`, `index_storage_error`, missing exclusion codes | `missingCodes` only for missing exclusions |
+Implemented with the closed `ErrorCode` literal in `errors.py` and the `_ERROR_CODES` table at the shared boundary in `invocation.py`, using the codes of the specification's error record (`spec/records.yaml`): each failure carries its `code`, a message, the call's correlation identifier, and the `details` the caller needs for its next step. The `details` keys of each code are owned by `spec/records.yaml` (`error.detail_keys`) and rendered in the specification; this document no longer repeats them.
 
 Two rules. **An empty result is never an error**: a tool that matched nothing returns its normal shape with an empty collection and a complete provenance envelope. **A platform failure carried inside a `2xx` body is an error**: the HTTP client (§3.4) recognises the webMethods envelope (`apiResponse.type == "E"`), FHIR `OperationOutcome` with severity `error`, and an HTML body where JSON was requested, and raises `upstream_unavailable` before any tool sees the payload.
 
-Serialisation: every tool handler returns a dataclass or raises a `PlatformError`; the registry converts the latter to an MCP result with `isError: true` and `structuredContent` conforming to the error schema. No handler builds an `isError` dict itself.
+Serialisation: every tool handler returns a dict or raises one of the expected exception types; `invocation.call` converts the exception through `_ERROR_CODES` and `errors.serialise` into the error record, and `server.tool_call` returns it as an MCP result with `isError: true` and `structuredContent` conforming to the error schema. No handler builds an `isError` dict itself.
 
 ### 3.2 Provenance (`platform/provenance.py`)
 

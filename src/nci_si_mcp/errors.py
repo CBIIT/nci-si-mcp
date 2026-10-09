@@ -124,9 +124,10 @@ def serialise(error: PlatformError) -> dict[str, Any]:
     The one place a failure becomes a result. The record is the whole result: it
     has no other key, so it cannot be mistaken for an empty success. The
     correlation identifier is the one of the call in progress; a failure raised
-    outside any call (a direct service call) gets a fresh one. Argument parsing
-    (argparse, MCP schema validation) and unexpected exceptions are reported by
-    the CLI and MCP runtimes themselves and do not use it.
+    outside any call (a direct service call) gets a fresh one. CLI argument
+    parsing (argparse) and unexpected exceptions are reported by the runtimes
+    themselves; MCP argument validation is converted to `invalid_request` by
+    `server._validate_inputs` and does come through here.
     """
 
     record: dict[str, Any] = {"code": error.code, "message": error.message}
