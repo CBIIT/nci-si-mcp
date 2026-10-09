@@ -18,6 +18,10 @@ pdm run docs-build
 pdm run python -m http.server 8000 --bind 127.0.0.1 --directory tmp/docs-site
 ```
 
+The build records the installed package version, which `pdm install` derives from the nearest
+tag: on a clone without tags, run `git fetch --tags origin && pdm install` first, or the build
+refuses the development fallback version.
+
 Open `http://127.0.0.1:8000/`. Stop the preview with Ctrl+C. Builds require a new output
 directory: for another preview use `pdm run docs-build --output tmp/docs-site-next`, or remove
 your previous generated directory after stopping its preview. Existing output is never deleted
