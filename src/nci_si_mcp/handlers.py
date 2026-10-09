@@ -398,7 +398,11 @@ def lookup(
             errorType=type(exc).__name__,
         )
         result = cached.to_dict(_indexed_concept_uri(context, cached), include_raw=include_raw)
-        result["fallback"] = {"reason": "upstream_unavailable", "message": str(exc)}
+        # Fixed wording: upstream text would reach the client verbatim.
+        result["fallback"] = {
+            "reason": "upstream_unavailable",
+            "message": f"Live EVS failed ({type(exc).__name__}); this is the cached copy.",
+        }
         return result
 
     concept = normalize_concept(raw, release_date=release.date, source="live_evs")

@@ -3,6 +3,7 @@
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from fakes import FakeEVS, FakeSSIS, concept, release
@@ -616,6 +617,24 @@ class SeamTest(unittest.TestCase):
             (upstream["terminology"], upstream["version"], upstream["date"]),
             ("ncit", "26.06e", "2026-06-29"),
         )
+
+    def test_alignment_unreadable_dates_name_the_surface_that_supplied_them(self):
+        listing = '<pre><a href="releasedCDEsXML-OD.zip">export</a> 2026-06-05 12:30\n</pre>'
+        self.evs.release = release("26.06e", "not a date")
+        with patch.object(self.context.cadsr.export_http, "get_text", return_value=listing):
+            result = self.call("get_release_alignment")
+        self.assertEqual(result["error"]["code"], "upstream_unavailable")
+        self.assertEqual(result["error"]["details"]["surface"], "evs")
+
+        self.evs.release = release("26.06e", "2026-06-29")
+        stale = SimpleNamespace(generated_at="not a date", source_distribution=None)
+        with (
+            patch.object(self.context.cadsr.export_http, "get_text", return_value=listing),
+            patch("nci_si_mcp.seam.export_state", return_value=stale),
+        ):
+            result = self.call("get_release_alignment")
+        self.assertEqual(result["error"]["code"], "upstream_unavailable")
+        self.assertEqual(result["error"]["details"]["surface"], "cadsr")
 
     def test_alignment_missing_ncit_graph_version_never_becomes_a_registry_identity(self):
         del self.ssis.graphs[0]["version"]

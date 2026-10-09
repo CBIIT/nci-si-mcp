@@ -62,7 +62,7 @@ def _version(value: Any) -> tuple[int, int]:
     return int(major), int(minor or "0")
 
 
-def _date(value: Any, surface: str = "ssis") -> str:
+def _date(value: Any, surface: str) -> str:
     value = _text(value, "dataset date", surface)
     try:
         return datetime.fromisoformat(value).date().isoformat()
@@ -117,7 +117,7 @@ def _provenance(
         upstream={"graphs": graphs},
     ).to_dict()
     return base | {
-        "graphs": [dict(row) | {"date": _date(row["date"])} for row in graphs],
+        "graphs": [dict(row) | {"date": _date(row["date"], "ssis")} for row in graphs],
         "registry": {"registry": "cadsr"},
     }
 
@@ -630,9 +630,9 @@ def resolve_stored_value(
 
 
 def _dataset(
-    name: str, raw_date: str | None, version: str | None, provenance: dict[str, Any]
+    name: str, raw_date: str | None, surface: str, version: str | None, provenance: dict[str, Any]
 ) -> dict[str, Any]:
-    result = {"name": name, "date": _date(raw_date), "provenance": provenance}
+    result = {"name": name, "date": _date(raw_date, surface), "provenance": provenance}
     if version is not None:
         result["version"] = version
     return result
@@ -654,7 +654,7 @@ def _alignment_datasets(context: Context) -> list[dict[str, Any]]:
             "date": selected.date,
         },
     ).to_dict()
-    datasets = [_dataset("ncit", selected.date, selected.version, provenance)]
+    datasets = [_dataset("ncit", selected.date, "evs", selected.version, provenance)]
     graphs = context.ssis.get_graph_identities()
     graph_provenance = _provenance(context, selected, graphs)
     for row in graphs:
@@ -667,12 +667,16 @@ def _alignment_datasets(context: Context) -> list[dict[str, Any]]:
                     "Shared SI has no NCIt release identity. Ask the provider to publish it.",
                     source=NCIT_GRAPH,
                 )
-            graph_release = release_ref("ncit", version, _date(row["date"]))
+            graph_release = release_ref("ncit", version, _date(row["date"], "ssis"))
         else:
             graph_release = {"registry": "cadsr"}
         datasets.append(
             _dataset(
-                name, row["date"], row.get("version"), graph_provenance | {"release": graph_release}
+                name,
+                row["date"],
+                "ssis",
+                row.get("version"),
+                graph_provenance | {"release": graph_release},
             )
         )
     state = export_state(context.cadsr.export_http.get_text(EXPORT_FOLDER))
@@ -688,7 +692,7 @@ def _alignment_datasets(context: Context) -> list[dict[str, Any]]:
             "sourceDistribution": state.source_distribution,
         },
     ).to_dict()
-    datasets.append(_dataset("cadsr_export", state.generated_at, None, export_provenance))
+    datasets.append(_dataset("cadsr_export", state.generated_at, "cadsr", None, export_provenance))
     return datasets
 
 
