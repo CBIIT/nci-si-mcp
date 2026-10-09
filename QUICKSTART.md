@@ -90,7 +90,7 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects twelve EVS tools, ten caDSR tools, or all 29 tools including cross-domain and workflows. Unified also exposes four furnished prompts. Resources follow their group. CLI commands remain available in every profile |
+| `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects twelve EVS tools, ten caDSR tools, or all 29 tools including cross-domain and workflows. Unified also exposes four furnished prompts: the templates of `spec/prompts.yaml` with the arguments substituted, which make no content calls. Resources follow their group. CLI commands remain available in every profile |
 | `NCI_SI_UPSTREAM_MODE` | `live` | `live` or `fixture`; selects the six base URLs below as a set (next paragraph) |
 | `NCI_SI_EVS_BASE_URL` | `https://api-evsrest.nci.nih.gov` | EVS REST endpoint (`http` or `https`) |
 | `NCI_SI_EVS_FHIR_BASE_URL` | `https://api-evsrest.nci.nih.gov/fhir/r4` | EVS FHIR endpoint |
@@ -481,7 +481,7 @@ selection as `explicit`, `session-held` or `freshly-resolved`. Implicit NCIt cal
 Bounds above their maxima clamp, and invalid arguments are `invalid_request`. Live concept and
 graph reads accept any EVS terminology: NCIt codes follow their C-number form and other codes are
 encoded as one path segment. Matching header filters must be printable ASCII, and entity and value
-text is sent unchanged.
+text is sent unchanged. The former `ncit_*` tools and `cadsr_status` are not served.
 
 The tools, generated from `spec/tools.yaml` by `pdm run quickstart-tools`:
 
@@ -527,8 +527,14 @@ Runtime responses always come from the configured upstream, never from a built-i
 
 ### CLI
 
-Each tool has a subcommand of the same name with dashes; the ones below show the shape of a call.
-`search` and `lookup` remain CLI diagnostics beside `traverse` and `release-info`.
+The caDSR, cross-domain and workflow tools, `resolve-release` and `list-terminologies` have a
+subcommand of the same name with dashes; the ones below show the shape of a call. The other EVS
+content tools (concept, hierarchy, neighborhood, subsets, mappings, value sets, relationships,
+retired codes) are MCP-only.
+`search`, `lookup` and `traverse` are the local-index CLI commands beside `release-info`; the
+index lifecycle commands (`index-sample`, `index-build`, `index-rebuild`, `index-builds`,
+`index-activate`) and `evaluate` are described under [Build a small local
+index](#build-a-small-local-index).
 
 - `resolve-release ncit --channel monthly`; `list-terminologies`
 - `get-data-element --public-id 2200604`

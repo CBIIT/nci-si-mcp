@@ -3,7 +3,7 @@
 This is the Phase 7 verification plan and applicability record, **not a declaration of
 Section 508 conformance or authorization to deploy**. It covers public documentation and the
 local administration companion, including complete user journeys. The owner requested this
-review on 8 October 2026. Design credit: the Semantic Infrastructure (SI) team.
+review on 8 October 2026.
 
 ## NCI design and branding
 

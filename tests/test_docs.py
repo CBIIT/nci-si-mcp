@@ -226,10 +226,14 @@ class DocumentationTest(unittest.TestCase):
     def test_quickstart_cli_section_names_subcommands_the_cli_has(self):
         (subcommands,) = build_parser()._subparsers._group_actions
         cli = section(QUICKSTART, "MCP Tools").split("\n### CLI\n", 1)[1].split("\n### ", 1)[0]
-        named = set(re.findall(r"`([a-z][a-z-]+) ", cli))
+        named = set(re.findall(r"`([a-z][a-z-]+)[ `]", cli))
+        # `serve` has its own section; the three local-index commands are the diagnostics the
+        # section's opening sentence names as such.
+        documented_elsewhere = {"serve", "search", "lookup", "traverse"}
 
         self.assertTrue(named)
         self.assertLessEqual(named, set(subcommands.choices))
+        self.assertEqual(set(subcommands.choices) - documented_elsewhere - named, set())
 
     def test_quickstart_examples_parse_and_carry_the_provenance_field_set(self):
         blocks = re.findall(r"```json\n(.*?)\n```", QUICKSTART, flags=re.DOTALL)
@@ -294,12 +298,19 @@ class DocumentationTest(unittest.TestCase):
         contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
 
         self.assertTrue(commands)
-        self.assertEqual([name for name in commands if f"pdm run {name}" not in contributing], [])
+        self.assertEqual(
+            [
+                name
+                for name in commands
+                if not re.search(rf"pdm run {re.escape(name)}(?![\w-])", contributing)
+            ],
+            [],
+        )
 
     def test_every_repository_url_in_the_documents_names_this_repository(self):
         # The documents must send readers to CBIIT/nci-si-mcp, never to a fork of it.
         tracked = subprocess.run(
-            ["git", "ls-files", "*.md", "**/*.md"],  # noqa: S607
+            ["git", "ls-files", "*.md", "*.yaml", "*.yml", "*.json", "*.toml"],  # noqa: S607
             cwd=ROOT,
             capture_output=True,
             text=True,

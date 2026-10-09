@@ -1,9 +1,8 @@
 # Local validation dashboard
 
 The companion displays acceptance and benchmark evidence on `127.0.0.1`, independently of the
-MCP server. Repository users need no account; where administration may be exposed is recorded in
-[deployment.md](deployment.md). Design credit: the Semantic Infrastructure (SI) team,
-*MCP Architecture*, 1 October 2026.
+MCP server. Repository users need no account. UAT/PROD administration is disabled
+([deployment.md](deployment.md) records where it may be exposed).
 
 ## Open and import
 
@@ -122,7 +121,7 @@ restart, coordinated replica rollout and rollback are outside this interface. Re
 deployment before implementing any historical proposal.
 
 No local account is required. Same-origin forms and fixed fields prevent browser-supplied paths,
-commands or arbitrary environment changes. UAT/PROD exposure remains disabled under #197.
+commands or arbitrary environment changes. UAT/PROD exposure remains disabled ([deployment.md](deployment.md)).
 
 ## Interpret results
 

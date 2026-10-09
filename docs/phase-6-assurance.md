@@ -1,6 +1,5 @@
 # Phase 6 compatibility and assurance
 
-Design credit: **Semantic Infrastructure (SI) team**, *MCP Architecture*, 1 October 2026.
 This record covers portable caller permissions, required HTTP integration and offline evaluation
 mechanics. It is not production identity, live caDSR, actual-model or IBM-runtime certification.
 The owner moved [#180 and #181 to Backlog](deferred-capabilities.md); both remain open and

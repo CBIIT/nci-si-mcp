@@ -51,7 +51,7 @@ retrieval has its own [evaluation evidence](retrieval-evaluation.md).
 ## Bounded HTTP measurements
 
 The HTTP runner uses a separate version-1 report; the stdio commands and historical definitions
-above are unchanged. Design credit: the Semantic Infrastructure (SI) team. Run the fixed local
+above are unchanged. Run the fixed local
 profile with no credentials or application login:
 
 ```bash

@@ -565,8 +565,7 @@ No NCIm vectorisation or local NCIm graph; no hosted vector database; no writes 
 ## 14. Phase 6: SI architecture alignment
 
 Added 7 October 2026; the historical *Updated* date at the top still identifies the original
-prototype analysis. Design credit: **Semantic Infrastructure (SI) team**, *MCP Architecture*,
-SI Team Meeting, 1 October 2026. The proposed MCP was not built; this codebase supersedes it.
+prototype analysis. The proposed MCP of the Semantic Infrastructure (SI) team was not built; this codebase supersedes it.
 
 The [architecture decision](decisions/001-si-architecture-alignment.md) records the
 [approved portable contracts](https://github.com/CBIIT/nci-si-mcp/issues/176#issuecomment-6043097407),

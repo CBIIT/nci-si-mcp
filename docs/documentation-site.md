@@ -3,7 +3,6 @@
 The website presents the repository's existing documentation, behavioral stories and Mermaid
 diagrams as a searchable static site. It is public, requires no account, and has no connection
 to the MCP process or an operational results store. Local use requires no institutional login.
-Design credit: the Semantic Infrastructure (SI) team, *MCP Architecture*, 1 October 2026.
 
 ## Build and preview
 
@@ -116,5 +115,6 @@ The documentation artifact can be served by an ordinary static host or a separat
 container. The [local results dashboard](local-validation.md) uses a separate loopback listener;
 controls, benchmark results and advisory configuration views are available locally. The
 [companion containers](companion-containers.md) package the two services separately.
-Where administration may be exposed is recorded in [deployment.md](deployment.md). Documentation
+UAT/PROD administration is disabled ([deployment.md](deployment.md) records where it may be
+exposed). Documentation
 remains anonymous. The repository's public status and upstream EVS/caDSR access controls are unchanged.

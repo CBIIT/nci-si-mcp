@@ -176,25 +176,19 @@ The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for t
    `pdm run test`, `pdm run acceptance-selftest`, `pdm run pre-commit run --all-files`, then the
    fixture run and, where outcomes moved on purpose,
    `pdm run acceptance-expected update acceptance/fixture.json` and `pdm run acceptance-status`,
-   so the ratchet file moves in the same change.
+   so the ratchet file moves in the same pull request.
 4. **Merge the issue branch into the milestone branch yourself** once the gates pass and the
    outcomes moved as the plan predicted: `git merge --no-ff issue/<branch>` on the milestone
    branch, then push, and delete the issue branch. There is no pull request per issue, no review
    agent and no reviewer clearance at this step; the issue's commit message says what it does,
-   `Closes #N`, and anything deferred. The reviewer reads each merged issue and says on the
+   names the issue (`#N`) and anything deferred; the milestone pull request body closes the issue
+   (step 6). The reviewer reads each merged issue and says on the
    issue if it is not done.
 
 **The milestone, once all its issues are merged:**
 
-5. **Review the milestone branch in five passes to convergence before its pull request exists**
-   (step 7 below), fixing what is real directly on the milestone branch.
-6. **Open the milestone pull request into `main`.** Its title is the release, a Conventional
-   Commit that tells the truth about what a client sees (`feat(evs)!:` where it breaks
-   something); its body lists `Closes #N` for every issue of the milestone, so they close when
-   it merges, the combined expected-file diff grouped by test function with before and after
-   counts, the predicted tests that did not move and why, and the review rounds of step 7.
-7. **Review it in five passes to convergence,** each a separate agent or a fresh pass over the
-   whole diff, split by module where the diff is large, with one focus each:
+5. **Review the milestone branch in five passes to convergence before opening its pull
+   request,** each a separate agent or a fresh pass over the whole diff, split by module where the diff is large, with one focus each:
    1. **Code review:** the engineering standards above, the architecture, and the scope.
    2. **Silent failures:** swallowed exceptions, broad `except`, fallbacks that hide an error,
       results that look complete but are not.
@@ -213,17 +207,23 @@ The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for t
 
    Fix what is real directly on the milestone branch (commit and push it there), without opening
    issues (except for work deferred to a later milestone, recorded in that milestone's issue), and
-   run all five again until a full round finds nothing new. Post each round as a short table:
-   finding, pass, fixed or rejected (with the reason). Close the mutation review's gaps (step 8)
-   the same way.
-8. **The reviewer then runs an independent mutation review** and posts the surviving mutants;
-   close each real gap with a test that fails without the fix, and say which you judged
-   equivalent and why.
-9. **Merge only on the reviewer's clearance,** given as a PR comment that names the head commit,
+   run all five again until a full round finds nothing new. Record each round as a short table:
+   finding, pass, fixed or rejected (with the reason). The rounds so far go into the pull
+   request body when it is opened (step 6); later rounds are posted as pull request comments.
+6. **Open the milestone pull request into `main`.** Its title is the release, a Conventional
+   Commit that tells the truth about what a client sees (`feat(evs)!:` where it breaks
+   something); its body lists `Closes #N` for every issue of the milestone, so they close when
+   it merges, the combined expected-file diff grouped by test function with before and after
+   counts, the predicted tests that did not move and why, and the review rounds of step 5.
+7. **The reviewer then runs an independent mutation review** on the open pull request and posts
+   the surviving mutants; close each real gap with a test that fails without the fix, and say
+   which you judged equivalent and why. The fixes are pushed to the milestone branch after the
+   pull request exists, and their rounds are posted as comments, as in step 5.
+8. **Merge only on the reviewer's clearance,** given as a PR comment that names the head commit,
    with `gh pr merge N --squash --subject "<title>" --body "" --delete-branch --match-head-commit
    <sha>`. A push after the clearance needs a new one. Wait for every workflow the pull request
    triggered to finish and pass before asking; never hand over on "CI is running".
-10. **After the merge,** confirm CI, Audit, CodeQL and Release on the merge commit, that the
+9. **After the merge,** confirm CI, Audit, CodeQL and Release on the merge commit, that the
     issues closed, and that the release was cut. After confirming every milestone issue is
     closed, close the milestone explicitly through the GitHub API; GitHub does not close it
     automatically. Then remove your branches, worktrees, scratch files and any process or
@@ -232,7 +232,7 @@ The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for t
 The `milestone branches` ruleset forbids force pushes to `milestone/*` and requires no status
 checks, because the milestone pull request into `main` runs the full CI on the milestone head and
 `main` accepts nothing else. Issue work reaches the milestone branch by a merge of its issue
-branch (steps 3 and 4). Review fixes (steps 5, 7 and 8) are committed on the milestone branch
+branch (steps 3 and 4). Review fixes (steps 5 and 7) are committed on the milestone branch
 itself and pushed; run the local gates first, as for an issue. When `main` moves, sync it with a
 merge commit (`git merge origin/main` on the milestone branch, then push), never a rebase or a
 squash, so `main` stays an ancestor and the next sync does not conflict; `main` itself accepts

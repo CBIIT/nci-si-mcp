@@ -3,7 +3,6 @@
 **Status:** record of delivered work, dated as written; the counts below are the baseline of the
 phase, not the current state (README.md has that).
 
-Design credit: **Semantic Infrastructure (SI) team**, MCP Architecture, 1 October 2026.
 Baseline main `4bea455a5540d6a947f2aca5245f8ed703d5891c`, v0.16.0; branch `milestone/phase-7`.
 Existing capabilities: 29 tools, 964 fixture cases, HTTP acceptance, stdio benchmarks and
 Markdown/diagrams/stories. Phase 7 adds a public static website and a separate local results
