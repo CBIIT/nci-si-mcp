@@ -1,7 +1,7 @@
 # Unified-profile validation and benchmark
 
 The Phase 5 evidence separates three things: specification acceptance against fixtures,
-the suite's live-capable protocol checks, and representative live tool measurements.
+the suite's live-capable checks, and representative live tool measurements.
 A passing fixture case never establishes access to a credentialed service or support for
 a requested future platform contract.
 
@@ -124,8 +124,8 @@ NCI_SI_ACCEPTANCE_MODE=live NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample $
 pdm run python -m nci_si_acceptance.report acceptance/fixture.json --live acceptance/live.json
 ```
 
-At this snapshot the suite has **16 live-capable protocol cases**; the **928 remaining cases
-are fixture-only**, including content assertions and 25 resource/correlation protocol gates.
+The historical Phase 5 snapshot had **16 live-capable protocol cases**; its **928 remaining
+cases were fixture-only**, including content assertions and 25 resource/correlation protocol gates.
 The live report records them as `not_live` and lists those 25 gates as unrun. The combined renderer
 retains the fixture PASS verdict when no live test failed. Read that table together with
 the live coverage counts: it is not proof of live content acceptance. The suite identity
@@ -137,5 +137,11 @@ C-6 matching parameters/access. The [upstream requirements packages](upstream/RE
 records their reproduction evidence and affected cases separately; a skipped live test
 is never recast as a passed live test. Representative benchmark results supplement the
 acceptance evidence and do not replace its assertions.
+
+The current suite additionally runs ten caDSR local-validation/unavailable-capability cases,
+the release-cache check, and one bounded discovery-to-concept lookup in live mode. These are
+distinct kinds of evidence: local refusals do not establish upstream access, while the concept
+journey requires successful content with the discovered release and matching provenance.
+Read the run's exact counts and skipped cases; the historical Phase 5 reports are unchanged.
 
 The [evidence directory](evidence/phase-5/) holds the measured samples and acceptance reports.

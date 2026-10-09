@@ -315,6 +315,7 @@ def test_a_form_without_its_modules_has_none(tools, recorded):
 
 @pytest.mark.tool("get_form")
 @pytest.mark.requirement("get_form-1")
+@pytest.mark.live_capable
 def test_a_form_keyword_is_an_invalid_request_saying_an_identifier_is_needed(tools):
     result = tools.call("get_form", {"keyword": "Patient Safety Event Report"})
 
@@ -387,6 +388,7 @@ def test_value_meaning_matches_are_the_platform_s_in_its_order_with_their_rule(t
 
 @pytest.mark.tool("match_value_meanings")
 @pytest.mark.requirement("match_value_meanings-1")
+@pytest.mark.live_capable
 def test_more_values_than_the_tool_takes_is_an_invalid_request(tools):
     most = TOOLS["match_value_meanings"]["lists"]["values"]
 
@@ -472,6 +474,7 @@ def test_a_context_selects_the_code_maps_it_uses(tools, recorded, context):
 
 @pytest.mark.tool("get_code_map")
 @pytest.mark.requirement("get_code_map-1")
+@pytest.mark.live_capable
 def test_a_source_system_other_than_crdc_is_an_invalid_request(tools):
     assert TOOLS["get_code_map"]["values"]["sourceSystem"] == ["CRDC"]
 
@@ -516,6 +519,7 @@ UNAVAILABLE = [
 
 
 @pytest.mark.parametrize(("name", "arguments"), UNAVAILABLE)
+@pytest.mark.live_capable
 def test_a_capability_the_platform_lacks_is_unavailable_never_empty(tools, name, arguments):
     result = tools.call(name, arguments)
 
@@ -617,7 +621,6 @@ def test_each_entity_s_matches_are_named_for_it_in_the_order_given(tools, record
     assert found == [(a["entity"], m["publicId"]) for a in answers for m in a["matches"]]
 
 
-@pytest.mark.scenario("cadsr/credentialed")
 @pytest.mark.tool("match_data_elements")
 @pytest.mark.requirement("match_data_elements-1")
 @pytest.mark.parametrize(
@@ -632,6 +635,7 @@ def test_each_entity_s_matches_are_named_for_it_in_the_order_given(tools, record
     ],
     ids=["model-variant", "similarity-threshold", "too-many-entities"],
 )
+@pytest.mark.live_capable
 def test_what_the_platform_does_not_take_is_an_invalid_request_never_ignored(tools, arguments):
     call = {"entities": [{"name": "Patient Gender"}]} | arguments
 

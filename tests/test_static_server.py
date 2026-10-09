@@ -4,9 +4,10 @@ import io
 import json
 import threading
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from http.client import HTTPConnection
 from pathlib import Path
+from socket import create_connection
 from tempfile import TemporaryDirectory
 
 from scripts.static_server import create_server
@@ -65,6 +66,29 @@ class StaticServerTest(unittest.TestCase):
         records = [json.loads(line) for line in output.getvalue().splitlines()]
         self.assertEqual(records[0]["status"], 404)
         self.assertEqual(records[0]["event"], "documentation_request")
+
+    def test_malformed_request_logs_only_error_type_and_server_stays_healthy(self):
+        output, errors = io.StringIO(), io.StringIO()
+        # Send bytes directly: HTTPConnection itself parses absolute request targets.
+        # An unmatched IPv6 bracket reaches urlsplit in the real request handler.
+        with redirect_stdout(output), redirect_stderr(errors):
+            with create_connection(("127.0.0.1", self.server.server_port), timeout=3) as connection:
+                connection.sendall(
+                    b"GET http://[PRIVATE-CANARY/private-path?secret=value HTTP/1.1\r\n"
+                    b"Host: localhost\r\nConnection: close\r\n\r\n"
+                )
+                self.assertEqual(connection.recv(4096), b"")
+            status, _, body = self.request("/health")
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(body), {"status": "ok", "service": "documentation"})
+        self.assertEqual(errors.getvalue(), "")
+        self.assertEqual(
+            [json.loads(line) for line in output.getvalue().splitlines()],
+            [
+                {"event": "documentation_request_failed", "errorType": "ValueError"},
+                {"event": "documentation_request", "status": 200},
+            ],
+        )
 
     def test_missing_static_entry_page_fails_before_listening(self):
         with self.assertRaises(ValueError):

@@ -2,6 +2,8 @@
 
 import json
 import shutil
+import subprocess
+import sys
 import threading
 import unittest
 from contextlib import chdir
@@ -10,7 +12,14 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from scripts.operator_evidence import finish_evidence
-from scripts.operator_execution import ROOT, RemoteProbe, _perform, execute_job
+from scripts.operator_execution import (
+    AUTHORIZATION,
+    REMOTE_TARGET,
+    ROOT,
+    RemoteProbe,
+    _perform,
+    execute_job,
+)
 from scripts.operator_source import SOURCE_PATHS
 from scripts.portal_store import EvidenceStore
 
@@ -114,3 +123,114 @@ class OperatorExecutionTest(unittest.TestCase):
             self.assertFalse((root / "job/bundle/worker-interrupted").exists())
             self.assertFalse((root / "job/source").exists())
             self.assertEqual((root / "job/bundle/selection.json").read_text(), "{}")
+
+
+class RemoteExecutionTest(unittest.TestCase):
+    snapshot = OperatorExecutionTest.snapshot
+
+    def test_remote_configuration_is_required_before_creating_work(self):
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            job = {"run_id": "1" * 32, "profile": "benchmark-http-remote", "commit": "a" * 40}
+            with self.assertRaisesRegex(ValueError, "explicit startup configuration"):
+                execute_job(
+                    job, root / "job", threading.Event(), store=EvidenceStore(root / "store.sqlite")
+                )
+            self.assertFalse((root / "job").exists())
+
+    def test_remote_header_rejects_injection_and_non_ascii(self):
+        for header in ("Bearer token\r\nOther: value", "Bearer token\x00", "Bearer café"):
+            with (
+                self.subTest(header=repr(header)),
+                self.assertRaisesRegex(ValueError, "printable ASCII"),
+            ):
+                RemoteProbe("https://approved.example/mcp", header)
+
+    def test_remote_worker_receives_only_its_explicit_target_and_optional_header(self):
+        for header in (None, "Bearer PRIVATE-CANARY"):
+            with self.subTest(authenticated=header is not None), TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                facts = root / "facts.json"
+
+                def cancelled(command, facts=facts, **options):
+                    code = (
+                        "import os,json,sys; "
+                        'open(sys.argv[1], "w").write(json.dumps(dict(os.environ)))'
+                    )
+                    subprocess.run(  # noqa: S603 - owned child records its supplied environment
+                        [sys.executable, "-c", code, str(facts)],
+                        env=options["environment"],
+                        check=True,
+                    )
+                    self.assertNotIn("PRIVATE-CANARY", str(command))
+                    return {"state": "cancelled", "exit_code": None, "reason": "cancelled"}
+
+                job = {"run_id": "1" * 32, "profile": "benchmark-http-remote", "commit": "a" * 40}
+                with patch("scripts.operator_execution.run_owned", side_effect=cancelled):
+                    result = execute_job(
+                        job,
+                        root / "job",
+                        threading.Event(),
+                        store=EvidenceStore(root / "store.sqlite"),
+                        remote=RemoteProbe("https://approved.example/mcp", header),
+                    )
+                observed = json.loads(facts.read_text())
+                self.assertEqual(observed[REMOTE_TARGET], "https://approved.example/mcp")
+                self.assertEqual(observed.get(AUTHORIZATION), header)
+                self.assertEqual(result["state"], "cancelled")
+                self.assertNotIn("PRIVATE-CANARY", json.dumps(result))
+
+    def test_inventory_failure_prevents_worker_execution_and_binding(self):
+        def snapshot(repository, commit, destination):
+            self.snapshot(repository, commit, destination)
+            (destination / "scripts/operator_inventory.py").write_text("raise SystemExit(7)\n")
+            (destination / "scripts/operator_worker.py").write_text(
+                'from pathlib import Path; Path("unexpected-worker").touch()\n'
+            )
+
+        with TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            with patch("scripts.operator_execution.archive_source", side_effect=snapshot):
+                code = _perform(directory, "a" * 40, "benchmark-http-fixture")
+            self.assertEqual(code, 7)
+            self.assertFalse((directory / "binding.json").exists())
+            self.assertFalse((directory / "source/unexpected-worker").exists())
+
+    def test_remote_pipeline_preserves_target_and_authorization_without_shell_arguments(self):
+        def snapshot(repository, commit, destination):
+            self.snapshot(repository, commit, destination)
+            (destination / "scripts/benchmark_http_cli.py").write_text(
+                "import json,os,sys\nfrom pathlib import Path\n"
+                'output = Path(sys.argv[sys.argv.index("--output") + 1])\n'
+                'output.write_text(json.dumps({"arguments":sys.argv[1:], '
+                '"authorization":os.environ.get("NCI_SI_BENCHMARK_AUTHORIZATION")}))\n'
+                "raise SystemExit(9)\n"
+            )
+
+        with TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            environment = {
+                REMOTE_TARGET: "https://approved.example/mcp",
+                AUTHORIZATION: "Bearer PRIVATE-CANARY",
+            }
+            with (
+                patch("scripts.operator_execution.archive_source", side_effect=snapshot),
+                patch.dict("os.environ", environment),
+            ):
+                code = _perform(directory, "a" * 40, "benchmark-http-remote")
+            observed = json.loads((directory / "bundle/report.json").read_text())
+            self.assertEqual(code, 9)
+            self.assertEqual(
+                observed["arguments"],
+                [
+                    "--allow-remote",
+                    "--target",
+                    environment[REMOTE_TARGET],
+                    "--allow-target",
+                    environment[REMOTE_TARGET],
+                    "--output",
+                    str(directory / "bundle/report.json"),
+                ],
+            )
+            self.assertEqual(observed["authorization"], environment[AUTHORIZATION])
+            self.assertNotIn("PRIVATE-CANARY", (directory / "binding.json").read_text())

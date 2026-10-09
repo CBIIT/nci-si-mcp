@@ -109,12 +109,13 @@ class _Transient(Exception):  # noqa: N818 - control flow inside this module, ne
         self.status = status
         self.retry_after = retry_after
 
-    def http_details(self) -> dict[str, Any]:
+    def http_details(self, redact: Callable[[str], str]) -> dict[str, Any]:
         if self.status is None:
             return {}
         details: dict[str, Any] = {"status": self.status}
         if self.retry_after:
-            details["retryAfter"] = self.retry_after
+            # Keep the raw header for retry timing, but never echo a credential to callers.
+            details["retryAfter"] = redact(self.retry_after)
         return details
 
 
@@ -568,7 +569,7 @@ class HttpClient:
                 return self._attempt(request, path, attempts, reject, json_response, interpret)
             except _Transient as failure:
                 timeouts += failure.timed_out
-                last_http = failure.http_details() or last_http
+                last_http = failure.http_details(self._redact) or last_http
                 delay = self._delay(attempts, failure)
                 if attempts >= self.max_attempts or delay is None:
                     raise self._unavailable(failure, attempts, timeouts, last_http) from failure

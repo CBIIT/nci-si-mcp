@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from fakes import concept, terminology_row
 from nci_si_mcp.bounds import Budget, current_budget
+from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.registry import invoke
 from test_server import ServerFixture, pinned
 
@@ -35,29 +36,36 @@ class ContentMutationTest(ServerFixture):
                 self.assertEqual(len(result["results"]), 150)
                 self.assertNotIn("nextCursor", result)
 
-    def test_search_modes_scores_and_source_uris_describe_the_selected_engine(self):
-        self.index_concepts(
-            [concept("C1", "Kinase", active=True), concept("C2", "Kinase inhibitor", active=True)]
-        )
-        original = self.context.index.search_page
-        for mode, engine in (("semantic", "vector"), ("hybrid", "hybrid")):
-            with (
-                self.subTest(mode=mode),
-                patch.object(self.context.index, "search_page", wraps=original) as search,
-            ):
-                result = self.content("search_concepts", query="Kinase", mode=mode)
-                self.assertEqual(search.call_args.args[3], engine)
-                hits = result["results"]
-                self.assertEqual({hit["concept"]["code"] for hit in hits}, {"C1", "C2"})
-                scores = [hit["score"] for hit in hits]
-                self.assertGreater(scores[0], 0)
-                self.assertEqual(scores, sorted(scores, reverse=True))
-                for hit in hits:
-                    self.assertTrue(
-                        hit["concept"]["provenance"]["sourceUri"].endswith(
-                            f"/concept/ncit_26.06e/{hit['concept']['code']}"
+    def test_semantic_and_hybrid_search_return_different_rankings_through_mcp(self):
+        # Semantic similarity favors the synonym-free enzyme label; lexical evidence
+        # favors the kinase label. Neither preferred name is an exact query match.
+        provider = HashingEmbeddingProvider(dimensions=2)
+        self.context.embedding_provider = provider
+        vectors = {
+            "Kinase inhibitor": [0.0, 1.0],
+            "Enzyme modulator": [1.0, 0.0],
+            "Kinase": [1.0, 0.0],
+        }
+        with patch.object(provider, "embed", side_effect=lambda texts: [vectors[t] for t in texts]):
+            self.index_concepts(
+                [
+                    concept("C1", "Kinase inhibitor", active=True),
+                    concept("C2", "Enzyme modulator", active=True),
+                ]
+            )
+            for mode, expected in (("semantic", ["C2", "C1"]), ("hybrid", ["C1", "C2"])):
+                with self.subTest(mode=mode):
+                    is_error, result = self.call("search_concepts", query="Kinase", mode=mode)
+                    self.assertFalse(is_error)
+                    hits = result["results"]
+                    self.assertEqual([hit["concept"]["code"] for hit in hits], expected)
+                    self.assertGreater(hits[0]["score"], hits[1]["score"])
+                    for hit in hits:
+                        self.assertTrue(
+                            hit["concept"]["provenance"]["sourceUri"].endswith(
+                                f"/concept/ncit_26.06e/{hit['concept']['code']}"
+                            )
                         )
-                    )
 
     def test_unsupported_search_options_are_refused_even_with_a_usable_index(self):
         self.index_concepts([concept("C1", "Kinase", active=True)])

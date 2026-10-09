@@ -5,8 +5,11 @@ read there is named beside it, with the fixture file that holds it.
 """
 
 import json
+import math
 import re
+from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import pytest
 import yaml
@@ -70,11 +73,46 @@ def test_a_channel_whose_query_names_two_releases_fails_closed(tools, pinned, re
 
 @pytest.mark.tool("resolve_release")
 @pytest.mark.requirement("resolve_release-3")
+@pytest.mark.live_capable
 def test_a_resolved_release_is_never_cached(tools, pinned):
     result = _release(tools, pinned)
 
     assert not result.is_error, result.content
     assert result.meta.get("ttlMs") == 0
+
+
+@pytest.mark.tool("get_concept")
+@pytest.mark.requirement("get_concept-3", "X-1", "X-7")
+@pytest.mark.live_capable
+def test_a_discovered_release_identifies_the_concept_and_its_provenance(tools):
+    # Two bounded tool calls; no historical fixture release is assumed in live mode.
+    discovery = tools.call("resolve_release", {"terminology": "ncit", "channel": "monthly"})
+    assert not discovery.is_error, discovery.content
+    release = discovery.content
+    assert isinstance(release, dict), release
+    assert release.get("terminology") == "ncit"
+    version = release.get("version")
+    assert isinstance(version, str) and version.strip(), release
+
+    result = tools.call("get_concept", {"terminology": "ncit", "release": version, "code": CONCEPT})
+    assert not result.is_error, result.content
+    concept = result.content
+    assert isinstance(concept, dict), concept
+    assert (concept.get("code"), concept.get("terminology")) == (CONCEPT, "ncit")
+    assert isinstance(concept.get("name"), str) and concept["name"].strip(), concept
+    assert isinstance(concept.get("active"), bool), concept
+    provenance = concept.get("provenance", {})
+    assert isinstance(provenance, dict), provenance
+    release_identity = provenance.get("release")
+    assert isinstance(release_identity, dict), provenance
+    assert release_identity.get("identifier") == version, provenance
+    assert release_identity.get("terminology") == "ncit", provenance
+    assert provenance.get("source") == "evs_rest", provenance
+    assert provenance.get("servedBy") == "live", provenance
+    assert urlsplit(provenance.get("sourceUri", "")).path.endswith(
+        f"/concept/ncit_{version}/{CONCEPT}"
+    ), provenance
+    assert datetime.fromisoformat(provenance["retrievedAt"]).tzinfo is not None
 
 
 def _concept(tools, pinned, code, **arguments):
@@ -441,15 +479,16 @@ def _index_violations(results, pinned):
 
 
 def _index_checks(entry, release):
-    """A result of the index: its concept in the index set, a number for its score, a field for
+    """A result of the index: its concept in the index set, a JSON number for its score, a field for
     its matchedOn, and provenance naming the index's release, source and service."""
 
     concept = entry.get("concept") or {}
     provenance = concept.get("provenance") or {}
     named = {key: (provenance.get("release") or {}).get(key) for key in release}
+    score = entry.get("score")
     return {
         "outside the index set": concept.get("code") in INDEX_SET,
-        "score": isinstance(entry.get("score"), (int, float)),
+        "score": type(score) in (int, float) and math.isfinite(score),
         "matchedOn": entry.get("matchedOn") in FIELDS,
         "release": named == release,
         "source": provenance.get("source") == "evs_index",

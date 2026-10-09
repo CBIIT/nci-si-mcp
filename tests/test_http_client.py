@@ -530,6 +530,37 @@ class CredentialsStayOutTest(ServerTestCase):
         ),
     }
 
+    def test_retry_after_preserves_the_wait_without_exposing_an_echoed_credential(self):
+        for status, canary in ((429, KEY), (503, KEY), (429, "7"), (503, "7")):
+            with self.subTest(status=status, canary=canary):
+                server = self.serve(*[Reply(status, headers={"Retry-After": canary})] * 2)
+                client = self.client(
+                    server, max_attempts=2, credentials={LICENSE_KEY_HEADER: canary}
+                )
+                records = []
+                client.on_request = records.append
+                with self.assertLogs("nci_si_mcp", level="DEBUG") as logs:
+                    error = self.failure(client)
+
+                self.assertEqual(
+                    error.details,
+                    {
+                        "surface": "evs",
+                        "attempts": 2,
+                        "status": status,
+                        "retryAfter": "[redacted]",
+                    },
+                )
+                self.assertEqual(self.waits, [7.0 if canary == "7" else 0.25])
+                self.assertEqual(len(server.seen), 2)
+                self.assertEqual([record.status for record in records], [status, status])
+                # A numeric canary can occur coincidentally in ports, hashes and timing.
+                # Exact details above own its redaction; the text canary checks all output.
+                if canary == KEY:
+                    output = [str(error), error.details, records, logs.output]
+                    self.assertNotIn(canary, repr(output))
+                    self.assertNotIn(canary, "".join(traceback.format_exception(error)))
+
     def run_all(self):
         """Run a client with the key against each echo; return what it did and what it said."""
 

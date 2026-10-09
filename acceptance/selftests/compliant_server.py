@@ -10,6 +10,12 @@ requirements, for the harness's own tests.
     placeholder       a description holding TODO                                    (P-3)
     misnamed          a tool whose name is not verb-led and lowercase               (P-4)
     no-ttl            tools/list with ttlMs 0                                       (P-5)
+    concept-empty     concept lookup succeeds with no identity                      (get_concept-3)
+    concept-error     concept lookup returns an upstream failure                    (get_concept-3)
+    concept-no-name   concept lookup omits its name                                 (get_concept-3)
+    concept-wrong-uri concept provenance names another concept's URI                (X-7)
+    concept-null-provenance concept provenance is null                              (X-7)
+    concept-list-provenance concept provenance is a list                            (X-7)
     listing-changes   tools/list loses a tool after the first call                  (P-6)
     redescribed       a tool's description changes after the first call             (P-6)
     hides-tools       tools/list loses a tool once a call finds the platform down   (P-6)
@@ -581,10 +587,32 @@ def _content(name: str, arguments: dict, correlation: str, answer: dict) -> obje
     if DEFECT == "list-result":
         return items
     content = _shaped(name, items)
+    if name == "get_concept":
+        content = _identified_concept(content, arguments)
     # With no item to carry it, the result carries the provenance itself (M3.2).
     if not items and DEFECT != "empty-without-provenance":
         content["provenance"] = provenance
     return content | _truncation(name, arguments) | _next_cursor(name, arguments, items)
+
+
+def _identified_concept(content: dict, arguments: dict) -> dict:
+    """A named concept for the bounded discovery-to-content acceptance journey."""
+    if DEFECT == "concept-empty":
+        return {}
+    content |= {"name": "Ewing sarcoma", "active": True}
+    terminology = arguments["terminology"]
+    release = arguments["release"]
+    code = quote(arguments["code"], safe="")
+    source = f"https://example.invalid/api/v1/concept/{terminology}_{release}/{code}"
+    content["provenance"]["sourceUri"] = source
+    if DEFECT == "concept-wrong-uri":
+        content["provenance"]["sourceUri"] = f"{source}-other"
+    if DEFECT == "concept-no-name":
+        del content["name"]
+    malformed = {"concept-null-provenance": None, "concept-list-provenance": []}
+    if DEFECT in malformed:
+        content["provenance"] = malformed[DEFECT]
+    return content
 
 
 def _registry(provenance: dict) -> dict:
@@ -828,6 +856,8 @@ def _answer(name: str, arguments: dict, correlation: str) -> tuple[object, bool]
     """The content of a call and whether it is an error; a call answered before is not
     asked again, as A9.4 allows."""
 
+    if name == "get_concept" and DEFECT == "concept-error":
+        return _error("upstream_unavailable", 503, {}, correlation), True
     if arguments.get("code") == "C90000001":
         return _session_answer(arguments, correlation)
     return _ordinary_answer(name, arguments, correlation)

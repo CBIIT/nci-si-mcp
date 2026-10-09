@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from mcp.shared.exceptions import MCPError
 
+from fakes import terminology_row
 from nci_si_mcp.caching import cache_call, select_cache_hint
 from nci_si_mcp.http_client import UpstreamUnavailableError
 from nci_si_mcp.registry import OPERATIONS, SPECS, ToolSpec, invoke
@@ -99,15 +100,31 @@ class CachingTest(ServerFixture):
                     result.meta["io.modelcontextprotocol/serverInfo"]["name"], "nci-si-mcp"
                 )
 
-    def test_empty_search_is_cacheable_governed_content(self, _):
+    def test_empty_retired_search_is_successful_cacheable_content(self, _):
+        # Filtering an active-only index gives a genuine empty result, without
+        # replacing the ranker. The MCP response owns both success and cache policy.
         invoke(self.context, "index_codes", ["C3262"])
-        with patch("nci_si_mcp.index.rank_page", return_value=([], 0)):
-            result = self.session(
-                lambda client: client.call_tool(
-                    "search_concepts", pinned(query="zzzz", mode="semantic")
-                )
+        self.evs.rows = [
+            terminology_row()
+            | {
+                "metadata": {
+                    "retiredStatusValue": "Retired_Concept",
+                    "conceptStatuses": ["Retired_Concept"],
+                }
+            }
+        ]
+        result = self.session(
+            lambda client: client.call_tool(
+                "search_concepts", pinned(query="Neoplasm", mode="semantic", retired="only")
             )
-        self.assertEqual(json.loads(result.content[0].text)["results"], [])
+        )
+        self.assertFalse(result.is_error)
+        content = result.structured_content
+        self.assertEqual(content["results"], [])
+        self.assertEqual(content["totalKnown"], 0)
+        self.assertNotIn("nextCursor", content)
+        self.assertEqual(content["provenance"]["release"]["identifier"], "26.06e")
+        self.assertEqual(content["provenance"]["servedBy"], "index")
         self.assertEqual((result.meta["ttlMs"], result.meta["cacheScope"]), (86_400_000, "public"))
 
     def test_status_tools_are_public_but_not_cached(self, _):

@@ -156,6 +156,12 @@ artifact services, and deployment roles. The boxes below specify responsibilitie
 selecting ECS, EKS, an AWS identity provider, or a shared filesystem. No such infrastructure
 is provisioned by this repository.
 
+The project requires Cloud One's FISMA Moderate admission checks before deployment to UAT
+or PROD. Repository tests, scans and review evidence support those checks; a green CI run
+does not certify compliance or authorize deployment. The hosting/security team determines
+the applicable controls and required evidence for the deployed configuration, including
+platform identity, permissions, network boundaries, secrets, logging and incident response.
+
 ```mermaid
 ---
 config:

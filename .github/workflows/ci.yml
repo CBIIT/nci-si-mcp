@@ -76,6 +76,8 @@ jobs:
       - run: npm run build --prefix docs/site-assets
       - run: pdm run acceptance-stories --check
       - run: pdm run docs-build
+      - run: npm exec --prefix docs/site-assets -- playwright install --with-deps chromium
+      - run: npm run test:browser --prefix docs/site-assets
       # Documentation only: never upload an evidence database, operational report or tmp/ tree.
       # PR artifacts are previews; this job has no deployment permissions or promotion step.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1

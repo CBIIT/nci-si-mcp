@@ -198,6 +198,7 @@
   tests:
     tests/test_evs.py::test_an_include_value_returns_its_section_and_no_other: Each supported include choice returns its own section without other optional sections.
     tests/test_evs.py::test_descendants_is_no_include_value: Descendants cannot be requested as a concept include section.
+    tests/test_evs.py::test_a_discovered_release_identifies_the_concept_and_its_provenance: Discover the current monthly release, then retrieve a concept whose identity and provenance agree with that release in fixture or live mode.
     tests/test_evs.py::test_a_concept_carries_its_identity_and_the_status_the_platform_publishes: Code, terminology, name and active state are present, with the source's status where supplied.
 
 - id: batch-concepts

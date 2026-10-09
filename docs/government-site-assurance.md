@@ -70,7 +70,7 @@ final checked head. Do not treat a past scan as a scan of later commits.
 
 | Area | Method and observed result | Limits |
 |---|---|---|
-| Public reading | Strict Zensical build and link validation; browser navigation overview → topic → story; expandable case evidence; requirement X-17 opens its exact specification entry | Representative browser journeys; the generator tests all 964 case assignments and every requirement destination |
+| Public reading | Strict Zensical build and link validation; browser navigation overview → topic → story; expandable case evidence; requirement X-17 opens its exact specification entry | Representative browser journeys; the generator tests every case assignment and requirement destination |
 | Search | Browser keyboard activation, query and Escape dismissal of native Zensical search; desktop placement above page navigation, responsive header placement at narrow widths | Native browser/assistive-technology combinations still need the checks below |
 | Structure | HTML tests and browser accessibility tree show page titles, English language, main/navigation regions, ordered headings, labelled forms, captions and column headers; tables have named keyboard-scroll regions | Accessibility-tree inspection is not a screen-reader test |
 | Local controls | Browser submitted a fixture run, cancelled it and refreshed to Cancelled/exit 130; a second fixture benchmark completed with exit 0 and displayed its report; unknown provenance and sample limits stayed visible | Committed fixture workers, not live upstream performance; native select was opened with pointer input before keyboard selection |
@@ -87,7 +87,35 @@ on `#f0f0f0` **8.50:1**; admin focus `#004971` on `#f0f0f0` **8.41:1**;
 documentation focus `#ad4e00` on white **5.43:1**; documentation links `#01679d` on white
 **6.13:1**. These are declared pairs, not an exhaustive scan of every rendered state.
 
-### Explicitly unverified checks and repeatable procedures
+### Automated browser regression journeys
+
+The documentation CI job runs three repository-owned Playwright journeys in its pinned
+Chromium build against the generated Zensical site and the real local dashboard HTTP server.
+They cover desktop/narrow search activation and results, story-to-requirement navigation,
+case filtering and contextual help, and native run/cancel forms. Requests to any origin other
+than the two disposable loopback servers are blocked and fail the check. Missing browser
+dependencies fail rather than skip the tests.
+
+For a fresh checkout, after `pdm install`, run:
+
+```bash
+npm ci --prefix docs/site-assets --ignore-scripts
+npm run build --prefix docs/site-assets
+npm exec --prefix docs/site-assets -- playwright install chromium
+pdm run docs-build
+npm run test:browser --prefix docs/site-assets
+```
+
+Linux CI installs Chromium's system dependencies with `playwright install --with-deps chromium`.
+The dashboard imports synthetic, validated evidence into a temporary store. The run/cancel
+journey injects a controlled executor through the existing worker interface; it proves browser
+form admission, navigation, cancellation feedback and absence of invented successful evidence.
+The worker lifecycle and container checks separately verify real child-process termination and
+isolation. These journeys are not live upstream tests, a full keyboard audit, a screen-reader
+assessment or Section 508 certification. Temporary servers and stores are closed after the run;
+failure diagnostics under `tmp/browser-results/` are local test artifacts.
+
+### Remaining manual checks
 
 | Check | Procedure | Responsible role |
 |---|---|---|

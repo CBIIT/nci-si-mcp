@@ -48,8 +48,12 @@ case for domain reviewers. Keep its authored narratives and function assignments
 `pdm run acceptance-stories --check` verifies completeness and freshness; the harness
 self-tests enforce the same check in CI.
 
-Put each regression at the lowest level that can reproduce it, then use broader tests to
-check the connections between components. This follows the
+Give each behavior an owning test at the interface its caller uses. Keep component tests
+for independent contracts and broader tests for distinct integration failures; do not repeat
+the same claim at every layer. Describe Given/When/Then before implementation, observe the
+intended failure, and remove redundant development scaffolding with evidence before landing.
+The outside-in review rules are in [AGENTS.md](AGENTS.md#outside-in-test-design-and-review).
+This preserves the
 [test pyramid](https://testing.googleblog.com/2015/04/just-say-no-to-more-end-to-end-tests.html);
 parameterized contract cases do not need an arbitrary ratio of test counts.
 
@@ -65,15 +69,22 @@ story mapping, proposals and rendering; real SQLite/filesystem/subprocess tests 
 atomic history and bounded worker lifecycle; loopback HTTP tests verify controls and error
 responses. The `companion containers (amd64)` CI job builds both images and exercises a real
 fixture benchmark, result display, network/mount isolation and shutdown independence.
-Browser checks cover navigation, search, disclosures and complete local admin journeys; see
-the [assurance record](docs/government-site-assurance.md) for the manual methods and limitations.
+Automated Chromium journeys cover responsive search, requirement links, result filtering and
+native run/cancel forms. The worker is controlled in the browser tests; separate integration
+tests exercise real worker termination. See the
+[assurance record](docs/government-site-assurance.md#automated-browser-regression-journeys)
+for setup commands, manual checks and limitations.
 
 Coverage includes lines, branches and Python subprocesses for the server and harness suites.
 It identifies execution gaps, not missing assertions: use a targeted mutation when an
 assertion's sensitivity is uncertain. Image-only checks run in the container CI job. The
-fixtures verify contracts, including crafted caDSR responses; they do not verify deployment
-against live caDSR without issued credentials. The separate live acceptance workflow checks
-upstream drift where credentials and services are available.
+fixtures verify contracts, including crafted caDSR responses; they do not establish live
+upstream support. Some caDSR endpoints permit anonymous access; protected endpoints require
+issued credentials. The separate live workflow checks only cases marked `live_capable` and
+does not treat skipped cases as drift. It covers protocol/discovery, selected local validation
+and unavailable-capability contracts, and one bounded discovered-release concept lookup.
+Validation refusals are not evidence of working upstream retrieval; credentials alone do not
+enable the fixture-only cases. This remains limited live coverage, not full content conformance.
 
 ## Coverage badges
 
