@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from itertools import batched
-from typing import Any, NotRequired, TypedDict
+from typing import Annotated, Any, NotRequired, TypedDict
 
 from . import cadsr_content, cadsr_matching, content, seam
 from .bounds import Budget, budgeted, current_budget
@@ -12,6 +12,14 @@ from .catalogue import exclusion_codes, load_catalogue
 from .context import Context
 from .errors import InputValidationError, PlatformError
 from .models import Truncation
+from .parameters import (
+    NCIT_CODE_FORM,
+    Described,
+    NcitRelease,
+    RegistryRelease,
+    count_bound,
+    describe_fields,
+)
 from .permissions import require, require_operation
 from .release import ReleaseContext
 from .release_selection import implicit_selection
@@ -22,6 +30,15 @@ class DictionaryColumn(TypedDict):
     name: str
     description: NotRequired[str]
     sampleValues: NotRequired[list[str]]
+
+
+describe_fields(
+    DictionaryColumn,
+    name="Column name as written in the dictionary, for example primary_site.",
+    description="What the column holds, in words; it is sent as the entity's user tip.",
+    sampleValues='Example values of the column, for example ["male", "female"]; they are '
+    "aligned to value meanings.",
+)
 
 
 def _ground_options(code: str | None, text: str | None, commons: str | None) -> None:
@@ -123,11 +140,31 @@ def _gdc_hop(context: Context, selected: ReleaseContext, code: str) -> list[dict
 
 def ground_value(
     context: Context,
-    conceptCode: str | None = None,  # noqa: N803
-    text: str | None = None,
-    commons: str | None = None,
-    release: str | None = None,
-    registryRelease: str | None = None,  # noqa: N803
+    conceptCode: Annotated[  # noqa: N803
+        str | None,
+        Described(
+            "NCIt code of the concept to ground, for example C3262. Give exactly one of "
+            "conceptCode and text.",
+            pattern=NCIT_CODE_FORM,
+        ),
+    ] = None,
+    text: Annotated[
+        str | None,
+        Described(
+            "Words naming the concept, for example lung carcinoma; the first result of a "
+            "lexical search is used and named in the result. Give exactly one of "
+            "conceptCode and text."
+        ),
+    ] = None,
+    commons: Annotated[
+        str | None,
+        Described(
+            "Data commons whose stored values to add, for example GDC. Leave unset for no "
+            "stored values."
+        ),
+    ] = None,
+    release: NcitRelease = None,
+    registryRelease: RegistryRelease = None,  # noqa: N803
 ) -> dict[str, Any]:
     """Ground a concept or the first default lexical search result across EVS and caDSR.
 
@@ -190,9 +227,24 @@ def _align_columns(
 
 def harmonize_data_dictionary(
     context: Context,
-    columns: list[DictionaryColumn],
-    registryRelease: str | None = None,  # noqa: N803
-    filters: cadsr_matching.MatchFilters | None = None,
+    columns: Annotated[
+        list[DictionaryColumn],
+        Described(
+            "The columns of the data dictionary to match, 1 to 10. Each has a name and "
+            "may have a description and sample values.",
+            min_items=1,
+            max_items=10,
+        ),
+    ],
+    registryRelease: RegistryRelease = None,  # noqa: N803
+    filters: Annotated[
+        cadsr_matching.MatchFilters | None,
+        Described(
+            "Narrow the data elements matched by context, workflow status, registration "
+            "status, classification scheme or value domain type. Leave unset for no "
+            "filter."
+        ),
+    ] = None,
 ) -> dict[str, Any]:
     """Match 1-10 columns and align sample values against one caDSR registry state.
 
@@ -300,11 +352,25 @@ def _cohort_cut(
 
 def expand_cohort(
     context: Context,
-    conceptCode: str,  # noqa: N803
-    release: str | None = None,
-    maxDepth: int = 2,  # noqa: N803
-    includeNegative: bool = False,  # noqa: N803
-    maxNodes: int = 200,  # noqa: N803
+    conceptCode: Annotated[  # noqa: N803
+        str,
+        Described(
+            "NCIt code of the concept whose cohort to expand, for example C3262.",
+            pattern=NCIT_CODE_FORM,
+        ),
+    ],
+    release: NcitRelease = None,
+    maxDepth: Annotated[int, count_bound("How many levels of descendants to include.", 2, 4)] = 2,  # noqa: N803
+    includeNegative: Annotated[  # noqa: N803
+        bool,
+        Described(
+            "Keep the codes an exclusion role withholds in codes; they are listed in "
+            "excluded either way. Default false."
+        ),
+    ] = False,
+    maxNodes: Annotated[  # noqa: N803
+        int, count_bound("Most codes to return, the concept itself included.", 200, 1000)
+    ] = 200,
 ) -> dict[str, Any]:
     """Expand a cohort through children, excluding only the start concept's negative roles.
 

@@ -44,6 +44,8 @@ CORRELATION_HEADER = "x-correlation-id"
 UNFINISHED = re.compile(
     r"\b(TODO|FIXME|XXX|TBD|HACK|lorem ipsum|placeholder|debug)\b|\{\{|\}\}", re.IGNORECASE
 )
+# A title that is the generator's own type expression (RootModel[Annotated[Union[...]]]).
+GENERATED_TITLE = re.compile(r"[\[\]]|\bFieldInfo\b")
 VERBS = {name.partition("_")[0] for name in TOOLS}
 NAME = re.compile(r"[a-z]+(_[a-z]+)*")
 READ_ONLY = {
@@ -89,6 +91,12 @@ def _descriptions(schema: object) -> list[str]:
     """Every description a schema holds, at any depth."""
 
     return [text for text in _under(schema, ("description",)) if isinstance(text, str)]
+
+
+def _titles(schema: object) -> list[str]:
+    """Every title a schema holds, at any depth (a property named title is not one)."""
+
+    return [text for text in _under(schema, ("title",)) if isinstance(text, str)]
 
 
 def _content_calls(server, profile: str, pinned: dict) -> list[tuple[str, dict]]:
@@ -148,16 +156,22 @@ def test_every_output_schema_admits_the_error_record_and_refuses_a_malformed_one
 @pytest.mark.requirement("P-3")
 def test_no_description_holds_placeholder_or_debug_text(server):
     unfinished = {
-        name: match[0]
-        for name, tool in server.available.items()
-        for text in [
-            tool.description or "",
-            *_descriptions([tool.input_schema, tool.output_schema]),
-        ]
-        if (match := UNFINISHED.search(text))
+        name: found for name, tool in server.available.items() if (found := _unfinished(tool))
     }
 
     assert unfinished == {}
+
+
+def _unfinished(tool) -> list[str]:
+    """The unfinished words in a tool's descriptions and titles, and the titles that are the
+    generator's own type expression."""
+
+    schemas = [tool.input_schema, tool.output_schema]
+    titles = _titles(schemas)
+    texts = [tool.description or "", *_descriptions(schemas), *titles]
+    return [m[0] for text in texts if (m := UNFINISHED.search(text))] + [
+        title for title in titles if GENERATED_TITLE.search(title)
+    ]
 
 
 def _not_offered(name):

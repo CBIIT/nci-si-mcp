@@ -8,6 +8,7 @@ requirements, for the harness's own tests.
     declares-no-shape an outputSchema that admits any object                        (P-2)
     one-code          an outputSchema whose error code admits one value only        (P-2)
     placeholder       a description holding TODO                                    (P-3)
+    generated-title   an outputSchema titled with a type expression, RootModel[...]  (P-3)
     misnamed          a tool whose name is not verb-led and lowercase               (P-4)
     no-ttl            tools/list with ttlMs 0                                       (P-5)
     concept-empty     concept lookup succeeds with no identity                      (get_concept-3)
@@ -373,6 +374,14 @@ OUTPUT_SCHEMAS = {
     },
     "no-error-shape": {"type": "object", "required": ["provenance"]},
     "declares-no-shape": {"type": "object"},
+    "generated-title": {
+        "title": "RootModel[Annotated[Union[Concept, ErrorResult], FieldInfo(required=True)]]",
+        "type": "object",
+        "oneOf": [
+            {"type": "object", "required": ["error"], "properties": {"error": ERROR}},
+            {"not": {"type": "object", "required": ["error"]}},
+        ],
+    },
 }
 
 

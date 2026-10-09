@@ -6,7 +6,7 @@ import hashlib
 import json
 import re
 from datetime import date, datetime
-from typing import Any, NoReturn
+from typing import Annotated, Any, NoReturn
 
 from . import cadsr_content, content
 from . import cursor as cursors
@@ -17,6 +17,14 @@ from .context import Context
 from .errors import InputValidationError, PlatformError, call_correlation_id
 from .evs import verify_release
 from .models import ProvenanceEnvelope, Truncation, release_ref, utc_now_iso
+from .parameters import (
+    NCIT_CODE_FORM,
+    REGISTRY_ID_FORM,
+    Cursor,
+    Described,
+    NcitRelease,
+    count_bound,
+)
 from .permissions import require, require_operation
 from .release import ReleaseContext, resolve_evs_release, served_evs_release
 from .release_selection import implicit_selection, select
@@ -235,13 +243,29 @@ def _page_items(
 
 def find_data_elements_for_concept(
     context: Context,
-    conceptCode: str,  # noqa: N803
-    terminology: CrossDomainTerminology = "ncit",
-    release: str | None = None,
-    expandDescendants: bool = False,  # noqa: N803
-    includePermissibleValues: bool = False,  # noqa: N803
-    limit: int = 100,
-    cursor: str | None = None,
+    conceptCode: Annotated[  # noqa: N803
+        str, Described("NCIt code of the concept, for example C3262.", pattern=NCIT_CODE_FORM)
+    ],
+    terminology: Annotated[
+        CrossDomainTerminology,
+        Described("Terminology of the code; only ncit is served. Default ncit."),
+    ] = "ncit",
+    release: NcitRelease = None,
+    expandDescendants: Annotated[  # noqa: N803
+        bool,
+        Described(
+            "Also find the data elements that use a descendant of the concept. Default false."
+        ),
+    ] = False,
+    includePermissibleValues: Annotated[  # noqa: N803
+        bool,
+        Described(
+            "Also return the permissible values whose value meaning stands for the "
+            "concept. Default false."
+        ),
+    ] = False,
+    limit: Annotated[int, count_bound("Most results on a page.", 100, 1000)] = 100,
+    cursor: Cursor = None,
 ) -> dict[str, Any]:
     """Find data-element and optional value uses of an NCIt concept or its descendants.
 
@@ -338,10 +362,31 @@ def _main_code(rows: list[dict[str, str]]) -> str:
 
 def get_concept_for_permissible_value(
     context: Context,
-    permissibleValueId: str | None = None,  # noqa: N803
-    dataElementId: str | None = None,  # noqa: N803
-    value: str | None = None,
-    release: str | None = None,
+    permissibleValueId: Annotated[  # noqa: N803
+        str | None,
+        Described(
+            "Requested from caDSR (OP-C10); not served yet, so a value is refused with "
+            "capability_unavailable. Leave unset and give dataElementId and value.",
+            pattern=REGISTRY_ID_FORM,
+        ),
+    ] = None,
+    dataElementId: Annotated[  # noqa: N803
+        str | None,
+        Described(
+            "Public id of the data element that lists the value, for example 2200604. "
+            "Give it with value.",
+            pattern=REGISTRY_ID_FORM,
+        ),
+    ] = None,
+    value: Annotated[
+        str | None,
+        Described(
+            "The permissible value exactly as the data element lists it, for example "
+            "male; compared by exact, case-sensitive equality. Give it with "
+            "dataElementId."
+        ),
+    ] = None,
+    release: NcitRelease = None,
 ) -> dict[str, Any]:
     """Resolve an exact permissible value of a data element to its main NCIt concept.
 
@@ -533,10 +578,23 @@ def _crosswalk_values(
 
 def resolve_stored_value(
     context: Context,
-    conceptCode: str,  # noqa: N803
-    commons: str,
-    release: str | None = None,
-    dataElementId: str | None = None,  # noqa: N803
+    conceptCode: Annotated[  # noqa: N803
+        str,
+        Described(
+            "NCIt code of the concept whose stored value to find, for example C3262.",
+            pattern=NCIT_CODE_FORM,
+        ),
+    ],
+    commons: Annotated[str, Described("Data commons whose stored value to find, for example GDC.")],
+    release: NcitRelease = None,
+    dataElementId: Annotated[  # noqa: N803
+        str | None,
+        Described(
+            "Public id of one caDSR data element to restrict a CRDC commons to, for "
+            "example 2200604. The GDC cannot apply it.",
+            pattern=REGISTRY_ID_FORM,
+        ),
+    ] = None,
 ) -> dict[str, Any]:
     """Resolve literal stored values through the GDC mapset or the CRDC crosswalk.
 
@@ -623,7 +681,16 @@ def _alignment_datasets(context: Context) -> list[dict[str, Any]]:
     return datasets
 
 
-def get_release_alignment(context: Context, maxIntervalDays: int = 31) -> dict[str, Any]:  # noqa: N803
+def get_release_alignment(
+    context: Context,
+    maxIntervalDays: Annotated[  # noqa: N803
+        int,
+        Described(
+            "Largest gap in days between the dates of the datasets before a warning is "
+            "added. Default 31; not below 0."
+        ),
+    ] = 31,
+) -> dict[str, Any]:
     """Read NCIt, both Shared SI graphs and the caDSR export as four independent states.
 
     Dates are ISO calendar dates, without inventing a registry release. intervalDays is

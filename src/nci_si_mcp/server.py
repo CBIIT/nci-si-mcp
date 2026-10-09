@@ -7,7 +7,7 @@ from collections.abc import Awaitable, Callable
 from functools import update_wrapper
 from importlib.resources import files
 from inspect import Parameter, Signature
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any, get_args, get_origin
 
 from . import __version__
 from .audit import audited, compact, hashed, secrets
@@ -16,6 +16,7 @@ from .config import Settings, configure_logging
 from .context import Context
 from .errors import InputValidationError, is_error_record
 from .invocation import call
+from .parameters import Described
 from .permissions import AuthorityResolver
 from .registry import SPECS, ToolSpec, invoke
 from .release_selection import SessionRelease, session_scope
@@ -129,6 +130,11 @@ def create_mcp(
                 meta={"group": spec.group},
                 structured_output=True,
             )
+            # The SDK derives the schema with pydantic's titles and the RootModel's
+            # type expression; publish the same schema without them.
+            tool: Any = mcp._tool_manager.get_tool(spec.name)
+            tool.parameters = _served_input_schema(tool.parameters)
+            tool.fn_metadata.output_schema = _output_schema(record, f"{spec.name} result")
         if spec.uri and spec.visible_in(resolved_settings.profile):
             fn = _callback(spec, resource_call)
             mcp.resource(spec.uri, mime_type="application/json")(fn)
@@ -137,6 +143,77 @@ def create_mcp(
         register(spec)
     _register_prompts(mcp, resolved_settings.profile)
     return mcp
+
+
+def _output_schema(record: Any, title: str) -> dict[str, Any]:
+    """The schema of `record` as the SDK would publish it, without generated titles."""
+
+    from mcp.server.mcpserver.utilities.func_metadata import StrictJsonSchema, _inline_root_ref
+    from pydantic import RootModel, TypeAdapter
+
+    class WithoutTitles(StrictJsonSchema):
+        def generate(self, schema: Any, mode: Any = "validation") -> dict[str, Any]:
+            return _drop_titles(super().generate(schema, mode))
+
+    adapter = TypeAdapter(RootModel[record])
+    schema = _inline_root_ref(adapter.json_schema(schema_generator=WithoutTitles))
+    return {"title": title, **schema}
+
+
+def _served_input_schema(schema: dict[str, Any]) -> dict[str, Any]:
+    """The input schema with the nested records' field descriptions, closed to other arguments.
+
+    The server refuses any argument the tool does not declare, so the schema says so."""
+
+    from .parameters import FIELD_DESCRIPTIONS
+
+    definitions = {
+        name: _described_record(record, FIELD_DESCRIPTIONS.get(name, {}))
+        for name, record in schema.get("$defs", {}).items()
+    }
+    return {
+        **schema,
+        **({"$defs": definitions} if definitions else {}),
+        "additionalProperties": False,
+    }
+
+
+def _described_record(record: dict[str, Any], descriptions: dict[str, str]) -> dict[str, Any]:
+    properties = {
+        name: {**spec, "description": descriptions[name]} if name in descriptions else spec
+        for name, spec in record.get("properties", {}).items()
+    }
+    return {**record, "properties": properties} if properties else record
+
+
+def _field_annotation(annotation: Any) -> Any:
+    """`annotation` with its `Described` metadata as the pydantic `Field` that states it."""
+
+    from pydantic import Field
+
+    if get_origin(annotation) is not Annotated:
+        return annotation
+    base, *metadata = get_args(annotation)
+    fields = [Field(**m.field_arguments()) if isinstance(m, Described) else m for m in metadata]
+    return Annotated[(base, *fields)]
+
+
+def _drop_titles(node: Any) -> Any:
+    """`node` without its `title` keywords; the names under `properties` are kept."""
+
+    if isinstance(node, list):
+        return [_drop_titles(item) for item in node]
+    if not isinstance(node, dict):
+        return node
+    return {
+        key: _named(value) if key == "properties" else _drop_titles(value)
+        for key, value in node.items()
+        if key != "title"
+    }
+
+
+def _named(properties: Any) -> Any:
+    return {name: _drop_titles(schema) for name, schema in properties.items()}
 
 
 def _register_prompts(mcp: Any, profile: str) -> None:
@@ -177,7 +254,7 @@ def _callback(
     def callback(**arguments: Any) -> Any:
         return call(spec, arguments)
 
-    parameters = list(spec.parameters)
+    parameters = [p.replace(annotation=_field_annotation(p.annotation)) for p in spec.parameters]
     update_wrapper(callback, spec.handler)
     callback.__name__ = spec.name or spec.operation
     callback.__dict__["__signature__"] = Signature(parameters, return_annotation=output_type)
@@ -243,7 +320,10 @@ def _input_model(spec: ToolSpec) -> Any:
     from pydantic import ConfigDict, create_model
 
     fields: dict[str, Any] = {
-        p.name: (p.annotation, ... if p.default is Parameter.empty else p.default)
+        p.name: (
+            _field_annotation(p.annotation),
+            ... if p.default is Parameter.empty else p.default,
+        )
         for p in spec.parameters
     }
     return create_model(
