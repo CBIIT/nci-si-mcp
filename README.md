@@ -65,30 +65,25 @@ Fixture-mode outcome of each tool, from the expected outcomes of the 965 tests o
 | Workflow tools | 3 | PASS: `ground_value`, `expand_cohort`, `harmonize_data_dictionary` |
 <!-- acceptance-status:end -->
 
-Portable [caller permissions](docs/caller-permissions.md) and the
-[required-auth HTTP entry point](docs/governed-http.md) provide private responses and per-request
-policy checks. The default remains trusted-local; production
-identity-provider integration is not enabled.
+[Caller permissions](docs/caller-permissions.md) and the
+[required-auth HTTP entry point](docs/governed-http.md) are available; the default stays
+trusted-local, and where administration may be exposed is a deployment decision recorded in
+[docs/deployment.md](docs/deployment.md). The [validation and benchmark evidence](docs/benchmark.md)
+separates fixture acceptance, live protocol coverage and representative live measurements; caDSR
+credentialed content remains contract-fixture evidence until credentials are issued.
 
-The [assisted-task evaluation](docs/assisted-evaluation.md) measures deterministic
-fixture workflows. Internal `ask` orchestration and wxMCP integration are
-[deferred to Backlog with research criteria](docs/deferred-capabilities.md); neither is enabled.
-The [Phase 6 assurance matrix](docs/phase-6-assurance.md) records compatibility and limitations.
-
-[Phase 7](docs/portal-plan.md) provides public documentation, local validation and benchmark
-controls, and advisory configuration previews. UAT/PROD administration remains disabled pending
-platform access controls in #197; local development and the public repository remain accessible
-without a new login.
-
-The [validation and benchmark evidence](docs/benchmark.md) separates fixture acceptance,
-live protocol coverage and representative live tool measurements. caDSR credentialed content
-remains contract-fixture evidence until credentials are issued. The
-[milestones](https://github.com/CBIIT/nci-si-mcp/milestones) track the phases.
+The delivered phases are recorded, with their dates, in the
+[implementation plan](docs/implementation-plan.md) (Phases 0 to 6), the
+[Phase 6 assurance matrix](docs/phase-6-assurance.md), the
+[deferred capabilities](docs/deferred-capabilities.md) and
+[assisted-task evaluation](docs/assisted-evaluation.md) records, and the
+[Phase 7 companion plan](docs/portal-plan.md); the
+[milestones](https://github.com/CBIIT/nci-si-mcp/milestones) track what is open.
 
 ## Start here
 
 - **The EVS, caDSR and Shared SI teams**: [docs/specification.md](docs/specification.md) specifies the
-  required tools and their behaviour (rendered from `spec/`); [docs/implementation-plan.md](docs/implementation-plan.md) plans
+  required tools and their behaviour (rendered from `spec/`); [docs/implementation-plan.md](docs/implementation-plan.md) records
   the work, phase by phase;
   [acceptance/README.md](acceptance/README.md) runs the suite against your server and renders the
   per-tool report; the upstream requests the tools rest on, each with its operation and

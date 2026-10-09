@@ -1,12 +1,10 @@
 # Contributing
 
-The [documentation website guide](docs/documentation-site.md) explains its pinned build,
-local preview, reviewed page allowlist and source/version labels. Update the relevant documents
-and diagrams with each behavior change; the website reuses those sources.
-
 How to work on this repository. What it is, and its status, is in [README.md](README.md); how to
 install and run the server is in [QUICKSTART.md](QUICKSTART.md); how it is built is in
-[ARCHITECTURE.md](ARCHITECTURE.md).
+[ARCHITECTURE.md](ARCHITECTURE.md). Update the documents and diagrams with each behaviour change:
+the [documentation website](docs/documentation-site.md) is built from these sources (pinned build,
+local preview, reviewed page allowlist, source and version labels).
 
 ## Set up
 
@@ -135,7 +133,7 @@ skipped (`--no-verify` and `SKIP=` are not used).
 | Upstream requirement packages | `docs/upstream/*.md` are the current render of `docs/upstream/catalogue.yaml` (`scripts/upstream_requirements.py --check`) |
 | Acceptance ratchet (CI) | Every test of the acceptance suite, in fixture mode, has the outcome in `acceptance/expected/fixture.json`. A change that moves an outcome on purpose updates that file in the same pull request, and the diff of the file is what the review reads: `pdm run acceptance-expected update acceptance/fixture.json` writes it from a fresh report, and `pdm run acceptance-status` the README table that follows |
 | Tests and coverage | The suite passes; CI fails below the coverage minimum of standard 3 and warns when the aim is missed |
-| Dependency audit (CI only) | No runtime dependency with a known vulnerability (pip-audit over the server and embeddings extras, on every change and weekly); no pull request bringing one in at high severity (dependency review). Dependabot proposes updates of the workflows' actions; SECURITY.md says how to report a vulnerability |
+| Dependency audit (CI only) | No runtime dependency with a known vulnerability (pip-audit over the server and embeddings extras, on every change and weekly); no pull request bringing one in at high severity (dependency review). Dependabot proposes updates of the workflows' actions; [SECURITY.md](SECURITY.md) says how to report a vulnerability |
 
 A finding is fixed in the code. Where a rule does not fit, it is suppressed as narrowly as
 possible (a line, then a file or a directory, then the project, in `pyproject.toml`), with the
