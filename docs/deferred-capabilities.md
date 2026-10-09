@@ -6,9 +6,8 @@ move to **Backlog**, remain open and be marked deferred. Phase 6 delivers the po
 boundary and evaluation/desk-assessment evidence, without an internal LLM, an `ask` tool or a
 wxMCP adapter. This is a prioritization decision, not rejection of the underlying ideas.
 
-Design credit: **Semantic Infrastructure (SI) team**, *MCP Architecture*, SI Team Meeting,
-1 October 2026. Their proposed server was not built; this codebase supersedes the proposal.
-This document develops the team's orchestration and integration suggestions while preserving
+The proposed server of the Semantic Infrastructure (SI) team was not built; this codebase
+supersedes the proposal. This document develops the team's orchestration and integration suggestions while preserving
 the validated semantic core. The [architecture ledger](decisions/001-si-architecture-alignment.md)
 and `spec/` retain the operative contracts; this research strategy changes none of them.
 

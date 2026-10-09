@@ -5,9 +5,8 @@
 [deferral and research strategy](deferred-capabilities.md) records the entry criteria. This is a source-based assessment,
 not a deployed gateway test, certification or judgment about every IBM offering.
 
-Design credit: the **Semantic Infrastructure (SI) team**, *MCP Architecture*, SI Team
-Meeting, 1 October 2026, which proposed examining wxMCP. Their proposed server was not
-built; this repository supplies the semantic implementation.
+The Semantic Infrastructure (SI) team proposed examining wxMCP. Their proposed server was
+not built; this repository supplies the semantic implementation.
 
 ## Version and evidence boundary
 

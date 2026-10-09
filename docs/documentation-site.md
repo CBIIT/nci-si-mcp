@@ -3,7 +3,6 @@
 The website presents the repository's existing documentation, behavioral stories and Mermaid
 diagrams as a searchable static site. It is public, requires no account, and has no connection
 to the MCP process or an operational results store. Local use requires no institutional login.
-Design credit: the Semantic Infrastructure (SI) team, *MCP Architecture*, 1 October 2026.
 
 ## Build and preview
 
@@ -17,6 +16,10 @@ npm run build --prefix docs/site-assets
 pdm run docs-build
 pdm run python -m http.server 8000 --bind 127.0.0.1 --directory tmp/docs-site
 ```
+
+The build records the installed package version, which `pdm install` derives from the nearest
+tag: on a clone without tags, run `git fetch --tags origin && pdm install` first, or the build
+refuses the development fallback version.
 
 Open `http://127.0.0.1:8000/`. Stop the preview with Ctrl+C. Builds require a new output
 directory: for another preview use `pdm run docs-build --output tmp/docs-site-next`, or remove
@@ -112,6 +115,6 @@ The documentation artifact can be served by an ordinary static host or a separat
 container. The [local results dashboard](local-validation.md) uses a separate loopback listener;
 controls, benchmark results and advisory configuration views are available locally. The
 [companion containers](companion-containers.md) package the two services separately.
-UAT/PROD administration must remain disabled until the platform supplies the approved
-authentication and explicit maintainer authorization integration (#197). Documentation remains
-anonymous. The repository's public status and upstream EVS/caDSR access controls are unchanged.
+UAT/PROD administration is disabled ([deployment.md](deployment.md) records where it may be
+exposed). Documentation
+remains anonymous. The repository's public status and upstream EVS/caDSR access controls are unchanged.

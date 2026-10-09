@@ -18,7 +18,8 @@ source in disposable workers, while configuration proposals remain advisory. Its
 has an internal fixture network and its own evidence volume, with a fixed-destination ingress
 relay. It has no serving index/model, upstream credentials or Docker socket. See the
 [deployment views](docs/deployment.md#local-documentation-and-validation-companion) for data
-flows; UAT/PROD admin deployment remains disabled pending platform integration in #197.
+flows; UAT/PROD administration is disabled ([deployment.md](docs/deployment.md) records where it
+may be exposed).
 
 The [Phase 6 architecture decision](docs/decisions/001-si-architecture-alignment.md) maps the
 Semantic Infrastructure team's proposal to this implementation and records approved
@@ -120,18 +121,18 @@ The registry derives adapter parameters from handler signatures; closed choices 
 | `config_snapshot.py` | Opt-in local startup evidence from the actual serving settings; explicit safe-field allowlist, target instance/revision and owned-file cleanup. No live-state or remote discovery claim; companion proposals never apply settings. | `config.py`, local validation companion |
 | `container_entry.py` | Starts the same server with externally supplied assets, verifies the index and loads the model offline; startup failures name the asset and error class without library messages. It never builds or activates an index. | `context.py`, `embeddings.py`, `transport.py` |
 | `transport.py` | Stateful or stateless HTTP over the shared adapter; SDK authentication and scope hooks, Host/Origin admission, body cap, local readiness and token-free auth diagnostics. Sessions belong to one process. | `server.py`, optional MCP/Starlette/Uvicorn |
-| `server.py` | Registers profile-selected tools, five resource templates and two concrete resources from the registry on an `mcp` 2.x `MCPServer`, and flags error records as protocol errors. Middleware carries cache decisions from SDK worker threads into tool `_meta` and resource fields, without inspecting content or matching names. Undeclared successful responses fail. SDK hints cover lists/discovery. | `registry.py`, `caching.py`, optional `mcp` package |
+| `server.py` | Registers profile-selected tools, five resource templates and two concrete resources from the registry on an `mcp` 2.x `MCPServer`, and flags error records as protocol errors. Middleware carries cache decisions from SDK worker threads into tool `_meta` and resource fields, without inspecting content or matching names. Undeclared successful responses fail. SDK hints cover lists/discovery. Prompts are packaged in `data/prompts.json`, kept equal to `spec/prompts.yaml` by a test, exposed only by profiles that contain every tool they name, and make no content calls. | `registry.py`, `caching.py`, optional `mcp` package |
 | `permissions.py` | Immutable request authority, capability checks and compound dependencies | `errors.py`, registry, standard-library context variables |
 | `server_permissions.py` | Caller-filtered MCP surfaces and session ownership | `permissions.py`, registry, caching, optional MCP package |
 | `http_auth.py` | Operator-installed authentication integration, verified issuer/identity binding and required-startup validation | `permissions.py`, optional MCP authentication package |
-| `registry.py` | Declares each operation once with its handler, output union, optional cache default and adapter exposure. Handlers that own the complete cache policy omit the default. Derives input models, CLI arguments and MCP parameters from handler signatures; selects tools by profile and invokes all producers through one boundary. | `handlers.py`, `invocation.py`, `caching.py`, `results.py` |
+| `registry.py` | Declares each operation once with its handler, output union, optional cache default and adapter exposure. Handlers that own the complete cache policy omit the default. Derives input models, CLI arguments and MCP parameters from handler signatures; selects tools by profile and invokes all producers through one boundary. Carries each tool's group metadata and read-only, idempotent, non-destructive, open-world annotations (M1.4). | `handlers.py`, `invocation.py`, `caching.py`, `results.py` |
 | `context.py` | Holds injectable settings, clients, index and embedding provider shared by a server or CLI invocation. | EVS client, local index, embeddings |
 | `audit.py` | Emits one redacted JSON completion record per invocation, classifies parameters from the registry, counts actual HTTP attempts in request-scoped state, and formats diagnostics. | Correlation context, standard-library logging and SHA-256 |
 | `handlers.py` | Validates inputs, orchestrates use cases, pins EVS requests to the configured release channel, enforces index compatibility and implements lookup fallback. Owns tool contracts and pinned resource content; absent and mismatched indexes are explicit errors. | `context.py`, release, traversal, evaluation |
 | `catalogue.py` | Reads release-pinned roles and associations once per call, validates row identities and the configured terminology-specific exclusion set, and projects relationship records with polarity by code. Missing exclusions fail the listing and neighborhood call with internal_error and missingCodes; no startup reads or cross-call cache. | EVS client, models, configuration |
 | `cursor.py` | Encodes continuation positions with their applied arguments. Validates cursor structure and known arguments before discovery, then binds the independently selected effective release before content access. | standard library, errors |
 | `content.py` | Implements the EVS content surface at the effective release, projects spec concept/node/edge records, and explicitly refuses unsupported Phase 2 options. Reuses fetched graph payloads and batches missing node status reads within the traversal request budget. Indexed search checks the requested release inside its read transaction. | `context.py`, index, traversal, release, validation |
-| `invocation.py` | Converts expected failures inside the audit correlation context through the single error-code table, preserving details and next steps. Unexpected exceptions propagate. | `errors.py`, upstream and domain exceptions |
+| `invocation.py` | Converts expected failures inside the audit correlation context through the single error-code table, preserving details and next steps, and appends tool-specific guidance for the caDSR matching and keyword-search tools. Unexpected exceptions propagate. | `errors.py`, upstream and domain exceptions |
 | `upstream.py` | Parses an upstream response body as JSON content, and classifies a failure that arrived as a success (an HTML page, a webMethods `apiResponse.type` `E` envelope, a FHIR `OperationOutcome` error, invalid JSON) as `upstream_unavailable` before any caller sees it. | `errors.py` |
 | `http_client.py` | The one HTTP client for upstream platforms: supports JSON GET/POST, form POST and explicitly requested bounded export text; sends the call's correlation identifier and the platform's credentials (never to another origin: a redirect elsewhere is refused); retries 5xx, 429 (after its `Retry-After`) and connection failures with jittered backoff, counting every attempt; bounds the response size; classifies the response (through `upstream.py`) before returning it; hands one record per attempt to a request-log hook (a hook that raises is logged by type and ignored). | Python `urllib`, `upstream.py`, `errors.py` |
 | `evs.py` | Calls EVS REST endpoints through the HTTP client, classifies EVS-specific failures (missing concept, unknown release, unusable content and release mismatch) while shared HTTP failures propagate unchanged, reads the terminology listing (optionally one channel's `latest` row), and normalizes EVS payloads. | `http_client.py`, shared models, NCI EVS API |
@@ -479,46 +480,6 @@ network access; activation is explicit. No embedding runs while opening a databa
 A cached concept keeps the `retrieved_at` time at which it was fetched from EVS
 for indexing.
 
-## Public surface
-
-MCP tools:
-
-- `resolve_release`
-- `list_terminologies`
-
-- `get_concept`
-- `get_concepts`
-- `list_relationships`
-- `resolve_retired_code`
-- `get_concept_subsets`
-- `get_concept_mappings`
-- `expand_value_set`
-- `search_concepts`
-- `get_concept_hierarchy`
-- `get_concept_neighborhood`
-
-MCP resources:
-
-- `ncit://concept/{release}/{code}`
-- `ncit://release/{version}`
-- `ncit://index/manifest/{release}`
-
-The `evs` profile exposes twelve EVS tools; `cadsr` exposes ten caDSR tools;
-`unified` exposes both plus four cross-domain and three workflow tools (29 total), and four
-furnished prompts. Prompt templates are packaged in `data/prompts.json`, with a test requiring
-exact equality with `spec/prompts.yaml`; only profiles containing every named tool expose them.
-caDSR data-element resources (latest or named item version) and the
-concrete registry-state resource carry unpinned provenance and a short public cache hint.
-Each tool has group metadata and read-only, idempotent,
-non-destructive, open-world annotations. EVS resources are available in `evs` and `unified`
-only. Every EVS resource is release-pinned; concept reads use `get_concept` with every supported
-section, release reads use the requested served version's metadata, and index reads serve only
-the active matching manifest, with `source: evs_index` and `servedBy: index` provenance.
-
-The CLI retains lookup, indexed search, traversal, release-info, sample indexing and
-retrieval evaluation diagnostics. The release report uses `selected_release`; moving resource
-aliases are removed. QUICKSTART.md lists the error codes.
-
 ## Current boundaries
 
 - NCIt is the only indexed terminology. Lexical/typeahead search uses EVS directly;
@@ -536,36 +497,18 @@ aliases are removed. QUICKSTART.md lists the error codes.
   Code maps use the CRDC list alone. Published form and matching pins are unavailable until
   their upstream transport exists. The requested C-1 CRDC fixture sends and echoes its pin.
 - Form-by-ID alone interprets HTTP 200, explicit form:null and type E as not_found after id
-  validation. A genuine failure in the identical shape is indistinguishable; #42 requests an
-  unambiguous upstream absence signal. The operation interpretation raises before the common
+  validation. A genuine failure in the identical shape is indistinguishable; the upstream package
+  ([cadsr-forms](docs/upstream/cadsr.md#cadsr-forms)) requests an unambiguous absence signal.
+  The operation interpretation raises before the common
   parser, which still classifies every other shape/status/operation unchanged.
 - Index builds and activation are operator commands. Production activation requires a
-  persisted passing evaluation for that build; the operator runbook follows in #40.
+  persisted passing evaluation for that build; [docs/container.md](docs/container.md) is the
+  operator runbook.
 - The package requires Python 3.14 or newer. The `mcp` package comes with the
   optional `server` extra, which only the `serve` command and the server tests
   need.
 
-## Verification map
-
-- `tests/test_evs.py`: failure mapping, release verification, and concept normalization.
-- `tests/test_release.py`: one-row release resolution per channel and its failures, the unknown-release 404, the release being resolved afresh in every call, and the caDSR registry state.
-- `tests/test_evs_client.py`: failure classification, response limits, payload shapes, and request URLs through the EVS client.
-- `tests/test_http_client.py`: headers, correlation, counted retries, `Retry-After`, the request-log hook, and credentials (sent to their platform only, in no log, record or error).
-- `tests/test_index.py`: sample updates and build retention, rollback, embedding compatibility, migrations, and BM25/vector/hybrid search.
-- `tests/test_handlers.py`: lookup (live, fallback, mismatch, not found), indexing, search, traversal, status, and the mapping of failures to error codes, details and next steps.
-- `tests/test_errors.py`: the error record, its closed set of codes, and the correlation identifier.
-- `tests/test_upstream.py`: failures masked as success responses (HTML, webMethods, FHIR), also through the EVS client.
-- `tests/test_traversal.py`: edge-type selection, batching, depth/node/edge limits, descendants, deduplication, and graph integrity.
-- `tests/test_validation.py`: public input validation and embedding configuration.
-- `tests/test_config.py`: environment parsing and settings validation.
-- `tests/test_evaluation.py`: ranking metrics.
-- `tests/test_registry.py`: profile inventories, annotations, shared argument defaults and overrides, CLI maintenance commands and unchanged upstream error details.
-- `tests/test_cli.py`: argument parsing, command dispatch, exit codes, and startup failures.
-- `tests/test_server.py`: tool and resource registration, results, and protocol-level errors over an in-process MCP session.
-- `tests/test_docs.py`: the settings, error codes and modules the documentation names against the code.
-- `tests/test_quality_gates.py`: the complexity and test-quality gates in `scripts/validation`.
-- `tests/test_release_config.py`: the pull request title check against the release configuration.
-- `acceptance/`: the behavioural acceptance suite, which tests the MCP tool surface through a fixture upstream ([acceptance/README.md](acceptance/README.md)).
+## Content and caller contracts
 
 ### EVS content identity
 

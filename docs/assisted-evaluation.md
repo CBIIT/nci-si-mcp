@@ -4,9 +4,8 @@ The server uses deterministic tools and workflows. It has no internal generative
 planner or generated SPARQL/SQL. Semantic search can use an embedding model; that is
 retrieval, not answer generation. An external MCP client may supply its own LLM.
 
-Design credit: the **Semantic Infrastructure (SI) team**, *MCP Architecture*, SI Team
-Meeting, 1 October 2026. [#179](https://github.com/CBIIT/nci-si-mcp/issues/179)
-investigates the team's orchestration proposal without presuming that a server-side
+[#179](https://github.com/CBIIT/nci-si-mcp/issues/179)
+investigates the Semantic Infrastructure (SI) team's orchestration proposal without presuming that a server-side
 planner improves on the existing workflows.
 
 ## What was measured

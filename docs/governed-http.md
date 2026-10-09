@@ -1,6 +1,5 @@
 # Governed HTTP access
 
-Design credit: **Semantic Infrastructure (SI) team**, *MCP Architecture*, 1 October 2026.
 This is portable integration support with fixture evidence. Production identity and Cloud One
 deployment remain **disabled and unvalidated** until the security/hosting owners approve them.
 

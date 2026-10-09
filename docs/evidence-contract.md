@@ -2,7 +2,6 @@
 
 The [Phase 7 companion plan](portal-plan.md), issue
 [#191](https://github.com/CBIIT/nci-si-mcp/issues/191), changes no MCP record or tool.
-Design credit: **Semantic Infrastructure (SI) team**, MCP Architecture, 1 October 2026.
 
 All local features work for repository users without application login. Public engineering CI
 remains public. Only UAT/PROD administrative instances require platform authentication and
@@ -168,4 +167,4 @@ observable validation and projection behavior, not a separate relaxed portal thr
 The public documentation build excludes operational UAT/PROD records from pages, search indexes
 and downloads. Local result browsing has no login requirement. A shared UAT/PROD deployment must
 protect all admin metadata, artifacts and actions through the approved platform integration
-before exposing them; #197 tracks that deployment work. No repository visibility change is needed.
+before exposing them; [deployment.md](deployment.md) records where that may happen. No repository visibility change is needed.

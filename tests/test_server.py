@@ -152,11 +152,8 @@ class ServerTest(ServerFixture):
     def test_quickstart_lists_exactly_the_public_tools(self, _):
         tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
 
-        # The names in backticks that start the bullets of the section.
-        leads = re.findall(
-            r"^- ((?:`\w+`(?:, )?)+)", section(QUICKSTART, "MCP Tools"), flags=re.MULTILINE
-        )
-        names = {name for lead in leads for name in re.findall(r"`(\w+)`", lead)}
+        # The names in backticks that start the rows of the generated table.
+        names = set(re.findall(r"^\| `(\w+)` \|", section(QUICKSTART, "MCP Tools"), flags=re.M))
 
         self.assertEqual(names, set(tools))
 

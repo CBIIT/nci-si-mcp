@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from nci_si_acceptance.requirements import load_requirements
+from nci_si_acceptance.requirements import load_requirements, repo_path
 
 ROOT = Path(__file__).parents[2]
 SOURCE = ROOT / "stories.yaml"
@@ -152,7 +152,8 @@ def _section(story: dict, cases: list[Case]) -> list[str]:
     lines += _example_rows(story, cases)
     lines += ["", "<details>", f"<summary>Exact executable cases ({len(cases)})</summary>", ""]
     lines += [
-        f"- <code>{html.escape(case.key)}</code> — [source]({_test_link(case)})" for case in cases
+        f"- <code>{html.escape(repo_path(case.key))}</code> — [source]({_test_link(case)})"
+        for case in cases
     ]
     return [*lines, "", "</details>", ""]
 
