@@ -1,6 +1,7 @@
 """Furnished prompts preserve the specification text and profile boundaries."""
 
 import json
+import re
 from dataclasses import replace
 from importlib.resources import files
 from pathlib import Path
@@ -54,3 +55,64 @@ class PromptTest(ServerFixture):
             )
 
         self.session(interaction)
+
+
+class PromptStepsTest(ServerFixture):
+    """Every step of a rendered prompt is a call the served tools can answer."""
+
+    def rendered(self, name, **given):
+        async def interaction(client):
+            declared = (await client.list_prompts()).prompts
+            arguments = {a.name: "ARG" for p in declared if p.name == name for a in p.arguments}
+            arguments = {k: v for k, v in arguments.items() if k not in given} | given
+            return (await client.get_prompt(name, arguments)).messages[0].content.text
+
+        return self.session(interaction)
+
+    def test_every_prompt_names_only_tools_the_server_serves(self):
+        async def served(client):
+            return {tool.name for tool in (await client.list_tools()).tools}
+
+        tools = self.session(served)
+
+        for name in PROMPTS:
+            snake = set(re.findall(r"\b[a-z]+(?:_[a-z]+)+\b", self.rendered(name)))
+            self.assertLessEqual(snake, tools, name)
+            self.assertEqual([t for t in PROMPTS[name]["tools"] if t not in tools], [], name)
+
+    def test_protocol_authoring_leaves_the_registry_release_unset_and_form_lookup_conditional(self):
+        text = self.rendered("protocol_authoring")
+
+        self.assertIn("leave registryRelease unset", text)
+        self.assertIn("(C-1)", text)
+        self.assertIn("If the protocol already names a form, call get_form with its publicId", text)
+
+    def test_crdc_alignment_pages_the_code_maps_of_the_commons_and_picks_the_field(self):
+        text = self.rendered("crdc_model_alignment")
+
+        self.assertIn("page get_code_map with targetContext set to the commons", text)
+        self.assertIn("pick the map whose crdcName equals the field", text)
+
+    def test_uscdi_curation_names_the_terminology_and_reads_naturally_without_values(self):
+        text = self.rendered("uscdi_cancer_curation", element="Grade", values="")
+
+        self.assertIn("search_concepts with terminology ncit", text)
+        self.assertNotIn(": .", text)
+        self.assertIn("[]. If the brackets are empty, skip this step", text)
+
+    def test_cross_program_harmonization_reads_the_concepts_before_looking_for_elements(self):
+        text = self.rendered("cross_program_harmonization")
+
+        self.assertIn("conceptAssociations", text)
+        self.assertLess(
+            text.index("get_data_element"), text.index("find_data_elements_for_concept")
+        )
+        self.assertEqual(
+            PROMPTS["cross_program_harmonization"]["tools"],
+            [
+                "resolve_release",
+                "harmonize_data_dictionary",
+                "get_data_element",
+                "find_data_elements_for_concept",
+            ],
+        )

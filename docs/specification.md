@@ -689,10 +689,10 @@ The tools it names, in order: `resolve_release`, `find_data_elements_for_concept
 
     Help author the data capture of a protocol from its concepts: {concepts}.
 
-    1. Call resolve_release for the terminology ncit and keep the version it returns. Pass it as release to every later call that takes one.
+    1. Call resolve_release for the terminology ncit and keep the version it returns. Pass it as release to every later call that takes one, and leave registryRelease unset: caDSR publishes no registry release yet (C-1).
     2. For each concept, call find_data_elements_for_concept with that release. Set expandDescendants when the protocol speaks of a class of concepts rather than of one.
     3. Several data elements may capture the same concept. For each candidate, call get_data_element with its publicId and compare its context, workflow status, registration status and permissible values. Choose the one the protocol should reuse, preferring a released, standard and current one, and say why. Keep the candidates you rejected, with their reasons.
-    4. Where a form already collects the chosen data elements, call get_form with its publicId and reuse its question wording and module order.
+    4. If the protocol already names a form, call get_form with its publicId and reuse its question wording and module order.
 
     Report, for each concept, the data element chosen, the candidates rejected and why, and the release every answer carries.
 
@@ -706,7 +706,7 @@ The tools it names, in order: `resolve_release`, `get_code_map`, `resolve_stored
     Align the CRDC model field {field} with its data element and with the values the commons {commons} stores for it.
 
     1. Call resolve_release for the terminology ncit and keep the version it returns. Pass it as release to every later call that takes one.
-    2. Call get_code_map for the field, by dataElementId where the field is a public id, otherwise with targetContext set to the commons. Read valueLevelBinding and coverage, and note each value with its conceptCode.
+    2. Where the field is a public id, call get_code_map with dataElementId. Otherwise page get_code_map with targetContext set to the commons and pick the map whose crdcName equals the field. Read valueLevelBinding and coverage, and note each value with its conceptCode.
     3. For each concept code, call resolve_stored_value with the commons and that release. Read confidence and evidence. A commons without value-level binding returns no stored value: report that, and never give the preferred term as if it were stored.
     4. Before relying on any join of the NCIt side with the caDSR side, call get_release_alignment. Read intervalDays and the warning: a join across releases that far apart describes two content states, and the answer must say so.
 
@@ -719,12 +719,12 @@ The curation checklist from a USCDI+ Cancer element to NCIt and caDSR.
 Arguments: `element`, `values` (optional).
 The tools it names, in order: `resolve_release`, `search_concepts`, `ground_value`, `match_value_meanings`.
 
-    Curate the USCDI+ Cancer element {element} against NCIt and caDSR. Example values, if any: {values}.
+    Curate the USCDI+ Cancer element {element} against NCIt and caDSR.
 
     1. Call resolve_release for the terminology ncit and keep the version it returns. Pass it as release to every later call that takes one.
-    2. Call search_concepts with the element's name and read the first results, active concepts before retired ones. Choose the concept that stands for the element, and name the alternatives you rejected.
+    2. Call search_concepts with terminology ncit and the element's name as the query, and read the first results, active concepts before retired ones. Choose the concept that stands for the element, and name the alternatives you rejected.
     3. Call ground_value with the chosen conceptCode. Read the data elements that use it and the permissible values that stand for it.
-    4. For the example values, call match_value_meanings and compare each value meaning with the permissible values found.
+    4. Example values given with the request: [{values}]. If the brackets are empty, skip this step. Otherwise call match_value_meanings with them and compare each value meaning with the permissible values found.
 
     Checklist for the answer: the concept chosen and why; the status of the concept; the data elements found and their registration status; the values with no match; and the release of every answer.
 
@@ -733,7 +733,7 @@ The tools it names, in order: `resolve_release`, `search_concepts`, `ground_valu
 The comparison across the two programs' results.
 
 Arguments: `first_dictionary`, `second_dictionary`.
-The tools it names, in order: `resolve_release`, `harmonize_data_dictionary`, `find_data_elements_for_concept`.
+The tools it names, in order: `resolve_release`, `harmonize_data_dictionary`, `get_data_element`, `find_data_elements_for_concept`.
 
     Harmonize the data dictionaries of two programs onto shared data elements.
 
@@ -745,7 +745,7 @@ The tools it names, in order: `resolve_release`, `harmonize_data_dictionary`, `f
 
     1. Call resolve_release for the terminology ncit and keep the version it returns. Pass it as release to every later call that takes one.
     2. Call harmonize_data_dictionary on the columns of the first program, then on those of the second, at most ten columns a call. Keep the columns that matched nothing.
-    3. Compare the two results. Where both programs' columns match the same data element, the columns overlap. Where they match different data elements for the same concept, call find_data_elements_for_concept for that concept and release and say which data element both programs should use.
+    3. Compare the two results. Where both programs' columns match the same data element, the columns overlap. Where they match different data elements, call get_data_element for each with include conceptAssociations to see the concept behind it. Where the concept is the same, call find_data_elements_for_concept for that concept and release and say which data element both programs should use.
 
     Report the overlaps, the divergences with a recommendation, and the columns of each program left unmatched.
 
