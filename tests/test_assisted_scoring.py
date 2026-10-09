@@ -1,6 +1,6 @@
 import unittest
 
-from nci_si_mcp.task_evaluation import assess, summarize, validate_plan
+from scripts.assisted_scoring import assess, summarize, validate_plan
 
 
 def task():

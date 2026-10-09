@@ -18,6 +18,7 @@ from typing import Any
 import yaml
 from mcp.client import Client
 from mcp.shared.exceptions import MCPError
+from scripts.assisted_scoring import assess, summarize, validate_plan
 
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
 from nci_si_acceptance.suite import unmatched_requests
@@ -26,7 +27,6 @@ from nci_si_mcp.context import Context
 from nci_si_mcp.permissions import Authority, Principal
 from nci_si_mcp.registry import SPECS
 from nci_si_mcp.server import create_mcp
-from nci_si_mcp.task_evaluation import assess, summarize, validate_plan
 
 ROOT = Path(__file__).resolve().parents[1]
 TASKS = ROOT / "evaluation/assisted-tasks.yaml"
@@ -163,7 +163,12 @@ def grouped_summary(rows: list[dict[str, Any]], key: str) -> dict[str, Any]:
 
 
 def metadata() -> dict[str, Any]:
-    sources = [TASKS, Path(__file__), ROOT / "src/nci_si_mcp/task_evaluation.py", ROOT / "pdm.lock"]
+    sources = [
+        TASKS,
+        Path(__file__),
+        Path(__file__).with_name("assisted_scoring.py"),
+        ROOT / "pdm.lock",
+    ]
     return {
         "base_commit": subprocess.check_output(
             ["git", "rev-parse", "HEAD"],  # noqa: S607 - fixed repository query
