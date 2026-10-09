@@ -160,6 +160,11 @@ class AuditRecordTest(unittest.TestCase):
         self.assertEqual(result["status"], "ok")
 
 
+def compact_text(value):
+    """The one text form a client receives, written out independently of `compact`."""
+    return json.dumps(value, separators=(",", ":"), sort_keys=True, ensure_ascii=False)
+
+
 class AuditAdapterTest(ServerFixture):
     def test_mcp_runtime_error_is_recorded_before_the_sdk_handles_it(self):
         self.evs.errors["get_concept"] = RuntimeError("runtime canary")
@@ -228,6 +233,9 @@ class AuditAdapterTest(ServerFixture):
         self.assertTrue(record["correlationId"])
         self.assertEqual(record["outboundRequests"], 0)
         self.assertEqual(self.evs.calls, [])
+        text = result.content[0].text
+        self.assertEqual(text, compact_text(result.structured_content))
+        self.assertEqual(record["resultSize"], len(text.encode("utf-8")))
 
     def test_overflowing_json_number_keeps_audit_json_valid(self):
         wire = (
@@ -299,6 +307,7 @@ class AuditAdapterTest(ServerFixture):
         (record,) = records(stream)
         text = result.content[0].text
         self.assertEqual(json.loads(text), result.structured_content)
+        self.assertEqual(text, compact_text(result.structured_content))
         self.assertEqual(record["resultSize"], len(text.encode("utf-8")))
 
     def test_truncation_is_copied_with_per_kind_counts(self):

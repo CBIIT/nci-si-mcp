@@ -158,7 +158,7 @@ def create_mcp(
     def resource_call(spec: ToolSpec, arguments: dict[str, Any]) -> Any:
         result = invoke(context, spec.operation, **arguments)
         if is_error_record(result):
-            raise ResourceError(json.dumps(result))
+            raise ResourceError(compact(result))
         return result
 
     def register(spec: ToolSpec) -> None:
@@ -352,7 +352,7 @@ def _validate_inputs(profile: str) -> Callable[..., Any]:
                 return CallToolResult(
                     is_error=True,
                     structured_content=result,
-                    content=[TextContent(type="text", text=json.dumps(result))],
+                    content=[TextContent(type="text", text=compact(result))],
                 ).model_dump(by_alias=True, exclude_none=True)
         return await call_next(ctx)
 

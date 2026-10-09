@@ -299,6 +299,10 @@ class SurfacePermissionTest(ServerFixture):
                 result = await client.call_tool(name, {"code": "C3262"})
                 self.assertTrue(result.is_error)
                 self.assertEqual(result.structured_content["error"]["code"], "permission_denied")
+                self.assertEqual(
+                    result.content[0].text,
+                    json.dumps(result.structured_content, separators=(",", ":"), sort_keys=True),
+                )
                 self.assertNotIn(name, str(result.structured_content))
                 self.assertEqual(result.meta["cacheScope"], "private")
             self.assertEqual(self.evs.calls, [])

@@ -616,7 +616,8 @@ version, then put that version in the resource URI. CLI `release-info` remains t
 
 Every tool declares an `outputSchema` covering its success object and the shared error
 record. Successful `structuredContent` is validated by the MCP SDK and has the same fields
-as the JSON text content; optional fields remain omitted, and there is no extra `result`
+as the JSON text content, which is compact with sorted keys and is the one text form every tool
+result takes, errors included; optional fields remain omitted, and there is no extra `result`
 wrapper. The schema includes the closed error-code set, provenance and recursive truncation
 records. The tool listing stays the same across release channels and upstream availability.
 

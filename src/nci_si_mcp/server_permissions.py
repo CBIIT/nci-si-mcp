@@ -10,7 +10,7 @@ from typing import Any
 from mcp.shared.exceptions import MCPError
 from mcp.types import CallToolResult, TextContent
 
-from .audit import emit
+from .audit import compact, emit
 from .caching import cache_hint
 from .errors import PlatformError, correlated, current_correlation_id, serialise
 from .permissions import (
@@ -127,7 +127,7 @@ def _refusal(method: str, error: PlatformError) -> Any:
         return CallToolResult(
             is_error=True,
             structured_content=result,
-            content=[TextContent(type="text", text=json.dumps(result))],
+            content=[TextContent(type="text", text=compact(result))],
             _meta=cache_hint(error=True),
         ).model_dump(by_alias=True, exclude_none=True)
     raise MCPError(-32001, error.message, result)
