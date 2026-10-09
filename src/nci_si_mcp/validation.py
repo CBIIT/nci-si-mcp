@@ -53,7 +53,6 @@ DataElementInclude = Literal[
 ]
 RegistrySearchMode = Literal["lexical", "semantic", "hybrid"]
 DataElementConceptRole = Literal["objectClass", "property"]
-DataElementFilter = Literal["context", "workflowStatus", "registrationStatus", "valueDomainType"]
 MatchStrictness = Literal["restricted", "unrestricted"]
 MatchedItemType = Literal["Concept", "ValueMeaning"]
 CodeMapSource = Literal["CRDC"]

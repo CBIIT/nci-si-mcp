@@ -208,11 +208,8 @@ def match_data_elements(
     """Find the caDSR data elements that best match described entities, such as the columns of a
     data dictionary; the discovery route while keyword search is unavailable.
 
-    entities is 1 to 10 objects, each a name with an optional userTip and permissibleValues.
-    matchLimit is per entity. filters narrow the data elements matched; a classification scheme
-    needs both publicId and version. modelVariant and similarityThreshold are invalid_request
-    (requirements package C-6); leave them unset. registryRelease is left unset: published pins
-    cannot yet address matching (C-1).
+    modelVariant and similarityThreshold are invalid_request until the match contract has them
+    (C-6). registryRelease is left unset: published pins cannot yet address matching (C-1).
 
     Returns matches in entity and platform order, each with the entity, data element, score,
     matching rule and matched text. Results are computed from the text given.
@@ -342,9 +339,7 @@ def match_value_meanings(
     """Find the caDSR value meanings, with their concepts, that best match given values, such as
     the permissible values of a column.
 
-    values is 1 to 10 texts. strictness is restricted (the default) or unrestricted.
-    terminologyScope limits the EVS code systems searched. registryRelease is left unset:
-    matching cannot yet address published registry releases (C-1).
+    registryRelease is left unset: matching cannot yet address published registry releases (C-1).
 
     Returns matches in platform order, each with its type, rule, identity, context and workflow
     status and, where the platform gives them, concept, source, registration status and score.

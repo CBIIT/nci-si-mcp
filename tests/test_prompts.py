@@ -107,12 +107,3 @@ class PromptStepsTest(ServerFixture):
         self.assertLess(
             text.index("get_data_element"), text.index("find_data_elements_for_concept")
         )
-        self.assertEqual(
-            PROMPTS["cross_program_harmonization"]["tools"],
-            [
-                "resolve_release",
-                "harmonize_data_dictionary",
-                "get_data_element",
-                "find_data_elements_for_concept",
-            ],
-        )

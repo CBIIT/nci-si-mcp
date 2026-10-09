@@ -170,9 +170,7 @@ def ground_value(
     """Ground a concept, or a text that names one, in both EVS and caDSR: the concept, the data
     elements and permissible values that use it, and optionally a commons' stored values.
 
-    Give exactly one of conceptCode and text; text takes the first result of a default lexical
-    search. commons adds that data commons' stored values. registryRelease is left unset today
-    (C-1). Omit release to use the session's pinned NCIt release; other terminologies need it.
+    registryRelease is left unset today (C-1).
 
     Returns the concept, dataElements, permissibleValues and, with commons, storedValues; every
     joined record names both content states. Each hop holds at most 1000 results; a cut reports
@@ -255,9 +253,7 @@ def harmonize_data_dictionary(
     """Match the columns of a data dictionary to caDSR data elements, aligning their sample values,
     in one call.
 
-    columns is 1 to 10 objects, each a name with an optional description and sampleValues.
-    filters narrow the data elements as for matching. registryRelease is left unset today (C-1);
-    every match names the same registry state.
+    registryRelease is left unset today (C-1); every match names the same registry state.
 
     Returns the columns in caller order, each with every platform match and its aligned sample
     values, plus the names that matched nothing. Results are computed from the text given.
@@ -385,10 +381,6 @@ def expand_cohort(
 ) -> dict[str, Any]:
     """Expand an NCIt concept into the cohort of its descendants, leaving out the codes its own
     exclusion roles withhold.
-
-    conceptCode is the cohort's root; maxDepth counts levels of children; maxNodes caps the
-    codes returned, the root included. includeNegative keeps the withheld codes in the result.
-    Omit release to use the session's pinned NCIt release; other terminologies need it.
 
     Returns codes, excluded (every exclusion assertion, whether or not the code is kept), edges
     and truncation naming any bound that omitted content. Only the root's exclusion roles govern

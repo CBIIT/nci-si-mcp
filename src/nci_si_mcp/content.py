@@ -118,9 +118,7 @@ def get_concept(
     """Read one concept of a terminology by its code, with its status and, if asked, its synonyms,
     definitions, properties and semantic types.
 
-    terminology and code name the concept (NCIt codes look like C3262). include adds any of
-    synonyms, definitions, properties and semanticType; without it only the base record comes
-    back. Omit release to use the session's pinned NCIt release; other terminologies need it.
+    include adds synonyms, definitions, properties and semanticType.
 
     Returns code, terminology, name, active, the status EVS gives when it gives one, and
     provenance naming the verified release.
@@ -156,9 +154,6 @@ def get_concept_subsets(
     release: Release = None,
 ) -> dict[str, Any]:
     """List the subsets a concept belongs to.
-
-    terminology and code name the concept. Omit release to use the session's pinned NCIt
-    release; other terminologies need it.
 
     Returns subsets in platform order, each with code, terminology, name and provenance. These
     are the concept's Concept_In_Subset associations, computed ones without a relationship code
@@ -224,18 +219,15 @@ def expand_value_set(
 ) -> dict[str, Any]:
     """List the members of an NCIt subset (a value set), a page at a time.
 
-    terminology is ncit, the only one served. Give exactly one of valueSet and code, the
-    subset's code. count and offset page the members in place of a cursor; activeOnly keeps only
-    active members, removed before paging. EVS cannot pin an expansion, so release must match
-    what it serves now. Omit release to use the session's pinned NCIt release; other
-    terminologies need it.
+    count and offset page the members in place of a cursor; activeOnly filters before paging. EVS
+    cannot pin an expansion, so release must match what it serves now.
 
     Returns members in platform order with FHIR provenance, total and truncation. Pages, clamped
     and past-the-end ones included, are not truncation; inactive appears on a member only when
     true.
 
     invalid_request for a count below 1, an offset below 0, or both or neither of valueSet and
-    code; capability_unavailable for a terminology other than NCIt; release_mismatch when EVS
+    code or a terminology other than ncit; release_mismatch when EVS
     serves another version (historical expansion is not promised); upstream_unavailable
     otherwise.
     """
@@ -245,12 +237,6 @@ def expand_value_set(
     identifier = _code(supplied[0], terminology)
     count = validate_expansion_options(count, offset, activeOnly)
     selected = select(context, terminology, release)
-    if terminology != "ncit":
-        raise PlatformError(
-            "capability_unavailable",
-            "EVS enumerates FHIR value sets for NCIt subsets only. Request an NCIt subset.",
-            capability="expand_value_set",
-        )
     return fhir.expand(context.fhir, selected, identifier, count, offset, activeOnly)
 
 
@@ -268,10 +254,6 @@ def get_concept_mappings(
     ] = None,
 ) -> dict[str, Any]:
     """List the mappings a concept carries to other terminologies.
-
-    terminology and code name the concept. targetTerminology keeps only maps to that target,
-    written exactly as the platform names it, case included. Omit release to use the session's
-    pinned NCIt release; other terminologies need it.
 
     Returns mappings in platform order with the record's values unchanged: target code,
     terminology, name and type, and the target's version and term type when present. An empty
@@ -345,9 +327,6 @@ def resolve_retired_code(
 ) -> dict[str, Any]:
     """Tell whether a code is retired and which concepts replace it.
 
-    terminology and code name the concept. Omit release to use the session's pinned NCIt
-    release; other terminologies need it.
-
     Returns code, terminology, the platform's active flag, its status text unchanged,
     replacements (code, name, terminology and provenance each) and provenance. An active concept
     has no replacements; a retired one that names none gets []. Status text never decides
@@ -416,9 +395,6 @@ def get_concepts(
     ] = None,
 ) -> dict[str, Any]:
     """Read several concepts of a terminology by code in one call, in the order asked.
-
-    codes is the list, at most 650; include works as for a single concept. Omit release to use
-    the session's pinned NCIt release; other terminologies need it.
 
     Returns concepts and missing (the codes EVS does not know), both in input order with
     duplicates kept. Each concept carries its verified release, status and provenance. Empty
@@ -508,9 +484,6 @@ def list_relationships(
 ) -> dict[str, Any]:
     """List the roles and associations a terminology defines, each with its polarity.
 
-    terminology names what to list. Omit release to use the session's pinned NCIt release; other
-    terminologies need it.
-
     Returns relationships, each with code, terminology, name, kind (role or association),
     polarity and provenance. For NCIt, polarity follows the configured exclusion codes (R135 to
     R142 by default), never names; other terminologies have no exclusion set. Use it to see
@@ -557,12 +530,8 @@ def search_concepts(
     """Find concepts of a terminology whose name, synonyms or definitions match a text, a page at a
     time.
 
-    query is the text. mode is lexical (the default: EVS order, the matched text shown in
-    matchedOn), typeahead (names starting with the text), or semantic and hybrid (ranked by
-    meaning from the local NCIt index, NCIt only). retired is include (the default) or only;
-    leaving retired concepts out and the upstream search types are not offered. limit is the
-    page size (default 10, at most 1000). Omit release to use the session's pinned NCIt release;
-    other terminologies need it.
+    semantic and hybrid rank by meaning from the local NCIt index, NCIt only; leaving retired
+    concepts out and the upstream search types are not offered.
 
     Returns results with the concept's code, name and status but no sections, so read a concept
     by code for its definitions. Also totalKnown, truncation and nextCursor: pass nextCursor
@@ -773,10 +742,6 @@ def get_concept_hierarchy(
 ) -> dict[str, Any]:
     """Walk a concept's hierarchy: its parents or children to a depth, or every path to the root.
 
-    direction is parent, child or pathsToRoot. depth is the number of levels (default 1, at most
-    4) and limit the page size (default 200, at most 1000); larger values clamp. Omit release to
-    use the session's pinned NCIt release; other terminologies need it.
-
     Returns nodes (the concepts reached, not the one asked about), each with traversal
     provenance, and truncation. nextCursor continues in breadth-first platform order with the
     same arguments. A depth cut is reported only when unseen targets remain; leaves and cycles
@@ -963,13 +928,9 @@ def get_concept_neighborhood(
     """Map the relationships around a concept, parents, children, roles and associations and their
     inverses, to a depth.
 
-    kinds selects among parent, child, role, association, inverseRole and inverseAssociation
-    (all six by default). depth defaults to 2 (at most 4); maxNodes to 200 (at most 1000, the
-    seed included); maxEdges to 1000 (at most 5000). budgetPerKind optionally bounds the nodes
-    each kind adds (at most 1000); otherwise kinds take turns within maxNodes. Larger values
-    clamp. Negative assertions and their targets are returned marked but not expanded unless
-    includeNegative is true or a positive route reaches them. Omit release to use the session's
-    pinned NCIt release; other terminologies need it.
+    budgetPerKind bounds the nodes each kind adds; otherwise kinds take turns within maxNodes.
+    Negative assertions and their targets are returned marked but not expanded unless
+    includeNegative is true or a positive route reaches them.
 
     Returns nodes (the seed at depth 0) and edges, each with traversal provenance; qualifiers
     and evidence pass through unchanged and a relationship with no upstream code stays positive.

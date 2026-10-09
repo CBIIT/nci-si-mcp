@@ -88,9 +88,6 @@ def resolve_release(
 ) -> dict[str, Any]:
     """Find the current release of an EVS terminology in its monthly or weekly channel.
 
-    terminology is required. channel defaults to the server's configured channel (monthly unless
-    set otherwise).
-
     Returns the terminology, channel, version and date of the release, the other versions EVS
     serves in alternatives, and provenance naming the live EVS listing. Use it to learn which
     release to name in later calls.

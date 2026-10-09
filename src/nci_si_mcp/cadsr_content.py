@@ -16,15 +16,14 @@ from .parameters import (
     REGISTRY_VERSION_FORM,
     Cursor,
     Described,
-    MatchFilters,
     RegistryRelease,
+    SearchFilters,
     count_bound,
 )
 from .permissions import require
 from .release import RegistryMetadataError, registry_state
 from .validation import (
     CodeMapSource,
-    DataElementFilter,
     DataElementInclude,
     RegistrySearchMode,
     bounded,
@@ -320,9 +319,7 @@ def get_data_element(
 ) -> dict[str, Any]:
     """Read one caDSR data element by its publicId or its preferred question text.
 
-    Give exactly one of publicId, questionText and longName. version selects an item version
-    (latest by default). include adds sections; without it only the element's own fields come
-    back. registryRelease is left unset today (C-1: caDSR publishes no registry release).
+    registryRelease is left unset today (C-1: caDSR publishes no registry release).
 
     Returns the data element with provenance (the registry alone for unpinned content); nested
     permissible values and schemes carry provenance. Its conceptAssociations section lists the
@@ -375,7 +372,7 @@ def search_data_elements(
         ),
     ] = "lexical",
     filters: Annotated[
-        MatchFilters | None,
+        SearchFilters | None,
         Described(
             "Required by the caDSR SOW (filtering by context, workflow status, "
             "registration status and value domain type); the keyword route does not serve "
@@ -390,9 +387,8 @@ def search_data_elements(
     """Search caDSR data elements by keyword, a page at a time; caDSR does not serve this route
     today (OP-C03).
 
-    query is the text. mode is lexical; semantic and hybrid are requested from caDSR (OP-C04)
-    and are capability_unavailable until it serves them. filters need the same route and are
-    capability_unavailable (OP-C03); leave them unset.
+    semantic and hybrid (OP-C04) and filters (OP-C03) are capability_unavailable until caDSR
+    serves them.
 
     Returns results, each a dataElement in platform order, with truncation and nextCursor. A
     list of 1,000 rows reports upstream_cap, omitted at least one and exact false. totalKnown
@@ -437,18 +433,18 @@ def search_data_elements(
     return result
 
 
-def _search_options(query: str, mode: str, filters: MatchFilters | None) -> None:
+def _search_options(query: str, mode: str, filters: SearchFilters | None) -> None:
     if not isinstance(query, str) or not query.strip():
         raise InputValidationError("query must be nonblank text", "query")
     validate_choice(mode, get_args(RegistrySearchMode), "mode")
     _search_filters(filters)
 
 
-def _search_filters(filters: MatchFilters | None) -> None:
+def _search_filters(filters: SearchFilters | None) -> None:
     if filters is not None and not isinstance(filters, dict):
         raise InputValidationError("filters must be an object", "filters")
     for key, value in (filters or {}).items():
-        validate_choice(key, get_args(DataElementFilter), "filters")
+        validate_choice(key, tuple(SearchFilters.__annotations__), "filters")
         if not isinstance(value, str):
             raise InputValidationError("filter values must be text", "filters")
 
@@ -499,7 +495,6 @@ def list_contexts(
 ) -> dict[str, Any]:
     """List the caDSR contexts, the owner groups under which data elements are registered, by name.
 
-    limit is the page size (default 100, at most 1000); cursor continues a listing.
     registryRelease is left unset today (C-1).
 
     Returns contexts in platform order, each its name with registry provenance, and nextCursor,
@@ -528,8 +523,8 @@ def list_classification_schemes(
         str | None,
         Described(
             "caDSR context whose schemes to list, for example NCIP. The standalone "
-            "listing is requested from caDSR (OP-C13) and is not served yet; use "
-            "get_data_element with include classificationSchemes."
+            "listing is requested from caDSR (OP-C13) and is not served yet; leave "
+            "unset."
         ),
     ] = None,
     limit: Annotated[int, count_bound("Most schemes on a page.", 100, 1000)] = 100,
@@ -538,9 +533,6 @@ def list_classification_schemes(
 ) -> dict[str, Any]:
     """List caDSR classification schemes with their nested items; caDSR does not serve this today
     (OP-C13).
-
-    context optionally narrows the listing to one caDSR context; limit, cursor and
-    registryRelease work as for the other listings.
 
     Returns, once the platform lists them, classificationSchemes as objects with their nested
     items and nextCursor. No standalone result and no synthetic definition is returned today.
@@ -644,9 +636,8 @@ def get_form(
 ) -> dict[str, Any]:
     """Read one caDSR form or case report form by its publicId, with its modules and questions.
 
-    version selects an item version (latest by default). includeModules false leaves out modules
-    and questions. A keyword is not accepted: the platform needs an identifier. registryRelease
-    is left unset today (C-1).
+    A keyword is not accepted: the platform needs an identifier. registryRelease is left unset
+    today (C-1).
 
     Returns the form with its statuses unchanged (a retired form stays retired) and, unless left
     out, modules and questions in platform order, with provenance.
@@ -706,10 +697,9 @@ def get_permissible_value(
     permissibleValueId: Annotated[  # noqa: N803 - public specification spelling.
         str,
         Described(
-            "Identifier of the permissible value, for example 2200604. The tool is "
+            "Identifier of the permissible value, for example 2200636. The tool is "
             "requested from caDSR (OP-C10) and is not served yet, so the call is answered "
-            "with capability_unavailable; read values with get_data_element and include "
-            "permissibleValues.",
+            "with capability_unavailable.",
             pattern=REGISTRY_ID_FORM,
         ),
     ],
@@ -780,7 +770,7 @@ def get_code_map(
     dataElementId: Annotated[  # noqa: N803 - public specification spelling.
         str | None,
         Described(
-            "Only the map of this one data element, for example 2200604.", pattern=REGISTRY_ID_FORM
+            "Only the map of this one data element, for example 2179689.", pattern=REGISTRY_ID_FORM
         ),
     ] = None,
     limit: Annotated[int, count_bound("Most code maps on a page.", 100, 1000)] = 100,
@@ -791,9 +781,8 @@ def get_code_map(
     store, with concept codes.
 
     The only way from a CRDC field name to a data element: page the maps and take the one whose
-    crdcName equals the field. targetContext keeps the maps that a context or commons uses (its
-    complete name among the comma-split Used By names); dataElementId keeps one data element's
-    map. sourceSystem is CRDC, the only one served. registryRelease is left unset today (C-1).
+    crdcName equals the field. targetContext matches its complete name among the comma-split Used
+    By names. registryRelease is left unset today (C-1).
 
     Returns codeMaps, one per data element, each with crdcName, usedBy, valueLevelBinding,
     coverage (values that carry a concept code; colon-joined codes are kept) and values; with no

@@ -270,10 +270,7 @@ def find_data_elements_for_concept(
     """Find the caDSR data elements that use an NCIt concept, and optionally the permissible values
     that stand for it.
 
-    conceptCode is the concept; terminology is ncit, the only one served. expandDescendants also
-    finds uses of its descendants; includePermissibleValues adds the permissible values whose
-    value meaning stands for it (the reverse lookup, OP-S04). Omit release to use the session's
-    pinned NCIt release; other terminologies need it.
+    includePermissibleValues is the reverse lookup (OP-S04).
 
     Returns dataElements and, when asked, permissibleValues (on every page, possibly empty),
     with truncation and nextCursor. One page limit and one 1000-result cap cover data-element
@@ -380,7 +377,7 @@ def get_concept_for_permissible_value(
     dataElementId: Annotated[  # noqa: N803
         str | None,
         Described(
-            "Public id of the data element that lists the value, for example 2200604. "
+            "Public id of the data element that lists the value, for example 2179689. "
             "Give it with value.",
             pattern=REGISTRY_ID_FORM,
         ),
@@ -397,9 +394,7 @@ def get_concept_for_permissible_value(
 ) -> dict[str, Any]:
     """Find the NCIt concept that a permissible value of a data element stands for.
 
-    dataElementId and value (its exact text) select the value. permissibleValueId is requested
-    from caDSR (OP-C10) and is capability_unavailable until it serves it; leave it unset. Omit
-    release to use the session's pinned NCIt release; other terminologies need it.
+    permissibleValueId is capability_unavailable until caDSR serves it (OP-C10).
 
     Returns the value's main concept from the data element's latest item version (numerically:
     2.10 follows 2.9), with provenance naming both content states. The value is compared
@@ -603,7 +598,7 @@ def resolve_stored_value(
         str | None,
         Described(
             "Public id of one caDSR data element to restrict a CRDC commons to, for "
-            "example 2200604. The GDC cannot apply it.",
+            "example 2179689. The GDC cannot apply it.",
             pattern=REGISTRY_ID_FORM,
         ),
     ] = None,
@@ -611,9 +606,7 @@ def resolve_stored_value(
     """Find the literal value a data commons stores for an NCIt concept, through the GDC mapset or
     the CRDC crosswalk.
 
-    conceptCode is the concept; commons names the data commons (GDC or a CRDC commons).
-    dataElementId restricts a CRDC commons to one data element; the GDC cannot apply it. Omit
-    release to use the session's pinned NCIt release; other terminologies need it.
+    commons is the GDC (its mapset) or a CRDC commons (the crosswalk).
 
     Returns storedValues, each with its literal, confidence and evidence, and coverage. With no
     binding there are no values, confidence none and coverage zero; the preferred term is never
@@ -711,8 +704,6 @@ def get_release_alignment(
 ) -> dict[str, Any]:
     """Compare the dates of NCIt, both Shared SI graphs and the caDSR export, to see whether a join
     of them describes one content state.
-
-    maxIntervalDays is the gap in days that raises a warning (default 31, not below 0).
 
     Returns four independent states with ISO dates, intervalDays (the largest gap between any
     two) and a warning only when intervalDays exceeds maxIntervalDays. A graph difference is

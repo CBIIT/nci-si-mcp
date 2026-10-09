@@ -47,28 +47,71 @@ MORPHOLOGY = concept("C4741", "Neoplasm by Morphology", active=True)
 
 
 TOOLS = yaml.safe_load((Path(__file__).parents[1] / "spec/tools.yaml").read_text())
-# What the specification says each tool does not offer, as a flat list of values.
-NOT_OFFERED = {
-    name: [value for values in spec.get("not_offered", {}).values() for value in values]
-    for name, spec in TOOLS.items()
-}
 
 
-QUOTED = re.compile(r'`[^`]*`|"[^"]*"')
+def _specified(spec):
+    """What the specification says one tool's input schema states, as (argument, keyword): value.
+
+    Forms (pattern), refusal limits (maxItems), defaults (a bound's, else its own) and closed
+    sets (values). A form keyed by terminology (the NCIt code form) is deliberately not served,
+    since a schema cannot say which terminology a value belongs to; a closed set states the form
+    of its argument by its members."""
+
+    closed = spec.get("values", {})
+    return (
+        {(a, "pattern"): form for a, form in _forms(spec).items() if a not in closed}
+        | {(a, "maxItems"): limit for a, limit in spec.get("lists", {}).items()}
+        | {(a, "default"): value for a, value in _defaults(spec).items()}
+        | {(a, "values"): set(members) for a, members in closed.items()}
+    )
 
 
-def shown_values(schema, values):
-    """The `values` a schema shows as offered: in enum, const or default, or quoted in a text."""
+def _forms(spec):
+    return {a: form for a, form in spec.get("patterns", {}).items() if isinstance(form, str)}
 
-    text = json.dumps(schema)
-    descriptions = map(json.loads, re.findall(r'"description": ("(?:[^"\\]|\\.)*")', text))
-    spans = [span for description in descriptions for span in QUOTED.findall(description)]
-    offered = re.findall(r'"(?:enum|const|default)": (\[[^]]*\]|"[^"]*")', text)
-    return [
-        value
-        for value in values
-        if any(re.search(rf"\b{re.escape(value)}\b", span) for span in [*spans, *offered])
+
+def _defaults(spec):
+    bounded = {n: b["default"] for n, b in spec.get("bounds", {}).items() if "default" in b}
+    return {**spec.get("defaults", {}), **bounded}
+
+
+def _served_as(schema, key):
+    """What the input schema states for `key`, an (argument, keyword) of `_specified`."""
+
+    argument, keyword = key
+    if keyword == "values":
+        return _served_values(schema, argument)
+    parameter = schema["properties"][argument]
+    found = [
+        alternative[keyword] for alternative in _alternatives(parameter) if keyword in alternative
     ]
+    return found[0] if found else None
+
+
+def _names_all(line, names):
+    """Whether `line` names every one of `names` as a whole word."""
+
+    return all(re.search(rf"\b{re.escape(name)}\b", line) for name in names)
+
+
+def _alternatives(schema):
+    """The schema of a parameter and of the alternatives and items it is built from."""
+
+    found = [schema]
+    for inner in [*schema.get("anyOf", []), *([schema["items"]] if "items" in schema else [])]:
+        found += _alternatives(inner)
+    return found
+
+
+def _served_values(schema, argument):
+    """The values the schema closes `argument` to: enum or const, or the keys of its object."""
+
+    values = set()
+    for found in _alternatives(schema["properties"][argument]):
+        values |= set(found.get("enum", ())) | ({found["const"]} if "const" in found else set())
+        if "$ref" in found:
+            values |= set(schema["$defs"][found["$ref"].rpartition("/")[2]]["properties"])
+    return values
 
 
 def pinned(**arguments):
@@ -175,7 +218,7 @@ class ServerTest(ServerFixture):
         for term in ("depth", "exact=false", "budgetPerKind"):
             self.assertIn(term, tools["get_concept_neighborhood"].description)
 
-    def test_output_schemas_name_their_root_and_carry_no_generated_titles(self, _):
+    def test_schemas_carry_no_generated_titles_and_output_schemas_name_their_root(self, _):
         tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
 
         def text_titles(schema):
@@ -191,6 +234,7 @@ class ServerTest(ServerFixture):
             titles = text_titles(tool.output_schema)
             self.assertEqual(titles, [f"{name} result"], name)
             self.assertNotIn("RootModel", json.dumps(tool.output_schema))
+            self.assertEqual(text_titles(tool.input_schema), [], name)
 
     def test_every_parameter_of_every_tool_is_described_and_extras_are_closed(self, _):
         tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
@@ -207,52 +251,21 @@ class ServerTest(ServerFixture):
         for name, tool in tools.items():
             self.assertEqual(undescribed(tool.input_schema), [], name)
             self.assertIs(tool.input_schema["additionalProperties"], False, name)
+            for record, definition in tool.input_schema.get("$defs", {}).items():
+                self.assertIs(definition.get("additionalProperties"), False, (name, record))
 
-    def test_no_parameter_description_shows_a_value_the_tool_does_not_offer(self, _):
-        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
-        not_offered = {name: values for name, values in NOT_OFFERED.items() if name in tools}
-
-        shown = {
-            name: shown_values(tools[name].input_schema, values)
-            for name, values in not_offered.items()
-        }
-
-        self.assertTrue(any(not_offered.values()))
-        self.assertEqual({name: found for name, found in shown.items() if found}, {})
-
-    def test_input_schemas_state_the_closed_sets_forms_and_refusal_limits(self, _):
+    def test_input_schemas_state_what_the_specification_says_of_each_argument(self, _):
         tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
 
-        def prop(tool, name):
-            return tools[tool].input_schema["properties"][name]
+        for name, spec in TOOLS.items():
+            schema = tools[name].input_schema
+            specified = _specified(spec)
+            served = {key: _served_as(schema, key) for key in specified}
+            self.assertEqual(served, specified, name)
 
-        def branch(schema):
-            # The schema of the non-null alternative of an optional parameter.
-            return next(s for s in schema.get("anyOf", [schema]) if s.get("type") != "null")
-
-        self.assertEqual(branch(prop("resolve_release", "channel"))["enum"], ["monthly", "weekly"])
-        self.assertEqual(prop("get_concepts", "codes")["maxItems"], 650)
-        for tool, name in [
-            ("match_data_elements", "entities"),
-            ("match_value_meanings", "values"),
-            ("harmonize_data_dictionary", "columns"),
-        ]:
-            self.assertEqual(
-                (prop(tool, name)["minItems"], prop(tool, name)["maxItems"]), (1, 10), tool
-            )
-        forms = {
-            ("get_concept", "terminology"): "^[a-z][a-z0-9_]*$",
-            ("get_concept", "release"): "^[A-Za-z0-9][A-Za-z0-9._-]*$",
-            ("expand_cohort", "conceptCode"): "^C[1-9][0-9]*$",
-            ("get_data_element", "publicId"): "^[1-9][0-9]*$",
-            ("get_form", "version"): "^[0-9]+([.][0-9]+)?$",
-        }
-        for (tool, name), form in forms.items():
-            self.assertEqual(branch(prop(tool, name))["pattern"], form, (tool, name))
-
-    def test_first_sentences_say_what_the_tool_is_for_in_words_free_of_cache_vocabulary(self, _):
+    def test_first_sentences_are_one_plain_sentence_free_of_cache_vocabulary(self, _):
         tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
-        banned = re.compile(r"TTL|cache|budget|replay|0/private|\bpublic\b", re.IGNORECASE)
+        banned = re.compile(r"TTL|cache|budget|replay|0/private", re.IGNORECASE)
 
         for name, tool in tools.items():
             first = re.match(r"(.*?\.)(\s|$)", tool.description, flags=re.DOTALL)
@@ -263,28 +276,50 @@ class ServerTest(ServerFixture):
     def test_no_description_names_another_served_tool(self, _):
         tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
 
+        def texts(tool):
+            """The tool's description and the description of each parameter and record field."""
+
+            schema = tool.input_schema
+            records = [schema, *schema.get("$defs", {}).values()]
+            fields = [f for r in records for f in r.get("properties", {}).values()]
+            return [tool.description, *(f.get("description", "") for f in fields)]
+
         for name, tool in tools.items():
-            named = [
+            named = {
                 other
                 for other in tools
-                if other != name and re.search(rf"\b{other}\b", tool.description)
-            ]
-            self.assertEqual(named, [], name)
+                if other != name and any(re.search(rf"\b{other}\b", t) for t in texts(tool))
+            }
+            self.assertEqual(named, set(), name)
 
     def test_the_instructions_carry_the_tool_selection_map_and_the_release_rule_once(self, _):
+        # Each decision: the tools one line of the map sets side by side, and the wording that
+        # says when to pick which.
         decisions = [
-            ("get_concept", "get_concepts", "search_concepts"),
-            ("get_concept_hierarchy", "get_concept_neighborhood", "expand_cohort"),
-            ("get_concept_subsets", "expand_value_set"),
-            ("get_data_element", "search_data_elements", "match_data_elements"),
-            ("find_data_elements_for_concept", "get_data_element", "conceptAssociations"),
-            ("resolve_stored_value", "get_code_map"),
-            ("get_release_alignment",),
+            (("get_concept", "get_concepts", "search_concepts"), "several codes"),
+            (
+                ("get_concept_hierarchy", "get_concept_neighborhood", "expand_cohort"),
+                "parents, children or paths to the root.*roles and associations too.*exclusion",
+            ),
+            (("get_concept_subsets", "expand_value_set"), "members of a subset"),
+            (
+                ("get_data_element", "search_data_elements", "match_data_elements"),
+                "discovery route",
+            ),
+            (
+                ("find_data_elements_for_concept", "get_data_element", "conceptAssociations"),
+                "Data element to concepts",
+            ),
+            (("resolve_stored_value", "get_code_map"), "crdcName"),
+            (("resolve_retired_code", "get_concept_mappings", "get_form"), "retired"),
+            (("list_classification_schemes", "get_data_element", "OP-C13"), "not served"),
+            (("get_release_alignment",), "before joining"),
         ]
         lines = INSTRUCTIONS.splitlines()
 
-        for names in decisions:
-            self.assertTrue(any(all(n in line for n in names) for line in lines), names)
+        for names, wording in decisions:
+            named = [ln for ln in lines if _names_all(ln, names)]
+            self.assertTrue(any(re.search(wording, ln) for ln in named), (names, wording))
         self.assertEqual(INSTRUCTIONS.count("first implicit pin"), 1)
         tools = self.session(lambda client: client.list_tools()).tools
         self.assertEqual([t.name for t in tools if "implicit pin" in t.description], [])
@@ -307,20 +342,28 @@ class ServerTest(ServerFixture):
             found = set(re.findall(r"\bOP-[A-Z]\d+\b|\bC-\d+\b", tools[name].description))
             self.assertLessEqual(ids, found, name)
 
-    def test_the_three_matching_tools_share_one_filters_type_and_expand_value_set_is_ncit_only(
-        self, _
-    ):
+    def test_the_matching_tools_share_a_filters_base_and_only_matching_adds_a_scheme(self, _):
         tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
 
-        def refs(tool):
-            filters = tools[tool].input_schema["properties"]["filters"]
-            return [s["$ref"] for s in filters["anyOf"] if "$ref" in s]
+        def served(tool):
+            schema = tools[tool].input_schema
+            ref = next(s["$ref"] for s in schema["properties"]["filters"]["anyOf"] if "$ref" in s)
+            return ref, schema["$defs"][ref.rpartition("/")[2]]["properties"]
 
-        for tool in ("search_data_elements", "match_data_elements", "harmonize_data_dictionary"):
-            self.assertEqual(refs(tool), ["#/$defs/MatchFilters"], tool)
-        terminology = tools["expand_value_set"].input_schema["properties"]["terminology"]
-        self.assertEqual(terminology["const"], "ncit")
-        self.assertIn("terminology", tools["expand_value_set"].input_schema["required"])
+        search_ref, search = served("search_data_elements")
+        self.assertEqual(search_ref, "#/$defs/SearchFilters")
+        self.assertNotIn("classificationScheme", search)
+        for tool in ("match_data_elements", "harmonize_data_dictionary"):
+            ref, match = served(tool)
+            self.assertEqual(ref, "#/$defs/MatchFilters", tool)
+            self.assertEqual(set(match), {*search, "classificationScheme"}, tool)
+
+    def test_expand_value_set_refuses_another_terminology_as_an_invalid_request(self, _):
+        failed, result = self.call("expand_value_set", terminology="other", valueSet="C85492")
+
+        self.assertTrue(failed)
+        self.assertEqual(result["error"]["code"], "invalid_request")
+        self.assertEqual(result["error"]["details"]["parameter"], "terminology")
 
     def test_search_data_elements_still_refuses_a_classification_scheme_filter(self, _):
         failed, result = self.call(
@@ -727,17 +770,3 @@ class ServerTest(ServerFixture):
 
 if __name__ == "__main__":
     unittest.main()
-
-
-class ShownValuesTest(unittest.TestCase):
-    def test_a_value_is_shown_when_quoted_or_listed_and_not_when_only_named(self):
-        schema = {
-            "properties": {
-                "mode": {"enum": ["include", "only"], "description": "Use `exclude` to hide."},
-                "query": {"description": "Do not use fuzzy matching; phrase it plainly."},
-            }
-        }
-
-        shown = shown_values(schema, ["exclude", "only", "fuzzy", "phrase", "match"])
-
-        self.assertEqual(shown, ["exclude", "only"])

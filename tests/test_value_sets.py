@@ -115,15 +115,6 @@ class ValueSetTest(ServerFixture):
                 self.assertEqual(result["error"]["code"], "invalid_request")
                 self.assertEqual(opened.call_count, 0)
 
-    def test_other_terminology_is_unavailable_after_identifier_validation(self):
-        with patch("nci_si_mcp.http_client._open") as opened:
-            result = self.expand(terminology="other", valueSet="arbitrary/code")
-            self.assertEqual(result["error"]["code"], "capability_unavailable")
-            self.assertIn("NCIt", result["error"]["message"])
-            invalid = self.expand(terminology="other", release="invalid?")
-            self.assertEqual(invalid["error"]["code"], "invalid_request")
-            self.assertEqual(opened.call_count, 0)
-
     def test_mismatch_is_exact_with_requested_and_served_and_no_members(self):
         for version in ("26.09D", " 26.09d", "26.08e"):
             with self.subTest(version=version):

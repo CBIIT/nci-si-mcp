@@ -59,9 +59,12 @@ INSTRUCTIONS = (
     "get_concept_for_permissible_value.\n"
     "- A CRDC field name to its data element and values: get_code_map (page it and match "
     "crdcName). The value a commons stores for a concept: resolve_stored_value.\n"
-    "- Contexts and classification schemes: list_contexts; an element's own schemes come "
-    "with get_data_element include classificationSchemes. A permissible value alone is "
-    "not served: read its data element with include permissibleValues.\n"
+    "- A retired code to its replacement: resolve_retired_code. A code in another "
+    "terminology: get_concept_mappings. A caDSR form: get_form.\n"
+    "- Contexts and classification schemes: list_contexts; list_classification_schemes is not "
+    "served (OP-C13), so an element's own schemes come with get_data_element include "
+    "classificationSchemes. A permissible value alone is not served (OP-C10): read its data "
+    "element with include permissibleValues.\n"
     "- Both sides of a text or code at once: ground_value. A whole data dictionary: "
     "harmonize_data_dictionary.\n"
     "- Which release: resolve_release, list_terminologies, resolve_registry_release. Call "
@@ -157,11 +160,7 @@ def create_mcp(
                 meta={"group": spec.group},
                 structured_output=True,
             )
-            # The SDK derives the schema with pydantic's titles and the RootModel's
-            # type expression; publish the same schema without them.
-            tool: Any = mcp._tool_manager.get_tool(spec.name)
-            tool.parameters = _served_input_schema(tool.parameters)
-            tool.fn_metadata.output_schema = _output_schema(record, f"{spec.name} result")
+            _serve_schemas(mcp, spec.name)
         if spec.uri and spec.visible_in(resolved_settings.profile):
             fn = _callback(spec, resource_call)
             mcp.resource(spec.uri, mime_type="application/json")(fn)
@@ -172,19 +171,17 @@ def create_mcp(
     return mcp
 
 
-def _output_schema(record: Any, title: str) -> dict[str, Any]:
-    """The schema of `record` as the SDK would publish it, without generated titles."""
+def _serve_schemas(mcp: Any, name: str) -> None:
+    """Replace the schemas the SDK derived for tool `name` with the ones the server publishes.
 
-    from mcp.server.mcpserver.utilities.func_metadata import StrictJsonSchema, _inline_root_ref
-    from pydantic import RootModel, TypeAdapter
+    pydantic's generated titles carry no meaning for a caller, so both schemas lose them; the
+    output schema is named for its tool instead. `mcp._tool_manager` is the one private seam: the
+    SDK offers no hook between deriving a schema and listing it."""
 
-    class WithoutTitles(StrictJsonSchema):
-        def generate(self, schema: Any, mode: Any = "validation") -> dict[str, Any]:
-            return _drop_titles(super().generate(schema, mode))
-
-    adapter = TypeAdapter(RootModel[record])
-    schema = _inline_root_ref(adapter.json_schema(schema_generator=WithoutTitles))
-    return {"title": title, **schema}
+    tool: Any = mcp._tool_manager.get_tool(name)
+    tool.parameters = _served_input_schema(_drop_titles(tool.parameters))
+    metadata = tool.fn_metadata
+    metadata.output_schema = {"title": f"{name} result", **_drop_titles(metadata.output_schema)}
 
 
 def _served_input_schema(schema: dict[str, Any]) -> dict[str, Any]:
@@ -208,9 +205,9 @@ def _served_input_schema(schema: dict[str, Any]) -> dict[str, Any]:
 def _described_record(record: dict[str, Any], descriptions: dict[str, str]) -> dict[str, Any]:
     properties = {
         name: {**spec, "description": descriptions[name]} if name in descriptions else spec
-        for name, spec in record.get("properties", {}).items()
+        for name, spec in record["properties"].items()
     }
-    return {**record, "properties": properties} if properties else record
+    return {**record, "properties": properties, "additionalProperties": False}
 
 
 def _field_annotation(annotation: Any) -> Any:

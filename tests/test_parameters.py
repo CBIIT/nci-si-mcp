@@ -21,6 +21,19 @@ class DescribedTest(unittest.TestCase):
         with self.assertRaises(TypeError):
             describe_fields(Row, name="Name.", size="Size.", colour="Colour.")
 
+    def test_a_record_described_twice_is_refused_and_keeps_its_first_texts(self):
+        class Twice(TypedDict):
+            name: str
+
+        describe_fields(Twice, name="First.")
+        self.addCleanup(FIELD_DESCRIPTIONS.pop, "Twice")
+
+        with self.assertRaises(TypeError) as raised:
+            describe_fields(Twice, name="Second.")
+
+        self.assertIn("Twice is described twice", str(raised.exception))
+        self.assertEqual(FIELD_DESCRIPTIONS["Twice"], {"name": "First."})
+
     def test_only_the_constraints_given_are_stated(self):
         self.assertEqual(Described("Text.").field_arguments(), {"description": "Text."})
         self.assertEqual(
