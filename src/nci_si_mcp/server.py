@@ -187,6 +187,8 @@ def _callback(
 
 def _audit_tools(context: Context, profile: str, *, protected: bool = False) -> Callable[..., Any]:
     specs = {spec.name: spec for spec in SPECS if spec.name and spec.visible_in(profile)}
+    # Secured calls hash every argument: identifiers are not disclosed in telemetry
+    # (docs/caller-permissions.md).
     fields = {name: {} if protected else spec.audit for name, spec in specs.items()}
     hidden = secrets(context.settings.evs_license_key, context.settings.cadsr_credential)
 

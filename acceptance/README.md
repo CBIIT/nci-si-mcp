@@ -232,7 +232,8 @@ reports its workers forward.
 
 ## The live workflow
 
-`.github/workflows/acceptance-live.yml` is started by hand (`workflow_dispatch` only). It runs the
+`.github/workflows/acceptance-live.yml` runs by hand (`workflow_dispatch`) and every Monday at
+06:41 UTC; the scheduled run fails when a test that passes on the fixtures fails live. It runs the
 fixture suite and the live suite (`NCI_SI_ACCEPTANCE_MODE=live`, both with `-n 4`; the live
 outcomes are not ratcheted), renders the combined report into the job summary and uploads
 `fixture.json`, `live.json`, the rendered report and `network.md` as the artifact
