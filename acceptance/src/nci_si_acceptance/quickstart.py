@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from nci_si_acceptance.document import GROUPS, _cell
+from nci_si_acceptance.document import GROUPS, cell
 from nci_si_acceptance.spec import SPEC, TOOLS
 
 QUICKSTART = SPEC.parent / "QUICKSTART.md"
@@ -23,7 +23,7 @@ BEGIN, END = "<!-- tool-summaries:begin -->", "<!-- tool-summaries:end -->"
 
 
 def row(name: str, tool: dict[str, Any]) -> str:
-    return f"| `{name}` | {GROUPS[tool['group']]} | {_cell(tool['summary'])} |"
+    return f"| `{name}` | {GROUPS[tool['group']]} | {cell(tool['summary'])} |"
 
 
 def render() -> str:

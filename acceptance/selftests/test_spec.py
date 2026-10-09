@@ -406,3 +406,4 @@ def test_the_specification_names_every_setting_of_a_run_and_the_readme_links_it(
     # The README restates no setting table; it points to the one owner.
     assert "(../spec/acceptance.md#settings-of-a-run)" in readme
     assert "| Setting |" not in readme
+    assert "\n### Settings of a run\n" in (SPEC / "acceptance.md").read_text(encoding="utf-8")

@@ -1,21 +1,15 @@
 # Quickstart
 
-For the public documentation and local validation dashboard in isolated containers, see
-[Local companion containers](docs/companion-containers.md). UAT/PROD administration remains disabled
-pending platform identity integration; repository users need no local login.
-
-Prefer a searchable website with the same instructions and diagrams? Follow the
-[local documentation preview](docs/documentation-site.md#build-and-preview); no account is needed.
-Run `pdm run portal serve` for the separate local evidence dashboard; the
-[validation guide](docs/local-validation.md) explains runs, results and configuration proposals.
-To inspect a selected local server's safe startup settings, use the same new file with
-`nci-si-mcp serve --configuration-snapshot PATH` and
-`pdm run portal serve --configuration-snapshot PATH`.
-See [configuration evidence](docs/local-validation.md#configuration-evidence-and-proposals)
-for snapshot ownership, limitations and the proposal-only change flow.
-
 How to install and run the prototype server, what it serves, and how it fails. What this repository
 is, and the status of each tool group, is in [README.md](README.md).
+
+See also: the same instructions and diagrams as a searchable website
+([local documentation preview](docs/documentation-site.md#build-and-preview)); the documentation
+and validation dashboard in [local companion containers](docs/companion-containers.md); the
+[validation guide](docs/local-validation.md) for `pdm run portal serve`, runs, results and
+configuration proposals, including startup-settings snapshots
+(`nci-si-mcp serve --configuration-snapshot PATH`,
+[configuration evidence](docs/local-validation.md#configuration-evidence-and-proposals)).
 
 ## Install
 
@@ -33,10 +27,10 @@ indexed search). The commands below are written as `python -m nci_si_mcp.cli ...
 run them inside the environment (`eval $(pdm venv activate)`) or prefix them with `pdm run`.
 
 To run a released version without a checkout, install it from its tag; the
-[releases page](https://github.com/hniedner/nci-si-mcp/releases) lists the versions:
+[releases page](https://github.com/CBIIT/nci-si-mcp/releases) lists the versions:
 
 ```bash
-pip install "nci-si-mcp[server] @ git+https://github.com/hniedner/nci-si-mcp@vX.Y.Z"
+pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"
 nci-si-mcp serve
 ```
 
@@ -484,6 +478,11 @@ remain fresh, and resource URIs keep an explicit release. Completion audit recor
 selection as `explicit`, `session-held` or `freshly-resolved`. Implicit NCIt calls use
 `ttlMs: 0` / `cacheScope: private`; explicit-release calls retain `86,400,000/public`.
 
+Bounds above their maxima clamp, and invalid arguments are `invalid_request`. Live concept and
+graph reads accept any EVS terminology: NCIt codes follow their C-number form and other codes are
+encoded as one path segment. Matching header filters must be printable ASCII, and entity and value
+text is sent unchanged.
+
 The tools, generated from `spec/tools.yaml` by `pdm run quickstart-tools`:
 
 <!-- tool-summaries:begin -->
@@ -525,6 +524,27 @@ result records. The description a client receives with each tool states the same
 The caDSR tools are available in `cadsr` and `unified`, the cross-domain and workflow tools in
 `unified`; caDSR credentials have not been issued, so their tests use contract-crafted fixtures.
 Runtime responses always come from the configured upstream, never from a built-in fixture.
+
+### CLI
+
+Each tool has a subcommand of the same name with dashes; the ones below show the shape of a call.
+`search` and `lookup` remain CLI diagnostics beside `traverse` and `release-info`.
+
+- `resolve-release ncit --channel monthly`; `list-terminologies`
+- `get-data-element --public-id 2200604`
+- `search-data-elements QUERY`; `--filters` accepts a JSON object, but filters remain unavailable
+  until caDSR serves the keyword route ([cadsr-search](docs/upstream/cadsr.md#cadsr-search))
+- `list-contexts`; `list-classification-schemes`; `resolve-registry-release`
+- `get-form --public-id 5406471 --no-modules`; `get-permissible-value 9192925`
+- `get-code-map --target-context GDC`
+- `match-data-elements '{"name":"Patient Gender"}'` (`--filters` takes a JSON object);
+  `match-value-meanings Male Female --strictness unrestricted` (repeat `--terminology-scope` for
+  several codes)
+- `find-data-elements-for-concept C17357 --include-permissible-values`;
+  `get-concept-for-permissible-value --data-element-id 2200604 --value Male`;
+  `resolve-stored-value C4817 GDC`; `get-release-alignment --max-interval-days 31`
+- `ground-value --concept-code C4817 --commons GDC`; `expand-cohort C4817 --max-depth 2`;
+  `harmonize-data-dictionary '{"name":"Patient Gender","sampleValues":["Male"]}'`
 
 ### Graph bounds
 
@@ -587,6 +607,8 @@ records. The tool listing stays the same across release channels and upstream av
 Tool results carry `ttlMs` and `cacheScope` in protocol `_meta`, separate from their JSON
 content. Explicitly release-pinned content uses 86,400,000 ms/public; unpinned caDSR content (including
 empty results) uses 3,600,000 ms/public. Implicit NCIt calls and computed matching results use 0/private.
+Explicit-release cross-domain joins use the shorter 3,600,000 ms/public because the joined caDSR
+sources are unpinned; `expand_cohort`, which reads EVS only, keeps 86,400,000 ms/public.
 Discovery tools use 0 and `public`; tool errors use 0 and
 `private`. The hints describe freshness and sharing; they do not add a server-side cache.
 
@@ -654,13 +676,13 @@ EVS wraps in a success status but that is an error envelope, an error
 | Code | Meaning | `details` |
 | --- | --- | --- |
 | `invalid_request` | An argument is missing, malformed, out of range, or contradicts another; CLI only: an environment variable is invalid | `parameter`, `reason` |
-| `not_found` | The requested release has no concept with that code, or `index-sample` named codes the release does not contain (nothing was indexed) | `identifiers` |
-| `release_not_available` | EVS did not name exactly one latest NCIt release for the channel (`requested` names the requested channel; optional `found` lists versions when several rows were returned), EVS no longer serves the pinned release, or a release resource names an unserved version or one with absent/ambiguous channel metadata | `requested`, `source`, `found` |
+| `not_found` | The requested release has no concept with that code, or `index-sample` named codes the release does not contain (nothing was indexed); Form-by-ID alone also reads HTTP 200 with `form: null` and `apiResponse.type` E as `not_found`, after the id is validated ([cadsr-forms](docs/upstream/cadsr.md#cadsr-forms)) | `identifiers` |
+| `release_not_available` | EVS did not name exactly one latest NCIt release for the channel (`requested` names the requested channel; optional `found` lists versions when several rows were returned), EVS no longer serves the pinned release, or a release resource names an unserved version or one with absent/ambiguous channel metadata; a caDSR matching pin that is not listed upstream | `requested`, `source`, `found` |
 | `release_mismatch` | The local index holds a different release than the requested one, or EVS served a concept of another release than the one requested | `requested`, `served` (a list of releases), `source` |
-| `upstream_unavailable` | EVS could not be reached or kept failing after the retries, rejected the request, or returned something unusable: a malformed, HTML or masked-error body, or a 404 from any request other than a single-concept lookup (check `NCI_SI_EVS_BASE_URL`) | `surface`, `status`, `attempts`, `retryAfter` (`status` and `retryAfter` where known) |
-| `timeout` | Every attempt at an EVS request timed out (`NCI_SI_TIMEOUT_SECONDS`) | `surface`, `seconds`, `attempts` |
+| `upstream_unavailable` | EVS could not be reached or kept failing after the retries, rejected the request, or returned something unusable: a malformed, HTML or masked-error body, or a 404 from any request other than a single-concept lookup (check `NCI_SI_EVS_BASE_URL`); an empty unfiltered terminology listing, with its actual `status` and `attempts` | `surface`, `status`, `attempts`, `retryAfter` (`status` and `retryAfter` where known) |
+| `timeout` | Every attempt at an upstream request timed out (`NCI_SI_TIMEOUT_SECONDS`; `NCI_SI_MATCH_TIMEOUT_SECONDS` for caDSR matching); timeouts are errors, never empty results | `surface`, `seconds`, `attempts` |
 | `bound_exceeded` | An EVS response exceeds `NCI_SI_EVS_MAX_RESPONSE_BYTES`, the request budget is exhausted before a graph is available, or hierarchy page replay exhausts its request budget | `bound`, `limit`, `reached` (for response size, the limit plus one when EVS declared no length) |
-| `capability_unavailable` | The requested terminology or operation is not supported yet, or an index resource has no active index; the MCP tool descriptions name the interim limits | `capability` |
+| `capability_unavailable` | The requested terminology or operation is not supported yet, or an index resource has no active index; the MCP tool descriptions name the interim limits; a published caDSR matching pin, with capability `pinned matching`, because the matching APIs have no `registryRelease` field yet ([cadsr-match-parameters](docs/upstream/cadsr.md#cadsr-match-parameters)); no unpinned match is labelled pinned | `capability` |
 | `cursor_expired` | EVS no longer serves a hierarchy or live-search cursor’s release, or the active indexed-search build changed; restart the query. Same-release build replacement also expires a cursor, with equal release identifiers | `cursorRelease`, `currentRelease` |
 | `permission_denied` | Secured caller policy denies the operation, is missing, unavailable or expired; contact the service operator to review access | None; restricted identifiers and required permissions are not disclosed |
 | `internal_error` | `search` or `evaluate` was called before an index was built, the index was built with other embedding settings than the runtime uses, SQLite could not open, read or write the index file named in the message, a production evaluation or sample-isolation check refused an operator command, the selected build is unavailable or a concurrent writer changed the active build, (CLI only) the index, the embedding model or the MCP package could not be loaded at startup, or the selected relationship catalogue lacks configured exclusion codes | `missingCodes` for missing exclusions only; absent for other causes |

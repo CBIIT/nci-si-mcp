@@ -1,19 +1,17 @@
 # Contributing
 
-The [documentation website guide](docs/documentation-site.md) explains its pinned build,
-local preview, reviewed page allowlist and source/version labels. Update the relevant documents
-and diagrams with each behavior change; the website reuses those sources.
-
 How to work on this repository. What it is, and its status, is in [README.md](README.md); how to
 install and run the server is in [QUICKSTART.md](QUICKSTART.md); how it is built is in
-[ARCHITECTURE.md](ARCHITECTURE.md).
+[ARCHITECTURE.md](ARCHITECTURE.md). Update the documents and diagrams with each behaviour change:
+the [documentation website](docs/documentation-site.md) is built from these sources (pinned build,
+local preview, reviewed page allowlist, source and version labels).
 
 ## Set up
 
 You need Python 3.14 or newer and [PDM](https://pdm-project.org).
 
 ```bash
-pdm install                    # .venv from pdm.lock, with the test and lint tools
+pdm install                    # .venv from pdm.lock, with the test and lint tools and the server and index extras
 pdm run pre-commit install     # run the gates on every commit
 ```
 
@@ -33,9 +31,25 @@ pdm run pre-commit install     # run the gates on every commit
 | `pdm run acceptance -n 4 --report=fixture.json` | The acceptance suite on four workers, with the report CI compares ([the ratchet](acceptance/README.md#ci-the-ratchet-on-expected-outcomes)) |
 | `pdm run acceptance-expected check acceptance/fixture.json` | The report against `acceptance/expected/fixture.json`, test by test |
 | `pdm run acceptance-status` | Regenerate the status table of the README from the expected outcomes |
+| `pdm run acceptance-selftest` | The acceptance harness's own tests, on four workers |
+| `pdm run acceptance-index-codes` | Print the sample concept codes the suite indexes before a run |
+| `pdm run acceptance-record` | Re-record `acceptance/fixtures/recorded/` from the live services, under change control |
+| `pdm run acceptance-craft` | Regenerate the crafted fixture scenarios from the recorded ones |
+| `pdm run acceptance-register` | Regenerate the request-forms register (`acceptance/request-forms/`) |
+| `pdm run acceptance-stories` | Regenerate [docs/behavioural-tests.md](docs/behavioural-tests.md) from the suite; `--check` verifies it |
 | `pdm run spec-render` | Regenerate [docs/specification.md](docs/specification.md) from `spec/`, after any change there |
 | `pdm run quickstart-tools` | Regenerate the table of tools in [QUICKSTART.md](QUICKSTART.md) from `spec/tools.yaml`; `--check` verifies it |
 | `pandoc -f gfm docs/specification.md -o specification.docx` | The Word copy of the specification, a build product: never committed or edited |
+
+Beyond the server and the suite, the repository holds the documentation site, the validation
+companion and the benchmark tooling; these are their entry points.
+
+| Command | What it does |
+| --- | --- |
+| `pdm run docs-build` | Build the documentation website into `tmp/docs-site` ([documentation site](docs/documentation-site.md)) |
+| `pdm run portal` | Serve the local validation dashboard on loopback ([local validation](docs/local-validation.md)) |
+| `pdm run operator-worker` | Run one validation job (acceptance or benchmark) the way the dashboard does, from the command line |
+| `pdm run benchmark-http` | HTTP transport measurements of the served tools ([method and evidence](docs/benchmark.md)) |
 
 The server tests are `unittest.TestCase` classes, run by pytest. They are offline:
 `tests/fakes.py` supplies shared doubles, and client integration tests use local HTTP fixtures.
@@ -121,7 +135,7 @@ during feature-branch cleanup; it is generated publication data.
 
 ## The gates
 
-Pre-commit runs every gate except the last on the files of a commit, and CI runs the same hooks
+Pre-commit runs every gate except the last three on the files of a commit, and CI runs the same hooks
 on all files. The tests run in CI and with `pdm run test`. A gate that fails is fixed, not
 skipped (`--no-verify` and `SKIP=` are not used).
 
@@ -133,9 +147,10 @@ skipped (`--no-verify` and `SKIP=` are not used).
 | Test quality | No test without an assertion, or with only mock or `callable` assertions (`scripts/validation/check_test_quality.py`) |
 | Dead code | No unused functions, classes or variables (vulture) |
 | gitleaks, zizmor | No secrets; safe GitHub Actions workflows |
+| Upstream requirement packages | `docs/upstream/*.md` are the current render of `docs/upstream/catalogue.yaml` (`scripts/upstream_requirements.py --check`) |
 | Acceptance ratchet (CI) | Every test of the acceptance suite, in fixture mode, has the outcome in `acceptance/expected/fixture.json`. A change that moves an outcome on purpose updates that file in the same pull request, and the diff of the file is what the review reads: `pdm run acceptance-expected update acceptance/fixture.json` writes it from a fresh report, and `pdm run acceptance-status` the README table that follows |
 | Tests and coverage | The suite passes; CI fails below the coverage minimum of standard 3 and warns when the aim is missed |
-| Dependency audit (CI only) | No runtime dependency with a known vulnerability (pip-audit over the server and embeddings extras, on every change and weekly); no pull request bringing one in at high severity (dependency review). Dependabot proposes updates of the workflows' actions; SECURITY.md says how to report a vulnerability |
+| Dependency audit (CI only) | No runtime dependency with a known vulnerability (pip-audit over the server and embeddings extras, on every change and weekly); no pull request bringing one in at high severity (dependency review). Dependabot proposes updates of the workflows' actions; [SECURITY.md](SECURITY.md) says how to report a vulnerability |
 
 A finding is fixed in the code. Where a rule does not fit, it is suppressed as narrowly as
 possible (a line, then a file or a directory, then the project, in `pyproject.toml`), with the

@@ -12,6 +12,7 @@ from typing import Any
 import yaml
 
 from nci_si_acceptance.report import FAILED, FIXTURE_ONLY, combine
+from nci_si_acceptance.requirements import repo_path
 
 ROOT = Path(__file__).resolve().parents[1]
 DIRECTORY = Path("docs/upstream")
@@ -123,7 +124,7 @@ def entry_text(entry: dict[str, Any], fixture: dict[str, Any], live: dict[str, A
     for name in entry["tests"]:
         nodeids = functions(fixture, name)
         lines.append(
-            f"| `acceptance/{name}` | {counts(fixture, nodeids)} | {counts(live, nodeids)} |"
+            f"| `{repo_path(name)}` | {counts(fixture, nodeids)} | {counts(live, nodeids)} |"
         )
     return [*lines, ""]
 
@@ -173,7 +174,7 @@ def overview(
     ]
     lines += ["", "## Qualified live failures", ""]
     lines += [
-        f"- `acceptance/{nodeid}` → `{entry}`" for nodeid, entry in sorted(excused.items())
+        f"- `{repo_path(nodeid)}` → `{entry}`" for nodeid, entry in sorted(excused.items())
     ] or ["None."]
     lines += [
         "",

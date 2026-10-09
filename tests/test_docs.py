@@ -10,8 +10,8 @@ import logging
 import os
 import re
 import subprocess
-import sys
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 from typing import get_args
@@ -192,17 +192,6 @@ class DocumentationTest(unittest.TestCase):
                 self.assertIn(call["tool"], served)
                 self.assertLessEqual(set(call["arguments"]), served[call["tool"]])
 
-    def test_quickstart_tool_table_is_what_the_specification_generates(self):
-        # The self-tests' check, run from the root suite so that the unit job fails too.
-        ran = subprocess.run(
-            [sys.executable, "-m", "nci_si_acceptance.quickstart", "--check"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-
-        self.assertEqual((ran.returncode, ran.stderr), (0, ""))
-
     def test_quickstart_provenance_table_names_the_fields_of_the_specification(self):
         text = section(QUICKSTART, "Provenance and truncation")
 
@@ -287,6 +276,37 @@ class DocumentationTest(unittest.TestCase):
             subprocess.run(["git", "add", "."], cwd=root, check=True)  # noqa: S607
 
             self.assertEqual(tracked_mentions_of_local_agent_files(root), ["guide.md:2"])
+
+    def test_contributing_names_every_pdm_command_of_the_project(self):
+        # Every entry point in pyproject.toml is a command a contributor may need; the
+        # command tables of CONTRIBUTING.md are where they look it up.
+        with (ROOT / "pyproject.toml").open("rb") as handle:
+            scripts = tomllib.load(handle)["tool"]["pdm"]["scripts"]
+        commands = [name for name in scripts if not name.startswith("_")]
+        contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
+
+        self.assertTrue(commands)
+        self.assertEqual([name for name in commands if f"pdm run {name}" not in contributing], [])
+
+    def test_every_repository_url_in_the_documents_names_this_repository(self):
+        # The documents must send readers to CBIIT/nci-si-mcp, never to a fork of it.
+        tracked = subprocess.run(
+            ["git", "ls-files", "*.md", "**/*.md"],  # noqa: S607
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.split()
+        foreign = [
+            f"{name}:{number}"
+            for name in tracked
+            for number, line in enumerate((ROOT / name).read_text(encoding="utf-8").splitlines(), 1)
+            for owner in re.findall(r"github\.com/([A-Za-z0-9_.-]+)/nci-si-mcp", line)
+            if owner != "CBIIT"
+        ]
+
+        self.assertTrue(tracked)
+        self.assertEqual(foreign, [])
 
     def test_every_file_in_docs_has_a_lower_case_name(self):
         # Owner's rule: names in docs/ differ by meaning, never by case alone.

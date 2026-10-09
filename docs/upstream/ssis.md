@@ -8,7 +8,7 @@ Generated from [catalogue.yaml](catalogue.yaml). Read the [evidence boundary](RE
 
 Platform requirement/operation: **S-5; OP-S02; X-15**.
 Specification requirements: `X-15`, `find_data_elements_for_concept-5`.
-Source discussion: [issue evidence](https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-5968943275).
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42#issuecomment-5968943275).
 
 **Observation.** The missing-dec_pub_id recording is HTTP 200 with informational apiResponse type I and No data found, not a masked error; the team's response relayed on 8 October 2026 treats HTTP 400 for that invalid request as a backlog design improvement. with_concept_id takes a DEC public id, not an NCIt code. The Person query is capped at 1000. The issue reports 2088 graph rows, missing hierarchy graphs in discovery, resources/graph_name?resource_name=caDSR returning 500, and a listed empty NCIm graph; these latter probes are issue evidence, not fixture assertions. See team-responses-2026-10-08.md for the team's maintenance constraints and alternative endpoint guidance.
 
@@ -40,7 +40,7 @@ Evidence (linked request/response files retain their original form):
 
 Platform requirement/operation: **S-5; X-15**.
 Specification requirements: `X-15`, `find_data_elements_for_concept-1`.
-Source discussion: [issue evidence](https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-5968943275).
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42#issuecomment-5968943275).
 
 **Observation.** Direct SPARQL POST and some plain FILTER regex queries are refused with HTML 403. The issue reports SERVICE and OPTION (TRANSITIVE) refused, while rdfs:subClassOf* works; there is no blanket property-path ban.
 
@@ -70,7 +70,7 @@ Evidence (linked request/response files retain their original form):
 
 Platform requirement/operation: **S-5; C-1**.
 Specification requirements: `find_data_elements_for_concept-3`, `get_release_alignment-1`.
-Source discussion: [issue evidence](https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-5968943275).
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42#issuecomment-5968943275).
 
 **Observation.** NCIt has version 26.09d and an untyped September 28, 2026 date; caDSR has untyped 2026-07-01 and no version. Their recorded interval is 89 days, not a claim about current freshness.
 

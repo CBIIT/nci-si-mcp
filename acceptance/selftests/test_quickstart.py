@@ -38,30 +38,35 @@ def test_a_document_without_both_markers_is_refused(document):
         current(document, "table")
 
 
-def run_quickstart(*options):
-    return subprocess.run(  # noqa: S603 - this interpreter, a module of the suite
-        [sys.executable, "-m", "nci_si_acceptance.quickstart", *options],
+def test_the_quickstart_on_disk_is_what_the_specification_generates(capsys):
+    assert quickstart.main(["--check"]) == 0
+
+    assert capsys.readouterr().err == ""
+
+
+def test_a_quickstart_that_is_not_current_fails_the_check_and_is_rewritten_without_it(
+    tmp_path, capsys
+):
+    stale = tmp_path / "QUICKSTART.md"
+    text = QUICKSTART.read_text(encoding="utf-8")
+    stale.write_text(text.replace(BEGIN, BEGIN + "\nstale table"), encoding="utf-8")
+
+    failed = quickstart.main(["--check", "--quickstart", str(stale)])
+    reported = capsys.readouterr().err
+    written = quickstart.main(["--quickstart", str(stale)])
+
+    assert failed == 1
+    assert "is not current" in reported
+    assert written == 0
+    assert stale.read_text(encoding="utf-8") == text
+
+
+def test_the_module_runs_as_a_command():
+    ran = subprocess.run(
+        [sys.executable, "-m", "nci_si_acceptance.quickstart", "--check"],
         capture_output=True,
         text=True,
         check=False,
     )
 
-
-def test_the_quickstart_on_disk_is_what_the_specification_generates():
-    ran = run_quickstart("--check")
-
     assert (ran.returncode, ran.stderr) == (0, "")
-
-
-def test_a_quickstart_that_is_not_current_fails_the_check_and_is_rewritten_without_it(tmp_path):
-    stale = tmp_path / "QUICKSTART.md"
-    text = QUICKSTART.read_text(encoding="utf-8")
-    stale.write_text(text.replace(BEGIN, BEGIN + "\nstale table"), encoding="utf-8")
-
-    failed = run_quickstart("--check", "--quickstart", str(stale))
-    written = run_quickstart("--quickstart", str(stale))
-
-    assert failed.returncode == 1
-    assert "is not current" in failed.stderr
-    assert written.returncode == 0
-    assert stale.read_text(encoding="utf-8") == text
