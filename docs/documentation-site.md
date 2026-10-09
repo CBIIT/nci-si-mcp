@@ -112,6 +112,5 @@ The documentation artifact can be served by an ordinary static host or a separat
 container. The [local results dashboard](local-validation.md) uses a separate loopback listener;
 controls, benchmark results and advisory configuration views are available locally. The
 [companion containers](companion-containers.md) package the two services separately.
-UAT/PROD administration must remain disabled until the platform supplies the approved
-authentication and explicit maintainer authorization integration (#197). Documentation remains
-anonymous. The repository's public status and upstream EVS/caDSR access controls are unchanged.
+Where administration may be exposed is recorded in [deployment.md](deployment.md). Documentation
+remains anonymous. The repository's public status and upstream EVS/caDSR access controls are unchanged.

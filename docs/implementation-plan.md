@@ -1,6 +1,6 @@
 # Implementation plan: from EVS-first prototype to the shared NCI Semantic Infrastructure MCP platform
 
-**Status:** accepted for implementation · **Written:** 1 October 2026 · **Updated:** 2 October 2026, to the code on `main` after `v0.2.0` · **Furnished commit:** tagged when the owner furnishes it, after Phase 3 (§1.2, §11)
+**Status:** record of delivered work (Phases 0 to 6 are merged; Phase 7 is recorded in [portal-plan.md](portal-plan.md); open work is on the GitHub milestones) · **Written:** 1 October 2026 · **Last updated to the code:** 2 October 2026, `main` after `v0.2.0`; later sections carry their own dates · **Furnished commit:** tagged when the owner furnishes it (§1.2, §11)
 
 The work is tracked on GitHub as one milestone per phase and one for the furnished package (§11), with one issue per deliverable; issues cite this document by section. Where a section describes the code "today", it means `main` at the *Updated* date above.
 

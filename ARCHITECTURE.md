@@ -18,7 +18,7 @@ source in disposable workers, while configuration proposals remain advisory. Its
 has an internal fixture network and its own evidence volume, with a fixed-destination ingress
 relay. It has no serving index/model, upstream credentials or Docker socket. See the
 [deployment views](docs/deployment.md#local-documentation-and-validation-companion) for data
-flows; UAT/PROD admin deployment remains disabled pending platform integration in #197.
+flows; where administration may be exposed is recorded there.
 
 The [Phase 6 architecture decision](docs/decisions/001-si-architecture-alignment.md) maps the
 Semantic Infrastructure team's proposal to this implementation and records approved
