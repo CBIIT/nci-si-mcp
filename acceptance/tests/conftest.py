@@ -24,7 +24,7 @@ import json
 import shutil
 import subprocess
 import sys
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -148,8 +148,10 @@ def remote_ready(
     if upstream:
         plugins = request.config.pluginmanager
         reporter = plugins.get_plugin("terminalreporter")
-        # Captured output would swallow the lines whenever the interpreter writes unbuffered.
-        with plugins.get_plugin("capturemanager").global_and_fixture_disabled():
+        # Captured output would swallow the lines whenever the interpreter writes unbuffered;
+        # under `-p no:capture` there is no capture manager and nothing to disable.
+        capture = plugins.get_plugin("capturemanager")
+        with capture.global_and_fixture_disabled() if capture else nullcontext():
             for line in announcement(target, upstream):
                 reporter.write_line(line)
     started = state_hook.apply((), {}, fresh=True) if state_hook else ()
