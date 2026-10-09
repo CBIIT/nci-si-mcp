@@ -1,6 +1,7 @@
 """MCP surface selection using the same authority as the shared producers."""
 
 import json
+import logging
 import re
 from collections.abc import Awaitable, Callable
 from importlib.resources import files
@@ -9,6 +10,7 @@ from typing import Any
 from mcp.shared.exceptions import MCPError
 from mcp.types import CallToolResult, TextContent
 
+from .audit import emit
 from .caching import cache_hint
 from .errors import PlatformError, correlated, current_correlation_id, serialise
 from .permissions import (
@@ -21,6 +23,8 @@ from .permissions import (
     require_current,
 )
 from .registry import SPECS
+
+logger = logging.getLogger(__name__)
 
 
 def authorization(
@@ -36,7 +40,9 @@ def authorization(
     async def authorize(ctx: Any, call_next: Callable[[Any], Awaitable[Any]]) -> Any:
         try:
             authority = await resolver() if resolver else None
-        except PolicyUnavailableError:
+        except PolicyUnavailableError as exc:
+            # Denying is right; the type alone tells an operator the backend is down.
+            emit(logger, logging.WARNING, "policy_unavailable", errorType=type(exc).__name__)
             authority = None
         with (
             authority_scope(authority),
