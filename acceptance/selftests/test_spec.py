@@ -419,7 +419,3 @@ def test_the_specification_names_every_setting_of_a_run_and_the_readme_links_it(
     assert "(../spec/acceptance.md#settings-of-a-run)" in readme
     assert "| Setting |" not in readme
     assert "\n### Settings of a run\n" in (SPEC / "acceptance.md").read_text(encoding="utf-8")
-
-
-# The settings of a run that starts its server as a command, which the README's examples show.
-LOCAL = {"MODE", "SERVER", "PROFILE", "PREPARE", "SECURITY_SERVER"}
