@@ -111,6 +111,7 @@ expand_value_set:
   patterns: {terminology: *terminology, release: *release, valueSet: *code, code: *code}
   returns: "{ members[], total, truncation }"
   items: ["members[]"]
+  values: {terminology: [ncit]}
   bounds: {count: {default: 200, maximum: 1000}}
   defaults: {offset: 0, activeOnly: false}
   summary: >-

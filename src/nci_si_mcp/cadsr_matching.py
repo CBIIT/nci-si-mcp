@@ -5,13 +5,20 @@ from __future__ import annotations
 import json
 import math
 from collections import Counter
-from typing import Any, NotRequired, TypedDict, get_args
+from typing import Annotated, Any, NotRequired, TypedDict, get_args
 
 from . import cadsr_content as records
 from .caching import select_cache_hint
 from .cadsr import CDE_MATCH, VM_MATCH
 from .context import Context
 from .errors import InputValidationError, PlatformError
+from .parameters import (
+    Described,
+    MatchFilters,
+    RegistryRelease,
+    count_bound,
+    describe_fields,
+)
 from .permissions import require
 from .validation import (
     MatchedItemType,
@@ -30,17 +37,12 @@ class MatchEntity(TypedDict):
     permissibleValues: NotRequired[list[str]]
 
 
-class SchemeFilter(TypedDict):
-    publicId: str
-    version: str
-
-
-class MatchFilters(TypedDict, total=False):
-    context: str
-    workflowStatus: str
-    registrationStatus: str
-    valueDomainType: str
-    classificationScheme: SchemeFilter
+describe_fields(
+    MatchEntity,
+    name="Name of the thing to match, for example Cancer Stage.",
+    userTip="A sentence saying what it means, to help the match.",
+    permissibleValues='Values it may take, for example ["Stage I", "Stage II"].',
+)
 
 
 def _text(value: Any, parameter: str) -> str:
@@ -121,7 +123,7 @@ def _matching_release(context: Context, pin: str | None) -> dict[str, str]:
         raise PlatformError(
             "capability_unavailable",
             "The matching APIs lack a registryRelease contract field (C-1 for matching, "
-            "upstream requirements package #42). Omit the pin until caDSR adds it.",
+            "docs/upstream/cadsr.md#cadsr-registry). Omit the pin until caDSR adds it.",
             capability="pinned matching",
         )
     return release
@@ -167,21 +169,55 @@ def _cde_matches(
 
 def match_data_elements(
     context: Context,
-    entities: list[MatchEntity],
-    matchLimit: int = 10,  # noqa: N803 - public specification spelling.
-    modelVariant: str | None = None,  # noqa: N803 - public specification spelling.
-    similarityThreshold: float | None = None,  # noqa: N803 - public specification spelling.
-    filters: MatchFilters | None = None,
-    registryRelease: str | None = None,  # noqa: N803 - public specification spelling.
+    entities: Annotated[
+        list[MatchEntity],
+        Described(
+            "The things to match to data elements, 1 to 10. Each has a name and may have "
+            "a userTip and permissible values.",
+            min_items=1,
+            max_items=10,
+        ),
+    ],
+    matchLimit: Annotated[int, count_bound("Most matches for each entity.", 10, 100)] = 10,  # noqa: N803 - public specification spelling.
+    modelVariant: Annotated[  # noqa: N803 - public specification spelling.
+        str | None,
+        Described(
+            "Required by the caDSR SOW (embedding model variant); the Enhanced CDE Match "
+            "contract has no such parameter yet (C-6), so a value is refused with "
+            "invalid_request. Leave unset until it does."
+        ),
+    ] = None,
+    similarityThreshold: Annotated[  # noqa: N803 - public specification spelling.
+        float | None,
+        Described(
+            "Required by the caDSR SOW (similarity threshold); the Enhanced CDE Match "
+            "contract has no such parameter yet (C-6), so a value is refused with "
+            "invalid_request. Leave unset until it does."
+        ),
+    ] = None,
+    filters: Annotated[
+        MatchFilters | None,
+        Described(
+            "Narrow the data elements matched by context, workflow status, registration "
+            "status, classification scheme or value domain type. Leave unset for no "
+            "filter."
+        ),
+    ] = None,
+    registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
 ) -> dict[str, Any]:
-    """Match 1-10 described entities to caDSR data elements in caller/platform order.
+    """Find the caDSR data elements that best match described entities, such as the columns of a
+    data dictionary; the discovery route while keyword search is unavailable.
 
-    matchLimit defaults to 10, at most 100 per entity. modelVariant and similarityThreshold
-    are invalid_request (requirements package C-6). Filters are upstream headers;
-    classificationScheme requires both publicId and version. One apiinput object is sent
-    per entity; any failure fails the call, never a partial success. Matching uses the
-    configured match timeout (45 seconds by default). Results are computed, 0/private.
-    Registry pins fail closed: published pins cannot yet address matching (C-1).
+    modelVariant and similarityThreshold are invalid_request until the match contract has them
+    (C-6). registryRelease is left unset: published pins cannot yet address matching (C-1).
+
+    Returns matches in entity and platform order, each with the entity, data element, score,
+    matching rule and matched text. Results are computed from the text given.
+
+    One request goes out per entity and any failure fails the call, never a partial success:
+    timeout beyond the match limit (45 seconds by default), upstream_unavailable,
+    capability_unavailable for a published pin (C-1), release_not_available for an unpublished
+    one, invalid_request for bad input.
     """
     _reject_unsupported(modelVariant, similarityThreshold)
     inputs = [_entity(value) for value in _list(entities, "entities")]
@@ -276,19 +312,43 @@ def _vm_matches(
 
 def match_value_meanings(
     context: Context,
-    values: list[str],
-    strictness: MatchStrictness = "restricted",
-    terminologyScope: list[str] | None = None,  # noqa: N803 - public specification spelling.
-    registryRelease: str | None = None,  # noqa: N803 - public specification spelling.
+    values: Annotated[
+        list[str],
+        Described(
+            'The values to match to value meanings, 1 to 10, for example ["male", "female"].',
+            min_items=1,
+            max_items=10,
+        ),
+    ],
+    strictness: Annotated[
+        MatchStrictness,
+        Described(
+            "How strictly values match, sent to caDSR as its match type: restricted or "
+            "unrestricted. Default restricted."
+        ),
+    ] = "restricted",
+    terminologyScope: Annotated[  # noqa: N803 - public specification spelling.
+        list[str] | None,
+        Described(
+            "Names of the EVS code systems to match against. Leave unset to use the "
+            "platform's default."
+        ),
+    ] = None,
+    registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
 ) -> dict[str, Any]:
-    """Match 1-10 values to caDSR value meanings and concepts in platform order.
+    """Find the caDSR value meanings, with their concepts, that best match given values, such as
+    the permissible values of a column.
 
-    strictness is restricted (default) or unrestricted, sent as matchType;
-    terminologyScope selects EVS code systems. Preserve rules, optional concept/source
-    and real crosswalks; empty or NA means no crosswalk and unscored matches have no score.
-    Matching uses the configured match timeout (45 seconds by default); failures are
-    errors, never empty successes. Results are computed, 0/private. Registry pins fail
-    closed because matching cannot yet address published registry releases (C-1).
+    registryRelease is left unset: matching cannot yet address published registry releases (C-1).
+
+    Returns matches in platform order, each with its type, rule, identity, context and workflow
+    status and, where the platform gives them, concept, source, registration status and score.
+    An empty or NA crosswalk means none, and an unscored match has no score. Results are
+    computed from the text given.
+
+    Any failure fails the call, never a partial or empty success: timeout beyond the match limit
+    (45 seconds by default), upstream_unavailable, capability_unavailable for a published pin
+    (C-1), release_not_available for an unpublished one, invalid_request for bad input.
     """
     inputs = [_text(value, "values") for value in _list(values, "values")]
     headers = _vm_headers(strictness, terminologyScope)

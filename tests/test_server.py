@@ -11,6 +11,7 @@ from importlib import metadata
 from pathlib import Path
 from unittest.mock import patch
 
+import yaml
 from mcp.client import Client
 from mcp.shared.exceptions import MCPError
 
@@ -43,6 +44,82 @@ NEOPLASM = concept(
 
 
 MORPHOLOGY = concept("C4741", "Neoplasm by Morphology", active=True)
+
+
+TOOLS = yaml.safe_load((Path(__file__).parents[1] / "spec/tools.yaml").read_text())
+
+
+def _specified(spec):
+    """What the specification says one tool's input schema states, as (argument, keyword): value.
+
+    Forms (pattern), refusal limits (maxItems), defaults (a bound's, else its own), closed
+    sets (values) and the maximum of each bound, which the argument's description states. A
+    form keyed by terminology (the NCIt code form) is deliberately not served, since a schema
+    cannot say which terminology a value belongs to; a closed set states the form of its
+    argument by its members."""
+
+    closed = spec.get("values", {})
+    return (
+        {(a, "pattern"): form for a, form in _forms(spec).items() if a not in closed}
+        | {(a, "maxItems"): limit for a, limit in spec.get("lists", {}).items()}
+        | {(a, "default"): value for a, value in _defaults(spec).items()}
+        | {(a, "values"): set(members) for a, members in closed.items()}
+        | {(a, "maximum"): b["maximum"] for a, b in _maxima(spec).items()}
+    )
+
+
+def _maxima(spec):
+    return {a: b for a, b in spec.get("bounds", {}).items() if "maximum" in b}
+
+
+def _forms(spec):
+    return {a: form for a, form in spec.get("patterns", {}).items() if isinstance(form, str)}
+
+
+def _defaults(spec):
+    bounded = {n: b["default"] for n, b in spec.get("bounds", {}).items() if "default" in b}
+    return {**spec.get("defaults", {}), **bounded}
+
+
+def _served_as(schema, key, expected):
+    """What the input schema states for `key`, an (argument, keyword) of `_specified`."""
+
+    argument, keyword = key
+    if keyword == "values":
+        return _served_values(schema, argument)
+    parameter = schema["properties"][argument]
+    if keyword == "maximum":
+        return expected if str(expected) in parameter.get("description", "") else None
+    found = [
+        alternative[keyword] for alternative in _alternatives(parameter) if keyword in alternative
+    ]
+    return found[0] if found else None
+
+
+def _names_all(line, names):
+    """Whether `line` names every one of `names` as a whole word."""
+
+    return all(re.search(rf"\b{re.escape(name)}\b", line) for name in names)
+
+
+def _alternatives(schema):
+    """The schema of a parameter and of the alternatives and items it is built from."""
+
+    found = [schema]
+    for inner in [*schema.get("anyOf", []), *([schema["items"]] if "items" in schema else [])]:
+        found += _alternatives(inner)
+    return found
+
+
+def _served_values(schema, argument):
+    """The values the schema closes `argument` to: enum or const, or the keys of its object."""
+
+    values = set()
+    for found in _alternatives(schema["properties"][argument]):
+        values |= set(found.get("enum", ())) | ({found["const"]} if "const" in found else set())
+        if "$ref" in found:
+            values |= set(schema["$defs"][found["$ref"].rpartition("/")[2]]["properties"])
+    return values
 
 
 def pinned(**arguments):
@@ -148,6 +225,187 @@ class ServerTest(ServerFixture):
             self.assertIn(term, tools["get_concept"].description)
         for term in ("depth", "exact=false", "budgetPerKind"):
             self.assertIn(term, tools["get_concept_neighborhood"].description)
+
+    def test_schemas_carry_no_generated_titles_and_output_schemas_name_their_root(self, _):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+
+        def text_titles(schema):
+            # A property named "title" holds a schema, not text; only text titles count.
+            if isinstance(schema, list):
+                return [found for item in schema for found in text_titles(item)]
+            if not isinstance(schema, dict):
+                return []
+            own = [schema["title"]] if isinstance(schema.get("title"), str) else []
+            return own + text_titles(list(schema.values()))
+
+        for name, tool in tools.items():
+            titles = text_titles(tool.output_schema)
+            self.assertEqual(titles, [f"{name} result"], name)
+            self.assertNotIn("RootModel", json.dumps(tool.output_schema))
+            self.assertEqual(text_titles(tool.input_schema), [], name)
+
+    def test_every_parameter_of_every_tool_is_described_and_extras_are_closed(self, _):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+
+        def undescribed(schema):
+            records = [schema, *schema.get("$defs", {}).values()]
+            return [
+                name
+                for record in records
+                for name, spec in record.get("properties", {}).items()
+                if not spec.get("description", "").strip()
+            ]
+
+        for name, tool in tools.items():
+            self.assertEqual(undescribed(tool.input_schema), [], name)
+            self.assertIs(tool.input_schema["additionalProperties"], False, name)
+            for record, definition in tool.input_schema.get("$defs", {}).items():
+                self.assertIs(definition.get("additionalProperties"), False, (name, record))
+
+    def test_input_schemas_state_what_the_specification_says_of_each_argument(self, _):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+
+        for name, spec in TOOLS.items():
+            schema = tools[name].input_schema
+            specified = _specified(spec)
+            served = {key: _served_as(schema, key, specified[key]) for key in specified}
+            self.assertEqual(served, specified, name)
+
+    def test_first_sentences_are_one_plain_sentence_free_of_cache_vocabulary(self, _):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+        banned = re.compile(r"TTL|cache|budget|replay|0/private", re.IGNORECASE)
+
+        for name, tool in tools.items():
+            first = re.match(r"(.*?\.)(\s|$)", tool.description, flags=re.DOTALL)
+            self.assertIsNotNone(first, name)
+            self.assertNotIn("\n\n", first.group(1), name)
+            self.assertIsNone(banned.search(first.group(1)), (name, first.group(1)))
+
+    def test_no_description_names_another_served_tool(self, _):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+
+        def texts(tool):
+            """The tool's description and the description of each parameter and record field."""
+
+            schema = tool.input_schema
+            records = [schema, *schema.get("$defs", {}).values()]
+            fields = [f for r in records for f in r.get("properties", {}).values()]
+            return [tool.description, *(f.get("description", "") for f in fields)]
+
+        for name, tool in tools.items():
+            named = {
+                other
+                for other in tools
+                if other != name and any(re.search(rf"\b{other}\b", t) for t in texts(tool))
+            }
+            self.assertEqual(named, set(), name)
+
+    def test_the_instructions_carry_the_tool_selection_map_and_the_release_rule_once(self, _):
+        # Each decision: the tools one line of the map sets side by side, and the wording that
+        # says when to pick which.
+        decisions = [
+            (("get_concept", "get_concepts", "search_concepts"), "several codes"),
+            (
+                ("get_concept_hierarchy", "get_concept_neighborhood", "expand_cohort"),
+                "parents, children or paths to the root.*roles and associations too.*exclusion",
+            ),
+            (("get_concept_subsets", "expand_value_set"), "members of a subset"),
+            (
+                ("get_data_element", "search_data_elements", "match_data_elements"),
+                "discovery route",
+            ),
+            (
+                ("find_data_elements_for_concept", "get_data_element", "conceptAssociations"),
+                "Data element to concepts",
+            ),
+            (("resolve_stored_value", "get_code_map"), "crdcName"),
+            (("resolve_retired_code", "get_concept_mappings", "get_form"), "retired"),
+            (("list_classification_schemes", "get_data_element", "OP-C13"), "not served"),
+            (("get_release_alignment",), "before joining"),
+        ]
+        lines = INSTRUCTIONS.splitlines()
+
+        for names, wording in decisions:
+            named = [ln for ln in lines if _names_all(ln, names)]
+            self.assertTrue(any(re.search(wording, ln) for ln in named), (names, wording))
+        self.assertEqual(INSTRUCTIONS.count("first implicit pin"), 1)
+        tools = self.session(lambda client: client.list_tools()).tools
+        self.assertEqual([t.name for t in tools if "implicit pin" in t.description], [])
+
+    def test_every_upstream_gap_requirement_id_stays_in_the_description_that_stated_it(self, _):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+        # Requirement signals to the EVS and caDSR teams, taken from the descriptions of the
+        # milestone before the rewrite; removing one would silence the signal.
+        stated = {
+            "get_concept_for_permissible_value": {"OP-C10"},
+            "get_permissible_value": {"OP-C10"},
+            "match_data_elements": {"C-1", "C-6"},
+            "match_value_meanings": {"C-1"},
+            "get_data_element": {"OP-C02"},
+            "search_data_elements": {"OP-C03"},
+            "list_classification_schemes": {"OP-C13"},
+        }
+
+        for name, ids in stated.items():
+            found = set(re.findall(r"\bOP-[A-Z]\d+\b|\bC-\d+\b", tools[name].description))
+            self.assertLessEqual(ids, found, name)
+
+    def test_the_matching_tools_share_a_filters_base_and_only_matching_adds_a_scheme(self, _):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+
+        def served(tool):
+            schema = tools[tool].input_schema
+            ref = next(s["$ref"] for s in schema["properties"]["filters"]["anyOf"] if "$ref" in s)
+            return ref, schema["$defs"][ref.rpartition("/")[2]]["properties"]
+
+        search_ref, search = served("search_data_elements")
+        self.assertEqual(search_ref, "#/$defs/SearchFilters")
+        self.assertNotIn("classificationScheme", search)
+        for tool in ("match_data_elements", "harmonize_data_dictionary"):
+            ref, match = served(tool)
+            self.assertEqual(ref, "#/$defs/MatchFilters", tool)
+            self.assertEqual(set(match), {*search, "classificationScheme"}, tool)
+
+    def test_expand_value_set_refuses_another_terminology_as_an_invalid_request(self, _):
+        failed, result = self.call("expand_value_set", terminology="other", valueSet="C85492")
+
+        self.assertTrue(failed)
+        self.assertEqual(result["error"]["code"], "invalid_request")
+        self.assertEqual(result["error"]["details"]["parameter"], "terminology")
+
+    def test_search_data_elements_still_refuses_a_classification_scheme_filter(self, _):
+        failed, result = self.call(
+            "search_data_elements",
+            query="stage",
+            filters={"classificationScheme": {"publicId": "1", "version": "1.0"}},
+        )
+
+        self.assertTrue(failed)
+        self.assertEqual(result["error"]["code"], "invalid_request")
+        self.assertEqual(result["error"]["details"]["parameter"], "filters")
+
+    def test_parameters_the_platform_does_not_serve_yet_name_their_requirement(self, _):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+        requirements = {
+            ("get_data_element", "registryRelease"): "C-1",
+            ("get_data_element", "longName"): "OP-C02",
+            ("search_data_elements", "filters"): "OP-C03",
+            ("get_concept_for_permissible_value", "permissibleValueId"): "OP-C10",
+            ("match_data_elements", "modelVariant"): "C-6",
+            ("match_data_elements", "similarityThreshold"): "C-6",
+            ("get_form", "keyword"): "Form/query",
+        }
+        for (tool, name), requirement in requirements.items():
+            text = tools[tool].input_schema["properties"][name]["description"]
+            self.assertIn(requirement, text, (tool, name))
+            self.assertIn("leave unset", text.lower(), (tool, name))
+
+    def test_a_value_off_a_stated_form_is_the_invalid_request_error_record(self, _):
+        failed, result = self.call("get_form", publicId="0")
+
+        self.assertTrue(failed)
+        self.assertEqual(result["error"]["code"], "invalid_request")
+        self.assertEqual(result["error"]["details"]["parameter"], "publicId")
 
     def test_quickstart_lists_exactly_the_public_tools(self, _):
         tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
