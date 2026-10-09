@@ -268,7 +268,9 @@ class UpstreamUrlSetTest(unittest.TestCase):
         )
 
         self.assertEqual(settings.ssis_sparql_url, "http://localhost:8080")
-        self.assertEqual(settings.evs_base_url, DEFAULT_EVS_BASE_URL)
+        for name, default in PRODUCTION_BASE_URLS.items():
+            if name != "ssis_sparql_url":
+                self.assertEqual(getattr(settings, name), default)
 
     def test_fixture_mode_takes_exactly_the_urls_given(self):
         settings = settings_from(NCI_SI_UPSTREAM_MODE="fixture", **FIXTURE_URLS)

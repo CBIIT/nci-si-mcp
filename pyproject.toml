@@ -137,16 +137,11 @@ branch = true
 source = ["nci_si_mcp", "scripts"]
 # Every script is measured except these, each named with its reason.
 omit = [
-    # Run only in CI, against built container images or the badge branch.
+    # Run only in CI against built container images: a unit test cannot reach them.
     "scripts/companion_smoke.py",
     "scripts/container_smoke.py",
-    "scripts/image_scan.py",
-    "scripts/image_publish.py",
-    "scripts/coverage_badges.py",
-    # A container entrypoint.
+    # A container entrypoint (container/Admin.Dockerfile).
     "scripts/companion_entry.py",
-    # The gates are measured by their own invocation; the gate tests import them.
-    "scripts/validation/*",
 ]
 # CLI and transport tests launch Python children; include their executed code.
 patch = ["subprocess"]

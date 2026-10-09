@@ -25,7 +25,7 @@ def run():
     }
 
 
-class TaskEvaluationTest(unittest.TestCase):
+class AssistedScoringTest(unittest.TestCase):
     def test_execution_plan_changes_cannot_rewrite_preregistered_recipe(self):
         case = task()
         execution = validate_plan(case, case["calls"])

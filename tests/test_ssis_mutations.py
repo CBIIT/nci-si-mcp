@@ -166,25 +166,23 @@ class SSISValidationContractsTest(unittest.TestCase):
     def test_timeout_and_ten_megabyte_bound_apply_to_the_sparql_surface(self):
         client = SSISClient(Settings(timeout_seconds=17))
         client.sparql_http.sleep = lambda _: None
-        for operation, arguments in ((client.find_data_elements, ("C1",)),):
-            with self.subTest(operation=operation.__name__):
-                with (
-                    patch("nci_si_mcp.http_client._open", side_effect=TimeoutError),
-                    self.assertRaises(UpstreamTimeoutError) as raised,
-                ):
-                    operation(*arguments)
-                self.assertEqual(raised.exception.details["seconds"], 17)
-                self.assertEqual(raised.exception.details["attempts"], 3)
-                response = FakeResponse(b"", {"Content-Length": str(10 * 1024 * 1024 + 1)})
-                with (
-                    patch("nci_si_mcp.http_client._open", return_value=response),
-                    self.assertRaises(UpstreamTooLargeError) as raised,
-                ):
-                    operation(*arguments)
-                self.assertEqual(
-                    raised.exception.details,
-                    {"bound": "ssis_response_bytes", "limit": 10485760, "reached": 10485761},
-                )
+        with (
+            patch("nci_si_mcp.http_client._open", side_effect=TimeoutError),
+            self.assertRaises(UpstreamTimeoutError) as raised,
+        ):
+            client.find_data_elements("C1")
+        self.assertEqual(raised.exception.details["seconds"], 17)
+        self.assertEqual(raised.exception.details["attempts"], 3)
+        response = FakeResponse(b"", {"Content-Length": str(10 * 1024 * 1024 + 1)})
+        with (
+            patch("nci_si_mcp.http_client._open", return_value=response),
+            self.assertRaises(UpstreamTooLargeError) as raised,
+        ):
+            client.find_data_elements("C1")
+        self.assertEqual(
+            raised.exception.details,
+            {"bound": "ssis_response_bytes", "limit": 10485760, "reached": 10485761},
+        )
 
 
 class SSISRetryContractsTest(ServerTestCase):
