@@ -29,8 +29,8 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_evs.py::test_polarity_follows_the_relationship_code_not_its_name` | 1 passed | 1 not_live |
-| `tests/test_evs.py::test_a_relationship_s_polarity_follows_its_code_not_its_name` | 1 passed | 1 not_live |
+| `acceptance/tests/test_evs.py::test_polarity_follows_the_relationship_code_not_its_name` | 1 passed | 1 not_live |
+| `acceptance/tests/test_evs.py::test_a_relationship_s_polarity_follows_its_code_not_its_name` | 1 passed | 1 not_live |
 
 ## evs-semantic
 
@@ -59,9 +59,9 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_evs.py::test_index_search_returns_scored_indexed_concepts_and_the_named_one_first_page` | 2 passed | 2 not_live |
-| `tests/test_evs.py::test_an_index_search_for_another_release_fails_closed` | 2 passed | 2 not_live |
-| `tests/test_evs.py::test_an_index_mode_without_an_index_is_unavailable` | 2 passed | 2 not_live |
+| `acceptance/tests/test_evs.py::test_index_search_returns_scored_indexed_concepts_and_the_named_one_first_page` | 2 passed | 2 not_live |
+| `acceptance/tests/test_evs.py::test_an_index_search_for_another_release_fails_closed` | 2 passed | 2 not_live |
+| `acceptance/tests/test_evs.py::test_an_index_mode_without_an_index_is_unavailable` | 2 passed | 2 not_live |
 
 ## evs-retired
 
@@ -91,8 +91,8 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_evs.py::test_retired_only_returns_the_retired_concepts_alone` | 1 passed | 1 not_live |
-| `tests/test_evs.py::test_retired_only_where_the_status_is_none_the_search_selects_is_invalid` | 1 passed | 1 not_live |
+| `acceptance/tests/test_evs.py::test_retired_only_returns_the_retired_concepts_alone` | 1 passed | 1 not_live |
+| `acceptance/tests/test_evs.py::test_retired_only_where_the_status_is_none_the_search_selects_is_invalid` | 1 passed | 1 not_live |
 
 ## evs-licence
 
@@ -121,7 +121,7 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_crosscutting.py::test_licence_text_the_platform_gives_with_an_item_is_passed_through_unchanged` | 4 passed | 4 not_live |
+| `acceptance/tests/test_crosscutting.py::test_licence_text_the_platform_gives_with_an_item_is_passed_through_unchanged` | 4 passed | 4 not_live |
 
 ## evs-pinned-forms
 
@@ -151,8 +151,8 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all` | 3 passed | 3 not_live |
-| `tests/test_cross_domain.py::test_a_gdc_value_resolves_through_the_mapset_its_source_names` | 1 passed | 1 not_live |
+| `acceptance/tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all` | 3 passed | 3 not_live |
+| `acceptance/tests/test_cross_domain.py::test_a_gdc_value_resolves_through_the_mapset_its_source_names` | 1 passed | 1 not_live |
 
 ## evs-inactive-expansion
 
@@ -181,5 +181,5 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive` | 3 passed | 3 not_live |
-| `tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all` | 3 passed | 3 not_live |
+| `acceptance/tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive` | 3 passed | 3 not_live |
+| `acceptance/tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all` | 3 passed | 3 not_live |

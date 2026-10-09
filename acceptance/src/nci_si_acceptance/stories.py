@@ -152,7 +152,8 @@ def _section(story: dict, cases: list[Case]) -> list[str]:
     lines += _example_rows(story, cases)
     lines += ["", "<details>", f"<summary>Exact executable cases ({len(cases)})</summary>", ""]
     lines += [
-        f"- <code>{html.escape(case.key)}</code> — [source]({_test_link(case)})" for case in cases
+        f"- <code>{html.escape('acceptance/' + case.key)}</code> — [source]({_test_link(case)})"
+        for case in cases
     ]
     return [*lines, "", "</details>", ""]
 

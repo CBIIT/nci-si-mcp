@@ -34,6 +34,7 @@ pdm run pre-commit install     # run the gates on every commit
 | `pdm run acceptance-expected check acceptance/fixture.json` | The report against `acceptance/expected/fixture.json`, test by test |
 | `pdm run acceptance-status` | Regenerate the status table of the README from the expected outcomes |
 | `pdm run spec-render` | Regenerate [docs/specification.md](docs/specification.md) from `spec/`, after any change there |
+| `pdm run quickstart-tools` | Regenerate the table of tools in [QUICKSTART.md](QUICKSTART.md) from `spec/tools.yaml`; `--check` verifies it |
 | `pandoc -f gfm docs/specification.md -o specification.docx` | The Word copy of the specification, a build product: never committed or edited |
 
 The server tests are `unittest.TestCase` classes, run by pytest. They are offline:

@@ -32,7 +32,7 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cross_domain.py::test_descendants_beyond_the_tool_s_maximum_are_truncated_with_how_much_was_left_out` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cross_domain.py::test_descendants_beyond_the_tool_s_maximum_are_truncated_with_how_much_was_left_out` | 1 passed | 1 not_live |
 
 ## ssis-inspection
 
@@ -62,7 +62,7 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cross_domain.py::test_the_data_elements_are_the_concept_s_and_with_expansion_its_descendants_too` | 2 passed | 2 not_live |
+| `acceptance/tests/test_cross_domain.py::test_the_data_elements_are_the_concept_s_and_with_expansion_its_descendants_too` | 2 passed | 2 not_live |
 
 ## ssis-identities
 
@@ -90,5 +90,5 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cross_domain.py::test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_states` | 1 passed | 1 not_live |
-| `tests/test_cross_domain.py::test_every_dataset_is_dated_with_the_largest_interval_and_a_warning_above_the_threshold` | 2 passed | 2 not_live |
+| `acceptance/tests/test_cross_domain.py::test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_states` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cross_domain.py::test_every_dataset_is_dated_with_the_largest_interval_and_a_warning_above_the_threshold` | 2 passed | 2 not_live |

@@ -211,7 +211,8 @@ def _resources_and_prompts() -> list[str]:
 
 
 def _status(key: str, entry: dict[str, Any], tests: dict[str, list[str]]) -> str:
-    cited = ", ".join(f"`{test}`" for test in tests.get(key, []))
+    # The ids are relative to acceptance/; from docs/ a bare tests/ path reads as the unit suite.
+    cited = ", ".join(f"`acceptance/{test}`" for test in tests.get(key, []))
     planned = f"planned {entry['planned']}" if "planned" in entry else ""
     return " | ".join([cited or "—", planned or "tested"])
 

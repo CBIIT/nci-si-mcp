@@ -479,46 +479,6 @@ network access; activation is explicit. No embedding runs while opening a databa
 A cached concept keeps the `retrieved_at` time at which it was fetched from EVS
 for indexing.
 
-## Public surface
-
-MCP tools:
-
-- `resolve_release`
-- `list_terminologies`
-
-- `get_concept`
-- `get_concepts`
-- `list_relationships`
-- `resolve_retired_code`
-- `get_concept_subsets`
-- `get_concept_mappings`
-- `expand_value_set`
-- `search_concepts`
-- `get_concept_hierarchy`
-- `get_concept_neighborhood`
-
-MCP resources:
-
-- `ncit://concept/{release}/{code}`
-- `ncit://release/{version}`
-- `ncit://index/manifest/{release}`
-
-The `evs` profile exposes twelve EVS tools; `cadsr` exposes ten caDSR tools;
-`unified` exposes both plus four cross-domain and three workflow tools (29 total), and four
-furnished prompts. Prompt templates are packaged in `data/prompts.json`, with a test requiring
-exact equality with `spec/prompts.yaml`; only profiles containing every named tool expose them.
-caDSR data-element resources (latest or named item version) and the
-concrete registry-state resource carry unpinned provenance and a short public cache hint.
-Each tool has group metadata and read-only, idempotent,
-non-destructive, open-world annotations. EVS resources are available in `evs` and `unified`
-only. Every EVS resource is release-pinned; concept reads use `get_concept` with every supported
-section, release reads use the requested served version's metadata, and index reads serve only
-the active matching manifest, with `source: evs_index` and `servedBy: index` provenance.
-
-The CLI retains lookup, indexed search, traversal, release-info, sample indexing and
-retrieval evaluation diagnostics. The release report uses `selected_release`; moving resource
-aliases are removed. QUICKSTART.md lists the error codes.
-
 ## Current boundaries
 
 - NCIt is the only indexed terminology. Lexical/typeahead search uses EVS directly;
@@ -545,27 +505,7 @@ aliases are removed. QUICKSTART.md lists the error codes.
   optional `server` extra, which only the `serve` command and the server tests
   need.
 
-## Verification map
-
-- `tests/test_evs.py`: failure mapping, release verification, and concept normalization.
-- `tests/test_release.py`: one-row release resolution per channel and its failures, the unknown-release 404, the release being resolved afresh in every call, and the caDSR registry state.
-- `tests/test_evs_client.py`: failure classification, response limits, payload shapes, and request URLs through the EVS client.
-- `tests/test_http_client.py`: headers, correlation, counted retries, `Retry-After`, the request-log hook, and credentials (sent to their platform only, in no log, record or error).
-- `tests/test_index.py`: sample updates and build retention, rollback, embedding compatibility, migrations, and BM25/vector/hybrid search.
-- `tests/test_handlers.py`: lookup (live, fallback, mismatch, not found), indexing, search, traversal, status, and the mapping of failures to error codes, details and next steps.
-- `tests/test_errors.py`: the error record, its closed set of codes, and the correlation identifier.
-- `tests/test_upstream.py`: failures masked as success responses (HTML, webMethods, FHIR), also through the EVS client.
-- `tests/test_traversal.py`: edge-type selection, batching, depth/node/edge limits, descendants, deduplication, and graph integrity.
-- `tests/test_validation.py`: public input validation and embedding configuration.
-- `tests/test_config.py`: environment parsing and settings validation.
-- `tests/test_evaluation.py`: ranking metrics.
-- `tests/test_registry.py`: profile inventories, annotations, shared argument defaults and overrides, CLI maintenance commands and unchanged upstream error details.
-- `tests/test_cli.py`: argument parsing, command dispatch, exit codes, and startup failures.
-- `tests/test_server.py`: tool and resource registration, results, and protocol-level errors over an in-process MCP session.
-- `tests/test_docs.py`: the settings, error codes and modules the documentation names against the code.
-- `tests/test_quality_gates.py`: the complexity and test-quality gates in `scripts/validation`.
-- `tests/test_release_config.py`: the pull request title check against the release configuration.
-- `acceptance/`: the behavioural acceptance suite, which tests the MCP tool surface through a fixture upstream ([acceptance/README.md](acceptance/README.md)).
+## EVS content contracts
 
 ### EVS content identity
 

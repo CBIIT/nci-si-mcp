@@ -10,6 +10,7 @@ import logging
 import os
 import re
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -191,6 +192,17 @@ class DocumentationTest(unittest.TestCase):
                 self.assertIn(call["tool"], served)
                 self.assertLessEqual(set(call["arguments"]), served[call["tool"]])
 
+    def test_quickstart_tool_table_is_what_the_specification_generates(self):
+        # The self-tests' check, run from the root suite so that the unit job fails too.
+        ran = subprocess.run(
+            [sys.executable, "-m", "nci_si_acceptance.quickstart", "--check"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual((ran.returncode, ran.stderr), (0, ""))
+
     def test_quickstart_provenance_table_names_the_fields_of_the_specification(self):
         text = section(QUICKSTART, "Provenance and truncation")
 
@@ -230,8 +242,8 @@ class DocumentationTest(unittest.TestCase):
         required -= {"graphs", "upstream"}
         allowed = set(fields) | set(RECORDS["traversal"]["fields"])
 
-        # One lookup, one hit, and four nodes plus three edges in the live examples.
-        self.assertEqual(len(found), 9)
+        # One lookup, one hit, and in the shortened neighborhood two nodes plus one edge.
+        self.assertEqual(len(found), 5)
         for record in found:
             self.assertLessEqual(required, set(record))
             self.assertLessEqual(set(record), allowed)

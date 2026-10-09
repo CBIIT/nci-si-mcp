@@ -70,6 +70,7 @@ pdm run acceptance-expected update acceptance/fixture.json   # rewrite the expec
 pdm run acceptance-status                 # regenerate the README status table
 pdm run acceptance-selftest               # the acceptance harness's own tests
 pdm run spec-render                       # regenerate docs/specification.md from spec/
+pdm run quickstart-tools                 # regenerate the tool table of QUICKSTART.md from spec/
 ```
 
 - Run the tests through `pdm run` (`pdm run test`, `pdm run pytest ...`), never a bare `pytest`,
