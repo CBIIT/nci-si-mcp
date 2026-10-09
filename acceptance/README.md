@@ -259,7 +259,8 @@ concept, `record.py` records the set from live,
 `craft.py` crafts the scenarios EVS does not produce on demand, `register.py` writes the
 register of request forms (`request-forms/`), `expected.py` compares a report with the expected
 outcomes (`expected/fixture.json`) and rewrites them, and `status.py` writes the README's status
-table from them.
+table from them. `results.py` holds what the tests read from a tool's result and from the upstream
+request log, and `stories.py` renders the domain-readable story of every test from `stories.yaml`.
 `fixtures/` holds the fixtures ([fixtures/README.md](fixtures/README.md)), `tests/` the suite,
 `selftests/` the tests of the harness itself.
 
@@ -295,7 +296,7 @@ What the check is and is not:
 
 ## Secured caller fixtures
 
-The additive X-25–X-27 cases use `NCI_SI_ACCEPTANCE_SECURITY_SERVER`, an operator-supplied
+The additive X-25–X-28 cases use `NCI_SI_ACCEPTANCE_SECURITY_SERVER`, an operator-supplied
 command that starts a loopback HTTP server. The furnished repository's CI and HTTP gate supply `scripts/permissions_fixture.py`. For a
 local fixture run set `NCI_SI_ACCEPTANCE_SECURITY_SERVER='python ../scripts/permissions_fixture.py'`
 alongside the preparation environment. Successors provide their own adapter;
@@ -306,6 +307,10 @@ The adapter receives the normal fixture upstream environment plus `NCI_SI_TEST_H
 and `NCI_SI_TEST_AUTHORITY_FILE`. The JSON file contains generated `tokens` keyed by fixture
 actor and `policies` containing each actor's `capabilities` (tool names) and Unix-second
 `expires_at`. Missing policy denies. The adapter authenticates tokens, reloads policy on each
-request, binds only loopback, and exposes `/mcp` and `/health`. The harness owns and reaps the
+request, binds only loopback, and exposes `/mcp`, `/health` and `/ready`. A request to `/mcp`
+without a valid token is answered 401 with `Cache-Control: no-store` and a `WWW-Authenticate`
+header, and calls to `/mcp` that return content or discovery (X-27) carry `Cache-Control: no-store`.
+`/health` and `/ready` answer `{"status": "ok"}` and `{"status": "ready"}` with `no-store`, and a
+request whose `Host` is not the adapter's own is answered 421 (X-28). The harness owns and reaps the
 process; test tokens are never production credentials and must not appear in logs. This is a
 test-adapter contract, not a proposed production policy format or identity-provider choice.

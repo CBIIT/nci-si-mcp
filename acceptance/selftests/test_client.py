@@ -17,6 +17,7 @@ from nci_si_acceptance.client import (
     PREPARED_VARIABLE,
     PROFILE_VARIABLE,
     REMOTE_ONLY,
+    SECURITY_SERVER_VARIABLE,
     SERVER_VARIABLE,
     STATE_HOOK_TIMEOUT_VARIABLE,
     STATE_HOOK_VARIABLE,
@@ -50,6 +51,22 @@ def test_the_target_is_read_from_the_environment(monkeypatch):
     monkeypatch.setenv(PROFILE_VARIABLE, "evs")
 
     assert Target.from_env() == Target("live", ["python", "-m", "my server", "--flag"], "evs")
+
+
+def test_the_secured_fixture_adapter_is_read_for_a_local_and_a_remote_target(monkeypatch):
+    monkeypatch.delenv(URL_VARIABLE, raising=False)
+    monkeypatch.setenv(SECURITY_SERVER_VARIABLE, "python adapter.py")
+    local = Target.from_env()
+    monkeypatch.setenv(URL_VARIABLE, "http://server.example/mcp")
+    remote = Target.from_env()
+    monkeypatch.setenv(SECURITY_SERVER_VARIABLE, "")
+    blank = Target.from_env()
+
+    assert (local.security_server, remote.security_server, blank.security_server) == (
+        "python adapter.py",
+        "python adapter.py",
+        None,
+    )
 
 
 @pytest.mark.parametrize(

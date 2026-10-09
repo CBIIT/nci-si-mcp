@@ -8,7 +8,12 @@ from pathlib import Path
 import pytest
 
 from nci_si_acceptance import client
-from nci_si_acceptance.client import CREDENTIAL_VARIABLES, INDEX_CODES_VARIABLE
+from nci_si_acceptance.client import (
+    ADAPTER_AUTHORITY_VARIABLE,
+    ADAPTER_PORT_VARIABLE,
+    CREDENTIAL_VARIABLES,
+    INDEX_CODES_VARIABLE,
+)
 from nci_si_acceptance.fixture_server import HARNESS_VARIABLES, SCENARIOS, SETTINGS
 from nci_si_acceptance.record import FIXTURES
 from nci_si_acceptance.spec import (
@@ -166,7 +171,14 @@ def _scenario_settings():
 
 def test_the_specification_names_every_setting_the_suite_gives_a_server_and_when():
     rows, scenarios = _settings_rows(), _scenario_settings()
-    given = {*HARNESS_VARIABLES, *CREDENTIAL_VARIABLES, INDEX_CODES_VARIABLE, *scenarios}
+    given = {
+        *HARNESS_VARIABLES,
+        *CREDENTIAL_VARIABLES,
+        INDEX_CODES_VARIABLE,
+        ADAPTER_PORT_VARIABLE,
+        ADAPTER_AUTHORITY_VARIABLE,
+        *scenarios,
+    }
 
     assert set(rows) == given
     # A row names exactly the scenarios that set its setting, so that a server's team can read
@@ -408,4 +420,4 @@ def test_the_specification_names_every_setting_of_a_run_and_the_readme_every_rem
 
 
 # The settings of a run that starts its server as a command, which the README's examples show.
-LOCAL = {"MODE", "SERVER", "PROFILE", "PREPARE"}
+LOCAL = {"MODE", "SERVER", "PROFILE", "PREPARE", "SECURITY_SERVER"}
