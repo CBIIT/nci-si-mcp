@@ -35,7 +35,7 @@ timeout or a log level sets it.
 |---|---|---|
 | `NCI_SI_UPSTREAM_MODE` | Always | `fixture` or `live` |
 | `NCI_SI_DATA_DIR` | Always | A directory of the server's own, fresh for each server; a copy of the prepare command's where one is given |
-| `NCI_SI_EVS_BASE_URL`, `NCI_SI_EVS_FHIR_BASE_URL`, `NCI_SI_CADSR_BASE_URL`, `NCI_SI_CADSR_FTP_URL`, `NCI_SI_SSIS_FACADE_URL`, `NCI_SI_SSIS_SPARQL_URL` | Fixture mode | A base URL, to which the server adds the platform's own paths as it does to the production one (`…/evs` + `/api/v1/…`; `…/cadsr` + `/NCIAPI/1.0/api/…`; `…/ssis` + `/si-api/v1/…`; `…/ssis-sparql` + `/sparql`) |
+| `NCI_SI_EVS_BASE_URL`, `NCI_SI_EVS_FHIR_BASE_URL`, `NCI_SI_CADSR_BASE_URL`, `NCI_SI_CADSR_FTP_URL`, `NCI_SI_SSIS_SPARQL_URL` | Fixture mode | A base URL, to which the server adds the platform's own paths as it does to the production one (`…/evs` + `/api/v1/…`; `…/cadsr` + `/NCIAPI/1.0/api/…`; `…/ssis-sparql` + `/sparql`) |
 | `NCI_SI_EVS_LICENSE_KEY` | Live mode, from the operator; the `license/restricted` and `license/attributed` scenarios | The key, sent as the `X-EVSRESTAPI-License-Key` header on EVS requests |
 | `NCI_SI_CADSR_CREDENTIAL` | Live mode, from the operator; the `cadsr/credentialed` and `cadsr/match-timeout` scenarios | `user:password`, sent as HTTP Basic authentication (`Authorization: Basic` and its base64), as every caDSR contract declares |
 | `NCI_SI_TIMEOUT_SECONDS` | The `upstream/unavailable` scenario | Seconds an upstream request may take |

@@ -125,18 +125,6 @@ class CaDSRClientTest(ServerTestCase):
                 "/NCIAPI/1.0/api/DataElements/getCRDCList",
                 [{"CDE Public ID": "123"}],
             ),
-            (
-                CaDSRClient.get_models,
-                "modelQueryResults",
-                "/NCIModelAPI/1.0/api/Models",
-                [{"modelName": "Fixture model"}],
-            ),
-            (
-                CaDSRClient.get_crosswalk_mappings,
-                "data",
-                "/NCIModelAPI/1.0/api/CrossWalkMappings/Download",
-                [{"sourceCode": "A"}],
-            ),
         ):
             with self.subTest(operation=operation):
                 server = self.serve(reply({key: items}))

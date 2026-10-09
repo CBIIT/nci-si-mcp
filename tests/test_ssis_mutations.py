@@ -18,7 +18,7 @@ from test_ssis_client import recording, sparql_reply
 
 class SSISContractsTest(ServerTestCase):
     def ssis(self, server):
-        return SSISClient(Settings(ssis_facade_url=server.url, ssis_sparql_url=server.url))
+        return SSISClient(Settings(ssis_sparql_url=server.url))
 
     def test_identity_requires_each_graph_and_date_field(self):
         original = recording("ssis-sparql/graph-identities.json")["response"]["body"]["results"][
@@ -117,29 +117,6 @@ class SSISContractsTest(ServerTestCase):
         query = parse_qs(server.bodies[0].decode())["query"][0]
         self.assertEqual(query.split(), fixture["request"]["form"]["query"].split())
 
-    def test_facade_sends_requested_and_clamped_limits(self):
-        server = self.serve(Reply(body=b'{"graph":[]}'), Reply(body=b'{"graph":[]}'))
-        client = self.ssis(server)
-        self.assertEqual(client.get_graph_names(7), [])
-        self.assertEqual(client.get_graph_names(1002), [])
-        self.assertEqual(
-            [path for path, _ in server.seen],
-            [
-                "/si-api/v1/database/graph_names?limit=7",
-                "/si-api/v1/database/graph_names?limit=1000",
-            ],
-        )
-
-    def test_facade_rejects_each_missing_field(self):
-        for key in ("entity", "identifier", "preferred_term"):
-            with self.subTest(key=key):
-                row = {"entity": "uri", "identifier": "123", "preferred_term": "name"}
-                del row[key]
-                server = self.serve(Reply(body=json.dumps({"results": [row]}).encode()))
-                with self.assertRaises(PlatformError) as raised:
-                    self.ssis(server).get_data_elements_for_dec("123")
-                self.assertEqual(raised.exception.code, "upstream_unavailable")
-
 
 class SSISValidationContractsTest(unittest.TestCase):
     def test_identifiers_and_expansion_name_the_bad_parameter_before_http(self):
@@ -149,8 +126,6 @@ class SSISValidationContractsTest(unittest.TestCase):
             (client.find_permissible_values, "17357", {}, "conceptCode"),
             (client.get_permissible_values, "0", {}, "publicId"),
             (client.get_permissible_values, "007", {}, "publicId"),
-            (client.get_data_elements_for_dec, "0", {}, "dec_pub_id"),
-            (client.get_data_elements_for_dec, "007", {}, "dec_pub_id"),
             (client.find_data_elements, "C1", {"expand_descendants": 1}, "expandDescendants"),
             (client.find_permissible_values, "C1", {"expand_descendants": 1}, "expandDescendants"),
         ]
@@ -173,36 +148,25 @@ class SSISValidationContractsTest(unittest.TestCase):
                         operation(argument, maximum=maximum)
                     self.assertEqual(raised.exception.details["parameter"], "maximum")
 
-    def test_separate_hosts_and_timeout_reach_the_transport(self):
+    def test_host_and_timeout_reach_the_transport(self):
         client = SSISClient(
             Settings(
-                ssis_facade_url="https://facade.example",
                 ssis_sparql_url="https://sparql.example",
                 timeout_seconds=17,
             )
         )
         with patch("nci_si_mcp.http_client._open") as transport:
-            transport.side_effect = [
-                FakeResponse(b'{"graph":[]}'),
-                FakeResponse(b'{"results":{"bindings":[]}}'),
-            ]
-            self.assertEqual(client.get_graph_names(), [])
+            transport.return_value = FakeResponse(b'{"results":{"bindings":[]}}')
             self.assertEqual(client.find_data_elements("C1"), [])
         self.assertEqual(
             [(call.args[0].full_url, call.args[1]) for call in transport.call_args_list],
-            [
-                ("https://facade.example/si-api/v1/database/graph_names?limit=100", 17),
-                ("https://sparql.example/sparql", 17),
-            ],
+            [("https://sparql.example/sparql", 17)],
         )
 
-    def test_timeout_and_ten_megabyte_bound_apply_to_both_surfaces(self):
+    def test_timeout_and_ten_megabyte_bound_apply_to_the_sparql_surface(self):
         client = SSISClient(Settings(timeout_seconds=17))
-        client.http.sleep = client.sparql_http.sleep = lambda _: None
-        for operation, arguments in (
-            (client.get_graph_names, ()),
-            (client.find_data_elements, ("C1",)),
-        ):
+        client.sparql_http.sleep = lambda _: None
+        for operation, arguments in ((client.find_data_elements, ("C1",)),):
             with self.subTest(operation=operation.__name__):
                 with (
                     patch("nci_si_mcp.http_client._open", side_effect=TimeoutError),
@@ -224,13 +188,10 @@ class SSISValidationContractsTest(unittest.TestCase):
 
 
 class SSISRetryContractsTest(ServerTestCase):
-    def test_each_surface_retries_503_until_the_third_response(self):
-        facade = self.serve(Reply(503), Reply(503), Reply(body=b'{"graph":["retrieved"]}'))
+    def test_the_surface_retries_503_until_the_third_response(self):
         sparql = self.serve(Reply(503), Reply(503), sparql_reply([]))
-        client = SSISClient(Settings(ssis_facade_url=facade.url, ssis_sparql_url=sparql.url))
-        client.http.sleep = client.sparql_http.sleep = lambda _: None
-        self.assertEqual(client.get_graph_names(), ["retrieved"])
+        client = SSISClient(Settings(ssis_sparql_url=sparql.url))
+        client.sparql_http.sleep = lambda _: None
         self.assertEqual(client.find_data_elements("C1"), [])
-        self.assertEqual(len(facade.seen), 3)
         self.assertEqual([path for path, _ in sparql.seen], ["/sparql"] * 3)
         self.assertEqual(sparql.bodies, [sparql.bodies[0]] * 3)

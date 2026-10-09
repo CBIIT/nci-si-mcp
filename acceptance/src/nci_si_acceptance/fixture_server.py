@@ -106,7 +106,6 @@ UPSTREAM_VARIABLES = {
     "NCI_SI_EVS_FHIR_BASE_URL": "evs-fhir",
     "NCI_SI_CADSR_BASE_URL": "cadsr",
     "NCI_SI_CADSR_FTP_URL": "cadsr-ftp",
-    "NCI_SI_SSIS_FACADE_URL": "ssis",
     "NCI_SI_SSIS_SPARQL_URL": "ssis-sparql",
 }
 # What the harness sets itself, and a scenario's settings may not override.

@@ -60,14 +60,13 @@ DEFAULT_EVS_BASE_URL = "https://api-evsrest.nci.nih.gov"
 DEFAULT_EMBEDDING_MODEL = "hashing"
 # The production base URL of each surface, as acceptance/fixtures/manifest.yaml records them. The
 # server adds the platform's own paths: /api/v1/... to EVS, FHIR operations to the FHIR base,
-# /NCIAPI/1.0/api/... to caDSR, /CDE/XML/releasedCDEsXML-OD.zip to the FTP base, /si-api/v1/... to
-# the façade and /sparql to the SPARQL base.
+# /NCIAPI/1.0/api/... to caDSR, /CDE/XML/releasedCDEsXML-OD.zip to the FTP base and
+# /sparql to the SPARQL base.
 PRODUCTION_BASE_URLS = {
     "evs_base_url": DEFAULT_EVS_BASE_URL,
     "evs_fhir_base_url": "https://api-evsrest.nci.nih.gov/fhir/r4",
     "cadsr_base_url": "https://cadsrapi.cancer.gov/rad",
     "cadsr_ftp_url": "https://cadsr.nci.nih.gov/ftp/caDSR_Downloads",
-    "ssis_facade_url": "https://cadsrapi.cancer.gov",
     "ssis_sparql_url": "https://shared.semantics.cancer.gov",
 }
 # Each base URL field with the variable that sets it.
@@ -76,7 +75,6 @@ BASE_URL_VARIABLES = {
     "evs_fhir_base_url": "NCI_SI_EVS_FHIR_BASE_URL",
     "cadsr_base_url": "NCI_SI_CADSR_BASE_URL",
     "cadsr_ftp_url": "NCI_SI_CADSR_FTP_URL",
-    "ssis_facade_url": "NCI_SI_SSIS_FACADE_URL",
     "ssis_sparql_url": "NCI_SI_SSIS_SPARQL_URL",
 }
 # NCIt's exclusion relationships are exactly R135 to R142 (convention A5.7).
@@ -230,7 +228,6 @@ class Settings:
     evs_fhir_base_url: str = ""
     cadsr_base_url: str = ""
     cadsr_ftp_url: str = ""
-    ssis_facade_url: str = ""
     ssis_sparql_url: str = ""
     release_channel: str = "monthly"
     exclusion_role_codes: tuple[str, ...] = DEFAULT_EXCLUSION_ROLE_CODES

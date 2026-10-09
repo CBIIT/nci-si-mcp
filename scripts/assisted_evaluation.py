@@ -87,7 +87,6 @@ def fixture_settings(upstream: FixtureServer, task: dict[str, Any], directory: P
         evs_fhir_base_url=upstream.base_url("evs-fhir"),
         cadsr_base_url=upstream.base_url("cadsr"),
         cadsr_ftp_url=upstream.base_url("cadsr-ftp"),
-        ssis_facade_url=upstream.base_url("ssis"),
         ssis_sparql_url=upstream.base_url("ssis-sparql"),
         cadsr_credential=scenario_settings.get("NCI_SI_CADSR_CREDENTIAL"),
         evs_max_attempts=1,
