@@ -129,6 +129,9 @@ def test_a_test_sees_none_of_the_requests_its_server_made_while_it_started(suite
     test = """
 import pytest
 
+# Every test of a suite is attributed (the report counts a gate against every tool).
+pytestmark = pytest.mark.gate
+
 @pytest.mark.scenario("probe/up")
 def test_clean(tools, upstream):
     assert upstream.log() == []
@@ -142,6 +145,9 @@ def test_a_server_starting_after_another_test_is_not_charged_with_its_requests(s
     test = """
 import urllib.error, urllib.request
 import pytest
+
+# Every test of a suite is attributed (the report counts a gate against every tool).
+pytestmark = pytest.mark.gate
 
 @pytest.mark.unmatched_upstream
 def test_first(upstream):
@@ -185,6 +191,9 @@ def test_a_scenario_is_served_to_a_server_of_its_own_and_ends_with_the_test(suit
     test = """
 import pytest
 
+# Every test of a suite is attributed (the report counts a gate against every tool).
+pytestmark = pytest.mark.gate
+
 def recordings(upstream):
     return [
         entry["fixture"] for entry in upstream.log()
@@ -214,6 +223,9 @@ def test_a_scenario_starts_its_server_with_its_settings(suite):
     (scenario / "settings.json").write_text('{"NCI_SI_EVS_MAX_ATTEMPTS": "1"}', encoding="utf-8")
     test = """
 import pytest
+
+# Every test of a suite is attributed (the report counts a gate against every tool).
+pytestmark = pytest.mark.gate
 
 def attempts(upstream):
     return [entry for entry in upstream.log() if entry["path"] == "/api/v1/metadata/terminologies"]

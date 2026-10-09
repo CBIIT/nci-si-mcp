@@ -310,6 +310,22 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Refuse a run that holds a test no row of the report counts: one with neither a `tool`
+    nor a `gate` marker would pass or fail unseen."""
+
+    unattributed = [
+        item.nodeid
+        for item in items
+        if item.get_closest_marker("tool") is None and item.get_closest_marker("gate") is None
+    ]
+    if unattributed:
+        raise pytest.UsageError(
+            "tests with neither a tool nor a gate marker (the report would not count them): "
+            + ", ".join(unattributed)
+        )
+
+
 def pytest_configure(config: pytest.Config) -> None:
     config.stash[COLLECTOR] = Collector()
     config.pluginmanager.register(config.stash[COLLECTOR], "acceptance-collector")
