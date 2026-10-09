@@ -11,7 +11,7 @@ acceptance suite it and its successors are measured by. Two Statements of Work b
 EVS v2.1 and caDSR v1.1. It is a prototype, not a production service. The server never returns
 caDSR or other upstream content it did not retrieve. Until NCI issues caDSR credentials,
 caDSR behavior is built and tested against fixtures crafted from the published contracts.
-The milestones and issues on GitHub (Phases 0 to 6) are the plan. README.md gives the current
+The milestones and issues on GitHub (Phases 0 to 7 delivered; later phases open) are the plan. README.md gives the current
 status per tool group; QUICKSTART.md holds the usage details.
 
 Documentation, from short to detailed: `README.md` (what the repository is, who it is for, the
@@ -100,6 +100,27 @@ pdm run nci-si-mcp serve
 
 Every command opens the index in the data directory, `.nci-si-mcp/` relative to the working
 directory. Set `NCI_SI_DATA_DIR` to a scratch directory for experiments.
+
+## Tooling beyond the server
+
+The repository deliberately holds four things: the server (`src/`), the acceptance suite built
+for the two Statements of Work (`acceptance/`), the documentation site hosted alongside the MCP,
+and the validation companion with its benchmark and evaluation tooling. `scripts/` serves the
+last two and the suite's CI; each family below is operational, and what depends on it says why.
+
+| Family | Scripts | Entry point | Depended on by |
+|---|---|---|---|
+| Gates | `validation/check_complexity.py`, `validation/check_test_quality.py` | pre-commit hooks | every commit, the CI `quality` job |
+| Acceptance in CI | `acceptance_http.py`, `permissions_fixture.py`, `upstream_requirements.py` | `pdm run acceptance-http`; the `acceptance` job's environment; a pre-commit hook | the `acceptance` and `acceptance-http` jobs, `docs/upstream/` |
+| Server container | `container_lock.py`, `container_smoke.py`, `image_scan.py`, `image_publish.py`, `Dockerfile` | the CI `image` job, the Release workflow | the published image |
+| Documentation site | `docs_site.py`, `docs_links.py`, `docs_stories.py`, `site_assets.py`, `static_server.py`, `companion_context.py`, `companion_lock.py`, `container/Docs.Dockerfile` | `pdm run docs-build`; the `documentation` and `companions` jobs | the hosted site |
+| Validation companion | `portal*.py`, `operator_*.py`, `evidence_*.py`, `companion_entry.py`, `companion_relay.py`, `companion_smoke.py`, `container/Admin.Dockerfile`, `container/compose.local.yaml` | `pdm run portal`, `pdm run operator-worker`; the `companions` job | `docs/local-validation.md`, `docs/companion-containers.md` |
+| Benchmarks and evaluation | `benchmark*.py`, `http_measurement.py`, `assisted_evaluation.py` | `pdm run benchmark-http`; the companion's workers | `docs/benchmark.md`, `docs/assisted-evaluation.md` |
+| README badges | `coverage_badges.py` | the CI `coverage-badges` job | the README |
+
+A script that served an ephemeral purpose and is no longer needed to operate or maintain the
+server, the suite or the site is removed with its tests, after verifying that nothing depends on
+it.
 
 ## Acceptance suite and its CI ratchet
 

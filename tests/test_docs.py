@@ -11,6 +11,7 @@ import os
 import re
 import subprocess
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 from typing import get_args
@@ -275,6 +276,17 @@ class DocumentationTest(unittest.TestCase):
             subprocess.run(["git", "add", "."], cwd=root, check=True)  # noqa: S607
 
             self.assertEqual(tracked_mentions_of_local_agent_files(root), ["guide.md:2"])
+
+    def test_contributing_names_every_pdm_command_of_the_project(self):
+        # Every entry point in pyproject.toml is a command a contributor may need; the
+        # command tables of CONTRIBUTING.md are where they look it up.
+        with (ROOT / "pyproject.toml").open("rb") as handle:
+            scripts = tomllib.load(handle)["tool"]["pdm"]["scripts"]
+        commands = [name for name in scripts if not name.startswith("_")]
+        contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
+
+        self.assertTrue(commands)
+        self.assertEqual([name for name in commands if f"pdm run {name}" not in contributing], [])
 
     def test_every_file_in_docs_has_a_lower_case_name(self):
         # Owner's rule: names in docs/ differ by meaning, never by case alone.
