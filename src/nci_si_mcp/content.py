@@ -226,8 +226,8 @@ def expand_value_set(
     and past-the-end ones included, are not truncation; inactive appears on a member only when
     true.
 
-    invalid_request for a count below 1, an offset below 0, or both or neither of valueSet and
-    code or a terminology other than ncit; release_mismatch when EVS
+    invalid_request for a count below 1, an offset below 0, for valueSet and code given both or
+    neither, or for a terminology other than ncit; release_mismatch when EVS
     serves another version (historical expansion is not promised); upstream_unavailable
     otherwise.
     """

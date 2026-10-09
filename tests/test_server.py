@@ -52,8 +52,8 @@ TOOLS = yaml.safe_load((Path(__file__).parents[1] / "spec/tools.yaml").read_text
 def _specified(spec):
     """What the specification says one tool's input schema states, as (argument, keyword): value.
 
-    Forms (pattern), refusal limits (maxItems), defaults (a bound's, else its own) and closed
-    sets (values). A form keyed by terminology (the NCIt code form) is deliberately not served,
+    Forms (pattern), refusal limits (maxItems), defaults (a bound's, else its own), closed
+    sets (values) and the maximum of each bound, which the argument's description states. A form keyed by terminology (the NCIt code form) is deliberately not served,
     since a schema cannot say which terminology a value belongs to; a closed set states the form
     of its argument by its members."""
 
@@ -63,6 +63,7 @@ def _specified(spec):
         | {(a, "maxItems"): limit for a, limit in spec.get("lists", {}).items()}
         | {(a, "default"): value for a, value in _defaults(spec).items()}
         | {(a, "values"): set(members) for a, members in closed.items()}
+        | {(a, "maximum"): b["maximum"] for a, b in spec.get("bounds", {}).items() if "maximum" in b}
     )
 
 
@@ -75,13 +76,15 @@ def _defaults(spec):
     return {**spec.get("defaults", {}), **bounded}
 
 
-def _served_as(schema, key):
+def _served_as(schema, key, expected):
     """What the input schema states for `key`, an (argument, keyword) of `_specified`."""
 
     argument, keyword = key
     if keyword == "values":
         return _served_values(schema, argument)
     parameter = schema["properties"][argument]
+    if keyword == "maximum":
+        return expected if str(expected) in parameter.get("description", "") else None
     found = [
         alternative[keyword] for alternative in _alternatives(parameter) if keyword in alternative
     ]
@@ -260,7 +263,7 @@ class ServerTest(ServerFixture):
         for name, spec in TOOLS.items():
             schema = tools[name].input_schema
             specified = _specified(spec)
-            served = {key: _served_as(schema, key) for key in specified}
+            served = {key: _served_as(schema, key, specified[key]) for key in specified}
             self.assertEqual(served, specified, name)
 
     def test_first_sentences_are_one_plain_sentence_free_of_cache_vocabulary(self, _):
