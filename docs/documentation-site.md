@@ -7,12 +7,13 @@ Design credit: the Semantic Infrastructure (SI) team, *MCP Architecture*, 1 Octo
 
 ## Build and preview
 
-From the repository root, with Python 3.14+, PDM and Node.js/npm installed:
+From the repository root, with Python 3.14+, PDM and Node.js 22.12+ / npm installed:
 
 ```bash
 pdm install -G docs
 npm ci --prefix docs/site-assets --ignore-scripts
 npm audit --prefix docs/site-assets --audit-level high
+npm run build --prefix docs/site-assets
 pdm run docs-build
 pdm run python -m http.server 8000 --bind 127.0.0.1 --directory tmp/docs-site
 ```
@@ -24,7 +25,20 @@ by the builder. No GitHub Pages, DNS or cloud settings are changed by these comm
 
 Zensical is pinned in the docs development group in `pdm.lock`. Mermaid is pinned separately
 in `docs/site-assets/package-lock.json`; npm lifecycle scripts are disabled. Neither is a core
-MCP runtime dependency. The site serves its diagram runtime, stylesheet, fonts and
+MCP runtime dependency. The explicit build command uses pinned esbuild to bundle Mermaid's
+external-dependency entry point with the KaTeX 0.18.2 override. It does not copy Mermaid's
+prebuilt browser bundle, which embeds an older KaTeX despite a clean dependency audit.
+The override addresses [GHSA-238p-pmpm-9mq7](https://github.com/advisories/GHSA-238p-pmpm-9mq7);
+remove it only when the selected Mermaid release resolves a patched KaTeX on its own.
+Rebuild after every `npm ci` or dependency change; the site build fails if the rebuilt asset
+is missing. Bundled dependency license notices are published alongside the runtime.
+After dependency updates, copy `docs/site-assets/test-mermaid.html` into the root of a
+disposable copy of the built site and serve it over loopback HTTP. Open that test page and
+require all six checks to pass: flowchart, sequence, state, entity relationships, mathematical
+labels (powers, fractions and roots), and rejection of untrusted mathematical links. Also
+inspect the architecture and deployment pages visually. The test page is not part of the
+publication allowlist; remove the disposable preview after testing.
+The site serves its diagram runtime, stylesheet, fonts and
 search assets locally; external references remain ordinary links. Repository README badges
 become text links in the site, so browsing documentation does not fetch third-party badge images.
 Serve the artifact over HTTP; direct `file://` search is not a supported preview mode.

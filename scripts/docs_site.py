@@ -136,7 +136,8 @@ def _assets(root: Path, workspace: Path) -> None:
     files = {
         "site.css": source / "site.css",
         "search-placement.js": source / "search-placement.js",
-        "mermaid.min.js": source / "node_modules/mermaid/dist/mermaid.min.js",
+        "mermaid.min.js": source / "node_modules/.cache/nci-si/mermaid.min.js",
+        "mermaid.min.js.LEGAL.txt": source / "node_modules/.cache/nci-si/mermaid.min.js.LEGAL.txt",
         "mermaid-LICENSE.txt": source / "node_modules/mermaid/LICENSE",
     }
     for name in FONT_FILES:

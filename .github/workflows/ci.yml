@@ -31,6 +31,7 @@ jobs:
           node-version: "24"
           package-manager-cache: false
       - run: npm ci --prefix docs/site-assets --ignore-scripts
+      - run: npm run build --prefix docs/site-assets
       - run: pdm run python -m scripts.companion_context
       - name: Build isolated local images
         run: |
@@ -72,6 +73,7 @@ jobs:
           package-manager-cache: false
       - run: npm ci --prefix docs/site-assets --ignore-scripts
       - run: npm audit --prefix docs/site-assets --audit-level high
+      - run: npm run build --prefix docs/site-assets
       - run: pdm run acceptance-stories --check
       - run: pdm run docs-build
       # Documentation only: never upload an evidence database, operational report or tmp/ tree.

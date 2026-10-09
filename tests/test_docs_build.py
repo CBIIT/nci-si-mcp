@@ -26,6 +26,10 @@ class DocumentationBuildTest(unittest.TestCase):
         (vendor / "dist").mkdir(parents=True)
         (vendor / "dist/mermaid.min.js").write_text("/* test runtime */")
         (vendor / "LICENSE").write_text("Test license")
+        rebuilt = assets / "node_modules/.cache/nci-si"
+        rebuilt.mkdir(parents=True)
+        (rebuilt / "mermaid.min.js").write_text("/* rebuilt patched runtime */")
+        (rebuilt / "mermaid.min.js.LEGAL.txt").write_text("Bundled dependency licenses")
         (assets / "zensical.toml").write_text(self.config())
         (self.root / "README.md").write_text("# Public overview\n\n[Story](docs/story.md)\n")
         (self.root / "docs/story.md").write_text("# A domain story\n\nRetrieved, not invented.\n")
@@ -71,6 +75,22 @@ custom_dir = "overrides"
         with self.assertRaises(FileExistsError):
             self.build()
         self.assertEqual((self.output / "keep.txt").read_text(), "Human work")
+
+    def test_site_publishes_rebuilt_runtime_and_licenses_not_vendor_bundle(self):
+        self.build()
+        self.assertEqual(
+            (self.output / "assets/mermaid.min.js").read_text(), "/* rebuilt patched runtime */"
+        )
+        self.assertEqual(
+            (self.output / "assets/mermaid.min.js.LEGAL.txt").read_text(),
+            "Bundled dependency licenses",
+        )
+
+    def test_missing_rebuilt_runtime_never_falls_back_to_vendor_bundle(self):
+        (self.root / "docs/site-assets/node_modules/.cache/nci-si/mermaid.min.js").unlink()
+        with self.assertRaises(FileNotFoundError):
+            self.build()
+        self.assertFalse(self.output.exists())
 
     def test_broken_link_prevents_any_publication_and_cleans_staging(self):
         (self.root / "README.md").write_text("# Overview\n\n[Missing](unknown.py)\n")

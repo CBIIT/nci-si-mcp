@@ -6,7 +6,7 @@ contains no operational results. Design credit: the Semantic Infrastructure (SI)
 
 ## Build and start locally
 
-Use Python 3.14+, PDM, Node.js and a Docker-compatible engine with Compose. Images currently
+Use Python 3.14+, PDM, Node.js 22.12+ and a Docker-compatible engine with Compose. Images currently
 target Linux amd64; the Dockerfiles do not bake in an architecture. On Apple Silicon, the engine
 needs amd64 emulation. No registry login or institutional account is required.
 
@@ -22,6 +22,7 @@ must identify the same clean checkout. No Git metadata or host credentials enter
 ```bash
 pdm install -G docs
 npm ci --prefix docs/site-assets --ignore-scripts
+npm run build --prefix docs/site-assets
 pdm run python -m scripts.companion_context
 docker build --platform linux/amd64 --load -t nci-si-docs:local tmp/companion-context/docs
 docker build --platform linux/amd64 --load -t nci-si-admin:local tmp/companion-context/admin

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Mermaid bundle regression checks</title>
+<h1>Mermaid bundle regression checks</h1>
+<p id="status" role="status">Running</p>
+<main id="diagrams"></main>
+<!-- Copy this test page into a built site's root; it tests the published bytes. -->
+<script src="assets/mermaid.min.js"></script>
+<script>
+  const cases = [
+    ["flowchart", 'flowchart LR\nA[Client] --> B[Server]'],
+    ["sequence", 'sequenceDiagram\nClient->>Server: Request\nServer-->>Client: Retrieved result'],
+    ["state", 'stateDiagram-v2\n[*] --> Building\nBuilding --> Active\nActive --> [*]'],
+    ["entities", 'erDiagram\nBUILD ||--o{ CONCEPT : contains\nCONCEPT { string code PK }'],
+    ["math", String.raw`flowchart LR
+      A["$$E=mc^2$$"] --> B["$$\frac{1}{2}+\sqrt{x}$$"]`],
+    ["untrusted_math", String.raw`flowchart LR
+      A["$$\href{javascript:alert(1)}{unsafe}$$"]`],
+  ];
+  const status = document.getElementById("status");
+  const diagrams = document.getElementById("diagrams");
+  mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
+  async function check() {
+    for (const [name, source] of cases) {
+      const { svg } = await mermaid.render(`test_${name}`, source);
+      const section = document.createElement("section");
+      section.innerHTML = `<h2>${name}</h2>${svg}`;
+      if (!section.querySelector("svg") || section.querySelector(".error-icon")) {
+        throw new Error(`${name}: rendering failed`);
+      }
+      if (name === "math" && (!section.querySelector("msup") ||
+          !section.querySelector("mfrac") || !section.querySelector("msqrt"))) {
+        throw new Error("Math labels did not produce powers, fractions and roots");
+      }
+      if (name === "untrusted_math" && section.querySelector("[href], [xlink\\:href], image")) {
+        throw new Error("Untrusted mathematical link was not blocked");
+      }
+      diagrams.append(section);
+    }
+    status.textContent = `PASS: ${cases.length} browser rendering checks`;
+  }
+  check().catch(error => { status.textContent = `FAIL: ${error.message}`; });
+</script>
+</html>
