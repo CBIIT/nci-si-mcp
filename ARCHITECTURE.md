@@ -120,11 +120,11 @@ The registry derives adapter parameters from handler signatures; closed choices 
 | `config_snapshot.py` | Opt-in local startup evidence from the actual serving settings; explicit safe-field allowlist, target instance/revision and owned-file cleanup. No live-state or remote discovery claim; companion proposals never apply settings. | `config.py`, local validation companion |
 | `container_entry.py` | Starts the same server with externally supplied assets, verifies the index and loads the model offline; startup failures name the asset and error class without library messages. It never builds or activates an index. | `context.py`, `embeddings.py`, `transport.py` |
 | `transport.py` | Stateful or stateless HTTP over the shared adapter; SDK authentication and scope hooks, Host/Origin admission, body cap, local readiness and token-free auth diagnostics. Sessions belong to one process. | `server.py`, optional MCP/Starlette/Uvicorn |
-| `server.py` | Registers profile-selected tools, five resource templates and two concrete resources from the registry on an `mcp` 2.x `MCPServer`, and flags error records as protocol errors. Middleware carries cache decisions from SDK worker threads into tool `_meta` and resource fields, without inspecting content or matching names. Undeclared successful responses fail. SDK hints cover lists/discovery. | `registry.py`, `caching.py`, optional `mcp` package |
+| `server.py` | Registers profile-selected tools, five resource templates and two concrete resources from the registry on an `mcp` 2.x `MCPServer`, and flags error records as protocol errors. Middleware carries cache decisions from SDK worker threads into tool `_meta` and resource fields, without inspecting content or matching names. Undeclared successful responses fail. SDK hints cover lists/discovery. Prompts are packaged in `data/prompts.json`, kept equal to `spec/prompts.yaml` by a test, exposed only by profiles that contain every tool they name, and make no content calls. | `registry.py`, `caching.py`, optional `mcp` package |
 | `permissions.py` | Immutable request authority, capability checks and compound dependencies | `errors.py`, registry, standard-library context variables |
 | `server_permissions.py` | Caller-filtered MCP surfaces and session ownership | `permissions.py`, registry, caching, optional MCP package |
 | `http_auth.py` | Operator-installed authentication integration, verified issuer/identity binding and required-startup validation | `permissions.py`, optional MCP authentication package |
-| `registry.py` | Declares each operation once with its handler, output union, optional cache default and adapter exposure. Handlers that own the complete cache policy omit the default. Derives input models, CLI arguments and MCP parameters from handler signatures; selects tools by profile and invokes all producers through one boundary. | `handlers.py`, `invocation.py`, `caching.py`, `results.py` |
+| `registry.py` | Declares each operation once with its handler, output union, optional cache default and adapter exposure. Handlers that own the complete cache policy omit the default. Derives input models, CLI arguments and MCP parameters from handler signatures; selects tools by profile and invokes all producers through one boundary. Carries each tool's group metadata and read-only, idempotent, non-destructive, open-world annotations (M1.4). | `handlers.py`, `invocation.py`, `caching.py`, `results.py` |
 | `context.py` | Holds injectable settings, clients, index and embedding provider shared by a server or CLI invocation. | EVS client, local index, embeddings |
 | `audit.py` | Emits one redacted JSON completion record per invocation, classifies parameters from the registry, counts actual HTTP attempts in request-scoped state, and formats diagnostics. | Correlation context, standard-library logging and SHA-256 |
 | `handlers.py` | Validates inputs, orchestrates use cases, pins EVS requests to the configured release channel, enforces index compatibility and implements lookup fallback. Owns tool contracts and pinned resource content; absent and mismatched indexes are explicit errors. | `context.py`, release, traversal, evaluation |
@@ -479,46 +479,6 @@ network access; activation is explicit. No embedding runs while opening a databa
 A cached concept keeps the `retrieved_at` time at which it was fetched from EVS
 for indexing.
 
-## Public surface
-
-MCP tools:
-
-- `resolve_release`
-- `list_terminologies`
-
-- `get_concept`
-- `get_concepts`
-- `list_relationships`
-- `resolve_retired_code`
-- `get_concept_subsets`
-- `get_concept_mappings`
-- `expand_value_set`
-- `search_concepts`
-- `get_concept_hierarchy`
-- `get_concept_neighborhood`
-
-MCP resources:
-
-- `ncit://concept/{release}/{code}`
-- `ncit://release/{version}`
-- `ncit://index/manifest/{release}`
-
-The `evs` profile exposes twelve EVS tools; `cadsr` exposes ten caDSR tools;
-`unified` exposes both plus four cross-domain and three workflow tools (29 total), and four
-furnished prompts. Prompt templates are packaged in `data/prompts.json`, with a test requiring
-exact equality with `spec/prompts.yaml`; only profiles containing every named tool expose them.
-caDSR data-element resources (latest or named item version) and the
-concrete registry-state resource carry unpinned provenance and a short public cache hint.
-Each tool has group metadata and read-only, idempotent,
-non-destructive, open-world annotations. EVS resources are available in `evs` and `unified`
-only. Every EVS resource is release-pinned; concept reads use `get_concept` with every supported
-section, release reads use the requested served version's metadata, and index reads serve only
-the active matching manifest, with `source: evs_index` and `servedBy: index` provenance.
-
-The CLI retains lookup, indexed search, traversal, release-info, sample indexing and
-retrieval evaluation diagnostics. The release report uses `selected_release`; moving resource
-aliases are removed. QUICKSTART.md lists the error codes.
-
 ## Current boundaries
 
 - NCIt is the only indexed terminology. Lexical/typeahead search uses EVS directly;
@@ -547,27 +507,7 @@ aliases are removed. QUICKSTART.md lists the error codes.
   optional `server` extra, which only the `serve` command and the server tests
   need.
 
-## Verification map
-
-- `tests/test_evs.py`: failure mapping, release verification, and concept normalization.
-- `tests/test_release.py`: one-row release resolution per channel and its failures, the unknown-release 404, the release being resolved afresh in every call, and the caDSR registry state.
-- `tests/test_evs_client.py`: failure classification, response limits, payload shapes, and request URLs through the EVS client.
-- `tests/test_http_client.py`: headers, correlation, counted retries, `Retry-After`, the request-log hook, and credentials (sent to their platform only, in no log, record or error).
-- `tests/test_index.py`: sample updates and build retention, rollback, embedding compatibility, migrations, and BM25/vector/hybrid search.
-- `tests/test_handlers.py`: lookup (live, fallback, mismatch, not found), indexing, search, traversal, status, and the mapping of failures to error codes, details and next steps.
-- `tests/test_errors.py`: the error record, its closed set of codes, and the correlation identifier.
-- `tests/test_upstream.py`: failures masked as success responses (HTML, webMethods, FHIR), also through the EVS client.
-- `tests/test_traversal.py`: edge-type selection, batching, depth/node/edge limits, descendants, deduplication, and graph integrity.
-- `tests/test_validation.py`: public input validation and embedding configuration.
-- `tests/test_config.py`: environment parsing and settings validation.
-- `tests/test_evaluation.py`: ranking metrics.
-- `tests/test_registry.py`: profile inventories, annotations, shared argument defaults and overrides, CLI maintenance commands and unchanged upstream error details.
-- `tests/test_cli.py`: argument parsing, command dispatch, exit codes, and startup failures.
-- `tests/test_server.py`: tool and resource registration, results, and protocol-level errors over an in-process MCP session.
-- `tests/test_docs.py`: the settings, error codes and modules the documentation names against the code.
-- `tests/test_quality_gates.py`: the complexity and test-quality gates in `scripts/validation`.
-- `tests/test_release_config.py`: the pull request title check against the release configuration.
-- `acceptance/`: the behavioural acceptance suite, which tests the MCP tool surface through a fixture upstream ([acceptance/README.md](acceptance/README.md)).
+## Content and caller contracts
 
 ### EVS content identity
 

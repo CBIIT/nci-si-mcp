@@ -31,9 +31,9 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cadsr.py::test_without_a_registry_release_the_export_date_stands_for_it` | 1 passed | 1 not_live |
-| `tests/test_cadsr.py::test_a_published_registry_release_is_returned` | 1 passed | 1 not_live |
-| `tests/test_cadsr.py::test_a_published_registry_release_is_asked_for_and_named_with_its_date` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_without_a_registry_release_the_export_date_stands_for_it` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_a_published_registry_release_is_returned` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_a_published_registry_release_is_asked_for_and_named_with_its_date` | 1 passed | 1 not_live |
 
 ## cadsr-search
 
@@ -63,8 +63,8 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cadsr.py::test_a_search_s_page_is_the_limit_given` | 1 passed | 1 not_live |
-| `tests/test_cadsr.py::test_a_search_the_platform_caps_reports_the_cap_and_no_total` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_a_search_s_page_is_the_limit_given` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_a_search_the_platform_caps_reports_the_cap_and_no_total` | 1 passed | 1 not_live |
 
 ## cadsr-match-parameters
 
@@ -92,7 +92,7 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cadsr.py::test_what_the_platform_does_not_take_is_an_invalid_request_never_ignored` | 3 passed | 3 not_live |
+| `acceptance/tests/test_cadsr.py::test_what_the_platform_does_not_take_is_an_invalid_request_never_ignored` | 3 passed | 3 not_live |
 
 ## cadsr-access
 
@@ -124,9 +124,9 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cadsr.py::test_data_element_matches_are_scored_and_rule_attributed_as_the_platform_says` | 1 passed | 1 not_live |
-| `tests/test_cadsr.py::test_the_contexts_are_the_registry_s_context_names` | 1 passed | 1 not_live |
-| `tests/test_workflow.py::test_each_column_is_matched_once_and_the_unmatched_are_listed` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_data_element_matches_are_scored_and_rule_attributed_as_the_platform_says` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_the_contexts_are_the_registry_s_context_names` | 1 passed | 1 not_live |
+| `acceptance/tests/test_workflow.py::test_each_column_is_matched_once_and_the_unmatched_are_listed` | 1 passed | 1 not_live |
 
 ## cadsr-match-wire
 
@@ -157,8 +157,8 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cadsr.py::test_data_element_matches_are_scored_and_rule_attributed_as_the_platform_says` | 1 passed | 1 not_live |
-| `tests/test_cadsr.py::test_value_meaning_matches_are_the_platform_s_in_its_order_with_their_rule` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_data_element_matches_are_scored_and_rule_attributed_as_the_platform_says` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_value_meaning_matches_are_the_platform_s_in_its_order_with_their_rule` | 1 passed | 1 not_live |
 
 ## cadsr-match-latency
 
@@ -187,7 +187,7 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cadsr.py::test_matching_slower_than_the_match_timeout_is_a_timeout` | 2 passed | 2 not_live |
+| `acceptance/tests/test_cadsr.py::test_matching_slower_than_the_match_timeout_is_a_timeout` | 2 passed | 2 not_live |
 
 ## cadsr-forms
 
@@ -216,8 +216,8 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cadsr.py::test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too` | 1 passed | 1 not_live |
-| `tests/test_cadsr.py::test_an_unknown_form_answered_inside_an_http_200_is_not_found` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_an_unknown_form_answered_inside_an_http_200_is_not_found` | 1 passed | 1 not_live |
 
 ## cadsr-errors
 
@@ -247,8 +247,8 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cadsr.py::test_a_refusal_inside_an_http_200_is_an_invalid_request` | 1 passed | 1 not_live |
-| `tests/test_cadsr.py::test_html_where_json_was_asked_for_is_an_upstream_error` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_a_refusal_inside_an_http_200_is_an_invalid_request` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_html_where_json_was_asked_for_is_an_upstream_error` | 1 passed | 1 not_live |
 
 ## cadsr-discovery
 
@@ -279,7 +279,7 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty` | 4 passed | 4 not_live |
+| `acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty` | 4 passed | 4 not_live |
 
 ## cadsr-concept-release
 
@@ -308,5 +308,5 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cross_domain.py::test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_states` | 1 passed | 1 not_live |
-| `tests/test_cross_domain.py::test_a_release_other_than_the_ncit_graph_s_fails_closed` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cross_domain.py::test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_states` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cross_domain.py::test_a_release_other_than_the_ncit_graph_s_fails_closed` | 1 passed | 1 not_live |

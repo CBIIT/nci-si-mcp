@@ -38,6 +38,7 @@ pdm run pre-commit install     # run the gates on every commit
 | `pdm run acceptance-register` | Regenerate the request-forms register (`acceptance/request-forms/`) |
 | `pdm run acceptance-stories` | Regenerate [docs/behavioural-tests.md](docs/behavioural-tests.md) from the suite; `--check` verifies it |
 | `pdm run spec-render` | Regenerate [docs/specification.md](docs/specification.md) from `spec/`, after any change there |
+| `pdm run quickstart-tools` | Regenerate the table of tools in [QUICKSTART.md](QUICKSTART.md) from `spec/tools.yaml`; `--check` verifies it |
 | `pandoc -f gfm docs/specification.md -o specification.docx` | The Word copy of the specification, a build product: never committed or edited |
 
 Beyond the server and the suite, the repository holds the documentation site, the validation

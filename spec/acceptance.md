@@ -82,6 +82,23 @@ indexes the concepts that `pdm run acceptance-index-codes` prints, one per line,
 server prepared. A server declared prepared holds exactly that set: the semantic tests assert
 `totalKnown` equal to its size.
 
+Details of a remote run. Against fixtures the probe stops with "the server under test does not
+reach the fixture server" when the fixture server's log shows no request, as it does for a server
+that answers from a cache filled before the run (change its state first, or give the hook, which
+then runs before the probe; what the server asks while the hook runs counts); in live mode it stops
+with "the server under test does not answer". When the fixture server listens on `0.0.0.0` and
+`NCI_SI_ACCEPTANCE_FIXTURE_URL` is not set, the harness warns that the URLs it announces may not
+reach it from where the server runs. The hook runs with the harness's environment less the
+credential and less every `NCI_SI_*` setting that is not an `NCI_SI_ACCEPTANCE_*` one, plus the
+fixture settings, `NCI_SI_ACCEPTANCE_SCENARIOS` and the set's settings (none for an `own_server`
+test). The tests on the server as the operator started it run first, then the `own_server` tests,
+then each scenario set's. The hook must return once the old state is gone (for a restart: once the
+old instance has stopped), with the output of any process it leaves running redirected; the harness
+then waits for the endpoint, up to the timeout, and stops at once on an HTTP 401 or 403. The
+`Authorization` credential is withheld from the output of a failing test, with the token after its
+scheme, and is not given to the hook. The harness cannot read a remote server's standard error or
+data directory, so the checks that a secret is in neither (X-12) cover what the server returns.
+
 The Prototype Baseline Assessment reads the outcomes of a run against the furnished prototype:
 a tool that passes is a reuse candidate, one that fails or is INCOMPLETE a hardening candidate,
 and one NOT IMPLEMENTED new development.
