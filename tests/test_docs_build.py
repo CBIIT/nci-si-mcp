@@ -114,7 +114,10 @@ custom_dir = "overrides"
         self.assertFalse(identity["dirty"])
 
     def test_local_preview_records_actual_git_source_state(self):
-        identity = source_identity(ROOT, None)
+        # The installed version comes from the nearest tag; a clone without the tags
+        # installs a dev fallback that is not a release version, so it is fixed here.
+        with patch("scripts.docs_site.version", return_value="0.1.0"):
+            identity = source_identity(ROOT, None)
         self.assertRegex(identity["source_commit"], r"^[a-f0-9]{40}$")
         self.assertEqual(identity["channel"], "development")
         self.assertIsNone(identity["release_tag"])

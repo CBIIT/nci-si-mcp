@@ -1,7 +1,6 @@
 # Caller permissions
 
-Design credit: **Semantic Infrastructure (SI) team**, *MCP Architecture*, SI Team Meeting,
-1 October 2026. Implements the portable access decisions in the
+Implements the portable access decisions in the
 [Phase 6 decision record](decisions/001-si-architecture-alignment.md).
 
 The default CLI and stdio server remain trusted-local. Embedders opt into caller policy by

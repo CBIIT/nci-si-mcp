@@ -51,7 +51,7 @@ retrieval has its own [evaluation evidence](retrieval-evaluation.md).
 ## Bounded HTTP measurements
 
 The HTTP runner uses a separate version-1 report; the stdio commands and historical definitions
-above are unchanged. Design credit: the Semantic Infrastructure (SI) team. Run the fixed local
+above are unchanged. Run the fixed local
 profile with no credentials or application login:
 
 ```bash
@@ -144,4 +144,4 @@ distinct kinds of evidence: local refusals do not establish upstream access, whi
 journey requires successful content with the discovered release and matching provenance.
 Read the run's exact counts and skipped cases; the historical Phase 5 reports are unchanged.
 
-The [evidence directory](evidence/phase-5/) holds the measured samples and acceptance reports.
+The [evidence directory](evidence/phase-5/README.md) holds the measured samples and acceptance reports.

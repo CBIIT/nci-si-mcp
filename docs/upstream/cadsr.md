@@ -8,7 +8,7 @@ Generated from [catalogue.yaml](catalogue.yaml). Read the [evidence boundary](RE
 
 Platform requirement/operation: **C-1; OP-C08; OP-C06; OP-M01; OP-M02; OP-C12**.
 Specification requirements: `resolve_registry_release-1`, `X-21`, `get_code_map-1`.
-Source discussion: [issue evidence](https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-6011947240).
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42#issuecomment-6011947240).
 
 **Observation.** The release route is recorded 404. The export folder names 2026-07-01 22:19 without a timezone while its README says daily updates; matching/forms declare no registryRelease transport. C-1 fixtures are requested future behavior.
 
@@ -31,9 +31,9 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cadsr.py::test_without_a_registry_release_the_export_date_stands_for_it` | 1 passed | 1 not_live |
-| `tests/test_cadsr.py::test_a_published_registry_release_is_returned` | 1 passed | 1 not_live |
-| `tests/test_cadsr.py::test_a_published_registry_release_is_asked_for_and_named_with_its_date` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_without_a_registry_release_the_export_date_stands_for_it` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_a_published_registry_release_is_returned` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_a_published_registry_release_is_asked_for_and_named_with_its_date` | 1 passed | 1 not_live |
 
 ## cadsr-search
 
@@ -41,7 +41,7 @@ Evidence (linked request/response files retain their original form):
 
 Platform requirement/operation: **C-3; OP-C03**.
 Specification requirements: `search_data_elements-1`, `search_data_elements-2`.
-Source discussion: [issue evidence](https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-5966921102).
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42#issuecomment-5966921102).
 
 **Observation.** Keyword search is requested OP-C03, not a verified served operation; the capped search answer is crafted. The live benchmark returned upstream_unavailable. Context/workflow/registration/value-domain filter parameter names are absent from that requested form.
 
@@ -63,8 +63,8 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cadsr.py::test_a_search_s_page_is_the_limit_given` | 1 passed | 1 not_live |
-| `tests/test_cadsr.py::test_a_search_the_platform_caps_reports_the_cap_and_no_total` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_a_search_s_page_is_the_limit_given` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_a_search_the_platform_caps_reports_the_cap_and_no_total` | 1 passed | 1 not_live |
 
 ## cadsr-match-parameters
 
@@ -72,7 +72,7 @@ Evidence (linked request/response files retain their original form):
 
 Platform requirement/operation: **C-6; OP-M01**.
 Specification requirements: `match_data_elements-1`.
-Source discussion: [issue evidence](https://github.com/hniedner/nci-si-mcp/issues/42).
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42).
 
 **Observation.** The published matching contract does not take the requested modelVariant and similarityThreshold controls.
 
@@ -92,7 +92,7 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cadsr.py::test_what_the_platform_does_not_take_is_an_invalid_request_never_ignored` | 3 passed | 3 not_live |
+| `acceptance/tests/test_cadsr.py::test_what_the_platform_does_not_take_is_an_invalid_request_never_ignored` | 3 passed | 3 not_live |
 
 ## cadsr-access
 
@@ -100,7 +100,7 @@ Evidence (linked request/response files retain their original form):
 
 Platform requirement/operation: **C-6; OP-M01; OP-C13**.
 Specification requirements: `match_data_elements-1`, `list_contexts-1`, `harmonize_data_dictionary-1`.
-Source discussion: [issue evidence](https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-5966334217).
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42#issuecomment-5966334217).
 
 **Observation.** Anonymous calls are recorded 401. No credentials have been issued; credentialed fixture answers follow published contracts and are crafted. Live matching and harmonization measurements returned upstream errors.
 
@@ -124,9 +124,9 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cadsr.py::test_data_element_matches_are_scored_and_rule_attributed_as_the_platform_says` | 1 passed | 1 not_live |
-| `tests/test_cadsr.py::test_the_contexts_are_the_registry_s_context_names` | 1 passed | 1 not_live |
-| `tests/test_workflow.py::test_each_column_is_matched_once_and_the_unmatched_are_listed` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_data_element_matches_are_scored_and_rule_attributed_as_the_platform_says` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_the_contexts_are_the_registry_s_context_names` | 1 passed | 1 not_live |
+| `acceptance/tests/test_workflow.py::test_each_column_is_matched_once_and_the_unmatched_are_listed` | 1 passed | 1 not_live |
 
 ## cadsr-match-wire
 
@@ -134,7 +134,7 @@ Evidence (linked request/response files retain their original form):
 
 Platform requirement/operation: **C-6; OP-M01; OP-M02**.
 Specification requirements: `match_data_elements-1`, `match_value_meanings-1`.
-Source discussion: [issue evidence](https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-6011568485).
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42#issuecomment-6011568485).
 
 **Observation.** CDE Match's contract declares one object, but the issue reports a successful array request in September; both recorded forms now get 401. vmMatch's published header descriptions conflict with its recorded Restricted/match wire form. Recorded crosswalkCode=NA is interpreted as no crosswalk, pending confirmation.
 
@@ -157,8 +157,8 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cadsr.py::test_data_element_matches_are_scored_and_rule_attributed_as_the_platform_says` | 1 passed | 1 not_live |
-| `tests/test_cadsr.py::test_value_meaning_matches_are_the_platform_s_in_its_order_with_their_rule` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_data_element_matches_are_scored_and_rule_attributed_as_the_platform_says` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_value_meaning_matches_are_the_platform_s_in_its_order_with_their_rule` | 1 passed | 1 not_live |
 
 ## cadsr-match-latency
 
@@ -166,7 +166,7 @@ Evidence (linked request/response files retain their original form):
 
 Platform requirement/operation: **C-6; OP-M02**.
 Specification requirements: `X-5`, `match_value_meanings-1`.
-Source discussion: [issue evidence](https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-5968476814).
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42#issuecomment-5968476814).
 
 **Observation.** The issue reports Unknown timing out with HTTP 504 at 10.6 seconds on 3 October, while Not Applicable and Other, specify completed near two seconds. That timing observation is in the issue, not the Male fixture.
 
@@ -187,7 +187,7 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cadsr.py::test_matching_slower_than_the_match_timeout_is_a_timeout` | 2 passed | 2 not_live |
+| `acceptance/tests/test_cadsr.py::test_matching_slower_than_the_match_timeout_is_a_timeout` | 2 passed | 2 not_live |
 
 ## cadsr-forms
 
@@ -195,7 +195,7 @@ Evidence (linked request/response files retain their original form):
 
 Platform requirement/operation: **OP-C12; C-1**.
 Specification requirements: `get_form-1`, `X-15`.
-Source discussion: [issue evidence](https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-6011947240).
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42#issuecomment-6011947240).
 
 **Observation.** The known anonymous v2 example is RETIRED ARCHIVED; v1 access and discovery limitations are recorded in the issue. An unknown form is HTTP 200, form=null, type E, indistinguishable from a genuine failure using that exact shape.
 
@@ -216,8 +216,8 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cadsr.py::test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too` | 1 passed | 1 not_live |
-| `tests/test_cadsr.py::test_an_unknown_form_answered_inside_an_http_200_is_not_found` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_an_unknown_form_answered_inside_an_http_200_is_not_found` | 1 passed | 1 not_live |
 
 ## cadsr-errors
 
@@ -225,7 +225,7 @@ Evidence (linked request/response files retain their original form):
 
 Platform requirement/operation: **OP-C01; OP-C09; X-15**.
 Specification requirements: `X-15`.
-Source discussion: [issue evidence](https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-5969077942).
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42#issuecomment-5969077942).
 
 **Observation.** Recorded invalid IDs and absence are HTTP 200 with different apiResponse envelopes; missing conceptCode is reported in the issue as an empty type-S success. Without Accept, recorded endpoints answer HTML.
 
@@ -247,8 +247,8 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cadsr.py::test_a_refusal_inside_an_http_200_is_an_invalid_request` | 1 passed | 1 not_live |
-| `tests/test_cadsr.py::test_html_where_json_was_asked_for_is_an_upstream_error` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_a_refusal_inside_an_http_200_is_an_invalid_request` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cadsr.py::test_html_where_json_was_asked_for_is_an_upstream_error` | 1 passed | 1 not_live |
 
 ## cadsr-discovery
 
@@ -256,7 +256,7 @@ Evidence (linked request/response files retain their original form):
 
 Platform requirement/operation: **OP-C07; OP-C10; OP-C13; C-11**.
 Specification requirements: `get_permissible_value-1`, `list_contexts-1`.
-Source discussion: [issue evidence](https://github.com/hniedner/nci-si-mcp/issues/42).
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42).
 
 **Observation.** Standalone permissible-value paths return 404; values are nested in data elements. Classification filtering is served, but it is not a catalogue of schemes.
 
@@ -279,7 +279,7 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty` | 4 passed | 4 not_live |
+| `acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty` | 4 passed | 4 not_live |
 
 ## cadsr-concept-release
 
@@ -287,7 +287,7 @@ Evidence (linked request/response files retain their original form):
 
 Platform requirement/operation: **OP-C09; C-1**.
 Specification requirements: `find_data_elements_for_concept-3`, `find_data_elements_for_concept-4`.
-Source discussion: [issue evidence](https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-5971715792).
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42#issuecomment-5971715792).
 
 **Observation.** caDSR REST's concept links do not name their NCIt release; Shared SI's NCIt graph does. The two surfaces have distinct content states and can return different rows.
 
@@ -308,5 +308,5 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_cross_domain.py::test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_states` | 1 passed | 1 not_live |
-| `tests/test_cross_domain.py::test_a_release_other_than_the_ncit_graph_s_fails_closed` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cross_domain.py::test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_states` | 1 passed | 1 not_live |
+| `acceptance/tests/test_cross_domain.py::test_a_release_other_than_the_ncit_graph_s_fails_closed` | 1 passed | 1 not_live |

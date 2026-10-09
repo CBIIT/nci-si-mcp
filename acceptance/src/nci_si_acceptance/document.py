@@ -19,7 +19,7 @@ from typing import Any
 
 import pytest
 
-from nci_si_acceptance.requirements import citations, load_requirements
+from nci_si_acceptance.requirements import citations, load_requirements, repo_path
 from nci_si_acceptance.spec import CONVENTIONS, PROMPTS, RECORDS, RESOURCES, SPEC, TOOLS
 
 DOCUMENT = SPEC.parent / "docs" / "specification.md"
@@ -40,17 +40,17 @@ def _text(name: str) -> str:
     return (SPEC / name).read_text(encoding="utf-8")
 
 
-def _cell(text: str) -> str:
+def cell(text: str) -> str:
     return " ".join(str(text).split()).replace("|", "\\|")
 
 
 def _conventions() -> list[str]:
     lines = ["## 1. Conventions", "", "Binding on every tool.", ""]
     for key, section in CONVENTIONS.items():
-        rows = [f"| {rule} | {_cell(text)} |" for rule, text in section["rules"].items()]
+        rows = [f"| {rule} | {cell(text)} |" for rule, text in section["rules"].items()]
         lines += [f"### {key} · {section['title']}", "", "| Id | Convention |", "|---|---|"]
         lines += [*rows, ""]
-        lines += [f"*Why {rule}.* {_cell(text)}\n" for rule, text in section.get("why", {}).items()]
+        lines += [f"*Why {rule}.* {cell(text)}\n" for rule, text in section.get("why", {}).items()]
     return lines + [line for record in RECORDS.values() for line in _record(record)]
 
 
@@ -62,7 +62,7 @@ def _values(field: dict[str, Any]) -> str:
         f"; exclusion set of {key}: {', '.join(codes)}" for key, codes in sets.items()
     )
     forms = "".join(
-        f"; the {name} form `{text.partition(':')[0]}`: {_cell(text.partition(':')[2])}"
+        f"; the {name} form `{text.partition(':')[0]}`: {cell(text.partition(':')[2])}"
         for name, text in field.get("forms", {}).items()
     )
     return listed + excluded + forms + (" (optional)" if field.get("optional") else "")
@@ -72,10 +72,10 @@ def _record(record: dict[str, Any]) -> list[str]:
     """A record of the specification as a table of its fields."""
 
     rows = [
-        f"| `{name}` | {_cell(field['content'])}{_values(field)} | {field['of']} |"
+        f"| `{name}` | {cell(field['content'])}{_values(field)} | {field['of']} |"
         for name, field in record["fields"].items()
     ]
-    header = [f"### {record['title']}", "", _cell(record["about"]), ""]
+    header = [f"### {record['title']}", "", cell(record["about"]), ""]
     table = [*header, "| Field | Content | Rule |", "|---|---|---|", *rows, ""]
     return [*table, *_detail_keys(record.get("detail_keys", {}))]
 
@@ -87,7 +87,7 @@ def _detail_keys(keys: dict[str, dict[str, str]]) -> list[str]:
         return []
     rows = [
         f"| `{code}` | "
-        + ("; ".join(f"`{key}`: {_cell(text)}" for key, text in each.items()) or "none")
+        + ("; ".join(f"`{key}`: {cell(text)}" for key, text in each.items()) or "none")
         + " |"
         for code, each in keys.items()
     ]
@@ -146,11 +146,11 @@ def _tool_row(name: str, tool: dict[str, Any]) -> str:
         f" `{argument}`: {', '.join(choices)}."
         for argument, choices in tool.get("values", {}).items()
     )
-    signature = _cell(f"{tool['inputs']} → {tool['returns']}")
+    signature = cell(f"{tool['inputs']} → {tool['returns']}")
     items = (
         f" Items: {', '.join(f'`{path}`' for path in tool['items'])}." if "items" in tool else ""
     )
-    return f"| `{name}` | `{signature}` | {_cell(tool['summary'])}{values}{_limits(tool)}{items} |"
+    return f"| `{name}` | `{signature}` | {cell(tool['summary'])}{values}{_limits(tool)}{items} |"
 
 
 def _tools() -> list[str]:
@@ -173,7 +173,7 @@ def _resource_row(resource: dict[str, Any]) -> str:
     chosen = f" `{', '.join(selects)}` names which release." if selects else ""
     return (
         f"| {resource['title']} | {templates} | {resource['group']} | `{resource['mime']}` "
-        f"| `{resource['tool']}({arguments})` | {_cell(resource['summary'])}{chosen} |"
+        f"| `{resource['tool']}({arguments})` | {cell(resource['summary'])}{chosen} |"
     )
 
 
@@ -182,7 +182,7 @@ def _prompt(name: str, prompt: dict[str, Any]) -> list[str]:
         f"`{each['name']}`{'' if each['required'] else ' (optional)'}"
         for each in prompt["arguments"]
     )
-    header = [f"#### `{name}`: {prompt['title']}", "", _cell(prompt["adds"]), ""]
+    header = [f"#### `{name}`: {prompt['title']}", "", cell(prompt["adds"]), ""]
     header += [
         f"Arguments: {arguments}.",
         f"The tools it names, in order: {_names(prompt['tools'])}.",
@@ -211,7 +211,7 @@ def _resources_and_prompts() -> list[str]:
 
 
 def _status(key: str, entry: dict[str, Any], tests: dict[str, list[str]]) -> str:
-    cited = ", ".join(f"`{test}`" for test in tests.get(key, []))
+    cited = ", ".join(f"`{repo_path(test)}`" for test in tests.get(key, []))
     planned = f"planned {entry['planned']}" if "planned" in entry else ""
     return " | ".join([cited or "—", planned or "tested"])
 
@@ -233,7 +233,7 @@ def _requirements(cited: dict[str, tuple[str, ...]]) -> list[str]:
     for section, title in SECTIONS.items():
         rows = [
             f'| <a id="requirement-{key}"></a>{key} | '
-            f"{_cell(entry['statement'])} | {', '.join(entry['basis'])} "
+            f"{cell(entry['statement'])} | {', '.join(entry['basis'])} "
             f"| {_status(key, entry, tests)} |"
             for key, entry in requirements.items()
             if _section(key) == section
