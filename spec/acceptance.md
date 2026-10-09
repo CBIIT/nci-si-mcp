@@ -14,12 +14,12 @@ required tool one outcome:
 | NO FIXTURE | An upstream request found no fixture; the report names it |
 | NOT RUN | No test of the tool ran, for example in a live run or without the operator's prepare step |
 | NO TESTS | The suite has no test for the tool: a defect of the suite |
-| NOT IMPLEMENTED | The server exposes the tool neither by name nor through the baseline tool map (the Prototype Baseline Assessment) |
+| NOT IMPLEMENTED | The server does not list the required name |
 
 An upstream limitation excuses a failing live test only test by test, each with its
 requirement named; one known limitation does not excuse another live failure of the same tool,
 and each such limitation is an entry in the upstream requirements package. A
-gate that fails live fails every tool, as a failing live test does. A module is accepted when
+gate (a test of a P or X-25–X-28 requirement) that fails live fails every tool, as a failing live test does. A module is accepted when
 every one of its tools is PASS or PASS (fixture only) and the gates pass; INCOMPLETE, NOT RUN, NO FIXTURE, NO TESTS and NOT IMPLEMENTED are not accepted.
 Every report names the suite version, the fixture-set version,
 a digest over the suite (its tests, fixtures, request forms, harness code and configuration, and the specification data, but not its self-tests, documentation or the server under test), and the tools whose tests have never run against an implementation.
@@ -42,6 +42,8 @@ timeout or a log level sets it.
 | `NCI_SI_MATCH_TIMEOUT_SECONDS` | The `cadsr/match-timeout` scenario | Seconds a caDSR match request may take |
 | `NCI_SI_LOG_LEVEL` | The `license/restricted` scenario | `DEBUG`, so that a secret logged as a detail shows |
 | `NCI_SI_ACCEPTANCE_INDEX_CODES` | The prepare command only | A file of the concept codes to index, one per line |
+| `NCI_SI_TEST_HTTP_PORT` | The secured fixture adapter only | The loopback port the adapter listens on, chosen by the suite |
+| `NCI_SI_TEST_AUTHORITY_FILE` | The secured fixture adapter only | The path of the JSON file of generated test tokens and each actor's policy, which the adapter rereads on every request |
 
 ### Settings of a run
 
@@ -62,6 +64,7 @@ given all of them but the credential, besides the fixture settings and a scenari
 | `NCI_SI_ACCEPTANCE_STATE_HOOK` | The operator's command that changes the state of a remote server: it applies the settings in its environment and forgets every upstream answer cached so far |
 | `NCI_SI_ACCEPTANCE_STATE_HOOK_TIMEOUT` | Seconds the hook may take to return, and again the endpoint to answer after it (default 60) |
 | `NCI_SI_ACCEPTANCE_PREPARED` | `1`: the operator has prepared the index of a remote server |
+| `NCI_SI_ACCEPTANCE_SECURITY_SERVER` | The command that starts the secured fixture adapter, a loopback HTTP server, for the X-25 to X-28 cases; without it they report NOT RUN |
 
 A remote server is tested over streamable HTTP, and the report records the transport of each run
 (`stdio` or `streamable-http`). The harness cannot set a remote server's environment: the

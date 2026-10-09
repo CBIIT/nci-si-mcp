@@ -22,20 +22,12 @@ from nci_si_acceptance.spec import RECORDS, TOOLS
 # Recorded both ways: recorded/cadsr/data-element-2200604.json answers a request that names
 # Accept: application/json, data-element-2200604-html.json, with HTML, any other.
 DATA_ELEMENT = "2200604"
+JSON_ANSWER = "recorded/cadsr/data-element-2200604.json"
+HTML_ANSWER = "recorded/cadsr/data-element-2200604-html.json"
 # Unknown to caDSR, which answers HTTP 200 with DataElement null (data-element-unknown.json).
 UNKNOWN = "99999999"
 # No number, which caDSR refuses with HTTP 200 and apiResponse type E (data-element-refused.json).
 REFUSED = "notanumber"
-
-
-def _accepts(log):
-    """The Accept header of each caDSR request in `log`."""
-
-    return [
-        {name.lower(): value for name, value in entry["headers"].items()}.get("accept")
-        for entry in log
-        if entry["surface"] == "cadsr"
-    ]
 
 
 # A server that answered the same call before may serve it from its cache, asking nothing.
@@ -47,14 +39,14 @@ def test_a_server_that_leaves_out_accept_gets_html_and_never_parses_it(tools, up
 
     result = tools.call("get_data_element", {"publicId": DATA_ELEMENT})
 
-    accepts = _accepts(upstream.log()[before:])
-    assert accepts
-    if result.is_error:
-        assert error_code(result) == "upstream_unavailable", result.content
-    else:
-        # The content came from JSON: every request asked for it, as the contracts prescribe.
-        assert set(accepts) == {"application/json"}
+    # The recording that answered says whether the request named Accept: application/json.
+    reached = {e["fixture"] for e in upstream.log()[before:] if e["surface"] == "cadsr"}
+    assert reached in ({JSON_ANSWER}, {HTML_ANSWER}), reached
+    if reached == {JSON_ANSWER}:
+        assert not result.is_error, result.content
         assert result.content.get("publicId") == DATA_ELEMENT
+    else:
+        assert error_code(result) == "upstream_unavailable", result.content
 
 
 @pytest.mark.tool("get_data_element")
@@ -96,7 +88,7 @@ def test_a_refusal_inside_an_http_200_is_an_invalid_request(tools, recorded):
 
 # The registry's state. The export folder dates releasedCDEsXML-OD.zip; /registry/releases
 # answers 404 (registry-releases.json).
-ELEMENT = "recorded/cadsr/data-element-2200604.json"
+ELEMENT = JSON_ANSWER
 VERSION_1 = "recorded/cadsr/data-element-2200604-version-1.json"
 # What a data element record holds without include, and the sections include adds.
 SECTIONS = TOOLS["get_data_element"]["values"]["include"]

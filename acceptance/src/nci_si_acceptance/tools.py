@@ -198,10 +198,10 @@ class Tools:
             return refusal.message
         return None
 
-    def implemented_as(self, name: str) -> str | None:
-        """The required name when the server exposes it, otherwise none."""
+    def implemented(self, name: str) -> bool:
+        """Whether the server lists the required tool `name`."""
 
-        return name if name in self.available else None
+        return name in self.available
 
     def call(
         self,
@@ -213,12 +213,11 @@ class Tools:
         NOT IMPLEMENTED when nothing answers."""
 
         arguments = arguments or {}
-        tool = self.implemented_as(name)
-        if tool is None:
+        if not self.implemented(name):
             pytest.skip(f"{NOT_IMPLEMENTED}: {name}")
         before = self._requests() if self._requests else 0
-        result = self._session.call_tool(tool, arguments, meta)
+        result = self._session.call_tool(name, arguments, meta)
         self._check_requests(name, before)
         return Result(
-            tool, bool(result.is_error), _content(result), result.meta or {}, _texts(result)
+            name, bool(result.is_error), _content(result), result.meta or {}, _texts(result)
         )

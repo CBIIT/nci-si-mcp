@@ -112,7 +112,7 @@ def _content_calls(server, profile: str, pinned: dict) -> list[tuple[str, dict]]
         }.items()
         if profile in (group, "unified")
     ]
-    return [call for call in calls if server.implemented_as(call[0])] or calls[:1]
+    return [call for call in calls if server.implemented(call[0])] or calls[:1]
 
 
 def _header(entry: dict, name: str) -> str | None:
@@ -224,11 +224,7 @@ def _shown(name, tool):
 @pytest.mark.live_capable
 @pytest.mark.requirement("P-11")
 def test_no_description_or_schema_shows_what_the_tool_does_not_offer(server):
-    implemented = {
-        name: server.available.get(server.implemented_as(name) or "")
-        for name in TOOLS
-        if _not_offered(name)
-    }
+    implemented = {name: server.available.get(name) for name in TOOLS if _not_offered(name)}
 
     shown = [found for name, tool in implemented.items() if tool for found in _shown(name, tool)]
 

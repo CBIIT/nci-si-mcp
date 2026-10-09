@@ -64,9 +64,7 @@ def collected(*phases, absent=()):
 
     collector = Collector()
     collector.note_tools(
-        SimpleNamespace(
-            implemented_as=lambda name: None if name in absent else name, listing_bytes=4096
-        )
+        SimpleNamespace(implemented=lambda name: name not in absent, listing_bytes=4096)
     )
     for report, tool, gate in phases:
         report.user_properties.append((ATTRIBUTION, {"tool": tool, "gate": gate}))
@@ -85,6 +83,12 @@ def test_each_test_counts_once_with_its_worst_phase():
     row = report["tools"]["get_concept"]
     assert (row["outcome"], row["counts"]) == ("FAIL", {"failed": 1, "passed": 1})
     assert report["tests"]["t.py::test_a"]["outcome"] == "failed"
+
+
+def test_a_tool_row_holds_its_verdict_and_counts_and_no_alias_of_the_name():
+    report = collected((phase("call", "passed"), "get_concept", False))
+
+    assert set(report["tools"]["get_concept"]) == {"group", "outcome", "gates_only", "counts"}
 
 
 def test_a_later_skip_does_not_erase_a_failure_or_its_missing_fixture_evidence():
@@ -195,7 +199,6 @@ def run(outcomes, tests=None):
             "group": group,
             "outcome": "NO TESTS",
             "gates_only": False,
-            "implemented_as": None,
             "counts": {},
         }
         for name, group in REQUIRED_TOOLS.items()
@@ -260,7 +263,6 @@ def test_the_rendered_report_states_its_modes_counts_and_what_proves_nothing_yet
         }
     )
     fixture["tools"]["resolve_release"] |= {
-        "implemented_as": "resolve_release",
         "gates_only": True,
         "counts": {"passed": 4},
     }
@@ -274,11 +276,9 @@ def test_the_rendered_report_states_its_modes_counts_and_what_proves_nothing_yet
     text = render(fixture, combined, "fixture only")
 
     assert "\nRun modes: fixture only.\n" in text
-    assert (
-        "| `resolve_release` | evs | FAIL (gates only) | 4 / 0 / 0 / 0 | resolve_release |  |"
-        in text
-    )
-    assert "| `get_form` | cadsr | INCOMPLETE | 3 / 0 / 0 / 5 | — |  |" in text
+    assert "| `resolve_release` | evs | FAIL (gates only) | 4 / 0 / 0 / 0 |  |" in text
+    assert "| `get_form` | cadsr | INCOMPLETE | 3 / 0 / 0 / 5 |  |" in text
+    assert "Implemented as" not in text
     assert "Tests run and not passing: resolve_release, get_concepts, get_form." in text
     assert "Requests without a fixture: GET evs /x {}." in text
     assert "Gates not run: t.py::correlation." in text
@@ -310,7 +310,7 @@ def test_the_command_combines_the_runs_with_per_test_limitations(tmp_path, capsy
 
     output = capsys.readouterr().out
     assert "\nRun modes: fixture (stdio) and live (streamable-http).\n" in output
-    assert "| `get_form` | cadsr | PASS (fixture only) | 0 / 0 / 0 / 0 | — | C-4 |" in output
+    assert "| `get_form` | cadsr | PASS (fixture only) | 0 / 0 / 0 / 0 | C-4 |" in output
 
 
 def test_the_command_refuses_reports_of_different_suites(tmp_path):
@@ -355,7 +355,7 @@ def test_an_empty_limitations_file_excuses_nothing(tmp_path, capsys):
         ]
     )
 
-    assert "| `get_form` | cadsr | FAIL | 0 / 0 / 0 / 0 | — |  |" in capsys.readouterr().out
+    assert "| `get_form` | cadsr | FAIL | 0 / 0 / 0 / 0 |  |" in capsys.readouterr().out
 
 
 def test_the_command_says_a_fixture_run_alone_is_not_the_final_outcome(tmp_path, capsys):
@@ -365,7 +365,7 @@ def test_the_command_says_a_fixture_run_alone_is_not_the_final_outcome(tmp_path,
 
     output = capsys.readouterr().out
     assert "\nRun modes: fixture (stdio) only; the live run is not included" in output
-    assert "| `get_form` | cadsr | PASS | 0 / 0 / 0 / 0 | — |  |" in output
+    assert "| `get_form` | cadsr | PASS | 0 / 0 / 0 / 0 |  |" in output
     assert "Size of the tools/list result: not measured, no server started." in output
 
 
@@ -378,7 +378,7 @@ def test_live_failures_are_not_excused_when_no_limitations_file_is_supplied(tmp_
 
     assert main([str(fixture), "--live", str(live)]) == 0
 
-    assert "| `get_form` | cadsr | FAIL | 0 / 0 / 0 / 0 | — |  |" in capsys.readouterr().out
+    assert "| `get_form` | cadsr | FAIL | 0 / 0 / 0 / 0 |  |" in capsys.readouterr().out
 
 
 def test_the_report_records_the_transport_of_the_run():
@@ -474,7 +474,7 @@ def test_a_worker_writes_no_report_for_the_controller_to_overwrite(tmp_path):
 
 def test_what_a_worker_noted_of_the_server_reaches_the_controller_once():
     worker = Collector()
-    worker.note_tools(SimpleNamespace(implemented_as=lambda name: name, listing_bytes=4096))
+    worker.note_tools(SimpleNamespace(implemented=lambda name: True, listing_bytes=4096))
     output = {}
     worker.pytest_sessionfinish(SimpleNamespace(config=SimpleNamespace(workeroutput=output)))
     controller = Collector()
@@ -482,12 +482,12 @@ def test_what_a_worker_noted_of_the_server_reaches_the_controller_once():
     controller.pytest_testnodedown(SimpleNamespace(workeroutput=output))
     controller.pytest_testnodedown(SimpleNamespace(workeroutput={}))
     controller.pytest_testnodedown(
-        SimpleNamespace(workeroutput={WORKER_TOOLS: {"implemented_as": {}, "listing_bytes": 1}})
+        SimpleNamespace(workeroutput={WORKER_TOOLS: {"implemented": {}, "listing_bytes": 1}})
     )
 
-    assert (controller.listing_bytes, controller.implemented_as) == (
+    assert (controller.listing_bytes, controller.implemented) == (
         worker.listing_bytes,
-        {name: name for name in REQUIRED_TOOLS},
+        dict.fromkeys(REQUIRED_TOOLS, True),
     )
 
 

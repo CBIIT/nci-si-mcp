@@ -21,7 +21,10 @@ _REPORT_FIELDS = {
     "tools",
     "tests",
 }
-_TOOL_FIELDS = {"group", "outcome", "gates_only", "implemented_as", "counts"}
+_TOOL_FIELDS = {"group", "outcome", "gates_only", "counts"}
+# The 29 reports recorded before the harness dropped the field (docs/evidence/phase-5) carry
+# `implemented_as`, which a report has no schema number to version; they stay valid as recorded.
+_RECORDED_TOOL_FIELD = "implemented_as"
 
 
 def require(condition: bool) -> None:
@@ -121,14 +124,10 @@ def _gates(report: dict[str, Any], field: str, outcomes: tuple[str, ...]) -> lis
 
 
 def _tool(row: Any, counts: Counter[str], group: str, failed: bool) -> dict[str, Any]:
-    fields(row, _TOOL_FIELDS)
+    require(isinstance(row, dict) and set(row) - {_RECORDED_TOOL_FIELD} == _TOOL_FIELDS)
     require(row["group"] == group)
     _counts(row["counts"], counts)
-    alias = row["implemented_as"]
-    require(alias is None or isinstance(alias, str))
-    # The native report cannot distinguish an unstarted server from a missing tool if every
-    # alias is null. Preserve either valid harness verdict instead of inventing availability.
-    availability = (None, False) if alias is None else (True,)
+    availability = _availability(row)
     require(isinstance(row["outcome"], str))
     require(row["outcome"] in {tool_outcome(counts, failed, value) for value in availability})
     expected = failed and not (counts["failed"] or counts["no_fixture"])
@@ -139,6 +138,21 @@ def _tool(row: Any, counts: Counter[str], group: str, failed: bool) -> dict[str,
         "gates_only": row["gates_only"],
         "counts": dict(counts),
     }
+
+
+def _availability(row: dict[str, Any]) -> tuple[bool | None, ...]:
+    """The availability verdicts the row's outcome may rest on.
+
+    A recorded row names the tool it was served as. The native report cannot distinguish an
+    unstarted server from a missing tool if every alias is null, and a current row has no
+    alias: preserve any valid harness verdict instead of inventing availability.
+    """
+
+    if _RECORDED_TOOL_FIELD not in row:
+        return (None, False, True)
+    alias = row[_RECORDED_TOOL_FIELD]
+    require(alias is None or isinstance(alias, str))
+    return (None, False) if alias is None else (True,)
 
 
 def _counts(actual: Any, expected: Counter[str]) -> None:
