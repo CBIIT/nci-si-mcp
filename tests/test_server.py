@@ -53,9 +53,10 @@ def _specified(spec):
     """What the specification says one tool's input schema states, as (argument, keyword): value.
 
     Forms (pattern), refusal limits (maxItems), defaults (a bound's, else its own), closed
-    sets (values) and the maximum of each bound, which the argument's description states. A form keyed by terminology (the NCIt code form) is deliberately not served,
-    since a schema cannot say which terminology a value belongs to; a closed set states the form
-    of its argument by its members."""
+    sets (values) and the maximum of each bound, which the argument's description states. A
+    form keyed by terminology (the NCIt code form) is deliberately not served, since a schema
+    cannot say which terminology a value belongs to; a closed set states the form of its
+    argument by its members."""
 
     closed = spec.get("values", {})
     return (
@@ -63,8 +64,12 @@ def _specified(spec):
         | {(a, "maxItems"): limit for a, limit in spec.get("lists", {}).items()}
         | {(a, "default"): value for a, value in _defaults(spec).items()}
         | {(a, "values"): set(members) for a, members in closed.items()}
-        | {(a, "maximum"): b["maximum"] for a, b in spec.get("bounds", {}).items() if "maximum" in b}
+        | {(a, "maximum"): b["maximum"] for a, b in _maxima(spec).items()}
     )
+
+
+def _maxima(spec):
+    return {a: b for a, b in spec.get("bounds", {}).items() if "maximum" in b}
 
 
 def _forms(spec):
