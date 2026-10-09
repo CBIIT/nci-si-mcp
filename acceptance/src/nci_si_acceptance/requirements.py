@@ -81,6 +81,13 @@ def _problem(entry: Any) -> str | None:
     return next((message for holds, message in RULES if not holds(entry)), None)
 
 
+def repo_path(test_id: str) -> str:
+    """A test id as documents outside acceptance/ name it. Ids are relative to acceptance/; from
+    docs/ a bare tests/ path would read as the unit suite."""
+
+    return f"acceptance/{test_id}"
+
+
 def citations(items: Iterable[pytest.Item]) -> dict[str, tuple[str, ...]]:
     """The requirements each test cites, by test id."""
 

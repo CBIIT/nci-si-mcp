@@ -42,7 +42,7 @@ def test_every_actual_case_is_documented_and_the_generated_guide_is_current(pyte
 
     assert cases
     assert stories.DOCUMENT.read_text(encoding="utf-8") == rendered
-    assert {case.key for case in cases} == {
+    assert {f"acceptance/{case.key}" for case in cases} == {
         html.unescape(line.split("<code>", 1)[1].split("</code>", 1)[0])
         for line in rendered.splitlines()
         if line.startswith("- <code>")
@@ -61,7 +61,8 @@ def test_multiple_parameter_cases_share_a_story_with_exact_evidence():
     assert "../acceptance/tests/test_example.py#L20" in rendered
     assert "<summary>Exact executable cases (2)</summary>" in rendered
     for case in CASES:
-        assert rendered.count(f"<code>{case.key}</code>") == 1
+        # From docs/ a bare tests/ path would read as the unit suite; the suite is acceptance/.
+        assert rendered.count(f"<code>acceptance/{case.key}</code>") == 1
 
 
 def test_every_requirement_link_has_one_authoritative_destination():
@@ -124,7 +125,7 @@ def test_authored_text_and_hostile_parameter_ids_are_readable_not_active_markup(
     assert loaded == [story]
     assert "<script>" not in rendered
     assert 'Return &lt;script&gt; &#124; "value" &amp; text intact.' in rendered
-    assert f"<code>{html.escape(case.key)}</code>" in rendered
+    assert f"<code>acceptance/{html.escape(case.key)}</code>" in rendered
 
 
 def test_new_parameter_case_changes_the_document_and_new_function_needs_a_description():

@@ -391,7 +391,7 @@ def test_a_word_names_a_tool_only_as_a_whole_word(text, names_get_form):
     assert (tools_named(text) == ["get_form"]) is names_get_form
 
 
-def test_the_specification_names_every_setting_of_a_run_and_the_readme_every_remote_one():
+def test_the_specification_names_every_setting_of_a_run_and_the_readme_links_it():
     operator = {
         value
         for name, value in vars(client).items()
@@ -401,11 +401,9 @@ def test_the_specification_names_every_setting_of_a_run_and_the_readme_every_rem
     }
     rows = _section("Settings of a run")
     readme = (Path(__file__).parents[1] / "README.md").read_text(encoding="utf-8")
-    remote = {name for name in operator if name.partition("NCI_SI_ACCEPTANCE_")[2] not in LOCAL}
 
     assert set(re.findall(r"^\| `(NCI_SI_ACCEPTANCE_\w+)`", rows, re.MULTILINE)) == operator
-    assert {name for name in remote if f"`{name}`" not in readme} == set()
-
-
-# The settings of a run that starts its server as a command, which the README's examples show.
-LOCAL = {"MODE", "SERVER", "PROFILE", "PREPARE"}
+    # The README restates no setting table; it points to the one owner.
+    assert "(../spec/acceptance.md#settings-of-a-run)" in readme
+    assert "| Setting |" not in readme
+    assert "\n### Settings of a run\n" in (SPEC / "acceptance.md").read_text(encoding="utf-8")

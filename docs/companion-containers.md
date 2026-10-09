@@ -2,7 +2,7 @@
 
 Public documentation, local validation administration and the serving MCP are independent
 processes. The approved NCI-styled documentation includes topic and user-story pages; it
-contains no operational results. Design credit: the Semantic Infrastructure (SI) team.
+contains no operational results.
 
 ## Build and start locally
 
@@ -108,9 +108,10 @@ directory (or `--output` with another path). Do not delete a directory someone e
 
 Deploy public static documentation and MCP independently using the platform's ingress, HTTPS,
 health monitoring, resource limits, secrets and logging facilities. Documentation stays anonymous.
-Keep admin services, routes, worker credentials and result stores **absent** until #197 supplies
-platform authentication plus explicit maintaining-team authorization on both ingress and origin.
-No proxy header or environment switch in this repository establishes that protection.
+Keep admin services, routes, worker credentials and result stores **absent** until the platform supplies
+authentication plus explicit maintaining-team authorization on both ingress and origin.
+No proxy header or environment switch in this repository establishes that protection;
+[deployment.md](deployment.md) records where administration may be exposed.
 
 The local Compose file is not a UAT/PROD deployment manifest. Cloud One infrastructure,
 identity/authorization configuration, records retention, backup and promotion are platform/owner

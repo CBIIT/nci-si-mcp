@@ -180,7 +180,7 @@ def test_the_specification_document_is_what_spec_renders(pytester, monkeypatch):
         name for name, tool in TOOLS.items() if tool.get("computed")
     )
     assert (
-        "`tests/test_protocol.py::test_tools_list_names_the_tools_of_the_profile_and_no_other`"
+        "`acceptance/tests/test_protocol.py::test_tools_list_names_the_tools_of_the_profile_and_no_other`"
         in on_disk
     )
 

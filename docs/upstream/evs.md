@@ -8,7 +8,7 @@ Generated from [catalogue.yaml](catalogue.yaml). Read the [evidence boundary](RE
 
 Platform requirement/operation: **E-4; OP-E02**.
 Specification requirements: `get_concept_neighborhood-2`, `list_relationships-2`.
-Source discussion: [issue evidence](https://github.com/hniedner/nci-si-mcp/issues/42).
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42).
 
 **Observation.** The catalogue exposes relationship codes and names; the exclusion scenario deliberately gives misleading names. That crafted scenario is a regression probe, not an observed production mislabelling.
 
@@ -29,8 +29,8 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_evs.py::test_polarity_follows_the_relationship_code_not_its_name` | 1 passed | 1 not_live |
-| `tests/test_evs.py::test_a_relationship_s_polarity_follows_its_code_not_its_name` | 1 passed | 1 not_live |
+| `acceptance/tests/test_evs.py::test_polarity_follows_the_relationship_code_not_its_name` | 1 passed | 1 not_live |
+| `acceptance/tests/test_evs.py::test_a_relationship_s_polarity_follows_its_code_not_its_name` | 1 passed | 1 not_live |
 
 ## evs-semantic
 
@@ -38,7 +38,7 @@ Evidence (linked request/response files retain their original form):
 
 Platform requirement/operation: **E-9**.
 Specification requirements: `search_concepts-3`, `search_concepts-5`, `search_concepts-8`.
-Source discussion: [issue evidence](https://github.com/hniedner/nci-si-mcp/issues/42).
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42).
 
 **Observation.** The furnished implementation performs embedding semantic/hybrid retrieval locally. The EVS team's response relayed on 8 October 2026 confirms that /search type controls lexical matching, while structured and ontology/relationship-aware retrieval, including SPARQL, are also available. Graph semantics do not establish an equivalent embedding-ranked operation; see team-responses-2026-10-08.md.
 
@@ -59,9 +59,9 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_evs.py::test_index_search_returns_scored_indexed_concepts_and_the_named_one_first_page` | 2 passed | 2 not_live |
-| `tests/test_evs.py::test_an_index_search_for_another_release_fails_closed` | 2 passed | 2 not_live |
-| `tests/test_evs.py::test_an_index_mode_without_an_index_is_unavailable` | 2 passed | 2 not_live |
+| `acceptance/tests/test_evs.py::test_index_search_returns_scored_indexed_concepts_and_the_named_one_first_page` | 2 passed | 2 not_live |
+| `acceptance/tests/test_evs.py::test_an_index_search_for_another_release_fails_closed` | 2 passed | 2 not_live |
+| `acceptance/tests/test_evs.py::test_an_index_mode_without_an_index_is_unavailable` | 2 passed | 2 not_live |
 
 ## evs-retired
 
@@ -69,7 +69,7 @@ Evidence (linked request/response files retain their original form):
 
 Platform requirement/operation: **OP-E08; A8.3; A9.3**.
 Specification requirements: `search_concepts-6`, `search_concepts-7`.
-Source discussion: [issue evidence](https://github.com/hniedner/nci-si-mcp/issues/42).
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42).
 
 **Observation.** The issue records DEFAULT and true rejected by conceptStatus (400), and Retired_Concept accepted but ignored for GO. The retained recordings cover NCIt retired-only and the unfiltered GO baseline, not those failed probes.
 
@@ -91,8 +91,8 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_evs.py::test_retired_only_returns_the_retired_concepts_alone` | 1 passed | 1 not_live |
-| `tests/test_evs.py::test_retired_only_where_the_status_is_none_the_search_selects_is_invalid` | 1 passed | 1 not_live |
+| `acceptance/tests/test_evs.py::test_retired_only_returns_the_retired_concepts_alone` | 1 passed | 1 not_live |
+| `acceptance/tests/test_evs.py::test_retired_only_where_the_status_is_none_the_search_selects_is_invalid` | 1 passed | 1 not_live |
 
 ## evs-licence
 
@@ -100,7 +100,7 @@ Evidence (linked request/response files retain their original form):
 
 Platform requirement/operation: **OP-E05; OP-E20; A7.3; X-19**.
 Specification requirements: `X-19`.
-Source discussion: [issue evidence](https://github.com/hniedner/nci-si-mcp/issues/42).
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42).
 
 **Observation.** The listing supplies metadata.licenseText; content does not consistently carry it. license/attributed is a crafted future answer, not proof of a served capability.
 
@@ -121,7 +121,7 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_crosscutting.py::test_licence_text_the_platform_gives_with_an_item_is_passed_through_unchanged` | 4 passed | 4 not_live |
+| `acceptance/tests/test_crosscutting.py::test_licence_text_the_platform_gives_with_an_item_is_passed_through_unchanged` | 4 passed | 4 not_live |
 
 ## evs-pinned-forms
 
@@ -129,7 +129,7 @@ Evidence (linked request/response files retain their original form):
 
 Platform requirement/operation: **OP-E06; OP-E23; OP-E24; OP-E25; OP-F05**.
 Specification requirements: `X-1`, `X-2`, `X-3`, `expand_value_set-1`.
-Source discussion: [issue evidence](https://github.com/hniedner/nci-si-mcp/issues/42).
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42).
 
 **Observation.** The request register records the missing pinned subset path and rejected FHIR system-version form; mapsets have heterogeneous versions, not uniformly NCIt releases.
 
@@ -151,8 +151,8 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all` | 3 passed | 3 not_live |
-| `tests/test_cross_domain.py::test_a_gdc_value_resolves_through_the_mapset_its_source_names` | 1 passed | 1 not_live |
+| `acceptance/tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all` | 3 passed | 3 not_live |
+| `acceptance/tests/test_cross_domain.py::test_a_gdc_value_resolves_through_the_mapset_its_source_names` | 1 passed | 1 not_live |
 
 ## evs-inactive-expansion
 
@@ -160,7 +160,7 @@ Evidence (linked request/response files retain their original form):
 
 Platform requirement/operation: **OP-F05; A8.3; A9.5**.
 Specification requirements: `expand_value_set-1`, `expand_value_set-2`.
-Source discussion: [issue evidence](https://github.com/hniedner/nci-si-mcp/issues/42).
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42).
 
 **Observation.** The recorded expansion ignores count, offset and activeOnly. Whether production ever emits inactive members marked contains.inactive remains unknown; valueset/inactive-members crafts that case.
 
@@ -181,5 +181,5 @@ Evidence (linked request/response files retain their original form):
 
 | Affected test function | Fixture | Live |
 |---|---|---|
-| `tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive` | 3 passed | 3 not_live |
-| `tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all` | 3 passed | 3 not_live |
+| `acceptance/tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive` | 3 passed | 3 not_live |
+| `acceptance/tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all` | 3 passed | 3 not_live |

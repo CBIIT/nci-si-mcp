@@ -11,7 +11,7 @@ acceptance suite it and its successors are measured by. Two Statements of Work b
 EVS v2.1 and caDSR v1.1. It is a prototype, not a production service. The server never returns
 caDSR or other upstream content it did not retrieve. Until NCI issues caDSR credentials,
 caDSR behavior is built and tested against fixtures crafted from the published contracts.
-The milestones and issues on GitHub (Phases 0 to 6) are the plan. README.md gives the current
+The milestones and issues on GitHub (Phases 0 to 7 delivered; later phases open) are the plan. README.md gives the current
 status per tool group; QUICKSTART.md holds the usage details.
 
 Documentation, from short to detailed: `README.md` (what the repository is, who it is for, the
@@ -55,7 +55,7 @@ These are the owner's rules. They apply to every change.
 ## Commands
 
 The project is managed with PDM (Python 3.14 or newer); `pdm install` builds `.venv` from
-`pdm.lock` with the test and lint tools and the `server` extra.
+`pdm.lock` with the test and lint tools and the `server` and `index` extras.
 
 ```bash
 pdm run test                              # whole suite, with the 90% coverage floor
@@ -70,6 +70,7 @@ pdm run acceptance-expected update acceptance/fixture.json   # rewrite the expec
 pdm run acceptance-status                 # regenerate the README status table
 pdm run acceptance-selftest               # the acceptance harness's own tests
 pdm run spec-render                       # regenerate docs/specification.md from spec/
+pdm run quickstart-tools                  # regenerate the tool table of QUICKSTART.md from spec/
 ```
 
 - Run the tests through `pdm run` (`pdm run test`, `pdm run pytest ...`), never a bare `pytest`,
@@ -77,10 +78,11 @@ pdm run spec-render                       # regenerate docs/specification.md fro
 - The tests are unittest-style and offline. They import shared doubles with `from fakes import
   ...`; `tests/` is on the path through the pytest configuration.
 - Hooks are never skipped (`--no-verify`, `SKIP=`). A failing hook is fixed. Besides Ruff and
-  basedpyright (`src` and `scripts` only), the hooks run `scripts/validation/check_complexity.py`
+  basedpyright (`src`, `scripts` and `acceptance/src`), the hooks run `scripts/validation/check_complexity.py`
   (every function below 8, nested ones and the tests included), `check_test_quality.py` (no test
   without a behaviour assertion; an assertion in a nested function or class that the test never
-  uses does not count), vulture, gitleaks and zizmor. All Python tools run from the PDM
+  uses does not count), vulture, gitleaks, zizmor and `scripts/upstream_requirements.py --check`
+  (the upstream requirement packages are the current render of their catalogue). All Python tools run from the PDM
   environment, so `pdm.lock` decides their versions.
 - `tests/test_docs.py`, `tests/test_server.py` and `tests/test_release_config.py` compare
   QUICKSTART.md, ARCHITECTURE.md and the title check with the code (settings and defaults, error
@@ -100,6 +102,27 @@ pdm run nci-si-mcp serve
 
 Every command opens the index in the data directory, `.nci-si-mcp/` relative to the working
 directory. Set `NCI_SI_DATA_DIR` to a scratch directory for experiments.
+
+## Tooling beyond the server
+
+The repository deliberately holds four things: the server (`src/`), the acceptance suite built
+for the two Statements of Work (`acceptance/`), the documentation site hosted alongside the MCP,
+and the validation companion with its benchmark and evaluation tooling. `scripts/` serves the
+last two and the suite's CI; each family below is operational, and what depends on it says why.
+
+| Family | Scripts | Entry point | Depended on by |
+|---|---|---|---|
+| Gates | `validation/check_complexity.py`, `validation/check_test_quality.py` | pre-commit hooks | every commit, the CI `quality` job |
+| Acceptance in CI | `acceptance_http.py`, `permissions_fixture.py`, `upstream_requirements.py` | `pdm run acceptance-http`; the `acceptance` job's environment; a pre-commit hook | the `acceptance` and `acceptance-http` jobs, `docs/upstream/` |
+| Server container | `container_lock.py`, `container_smoke.py`, `image_scan.py`, `image_publish.py`, `Dockerfile` | the CI `image` job, the Release workflow | the published image |
+| Documentation site | `docs_site.py`, `docs_links.py`, `docs_stories.py`, `site_assets.py`, `static_server.py`, `companion_context.py`, `companion_lock.py`, `container/Docs.Dockerfile` | `pdm run docs-build`; the `documentation` and `companions` jobs | the hosted site |
+| Validation companion | `portal*.py`, `operator_*.py`, `evidence_*.py`, `companion_entry.py`, `companion_relay.py`, `companion_smoke.py`, `container/Admin.Dockerfile`, `container/compose.local.yaml` | `pdm run portal`, `pdm run operator-worker`; the `companions` job | `docs/local-validation.md`, `docs/companion-containers.md` |
+| Benchmarks and evaluation | `benchmark*.py`, `http_measurement.py`, `assisted_evaluation.py` | `pdm run benchmark-http`; the companion's workers | `docs/benchmark.md`, `docs/assisted-evaluation.md` |
+| README badges | `coverage_badges.py` | the CI `coverage-badges` job | the README |
+
+A script that served an ephemeral purpose and is no longer needed to operate or maintain the
+server, the suite or the site is removed with its tests, after verifying that nothing depends on
+it.
 
 ## Acceptance suite and its CI ratchet
 
@@ -146,28 +169,27 @@ The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for t
    issue body in the same step, saying what changed.
 2. **Plan before building.** Post the plan as a comment on the issue: what changes, which
    acceptance tests you expect to move in `acceptance/expected/fixture.json` and why, open
-   questions with your recommendation, and the PR title. Wait for the reviewer's answer on the
+   questions with your recommendation, and the commit subject (a Conventional Commit). Wait for the reviewer's answer on the
    issue before writing code; a correction there is binding.
-3. **Build on an issue branch cut from the milestone branch,** with tests written for their value
-   (see the standards). Before opening the pull request run `pdm run test`,
-   `pdm run acceptance-selftest`, `pdm run pre-commit run --all-files`, then the fixture run and,
-   where outcomes moved on purpose, `pdm run acceptance-expected update acceptance/fixture.json`
-   and `pdm run acceptance-status`, so the ratchet file moves in the same change.
-4. **Open a pull request into the milestone branch** with a Conventional Commit title. Its body
-   gives what it does, the expected-file diff grouped by test function with before and after
-   counts, the predicted tests that did not move and why, and anything deferred.
-5. **Merge it yourself once CI is green** and the outcomes moved as the plan predicted:
-   `gh pr merge N --squash --delete-branch`. No review agents and no reviewer clearance at this
-   step; the reviewer reads each merged issue and says on the issue if it is not done.
+3. **Build on an issue branch cut from the milestone branch,** test first (the failing test,
+   then the change), with tests written for their value (see the standards). Before merging run
+   `pdm run test`, `pdm run acceptance-selftest`, `pdm run pre-commit run --all-files`, then the
+   fixture run and, where outcomes moved on purpose,
+   `pdm run acceptance-expected update acceptance/fixture.json` and `pdm run acceptance-status`,
+   so the ratchet file moves in the same pull request.
+4. **Merge the issue branch into the milestone branch yourself** once the gates pass and the
+   outcomes moved as the plan predicted: `git merge --no-ff issue/<branch>` on the milestone
+   branch, then push, and delete the issue branch. There is no pull request per issue, no review
+   agent and no reviewer clearance at this step; the issue's commit message says what it does,
+   names the issue (`#N`) and anything deferred; the milestone pull request body closes the issue
+   (step 6). The reviewer reads each merged issue and says on the
+   issue if it is not done.
 
 **The milestone, once all its issues are merged:**
 
-6. **Open the milestone pull request into `main`.** Its title is the release, a Conventional
-   Commit that tells the truth about what a client sees (`feat(evs)!:` where it breaks
-   something); its body lists `Closes #N` for every issue of the milestone, so they close when
-   it merges, and the combined expected-file diff.
-7. **Review it in five passes to convergence,** each a separate agent or a fresh pass over the
-   whole diff, split by module where the diff is large, with one focus each:
+5. **Review the milestone branch in five passes to convergence before opening its pull
+   request,** each a separate agent or a fresh pass over the whole diff, split by module where
+   the diff is large, with one focus each:
    1. **Code review:** the engineering standards above, the architecture, and the scope.
    2. **Silent failures:** swallowed exceptions, broad `except`, fallbacks that hide an error,
       results that look complete but are not.
@@ -186,17 +208,23 @@ The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for t
 
    Fix what is real directly on the milestone branch (commit and push it there), without opening
    issues (except for work deferred to a later milestone, recorded in that milestone's issue), and
-   run all five again until a full round finds nothing new. Post each round as a short table:
-   finding, pass, fixed or rejected (with the reason). Close the mutation review's gaps (step 8)
-   the same way.
-8. **The reviewer then runs an independent mutation review** and posts the surviving mutants;
-   close each real gap with a test that fails without the fix, and say which you judged
-   equivalent and why.
-9. **Merge only on the reviewer's clearance,** given as a PR comment that names the head commit,
+   run all five again until a full round finds nothing new. Record each round as a short table:
+   finding, pass, fixed or rejected (with the reason). The rounds so far go into the pull
+   request body when it is opened (step 6); later rounds are posted as pull request comments.
+6. **Open the milestone pull request into `main`.** Its title is the release, a Conventional
+   Commit that tells the truth about what a client sees (`feat(evs)!:` where it breaks
+   something); its body lists `Closes #N` for every issue of the milestone, so they close when
+   it merges, the combined expected-file diff grouped by test function with before and after
+   counts, the predicted tests that did not move and why, and the review rounds of step 5.
+7. **The reviewer then runs an independent mutation review** on the open pull request and posts
+   the surviving mutants; close each real gap with a test that fails without the fix, and say
+   which you judged equivalent and why. The fixes are pushed to the milestone branch after the
+   pull request exists, and their rounds are posted as comments, as in step 5.
+8. **Merge only on the reviewer's clearance,** given as a PR comment that names the head commit,
    with `gh pr merge N --squash --subject "<title>" --body "" --delete-branch --match-head-commit
-   <sha>`. A push after the clearance needs a new one. Wait for CI to finish before asking; never
-   hand over on "CI is running".
-10. **After the merge,** confirm CI, Audit, CodeQL and Release on the merge commit, that the
+   <sha>`. A push after the clearance needs a new one. Wait for every workflow the pull request
+   triggered to finish and pass before asking; never hand over on "CI is running".
+9. **After the merge,** confirm CI, Audit, CodeQL and Release on the merge commit, that the
     issues closed, and that the release was cut. After confirming every milestone issue is
     closed, close the milestone explicitly through the GitHub API; GitHub does not close it
     automatically. Then remove your branches, worktrees, scratch files and any process or
@@ -204,8 +232,8 @@ The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for t
 
 The `milestone branches` ruleset forbids force pushes to `milestone/*` and requires no status
 checks, because the milestone pull request into `main` runs the full CI on the milestone head and
-`main` accepts nothing else. Issue work still reaches the milestone branch through its own issue
-pull request (steps 3 to 5). Review fixes (steps 7 and 8) are committed on the milestone branch
+`main` accepts nothing else. Issue work reaches the milestone branch by a merge of its issue
+branch (steps 3 and 4). Review fixes (steps 5 and 7) are committed on the milestone branch
 itself and pushed; run the local gates first, as for an issue. When `main` moves, sync it with a
 merge commit (`git merge origin/main` on the milestone branch, then push), never a rebase or a
 squash, so `main` stays an ancestor and the next sync does not conflict; `main` itself accepts
@@ -243,7 +271,8 @@ Rules learned the hard way:
 union, cache policy and adapter exposure; the handler signature supplies the shared input model,
 defaults and choices. Business operations live in `handlers.py` and, for the specification's
 content tools, `content.py`, with injectable collaborators in `context.Context`. Closed value
-sets live once in `validation.py`. Profiles select MCP tools only.
+sets live once in `validation.py`. A profile selects the tools, resources and prompts the server
+serves (M1.5, M1.6); caller policy can only narrow that surface.
 
 Each ToolSpec classifies its parameters as plain or hashed for audit. Undeclared parameters
 default to hashed. `audit.py` emits one JSON completion record per call, including validation
@@ -257,7 +286,7 @@ not logged. Diagnostic verbosity does not suppress the required completion recor
 
 The error codes are those of the specification's error record (`spec/records.yaml`), closed in
 `errors.py` as `ErrorCode`. A failure is a `PlatformError`: its code, a message that names the
-caller's next step, and the `details` that code lists in `docs/implementation-plan.md` §3.1. `errors.serialise` is
+caller's next step, and the `details` that `spec/records.yaml` lists for that code (`error.detail_keys`). `errors.serialise` is
 the only function that turns one into the result, `{"error": {"code", "message", "details"?,
 "correlationId"}}`; nothing builds that dict by hand. The audit boundary opens `errors.correlated()` once
 per call (the request's `_meta.correlationId`, else generated) for tools, resources and CLI.
@@ -276,7 +305,8 @@ as `upstream_unavailable`; every upstream client parses its bodies through it (i
 The reviewer-approved Form-by-ID exception lives in `cadsr._form_absence`: after public-id
 validation, only HTTP 200 with an explicit `form: null` and `apiResponse.type: E` is `not_found`.
 The recording `recorded/cadsr/form-unknown.json` has no other discriminator, so a genuine failure
-in exactly that shape is indistinguishable; #42 asks for an explicit absence signal. No message
+in exactly that shape is indistinguishable; the upstream package (`docs/upstream/cadsr.md`,
+cadsr-forms) asks caDSR for an explicit absence signal. No message
 matching or second request. Every other shape, status and operation keeps common X-15 handling.
 
 `http_client.HttpClient` is the one HTTP client. Its `Upstream*` errors reach the invocation

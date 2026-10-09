@@ -63,6 +63,18 @@ class PackageTests(unittest.TestCase):
         self.assertIn("E-4", generated["evs.md"])
         self.assertIn("S-5", generated["ssis.md"])
 
+    def test_affected_tests_are_named_by_their_path_from_the_repository_root(self):
+        source, fixture, live = catalogue(), report("fixture"), report("live")
+
+        with tempfile.TemporaryDirectory() as directory:
+            Path(directory, "fixture.json").write_text("{}")
+            lines = packages.entry_text(source["entries"][0], fixture, live, Path(directory))
+        text = "\n".join(lines)
+
+        self.assertIn(
+            "| `acceptance/tests/test_example.py::test_lookup` | 2 passed | 2 not_live |", text
+        )
+
     def test_an_exact_live_failure_is_qualified_but_another_failure_is_not(self):
         source, fixture, live = catalogue(), report("fixture"), report("live")
         first, second = live["tests"]
@@ -71,7 +83,8 @@ class PackageTests(unittest.TestCase):
         excused = packages.qualifications(source, fixture, live)
         text = packages.overview(source, fixture, live, excused)
         self.assertIn("| `lookup` | PASS (fixture only) | lookup-pin |", text)
-        self.assertIn(f"`{first}` → `lookup-pin`", text)
+        # From docs/ a bare tests/ path would read as the unit suite; the suite is acceptance/.
+        self.assertIn(f"`acceptance/{first}` → `lookup-pin`", text)
         live["tests"][second]["outcome"] = "failed"
         text = packages.overview(source, fixture, live, excused)
         self.assertIn("| `lookup` | FAIL |", text)

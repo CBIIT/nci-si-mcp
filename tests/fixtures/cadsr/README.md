@@ -25,7 +25,7 @@ their projection, ordering, limits and failures. VM Match uses `matchType=Restri
 Unrestricted) and `function=match`, following `spec/` and the successful request recorded in
 `acceptance/fixtures/recorded/cadsr/vm-match-male.json`. The published OpenAPI descriptions
 instead assign VM/Concept/BOTH to matchType and Restricted/Unrestricted to function; this
-conflict is recorded in [the #42 requirements package](https://github.com/hniedner/nci-si-mcp/issues/42#issuecomment-6011568485).
+conflict is recorded in [the #42 requirements package](https://github.com/CBIIT/nci-si-mcp/issues/42#issuecomment-6011568485).
 There is no alternative-header fallback or matching registry-pin field.
 
 Keyword search is **requested OP-C03**, absent from the published contract. Its test envelope
