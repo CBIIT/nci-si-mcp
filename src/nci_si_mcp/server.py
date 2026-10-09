@@ -5,8 +5,9 @@ from __future__ import annotations
 import json
 from collections.abc import Awaitable, Callable
 from functools import update_wrapper
+from importlib.metadata import version
 from importlib.resources import files
-from inspect import Parameter, Signature
+from inspect import Parameter, Signature, getsource
 from typing import TYPE_CHECKING, Annotated, Any, get_args, get_origin
 
 from . import __version__
@@ -72,6 +73,17 @@ INSTRUCTIONS = (
 )
 
 
+def _require_session_connection(session_type: type) -> None:
+    # Stateful HTTP pins and secured-mode principal binding read the SDK's private
+    # ServerSession._connection (see _session_state); fail at startup, not on the first call.
+    # It is set in __init__, so the class has no attribute to test for.
+    if "self._connection" not in getsource(session_type.__init__):
+        raise RuntimeError(
+            f"mcp {version('mcp')} no longer gives ServerSession a '_connection' attribute, "
+            "which HTTP session identity depends on; install the mcp version in pdm.lock"
+        )
+
+
 def create_mcp(
     settings: Settings | None = None,
     *,
@@ -85,6 +97,7 @@ def create_mcp(
         from mcp.server.caching import CacheHint
         from mcp.server.mcpserver import MCPServer
         from mcp.server.mcpserver.exceptions import ResourceError
+        from mcp.server.session import ServerSession
         from mcp.types import CallToolResult, TextContent, ToolAnnotations
         from pydantic import Field, RootModel, with_config
     except ImportError as exc:
@@ -93,6 +106,7 @@ def create_mcp(
             f"(pdm install). Import failed: {exc}"
         ) from exc
 
+    _require_session_connection(ServerSession)
     # Only the complete truncation record is closed; upstream dictionaries stay extensible.
     with_config(extra="forbid")(Untruncated)
     resolved_settings = settings or Settings.from_env()

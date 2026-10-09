@@ -263,6 +263,10 @@ Rules learned the hard way:
   at the top level of `server.py` may import `mcp`.
 - `mcp` is bounded to `>=2.0,<3` because 2.0 renamed `FastMCP` to `MCPServer` and broke the unbounded
   requirement. Check the migration notes before lifting the bound.
+- Stateful HTTP release pins and secured-mode principal binding read the SDK's private
+  `ServerSession._connection` (`server._session_state`). The bound does not protect a private name,
+  so `create_mcp` raises a `RuntimeError` at startup when it is missing; the real-SDK HTTP session
+  test is the regression guard. Ask upstream for a public accessor when lifting the bound.
 - The package must be installed to be imported: `__version__` reads the installed metadata.
 
 ## Architecture in brief
