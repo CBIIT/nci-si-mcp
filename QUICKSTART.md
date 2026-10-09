@@ -33,10 +33,10 @@ indexed search). The commands below are written as `python -m nci_si_mcp.cli ...
 run them inside the environment (`eval $(pdm venv activate)`) or prefix them with `pdm run`.
 
 To run a released version without a checkout, install it from its tag; the
-[releases page](https://github.com/hniedner/nci-si-mcp/releases) lists the versions:
+[releases page](https://github.com/CBIIT/nci-si-mcp/releases) lists the versions:
 
 ```bash
-pip install "nci-si-mcp[server] @ git+https://github.com/hniedner/nci-si-mcp@vX.Y.Z"
+pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"
 nci-si-mcp serve
 ```
 
