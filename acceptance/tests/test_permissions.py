@@ -5,7 +5,6 @@ does not import a server implementation or select a production identity provider
 """
 
 import json
-import os
 import secrets
 import shlex
 import socket
@@ -20,7 +19,12 @@ import httpx2
 import pytest
 from mcp.shared.exceptions import MCPError
 
-from nci_si_acceptance.client import open_remote_session, server_environment
+from nci_si_acceptance.client import (
+    ADAPTER_AUTHORITY_VARIABLE,
+    ADAPTER_PORT_VARIABLE,
+    open_remote_session,
+    server_environment,
+)
 
 
 class SecuredServer:
@@ -134,8 +138,8 @@ def _process(command, environment, log):
 
 
 @pytest.fixture
-def secured_server(upstream, tmp_path):
-    command = os.environ.get("NCI_SI_ACCEPTANCE_SECURITY_SERVER")
+def secured_server(target, upstream, tmp_path):
+    command = target.security_server
     if not command:
         pytest.skip(
             "No secured fixture adapter supplied; this is not evidence of secured conformance"
@@ -148,8 +152,8 @@ def secured_server(upstream, tmp_path):
     endpoint = f"http://127.0.0.1:{port}"
     server = SecuredServer(tmp_path / "authority.json", endpoint + "/mcp")
     environment = server_environment("fixture", tmp_path / "data", upstream.url) | {
-        "NCI_SI_TEST_AUTHORITY_FILE": str(server.path),
-        "NCI_SI_TEST_HTTP_PORT": str(port),
+        ADAPTER_AUTHORITY_VARIABLE: str(server.path),
+        ADAPTER_PORT_VARIABLE: str(port),
     }
     server.log = tmp_path / "server.log"
     try:

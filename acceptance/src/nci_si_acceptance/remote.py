@@ -115,7 +115,7 @@ def _ask(
         tools = Tools(session)
         if upstream:
             upstream.reset()
-        if not tools.implemented_as(RESOLVE_RELEASE):
+        if not tools.implemented(RESOLVE_RELEASE):
             return False
         tools.call(RESOLVE_RELEASE, {"terminology": pinned["terminology"]})
         return True

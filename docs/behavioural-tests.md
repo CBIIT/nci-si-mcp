@@ -73,22 +73,22 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 | The available tool names are exactly those of the selected profile. | 1 | [`P-1`](specification.md#requirement-P-1) | [Test](../acceptance/tests/test_protocol.py#L124) |
 | Tool and schema descriptions contain no unfinished or debugging text. | 1 | [`P-3`](specification.md#requirement-P-3) | [Test](../acceptance/tests/test_protocol.py#L146) |
 | Descriptions and examples do not advertise options that the specification excludes. | 1 | [`P-11`](specification.md#requirement-P-11) | [Test](../acceptance/tests/test_protocol.py#L209) |
-| Names follow the common action-led naming convention. | 1 | [`P-4`](specification.md#requirement-P-4) | [Test](../acceptance/tests/test_protocol.py#L224) |
-| Retrieving content does not change the advertised tool definitions. | 1 | [`P-6`](specification.md#requirement-P-6) | [Test](../acceptance/tests/test_protocol.py#L257) |
-| A source outage does not make tools disappear or change their definitions. | 1 | [`P-6`](specification.md#requirement-P-6) | [Test](../acceptance/tests/test_protocol.py#L268) |
-| Tools declare that they read external data, do not destroy it, and are safe to repeat. | 1 | [`P-10`](specification.md#requirement-P-10) | [Test](../acceptance/tests/test_protocol.py#L298) |
-| Input names and which inputs are mandatory match the specification. | 1 | [`P-12`](specification.md#requirement-P-12) | [Test](../acceptance/tests/test_protocol.py#L309) |
+| Names follow the common action-led naming convention. | 1 | [`P-4`](specification.md#requirement-P-4) | [Test](../acceptance/tests/test_protocol.py#L220) |
+| Retrieving content does not change the advertised tool definitions. | 1 | [`P-6`](specification.md#requirement-P-6) | [Test](../acceptance/tests/test_protocol.py#L253) |
+| A source outage does not make tools disappear or change their definitions. | 1 | [`P-6`](specification.md#requirement-P-6) | [Test](../acceptance/tests/test_protocol.py#L264) |
+| Tools declare that they read external data, do not destroy it, and are safe to repeat. | 1 | [`P-10`](specification.md#requirement-P-10) | [Test](../acceptance/tests/test_protocol.py#L294) |
+| Input names and which inputs are mandatory match the specification. | 1 | [`P-12`](specification.md#requirement-P-12) | [Test](../acceptance/tests/test_protocol.py#L305) |
 
 <details>
 <summary>Exact executable cases (8)</summary>
 
-- <code>tests/test_protocol.py::test_each_tool_takes_the_parameters_the_specification_names</code> — [source](../acceptance/tests/test_protocol.py#L309)
-- <code>tests/test_protocol.py::test_every_tool_is_annotated_read_only_idempotent_and_open_world</code> — [source](../acceptance/tests/test_protocol.py#L298)
+- <code>tests/test_protocol.py::test_each_tool_takes_the_parameters_the_specification_names</code> — [source](../acceptance/tests/test_protocol.py#L305)
+- <code>tests/test_protocol.py::test_every_tool_is_annotated_read_only_idempotent_and_open_world</code> — [source](../acceptance/tests/test_protocol.py#L294)
 - <code>tests/test_protocol.py::test_no_description_holds_placeholder_or_debug_text</code> — [source](../acceptance/tests/test_protocol.py#L146)
 - <code>tests/test_protocol.py::test_no_description_or_schema_shows_what_the_tool_does_not_offer</code> — [source](../acceptance/tests/test_protocol.py#L209)
-- <code>tests/test_protocol.py::test_tool_names_are_verb_led_lowercase_and_underscore_separated</code> — [source](../acceptance/tests/test_protocol.py#L224)
-- <code>tests/test_protocol.py::test_tools_list_is_the_same_after_a_content_call</code> — [source](../acceptance/tests/test_protocol.py#L257)
-- <code>tests/test_protocol.py::test_tools_list_is_the_same_while_the_platform_is_unavailable</code> — [source](../acceptance/tests/test_protocol.py#L268)
+- <code>tests/test_protocol.py::test_tool_names_are_verb_led_lowercase_and_underscore_separated</code> — [source](../acceptance/tests/test_protocol.py#L220)
+- <code>tests/test_protocol.py::test_tools_list_is_the_same_after_a_content_call</code> — [source](../acceptance/tests/test_protocol.py#L253)
+- <code>tests/test_protocol.py::test_tools_list_is_the_same_while_the_platform_is_unavailable</code> — [source](../acceptance/tests/test_protocol.py#L264)
 - <code>tests/test_protocol.py::test_tools_list_names_the_tools_of_the_profile_and_no_other</code> — [source](../acceptance/tests/test_protocol.py#L124)
 
 </details>
@@ -211,45 +211,45 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| The listed prompts and their required inputs match the profile's specification. | 1 | [`P-8`](specification.md#requirement-P-8) | [Test](../acceptance/tests/test_protocol.py#L335) |
-| Prompt instructions are nonempty and name the stated, available tools in the stated order. | 1 | [`P-8`](specification.md#requirement-P-8) | [Test](../acceptance/tests/test_protocol.py#L375) |
-| The resource and address-template lists match the profile exactly. | 1 | [`P-8`](specification.md#requirement-P-8) | [Test](../acceptance/tests/test_protocol.py#L398) |
-| An address outside the supported resource forms produces an error, not invented content. | 2 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L412) |
-| Reading each resource gives the declared data format and agrees with its tool on identity and, where applicable, release. | 7 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L475) |
-| Resource content identifies its source and retrieval time, including the unpinned caDSR registry state. | 7 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L500) |
-| Each resource carries reuse duration and sharing rules appropriate to its content. | 7 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L522) |
-| The index description identifies its concept count, embedding configuration, build time and provenance. | 1 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L537) |
+| The listed prompts and their required inputs match the profile's specification. | 1 | [`P-8`](specification.md#requirement-P-8) | [Test](../acceptance/tests/test_protocol.py#L331) |
+| Prompt instructions are nonempty and name the stated, available tools in the stated order. | 1 | [`P-8`](specification.md#requirement-P-8) | [Test](../acceptance/tests/test_protocol.py#L371) |
+| The resource and address-template lists match the profile exactly. | 1 | [`P-8`](specification.md#requirement-P-8) | [Test](../acceptance/tests/test_protocol.py#L394) |
+| An address outside the supported resource forms produces an error, not invented content. | 2 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L408) |
+| Reading each resource gives the declared data format and agrees with its tool on identity and, where applicable, release. | 7 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L471) |
+| Resource content identifies its source and retrieval time, including the unpinned caDSR registry state. | 7 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L496) |
+| Each resource carries reuse duration and sharing rules appropriate to its content. | 7 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L518) |
+| The index description identifies its concept count, embedding configuration, build time and provenance. | 1 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L533) |
 
 <details>
 <summary>Exact executable cases (27)</summary>
 
-- <code>tests/test_protocol.py::test_a_prompt_returns_messages_naming_the_tools_it_states_and_only_tools_of_the_profile</code> — [source](../acceptance/tests/test_protocol.py#L375)
-- <code>tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[concept]</code> — [source](../acceptance/tests/test_protocol.py#L500)
-- <code>tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[crosswalk]</code> — [source](../acceptance/tests/test_protocol.py#L500)
-- <code>tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[data_element-publicId-version]</code> — [source](../acceptance/tests/test_protocol.py#L500)
-- <code>tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[data_element-publicId]</code> — [source](../acceptance/tests/test_protocol.py#L500)
-- <code>tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[index_manifest]</code> — [source](../acceptance/tests/test_protocol.py#L500)
-- <code>tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[registry]</code> — [source](../acceptance/tests/test_protocol.py#L500)
-- <code>tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[release]</code> — [source](../acceptance/tests/test_protocol.py#L500)
-- <code>tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[concept]</code> — [source](../acceptance/tests/test_protocol.py#L522)
-- <code>tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[crosswalk]</code> — [source](../acceptance/tests/test_protocol.py#L522)
-- <code>tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[data_element-publicId-version]</code> — [source](../acceptance/tests/test_protocol.py#L522)
-- <code>tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[data_element-publicId]</code> — [source](../acceptance/tests/test_protocol.py#L522)
-- <code>tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[index_manifest]</code> — [source](../acceptance/tests/test_protocol.py#L522)
-- <code>tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[registry]</code> — [source](../acceptance/tests/test_protocol.py#L522)
-- <code>tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[release]</code> — [source](../acceptance/tests/test_protocol.py#L522)
-- <code>tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[concept]</code> — [source](../acceptance/tests/test_protocol.py#L475)
-- <code>tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[crosswalk]</code> — [source](../acceptance/tests/test_protocol.py#L475)
-- <code>tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[data_element-publicId-version]</code> — [source](../acceptance/tests/test_protocol.py#L475)
-- <code>tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[data_element-publicId]</code> — [source](../acceptance/tests/test_protocol.py#L475)
-- <code>tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[index_manifest]</code> — [source](../acceptance/tests/test_protocol.py#L475)
-- <code>tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[registry]</code> — [source](../acceptance/tests/test_protocol.py#L475)
-- <code>tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[release]</code> — [source](../acceptance/tests/test_protocol.py#L475)
-- <code>tests/test_protocol.py::test_a_uri_no_resource_or_template_matches_is_an_error_and_never_content[ncit://concept/C4817]</code> — [source](../acceptance/tests/test_protocol.py#L412)
-- <code>tests/test_protocol.py::test_a_uri_no_resource_or_template_matches_is_an_error_and_never_content[ncit://nothing/x]</code> — [source](../acceptance/tests/test_protocol.py#L412)
-- <code>tests/test_protocol.py::test_prompts_list_names_the_prompts_of_the_profile_with_their_arguments</code> — [source](../acceptance/tests/test_protocol.py#L335)
-- <code>tests/test_protocol.py::test_resources_list_the_concrete_resources_and_templates_list_the_templates_of_the_profile</code> — [source](../acceptance/tests/test_protocol.py#L398)
-- <code>tests/test_protocol.py::test_the_index_manifest_states_what_the_index_holds[index_manifest]</code> — [source](../acceptance/tests/test_protocol.py#L537)
+- <code>tests/test_protocol.py::test_a_prompt_returns_messages_naming_the_tools_it_states_and_only_tools_of_the_profile</code> — [source](../acceptance/tests/test_protocol.py#L371)
+- <code>tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[concept]</code> — [source](../acceptance/tests/test_protocol.py#L496)
+- <code>tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[crosswalk]</code> — [source](../acceptance/tests/test_protocol.py#L496)
+- <code>tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[data_element-publicId-version]</code> — [source](../acceptance/tests/test_protocol.py#L496)
+- <code>tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[data_element-publicId]</code> — [source](../acceptance/tests/test_protocol.py#L496)
+- <code>tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[index_manifest]</code> — [source](../acceptance/tests/test_protocol.py#L496)
+- <code>tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[registry]</code> — [source](../acceptance/tests/test_protocol.py#L496)
+- <code>tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[release]</code> — [source](../acceptance/tests/test_protocol.py#L496)
+- <code>tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[concept]</code> — [source](../acceptance/tests/test_protocol.py#L518)
+- <code>tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[crosswalk]</code> — [source](../acceptance/tests/test_protocol.py#L518)
+- <code>tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[data_element-publicId-version]</code> — [source](../acceptance/tests/test_protocol.py#L518)
+- <code>tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[data_element-publicId]</code> — [source](../acceptance/tests/test_protocol.py#L518)
+- <code>tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[index_manifest]</code> — [source](../acceptance/tests/test_protocol.py#L518)
+- <code>tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[registry]</code> — [source](../acceptance/tests/test_protocol.py#L518)
+- <code>tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[release]</code> — [source](../acceptance/tests/test_protocol.py#L518)
+- <code>tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[concept]</code> — [source](../acceptance/tests/test_protocol.py#L471)
+- <code>tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[crosswalk]</code> — [source](../acceptance/tests/test_protocol.py#L471)
+- <code>tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[data_element-publicId-version]</code> — [source](../acceptance/tests/test_protocol.py#L471)
+- <code>tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[data_element-publicId]</code> — [source](../acceptance/tests/test_protocol.py#L471)
+- <code>tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[index_manifest]</code> — [source](../acceptance/tests/test_protocol.py#L471)
+- <code>tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[registry]</code> — [source](../acceptance/tests/test_protocol.py#L471)
+- <code>tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[release]</code> — [source](../acceptance/tests/test_protocol.py#L471)
+- <code>tests/test_protocol.py::test_a_uri_no_resource_or_template_matches_is_an_error_and_never_content[ncit://concept/C4817]</code> — [source](../acceptance/tests/test_protocol.py#L408)
+- <code>tests/test_protocol.py::test_a_uri_no_resource_or_template_matches_is_an_error_and_never_content[ncit://nothing/x]</code> — [source](../acceptance/tests/test_protocol.py#L408)
+- <code>tests/test_protocol.py::test_prompts_list_names_the_prompts_of_the_profile_with_their_arguments</code> — [source](../acceptance/tests/test_protocol.py#L331)
+- <code>tests/test_protocol.py::test_resources_list_the_concrete_resources_and_templates_list_the_templates_of_the_profile</code> — [source](../acceptance/tests/test_protocol.py#L394)
+- <code>tests/test_protocol.py::test_the_index_manifest_states_what_the_index_holds[index_manifest]</code> — [source](../acceptance/tests/test_protocol.py#L533)
 
 </details>
 
@@ -267,7 +267,7 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| The caller's correlation identifier appears on every upstream request and in the returned provenance. | 1 | [`P-7`](specification.md#requirement-P-7) | [Test](../acceptance/tests/test_protocol.py#L279) |
+| The caller's correlation identifier appears on every upstream request and in the returned provenance. | 1 | [`P-7`](specification.md#requirement-P-7) | [Test](../acceptance/tests/test_protocol.py#L275) |
 | Every returned item has the required source, release, retrieval time and delivery information. | 26 | [`X-7`](specification.md#requirement-X-7) | [Test](../acceptance/tests/test_crosscutting.py#L153) |
 | Related items identify depth, relationship, direction and polarity, including genuinely traversed items. | 3 | [`X-7`](specification.md#requirement-X-7) | [Test](../acceptance/tests/test_crosscutting.py#L164) |
 | Codes have their terminology stated separately instead of embedding a prefix or a web address. | 26 | [`X-9`](specification.md#requirement-X-9) | [Test](../acceptance/tests/test_crosscutting.py#L176) |
@@ -337,7 +337,7 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 - <code>tests/test_crosscutting.py::test_what_the_platform_says_of_an_item_s_origin_is_passed_through[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L466)
 - <code>tests/test_crosscutting.py::test_what_the_platform_says_of_an_item_s_origin_is_passed_through[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L466)
 - <code>tests/test_crosscutting.py::test_what_the_platform_says_of_an_item_s_origin_is_passed_through[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L466)
-- <code>tests/test_protocol.py::test_a_correlation_identifier_goes_upstream_and_comes_back</code> — [source](../acceptance/tests/test_protocol.py#L279)
+- <code>tests/test_protocol.py::test_a_correlation_identifier_goes_upstream_and_comes_back</code> — [source](../acceptance/tests/test_protocol.py#L275)
 
 </details>
 
@@ -469,7 +469,7 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Tool, prompt, resource and template lists carry positive reuse durations and public scope. | 4 | [`P-5`](specification.md#requirement-P-5) | [Test](../acceptance/tests/test_protocol.py#L246) |
+| Tool, prompt, resource and template lists carry positive reuse durations and public scope. | 4 | [`P-5`](specification.md#requirement-P-5) | [Test](../acceptance/tests/test_protocol.py#L242) |
 | Explicitly pinned content permits positive-duration public reuse. | 15 | [`X-13`](specification.md#requirement-X-13) | [Test](../acceptance/tests/test_crosscutting.py#L202) |
 | Registry content and computed matches receive their distinct required cache policies. | 9 | [`X-13`](specification.md#requirement-X-13) | [Test](../acceptance/tests/test_crosscutting.py#L246) |
 
@@ -500,10 +500,10 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 - <code>tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L202)
 - <code>tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L202)
 - <code>tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L202)
-- <code>tests/test_protocol.py::test_each_list_may_be_cached_and_shared[prompts]</code> — [source](../acceptance/tests/test_protocol.py#L246)
-- <code>tests/test_protocol.py::test_each_list_may_be_cached_and_shared[resources]</code> — [source](../acceptance/tests/test_protocol.py#L246)
-- <code>tests/test_protocol.py::test_each_list_may_be_cached_and_shared[templates]</code> — [source](../acceptance/tests/test_protocol.py#L246)
-- <code>tests/test_protocol.py::test_each_list_may_be_cached_and_shared[tools]</code> — [source](../acceptance/tests/test_protocol.py#L246)
+- <code>tests/test_protocol.py::test_each_list_may_be_cached_and_shared[prompts]</code> — [source](../acceptance/tests/test_protocol.py#L242)
+- <code>tests/test_protocol.py::test_each_list_may_be_cached_and_shared[resources]</code> — [source](../acceptance/tests/test_protocol.py#L242)
+- <code>tests/test_protocol.py::test_each_list_may_be_cached_and_shared[templates]</code> — [source](../acceptance/tests/test_protocol.py#L242)
+- <code>tests/test_protocol.py::test_each_list_may_be_cached_and_shared[tools]</code> — [source](../acceptance/tests/test_protocol.py#L242)
 
 </details>
 
@@ -2016,40 +2016,40 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Each account sees its own tools and resource templates; restricted prompts are absent. | 2 | [`X-25`](specification.md#requirement-X-25) | [Test](../acceptance/tests/test_permissions.py#L164) |
-| Guessing a hidden tool does not retrieve content or expose the supplied value in logs. | 1 | [`X-25`](specification.md#requirement-X-25), [`X-27`](specification.md#requirement-X-27) | [Test](../acceptance/tests/test_permissions.py#L183) |
-| A resource address or prompt name cannot bypass the same access rules. | 1 | [`X-25`](specification.md#requirement-X-25) | [Test](../acceptance/tests/test_permissions.py#L199) |
-| Pinning a release does not make protected content or discovery safe for a shared cache. | 1 | [`X-27`](specification.md#requirement-X-27) | [Test](../acceptance/tests/test_permissions.py#L212) |
-| A connected account cannot continue retrieving content after its permission is revoked or expires. | 1 | [`X-27`](specification.md#requirement-X-27) | [Test](../acceptance/tests/test_permissions.py#L227) |
-| Permission to start a workflow does not grant its restricted child operations. | 3 | [`X-26`](specification.md#requirement-X-26) | [Test](../acceptance/tests/test_permissions.py#L245) |
-| Simultaneous EVS and caDSR users cannot inherit each other's access. | 1 | [`X-27`](specification.md#requirement-X-27) | [Test](../acceptance/tests/test_permissions.py#L265) |
-| Grounding checks every selected search, concept, join and stored-value dependency before retrieving anything. | 5 | [`X-26`](specification.md#requirement-X-26) | [Test](../acceptance/tests/test_permissions.py#L288) |
-| An unavailable account policy produces a refusal rather than unrestricted local access. | 1 | [`X-27`](specification.md#requirement-X-27) | [Test](../acceptance/tests/test_permissions.py#L318) |
-| Missing credentials, invalid credentials and impersonation headers cannot reach MCP tools. | 3 | [`X-28`](specification.md#requirement-X-28) | [Test](../acceptance/tests/test_permissions.py#L61) |
-| Operators can check service status without exposing content or bypassing hostname protection. | 1 | [`X-28`](specification.md#requirement-X-28) | [Test](../acceptance/tests/test_permissions.py#L88) |
+| Each account sees its own tools and resource templates; restricted prompts are absent. | 2 | [`X-25`](specification.md#requirement-X-25) | [Test](../acceptance/tests/test_permissions.py#L168) |
+| Guessing a hidden tool does not retrieve content or expose the supplied value in logs. | 1 | [`X-25`](specification.md#requirement-X-25), [`X-27`](specification.md#requirement-X-27) | [Test](../acceptance/tests/test_permissions.py#L187) |
+| A resource address or prompt name cannot bypass the same access rules. | 1 | [`X-25`](specification.md#requirement-X-25) | [Test](../acceptance/tests/test_permissions.py#L203) |
+| Pinning a release does not make protected content or discovery safe for a shared cache. | 1 | [`X-27`](specification.md#requirement-X-27) | [Test](../acceptance/tests/test_permissions.py#L216) |
+| A connected account cannot continue retrieving content after its permission is revoked or expires. | 1 | [`X-27`](specification.md#requirement-X-27) | [Test](../acceptance/tests/test_permissions.py#L231) |
+| Permission to start a workflow does not grant its restricted child operations. | 3 | [`X-26`](specification.md#requirement-X-26) | [Test](../acceptance/tests/test_permissions.py#L249) |
+| Simultaneous EVS and caDSR users cannot inherit each other's access. | 1 | [`X-27`](specification.md#requirement-X-27) | [Test](../acceptance/tests/test_permissions.py#L269) |
+| Grounding checks every selected search, concept, join and stored-value dependency before retrieving anything. | 5 | [`X-26`](specification.md#requirement-X-26) | [Test](../acceptance/tests/test_permissions.py#L292) |
+| An unavailable account policy produces a refusal rather than unrestricted local access. | 1 | [`X-27`](specification.md#requirement-X-27) | [Test](../acceptance/tests/test_permissions.py#L322) |
+| Missing credentials, invalid credentials and impersonation headers cannot reach MCP tools. | 3 | [`X-28`](specification.md#requirement-X-28) | [Test](../acceptance/tests/test_permissions.py#L65) |
+| Operators can check service status without exposing content or bypassing hostname protection. | 1 | [`X-28`](specification.md#requirement-X-28) | [Test](../acceptance/tests/test_permissions.py#L92) |
 
 <details>
 <summary>Exact executable cases (20)</summary>
 
-- <code>tests/test_permissions.py::test_a_guessed_tool_is_refused_without_upstream_reads_or_sensitive_logs</code> — [source](../acceptance/tests/test_permissions.py#L183)
-- <code>tests/test_permissions.py::test_allowed_workflows_cannot_read_denied_children[expand_cohort-arguments1]</code> — [source](../acceptance/tests/test_permissions.py#L245)
-- <code>tests/test_permissions.py::test_allowed_workflows_cannot_read_denied_children[ground_value-arguments0]</code> — [source](../acceptance/tests/test_permissions.py#L245)
-- <code>tests/test_permissions.py::test_allowed_workflows_cannot_read_denied_children[harmonize_data_dictionary-arguments2]</code> — [source](../acceptance/tests/test_permissions.py#L245)
-- <code>tests/test_permissions.py::test_concurrent_verified_callers_keep_separate_catalogues_and_results</code> — [source](../acceptance/tests/test_permissions.py#L265)
-- <code>tests/test_permissions.py::test_each_caller_sees_only_its_permitted_tools_and_resources[cadsr-get_data_element]</code> — [source](../acceptance/tests/test_permissions.py#L164)
-- <code>tests/test_permissions.py::test_each_caller_sees_only_its_permitted_tools_and_resources[evs-get_concept]</code> — [source](../acceptance/tests/test_permissions.py#L164)
-- <code>tests/test_permissions.py::test_explicit_release_content_and_discovery_disable_shared_http_caching</code> — [source](../acceptance/tests/test_permissions.py#L212)
-- <code>tests/test_permissions.py::test_grounding_checks_each_selected_child_before_any_read[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_permissions.py#L288)
-- <code>tests/test_permissions.py::test_grounding_checks_each_selected_child_before_any_read[get_code_map]</code> — [source](../acceptance/tests/test_permissions.py#L288)
-- <code>tests/test_permissions.py::test_grounding_checks_each_selected_child_before_any_read[get_concept]</code> — [source](../acceptance/tests/test_permissions.py#L288)
-- <code>tests/test_permissions.py::test_grounding_checks_each_selected_child_before_any_read[resolve_stored_value]</code> — [source](../acceptance/tests/test_permissions.py#L288)
-- <code>tests/test_permissions.py::test_grounding_checks_each_selected_child_before_any_read[search_concepts]</code> — [source](../acceptance/tests/test_permissions.py#L288)
-- <code>tests/test_permissions.py::test_guessed_resources_and_prompts_cannot_bypass_permissions</code> — [source](../acceptance/tests/test_permissions.py#L199)
-- <code>tests/test_permissions.py::test_missing_policy_never_falls_back_to_trusted_local_access</code> — [source](../acceptance/tests/test_permissions.py#L318)
-- <code>tests/test_permissions.py::test_public_probes_reveal_only_status_and_reject_an_untrusted_host</code> — [source](../acceptance/tests/test_permissions.py#L88)
-- <code>tests/test_permissions.py::test_revoked_and_expired_policy_deny_the_next_request</code> — [source](../acceptance/tests/test_permissions.py#L227)
-- <code>tests/test_permissions.py::test_unauthenticated_and_spoofed_callers_cannot_enter_mcp[invalid]</code> — [source](../acceptance/tests/test_permissions.py#L61)
-- <code>tests/test_permissions.py::test_unauthenticated_and_spoofed_callers_cannot_enter_mcp[missing]</code> — [source](../acceptance/tests/test_permissions.py#L61)
-- <code>tests/test_permissions.py::test_unauthenticated_and_spoofed_callers_cannot_enter_mcp[spoofed]</code> — [source](../acceptance/tests/test_permissions.py#L61)
+- <code>tests/test_permissions.py::test_a_guessed_tool_is_refused_without_upstream_reads_or_sensitive_logs</code> — [source](../acceptance/tests/test_permissions.py#L187)
+- <code>tests/test_permissions.py::test_allowed_workflows_cannot_read_denied_children[expand_cohort-arguments1]</code> — [source](../acceptance/tests/test_permissions.py#L249)
+- <code>tests/test_permissions.py::test_allowed_workflows_cannot_read_denied_children[ground_value-arguments0]</code> — [source](../acceptance/tests/test_permissions.py#L249)
+- <code>tests/test_permissions.py::test_allowed_workflows_cannot_read_denied_children[harmonize_data_dictionary-arguments2]</code> — [source](../acceptance/tests/test_permissions.py#L249)
+- <code>tests/test_permissions.py::test_concurrent_verified_callers_keep_separate_catalogues_and_results</code> — [source](../acceptance/tests/test_permissions.py#L269)
+- <code>tests/test_permissions.py::test_each_caller_sees_only_its_permitted_tools_and_resources[cadsr-get_data_element]</code> — [source](../acceptance/tests/test_permissions.py#L168)
+- <code>tests/test_permissions.py::test_each_caller_sees_only_its_permitted_tools_and_resources[evs-get_concept]</code> — [source](../acceptance/tests/test_permissions.py#L168)
+- <code>tests/test_permissions.py::test_explicit_release_content_and_discovery_disable_shared_http_caching</code> — [source](../acceptance/tests/test_permissions.py#L216)
+- <code>tests/test_permissions.py::test_grounding_checks_each_selected_child_before_any_read[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_permissions.py#L292)
+- <code>tests/test_permissions.py::test_grounding_checks_each_selected_child_before_any_read[get_code_map]</code> — [source](../acceptance/tests/test_permissions.py#L292)
+- <code>tests/test_permissions.py::test_grounding_checks_each_selected_child_before_any_read[get_concept]</code> — [source](../acceptance/tests/test_permissions.py#L292)
+- <code>tests/test_permissions.py::test_grounding_checks_each_selected_child_before_any_read[resolve_stored_value]</code> — [source](../acceptance/tests/test_permissions.py#L292)
+- <code>tests/test_permissions.py::test_grounding_checks_each_selected_child_before_any_read[search_concepts]</code> — [source](../acceptance/tests/test_permissions.py#L292)
+- <code>tests/test_permissions.py::test_guessed_resources_and_prompts_cannot_bypass_permissions</code> — [source](../acceptance/tests/test_permissions.py#L203)
+- <code>tests/test_permissions.py::test_missing_policy_never_falls_back_to_trusted_local_access</code> — [source](../acceptance/tests/test_permissions.py#L322)
+- <code>tests/test_permissions.py::test_public_probes_reveal_only_status_and_reject_an_untrusted_host</code> — [source](../acceptance/tests/test_permissions.py#L92)
+- <code>tests/test_permissions.py::test_revoked_and_expired_policy_deny_the_next_request</code> — [source](../acceptance/tests/test_permissions.py#L231)
+- <code>tests/test_permissions.py::test_unauthenticated_and_spoofed_callers_cannot_enter_mcp[invalid]</code> — [source](../acceptance/tests/test_permissions.py#L65)
+- <code>tests/test_permissions.py::test_unauthenticated_and_spoofed_callers_cannot_enter_mcp[missing]</code> — [source](../acceptance/tests/test_permissions.py#L65)
+- <code>tests/test_permissions.py::test_unauthenticated_and_spoofed_callers_cannot_enter_mcp[spoofed]</code> — [source](../acceptance/tests/test_permissions.py#L65)
 
 </details>

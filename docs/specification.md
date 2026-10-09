@@ -903,7 +903,7 @@ required tool one outcome:
 | NO FIXTURE | An upstream request found no fixture; the report names it |
 | NOT RUN | No test of the tool ran, for example in a live run or without the operator's prepare step |
 | NO TESTS | The suite has no test for the tool: a defect of the suite |
-| NOT IMPLEMENTED | The server exposes the tool neither by name nor through the baseline tool map (the Prototype Baseline Assessment) |
+| NOT IMPLEMENTED | The server does not list the required name |
 
 An upstream limitation excuses a failing live test only test by test, each with its
 requirement named; one known limitation does not excuse another live failure of the same tool,
@@ -931,6 +931,8 @@ timeout or a log level sets it.
 | `NCI_SI_MATCH_TIMEOUT_SECONDS` | The `cadsr/match-timeout` scenario | Seconds a caDSR match request may take |
 | `NCI_SI_LOG_LEVEL` | The `license/restricted` scenario | `DEBUG`, so that a secret logged as a detail shows |
 | `NCI_SI_ACCEPTANCE_INDEX_CODES` | The prepare command only | A file of the concept codes to index, one per line |
+| `NCI_SI_TEST_HTTP_PORT` | The secured fixture adapter only | The loopback port the adapter listens on, chosen by the suite |
+| `NCI_SI_TEST_AUTHORITY_FILE` | The secured fixture adapter only | The path of the JSON file of generated test tokens and each actor's policy, which the adapter rereads on every request |
 
 ### Settings of a run
 
@@ -951,6 +953,7 @@ given all of them but the credential, besides the fixture settings and a scenari
 | `NCI_SI_ACCEPTANCE_STATE_HOOK` | The operator's command that changes the state of a remote server: it applies the settings in its environment and forgets every upstream answer cached so far |
 | `NCI_SI_ACCEPTANCE_STATE_HOOK_TIMEOUT` | Seconds the hook may take to return, and again the endpoint to answer after it (default 60) |
 | `NCI_SI_ACCEPTANCE_PREPARED` | `1`: the operator has prepared the index of a remote server |
+| `NCI_SI_ACCEPTANCE_SECURITY_SERVER` | The command that starts the secured fixture adapter, a loopback HTTP server, for the X-25 to X-28 cases; without it they report NOT RUN |
 
 A remote server is tested over streamable HTTP, and the report records the transport of each run
 (`stdio` or `streamable-http`). The harness cannot set a remote server's environment: the
