@@ -317,8 +317,15 @@ class StorageTest(IndexTestCase):
 
     def test_storage_failures_are_recognised_by_primary_code_whatever_the_sub_case(self):
         index = self.build()
-        # An extended code carries its primary code in the low byte; BUSY is a primary code.
-        for code in (sqlite3.SQLITE_IOERR_READ, sqlite3.SQLITE_BUSY, sqlite3.SQLITE_FULL):
+        # An extended code carries its primary code in the low byte; the rest are primary codes.
+        for code in (
+            sqlite3.SQLITE_IOERR_READ,
+            sqlite3.SQLITE_BUSY,
+            sqlite3.SQLITE_LOCKED,
+            sqlite3.SQLITE_CORRUPT,
+            sqlite3.SQLITE_READONLY,
+            sqlite3.SQLITE_FULL,
+        ):
             with self.subTest(code=code):
                 failure = sqlite3.OperationalError("storage trouble")
                 failure.sqlite_errorcode = code

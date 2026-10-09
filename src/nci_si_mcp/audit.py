@@ -114,15 +114,7 @@ class JsonFormatter(logging.Formatter):
 
 
 def _releases(value: Any) -> list[dict[str, Any]]:
-    return list({_release_key(item): item for item in _release_items(value)}.values())
-
-
-def _release_key(item: dict[str, Any]) -> Any:
-    # A release reference is a flat record of text, so its sorted pairs identify it without
-    # serialising each of the thousands a traversal carries; anything else keeps its JSON form.
-    if all(type(item_value) is str for item_value in item.values()):
-        return tuple(sorted(item.items()))
-    return compact(item)
+    return list({compact(item): item for item in _release_items(value)}.values())
 
 
 def _release_items(value: Any) -> Iterator[dict[str, Any]]:
