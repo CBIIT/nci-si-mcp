@@ -16,7 +16,9 @@ from nci_si_mcp.permissions import (
     PolicyUnavailableError,
     Principal,
     authority_scope,
+    permits,
     require,
+    secured,
 )
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.server import create_mcp
@@ -40,6 +42,21 @@ def authority(*capabilities, **changes):
 
 
 class AuthorityTest(unittest.TestCase):
+    def test_scope_marks_the_request_secured_only_while_it_lasts(self):
+        self.assertTrue(permits("get_concept"))
+        for scoped in (None, authority("get_concept")):
+            with self.subTest(authority=scoped), authority_scope(scoped):
+                self.assertTrue(secured())
+            self.assertFalse(secured())
+
+    def test_a_secured_request_permits_only_granted_tools_the_server_has(self):
+        with authority_scope(authority("get_concept", "no_such_tool")):
+            self.assertTrue(permits("get_concept"))
+            self.assertFalse(permits("lookup"))
+            self.assertFalse(permits("no_such_tool"))
+        with authority_scope(None):
+            self.assertFalse(permits("get_concept"))
+
     def test_snapshot_cannot_gain_permissions_from_a_mutated_input_set(self):
         capabilities = {"get_concept"}
         snapshot = authority(capabilities=capabilities)
