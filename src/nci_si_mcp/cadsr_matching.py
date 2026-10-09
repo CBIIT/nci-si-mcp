@@ -12,7 +12,13 @@ from .caching import select_cache_hint
 from .cadsr import CDE_MATCH, VM_MATCH
 from .context import Context
 from .errors import InputValidationError, PlatformError
-from .parameters import Described, RegistryRelease, count_bound, describe_fields
+from .parameters import (
+    Described,
+    MatchFilters,
+    RegistryRelease,
+    count_bound,
+    describe_fields,
+)
 from .permissions import require
 from .validation import (
     MatchedItemType,
@@ -36,37 +42,6 @@ describe_fields(
     name="Name of the thing to match, for example Cancer Stage.",
     userTip="A sentence saying what it means, to help the match.",
     permissibleValues='Values it may take, for example ["Stage I", "Stage II"].',
-)
-
-
-class SchemeFilter(TypedDict):
-    publicId: str
-    version: str
-
-
-describe_fields(
-    SchemeFilter,
-    publicId="Public id of the classification scheme, for example 2200604.",
-    version="Version of the classification scheme, for example 1.0.",
-)
-
-
-class MatchFilters(TypedDict, total=False):
-    context: str
-    workflowStatus: str
-    registrationStatus: str
-    valueDomainType: str
-    classificationScheme: SchemeFilter
-
-
-describe_fields(
-    MatchFilters,
-    context="Only data elements of this caDSR context, for example NCIP.",
-    workflowStatus="Only data elements with this workflow status, for example RELEASED.",
-    registrationStatus="Only data elements with this registration status, for example Standard.",
-    valueDomainType="Only data elements with this value domain type, for example Enumerated.",
-    classificationScheme="Only data elements in this classification scheme; give both its "
-    "publicId and version.",
 )
 
 

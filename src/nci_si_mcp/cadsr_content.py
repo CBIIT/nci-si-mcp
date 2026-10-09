@@ -16,6 +16,7 @@ from .parameters import (
     REGISTRY_VERSION_FORM,
     Cursor,
     Described,
+    MatchFilters,
     RegistryRelease,
     count_bound,
 )
@@ -367,7 +368,7 @@ def search_data_elements(
         ),
     ] = "lexical",
     filters: Annotated[
-        dict[DataElementFilter, str] | None,
+        MatchFilters | None,
         Described(
             "Required by the caDSR SOW (filtering by context, workflow status, "
             "registration status and value domain type); the keyword route does not serve "
@@ -424,14 +425,14 @@ def search_data_elements(
     return result
 
 
-def _search_options(query: str, mode: str, filters: dict[DataElementFilter, str] | None) -> None:
+def _search_options(query: str, mode: str, filters: MatchFilters | None) -> None:
     if not isinstance(query, str) or not query.strip():
         raise InputValidationError("query must be nonblank text", "query")
     validate_choice(mode, get_args(RegistrySearchMode), "mode")
     _search_filters(filters)
 
 
-def _search_filters(filters: dict[DataElementFilter, str] | None) -> None:
+def _search_filters(filters: MatchFilters | None) -> None:
     if filters is not None and not isinstance(filters, dict):
         raise InputValidationError("filters must be an object", "filters")
     for key, value in (filters or {}).items():

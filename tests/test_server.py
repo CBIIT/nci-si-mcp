@@ -250,6 +250,32 @@ class ServerTest(ServerFixture):
         for (tool, name), form in forms.items():
             self.assertEqual(branch(prop(tool, name))["pattern"], form, (tool, name))
 
+    def test_the_three_matching_tools_share_one_filters_type_and_expand_value_set_is_ncit_only(
+        self, _
+    ):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+
+        def refs(tool):
+            filters = tools[tool].input_schema["properties"]["filters"]
+            return [s["$ref"] for s in filters["anyOf"] if "$ref" in s]
+
+        for tool in ("search_data_elements", "match_data_elements", "harmonize_data_dictionary"):
+            self.assertEqual(refs(tool), ["#/$defs/MatchFilters"], tool)
+        terminology = tools["expand_value_set"].input_schema["properties"]["terminology"]
+        self.assertEqual(terminology["const"], "ncit")
+        self.assertIn("terminology", tools["expand_value_set"].input_schema["required"])
+
+    def test_search_data_elements_still_refuses_a_classification_scheme_filter(self, _):
+        failed, result = self.call(
+            "search_data_elements",
+            query="stage",
+            filters={"classificationScheme": {"publicId": "1", "version": "1.0"}},
+        )
+
+        self.assertTrue(failed)
+        self.assertEqual(result["error"]["code"], "invalid_request")
+        self.assertEqual(result["error"]["details"]["parameter"], "filters")
+
     def test_parameters_the_platform_does_not_serve_yet_name_their_requirement(self, _):
         tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
         requirements = {

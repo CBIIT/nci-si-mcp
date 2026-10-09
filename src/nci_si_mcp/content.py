@@ -48,6 +48,7 @@ from .traversal import BATCH_SIZE, traverse_ncit
 from .validation import (
     MAX_INDEX_SEARCH_LIMIT,
     ConceptInclude,
+    CrossDomainTerminology,
     HierarchyDirection,
     NeighborhoodKind,
     PublicSearchMode,
@@ -183,7 +184,10 @@ def get_concept_subsets(
 
 def expand_value_set(
     context: Context,
-    terminology: Terminology,
+    terminology: Annotated[
+        CrossDomainTerminology,
+        Described("Terminology of the subset; only ncit is served."),
+    ],
     release: Release = None,
     valueSet: Annotated[  # noqa: N803 - public name specified in tools.yaml.
         str | None,

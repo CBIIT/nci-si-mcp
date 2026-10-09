@@ -15,6 +15,7 @@ from .models import Truncation
 from .parameters import (
     NCIT_CODE_FORM,
     Described,
+    MatchFilters,
     NcitRelease,
     RegistryRelease,
     count_bound,
@@ -238,7 +239,7 @@ def harmonize_data_dictionary(
     ],
     registryRelease: RegistryRelease = None,  # noqa: N803
     filters: Annotated[
-        cadsr_matching.MatchFilters | None,
+        MatchFilters | None,
         Described(
             "Narrow the data elements matched by context, workflow status, registration "
             "status, classification scheme or value domain type. Leave unset for no "
