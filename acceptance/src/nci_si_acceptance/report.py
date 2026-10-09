@@ -129,8 +129,8 @@ class Collector:
 
     def __init__(self) -> None:
         self.tests: dict[str, dict[str, Any]] = {}
-        # Which tool stands for each required one; None until a server has started.
-        self.implemented_as: dict[str, str | None] | None = None
+        # Which required tools the server lists; None until a server has started.
+        self.implemented: dict[str, bool] | None = None
         self.listing_bytes: int | None = None
         # Set from the target at the end of the run; the default is the harness's original one.
         self.transport = "stdio"
@@ -167,32 +167,30 @@ class Collector:
             test["unmatched"] = properties.get(UNMATCHED, [])
 
     def note_tools(self, tools: Tools) -> None:
-        self.implemented_as = {name: tools.implemented_as(name) for name in REQUIRED_TOOLS}
+        self.implemented = {name: tools.implemented(name) for name in REQUIRED_TOOLS}
         self.listing_bytes = tools.listing_bytes
 
     def noted_tools(self) -> dict[str, Any] | None:
         """What a worker noted of its server, to send to the controller; None if no server."""
 
-        if self.implemented_as is None:
+        if self.implemented is None:
             return None
-        return {"implemented_as": self.implemented_as, "listing_bytes": self.listing_bytes}
+        return {"implemented": self.implemented, "listing_bytes": self.listing_bytes}
 
     def merge_tools(self, noted: dict[str, Any]) -> None:
         """Take a worker's notes of its server, unless an earlier worker's are already here."""
 
-        if self.implemented_as is None:
-            self.implemented_as = noted["implemented_as"]
+        if self.implemented is None:
+            self.implemented = noted["implemented"]
             self.listing_bytes = noted["listing_bytes"]
 
     def _row(self, name: str, group: str, gates_failed: bool) -> dict[str, Any]:
         counts = Counter(test["outcome"] for test in self.tests.values() if test["tool"] == name)
-        served = (self.implemented_as or {}).get(name)
-        implemented = None if self.implemented_as is None else served is not None
+        implemented = None if self.implemented is None else self.implemented.get(name, False)
         return {
             "group": group,
             "outcome": tool_outcome(counts, gates_failed, implemented),
             "gates_only": gates_failed and not (counts["failed"] or counts["no_fixture"]),
-            "implemented_as": served,
             "counts": dict(counts),
         }
 
@@ -251,8 +249,7 @@ def _row(name: str, row: dict[str, Any], outcome: str, excused: list[str]) -> st
     counts = Counter(row["counts"])
     unrun = sum(counts[kind] for kind in UNRUN)
     tests = f"{counts['passed']} / {counts['failed']} / {counts['no_fixture']} / {unrun}"
-    served = row["implemented_as"] or "—"
-    return f"| `{name}` | {row['group']} | {outcome} | {tests} | {served} | {', '.join(excused)} |"
+    return f"| `{name}` | {row['group']} | {outcome} | {tests} | {', '.join(excused)} |"
 
 
 def _named(combined: dict[str, tuple[str, list[str]]], *kinds: str) -> str:
@@ -278,8 +275,8 @@ def render(
         f"Run modes: {modes}.",
         "",
         "| Tool | Group | Outcome | Tests passed / failed / no fixture / not run "
-        "| Implemented as | Upstream limitation |",
-        "|---|---|---|---|---|---|",
+        "| Upstream limitation |",
+        "|---|---|---|---|---|",
     ]
     lines += [_row(name, row, *combined[name]) for name, row in report["tools"].items()]
     missing = sorted(

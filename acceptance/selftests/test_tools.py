@@ -86,7 +86,7 @@ def test_a_json_text_error_keeps_its_content_and_error_flag():
         True,
         {"nodes": []},
     )
-    assert tools.implemented_as("get_concept_neighborhood") == "get_concept_neighborhood"
+    assert tools.implemented("get_concept_neighborhood") is True
 
 
 def test_a_text_answer_that_is_not_json_is_kept_as_text():
@@ -110,7 +110,7 @@ def test_an_absent_required_name_is_not_implemented(names):
 
     with pytest.raises(pytest.skip.Exception, match=f"{NOT_IMPLEMENTED}: get_concept_neighborhood"):
         tools.call("get_concept_neighborhood", {"code": "C3262"})
-    assert tools.implemented_as("get_concept_neighborhood") is None
+    assert tools.implemented("get_concept_neighborhood") is False
 
 
 class Counted(Session):

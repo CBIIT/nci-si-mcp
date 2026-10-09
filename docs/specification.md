@@ -903,7 +903,7 @@ required tool one outcome:
 | NO FIXTURE | An upstream request found no fixture; the report names it |
 | NOT RUN | No test of the tool ran, for example in a live run or without the operator's prepare step |
 | NO TESTS | The suite has no test for the tool: a defect of the suite |
-| NOT IMPLEMENTED | The server exposes the tool neither by name nor through the baseline tool map (the Prototype Baseline Assessment) |
+| NOT IMPLEMENTED | The server does not list the required name |
 
 An upstream limitation excuses a failing live test only test by test, each with its
 requirement named; one known limitation does not excuse another live failure of the same tool,
