@@ -381,7 +381,7 @@ class HttpClient:
             details = dict(exc.details)
             if exc.code == "upstream_unavailable":
                 details["attempts"] = attempt.number
-            redacted = PlatformError(exc.code, self._redact(exc.message), **details)
+            redacted = type(exc)(exc.code, self._redact(exc.message), **details)
         # Raised outside the handler, so that no chain holds the message as the platform
         # worded it: a platform can echo a header in its message.
         raise redacted

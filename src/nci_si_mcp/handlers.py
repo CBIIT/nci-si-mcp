@@ -36,7 +36,7 @@ from .evs import (
 from .http_client import UpstreamError, UpstreamUnavailableError
 from .index import require_index_release
 from .indexing import full_build
-from .invocation import _envelope
+from .invocation import error_record
 from .models import (
     IndexManifest,
     NcitConcept,
@@ -162,7 +162,7 @@ def release_info(context: Context) -> dict[str, Any]:
         try:
             return fetch()
         except (EVSError, UpstreamError, PlatformError) as exc:
-            return _envelope("release_info", exc)
+            return error_record(exc)
 
     manifest = context.index.get_active_manifest()
     selected = evs_status(lambda: _release(context).to_dict())

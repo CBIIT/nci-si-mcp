@@ -113,7 +113,7 @@ class CaDSRContentTest(CaDSRFixture):
         self.assertEqual(result["error"]["code"], "capability_unavailable")
         self.assertEqual(server.seen, [])
 
-    def test_search_keeps_the_actual_failure_alongside_the_static_platform_note(self):
+    def test_search_failures_keep_their_diagnostic_and_only_the_masked_answer_gets_the_hint(self):
         row = {"identifier": "known", "generatedAt": "2026-07-01T22:19"}
         for response, arguments, diagnostic in (
             (Reply(401), {}, "credentials"),
@@ -129,9 +129,14 @@ class CaDSRContentTest(CaDSRFixture):
                 result = self.call(server, "search_data_elements", query="patient", **arguments)
                 self.assertEqual(result["error"]["code"], "upstream_unavailable")
                 self.assertIn(diagnostic, result["error"]["message"])
-                self.assertIn("OP-C03", result["error"]["message"])
-                self.assertIn("get_data_element", result["error"]["message"])
-                self.assertEqual(len(server.seen), 1)
+                self.assertNotIn("OP-C03", result["error"]["message"])
+                self.assertNotIn("get_data_element", result["error"]["message"])
+
+    def test_masked_search_answer_keeps_the_envelope_details_and_adds_the_hint(self):
+        server = self.serve(reply({"apiResponse": {"type": "E", "message": "untrusted wording"}}))
+        result = self.call(server, "search_data_elements", query="patient")
+        self.assertEqual(result["error"]["details"]["surface"], "cadsr")
+        self.assertIn("webMethods error envelope", result["error"]["message"])
 
     def test_question_search_and_contexts_require_the_verified_pin_echo(self):
         row = {"identifier": "known", "generatedAt": "2026-07-01T22:19"}
