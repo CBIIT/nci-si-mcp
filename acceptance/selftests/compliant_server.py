@@ -122,6 +122,13 @@ requirements, for the harness's own tests.
     resources-no-ttl  resources/list with ttlMs 0                                   (P-5)
     templates-no-ttl  resources/templates/list with ttlMs 0                         (P-5)
     lists-private     the four lists with cacheScope private                        (P-5)
+    cadsr-unrelated-failure data element lookup sends Accept but fails all the same   (X-15)
+    cadsr-no-accept   data element lookup leaves Accept out and reports the HTML    (X-15)
+    cadsr-html-accepted data element lookup leaves Accept out and succeeds on HTML  (X-15)
+
+`COMPLIANT_SERVER_CADSR=1` makes a data element lookup ask caDSR (`NCI_SI_CADSR_BASE_URL`) for
+`/NCIAPI/1.0/api/DataElement/{publicId}`, naming Accept: application/json, and answer
+upstream_unavailable where the body is no data element (HTML); without it every call asks EVS.
 
 `COMPLIANT_SERVER_PAGE_SIZE` makes prompts/list, resources/list and resources/templates/list
 page, that many items to a page with a nextCursor: a server that pages passes all the same (M6.1).
@@ -205,6 +212,9 @@ NO_CACHE = bool(os.environ.get("COMPLIANT_SERVER_NO_CACHE"))
 AUTHORIZATION = os.environ.get("COMPLIANT_SERVER_AUTHORIZATION")
 AUTHORIZATION_LOG = os.environ.get("COMPLIANT_SERVER_AUTH_LOG")
 EVS = os.environ["NCI_SI_EVS_BASE_URL"]
+CADSR = (
+    os.environ.get("NCI_SI_CADSR_BASE_URL") if os.environ.get("COMPLIANT_SERVER_CADSR") else None
+)
 TIMEOUT = float(os.environ.get("NCI_SI_TIMEOUT_SECONDS", "10"))
 LICENCE_KEY = os.environ.get("NCI_SI_EVS_LICENSE_KEY")
 LICENSED = {"mdr"}
@@ -235,15 +245,28 @@ session_state: dict[str, str] = {}
 given: list[str] = []
 
 
-def _ask(
-    path: str, headers: dict[str, str], body: bytes | None = None, method: str = "GET"
-) -> tuple[int, dict, dict]:
-    """One request to EVS: its status (or CLOSED, TIMED_OUT), body and headers."""
+def _json(raw: bytes) -> dict:
+    """A body as JSON; one that is not (caDSR's HTML) as an empty object."""
 
-    request = urllib.request.Request(EVS + path, body, headers, method=method)  # noqa: S310
+    try:
+        return json.loads(raw or b"{}")
+    except ValueError:
+        return {}
+
+
+def _ask(
+    path: str,
+    headers: dict[str, str],
+    body: bytes | None = None,
+    method: str = "GET",
+    base: str = EVS,
+) -> tuple[int, dict, dict]:
+    """One request to EVS (or `base`): its status (or CLOSED, TIMED_OUT), body and headers."""
+
+    request = urllib.request.Request(base + path, body, headers, method=method)  # noqa: S310
     try:
         with urllib.request.urlopen(request, timeout=TIMEOUT) as response:  # noqa: S310
-            return response.status, json.loads(response.read() or b"{}"), dict(response.headers)
+            return response.status, _json(response.read()), dict(response.headers)
     except urllib.error.HTTPError as error:
         return error.code, json.loads(error.read() or b"{}"), dict(error.headers)
     except OSError as error:
@@ -310,6 +333,8 @@ def _leak(headers: dict[str, str]) -> None:
 def _asked(name: str, arguments: dict, correlation: str) -> tuple[int, dict]:
     """EVS's answer to a call, after one wait and retry on 429 (A6.5)."""
 
+    if CADSR and name == "get_data_element":
+        return _asked_cadsr(arguments)
     path, headers, sent = _request(name, arguments, correlation)
     status, body, answer_headers = _ask(path, headers, sent)
     if status == HTTPStatus.TOO_MANY_REQUESTS and DEFECT != "gives-up":
@@ -319,6 +344,21 @@ def _asked(name: str, arguments: dict, correlation: str) -> tuple[int, dict]:
         _ask(path, headers, sent)
     reached.append(status == HTTPStatus.OK)
     return status, body
+
+
+def _asked_cadsr(arguments: dict) -> tuple[int, dict]:
+    """caDSR's answer to a data element lookup, which asks for JSON (X-15) unless the defect
+    leaves Accept out; caDSR answers any other request with HTML, which is no answer."""
+
+    leaves_out = DEFECT in ("cadsr-no-accept", "cadsr-html-accepted")
+    headers = {} if leaves_out else {"Accept": "application/json"}
+    status, body, _ = _ask(
+        f"/NCIAPI/1.0/api/DataElement/{arguments['publicId']}", headers, base=CADSR
+    )
+    unusable = not body and DEFECT != "cadsr-html-accepted"
+    return (
+        HTTPStatus.BAD_GATEWAY if unusable or DEFECT == "cadsr-unrelated-failure" else status
+    ), body
 
 
 def _failure(status: int, body: dict, arguments: dict) -> str | None:
