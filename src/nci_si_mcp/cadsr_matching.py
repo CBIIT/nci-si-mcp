@@ -5,13 +5,14 @@ from __future__ import annotations
 import json
 import math
 from collections import Counter
-from typing import Any, NotRequired, TypedDict, get_args
+from typing import Annotated, Any, NotRequired, TypedDict, get_args
 
 from . import cadsr_content as records
 from .caching import select_cache_hint
 from .cadsr import CDE_MATCH, VM_MATCH
 from .context import Context
 from .errors import InputValidationError, PlatformError
+from .parameters import Described, RegistryRelease, count_bound, describe_fields
 from .permissions import require
 from .validation import (
     MatchedItemType,
@@ -30,9 +31,24 @@ class MatchEntity(TypedDict):
     permissibleValues: NotRequired[list[str]]
 
 
+describe_fields(
+    MatchEntity,
+    name="Name of the thing to match, for example Cancer Stage.",
+    userTip="A sentence saying what it means, to help the match.",
+    permissibleValues='Values it may take, for example ["Stage I", "Stage II"].',
+)
+
+
 class SchemeFilter(TypedDict):
     publicId: str
     version: str
+
+
+describe_fields(
+    SchemeFilter,
+    publicId="Public id of the classification scheme, for example 2200604.",
+    version="Version of the classification scheme, for example 1.0.",
+)
 
 
 class MatchFilters(TypedDict, total=False):
@@ -41,6 +57,17 @@ class MatchFilters(TypedDict, total=False):
     registrationStatus: str
     valueDomainType: str
     classificationScheme: SchemeFilter
+
+
+describe_fields(
+    MatchFilters,
+    context="Only data elements of this caDSR context, for example NCIP.",
+    workflowStatus="Only data elements with this workflow status, for example RELEASED.",
+    registrationStatus="Only data elements with this registration status, for example Standard.",
+    valueDomainType="Only data elements with this value domain type, for example Enumerated.",
+    classificationScheme="Only data elements in this classification scheme; give both its "
+    "publicId and version.",
+)
 
 
 def _text(value: Any, parameter: str) -> str:
@@ -167,12 +194,41 @@ def _cde_matches(
 
 def match_data_elements(
     context: Context,
-    entities: list[MatchEntity],
-    matchLimit: int = 10,  # noqa: N803 - public specification spelling.
-    modelVariant: str | None = None,  # noqa: N803 - public specification spelling.
-    similarityThreshold: float | None = None,  # noqa: N803 - public specification spelling.
-    filters: MatchFilters | None = None,
-    registryRelease: str | None = None,  # noqa: N803 - public specification spelling.
+    entities: Annotated[
+        list[MatchEntity],
+        Described(
+            "The things to match to data elements, 1 to 10. Each has a name and may have "
+            "a userTip and permissible values.",
+            min_items=1,
+            max_items=10,
+        ),
+    ],
+    matchLimit: Annotated[int, count_bound("Most matches for each entity.", 10, 100)] = 10,  # noqa: N803 - public specification spelling.
+    modelVariant: Annotated[  # noqa: N803 - public specification spelling.
+        str | None,
+        Described(
+            "Required by the caDSR SOW (embedding model variant); the Enhanced CDE Match "
+            "contract has no such parameter yet (C-6), so a value is refused with "
+            "invalid_request. Leave unset until it does."
+        ),
+    ] = None,
+    similarityThreshold: Annotated[  # noqa: N803 - public specification spelling.
+        float | None,
+        Described(
+            "Required by the caDSR SOW (similarity threshold); the Enhanced CDE Match "
+            "contract has no such parameter yet (C-6), so a value is refused with "
+            "invalid_request. Leave unset until it does."
+        ),
+    ] = None,
+    filters: Annotated[
+        MatchFilters | None,
+        Described(
+            "Narrow the data elements matched by context, workflow status, registration "
+            "status, classification scheme or value domain type. Leave unset for no "
+            "filter."
+        ),
+    ] = None,
+    registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
 ) -> dict[str, Any]:
     """Match 1-10 described entities to caDSR data elements in caller/platform order.
 
@@ -276,10 +332,29 @@ def _vm_matches(
 
 def match_value_meanings(
     context: Context,
-    values: list[str],
-    strictness: MatchStrictness = "restricted",
-    terminologyScope: list[str] | None = None,  # noqa: N803 - public specification spelling.
-    registryRelease: str | None = None,  # noqa: N803 - public specification spelling.
+    values: Annotated[
+        list[str],
+        Described(
+            'The values to match to value meanings, 1 to 10, for example ["male", "female"].',
+            min_items=1,
+            max_items=10,
+        ),
+    ],
+    strictness: Annotated[
+        MatchStrictness,
+        Described(
+            "How strictly values match, sent to caDSR as its match type: restricted or "
+            "unrestricted. Default restricted."
+        ),
+    ] = "restricted",
+    terminologyScope: Annotated[  # noqa: N803 - public specification spelling.
+        list[str] | None,
+        Described(
+            "Names of the EVS code systems to match against. Leave unset to use the "
+            "platform's default."
+        ),
+    ] = None,
+    registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
 ) -> dict[str, Any]:
     """Match 1-10 values to caDSR value meanings and concepts in platform order.
 

@@ -11,6 +11,7 @@ from importlib import metadata
 from pathlib import Path
 from unittest.mock import patch
 
+import yaml
 from mcp.client import Client
 from mcp.shared.exceptions import MCPError
 
@@ -43,6 +44,31 @@ NEOPLASM = concept(
 
 
 MORPHOLOGY = concept("C4741", "Neoplasm by Morphology", active=True)
+
+
+TOOLS = yaml.safe_load((Path(__file__).parents[1] / "spec/tools.yaml").read_text())
+# What the specification says each tool does not offer, as a flat list of values.
+NOT_OFFERED = {
+    name: [value for values in spec.get("not_offered", {}).values() for value in values]
+    for name, spec in TOOLS.items()
+}
+
+
+QUOTED = re.compile(r'`[^`]*`|"[^"]*"')
+
+
+def shown_values(schema, values):
+    """The `values` a schema shows as offered: in enum, const or default, or quoted in a text."""
+
+    text = json.dumps(schema)
+    descriptions = map(json.loads, re.findall(r'"description": ("(?:[^"\\]|\\.)*")', text))
+    spans = [span for description in descriptions for span in QUOTED.findall(description)]
+    offered = re.findall(r'"(?:enum|const|default)": (\[[^]]*\]|"[^"]*")', text)
+    return [
+        value
+        for value in values
+        if any(re.search(rf"\b{re.escape(value)}\b", span) for span in [*spans, *offered])
+    ]
 
 
 def pinned(**arguments):
@@ -165,6 +191,87 @@ class ServerTest(ServerFixture):
             titles = text_titles(tool.output_schema)
             self.assertEqual(titles, [f"{name} result"], name)
             self.assertNotIn("RootModel", json.dumps(tool.output_schema))
+
+    def test_every_parameter_of_every_tool_is_described_and_extras_are_closed(self, _):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+
+        def undescribed(schema):
+            records = [schema, *schema.get("$defs", {}).values()]
+            return [
+                name
+                for record in records
+                for name, spec in record.get("properties", {}).items()
+                if not spec.get("description", "").strip()
+            ]
+
+        for name, tool in tools.items():
+            self.assertEqual(undescribed(tool.input_schema), [], name)
+            self.assertIs(tool.input_schema["additionalProperties"], False, name)
+
+    def test_no_parameter_description_shows_a_value_the_tool_does_not_offer(self, _):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+        not_offered = {name: values for name, values in NOT_OFFERED.items() if name in tools}
+
+        shown = {
+            name: shown_values(tools[name].input_schema, values)
+            for name, values in not_offered.items()
+        }
+
+        self.assertTrue(any(not_offered.values()))
+        self.assertEqual({name: found for name, found in shown.items() if found}, {})
+
+    def test_input_schemas_state_the_closed_sets_forms_and_refusal_limits(self, _):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+
+        def prop(tool, name):
+            return tools[tool].input_schema["properties"][name]
+
+        def branch(schema):
+            # The schema of the non-null alternative of an optional parameter.
+            return next(s for s in schema.get("anyOf", [schema]) if s.get("type") != "null")
+
+        self.assertEqual(branch(prop("resolve_release", "channel"))["enum"], ["monthly", "weekly"])
+        self.assertEqual(prop("get_concepts", "codes")["maxItems"], 650)
+        for tool, name in [
+            ("match_data_elements", "entities"),
+            ("match_value_meanings", "values"),
+            ("harmonize_data_dictionary", "columns"),
+        ]:
+            self.assertEqual(
+                (prop(tool, name)["minItems"], prop(tool, name)["maxItems"]), (1, 10), tool
+            )
+        forms = {
+            ("get_concept", "terminology"): "^[a-z][a-z0-9_]*$",
+            ("get_concept", "release"): "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+            ("expand_cohort", "conceptCode"): "^C[1-9][0-9]*$",
+            ("get_data_element", "publicId"): "^[1-9][0-9]*$",
+            ("get_form", "version"): "^[0-9]+([.][0-9]+)?$",
+        }
+        for (tool, name), form in forms.items():
+            self.assertEqual(branch(prop(tool, name))["pattern"], form, (tool, name))
+
+    def test_parameters_the_platform_does_not_serve_yet_name_their_requirement(self, _):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+        requirements = {
+            ("get_data_element", "registryRelease"): "C-1",
+            ("get_data_element", "longName"): "OP-C02",
+            ("search_data_elements", "filters"): "OP-C03",
+            ("get_concept_for_permissible_value", "permissibleValueId"): "OP-C10",
+            ("match_data_elements", "modelVariant"): "C-6",
+            ("match_data_elements", "similarityThreshold"): "C-6",
+            ("get_form", "keyword"): "Form/query",
+        }
+        for (tool, name), requirement in requirements.items():
+            text = tools[tool].input_schema["properties"][name]["description"]
+            self.assertIn(requirement, text, (tool, name))
+            self.assertIn("leave unset", text.lower(), (tool, name))
+
+    def test_a_value_off_a_stated_form_is_the_invalid_request_error_record(self, _):
+        failed, result = self.call("get_form", publicId="0")
+
+        self.assertTrue(failed)
+        self.assertEqual(result["error"]["code"], "invalid_request")
+        self.assertEqual(result["error"]["details"]["parameter"], "publicId")
 
     def test_quickstart_lists_exactly_the_public_tools(self, _):
         tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
@@ -540,3 +647,17 @@ class ServerTest(ServerFixture):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ShownValuesTest(unittest.TestCase):
+    def test_a_value_is_shown_when_quoted_or_listed_and_not_when_only_named(self):
+        schema = {
+            "properties": {
+                "mode": {"enum": ["include", "only"], "description": "Use `exclude` to hide."},
+                "query": {"description": "Do not use fuzzy matching; phrase it plainly."},
+            }
+        }
+
+        shown = shown_values(schema, ["exclude", "only", "fuzzy", "phrase", "match"])
+
+        self.assertEqual(shown, ["exclude", "only"])

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from itertools import batched
-from typing import Any, cast, get_args
+from typing import Annotated, Any, cast, get_args
 
 from .audit import emit
 from .bounds import (
@@ -45,6 +45,7 @@ from .models import (
     upstream_origin,
     utc_now_iso,
 )
+from .parameters import Described, Terminology
 from .release import ReleaseContext, current_terminologies, resolve_evs_release, served_evs_release
 from .traversal import (
     select_edge_types,
@@ -54,6 +55,7 @@ from .validation import (
     ConceptInclude,
     Direction,
     EdgeType,
+    ReleaseChannel,
     SearchMode,
     validate_channel,
     validate_kind_budget,
@@ -74,7 +76,15 @@ def _release(context: Context) -> ReleaseContext:
 
 
 def resolve_release(
-    context: Context, terminology: str, channel: str | None = None
+    context: Context,
+    terminology: Terminology,
+    channel: Annotated[
+        ReleaseChannel | None,
+        Described(
+            "Release channel, monthly or weekly. Leave unset to use the channel the "
+            "server is configured with (monthly by default)."
+        ),
+    ] = None,
 ) -> dict[str, Any]:
     """Resolve the current EVS terminology release by its monthly or weekly channel.
 
@@ -87,8 +97,10 @@ def resolve_release(
     """
 
     terminology = validate_terminology(terminology)
-    channel = validate_channel(context.settings.release_channel if channel is None else channel)
-    selected = resolve_evs_release(context.evs, terminology, channel).to_dict()
+    selected_channel = validate_channel(
+        context.settings.release_channel if channel is None else channel
+    )
+    selected = resolve_evs_release(context.evs, terminology, selected_channel).to_dict()
     return selected | {
         "alternatives": _alternatives(context.evs.get_terminologies(), selected),
         "provenance": _release_provenance(context, selected).to_dict(),

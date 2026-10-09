@@ -582,6 +582,11 @@ unknown, its record gives `omitted: 0` and `exact: false`.
 
 ## MCP Tools
 
+Every parameter of every tool is described in the served input schema, with an example, its default
+and its maximum where it has them, its stated form (`pattern`) and its list limits
+(`minItems`, `maxItems`); the schema closes the argument set (`additionalProperties: false`).
+A parameter caDSR does not serve yet says so there, with its requirement identifier, and is left unset.
+
 For NCIt content tools, omit `release` (or use `null`) to resolve the configured monthly/weekly
 channel once. The first implicit release stays pinned for that MCP session. An explicit release
 applies only to that call and never changes the session pin. Other terminologies require an

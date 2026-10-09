@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, NoReturn, get_args
+from typing import Annotated, Any, NoReturn, get_args
 
 from . import cursor as cursors
 from .caching import select_cache_hint
@@ -11,6 +11,14 @@ from .cadsr import DATA_API, EXPORT_FOLDER, FORM_API, data_element_request
 from .context import Context
 from .errors import InputValidationError, PlatformError, call_correlation_id
 from .models import ProvenanceEnvelope, Truncation, utc_now_iso
+from .parameters import (
+    REGISTRY_ID_FORM,
+    REGISTRY_VERSION_FORM,
+    Cursor,
+    Described,
+    RegistryRelease,
+    count_bound,
+)
 from .permissions import require
 from .release import RegistryMetadataError, registry_state
 from .validation import (
@@ -269,12 +277,45 @@ def _candidate_id(raw: dict[str, Any]) -> str:
 
 def get_data_element(
     context: Context,
-    publicId: str | None = None,  # noqa: N803 - public specification spelling.
-    longName: str | None = None,  # noqa: N803 - public specification spelling.
-    questionText: str | None = None,  # noqa: N803 - public specification spelling.
-    version: str | None = None,
-    include: list[DataElementInclude] | None = None,
-    registryRelease: str | None = None,  # noqa: N803 - public specification spelling.
+    publicId: Annotated[  # noqa: N803 - public specification spelling.
+        str | None,
+        Described(
+            "Public id of the data element, for example 2179689. Give exactly one of "
+            "publicId, longName and questionText.",
+            pattern=REGISTRY_ID_FORM,
+        ),
+    ] = None,
+    longName: Annotated[  # noqa: N803 - public specification spelling.
+        str | None,
+        Described(
+            "Required by the caDSR SOW; caDSR does not serve it yet (OP-C02), so a value "
+            "is refused with capability_unavailable. Leave unset until it does."
+        ),
+    ] = None,
+    questionText: Annotated[  # noqa: N803 - public specification spelling.
+        str | None,
+        Described(
+            "The preferred question text of the data element; it resolves to the one "
+            "element that has it. Give exactly one of publicId, longName and "
+            "questionText."
+        ),
+    ] = None,
+    version: Annotated[
+        str | None,
+        Described(
+            "Version of the data element, for example 1.0. Leave unset for the latest.",
+            pattern=REGISTRY_VERSION_FORM,
+        ),
+    ] = None,
+    include: Annotated[
+        list[DataElementInclude] | None,
+        Described(
+            "Sections to add: any of permissibleValues, valueDomain, conceptAssociations, "
+            "alternateNames, classificationSchemes. Leave unset for the element's own "
+            "fields only."
+        ),
+    ] = None,
+    registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
 ) -> dict[str, Any]:
     """Get one caDSR data element by public id or preferred question text.
 
@@ -316,12 +357,27 @@ def _verify_item(raw: dict[str, Any], identifier: str, version: str | None) -> N
 
 def search_data_elements(
     context: Context,
-    query: str,
-    mode: RegistrySearchMode = "lexical",
-    filters: dict[DataElementFilter, str] | None = None,
-    limit: int = 10,
-    cursor: str | None = None,
-    registryRelease: str | None = None,  # noqa: N803 - public specification spelling.
+    query: Annotated[str, Described("Words to search for, for example breast cancer stage.")],
+    mode: Annotated[
+        RegistrySearchMode,
+        Described(
+            "How to search: lexical, the default. semantic and hybrid are requested from "
+            "caDSR (OP-C04) and are refused with capability_unavailable until it serves "
+            "them."
+        ),
+    ] = "lexical",
+    filters: Annotated[
+        dict[DataElementFilter, str] | None,
+        Described(
+            "Required by the caDSR SOW (filtering by context, workflow status, "
+            "registration status and value domain type); the keyword route does not serve "
+            "filters yet (OP-C03), so a value is refused with capability_unavailable. "
+            "Leave unset until it does."
+        ),
+    ] = None,
+    limit: Annotated[int, count_bound("Most results on a page.", 10, 100)] = 10,
+    cursor: Cursor = None,
+    registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
 ) -> dict[str, Any]:
     """Search the requested caDSR keyword route (OP-C03), not served by caDSR today.
 
@@ -424,9 +480,9 @@ def _page(
 
 def list_contexts(
     context: Context,
-    limit: int = 100,
-    cursor: str | None = None,
-    registryRelease: str | None = None,  # noqa: N803 - public specification spelling.
+    limit: Annotated[int, count_bound("Most contexts on a page.", 100, 1000)] = 100,
+    cursor: Cursor = None,
+    registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
 ) -> dict[str, Any]:
     """List caDSR context names, each its identifier, with registry provenance.
 
@@ -449,10 +505,17 @@ def list_contexts(
 
 def list_classification_schemes(
     ctx: Context,
-    context: str | None = None,
-    limit: int = 100,
-    cursor: str | None = None,
-    registryRelease: str | None = None,  # noqa: N803 - public specification spelling.
+    context: Annotated[
+        str | None,
+        Described(
+            "caDSR context whose schemes to list, for example NCIP. The standalone "
+            "listing is requested from caDSR (OP-C13) and is not served yet; use "
+            "get_data_element with include classificationSchemes."
+        ),
+    ] = None,
+    limit: Annotated[int, count_bound("Most schemes on a page.", 100, 1000)] = 100,
+    cursor: Cursor = None,
+    registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
 ) -> dict[str, Any]:
     """Standalone classification listing is unavailable until caDSR implements OP-C13.
 
@@ -518,11 +581,33 @@ def registry_resource(context: Context) -> dict[str, Any]:
 
 def get_form(
     context: Context,
-    publicId: str | None = None,  # noqa: N803 - public specification spelling.
-    keyword: str | None = None,
-    version: str | None = None,
-    includeModules: bool = True,  # noqa: N803 - public specification spelling.
-    registryRelease: str | None = None,  # noqa: N803 - public specification spelling.
+    publicId: Annotated[  # noqa: N803 - public specification spelling.
+        str | None,
+        Described("Public id of the form, for example 2200604.", pattern=REGISTRY_ID_FORM),
+    ] = None,
+    keyword: Annotated[
+        str | None,
+        Described(
+            "Required by the caDSR SOW; the platform's Form/query takes a public or "
+            "protocol id only, so a keyword is refused with invalid_request. Leave unset "
+            "and give publicId."
+        ),
+    ] = None,
+    version: Annotated[
+        str | None,
+        Described(
+            "Version of the form, for example 1.0. Leave unset for the latest.",
+            pattern=REGISTRY_VERSION_FORM,
+        ),
+    ] = None,
+    includeModules: Annotated[  # noqa: N803 - public specification spelling.
+        bool,
+        Described(
+            "Return the modules and questions of the form. Default true; false returns "
+            "the form's own fields only."
+        ),
+    ] = True,
+    registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
 ) -> dict[str, Any]:
     """Get a caDSR form by publicId and optional item version, retaining upstream statuses.
 
@@ -580,8 +665,17 @@ def _form_options(
 
 def get_permissible_value(
     context: Context,
-    permissibleValueId: str,  # noqa: N803 - public specification spelling.
-    registryRelease: str | None = None,  # noqa: N803 - public specification spelling.
+    permissibleValueId: Annotated[  # noqa: N803 - public specification spelling.
+        str,
+        Described(
+            "Identifier of the permissible value, for example 2200604. The tool is "
+            "requested from caDSR (OP-C10) and is not served yet, so the call is answered "
+            "with capability_unavailable; read values with get_data_element and include "
+            "permissibleValues.",
+            pattern=REGISTRY_ID_FORM,
+        ),
+    ],
+    registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
 ) -> dict[str, Any]:
     """Standalone permissible-value retrieval is unavailable until caDSR serves OP-C10.
 
@@ -628,12 +722,25 @@ def _map_options(source: str, target: str | None, identifier: str | None) -> Non
 
 def get_code_map(
     context: Context,
-    sourceSystem: CodeMapSource = "CRDC",  # noqa: N803 - public specification spelling.
-    targetContext: str | None = None,  # noqa: N803 - public specification spelling.
-    dataElementId: str | None = None,  # noqa: N803 - public specification spelling.
-    limit: int = 100,
-    cursor: str | None = None,
-    registryRelease: str | None = None,  # noqa: N803 - public specification spelling.
+    sourceSystem: Annotated[  # noqa: N803 - public specification spelling.
+        CodeMapSource,
+        Described("Source code system of the maps; only CRDC is served. Default CRDC."),
+    ] = "CRDC",
+    targetContext: Annotated[  # noqa: N803 - public specification spelling.
+        str | None,
+        Described(
+            "Only the maps of this context or commons name, for example GDC. Leave unset for all."
+        ),
+    ] = None,
+    dataElementId: Annotated[  # noqa: N803 - public specification spelling.
+        str | None,
+        Described(
+            "Only the map of this one data element, for example 2200604.", pattern=REGISTRY_ID_FORM
+        ),
+    ] = None,
+    limit: Annotated[int, count_bound("Most code maps on a page.", 100, 1000)] = 100,
+    cursor: Cursor = None,
+    registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
 ) -> dict[str, Any]:
     """Page CRDC code maps, one per data element, with upstream values and concept codes.
 

@@ -7,7 +7,7 @@ import re
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field, make_dataclass
 from inspect import Parameter, Signature, getdoc, signature
-from typing import Any, Literal, get_args, get_origin, get_type_hints, is_typeddict
+from typing import Annotated, Any, Literal, get_args, get_origin, get_type_hints, is_typeddict
 
 from . import cadsr_content, cadsr_matching, content, handlers, seam, workflows
 from .audit import AuditClass, audited, secrets
@@ -73,7 +73,7 @@ class ToolSpec:
     parameters: tuple[Parameter, ...] = field(init=False)
 
     def __post_init__(self) -> None:
-        hints = get_type_hints(self.handler)
+        hints = get_type_hints(self.handler, include_extras=True)
         parameters = tuple(
             p.replace(annotation=hints[p.name])
             for p in list(signature(self.handler).parameters.values())[1:]
@@ -636,6 +636,9 @@ _CLI_FLAGS = {
 
 def _argument_type(annotation: Any) -> tuple[Any, bool, tuple[Any, ...]]:
     args = get_args(annotation)
+    if get_origin(annotation) is Annotated:
+        # The parameter's description and constraints are for the served schema only.
+        return _argument_type(args[0])
     if type(None) in args:
         return _argument_type(next(arg for arg in args if arg is not type(None)))
     if get_origin(annotation) is list:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from itertools import batched
-from typing import Any, NoReturn, get_args
+from typing import Annotated, Any, NoReturn, get_args
 from urllib.parse import urlsplit
 
 from . import cursor as cursors
@@ -41,6 +41,7 @@ from .models import (
     upstream_origin,
     utc_now_iso,
 )
+from .parameters import Code, Cursor, Described, Release, Terminology, count_bound
 from .release import ReleaseContext, resolve_evs_release
 from .release_selection import implicit_selection, select
 from .traversal import BATCH_SIZE, traverse_ncit
@@ -102,10 +103,16 @@ def _provenance(provenance: dict[str, Any]) -> dict[str, Any]:
 
 def get_concept(
     context: Context,
-    terminology: str,
-    code: str,
-    release: str | None = None,
-    include: list[ConceptInclude] | None = None,
+    terminology: Terminology,
+    code: Code,
+    release: Release = None,
+    include: Annotated[
+        list[ConceptInclude] | None,
+        Described(
+            "Sections to add: any of synonyms, definitions, properties, semanticType. "
+            "Leave unset for the base record only."
+        ),
+    ] = None,
 ) -> dict[str, Any]:
     """Get one EVS concept in the effective release.
 
@@ -141,7 +148,10 @@ def _includes(include: list[ConceptInclude] | None) -> tuple[list[ConceptInclude
 
 
 def get_concept_subsets(
-    context: Context, terminology: str, code: str, release: str | None = None
+    context: Context,
+    terminology: Terminology,
+    code: Code,
+    release: Release = None,
 ) -> dict[str, Any]:
     """Read a concept's subset associations in the effective release.
 
@@ -173,13 +183,39 @@ def get_concept_subsets(
 
 def expand_value_set(
     context: Context,
-    terminology: str,
-    release: str | None = None,
-    valueSet: str | None = None,  # noqa: N803 - public name specified in tools.yaml.
-    code: str | None = None,
-    count: int = 200,
-    offset: int = 0,
-    activeOnly: bool = False,  # noqa: N803
+    terminology: Terminology,
+    release: Release = None,
+    valueSet: Annotated[  # noqa: N803 - public name specified in tools.yaml.
+        str | None,
+        Described(
+            "Code of the subset to expand, for example C165258. Give exactly one of "
+            "valueSet and code."
+        ),
+    ] = None,
+    code: Annotated[
+        str | None,
+        Described(
+            "Code of the subset to expand, as an alternative to valueSet. Give exactly "
+            "one of valueSet and code."
+        ),
+    ] = None,
+    count: Annotated[
+        int,
+        Described(
+            "Most members on a page. Default 200, at most 1000; a larger value is applied "
+            "as 1000 and a value below 1 is refused."
+        ),
+    ] = 200,
+    offset: Annotated[
+        int,
+        Described(
+            "How many members to skip, to reach a later page. Default 0; a value below 0 "
+            "is refused."
+        ),
+    ] = 0,
+    activeOnly: Annotated[  # noqa: N803
+        bool, Described("Return only the active members. Default false.")
+    ] = False,
 ) -> dict[str, Any]:
     """Expand an NCIt subset through EVS FHIR with required release verification.
 
@@ -214,10 +250,16 @@ def expand_value_set(
 
 def get_concept_mappings(
     context: Context,
-    terminology: str,
-    code: str,
-    release: str | None = None,
-    targetTerminology: str | None = None,  # noqa: N803 - public name specified in tools.yaml.
+    terminology: Terminology,
+    code: Code,
+    release: Release = None,
+    targetTerminology: Annotated[  # noqa: N803 - public name specified in tools.yaml.
+        str | None,
+        Described(
+            "Only the mappings to this target terminology, written exactly as the "
+            "platform names it, case included. Leave unset for all."
+        ),
+    ] = None,
 ) -> dict[str, Any]:
     """Read maps carried on a concept in the effective release.
 
@@ -291,7 +333,10 @@ def project_concept(
 
 
 def resolve_retired_code(
-    context: Context, terminology: str, code: str, release: str | None = None
+    context: Context,
+    terminology: Terminology,
+    code: Code,
+    release: Release = None,
 ) -> dict[str, Any]:
     """Resolve an EVS code's retirement status and named replacements in the effective release.
 
@@ -350,10 +395,23 @@ def _replacement_record(row: dict[str, Any], release: ReleaseContext, uri: str) 
 
 def get_concepts(
     context: Context,
-    terminology: str,
-    codes: list[str],
-    release: str | None = None,
-    include: list[ConceptInclude] | None = None,
+    terminology: Terminology,
+    codes: Annotated[
+        list[str],
+        Described(
+            'Codes of the concepts to fetch, for example ["C3262", "C2991"]; at most 650. '
+            "Results keep this order.",
+            max_items=650,
+        ),
+    ],
+    release: Release = None,
+    include: Annotated[
+        list[ConceptInclude] | None,
+        Described(
+            "Sections to add: any of synonyms, definitions, properties, semanticType. "
+            "Leave unset for the base record only."
+        ),
+    ] = None,
 ) -> dict[str, Any]:
     """Get a batch of concepts in the effective release, preserving requested order.
 
@@ -446,7 +504,9 @@ def _section(raw: dict[str, Any], section: str) -> list[Any]:
 
 
 def list_relationships(
-    context: Context, terminology: str, release: str | None = None
+    context: Context,
+    terminology: Terminology,
+    release: Release = None,
 ) -> dict[str, Any]:
     """List the roles and associations of the effective release.
 
@@ -475,13 +535,26 @@ def list_relationships(
 
 def search_concepts(
     context: Context,
-    terminology: str,
-    query: str,
-    release: str | None = None,
-    mode: PublicSearchMode = "lexical",
-    limit: int = 10,
-    cursor: str | None = None,
-    retired: RetiredSelection = "include",
+    terminology: Terminology,
+    query: Annotated[str, Described("Text to search for, for example kinase inhibitor.")],
+    release: Release = None,
+    mode: Annotated[
+        PublicSearchMode,
+        Described(
+            "How to match: lexical (EVS order, the default), typeahead (names that start "
+            "with the text), or semantic and hybrid (ranked with scores from the local "
+            "NCIt index)."
+        ),
+    ] = "lexical",
+    limit: Annotated[int, count_bound("Most results on a page.", 10, 1000)] = 10,
+    cursor: Cursor = None,
+    retired: Annotated[
+        RetiredSelection,
+        Described(
+            "Which concepts to return: include, all statuses (the default), or only the "
+            "retired ones."
+        ),
+    ] = "include",
 ) -> dict[str, Any]:
     """Search a pinned terminology, a page at a time, in one of four modes.
 
@@ -686,13 +759,19 @@ def _search_options(query: str, mode: str, retired: str) -> None:
 
 def get_concept_hierarchy(
     context: Context,
-    terminology: str,
-    code: str,
-    direction: HierarchyDirection,
-    release: str | None = None,
-    depth: int = 1,
-    limit: int = 200,
-    cursor: str | None = None,
+    terminology: Terminology,
+    code: Code,
+    direction: Annotated[
+        HierarchyDirection,
+        Described(
+            "Which way to walk: parent, child, or pathsToRoot for every path to the root "
+            "(depth, limit and cursor do not apply to it)."
+        ),
+    ],
+    release: Release = None,
+    depth: Annotated[int, count_bound("How many levels to walk.", 1, 4)] = 1,
+    limit: Annotated[int, count_bound("Most concepts on a page.", 200, 1000)] = 200,
+    cursor: Cursor = None,
 ) -> dict[str, Any]:
     """Get concept parents or children in the effective release, excluding the seed.
 
@@ -859,15 +938,35 @@ def _path_provenance(release: ReleaseContext, uri: str, depth: int) -> dict[str,
 
 def get_concept_neighborhood(
     context: Context,
-    terminology: str,
-    code: str,
-    release: str | None = None,
-    depth: int = 2,
-    kinds: list[NeighborhoodKind] | None = None,
-    maxNodes: int = 200,  # noqa: N803 - the public signature is specified in tools.yaml.
-    maxEdges: int = 1000,  # noqa: N803
-    budgetPerKind: int | None = None,  # noqa: N803
-    includeNegative: bool = False,  # noqa: N803
+    terminology: Terminology,
+    code: Code,
+    release: Release = None,
+    depth: Annotated[int, count_bound("How many steps to walk from the concept.", 2, 4)] = 2,
+    kinds: Annotated[
+        list[NeighborhoodKind] | None,
+        Described(
+            "Relationship kinds to follow: any of parent, child, role, association, "
+            "inverseRole, inverseAssociation. Leave unset for all six."
+        ),
+    ] = None,
+    maxNodes: Annotated[  # noqa: N803 - the public signature is specified in tools.yaml.
+        int, count_bound("Most concepts to return, the starting concept included.", 200, 1000)
+    ] = 200,
+    maxEdges: Annotated[int, count_bound("Most relationships to return.", 1000, 5000)] = 1000,  # noqa: N803
+    budgetPerKind: Annotated[  # noqa: N803
+        int | None,
+        Described(
+            "Most concepts any one kind may add, at most 1000. Leave unset to let the "
+            "kinds take turns within maxNodes."
+        ),
+    ] = None,
+    includeNegative: Annotated[  # noqa: N803
+        bool,
+        Described(
+            "Also walk through negative assertions, such as exclusion roles; they are "
+            "returned marked either way. Default false."
+        ),
+    ] = False,
 ) -> dict[str, Any]:
     """Walk terminology relationships in the effective release, including the seed at depth 0.
 
