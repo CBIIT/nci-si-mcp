@@ -315,6 +315,39 @@ class StorageTest(IndexTestCase):
                 call()
             self.assertIn(str(index.db_path), str(raised.exception))
 
+    def test_storage_failures_are_recognised_by_primary_code_whatever_the_sub_case(self):
+        index = self.build()
+        # An extended code carries its primary code in the low byte; the rest are primary codes.
+        for code in (
+            sqlite3.SQLITE_IOERR_READ,
+            sqlite3.SQLITE_BUSY,
+            sqlite3.SQLITE_LOCKED,
+            sqlite3.SQLITE_CORRUPT,
+            sqlite3.SQLITE_READONLY,
+            sqlite3.SQLITE_FULL,
+        ):
+            with self.subTest(code=code):
+                failure = sqlite3.OperationalError("storage trouble")
+                failure.sqlite_errorcode = code
+                with (
+                    patch("nci_si_mcp.index.sqlite3.connect", side_effect=failure),
+                    self.assertRaises(IndexStorageError) as raised,
+                ):
+                    index.get_active_manifest()
+                self.assertIn(str(index.db_path), str(raised.exception))
+
+    def test_sql_usage_error_propagates_as_a_bug_not_a_storage_failure(self):
+        index = self.build()
+
+        with (
+            self.assertRaises(sqlite3.OperationalError) as raised,
+            index._connect() as conn,
+        ):
+            conn.execute("SELECT nope FROM concepts")
+
+        self.assertNotIsInstance(raised.exception, IndexStorageError)
+        self.assertIn("no such column: nope", str(raised.exception))
+
     def test_database_that_cannot_be_opened_is_a_storage_error_naming_the_file(self):
         (self.path / "nci_si.sqlite3").mkdir()
 

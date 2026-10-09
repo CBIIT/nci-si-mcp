@@ -1,4 +1,6 @@
 import asyncio
+import json
+import logging
 import unittest
 from dataclasses import FrozenInstanceError, replace
 from time import time
@@ -16,7 +18,9 @@ from nci_si_mcp.permissions import (
     PolicyUnavailableError,
     Principal,
     authority_scope,
+    permits,
     require,
+    secured,
 )
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.server import create_mcp
@@ -40,6 +44,21 @@ def authority(*capabilities, **changes):
 
 
 class AuthorityTest(unittest.TestCase):
+    def test_scope_marks_the_request_secured_only_while_it_lasts(self):
+        self.assertTrue(permits("get_concept"))
+        for scoped in (None, authority("get_concept")):
+            with self.subTest(authority=scoped), authority_scope(scoped):
+                self.assertTrue(secured())
+            self.assertFalse(secured())
+
+    def test_a_secured_request_permits_only_granted_tools_the_server_has(self):
+        with authority_scope(authority("get_concept", "no_such_tool")):
+            self.assertTrue(permits("get_concept"))
+            self.assertFalse(permits("lookup"))
+            self.assertFalse(permits("no_such_tool"))
+        with authority_scope(None):
+            self.assertFalse(permits("get_concept"))
+
     def test_snapshot_cannot_gain_permissions_from_a_mutated_input_set(self):
         capabilities = {"get_concept"}
         snapshot = authority(capabilities=capabilities)
@@ -235,6 +254,10 @@ class SurfacePermissionTest(ServerFixture):
 
     def test_policy_is_resolved_again_for_calls_and_catalogues(self):
         current = authority("get_concept")
+        # ServerFixture silences logging; this test reads the diagnostic.
+        disabled = logging.root.manager.disable
+        logging.disable(logging.NOTSET)
+        self.addCleanup(logging.disable, disabled)
 
         async def resolve():
             if isinstance(current, Exception):
@@ -255,9 +278,14 @@ class SurfacePermissionTest(ServerFixture):
                     [t.name for t in (await client.list_tools()).tools], ["get_data_element"]
                 )
                 current = PolicyUnavailableError("private policy backend information")
-                failed = await client.call_tool("get_concept", pinned(code="C3262"))
+                with self.assertLogs("nci_si_mcp.server_permissions", level="WARNING") as logs:
+                    failed = await client.call_tool("get_concept", pinned(code="C3262"))
                 self.assertEqual(failed.structured_content["error"]["code"], "permission_denied")
                 self.assertNotIn("backend", str(failed))
+                record = json.loads(logs.records[0].getMessage())
+                self.assertEqual(record["event"], "policy_unavailable")
+                self.assertEqual(record["errorType"], "PolicyUnavailableError")
+                self.assertNotIn("backend", logs.records[0].getMessage())
                 current = authority("get_concept", policy_version="policy-3")
                 self.assertFalse(
                     (await client.call_tool("get_concept", pinned(code="C3262"))).is_error
@@ -271,6 +299,10 @@ class SurfacePermissionTest(ServerFixture):
                 result = await client.call_tool(name, {"code": "C3262"})
                 self.assertTrue(result.is_error)
                 self.assertEqual(result.structured_content["error"]["code"], "permission_denied")
+                self.assertEqual(
+                    result.content[0].text,
+                    json.dumps(result.structured_content, separators=(",", ":"), sort_keys=True),
+                )
                 self.assertNotIn(name, str(result.structured_content))
                 self.assertEqual(result.meta["cacheScope"], "private")
             self.assertEqual(self.evs.calls, [])

@@ -263,6 +263,10 @@ Rules learned the hard way:
   at the top level of `server.py` may import `mcp`.
 - `mcp` is bounded to `>=2.0,<3` because 2.0 renamed `FastMCP` to `MCPServer` and broke the unbounded
   requirement. Check the migration notes before lifting the bound.
+- Stateful HTTP release pins and secured-mode principal binding read the SDK's private
+  `ServerSession._connection` (`server._session_state`). The bound does not protect a private name,
+  so `create_mcp` raises a `RuntimeError` at startup when it is missing; the real-SDK HTTP session
+  test is the regression guard. Ask upstream for a public accessor when lifting the bound.
 - The package must be installed to be imported: `__version__` reads the installed metadata.
 
 ## Architecture in brief
@@ -291,7 +295,10 @@ the only function that turns one into the result, `{"error": {"code", "message",
 "correlationId"}}`; nothing builds that dict by hand. The audit boundary opens `errors.correlated()` once
 per call (the request's `_meta.correlationId`, else generated) for tools, resources and CLI.
 `registry.invoke` shares that scope and enters `invocation.call` for expected failures.
-It converts the expected exception types listed in `invocation._ERROR_CODES` (with the next
+The raisers own their wording (`cadsr_matching` the match-timeout step, `cadsr_content` the
+OP-C03 hint on `upstream.MaskedSuccessError` only); `invocation` never branches on a tool name.
+A result that embeds an error uses `invocation.error_record`, which logs no `call_failed`.
+`invocation.call` converts the expected exception types listed in `invocation._ERROR_CODES` (with the next
 step appended to their message and their `details` attribute carried over) and logs a warning; an
 exception gets the entry of its nearest listed class. To add a failure mode,
 raise a specific exception type and add it to that table, or raise a `PlatformError` where the
@@ -385,7 +392,9 @@ At the depth limit, forward kinds get a batched continuation check; descendant c
 child lists. A reported global node cut skips the check, and kinds already truncated are
 excluded. Selected inverse kinds at any nonempty frontier report depth with `omitted: 0`, `exact: false`
 without fetching their expensive lists just to check continuation. All reads share the request
-budget, and the first bound remains the one reported.
+budget, and the first bound remains the one reported, except that start codes the budget left
+unread are reported as `requests` for every selected edge type, replacing a depth claim made
+without them (an earlier real bound stays).
 
 `descendant` edges are opt-in (`edge_types`) and come from one `get_descendants` call per start
 code with `maxLevel = max_depth`. They are bucketed by the `level` EVS assigns and emitted together

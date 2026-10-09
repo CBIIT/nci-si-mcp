@@ -2,8 +2,9 @@
 
 from collections.abc import Awaitable, Callable, Iterator
 from contextlib import contextmanager
-from contextvars import ContextVar, copy_context
+from contextvars import ContextVar
 from dataclasses import dataclass
+from functools import cache
 from math import isfinite
 from time import time
 from typing import Any, NoReturn
@@ -44,6 +45,7 @@ class PolicyUnavailableError(Exception):
 # Absence of a scope is the explicit trusted-local path. A scoped None is denial,
 # never a fallback to that path when a required policy cannot be obtained.
 _authority: ContextVar[Authority | None] = ContextVar("caller_authority")
+_UNSET: Any = object()
 
 RESOURCE_CAPABILITIES = {
     "concept_resource": "get_concept",
@@ -77,7 +79,16 @@ def authority_scope(authority: Authority | None) -> Iterator[None]:
 def secured() -> bool:
     """Whether this request requires verified caller authority."""
 
-    return _authority in copy_context()
+    return _authority.get(_UNSET) is not _UNSET
+
+
+@cache
+def _tool_names() -> frozenset[str]:
+    # Registry remains the source of the supported surface; no wildcard or unknown
+    # policy label becomes a grant. Import lazily to avoid a declaration cycle.
+    from .registry import SPECS  # noqa: PLC0415 - registry producers import this module
+
+    return frozenset(spec.name for spec in SPECS if spec.name)
 
 
 def permits(capability: str) -> bool:
@@ -85,12 +96,8 @@ def permits(capability: str) -> bool:
 
     if not secured():
         return True
-    # Registry remains the source of the supported surface; no wildcard or unknown
-    # policy label becomes a grant. Import lazily to avoid a declaration cycle.
-    from .registry import SPECS  # noqa: PLC0415 - registry producers import this module
-
     capability = RESOURCE_CAPABILITIES.get(capability, capability)
-    if capability not in {spec.name for spec in SPECS if spec.name}:
+    if capability not in _tool_names():
         return False
     authority = _authority.get()
     if authority is None:

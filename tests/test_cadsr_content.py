@@ -94,7 +94,9 @@ class CaDSRContentTest(CaDSRFixture):
         server = self.serve(reply({"apiResponse": {"type": "E", "message": "untrusted wording"}}))
         result = self.call(server, "search_data_elements", query="patient")
         self.assertEqual(result["error"]["code"], "upstream_unavailable")
+        self.assertEqual(result["error"]["details"]["surface"], "cadsr")
         message = result["error"]["message"]
+        self.assertIn("webMethods error envelope", message)
         self.assertIn("OP-C03", message)
         self.assertIn("get_data_element", message)
         self.assertTrue(
@@ -113,7 +115,7 @@ class CaDSRContentTest(CaDSRFixture):
         self.assertEqual(result["error"]["code"], "capability_unavailable")
         self.assertEqual(server.seen, [])
 
-    def test_search_keeps_the_actual_failure_alongside_the_static_platform_note(self):
+    def test_search_failures_keep_their_diagnostic_and_only_the_masked_answer_gets_the_hint(self):
         row = {"identifier": "known", "generatedAt": "2026-07-01T22:19"}
         for response, arguments, diagnostic in (
             (Reply(401), {}, "credentials"),
@@ -129,8 +131,8 @@ class CaDSRContentTest(CaDSRFixture):
                 result = self.call(server, "search_data_elements", query="patient", **arguments)
                 self.assertEqual(result["error"]["code"], "upstream_unavailable")
                 self.assertIn(diagnostic, result["error"]["message"])
-                self.assertIn("OP-C03", result["error"]["message"])
-                self.assertIn("get_data_element", result["error"]["message"])
+                self.assertNotIn("OP-C03", result["error"]["message"])
+                self.assertNotIn("get_data_element", result["error"]["message"])
                 self.assertEqual(len(server.seen), 1)
 
     def test_question_search_and_contexts_require_the_verified_pin_echo(self):
@@ -421,6 +423,15 @@ class CaDSRContentTest(CaDSRFixture):
         self.assertEqual([first["contexts"][0]["name"], second["contexts"][0]["name"]], ["B", "A"])
         self.assertEqual(set(second["contexts"][0]), {"name", "provenance"})
         self.assertNotIn("nextCursor", second)
+
+    def test_cursor_past_the_end_of_a_shrunk_list_is_invalid_not_an_empty_last_page(self):
+        server = self.serve(reply({"contextNames": ["B", "A"]}), reply({"contextNames": ["B"]}))
+        first = self.call(server, "list_contexts", limit=1)
+        second = self.call(server, "list_contexts", limit=1, cursor=first["nextCursor"])
+        self.assertEqual(second["error"]["code"], "invalid_request")
+        self.assertEqual(second["error"]["details"]["parameter"], "cursor")
+        self.assertIn("beyond this list", second["error"]["message"])
+        self.assertNotIn("contexts", second)
 
     def test_empty_context_list_is_short_lived_and_has_provenance(self):
         result = self.call(self.serve(reply({"contextNames": []})), "list_contexts")

@@ -5,12 +5,13 @@ from __future__ import annotations
 import json
 from collections.abc import Awaitable, Callable
 from functools import update_wrapper
+from importlib.metadata import version
 from importlib.resources import files
 from inspect import Parameter, Signature
 from typing import TYPE_CHECKING, Annotated, Any, get_args, get_origin
 
 from . import __version__
-from .audit import audited, compact, hashed, secrets
+from .audit import audited, compact, hashed, result_text, secrets
 from .caching import LONG_TTL_MS, cache_call, cache_hint
 from .config import Settings, configure_logging
 from .context import Context
@@ -72,6 +73,18 @@ INSTRUCTIONS = (
 )
 
 
+def _require_session_connection(session_type: type) -> None:
+    # Stateful HTTP pins and secured-mode principal binding read the SDK's private
+    # ServerSession._connection (see _session_state); fail at startup, not on the first call.
+    # It is set in __init__, so the class has no attribute to test for; the code object's
+    # names hold the attribute without needing the SDK's source files.
+    if "_connection" not in session_type.__init__.__code__.co_names:
+        raise RuntimeError(
+            f"mcp {version('mcp')} no longer gives ServerSession a '_connection' attribute, "
+            "which HTTP session identity depends on; install the mcp version in pdm.lock"
+        )
+
+
 def create_mcp(
     settings: Settings | None = None,
     *,
@@ -85,6 +98,7 @@ def create_mcp(
         from mcp.server.caching import CacheHint
         from mcp.server.mcpserver import MCPServer
         from mcp.server.mcpserver.exceptions import ResourceError
+        from mcp.server.session import ServerSession
         from mcp.types import CallToolResult, TextContent, ToolAnnotations
         from pydantic import Field, RootModel, with_config
     except ImportError as exc:
@@ -93,6 +107,7 @@ def create_mcp(
             f"(pdm install). Import failed: {exc}"
         ) from exc
 
+    _require_session_connection(ServerSession)
     # Only the complete truncation record is closed; upstream dictionaries stay extensible.
     with_config(extra="forbid")(Untruncated)
     resolved_settings = settings or Settings.from_env()
@@ -132,8 +147,10 @@ def create_mcp(
 
     def tool_call(spec: ToolSpec, arguments: dict[str, Any]) -> Any:
         result = invoke(context, spec.operation, **arguments)
+        text = compact(result)
+        result_text(text)
         return CallToolResult(
-            content=[TextContent(type="text", text=json.dumps(result, indent=2))],
+            content=[TextContent(type="text", text=text)],
             structured_content=result,
             is_error=is_error_record(result),
         )
@@ -141,7 +158,7 @@ def create_mcp(
     def resource_call(spec: ToolSpec, arguments: dict[str, Any]) -> Any:
         result = invoke(context, spec.operation, **arguments)
         if is_error_record(result):
-            raise ResourceError(json.dumps(result))
+            raise ResourceError(compact(result))
         return result
 
     def register(spec: ToolSpec) -> None:
@@ -335,7 +352,7 @@ def _validate_inputs(profile: str) -> Callable[..., Any]:
                 return CallToolResult(
                     is_error=True,
                     structured_content=result,
-                    content=[TextContent(type="text", text=json.dumps(result))],
+                    content=[TextContent(type="text", text=compact(result))],
                 ).model_dump(by_alias=True, exclude_none=True)
         return await call_next(ctx)
 

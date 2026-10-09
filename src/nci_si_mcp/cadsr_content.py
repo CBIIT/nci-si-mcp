@@ -22,6 +22,7 @@ from .parameters import (
 )
 from .permissions import require
 from .release import RegistryMetadataError, registry_state
+from .upstream import MaskedSuccessError
 from .validation import (
     CodeMapSource,
     DataElementInclude,
@@ -394,8 +395,9 @@ def search_data_elements(
     list of 1,000 rows reports upstream_cap, omitted at least one and exact false. totalKnown
     appears only when the platform gives a count.
 
-    upstream_unavailable when the route fails; a persistent failure may reflect the missing
-    operation, so read an element by publicId or question text instead.
+    upstream_unavailable when the route fails; when caDSR answers with its error envelope the
+    message adds that keyword search is not served, so read an element by publicId or question
+    text instead.
     """
     _search_options(query, mode, filters)
     size = bounded(limit, 100, "limit")
@@ -413,9 +415,7 @@ def search_data_elements(
         _unavailable(f"{mode} data-element search (OP-C04)")
     if filters:
         _unavailable("data-element search filters (OP-C03, docs/upstream/cadsr.md#cadsr-search)")
-    response = context.cadsr.search_data_elements(
-        query, _SEARCH_CAP, registry_release=registryRelease
-    )
+    response = _search_route(context, query, registryRelease)
     provenance = _provenance(
         context,
         release,
@@ -431,6 +431,23 @@ def search_data_elements(
         result["totalKnown"] = count
     select_cache_hint(resolution=False, unpinned=registryRelease is None)
     return result
+
+
+def _search_route(context: Context, query: str, registry_release: str | None) -> dict[str, Any]:
+    """Ask caDSR for the keyword search; its masked error answer is the known missing route."""
+
+    try:
+        return context.cadsr.search_data_elements(
+            query, _SEARCH_CAP, registry_release=registry_release
+        )
+    except MaskedSuccessError as exc:
+        raise PlatformError(
+            exc.code,
+            exc.message + " caDSR does not yet serve keyword search (OP-C03, C-3); if this "
+            "persists, the cause is likely that, and get_data_element by publicId or "
+            "questionText is available.",
+            **exc.details,
+        ) from None
 
 
 def _search_options(query: str, mode: str, filters: SearchFilters | None) -> None:
@@ -478,6 +495,9 @@ def _page(
     args: dict[str, Any],
     provenance: dict[str, Any],
 ) -> dict[str, Any]:
+    if offset and offset >= len(rows):
+        # The list is fetched again per page; one that shrank is not a clean last page.
+        raise InputValidationError("The cursor position is beyond this list", "cursor")
     page = rows[offset : offset + size]
     result: dict[str, Any] = {key: page}
     if offset + size < len(rows):

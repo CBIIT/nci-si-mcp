@@ -141,12 +141,12 @@ def _release_ref(provenance: Any) -> dict[str, Any] | None:
     return release if isinstance(release, dict) else None
 
 
-def _outcome(result: dict[str, Any] | None) -> dict[str, Any]:
+def _outcome(result: dict[str, Any] | None, size: int | None) -> dict[str, Any]:
     if result is None:
         return {"responseCode": "internal_error", "resultSize": None, "truncation": None}
     return {
         "responseCode": result["error"]["code"] if is_error_record(result) else "ok",
-        "resultSize": len(compact(result).encode("utf-8")),
+        "resultSize": len(compact(result).encode("utf-8")) if size is None else size,
         "truncation": result.get("truncation"),
     }
 
@@ -160,12 +160,13 @@ class Audit:
     started: float = field(default_factory=time.perf_counter)
     outbound_requests: int = 0
     result: dict[str, Any] | None = None
+    result_size: int | None = None
     error_type: str | None = None
     release_source: ReleaseSelection | None = None
     selected_release: dict[str, Any] | None = None
 
     def finish(self) -> None:
-        outcome = _outcome(self.result)
+        outcome = _outcome(self.result, self.result_size)
         safe = parameters(self.arguments, self.classes)
         emit(
             logger,
@@ -200,6 +201,12 @@ def release_selection(source: ReleaseSelection, selected: dict[str, Any] | None)
         active.release_source, active.selected_release = source, selected
 
 
+def result_text(text: str) -> None:
+    """Take the result size from the compact text an adapter sends; it is not serialised again."""
+    if active := _active.get():
+        active.result_size = len(text.encode("utf-8"))
+
+
 def requested() -> None:
     """Count one completed HTTP attempt, independently of the traversal allowance."""
 
@@ -224,7 +231,7 @@ def audited(
         try:
             yield record
         except BaseException as exc:
-            record.result = None
+            record.result = record.result_size = None
             record.error_type = type(exc).__name__
             raise
         finally:
