@@ -3,6 +3,17 @@
   "private": true,
   "description": "Pinned local diagram runtime for the public documentation build",
   "dependencies": {
-    "mermaid": "11.17.2"
+    "mermaid": "12.1.0"
+  },
+  "overrides": {
+    "mermaid": {
+      "katex": "0.18.2"
+    }
+  },
+  "scripts": {
+    "build": "node build-mermaid.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
   }
 }
