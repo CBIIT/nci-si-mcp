@@ -53,6 +53,9 @@ USAGE_ERROR = 4
 PROMPTLY_SECONDS = 10
 ECHO = """
 import os
+import pytest
+
+pytestmark = pytest.mark.gate
 
 def test_echo(tools):
     assert "echoed" == os.environ["NCI_SI_ACCEPTANCE_AUTHORIZATION"]

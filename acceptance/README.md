@@ -56,7 +56,8 @@ mapping and document, rejecting undocumented functions, stale references, duplic
 missing narrative fields and stale generated content. Collection runs no server or test.
 
 A test calls a required tool by its name, `tools.call("get_concept", {...})`, and names the tool
-it is for with `@pytest.mark.tool("get_concept")`; a protocol gate is marked `gate`. A gate that cannot
+it is for with `@pytest.mark.tool("get_concept")`; a gate, which fails every tool's verdict (the P and X-25–X-28 requirements), is marked `gate`.
+Every test carries one of the two, or collection refuses the run. A gate that cannot
 run leaves the module unaccepted, since acceptance needs every gate to pass. When the
 server lacks that exact name, the test is skipped as NOT IMPLEMENTED. Calls and arguments
 are sent unchanged; no prototype tool stands in for a required tool. Each test asserts only
