@@ -37,7 +37,8 @@ import os
 import sys
 
 if sys.argv[1] == "merge-base":
-    sys.exit("Git ancestry failed")
+    sys.stderr.write("Git ancestry failed\\n")
+    sys.exit(128)
 os.execv(os.environ["REAL_GIT"], [os.environ["REAL_GIT"], *sys.argv[1:]])
 """
 
