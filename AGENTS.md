@@ -196,9 +196,11 @@ each path returned by `nci_si_acceptance.craft.craft(FIXTURES)` with
    at least two commits: a test-only red commit, subject `test(<scope>): … (red)`, whose body
    quotes the test node id and failing assertion line exactly as `pdm run pytest <node>` printed
    them, then a green commit with the change that makes it pass. The failure must demonstrate
-   the stated behaviour, not a collection, import or fixture error; the green commit changes
-   the red tests only for renames required by the implementation. Never squash or rebase the
-   issue branch: the `--no-ff` merge preserves red before green for review. Pure refactors say
+   the stated behaviour, not a collection, import or fixture error. For a new entry point, red
+   may come from its absence if the test drives the real interface and the failing line is a
+   behavioural assertion. The green commit changes the red tests only for renames required by
+   the implementation. Never squash or rebase the issue branch: the `--no-ff` merge preserves
+   red before green for review. Pure refactors say
    "no behaviour change" in the plan and commit body, with existing tests passing before and
    after; documentation-only changes are exempt.
    Write tests for their value (see the standards). Before merging run
