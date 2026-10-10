@@ -181,6 +181,7 @@ class BranchCleanupTest(unittest.TestCase):
         self.assertNotIn("issue/a-merged", self.remote_refs())
         self.assertEqual(self.remote_refs()["issue/nested/merged"], self.head)
         self.assertNotEqual(result.returncode, 0)
+        self.assertIn("API deletion failed", result.stderr)
         summary = self.summary.read_text()
         self.assertIn(f"| Deleted | <code>issue/a-merged</code> | {self.base} |", summary)
         self.assertIn(f"| Failed | <code>issue/nested/merged</code> | {self.head} |", summary)
@@ -197,6 +198,7 @@ class BranchCleanupTest(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertNotIn("| Deleted |", self.summary.read_text())
                 if failure == "git":
+                    self.assertIn("Git ancestry failed", result.stderr)
                     (self.bin / "git").unlink()
 
 
