@@ -262,8 +262,9 @@ class SeamTest(unittest.TestCase):
         self.ssis.element_values = [
             value_row(version="2.9"),
             value_row(value="Other", version="2.10"),
+            value_row(value="Female", version="2.10"),
         ]
-        for text in ("Male", "male", " Male", "Male "):
+        for text in ("Male", "male", "female", " Female", "Female "):
             with self.subTest(text=text):
                 result = self.call(
                     "get_concept_for_permissible_value",
@@ -272,6 +273,13 @@ class SeamTest(unittest.TestCase):
                     release="26.06e",
                 )
                 self.assertEqual(result["error"]["code"], "not_found")
+        exact = self.call(
+            "get_concept_for_permissible_value",
+            dataElementId="123",
+            value="Female",
+            release="26.06e",
+        )
+        self.assertEqual(exact["permissibleValue"]["value"], "Female")
 
     def test_conflicting_or_missing_main_concepts_name_ambiguous_registry_data(self):
         for rows, candidates in (

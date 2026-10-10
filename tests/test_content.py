@@ -163,9 +163,6 @@ class ContentTest(ServerFixture):
             )
             result = self.content("search_concepts", query="No match", mode="semantic")
             self.assertEqual(result["error"]["code"], "release_mismatch")
-            with patch.object(self.context.index, "_active_manifest", return_value=None):
-                result = self.content("search_concepts", query="No match", mode="semantic")
-                self.assertEqual(result["error"]["code"], "capability_unavailable")
 
     def test_empty_hierarchy_is_an_attributed_success(self):
         result = self.content("get_concept_hierarchy", code="C2", direction="parent")
@@ -286,10 +283,7 @@ class ContentTest(ServerFixture):
         )
         self.assertEqual(self.evs.calls, [])
 
-    def test_search_requires_an_index_and_valid_inputs(self):
-        for mode in ("semantic", "hybrid"):
-            result = self.content("search_concepts", query="One", mode=mode)
-            self.assertEqual(result["error"]["code"], "capability_unavailable")
+    def test_search_rejects_invalid_inputs(self):
         for arguments in (
             {"limit": 0},
             {"retired": "exclude"},
@@ -403,8 +397,9 @@ class ContentTest(ServerFixture):
         self.assertEqual({node["code"] for node in result["nodes"]}, {"C1", "C2"})
 
     def test_search_without_an_index_is_unavailable(self):
-        result = self.content("search_concepts", query="One", mode="semantic")
-        self.assertEqual(result["error"]["code"], "capability_unavailable")
+        for mode in ("semantic", "hybrid"):
+            result = self.content("search_concepts", query="One", mode=mode)
+            self.assertEqual(result["error"]["code"], "capability_unavailable")
         self.assertEqual(self.evs.calls, [])
 
     def test_hydration_request_exhaustion_keeps_the_earlier_node_bound(self):

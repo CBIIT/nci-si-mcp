@@ -38,20 +38,20 @@ def fields_in(text, occurrence=0):
     }
 
 
-def audit_class(tool, name):
-    free = {path.split("[")[0].split(".")[0] for path in tool.get("free_text", [])}
-    if name in free or name in {"cursor", "filters"}:
-        return "hash"
-    # These are respectively an identifier, terminology identifiers and a number;
-    # their input declarations give no regex/closed set to discover mechanically.
-    plain = set(tool.get("patterns", {})) | set(tool.get("bounds", {}))
-    plain |= set(tool.get("values", {})) | {
-        "registryRelease",
-        "terminologyScope",
-        "similarityThreshold",
-    }
-    plain |= {key for key, value in tool.get("defaults", {}).items() if isinstance(value, bool)}
-    return "plain" if name in plain else "hash"
+# Parameters whose values are free text or opaque (audited as a SHA-256 digest); every other
+# parameter of these tools is an identifier, a closed value or a number, audited in the clear.
+HASHED = {
+    "get_form": {"keyword"},
+    "get_permissible_value": set(),
+    "get_code_map": {"targetContext", "cursor"},
+    "match_data_elements": {"entities", "modelVariant", "filters"},
+    "match_value_meanings": {"values"},
+    "get_data_element": {"longName", "questionText"},
+    "search_data_elements": {"query", "filters", "cursor"},
+    "list_contexts": {"cursor"},
+    "list_classification_schemes": {"context", "cursor"},
+    "resolve_registry_release": set(),
+}
 
 
 class CaDSRSchemaMutationTest(TestCase):
@@ -181,15 +181,13 @@ class CaDSRSchemaMutationTest(TestCase):
                     self.assertEqual(permits_null, field in nullable.get(record, set()))
 
     def test_each_cadsr_parameter_has_the_specification_audit_class(self):
-        for spec in SPECS:
-            if spec.group != "cadsr" or spec.name not in TOOLS:
-                continue
-            tool = TOOLS[spec.name]
+        tools = {spec.name: spec for spec in SPECS if spec.group == "cadsr" and spec.name in TOOLS}
+        self.assertEqual(set(tools), set(HASHED))
+        for name, spec in tools.items():
             for parameter in spec.parameters:
-                with self.subTest(tool=spec.name, parameter=parameter.name):
-                    self.assertEqual(
-                        spec.audit.get(parameter.name), audit_class(tool, parameter.name)
-                    )
+                with self.subTest(tool=name, parameter=parameter.name):
+                    expected = "hash" if parameter.name in HASHED[name] else "plain"
+                    self.assertEqual(spec.audit.get(parameter.name), expected)
 
     def test_data_element_resource_identifiers_are_plain_audit_fields(self):
         patterns = TOOLS["get_data_element"]["patterns"]

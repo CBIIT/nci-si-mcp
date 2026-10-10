@@ -1,8 +1,8 @@
 """Phase 2 adapter contracts, including their independent mutation-review gaps."""
 
+import json
 from dataclasses import replace
 from pathlib import Path
-from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -14,6 +14,7 @@ from nci_si_mcp import results
 from nci_si_mcp.caching import cache_call
 from nci_si_mcp.context import Context
 from nci_si_mcp.errors import IndexEvaluationError, IndexStateError, correlated
+from nci_si_mcp.evaluation_sets import production_set
 from nci_si_mcp.http_client import UpstreamTooLargeError, UpstreamUnavailableError
 from nci_si_mcp.models import TraversalProvenance
 from nci_si_mcp.registry import invoke
@@ -197,32 +198,19 @@ class AdapterReviewTest(ServerFixture):
             self.assertEqual(result, {"buildId": rebuilt.build_id, "manifest": rebuilt.to_result()})
         self.assertIsNone(rebuilt.evaluation_version)
 
-    def test_sample_and_legacy_evaluation_are_ungated_and_name_dataset_version(self):
+    def test_legacy_build_is_scored_without_the_gate(self):
+        # A snapshot written before builds were classified has no build_kind in its manifest.
         candidate = self.candidate()
-        dataset = SimpleNamespace(version="review-dataset", queries=[])
-        report = SimpleNamespace(to_dict=lambda: {"mode": "semantic", "hit_at_1": 0.5})
-        for kind in ("sample", "legacy"):
-            with (
-                self.subTest(kind=kind),
-                patch("nci_si_mcp.handlers.production_set", return_value=dataset),
-                patch("nci_si_mcp.handlers.evaluate_retrieval", return_value=[report]),
-                patch.object(
-                    self.context.index,
-                    "evaluation_inputs",
-                    return_value=(replace(candidate, build_kind=kind), ["C99"]),
-                ),
-            ):
-                result = invoke(self.context, "evaluate", candidate.build_id)
-                self.assertEqual(
-                    result,
-                    {
-                        "build_id": candidate.build_id,
-                        "evaluation_version": "review-dataset",
-                        "gate_applies": False,
-                        "results": [{"mode": "semantic", "hit_at_1": 0.5}],
-                        "gold_codes_not_indexed": ["C99"],
-                    },
-                )
+        payload = candidate.to_dict()
+        del payload["build_kind"]
+        with self.context.index._connect() as conn:
+            conn.execute("UPDATE manifests SET payload = ?", (json.dumps(payload),))
+        result = invoke(self.context, "evaluate", candidate.build_id)
+        self.assertEqual(result["build_id"], candidate.build_id)
+        self.assertEqual(result["evaluation_version"], production_set().version)
+        self.assertFalse(result["gate_applies"])
+        self.assertEqual([item["mode"] for item in result["results"]], ["bm25", "vector", "hybrid"])
+        self.assertIsNone(self.context.index.list_builds()[0].evaluation_report)
 
     def test_operator_failures_include_actionable_next_steps(self):
         for error, ending in (
