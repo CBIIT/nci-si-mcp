@@ -8,8 +8,10 @@ detail.
 
 The government-furnished prototype of the NCI Semantic Infrastructure MCP server, and the
 acceptance suite it and its successors are measured by. Two Statements of Work build on it:
-EVS v2.1 and caDSR v1.1. It is a prototype, not a production service. The server never returns
-caDSR or other upstream content it did not retrieve. Until NCI issues caDSR credentials,
+EVS v2.1 and caDSR v1.1. It is a prototype, not a production service: a lean wrapper over EVS
+and caDSR (plus the NCIt index), never a shadow of them; the two Statements of Work fund fixes to
+the upstream systems, and a functional gap there stays visible here (see the first standard
+below). Until NCI issues caDSR credentials,
 caDSR behavior is built and tested against fixtures crafted from the published contracts.
 The milestones and issues on GitHub (Phases 0 to 7 delivered; later phases open) are the plan. README.md gives the current
 status per tool group; QUICKSTART.md holds the usage details.
@@ -31,6 +33,16 @@ and the Platform API Specification) live outside this repository; do not rely on
 
 These are the owner's rules. They apply to every change.
 
+- **The server stays a lean wrapper and invents nothing.** It never creates, infers, defaults or
+  backfills content that EVS or caDSR manage: no concept, CDE, form, value domain or permissible
+  value, and none of their properties or metadata. Every value in a result has one of three
+  origins: what upstream returned in this call, what the NCIt index holds from a recorded EVS
+  release, or the server's own handling of the request (provenance, correlation, release pin,
+  cursors, truncation and error records). A field upstream omits stays absent; a capability
+  upstream lacks is reported as the gap it is, never rebuilt here. Workflow and orchestration
+  tools may bundle the results of their own upstream calls into one response or into a follow-up
+  request's arguments; that is handling, and the provenance shows it. Anything else is a `spec/`
+  decision, not a code change.
 - **Never lose sight of the stated goal.** Do what the task asks; do not drift into adjacent work.
 - **Tests are written for their value, always.** Each test verifies behaviour a user or caller
   could observe and must be able to fail on a regression.
