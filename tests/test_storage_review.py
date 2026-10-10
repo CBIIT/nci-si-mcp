@@ -148,7 +148,7 @@ class StorageReviewTest(IndexTestCase):
     def test_exact_name_key_collapses_whitespace_and_normalizes_unicode(self):
         self.assertEqual(name_key("  CAFE\u0301\t  cell\n"), "café cell")
 
-    def test_nonbusy_lease_failure_does_not_hide_stale_cleanup_failure(self):
+    def test_nonbusy_failure_cleaning_a_stale_build_is_not_swallowed(self):
         index = self.build([concept("C1")])
         with index._connect() as conn:
             conn.execute("UPDATE manifests SET active = 0, state = 'building'")
@@ -156,7 +156,7 @@ class StorageReviewTest(IndexTestCase):
         error.sqlite_errorcode = sqlite3.SQLITE_IOERR
         with (
             index._connect() as conn,
-            patch("nci_si_mcp.index_storage.build_lease", side_effect=error),
+            patch("nci_si_mcp.index_storage.delete_build", side_effect=error),
             self.assertRaisesRegex(sqlite3.OperationalError, "lease I/O failure"),
         ):
             clean_stale_builds(conn, self.path)

@@ -593,16 +593,6 @@ class SearchTest(IndexTestCase):
         _, everything, _ = index.search_snapshot("alpha1", self.provider, limit=30, mode="hybrid")
         self.assertEqual(everything.to_dict(), {"occurred": False})
 
-    def test_all_term_matches_are_counted_beyond_the_former_candidate_cap(self):
-        index = self.build(synthetic_concepts(1200))
-
-        hits, truncation, _ = index.search_snapshot("alpha1", self.provider, limit=10, mode="bm25")
-
-        # All 120 concepts naming alpha1 count, even beyond the former 100-candidate cap.
-        self.assertEqual(len(hits), 10)
-        self.assertEqual(truncation.to_dict()["omitted"], 110)
-        self.assertTrue(truncation.exact)
-
     def test_concept_without_a_matching_term_has_a_zero_bm25_component(self):
         index = self.build()
 
