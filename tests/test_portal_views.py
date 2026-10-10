@@ -144,7 +144,10 @@ class PortalViewsTest(unittest.TestCase):
         self.assertNotIn("<td>PASS</td>", html)
 
     def test_crashed_or_interrupted_fresh_runs_have_no_verdict_even_with_all_cases(self):
-        for status, crashes in ((1, 1), (2, 0)):
+        for status, crashes, reason in (
+            (1, 1, "worker crashes: 1"),
+            (2, 0, "run exit status: 2"),
+        ):
             native = report() | {
                 "run": {
                     "exit_status": status,
@@ -156,6 +159,7 @@ class PortalViewsTest(unittest.TestCase):
             with self.subTest(status=status, crashes=crashes):
                 html = run_page(self.record(project(native, state="failed", exit_code=status)))
                 self.assertFalse("Tool verdicts" in html, "Incomplete run exposed tool verdicts")
+                self.assertTrue(reason in html, "The page must name the run completion failure")
                 self.assertIn("selected cases without an outcome: 0; no verdict shown", html)
                 self.assertIn("<caption>Acceptance cases</caption>", html)
                 self.assertNotIn("<td>PASS</td>", html)
