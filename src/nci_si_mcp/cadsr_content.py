@@ -111,7 +111,7 @@ def refuse_pinned(context: Context, pin: str | None, capability: str) -> dict[st
     if pin is not None:
         raise PlatformError(
             "capability_unavailable",
-            f"caDSR cannot serve {capability}: its API has no registryRelease field "
+            f"{capability} is unavailable: no upstream registryRelease field exists for it "
             "(C-1, docs/upstream/cadsr.md#cadsr-registry). Omit registryRelease until it does.",
             capability=capability,
         )
@@ -480,12 +480,12 @@ def _search_truncation(length: int, count: Any) -> dict[str, Any]:
     _validate_count(length, count)
     if length >= _SEARCH_CAP:
         return Truncation(
-            True,
-            "upstream_cap",
-            _SEARCH_CAP,
-            _SEARCH_CAP,
-            max(1, (count or length) - _SEARCH_CAP),
-            False,
+            occurred=True,
+            bound="upstream_cap",
+            limit=_SEARCH_CAP,
+            reached=_SEARCH_CAP,
+            omitted=max(1, (count or length) - _SEARCH_CAP),
+            exact=False,
         ).to_dict()
     return Truncation(False).to_dict()
 

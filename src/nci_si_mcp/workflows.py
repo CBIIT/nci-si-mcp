@@ -339,7 +339,14 @@ def _cohort_cut(
     cut: dict[str, Any], role_cut: dict[str, Any], count: int, maximum: int
 ) -> dict[str, Any]:
     if count > maximum:
-        cut = Truncation(True, "nodes", maximum, maximum, count - maximum, False).to_dict()
+        cut = Truncation(
+            occurred=True,
+            bound="nodes",
+            limit=maximum,
+            reached=maximum,
+            omitted=count - maximum,
+            exact=False,
+        ).to_dict()
     if role_cut["occurred"] and role_cut["bound"] != "depth":
         cut = role_cut
     return cut

@@ -387,7 +387,9 @@ It returns a specification concept record with upstream name, active/status and 
 `TraversalProvenance` (adds the traversal record's fields) and `Truncation` (the truncation
 record). `live_provenance` builds the envelope of an item read live in this call, `attribution_of`
 carries the licence text upstream sent (none when it sent none; a non-text value is
-`upstream_unavailable`), and `results_cut` is the one truncation record of a list cut at its limit.
+`upstream_unavailable`; `with_attribution` applies it to a shared record), and `results_cut` is the one
+truncation record of a list cut at its limit. `cadsr_content.refuse_pinned` is the one C-1 refusal of a
+published registry pin, and `seam.gdc_pages` the one GDC paginator with the changing-total check.
 Each item is given its envelope where it is built: `NcitConcept.provenance` for a
 looked-up or indexed concept, the `_Walk` for traversal nodes and edges, `IndexManifest.to_result`
 for the index (the same record in `index-sample` and in the release report), and the handlers for

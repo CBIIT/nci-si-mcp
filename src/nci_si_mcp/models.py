@@ -171,7 +171,14 @@ def results_cut(
 
     if count <= limit and not skipped:
         return {"occurred": False}
-    return Truncation(True, "results", limit, limit, max(0, count - limit), exact).to_dict()
+    return Truncation(
+        occurred=True,
+        bound="results",
+        limit=limit,
+        reached=limit,
+        omitted=max(0, count - limit),
+        exact=exact,
+    ).to_dict()
 
 
 # The surface and the way of serving that each stored `source` stands for.
