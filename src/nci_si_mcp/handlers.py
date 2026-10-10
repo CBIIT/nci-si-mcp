@@ -21,7 +21,6 @@ from .context import Context
 from .errors import (
     NoActiveIndexError,
     PlatformError,
-    call_correlation_id,
     is_error_record,
 )
 from .evaluation import evaluate_build, evaluate_retrieval
@@ -40,10 +39,9 @@ from .invocation import error_record
 from .models import (
     IndexManifest,
     NcitConcept,
-    ProvenanceEnvelope,
+    live_provenance,
     release_ref,
     upstream_origin,
-    utc_now_iso,
 )
 from .parameters import Described, Terminology
 from .release import ReleaseContext, current_terminologies, resolve_evs_release, served_evs_release
@@ -103,7 +101,7 @@ def resolve_release(
     selected = resolve_evs_release(context.evs, terminology, selected_channel).to_dict()
     return selected | {
         "alternatives": _alternatives(context.evs.get_terminologies(), selected),
-        "provenance": _release_provenance(context, selected).to_dict(),
+        "provenance": _release_provenance(context, selected),
     }
 
 
@@ -140,7 +138,7 @@ def list_terminologies(context: Context) -> dict[str, Any]:
             {
                 "terminology": row["terminology"],
                 "release": row["version"],
-                "provenance": _release_provenance(context, row).to_dict()
+                "provenance": _release_provenance(context, row)
                 | {"upstream": upstream_origin(row)},
             }
             for row in rows
@@ -187,19 +185,16 @@ def release_info(context: Context) -> dict[str, Any]:
     # name when EVS could not say.
     if is_error_record(selected):
         return report
-    return report | {"provenance": _release_provenance(context, selected).to_dict()}
+    return report | {"provenance": _release_provenance(context, selected)}
 
 
-def _release_provenance(context: Context, selected: dict[str, Any]) -> ProvenanceEnvelope:
+def _release_provenance(context: Context, selected: dict[str, Any]) -> dict[str, Any]:
     """The provenance of the release report: the selected release, read from EVS now."""
 
-    return ProvenanceEnvelope(
-        release=release_ref(selected["terminology"], selected["version"], selected.get("date")),
-        source="evs_rest",
-        served_by="live",
-        retrieved_at=utc_now_iso(),
-        correlation_id=call_correlation_id(),
-        source_uri=context.evs.uri(TERMINOLOGIES_PATH),
+    return live_provenance(
+        release_ref(selected["terminology"], selected["version"], selected.get("date")),
+        "evs_rest",
+        uri=context.evs.uri(TERMINOLOGIES_PATH),
     )
 
 
@@ -545,7 +540,7 @@ def release_resource(context: Context, version: str) -> dict[str, Any]:
     selected = served_evs_release(rows, "ncit", version, context.settings.release_channel).to_dict()
     return selected | {
         "alternatives": _alternatives(rows, selected),
-        "provenance": _release_provenance(context, selected).to_dict(),
+        "provenance": _release_provenance(context, selected),
     }
 
 

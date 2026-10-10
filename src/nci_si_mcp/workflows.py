@@ -11,9 +11,8 @@ from .caching import select_cache_hint
 from .catalogue import exclusion_codes, load_catalogue
 from .context import Context
 from .errors import InputValidationError, PlatformError
-from .models import Truncation
+from .models import Truncation, results_cut
 from .parameters import (
-    NCIT_CODE_FORM,
     Described,
     MatchFilters,
     NcitRelease,
@@ -24,7 +23,12 @@ from .parameters import (
 from .permissions import require, require_operation
 from .release import ReleaseContext
 from .release_selection import implicit_selection
-from .validation import bounded, validate_identifier
+from .validation import (
+    NCIT_CODE_FORM,
+    RELEASE_FORM,
+    bounded,
+    validate_identifier,
+)
 
 
 class DictionaryColumn(TypedDict):
@@ -46,7 +50,7 @@ def _ground_options(code: str | None, text: str | None, commons: str | None) -> 
     if (code is None) == (text is None):
         raise InputValidationError("Give exactly one of conceptCode or text", "conceptCode")
     if code is not None:
-        validate_identifier(code, r"C[1-9][0-9]*", "conceptCode")
+        validate_identifier(code, NCIT_CODE_FORM, "conceptCode")
     if text is not None:
         cadsr_matching._text(text, "text")
     if commons is not None:
@@ -54,14 +58,7 @@ def _ground_options(code: str | None, text: str | None, commons: str | None) -> 
 
 
 def _ground_registry(context: Context, requested: str | None) -> None:
-    cadsr_content._pin(context, requested)
-    if requested is not None:
-        raise PlatformError(
-            "capability_unavailable",
-            "Shared SI cannot address a registry release. Omit registryRelease until "
-            "the provider adds a pin contract (C-1).",
-            capability="pinned grounding",
-        )
+    cadsr_content.refuse_pinned(context, requested, "pinned grounding")
 
 
 def _text_code(context: Context, text: str, selected: ReleaseContext) -> str:
@@ -76,11 +73,7 @@ def _text_code(context: Context, text: str, selected: ReleaseContext) -> str:
 
 
 def _hop(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    if len(rows) <= seam.MAX_RESULTS:
-        return rows, {"occurred": False}
-    return rows[: seam.MAX_RESULTS], Truncation(
-        True, "results", seam.MAX_RESULTS, seam.MAX_RESULTS, len(rows) - seam.MAX_RESULTS, False
-    ).to_dict()
+    return rows[: seam.MAX_RESULTS], results_cut(len(rows), seam.MAX_RESULTS)
 
 
 def _ground_hops(
@@ -125,17 +118,12 @@ def _gdc_hop(context: Context, selected: ReleaseContext, code: str) -> list[dict
     require("resolve_stored_value")
     source, provenance = seam.gdc_provenance(context, selected)
     result: list[dict[str, Any]] = []
-    offset, total = 0, None
-    while total is None or offset < total:
-        require("resolve_stored_value")
-        rows, current_total = context.evs.get_gdc_maps(code, offset)
-        if total is not None and current_total != total:
-            seam._malformed("changing GDC mapping total", "evs")
-        total = current_total
-        offset += len(rows)
+    for rows, _ in seam.gdc_pages(context, code):
         result.extend(seam.gdc_values(rows, code, source, provenance))
         if len(result) > seam.MAX_RESULTS:
             return result[: seam.MAX_RESULTS + 1]
+        # Checked again before the generator fetches the next page.
+        require("resolve_stored_value")
     return result
 
 
@@ -184,7 +172,7 @@ def ground_value(
     _ground_options(conceptCode, text, commons)
     require_operation("ground_value", {"text": text, "commons": commons})
     if release is not None:
-        validate_identifier(release, r"[A-Za-z0-9][A-Za-z0-9._-]*", "release")
+        validate_identifier(release, RELEASE_FORM, "release")
     with budgeted(current_budget() or Budget()):
         _ground_registry(context, registryRelease)
         selected = seam._selected(context, release)
@@ -390,7 +378,7 @@ def expand_cohort(
     result exists; release_not_available when the session's pinned release is withdrawn;
     upstream_unavailable otherwise.
     """
-    validate_identifier(conceptCode, r"C[1-9][0-9]*", "conceptCode")
+    validate_identifier(conceptCode, NCIT_CODE_FORM, "conceptCode")
     require_operation("expand_cohort", {})
     if type(includeNegative) is not bool:
         raise InputValidationError("includeNegative must be boolean", "includeNegative")

@@ -15,7 +15,12 @@ from .config import Settings
 from .errors import PlatformError
 from .http_client import HttpClient, UpstreamRejectedError
 from .release import RegistryMetadataError, RegistryState, registry_state
-from .validation import bounded, validate_identifier
+from .validation import (
+    ITEM_VERSION_FORM,
+    REGISTRY_ID_FORM,
+    bounded,
+    validate_identifier,
+)
 
 DATA_API = "/NCIAPI/1.0/api"
 FORM_API = "/NCIFormAPI.v2_0:NciFormApiRad"
@@ -139,7 +144,7 @@ def _item(response: Any, key: str) -> dict[str, Any] | None:
 
 def _version_params(version: str | None) -> dict[str, Any]:
     if version is not None:
-        validate_identifier(version, r"[0-9]+([.][0-9]+)?", "version")
+        validate_identifier(version, ITEM_VERSION_FORM, "version")
     return {"version": version}
 
 
@@ -204,7 +209,7 @@ class CaDSRClient:
     def get_data_element(
         self, public_id: str, version: str | None = None, *, registry_release: str | None = None
     ) -> dict[str, Any] | None:
-        validate_identifier(public_id, r"[1-9][0-9]*", "publicId")
+        validate_identifier(public_id, REGISTRY_ID_FORM, "publicId")
         path, params = data_element_request(public_id, version, registry_release)
         response = self.http.get_json(path, params)
         _verify_registry_pin(response, registry_release)
@@ -233,7 +238,7 @@ class CaDSRClient:
         return _items(response, "contextNames", str)
 
     def get_form(self, public_id: str, version: str | None = None) -> dict[str, Any] | None:
-        validate_identifier(public_id, r"[1-9][0-9]*", "publicId")
+        validate_identifier(public_id, REGISTRY_ID_FORM, "publicId")
         response = self.http.get_json(
             f"{FORM_API}/Form/{public_id}",
             _version_params(version),
