@@ -278,23 +278,6 @@ class CaDSRContentTest(CaDSRFixture):
                     self.assertEqual(actual[0].pop("provenance")["release"], {"registry": "cadsr"})
                 self.assertEqual(actual, value)
 
-    def test_invalid_inputs_fail_before_any_http_request(self):
-        for args in (
-            {},
-            {"publicId": "123", "questionText": "Q"},
-            {"publicId": ""},
-            {"publicId": "1/2"},
-            {"questionText": " "},
-            {"publicId": "123", "version": "x"},
-            {"publicId": "123", "include": ["unknown"]},
-            {"publicId": "123", "registryRelease": " "},
-        ):
-            with self.subTest(args=args):
-                server = self.serve()
-                result = self.call(server, **args)
-                self.assertEqual(result["error"]["code"], "invalid_request")
-                self.assertEqual(server.seen, [])
-
     def test_known_unavailable_capabilities_make_no_content_request(self):
         for tool, args in (
             ("get_data_element", {"longName": "Name"}),

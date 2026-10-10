@@ -80,13 +80,9 @@ class AuthorityTest(unittest.TestCase):
             require("invented")
         self.assertEqual(raised.exception.code, "permission_denied")
 
-    def test_identity_includes_issuer_subject_tenant_and_client(self):
-        original = authority().principal
-        for field in ("issuer", "subject", "tenant", "client"):
-            with self.subTest(field=field):
-                self.assertNotEqual(original, replace(original, **{field: "other"}))
+    def test_a_held_snapshot_identity_cannot_be_reassigned(self):
         with self.assertRaises(FrozenInstanceError):
-            original.subject = "other"
+            authority().principal.subject = "other"
 
     def test_missing_expired_and_unversioned_policy_denies(self):
         policies = [

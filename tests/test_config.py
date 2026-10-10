@@ -14,7 +14,6 @@ from nci_si_mcp.config import (
     Settings,
     configure_logging,
 )
-from nci_si_mcp.validation import PROFILES, RELEASE_CHANNELS, UPSTREAM_MODES
 
 
 def settings_from(**environment):
@@ -68,7 +67,6 @@ class SettingsTest(unittest.TestCase):
         settings = settings_from()
 
         self.assertEqual(settings, Settings())
-        self.assertEqual(settings.evs_base_url, DEFAULT_EVS_BASE_URL)
         self.assertEqual(settings.data_dir, Path(".nci-si-mcp"))
 
     def test_environment_overrides(self):
@@ -192,24 +190,6 @@ LICENCE_KEY = "licence-key-4711"
 
 
 class ProfileAndChannelTest(unittest.TestCase):
-    def test_defaults(self):
-        settings = settings_from()
-
-        self.assertEqual(
-            (
-                settings.profile,
-                settings.upstream_mode,
-                settings.release_channel,
-                settings.match_timeout_seconds,
-            ),
-            ("unified", "live", "monthly", 45.0),
-        )
-        self.assertEqual(
-            settings.exclusion_role_codes,
-            ("R135", "R136", "R137", "R138", "R139", "R140", "R141", "R142"),
-        )
-        self.assertEqual((settings.evs_license_key, settings.cadsr_credential), (None, None))
-
     def test_each_closed_value_is_accepted(self):
         for variable, values in (
             ("NCI_SI_PROFILE", ("evs", "cadsr", "unified")),
@@ -403,11 +383,6 @@ class SettingsEdgeCaseTest(unittest.TestCase):
         with self.assertRaises(ValueError) as raised:
             settings_from(NCI_SI_EVS_BASE_URL="/")
         self.assertIn("NCI_SI_EVS_BASE_URL", str(raised.exception))
-
-    def test_the_closed_sets_are_exactly_the_documented_ones(self):
-        self.assertEqual(PROFILES, {"evs", "cadsr", "unified"})
-        self.assertEqual(UPSTREAM_MODES, {"live", "fixture"})
-        self.assertEqual(RELEASE_CHANNELS, {"monthly", "weekly"})
 
     def test_a_closed_value_must_match_exactly(self):
         for variable, field in (

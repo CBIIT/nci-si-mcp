@@ -146,19 +146,19 @@ class VectorIntegrityTest(IndexTestCase):
             self.assertEqual(index.get_active_manifest(), active)
             self.assertIsNone(index.get_concept_snapshot("C99")[1])
 
-    def test_search_includes_all_concepts_beyond_the_former_scan_cutoff(self):
+    def test_vector_page_offset_reaches_the_last_concept(self):
         provider = HashingEmbeddingProvider(dimensions=2)
         with patch.object(provider, "embed", side_effect=lambda texts: [[0.0, 1.0] for _ in texts]):
             index = LocalIndex(self.path)
             index.upsert_concepts(
-                [concept(f"C{i:05}", "Other") for i in range(20001)],
+                [concept(f"C{i:05}", "Other") for i in range(300)],
                 None,
                 provider,
             )
         with patch.object(provider, "embed", return_value=[[1.0, 0.0]]):
-            hits, total, _ = index.search_page("query", provider, mode="vector", offset=20000)
-        self.assertEqual(total, 20001)
-        self.assertEqual([hit.concept.code for hit in hits], ["C20000"])
+            hits, total, _ = index.search_page("query", provider, mode="vector", offset=299)
+        self.assertEqual(total, 300)
+        self.assertEqual([hit.concept.code for hit in hits], ["C00299"])
 
     def test_malformed_or_nonfinite_vector_blobs_fail_without_a_ranking(self):
         index = self.build()

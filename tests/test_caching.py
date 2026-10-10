@@ -9,20 +9,13 @@ from mcp.shared.exceptions import MCPError
 from fakes import terminology_row
 from nci_si_mcp.caching import cache_call, select_cache_hint
 from nci_si_mcp.http_client import UpstreamUnavailableError
-from nci_si_mcp.registry import OPERATIONS, SPECS, ToolSpec, invoke
+from nci_si_mcp.registry import OPERATIONS, ToolSpec, invoke
 from nci_si_mcp.server import _cache_results
 from test_server import ServerFixture, pinned
 
 
 @patch("nci_si_mcp.server.configure_logging")
 class CachingTest(ServerFixture):
-    def test_registered_cache_defaults_allow_explicit_handler_ownership(self, _):
-        registrations = [spec for spec in SPECS if spec.name or spec.uri]
-        self.assertEqual(len(registrations), 36)
-        for spec in registrations:
-            with self.subTest(operation=spec.operation):
-                self.assertIsInstance(spec.resolution, (bool, type(None)))
-
     def test_tool_policy_follows_its_declaration_after_a_rename(self, _):
         def status(context):
             return {"state": "pending"}

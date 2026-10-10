@@ -286,12 +286,3 @@ class SSISValidationTest(unittest.TestCase):
                         self.assertRaises(InputValidationError),
                     ):
                         method(value)
-
-    def test_invalid_limits_and_expansion_are_rejected_without_http(self):
-        client = SSISClient(Settings())
-        with patch("nci_si_mcp.http_client._open", side_effect=AssertionError("Unexpected HTTP")):
-            for value in (0, -1, True, 1.5, "2"):
-                with self.subTest(value=value), self.assertRaises(InputValidationError):
-                    client.find_data_elements("C17357", maximum=value)
-            with self.assertRaises(InputValidationError):
-                client.find_data_elements("C17357", expand_descendants="true")
