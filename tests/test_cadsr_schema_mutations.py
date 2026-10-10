@@ -40,6 +40,10 @@ def fields_in(text, occurrence=0):
 
 # Parameters whose values are free text or opaque (audited as a SHA-256 digest); every other
 # parameter of these tools is an identifier, a closed value or a number, audited in the clear.
+def _free_text_roots(tool: str) -> set[str]:
+    return {p.split("[")[0].split(".")[0] for p in TOOLS[tool].get("free_text", [])}
+
+
 HASHED = {
     "get_form": {"keyword"},
     "get_permissible_value": set(),
@@ -186,8 +190,7 @@ class CaDSRSchemaMutationTest(TestCase):
         for name, spec in tools.items():
             # The specification's free-text arguments are hashed; the table may hash more
             # (identifiers that correlate callers), never less.
-            free_text = {p.split("[")[0].split(".")[0] for p in TOOLS[name].get("free_text", [])}
-            self.assertLessEqual(free_text, HASHED[name], name)
+            self.assertLessEqual(_free_text_roots(name), HASHED[name], name)
             for parameter in spec.parameters:
                 with self.subTest(tool=name, parameter=parameter.name):
                     expected = "hash" if parameter.name in HASHED[name] else "plain"
