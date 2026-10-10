@@ -18,11 +18,13 @@ FAKE_GH = """
 import os
 import subprocess
 import sys
+from urllib.parse import unquote, urlsplit
 
 prefix = "repos/example/project/git/refs/heads/"
-if sys.argv[1:4] != ["api", "-X", "DELETE"] or not sys.argv[4].startswith(prefix):
+endpoint = unquote(urlsplit(sys.argv[4]).path)
+if sys.argv[1:4] != ["api", "-X", "DELETE"] or not endpoint.startswith(prefix):
     sys.exit("Unexpected API request")
-name = sys.argv[4].removeprefix(prefix)
+name = endpoint.removeprefix(prefix)
 if name == os.environ.get("FAIL_REF"):
     sys.exit("API deletion failed")
 subprocess.run([os.environ["REAL_GIT"], "--git-dir", os.environ["BARE_REMOTE"],
@@ -70,6 +72,8 @@ class BranchCleanupTest(unittest.TestCase):
             "issue/a-merged": self.base,
             "issue/nested/merged": self.head,
             "issue/unmerged": self.unmerged,
+            "issue-tracker": self.head,
+            "issue/7-a#b<|": self.head,
             "feature/keep": self.head,
             "milestone/other": self.head,
             "milestone/phase-test": self.head,
@@ -139,6 +143,7 @@ class BranchCleanupTest(unittest.TestCase):
                 "feature/keep": self.head,
                 "milestone/other": self.head,
                 "issue/unmerged": self.unmerged,
+                "issue-tracker": self.head,
             },
         )
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -146,6 +151,7 @@ class BranchCleanupTest(unittest.TestCase):
         for name in ("issue/a-merged", "issue/nested/merged", "milestone/phase-test"):
             self.assertIn(f"| Deleted | <code>{name}</code> | {self.refs[name]} |", summary)
         self.assertIn(f"| Kept | <code>issue/unmerged</code> | {self.unmerged} |", summary)
+        self.assertIn(f"| Deleted | <code>issue/7-a#b&lt;&#124;</code> | {self.head} |", summary)
         self.assertNotIn("feature/keep", summary)
 
     def test_only_the_exact_milestone_tip_is_deleted(self):
