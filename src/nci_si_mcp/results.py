@@ -156,6 +156,9 @@ class TraversalProvenance(Provenance):
 
 
 class Untruncated(TypedDict):
+    # Only the complete truncation record is closed; upstream dictionaries stay extensible.
+    # Pydantic reads this class attribute; the core package cannot import its ConfigDict.
+    __pydantic_config__ = {"extra": "forbid"}  # noqa: RUF012  # pyright: ignore[reportGeneralTypeIssues]
     occurred: Literal[False]
 
 

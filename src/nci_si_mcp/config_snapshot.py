@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
@@ -137,7 +138,7 @@ def read_snapshot(path: Path) -> dict[str, Any]:
 @contextmanager
 def serving_snapshot(
     path: Path, settings: Settings, environment_names: set[str], *, cli_transport: bool = False
-):
+) -> Iterator[dict[str, Any]]:
     snapshot = capture(settings, environment_names, cli_transport=cli_transport)
     raw = json.dumps(snapshot, sort_keys=True).encode()
     _publish(path, raw)

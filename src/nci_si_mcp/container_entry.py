@@ -45,15 +45,14 @@ def prepared_index(settings: Settings) -> LocalIndex:
         if settings.http_require_index:
             raise NoActiveIndexError("Supply a completed active index")
         return index
+    # Checked by name before the model loads: an image holds no cache for a wrong model, and
+    # that failure would otherwise be reported as the model's rather than the index's.
     model = (
         HashingEmbeddingProvider().model
         if settings.embedding_provider == "hashing"
         else settings.embedding_model
     )
-    if (manifest.embedding_provider, manifest.embedding_model) != (
-        settings.embedding_provider,
-        model,
-    ):
+    if not manifest.embedding_matches(settings.embedding_provider, model):
         raise IndexCompatibilityError("Configured model differs from the index manifest")
     return index
 

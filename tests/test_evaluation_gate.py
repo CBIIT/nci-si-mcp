@@ -70,8 +70,8 @@ class EvaluationGateTests(unittest.TestCase):
         with self.assertRaisesRegex(IndexBuildError, "passing evaluation"):
             self.index.activate(candidate.build_id)
         self.assertEqual(self.index.get_active_manifest(), active)
-        self.assertEqual(self.index.get_concept("C8").preferred_name, "melanoma")
-        self.assertIsNone(self.index.get_concept("C3262"))
+        self.assertEqual(self.index.get_concept_snapshot("C8")[1].preferred_name, "melanoma")
+        self.assertIsNone(self.index.get_concept_snapshot("C3262")[1])
 
     def test_passing_report_survives_reopen_and_enables_activation_and_rollback(self):
         self.index.upsert_concepts([self.rows[1]], None, self.provider)
@@ -160,7 +160,7 @@ class EvaluationGateTests(unittest.TestCase):
         with self.assertRaisesRegex(IndexBuildError, "separate data directory"):
             self.index.upsert_concepts([concept("C999", "new sample")], None, self.provider)
         self.assertEqual(self.index.get_active_manifest(), active)
-        self.assertIsNone(self.index.get_concept("C999"))
+        self.assertIsNone(self.index.get_concept_snapshot("C999")[1])
 
     def test_report_for_another_candidate_cannot_authorize_activation(self):
         first = self.build()

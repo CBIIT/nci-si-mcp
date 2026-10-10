@@ -289,7 +289,7 @@ class IndexCodesTest(HandlerTestCase):
     def test_indexed_concepts_carry_their_synonyms_and_definitions(self):
         self.index("C3262")
 
-        cached = self.context.index.get_concept("C3262")
+        cached = self.context.index.get_concept_snapshot("C3262")[1]
 
         self.assertEqual(cached.evidence["synonyms"][0]["name"], "Tumor")
         self.assertEqual(self.evs.includes[-1], "summary,definitions,synonyms,properties")
@@ -608,10 +608,10 @@ class StatusTest(HandlerTestCase):
         self.assertEqual(context.embedding_provider.model, "hashing-128")
 
     def test_the_licence_key_setting_reaches_the_evs_client_and_only_it(self):
-        keyed = Context(Settings(data_dir=self.path, evs_license_key="a-key"))
+        keyed = Context(Settings(data_dir=self.path, evs_license_key="a-license-key"))
         plain = Context(Settings(data_dir=self.path))
 
-        self.assertEqual(keyed.evs.http.credentials, {LICENSE_KEY_HEADER: "a-key"})
+        self.assertEqual(keyed.evs.http.credentials, {LICENSE_KEY_HEADER: "a-license-key"})
         self.assertEqual(plain.evs.http.credentials, {})
 
 
@@ -640,7 +640,7 @@ class FailureHandlingTest(HandlerTestCase):
         self.assert_error(result, "internal_error")
         self.assertIn("retry the sample", result["error"]["message"])
         self.assertEqual(self.context.index.get_active_manifest().build_id, replacement.build_id)
-        self.assertIsNone(self.context.index.get_concept("C3262"))
+        self.assertIsNone(self.context.index.get_concept_snapshot("C3262")[1])
 
     def test_unusable_database_is_reported_with_its_path(self):
         self.index()

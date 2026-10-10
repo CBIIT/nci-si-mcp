@@ -262,7 +262,7 @@ class SSISClientTest(ServerTestCase):
         client = SSISClient(
             Settings(
                 ssis_sparql_url=server.url,
-                cadsr_credential="fixture-only:secret",
+                cadsr_credential="fixture-only:secret-value",
             )
         )
         self.assertEqual(

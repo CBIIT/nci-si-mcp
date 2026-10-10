@@ -27,7 +27,7 @@ class AuthorityConfigurationTest(unittest.TestCase):
 
 class StartupBoundaryTest(ServerFixture):
     def test_optional_index_stdio_override_serves_the_protocol_without_an_active_build(self):
-        settings = replace(self.settings, transport="stdio", http_require_index=0)
+        settings = replace(self.settings, transport="stdio", http_require_index=False)
         answers = []
 
         async def exchange(server):

@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import replace
 from itertools import batched, chain, groupby
@@ -80,21 +80,17 @@ def _distinct_concepts(
     concepts = list(by_code.values())
     if not concepts:
         raise IndexBuildError("No concepts were provided for indexing")
-    if "" in by_code:
-        raise IndexBuildError("Indexed concepts must include a code")
     return concepts
 
 
-def _single_release(concepts: list[NcitConcept]) -> str:
-    release_version = concepts[0].release_version
-    if not release_version:
+def _build_release(first: NcitConcept) -> str:
+    """The release of a build, named by its first concept; `_prepare_fields` checks the rest."""
+    if not first.release_version:
         raise IndexBuildError("Indexed concepts must include a release version")
-    if any(concept.release_version != release_version for concept in concepts):
-        raise IndexBuildError("Cannot mix concept release versions in one index build")
-    return release_version
+    return first.release_version
 
 
-def _embed(embedding_provider: EmbeddingProvider, texts: list[str]) -> list[list[float]]:
+def _embed(embedding_provider: EmbeddingProvider, texts: list[str]) -> Sequence[Sequence[float]]:
     vectors = embedding_provider.embed(texts)
     if len(vectors) != len(texts):
         raise IndexCompatibilityError("Embedding provider returned an unexpected vector count")
@@ -121,7 +117,7 @@ def _results_truncation(scored: int, limit: int) -> Truncation:
 
 def _query_vector(
     embedding_provider: EmbeddingProvider, manifest: IndexManifest, query: str
-) -> list[float]:
+) -> Sequence[float]:
     query_vectors = embedding_provider.embed([query])
     if len(query_vectors) != 1:
         raise IndexCompatibilityError(
@@ -139,7 +135,7 @@ def _store_fields(
     conn: sqlite3.Connection,
     build_id: str,
     fields: list[tuple[str, str, str]],
-    vectors: list[list[float]],
+    vectors: Sequence[Sequence[float]],
 ) -> None:
     paired = zip(fields, vectors, strict=True)
     for code, items in groupby(paired, lambda item: item[0][0]):
@@ -185,7 +181,7 @@ def _write_batch(
     build_id: str,
     concepts: tuple[NcitConcept, ...],
     fields: list[tuple[str, str, str]],
-    vectors: list[list[float]],
+    vectors: Sequence[Sequence[float]],
 ) -> None:
     conn.executemany(
         "INSERT INTO concepts VALUES (?, ?, ?, ?, ?)",
@@ -212,12 +208,10 @@ def _check_dimensions(previous: int, width: int, compatible: IndexManifest | Non
         )
 
 
-def _check_sample_snapshot(conn: sqlite3.Connection, active: IndexManifest | None) -> None:
+def _sample_base_is_active(conn: sqlite3.Connection, active: IndexManifest | None) -> bool:
+    """Whether the build a sample extended is still the active one."""
     row = conn.execute("SELECT build_id FROM manifests WHERE active = 1").fetchone()
-    expected = active.build_id if active else None
-    current = row[0] if row else None
-    if expected != current:
-        raise IndexStateError("The active index changed during sample indexing; retry the sample")
+    return (row[0] if row else None) == (active.build_id if active else None)
 
 
 # SQLite result codes of the database file itself; other codes (SQL usage, constraints) are bugs.
@@ -357,7 +351,7 @@ class LocalIndex:
         first = next(concepts, None)
         if first is None:
             raise IndexBuildError("No concepts were provided for indexing")
-        release = _single_release([first])
+        release = _build_release(first)
         if expected_release_version is not None and release != expected_release_version:
             raise IndexCompatibilityError(
                 "Concept payload release did not match the selected release"
@@ -523,7 +517,7 @@ class LocalIndex:
     ) -> IndexManifest:
         """Developer sample update: build the combined same-release sample, then activate."""
         concepts = _distinct_concepts(raw_concepts, release_date)
-        release = _single_release(concepts)
+        release = _build_release(concepts[0])
         if expected_release_version is not None and release != expected_release_version:
             raise IndexCompatibilityError(
                 "Concept payload release did not match the selected release"
@@ -539,10 +533,16 @@ class LocalIndex:
             combined = self._sample_concepts(conn, active, concepts, embedding_provider, release)
         compatible = active if active and active.release_version == release else None
         built = self._build_stream(combined, release_date, embedding_provider, release, compatible)
+        return self._activate_sample(built.build_id, active)
+
+    def _activate_sample(self, build_id: str, base: IndexManifest | None) -> IndexManifest:
         with self._connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
-            _check_sample_snapshot(conn, active)
-            return self._activate(conn, built.build_id)
+            if _sample_base_is_active(conn, base):
+                return self._activate(conn, build_id)
+            # Committed before the error is raised: the unreferenced snapshot is not kept.
+            delete_build(conn, build_id)
+        raise IndexStateError("The active index changed during sample indexing; retry the sample")
 
     @staticmethod
     def _sample_concepts(
@@ -571,9 +571,6 @@ class LocalIndex:
         previous.update((concept.code, concept) for concept in concepts)
         return list(previous.values())
 
-    def get_concept(self, code: str) -> NcitConcept | None:
-        return self.get_concept_snapshot(code)[1]
-
     def get_concept_snapshot(self, code: str) -> tuple[IndexManifest | None, NcitConcept | None]:
         """Read the cache and the release used to validate it in one snapshot."""
         with self._connect() as conn:
@@ -593,21 +590,7 @@ class LocalIndex:
         limit: int = 10,
         mode: str = "hybrid",
     ) -> list[SearchHit]:
-        return self.search_with_truncation(query, embedding_provider, limit, mode)[0]
-
-    def search_with_truncation(
-        self,
-        query: str,
-        embedding_provider: EmbeddingProvider,
-        limit: int = 10,
-        mode: str = "hybrid",
-        *,
-        requested_release: str | None = None,
-    ) -> tuple[list[SearchHit], Truncation]:
-        hits, truncation, _ = self.search_snapshot(
-            query, embedding_provider, limit, mode, requested_release=requested_release
-        )
-        return hits, truncation
+        return self.search_page(query, embedding_provider, limit, mode)[0]
 
     def search_snapshot(
         self,

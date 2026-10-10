@@ -11,14 +11,14 @@ from fakes import concept
 from nci_si_mcp import container_entry
 from nci_si_mcp.audit import JsonFormatter
 from nci_si_mcp.embeddings import HashingEmbeddingProvider, SentenceTransformersProvider
-from nci_si_mcp.index import IndexCompatibilityError, NoActiveIndexError
+from nci_si_mcp.index import NoActiveIndexError
 from test_server import ServerFixture
 
 
 class ContainerTest(ServerFixture):
     def setUp(self):
         super().setUp()
-        self.settings = replace(self.settings, http_require_index=1, transport="streamable-http")
+        self.settings = replace(self.settings, http_require_index=True, transport="streamable-http")
 
     def index(self):
         self.context.index.upsert_concepts([concept("C1")], None, HashingEmbeddingProvider())
@@ -33,13 +33,31 @@ class ContainerTest(ServerFixture):
         with self.assertRaises(NoActiveIndexError):
             container_entry.prepared_index(self.settings)
         self.index()
+        self.assertEqual(
+            container_entry.prepared_index(self.settings).get_active_manifest().concept_count, 1
+        )
+
+    def test_an_index_built_for_another_model_stops_startup_naming_the_index(self):
+        logging.disable(logging.NOTSET)
+        self.index()
         wrong = replace(
             self.settings, embedding_provider="sentence-transformers", embedding_model="other"
         )
-        with self.assertRaises(IndexCompatibilityError):
-            container_entry.prepared_index(wrong)
+        with (
+            patch.object(container_entry.Settings, "from_env", return_value=wrong),
+            patch.object(container_entry, "configure_logging"),
+            # The image has no cache for the other model: the index check must come first.
+            patch.object(
+                container_entry, "SentenceTransformersProvider", side_effect=OSError("not cached")
+            ),
+            patch.object(container_entry, "run_http") as serve,
+            self.assertLogs("nci_si_mcp.container_entry", level="ERROR") as logs,
+        ):
+            self.assertEqual(container_entry.main(), 1)
+        serve.assert_not_called()
+        records = [json.loads(JsonFormatter().format(record)) for record in logs.records]
         self.assertEqual(
-            container_entry.prepared_index(self.settings).get_active_manifest().concept_count, 1
+            [(r["asset"], r["errorType"]) for r in records], [("index", "IndexCompatibilityError")]
         )
 
     def test_startup_reports_one_safe_asset_failure(self):
@@ -107,8 +125,11 @@ class ContainerTest(ServerFixture):
         with patch.dict(sys.modules, modules):
             provider = SentenceTransformersProvider("org/model", local_files_only=True)
             local = SentenceTransformersProvider(cached, local_files_only=True)
-        self.assertEqual((provider.model, provider.embed(["abc"])), ("org/model", [[3.0, 1.0]]))
-        self.assertEqual(local.embed(["ab"]), [[2.0, 1.0]])
+        self.assertEqual(
+            (provider.model, [row.tolist() for row in provider.embed(["abc"])]),
+            ("org/model", [[3.0, 1.0]]),
+        )
+        self.assertEqual([row.tolist() for row in local.embed(["ab"])], [[2.0, 1.0]])
 
     def test_bad_model_setting_names_the_variable_without_its_value(self):
         logging.disable(logging.NOTSET)

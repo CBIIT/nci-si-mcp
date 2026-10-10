@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from itertools import batched, zip_longest
 from typing import Any
@@ -49,43 +49,35 @@ INVERSE_BATCH_SIZE = 10
 
 logger = logging.getLogger(__name__)
 
-# Edge type -> (key of the relation list in an EVS concept payload, name given
-# to edges that carry no relationship name of their own).
-RELATIONS: dict[str, tuple[str, str]] = {
-    "parent": ("parents", ""),
-    "child": ("children", ""),
-    # Descendant edges use their own endpoint; the final check needs only children.
-    "descendant": ("children", ""),
-    "role": ("roles", "role"),
-    "inverse_role": ("inverseRoles", "inverse_role"),
-    "association": ("associations", "association"),
-    "inverse_association": ("inverseAssociations", "inverse_association"),
+
+@dataclass(frozen=True, slots=True)
+class EdgeKind:
+    """How one edge type is read from EVS and reported."""
+
+    list_key: str  # the relation list in an EVS concept payload
+    direction: str  # "out" or "in": the way the edge is followed, as its provenance states
+    include_group: str  # the include flag that makes it available
+    hierarchy: bool  # a parent/child link: it has no relationship name and names its target `code`
+
+
+# Edge types in the order they are followed. `descendant` uses its own endpoint, and
+# the final-depth check needs only children.
+EDGE_KINDS: dict[str, EdgeKind] = {
+    "child": EdgeKind("children", "out", "hierarchy", True),
+    "descendant": EdgeKind("children", "out", "hierarchy", True),
+    "parent": EdgeKind("parents", "in", "hierarchy", True),
+    "role": EdgeKind("roles", "out", "roles", False),
+    "inverse_role": EdgeKind("inverseRoles", "in", "roles", False),
+    "association": EdgeKind("associations", "out", "associations", False),
+    "inverse_association": EdgeKind("inverseAssociations", "in", "associations", False),
 }
-HIERARCHY_EDGE_TYPES = frozenset({"parent", "child", "descendant"})
-
-
-# Edge types in the order they are followed, each with the direction and the
-# include flag that make it available.
-_EDGE_TYPE_RULES = (
-    ("child", "out", "hierarchy"),
-    ("descendant", "out", "hierarchy"),
-    ("parent", "in", "hierarchy"),
-    ("role", "out", "roles"),
-    ("inverse_role", "in", "roles"),
-    ("association", "out", "associations"),
-    ("inverse_association", "in", "associations"),
-)
-
-
-# The direction in which each edge type is followed, which the provenance of an edge states.
-EDGE_DIRECTIONS = {edge_type: way for edge_type, way, _ in _EDGE_TYPE_RULES}
 
 
 def _available_edge_types(direction: str, included: dict[str, bool]) -> list[str]:
     return [
         edge_type
-        for edge_type, way, group in _EDGE_TYPE_RULES
-        if included[group] and direction in (way, "both")
+        for edge_type, kind in EDGE_KINDS.items()
+        if included[kind.include_group] and direction in (kind.direction, "both")
     ]
 
 
@@ -193,8 +185,38 @@ def _fetch_concepts(
         pass
 
 
+# What the walk reads of a concept (node fields) and of a relation item (the target, its
+# provenance). Anything else EVS sends is dropped as the batch is extracted, so a frontier
+# of hub concepts does not keep megabytes of relation payload while its kinds are followed.
+# A malformed relation list therefore fails here, at fetch time, not when a kind reads it.
+_NODE_FIELDS = ("code", "name", "active", "conceptStatus", "terminology", "version", "licenseText")
+_ITEM_FIELDS = (
+    "code",
+    "name",
+    "relatedCode",
+    "relatedName",
+    "type",
+    "qualifiers",
+    "evidence",
+    "licenseText",
+)
+_LIST_KEYS = tuple(dict.fromkeys(kind.list_key for kind in EDGE_KINDS.values()))
+
+
+def _slim_item(item: dict[str, Any]) -> dict[str, Any]:
+    return {key: item[key] for key in _ITEM_FIELDS if key in item}
+
+
+def _slim(raw: dict[str, Any]) -> dict[str, Any]:
+    slim = {key: raw[key] for key in _NODE_FIELDS if key in raw}
+    for list_key in _LIST_KEYS:
+        if list_key in raw:
+            slim[list_key] = [_slim_item(item) for item in object_list(raw, list_key)]
+    return slim
+
+
 def _by_code(concepts: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    return {str(raw.get("code") or ""): raw for raw in concepts}
+    return {str(raw.get("code") or ""): _slim(raw) for raw in concepts}
 
 
 def _rotate(
@@ -216,11 +238,29 @@ def _relationship(edge_type: str, item: dict[str, Any]) -> dict[str, str]:
     """The relationship that brought a relation item in: its kind, and for a role or an
     association its code and name. A hierarchy link has neither, and none is invented."""
 
-    if edge_type in HIERARCHY_EDGE_TYPES:
+    if EDGE_KINDS[edge_type].hierarchy:
         return {"kind": edge_type}
     relationship = {"kind": "role" if "role" in edge_type else "association"}
     named = {"code": item.get("code"), "name": item.get("type")}
     return relationship | {key: str(value) for key, value in named.items() if value}
+
+
+def _target_code(code: str, edge_type: str, item: dict[str, Any]) -> str:
+    # A role or association item names its target in `relatedCode`; its own
+    # `code` is that of the relationship.
+    target_key = "code" if EDGE_KINDS[edge_type].hierarchy else "relatedCode"
+    target = str(item.get(target_key) or "")
+    if not target:
+        raise EVSResponseError(
+            f"EVS returned a {edge_type} relation of {code} without a {target_key}"
+        )
+    return target
+
+
+def _relationship_name(edge_type: str, item: dict[str, Any]) -> str:
+    if EDGE_KINDS[edge_type].hierarchy:
+        return ""
+    return str(item.get("type") or edge_type)
 
 
 def _edge(
@@ -232,24 +272,13 @@ def _edge(
 ) -> TraversalEdge:
     """Build the edge that a relation item of concept `code` stands for."""
 
-    # A role or association item names its target in `relatedCode`; its own
-    # `code` is that of the relationship.
-    hierarchy = edge_type in HIERARCHY_EDGE_TYPES
-    target_key, name_key = ("code", "name") if hierarchy else ("relatedCode", "relatedName")
-    target = str(item.get(target_key) or "")
-    if not target:
-        raise EVSResponseError(
-            f"EVS returned a {edge_type} relation of {code} without a {target_key}"
-        )
+    target = _target_code(code, edge_type, item)
+    name_key = "name" if EDGE_KINDS[edge_type].hierarchy else "relatedName"
     return TraversalEdge(
         source_code=code,
         target_code=target,
         edge_type=edge_type,
-        relationship_name=(
-            RELATIONS[edge_type][1]
-            if hierarchy
-            else str(item.get("type") or RELATIONS[edge_type][1])
-        ),
+        relationship_name=_relationship_name(edge_type, item),
         provenance=provenance,
         target_name=str(item.get(name_key) or ""),
         source_name=source_name,
@@ -268,9 +297,11 @@ def _missing_concepts(release: ReleaseContext, missing: list[str], depth: int) -
 
 
 def _node_payloads(concepts: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    # Retain status, not the potentially megabytes of relation lists already processed.
-    fields = ("code", "name", "active", "conceptStatus", "terminology", "version", "licenseText")
-    return {code: {key: raw[key] for key in fields if key in raw} for code, raw in concepts.items()}
+    # Retain status, not the relation lists already processed.
+    return {
+        code: {key: raw[key] for key in _NODE_FIELDS if key in raw}
+        for code, raw in concepts.items()
+    }
 
 
 def _edge_key(edge: TraversalEdge) -> tuple[str, str, str, str]:
@@ -348,7 +379,7 @@ class _Walk:
             attribution=item.get("licenseText"),
             depth=depth,
             relationship=relationship,
-            direction=EDGE_DIRECTIONS[edge_type] if edge_type else None,
+            direction=EDGE_KINDS[edge_type].direction if edge_type else None,
             polarity=polarity(relationship.get("code"), self.exclusions) if relationship else None,
             qualifiers=item.get("qualifiers"),
             evidence=item.get("evidence"),
@@ -408,22 +439,7 @@ class _Walk:
             return Truncation(occurred=False)
         bound = self.bounds_reached[first]
         first_kind = self._bound_kind(first)
-        limit, reached, omitted = {
-            "depth": (self.budget.depth, self.budget.depth, self._depth_count(kind)),
-            "nodes": (self.budget.nodes, len(self.nodes), self._kind_omitted(kind, "nodes")),
-            "edges": (self.budget.edges, len(self.edges), self._kind_omitted(kind, "edges")),
-            "kind_budget": (
-                self.budget.per_kind,
-                self.budget.added_by_kind[first_kind],
-                self._kind_omitted(first_kind, "kind_budget"),
-            ),
-            "requests": (self.budget.requests, self.budget.attempts, int(kind is None)),
-            "upstream_cap": (
-                self.client.max_response_bytes,
-                self.client.max_response_bytes,
-                len(self.unexpanded) if kind is None else 0,
-            ),
-        }[bound]
+        limit, reached, omitted = self._figures(bound, kind, first_kind)
         return Truncation(
             occurred=True,
             bound=bound,
@@ -432,6 +448,36 @@ class _Walk:
             omitted=omitted,
             exact=False,
         )
+
+    def _figures(self, bound: str, kind: str | None, first_kind: str) -> tuple[int, int, int]:
+        """The limit, the amount reached and the count dropped, computed for `bound` only."""
+
+        figures: dict[str, Callable[[], tuple[int, int, int]]] = {
+            "depth": lambda: (self.budget.depth, self.budget.depth, self._depth_count(kind)),
+            "nodes": lambda: (
+                self.budget.nodes,
+                len(self.nodes),
+                self._kind_omitted(kind, "nodes"),
+            ),
+            "edges": lambda: (
+                self.budget.edges,
+                len(self.edges),
+                self._kind_omitted(kind, "edges"),
+            ),
+            # The bound is recorded only while per_kind is set (bounds.py), so 0 never shows.
+            "kind_budget": lambda: (
+                self.budget.per_kind or 0,
+                self.budget.added_by_kind[first_kind],
+                self._kind_omitted(first_kind, "kind_budget"),
+            ),
+            "requests": lambda: (self.budget.requests, self.budget.attempts, int(kind is None)),
+            "upstream_cap": lambda: (
+                self.client.max_response_bytes,
+                self.client.max_response_bytes,
+                len(self.unexpanded) if kind is None else 0,
+            ),
+        }
+        return figures[bound]()
 
     def _reportable(self, key: tuple[str, ...], kind: str | None) -> bool:
         return (kind is None or self._bound_kind(key) == kind) and (
@@ -487,7 +533,7 @@ class _Walk:
         kinds = self._depth_types(frontier) if depth == self.budget.depth else self.payload_types
         if not self._needs_fetch(frontier, depth, kinds):
             return {}
-        relations = list(dict.fromkeys(RELATIONS[edge_type][0] for edge_type in kinds))
+        relations = list(dict.fromkeys(EDGE_KINDS[edge_type].list_key for edge_type in kinds))
         include = ",".join(["minimal", *relations])
         concepts: dict[str, dict[str, Any]] = {}
         for found, missing, oversized in _fetch_concepts(
@@ -525,19 +571,17 @@ class _Walk:
             self._check_depth(found, kinds)
 
     def _check_depth(self, concepts: dict[str, dict[str, Any]], kinds: list[str]) -> None:
+        """Note each kind that has an unseen target one level beyond the last frontier."""
+
         for code, kind, item in self._payload_relations(list(concepts), concepts, kinds):
-            provenance = self._provenance(
-                self.budget.depth + 1, self._concept_uri(code), kind, item
-            )
-            edge = _edge(code, str(concepts[code].get("name") or ""), kind, item, provenance)
-            key = _edge_key(edge)
+            target = _target_code(code, kind, item)
             if (
-                edge.target_code in self.nodes
-                or edge.target_code in self.starts
-                or self._skips(edge, key)
+                target in self.nodes
+                or target in self.starts
+                or self._name_excluded(_relationship_name(kind, item))
             ):
                 continue
-            self.depth_omitted.setdefault(kind, set()).add(edge.target_code)
+            self.depth_omitted.setdefault(kind, set()).add(target)
             self.bounds_reached.setdefault((kind,), "depth")
 
     def start(self, start_codes: list[str], concepts: dict[str, dict[str, Any]]) -> None:
@@ -597,18 +641,22 @@ class _Walk:
             (code, edge_type, item)
             for code in frontier
             for edge_type in kinds
-            for item in object_list(concepts.get(code, {}), RELATIONS[edge_type][0])
+            for item in object_list(concepts.get(code, {}), EDGE_KINDS[edge_type].list_key)
         ]
 
     def _skips(self, edge: TraversalEdge, key: tuple[str, str, str, str]) -> bool:
         """Whether the name filter excludes the edge or it was emitted before."""
 
-        filtered = (
-            edge.edge_type not in HIERARCHY_EDGE_TYPES
-            and self.name_filter
-            and edge.relationship_name.lower() not in self.name_filter
+        return key in self.seen_edges or self._name_excluded(edge.relationship_name)
+
+    def _name_excluded(self, relationship_name: str) -> bool:
+        """Whether the relationship-name filter excludes this name; hierarchy has none."""
+
+        return bool(
+            self.name_filter
+            and relationship_name
+            and relationship_name.lower() not in self.name_filter
         )
-        return bool(filtered) or key in self.seen_edges
 
     def _add(self, edge: TraversalEdge) -> bool:
         """Emit an allowed edge; return whether its target newly qualifies for expansion."""

@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from dataclasses import asdict, dataclass, field, make_dataclass
+from functools import cache
+from importlib.resources import files
 from inspect import Parameter, Signature, getdoc, signature
 from typing import Annotated, Any, Literal, get_args, get_origin, get_type_hints, is_typeddict
 
@@ -601,6 +603,23 @@ SPECS = (
     ),
 )
 OPERATIONS = {spec.operation: spec for spec in SPECS}
+
+
+def servable_prompts(tools: Collection[str]) -> dict[str, Any]:
+    """The packaged prompt templates whose every named tool is in `tools`.
+
+    The one reader of data/prompts.json, which is packaged without a YAML dependency;
+    test_prompts verifies it equals spec/. Profile selection and caller permissions both
+    apply this rule, so a prompt is never offered that names a tool the caller lacks.
+    """
+
+    return {name: t for name, t in _templates().items() if set(t["tools"]) <= set(tools)}
+
+
+@cache
+def _templates() -> dict[str, Any]:
+    # Read once per process: the catalogue filter asks per prompt row and per call.
+    return json.loads(files("nci_si_mcp").joinpath("data/prompts.json").read_text())
 
 
 def invoke(

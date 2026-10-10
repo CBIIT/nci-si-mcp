@@ -209,7 +209,7 @@ class HTTPTest(ServerFixture):
         self.assertEqual(sum(c[0] == "get_terminologies" for c in self.evs.calls), 2)
 
     def test_health_and_readiness_do_not_read_upstream_and_verify_a_required_index(self):
-        settings = replace(self.settings, http_require_index=1)
+        settings = replace(self.settings, http_require_index=True)
         self.context.settings = settings
 
         async def scenario():
@@ -255,7 +255,7 @@ class HTTPTest(ServerFixture):
             return verify(provider)
 
         async def scenario():
-            settings = replace(self.settings, http_require_index=1)
+            settings = replace(self.settings, http_require_index=True)
             async with http_app(settings, self.context) as client:
                 pending = asyncio.create_task(client.get("/ready"))
                 try:
@@ -274,7 +274,7 @@ class HTTPTest(ServerFixture):
             asyncio.run(scenario())
 
     def test_readiness_logs_only_failure_transitions_without_exception_messages(self):
-        settings = replace(self.settings, http_require_index=1)
+        settings = replace(self.settings, http_require_index=True)
 
         async def scenario():
             async with http_app(settings, self.context) as client:

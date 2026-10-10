@@ -8,11 +8,13 @@ import re
 import sqlite3
 import struct
 import unicodedata
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import replace
+from importlib import import_module
 from itertools import groupby
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 from .errors import IndexCompatibilityError, IndexStorageError
@@ -22,14 +24,27 @@ SCHEMA_VERSION = 6
 FIELD_KINDS = ("name", "synonym", "definition")
 
 
-def vector_bytes(vector: list[float]) -> bytes:
+def vector_bytes(vector: Sequence[float]) -> bytes:
     """Round all providers consistently to the stored little-endian float32 format."""
+    if hasattr(vector, "tobytes"):  # a NumPy row from a model provider
+        return _array_bytes(vector)
     if not all(math.isfinite(value) for value in vector):
         raise IndexCompatibilityError("An embedding contains non-finite values")
     try:
         return struct.pack(f"<{len(vector)}f", *vector)
     except OverflowError, struct.error:
         raise IndexCompatibilityError("An embedding value cannot be stored as float32") from None
+
+
+def _array_bytes(vector: Any) -> bytes:
+    np = import_module("numpy")  # an array exists only where NumPy is installed
+    if not np.isfinite(vector).all():
+        raise IndexCompatibilityError("An embedding contains non-finite values")
+    with np.errstate(over="ignore"):
+        rounded = vector.astype("<f4")
+    if not np.isfinite(rounded).all():
+        raise IndexCompatibilityError("An embedding value cannot be stored as float32")
+    return rounded.tobytes()
 
 
 def name_key(text: str) -> str:

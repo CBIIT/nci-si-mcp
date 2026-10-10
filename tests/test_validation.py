@@ -197,8 +197,8 @@ class EmbeddingConfigurationTest(unittest.TestCase):
         self.assertEqual((provider.name, provider.model), ("sentence-transformers", "a-model"))
         # The named model is loaded and asked for unit vectors.
         vectors = provider.embed(iter(["ab", "c"]))
-        self.assertEqual(vectors, [[2.0, 1.0, 7.0], [1.0, 1.0, 7.0]])
-        self.assertEqual({type(value) for row in vectors for value in row}, {float})
+        self.assertEqual([row.tolist() for row in vectors], [[2.0, 1.0, 7.0], [1.0, 1.0, 7.0]])
+        self.assertEqual({row.dtype.str for row in vectors}, {"<f4"})
 
     def test_missing_embeddings_extra_is_explained(self):
         with (

@@ -26,6 +26,7 @@ Profile = Literal["evs", "cadsr", "unified"]
 UpstreamMode = Literal["live", "fixture"]
 ReleaseChannel = Literal["monthly", "weekly"]
 Transport = Literal["stdio", "streamable-http"]
+HTTPAuthMode = Literal["trusted-local", "required"]
 HTTPSessions = Literal["stateful", "stateless"]
 ReleaseSelection = Literal["explicit", "session-held", "freshly-resolved"]
 ConceptInclude = Literal["synonyms", "definitions", "properties", "semanticType"]
@@ -66,7 +67,7 @@ UPSTREAM_MODES = frozenset(get_args(UpstreamMode))
 RELEASE_CHANNELS = frozenset(get_args(ReleaseChannel))
 TRANSPORTS = frozenset(get_args(Transport))
 HTTP_SESSIONS = frozenset(get_args(HTTPSessions))
-HTTP_AUTH_MODES = frozenset({"trusted-local", "required"})
+HTTP_AUTH_MODES = frozenset(get_args(HTTPAuthMode))
 
 NCIT_CODE_RE = re.compile(r"C[0-9]+")
 SEARCH_MODES = frozenset(get_args(SearchMode))
@@ -104,7 +105,7 @@ def validate_terminology(terminology: str) -> str:
 
 def validate_expansion_options(count: int, offset: int, active_only: bool) -> int:
     count = bounded(count, 1000, "count")
-    if type(offset) is not int or offset < 0:
+    if not _is_int(offset) or offset < 0:
         raise InputValidationError("offset must be a nonnegative integer", "offset")
     if not isinstance(active_only, bool):
         raise InputValidationError("activeOnly must be boolean", "activeOnly")

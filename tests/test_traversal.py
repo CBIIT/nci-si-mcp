@@ -21,7 +21,8 @@ from nci_si_mcp.errors import InputValidationError, correlated
 from nci_si_mcp.evs import EVSNotFoundError, EVSResponseError
 from nci_si_mcp.http_client import UpstreamTooLargeError
 from nci_si_mcp.traversal import (
-    RELATIONS,
+    EDGE_KINDS,
+    _fetch_concepts,
     select_edge_types,
     traverse_ncit,
 )
@@ -158,10 +159,24 @@ def codes(result):
 
 class EdgeTypeSelectionTest(unittest.TestCase):
     def test_every_public_edge_type_has_a_relation(self):
-        self.assertEqual(set(RELATIONS), set(TRAVERSAL_EDGE_TYPES))
+        self.assertEqual(set(EDGE_KINDS), set(TRAVERSAL_EDGE_TYPES))
         self.assertEqual(
             set(select_edge_types("both", True, True, True, sorted(TRAVERSAL_EDGE_TYPES))),
             set(TRAVERSAL_EDGE_TYPES),
+        )
+
+    def test_the_table_flags_exactly_the_hierarchy_kinds_that_carry_no_relationship_name(self):
+        self.enterContext(correlated("call-1"))
+        result = walk(
+            complete_graph(star()), direction="both", max_depth=1, edge_types=sorted(EDGE_KINDS)
+        )
+
+        by_kind = {edge.edge_type: bool(edge.relationship_name) for edge in result.edges}
+
+        self.assertEqual(by_kind, {name: not kind.hierarchy for name, kind in EDGE_KINDS.items()})
+        self.assertEqual(
+            {name for name, kind in EDGE_KINDS.items() if kind.hierarchy},
+            {"parent", "child", "descendant"},
         )
 
     def test_direction_selects_edge_types_and_descendant_is_opt_in(self):
@@ -890,7 +905,7 @@ class TraversalTest(unittest.TestCase):
 
     def test_every_edge_type_names_its_target(self):
         result = walk(
-            complete_graph(star()), direction="both", max_depth=1, edge_types=sorted(RELATIONS)
+            complete_graph(star()), direction="both", max_depth=1, edge_types=sorted(EDGE_KINDS)
         )
 
         self.assertEqual(
@@ -944,6 +959,50 @@ class TraversalTest(unittest.TestCase):
         self.assertTrue(
             all(record["bound"] == "NCI_SI_EVS_MAX_RESPONSE_BYTES" for record in warnings)
         )
+
+
+class BoundedFrontierTest(unittest.TestCase):
+    def test_a_fetched_frontier_keeps_only_the_keys_the_walk_uses(self):
+        bulk = "x" * 1_000_000
+        item = {**related("Disease_Has_Finding", "C9"), "qualifiers": [{"q": 1}], "extra": bulk}
+        client = FakeEVS(
+            [
+                concept(
+                    "C1",
+                    active=True,
+                    synonyms=[{"name": bulk}],
+                    children=[{**child("C2"), "licenseText": "licence", "extra": bulk}],
+                    roles=[item],
+                )
+            ]
+        )
+
+        [(found, missing, oversized)] = list(
+            _fetch_concepts(client, ["C1"], release(), "minimal,children,roles", 50)
+        )
+
+        self.assertEqual((missing, oversized), ([], []))
+        self.assertEqual(
+            set(found["C1"]),
+            {"code", "name", "active", "terminology", "version", "children", "roles"},
+        )
+        self.assertEqual(
+            found["C1"]["children"],
+            [{"code": "C2", "name": "Concept C2", "licenseText": "licence"}],
+        )
+        self.assertEqual(
+            found["C1"]["roles"],
+            [
+                {
+                    "code": "R1",
+                    "type": "Disease_Has_Finding",
+                    "relatedCode": "C9",
+                    "relatedName": "Concept C9",
+                    "qualifiers": [{"q": 1}],
+                }
+            ],
+        )
+        self.assertLess(len(json.dumps(found)), 1000)
 
 
 if __name__ == "__main__":

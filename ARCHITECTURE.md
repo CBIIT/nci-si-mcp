@@ -296,7 +296,7 @@ in the same transaction. Distribution to serving replicas is a separate operator
    truncation. Cursors bind applied arguments, the pinned release and, for indexed modes,
    the internal build id. An activation expires indexed cursors even if the release is
    unchanged. EVS cursors expire when their pinned release is withdrawn. The CLI's one-page
-   `search_with_truncation` instead reports an exact count of omitted concepts.
+   `search_snapshot` instead reports an exact count of omitted concepts.
    An empty result carries provenance for its selected source.
 
 ### CLI lookup and the concept resource

@@ -152,6 +152,8 @@ class DocumentationTest(unittest.TestCase):
                     self.assertIsNone(actual)
                 elif isinstance(actual, tuple):
                     self.assertEqual(default.strip("`"), ",".join(actual))
+                elif isinstance(actual, bool):
+                    self.assertEqual(default.strip("`"), str(int(actual)))
                 else:
                     self.assertEqual(type(actual)(default.strip("`")), actual)
 

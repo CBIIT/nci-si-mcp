@@ -361,7 +361,7 @@ update them when behaviour changes.
 every database access. `upsert_concepts` reads a consistent snapshot and checks
 compatibility before snapshot creation. Embeddings run outside transactions; each
 batch is written in a short transaction under a building manifest. Only completed builds activate.
-Sample activation checks that another writer has not changed the active build in the meantime.
+Sample activation checks that another writer has not changed the active build in the meantime; when it has, the new inactive build is deleted before the error is raised. Release mix and missing or duplicate codes are checked once, per batch, as fields are prepared. Model providers return float32 rows, which `vector_bytes` stores without Python floats.
 
 Schema 6 stores immutable builds keyed by an internal build id. Name, synonym and definition
 texts are deduplicated within each concept and embedded separately. Activation retains only
@@ -382,7 +382,10 @@ even a same-release replacement expires them. Count, page and provenance share o
 
 `traverse_ncit` walks all start codes one depth at a time, so nearer nodes claim the node and edge
 limits first whatever the order of start codes and edge types. Each depth is read with batched
-`get_concepts_by_codes` requests whose `include` names only the selected relation lists. Walks
+`get_concepts_by_codes` requests whose `include` names only the selected relation lists; each
+batch is cut down to the keys the walk uses as it is extracted, so a frontier's memory follows
+the node and edge limits, not the response sizes. One table (`EDGE_KINDS`) says, per edge type,
+the relation list, direction, include flag and whether it is a hierarchy link. Walks
 that follow inverse roles or inverse associations use batches of 10, because those lists run to
 megabytes for hub concepts; a batch that exceeds the response limit is halved, and a single
 concept that still exceeds it is kept unexpanded and counted against the `upstream_cap` bound of

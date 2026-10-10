@@ -93,10 +93,20 @@ def _require_seconds(name: str, value: float) -> None:
         raise ValueError(f"{name} must be greater than zero and at most {MAX_SECONDS}")
 
 
+MIN_SECRET_LENGTH = 8
+
+
 def _require_role_codes(name: str, codes: tuple[str, ...]) -> None:
     # Only the form is checked: the release's relationship catalogue is not built yet.
     if not codes or not all(ROLE_CODE_RE.fullmatch(code) for code in codes):
         raise ValueError(f"{name} must be a comma-separated list of role codes such as R135")
+
+
+def _require_redactable(name: str, secret: str) -> None:
+    # Audit redaction replaces the secret as a substring of every log record; a short one
+    # would mangle unrelated output.
+    if len(secret) < MIN_SECRET_LENGTH:
+        raise ValueError(f"{name} must hold a secret of at least {MIN_SECRET_LENGTH} characters")
 
 
 def _require_licence_key(key: str | None) -> None:
@@ -105,6 +115,7 @@ def _require_licence_key(key: str | None) -> None:
         return
     if not (key and key.isascii() and key.isprintable() and not any(c.isspace() for c in key)):
         raise ValueError("NCI_SI_EVS_LICENSE_KEY must be a key without whitespace")
+    _require_redactable("NCI_SI_EVS_LICENSE_KEY", key)
 
 
 def _require_credential(credential: str | None) -> None:
@@ -113,6 +124,7 @@ def _require_credential(credential: str | None) -> None:
     user, colon, password = credential.partition(":")
     if not (colon and user and password and credential.isprintable()):
         raise ValueError("NCI_SI_CADSR_CREDENTIAL must have the form user:password")
+    _require_redactable("NCI_SI_CADSR_CREDENTIAL", password)
 
 
 def _resolve_base_urls(settings: Settings) -> None:
@@ -144,6 +156,13 @@ def _env_number[Number: (int, float)](
     except ValueError:
         kind = "an integer" if cast is int else "a number"
         raise ValueError(f"{name} must be {kind}, not {value!r}") from None
+
+
+def _env_flag(name: str) -> bool:
+    value = os.getenv(name, "0")
+    if value not in ("0", "1"):
+        raise ValueError(f"{name} must be 0 or 1, not {value!r}")
+    return value == "1"
 
 
 def _env_optional(name: str) -> str | None:
@@ -197,7 +216,6 @@ def _require_http(settings: Settings) -> None:
         raise ValueError("NCI_SI_HTTP_HOST must be a bind address")
     _require_between("NCI_SI_HTTP_PORT", settings.http_port, 1, 65535)
     _require_between("NCI_SI_HTTP_MAX_REQUEST_BYTES", settings.http_max_request_bytes, 1, 1024**3)
-    _require_between("NCI_SI_HTTP_REQUIRE_INDEX", settings.http_require_index, 0, 1)
     _require_authorities("NCI_SI_HTTP_ALLOWED_HOSTS", settings.http_allowed_hosts, origin=False)
     _require_authorities("NCI_SI_HTTP_ALLOWED_ORIGINS", settings.http_allowed_origins, origin=True)
 
@@ -260,7 +278,7 @@ class Settings:
     http_max_request_bytes: int = 4 * 1024 * 1024
     http_allowed_hosts: tuple[str, ...] = DEFAULT_HTTP_HOSTS
     http_allowed_origins: tuple[str, ...] = DEFAULT_HTTP_ORIGINS
-    http_require_index: int = 0
+    http_require_index: bool = False
     http_auth_mode: str = "trusted-local"
     http_auth_factory: str | None = None
 
@@ -329,7 +347,7 @@ class Settings:
             http_max_request_bytes=_env_number("NCI_SI_HTTP_MAX_REQUEST_BYTES", "4194304", int),
             http_allowed_hosts=_env_list("NCI_SI_HTTP_ALLOWED_HOSTS", DEFAULT_HTTP_HOSTS),
             http_allowed_origins=_env_list("NCI_SI_HTTP_ALLOWED_ORIGINS", DEFAULT_HTTP_ORIGINS),
-            http_require_index=_env_number("NCI_SI_HTTP_REQUIRE_INDEX", "0", int),
+            http_require_index=_env_flag("NCI_SI_HTTP_REQUIRE_INDEX"),
             http_auth_mode=os.getenv("NCI_SI_HTTP_AUTH_MODE", "trusted-local"),
             http_auth_factory=_env_optional("NCI_SI_HTTP_AUTH_FACTORY"),
         )

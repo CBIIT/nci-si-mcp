@@ -7,6 +7,7 @@ from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.errors import (
     IndexBuildError,
     IndexCompatibilityError,
+    IndexStateError,
     IndexStorageError,
     PlatformError,
     correlated,
@@ -45,6 +46,27 @@ class BuildLifecycleTest(IndexTestCase):
         self.assertEqual(index.get_active_manifest().build_id, other.build_id)
         with self.assertRaisesRegex(IndexBuildError, "unavailable"):
             index.search_build(candidate.build_id, "neoplasm", self.provider)
+
+    def test_a_sample_whose_activation_check_fails_leaves_no_inactive_snapshot(self):
+        index = self.build()
+        active = index.get_active_manifest()
+        other = index.build([dict(RAW_CONCEPTS[0], code="C888")], None, self.provider)
+        embed = self.provider.embed
+
+        def activate_during_sample(texts):
+            index.activate(other.build_id)
+            return embed(texts)
+
+        with (
+            patch.object(self.provider, "embed", side_effect=activate_during_sample),
+            self.assertRaisesRegex(IndexStateError, "changed during sample indexing"),
+        ):
+            index.upsert_concepts([dict(RAW_CONCEPTS[0], code="C777")], None, self.provider)
+
+        self.assertEqual(
+            {build.build_id for build in index.list_builds()}, {active.build_id, other.build_id}
+        )
+        self.assertEqual(index.get_active_manifest().build_id, other.build_id)
 
     def test_candidate_search_requires_completed_compatible_build_without_active_index(self):
         index = LocalIndex(self.path)
@@ -111,7 +133,7 @@ class BuildLifecycleTest(IndexTestCase):
         with patch.object(self.provider, "embed", side_effect=write_during_second_batch):
             built = index.build(rows, None, self.provider)
         self.assertEqual(built.concept_count, 65)
-        self.assertIsNotNone(index.get_concept("C999"))
+        self.assertIsNotNone(index.get_concept_snapshot("C999")[1])
         self.assertFalse(built.active)
         self.assertEqual(list(self.path.glob("build-*.sqlite3")), [])
 
@@ -244,11 +266,11 @@ class BuildLifecycleTest(IndexTestCase):
 
         self.assertFalse(built.active)
         self.assertEqual(index.get_active_manifest(), old)
-        self.assertEqual(index.get_concept("C3262").preferred_name, "Neoplasm")
+        self.assertEqual(index.get_concept_snapshot("C3262")[1].preferred_name, "Neoplasm")
         index.activate(built.build_id)
-        self.assertEqual(index.get_concept("C3262").preferred_name, "Changed Name")
+        self.assertEqual(index.get_concept_snapshot("C3262")[1].preferred_name, "Changed Name")
         index.activate(old.build_id)
-        self.assertEqual(index.get_concept("C3262").preferred_name, "Neoplasm")
+        self.assertEqual(index.get_concept_snapshot("C3262")[1].preferred_name, "Neoplasm")
 
     def test_third_activation_keeps_only_active_and_previous_build(self):
         index = self.build()
@@ -264,7 +286,9 @@ class BuildLifecycleTest(IndexTestCase):
         with self.assertRaises(IndexBuildError):
             index.activate(first.build_id)
         index.activate(second.build_id)
-        self.assertEqual(index.get_concept("C40704").preferred_name, RAW_CONCEPTS[0]["name"])
+        self.assertEqual(
+            index.get_concept_snapshot("C40704")[1].preferred_name, RAW_CONCEPTS[0]["name"]
+        )
 
     def test_invalid_build_keeps_active_snapshot(self):
         index = self.build()
@@ -274,7 +298,7 @@ class BuildLifecycleTest(IndexTestCase):
             index.build([], None, self.provider)
 
         self.assertEqual(index.get_active_manifest(), active)
-        self.assertEqual(index.get_concept("C3262").preferred_name, "Neoplasm")
+        self.assertEqual(index.get_concept_snapshot("C3262")[1].preferred_name, "Neoplasm")
 
 
 class FieldSearchTest(IndexTestCase):
