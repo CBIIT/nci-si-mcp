@@ -25,13 +25,13 @@ def test_probe(case):
 """
 
 
-def produce(compliant, *options, body="assert case != 0"):
+def produce(compliant, *options, body="assert case != 0", workers=2):
     (compliant.path / "tests/test_completion.py").write_text(PROBE.format(body=body))
     report = compliant.path / "report.json"
     result = compliant.runpytest_subprocess(
         "tests/test_completion.py",
         "-n",
-        "2",
+        str(workers),
         "-p",
         "no:cacheprovider",
         "-p",
@@ -67,16 +67,29 @@ def test_two_workers_record_selected_count_and_accept_complete_failures(complian
     assert "| `get_form` | cadsr | FAIL |" in rendered.stdout
 
 
-def test_two_workers_refuse_an_early_stop_even_with_status_one(compliant):
+def test_two_workers_refuse_an_early_stop_with_status_two(compliant):
     result, path, report = produce(compliant, "-x")
 
     refused = command("report", path)
     assert "incomplete run; re-run it" in refused.stderr
     assert refused.returncode != 0
     assert "Tests run and not passing:" not in refused.stdout
-    assert result.ret == 1
+    assert result.ret == pytest.ExitCode.INTERRUPTED
     assert report["run"]["selected"] == SELECTED
     assert report["run"]["finished"] < SELECTED
+
+
+def test_serial_early_stop_is_refused_even_with_status_one(compliant):
+    result, path, report = produce(compliant, "-x", workers=0)
+
+    refused = command("report", path)
+    assert "incomplete run; re-run it" in refused.stderr
+    assert refused.returncode != 0
+    assert "Tests run and not passing:" not in refused.stdout
+    assert result.ret == 1
+    assert report["run"]["exit_status"] == 1
+    assert report["run"]["selected"] == SELECTED
+    assert report["run"]["finished"] == 1
 
 
 def test_a_restarted_worker_crash_cannot_become_a_complete_run(compliant):
