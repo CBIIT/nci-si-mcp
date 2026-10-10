@@ -104,7 +104,8 @@ the server gets, its upstream base URLs and a fresh `NCI_SI_DATA_DIR`. The file 
 `NCI_SI_ACCEPTANCE_INDEX_CODES` names holds the index set, one code per line: every concept the
 fixture set records at an include that holds its summary. Every server then
 starts from a copy of that data directory. A test marked `prepared` needs it and is NOT RUN
-without the command; a command that fails, or whose requests find no fixture, ends the run.
+without the command; a command that fails, or whose requests find no fixture, fails every
+dependent test with its reason. Other tests continue, including on parallel workers.
 For this server it builds the interim NCIt index, in under a second and under a MB with the
 default hashing embedder:
 
@@ -143,8 +144,10 @@ index of a remote server are specified once, in the specification's §5
 does not repeat them. What the operator needs at a glance: set the fixture server's base URLs and
 `NCI_SI_UPSTREAM_MODE` as the harness prints them, give the state hook for the tests that need a
 server of their own (without it they count as not run, so their tool is never PASS), and prepare the
-index and declare it with `NCI_SI_ACCEPTANCE_PREPARED=1`. The harness stops at once on an HTTP 401 or
-403 while it waits for the endpoint.
+index and declare it with `NCI_SI_ACCEPTANCE_PREPARED=1`. A failed initial probe or state change
+fails every dependent test; a failed scenario state change fails the test that needed it.
+The endpoint wait ends at once on an HTTP 401 or 403. Failures retain their diagnostic reason,
+with credentials withheld, rather than aborting the run or counting as `not_live`.
 
 ## The report
 
