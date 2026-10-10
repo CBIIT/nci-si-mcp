@@ -258,7 +258,7 @@ def test_the_state_hook_gives_scenario_and_own_server_tests_a_server_of_their_ow
     ]
 
 
-def test_a_run_ends_at_once_when_the_server_does_not_reach_the_fixture_server(
+def test_dependent_tests_fail_when_the_server_does_not_reach_the_fixture_server(
     remote, monkeypatch, stub
 ):
     elsewhere = free_port()
@@ -268,17 +268,21 @@ def test_a_run_ends_at_once_when_the_server_does_not_reach_the_fixture_server(
 
     assert result.ret == 1
     result.stdout.fnmatch_lines(["*the server under test does not reach the fixture server*"])
-    assert report["tests"] == {}
+    assert outcomes_of(report) == {TOOLS_LIST.partition("::")[2]: "failed"}
 
 
-def test_a_run_ends_at_once_when_the_server_does_not_answer(remote, monkeypatch):
+def test_every_dependent_test_fails_when_the_server_does_not_answer(remote, monkeypatch):
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_URL", f"http://127.0.0.1:{free_port()}/mcp")
 
-    result, report = remote(TOOLS_LIST)
+    result, report = remote(TOOLS_LIST, "tests/test_echo.py")
 
+    assert outcomes_of(report) == {
+        TOOLS_LIST.partition("::")[2]: "failed",
+        "test_echo": "failed",
+        "test_echo_token": "failed",
+    }
     assert result.ret == 1
     result.stdout.fnmatch_lines(["*the server under test does not answer (*"])
-    assert report["tests"] == {}
 
 
 def test_a_live_run_only_needs_the_server_to_answer(remote, monkeypatch):
@@ -325,7 +329,7 @@ def test_a_server_that_asks_the_fixture_server_while_the_hook_starts_it_passes_t
     assert outcomes_of(report) == {TOOLS_LIST.partition("::")[2]: "passed"}
 
 
-def test_requests_without_a_fixture_while_the_hook_starts_the_server_end_the_run(
+def test_requests_without_a_fixture_while_the_hook_starts_the_server_fail_dependent_tests(
     remote, monkeypatch
 ):
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_STATE_HOOK", fetches_at_startup("/api/v1/nothing"))
@@ -336,7 +340,21 @@ def test_requests_without_a_fixture_while_the_hook_starts_the_server_end_the_run
     result.stdout.fnmatch_lines(
         ["*upstream requests without a fixture while the server started:*", "*/api/v1/nothing*"]
     )
-    assert report["tests"] == {}
+    assert outcomes_of(report) == {TOOLS_LIST.partition("::")[2]: "failed"}
+
+
+def test_a_failed_scenario_state_change_is_reported_for_its_test(remote, monkeypatch):
+    command = 'if [ -n "$NCI_SI_ACCEPTANCE_SCENARIOS" ]; then echo "state unavailable"; exit 3; fi'
+    monkeypatch.setenv("NCI_SI_ACCEPTANCE_STATE_HOOK", command)
+
+    result, report = remote(TOOLS_LIST, UNKNOWN_RELEASE)
+
+    assert outcomes_of(report) == {
+        TOOLS_LIST.partition("::")[2]: "passed",
+        UNKNOWN_RELEASE.partition("::")[2]: "failed",
+    }
+    assert result.ret == 1
+    result.stdout.fnmatch_lines(["*state unavailable*"])
 
 
 def test_a_remote_server_is_tested_by_one_process(remote):
@@ -404,13 +422,13 @@ def test_the_hook_gets_the_fixture_and_scenario_settings_but_none_of_the_develop
     assert "NCI_SI_ACCEPTANCE_AUTHORIZATION" not in given
 
 
-def test_a_state_hook_that_fails_ends_the_run_with_what_it_said_less_the_credential(
+def test_a_state_hook_that_fails_fails_the_test_with_what_it_said_less_the_credential(
     stub, tmp_path, monkeypatch
 ):
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_AUTHORIZATION", CREDENTIAL)
     command = f'echo "told {CREDENTIAL}, has [$NCI_SI_ACCEPTANCE_AUTHORIZATION]"; exit 3'
 
-    with pytest.raises(pytest.exit.Exception) as ended:
+    with pytest.raises(pytest.fail.Exception) as ended:
         hook_for(stub, tmp_path, command).apply(("a/one",), {})
 
     said = ended.value.msg
@@ -418,15 +436,15 @@ def test_a_state_hook_that_fails_ends_the_run_with_what_it_said_less_the_credent
     assert "told [authorization withheld], has []" in said
 
 
-def test_a_state_hook_that_does_not_return_ends_the_run(stub, tmp_path):
-    with pytest.raises(pytest.exit.Exception, match=r"did not return within 0\.3 s"):
+def test_a_state_hook_that_does_not_return_fails_the_test(stub, tmp_path):
+    with pytest.raises(pytest.fail.Exception, match=r"did not return within 0\.3 s"):
         hook_for(stub, tmp_path, "sleep 5", timeout=0.3).apply(("a/one",), {})
 
 
-def test_a_server_that_does_not_come_back_ends_the_run(tmp_path):
+def test_a_server_that_does_not_come_back_fails_the_test(tmp_path):
     gone = Stub(f"http://127.0.0.1:{free_port()}/mcp", 0, {}, tmp_path, tmp_path)
 
-    with pytest.raises(pytest.exit.Exception, match=r"does not answer \(nothing within 0\.3 s\)"):
+    with pytest.raises(pytest.fail.Exception, match=r"does not answer \(nothing within 0\.3 s\)"):
         hook_for(gone, tmp_path, "true", timeout=0.3).apply(("a/one",), {})
 
 
@@ -439,18 +457,18 @@ def test_the_configured_timeout_ends_the_wait_for_a_server_that_takes_the_connec
         taking = Stub(f"http://127.0.0.1:{silent.getsockname()[1]}/mcp", 0, {}, tmp_path, tmp_path)
         started = time.monotonic()
 
-        with pytest.raises(pytest.exit.Exception, match=r"nothing within 1 s\) after the state"):
+        with pytest.raises(pytest.fail.Exception, match=r"nothing within 1 s\) after the state"):
             hook_for(taking, tmp_path, "true", timeout=1).apply(("a/one",), {})
 
     assert time.monotonic() - started < PROMPTLY_SECONDS
 
 
-def test_a_server_that_refuses_the_credential_ends_the_run_at_once_naming_the_status_only(
+def test_a_server_that_refuses_the_credential_fails_the_test_at_once_naming_the_status_only(
     stub, tmp_path
 ):
     started = time.monotonic()
 
-    with pytest.raises(pytest.exit.Exception) as ended:
+    with pytest.raises(pytest.fail.Exception) as ended:
         hook_for(stub, tmp_path, "true", timeout=30, authorization="Bearer wrong").apply(
             ("a/one",), {}
         )
@@ -528,13 +546,13 @@ def test_a_server_that_asks_the_fixture_server_passes_the_probe_and_leaves_its_l
 def test_a_server_that_asks_nothing_of_the_fixture_server_fails_the_probe(stub):
     with (
         FixtureServer(FixtureSet({}, {}), ("127.0.0.1", free_port())) as upstream,
-        pytest.raises(pytest.exit.Exception, match="does not reach the fixture server"),
+        pytest.raises(pytest.fail.Exception, match="does not reach the fixture server"),
     ):
         probe(stub.url, CREDENTIAL, upstream, PINNED)
 
 
 def test_a_server_that_gives_no_answer_fails_the_probe_without_its_message(stub):
-    with pytest.raises(pytest.exit.Exception) as ended:
+    with pytest.raises(pytest.fail.Exception) as ended:
         probe(f"http://127.0.0.1:{free_port()}/mcp", CREDENTIAL, None, PINNED)
 
     assert ended.value.msg.startswith("the server under test does not answer (")
@@ -558,7 +576,7 @@ def test_a_request_to_the_fixture_server_before_the_probe_does_not_pass_it(stub)
     with FixtureServer(FixtureSet({}, {}), ("127.0.0.1", free_port())) as upstream:
         assert reached_directly(upstream)
 
-        with pytest.raises(pytest.exit.Exception, match="does not reach the fixture server"):
+        with pytest.raises(pytest.fail.Exception, match="does not reach the fixture server"):
             probe(stub.url, CREDENTIAL, upstream, PINNED)
 
 
@@ -569,16 +587,16 @@ def test_what_the_server_asked_while_it_started_counts_as_reaching_the_fixture_s
         assert upstream.log() == []
 
 
-def test_requests_without_a_fixture_while_the_server_started_end_the_run_when_probed(stub):
+def test_requests_without_a_fixture_while_the_server_started_fail_the_probe(stub):
     with FixtureServer(FixtureSet({}, {}), ("127.0.0.1", free_port())) as upstream:
         startup = reached_directly(upstream)
 
-        with pytest.raises(pytest.exit.Exception, match="without a fixture while the server star"):
+        with pytest.raises(pytest.fail.Exception, match="without a fixture while the server star"):
             probe(stub.url, CREDENTIAL, upstream, PINNED, startup)
 
 
 def test_a_server_that_refuses_the_credential_fails_the_probe_naming_only_the_status(stub):
-    with pytest.raises(pytest.exit.Exception) as ended:
+    with pytest.raises(pytest.fail.Exception) as ended:
         probe(stub.url, "Bearer wrong", None, PINNED)
 
     assert ended.value.msg == "the server under test does not answer (HTTP 401)"
