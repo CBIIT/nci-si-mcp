@@ -18,6 +18,13 @@ from nci_si_acceptance.report import RANK
 def report(tests, mode):
     return {
         "mode": mode,
+        "transport": "stdio",
+        "run": {
+            "exit_status": 1,
+            "selected": len(tests),
+            "finished": len(tests),
+            "worker_crashes": 0,
+        },
         "tests": {nodeid: {"tool": "get_form", "outcome": tests[nodeid]} for nodeid in tests},
     }
 

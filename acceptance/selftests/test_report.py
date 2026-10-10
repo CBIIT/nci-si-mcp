@@ -208,6 +208,12 @@ def run(outcomes, tests=None):
     return {
         "mode": "fixture",
         "transport": "stdio",
+        "run": {
+            "exit_status": 0,
+            "selected": len(tests or {}),
+            "finished": len(tests or {}),
+            "worker_crashes": 0,
+        },
         "failed_gates": [],
         "unrun_gates": [],
         "tools_list_bytes": None,
@@ -476,13 +482,15 @@ def test_what_a_worker_noted_of_the_server_reaches_the_controller_once():
     worker = Collector()
     worker.note_tools(SimpleNamespace(implemented=lambda name: True, listing_bytes=4096))
     output = {}
-    worker.pytest_sessionfinish(SimpleNamespace(config=SimpleNamespace(workeroutput=output)))
+    worker.pytest_sessionfinish(
+        SimpleNamespace(config=SimpleNamespace(workeroutput=output), testscollected=0), 0
+    )
     controller = Collector()
 
-    controller.pytest_testnodedown(SimpleNamespace(workeroutput=output))
-    controller.pytest_testnodedown(SimpleNamespace(workeroutput={}))
+    controller.pytest_testnodedown(SimpleNamespace(workeroutput=output), None)
+    controller.pytest_testnodedown(SimpleNamespace(workeroutput={}), None)
     controller.pytest_testnodedown(
-        SimpleNamespace(workeroutput={WORKER_TOOLS: {"implemented": {}, "listing_bytes": 1}})
+        SimpleNamespace(workeroutput={WORKER_TOOLS: {"implemented": {}, "listing_bytes": 1}}), None
     )
 
     assert (controller.listing_bytes, controller.implemented) == (
@@ -494,6 +502,8 @@ def test_what_a_worker_noted_of_the_server_reaches_the_controller_once():
 def test_a_worker_that_started_no_server_forwards_nothing():
     output = {}
 
-    Collector().pytest_sessionfinish(SimpleNamespace(config=SimpleNamespace(workeroutput=output)))
+    Collector().pytest_sessionfinish(
+        SimpleNamespace(config=SimpleNamespace(workeroutput=output), testscollected=0), 0
+    )
 
     assert output == {}
