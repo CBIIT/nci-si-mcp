@@ -40,14 +40,16 @@ class ContainerTest(ServerFixture):
     def test_an_index_built_for_another_model_stops_startup_naming_the_index(self):
         logging.disable(logging.NOTSET)
         self.index()
-        other_model = types.SimpleNamespace(name="sentence-transformers", model="other")
         wrong = replace(
             self.settings, embedding_provider="sentence-transformers", embedding_model="other"
         )
         with (
             patch.object(container_entry.Settings, "from_env", return_value=wrong),
             patch.object(container_entry, "configure_logging"),
-            patch.object(container_entry, "SentenceTransformersProvider", return_value=other_model),
+            # The image has no cache for the other model: the index check must come first.
+            patch.object(
+                container_entry, "SentenceTransformersProvider", side_effect=OSError("not cached")
+            ),
             patch.object(container_entry, "run_http") as serve,
             self.assertLogs("nci_si_mcp.container_entry", level="ERROR") as logs,
         ):
