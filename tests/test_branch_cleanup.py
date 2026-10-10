@@ -71,6 +71,7 @@ class BranchCleanupTest(unittest.TestCase):
             "issue/nested/merged": self.head,
             "issue/unmerged": self.unmerged,
             "feature/keep": self.head,
+            "milestone/other": self.head,
             "milestone/phase-test": self.head,
         }
         for name, tip in self.refs.items():
@@ -136,6 +137,7 @@ class BranchCleanupTest(unittest.TestCase):
             {
                 "main": self.unmerged,
                 "feature/keep": self.head,
+                "milestone/other": self.head,
                 "issue/unmerged": self.unmerged,
             },
         )
@@ -146,8 +148,8 @@ class BranchCleanupTest(unittest.TestCase):
         self.assertIn(f"| Kept | <code>issue/unmerged</code> | {self.unmerged} |", summary)
         self.assertNotIn("feature/keep", summary)
 
-    def test_missing_or_advanced_milestone_is_not_deleted(self):
-        for tip in (None, self.unmerged):
+    def test_only_the_exact_milestone_tip_is_deleted(self):
+        for tip in (None, self.unmerged, self.base):
             with self.subTest(tip=tip):
                 if tip is None:
                     self.git(
