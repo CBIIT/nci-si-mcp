@@ -1,3 +1,4 @@
+import copy
 import tempfile
 import unittest
 from functools import partial
@@ -453,6 +454,20 @@ class TraverseTest(HandlerTestCase):
 
         self.assert_error(result, "not_found")
         self.assertEqual(result["error"]["details"], {"identifiers": ["C998", "C999"]})
+
+    def test_relation_licence_text_is_passed_through_and_a_malformed_one_is_refused(self):
+        # The fixture concept is shared by every test; the walk reads this private copy.
+        self.evs.concepts["C3262"] = copy.deepcopy(self.evs.concepts["C3262"])
+        role = self.evs.concepts["C3262"]["roles"][0]
+
+        role["licenseText"] = "Upstream edge licence"
+        result = invoke(self.context, "traverse", ["C3262"], max_depth=1, edge_types=["Role"])
+        self.assertEqual(result["edges"][0]["provenance"]["attribution"], "Upstream edge licence")
+
+        role["licenseText"] = 7
+        result = invoke(self.context, "traverse", ["C3262"], max_depth=1, edge_types=["Role"])
+        self.assert_error(result, "upstream_unavailable")
+        self.assertEqual(result["error"]["details"]["surface"], "evs")
 
     def test_failures_use_the_matching_error_code(self):
         self.assert_error(invoke(self.context, "traverse", ["C999"]), "not_found")

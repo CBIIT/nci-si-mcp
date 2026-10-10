@@ -138,7 +138,8 @@ def validate_ncit_code(code: str, parameter: str = "code") -> str:
     normalized = str(code or "").strip().upper()
     if not NCIT_CODE_RE.fullmatch(normalized):
         raise InputValidationError(
-            f"NCIt code must have the form C followed by digits, not {str(code)[:40]!r}",
+            "NCIt code must have the form C followed by digits with no leading zero, "
+            f"not {str(code)[:40]!r}",
             parameter,
         )
     return normalized

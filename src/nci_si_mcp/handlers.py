@@ -350,7 +350,7 @@ def _indexed_concept_uri(context: Context, concept: NcitConcept) -> str:
 def lookup(
     context: Context, code: str, live_only: bool = False, include_raw: bool = False
 ) -> dict[str, Any]:
-    """Look up one NCIt concept by code (C followed by digits) in live EVS.
+    """Look up one NCIt concept by code (C followed by digits, no leading zero) in live EVS.
 
     The request is pinned to the current release of the configured channel
     (`NCI_SI_RELEASE_CHANNEL`, monthly by default), resolved afresh for this call and

@@ -240,6 +240,7 @@ class ContentMutationTest(CaDSRFixture):
             ("get_form", {"publicId": "123"}),
             ("match_data_elements", {"entities": [{"name": "Q"}]}),
             ("match_value_meanings", {"values": ["Q"]}),
+            ("ground_value", {"conceptCode": "C1"}),
         ):
             server = self.serve(reply({"registryReleases": [PIN]}))
             error = self.call(server, tool, registryRelease="26.1", **args)["error"]
