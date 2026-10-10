@@ -20,6 +20,8 @@ class HTTPRunnerLifecycleTest(unittest.TestCase):
         self.directory = Path(directory.name)
         self.report = self.directory / "report.json"
         self.valid = {
+            "mode": "fixture",
+            "run": {"exit_status": 0, "selected": 5, "finished": 5, "worker_crashes": 0},
             "transport": "streamable-http",
             "failed_gates": [],
             "tests": {name: {"outcome": "skipped"} for name in runner.UNPREPARED}
@@ -61,6 +63,14 @@ class HTTPRunnerLifecycleTest(unittest.TestCase):
         incomplete = self.valid | {"tests": {"required-case": {"outcome": "passed"}}}
         self.assertEqual(self.run_with(incomplete, 0), 1)
         self.assertEqual(self.run_with(self.valid, 0), 0)
+
+    def test_zero_exit_cannot_override_an_incomplete_report_or_a_worker_crash(self):
+        for run in (
+            {"exit_status": 0, "selected": 6, "finished": 5, "worker_crashes": 0},
+            {"exit_status": 0, "selected": 5, "finished": 5, "worker_crashes": 1},
+        ):
+            with self.subTest(run=run):
+                self.assertEqual(self.run_with(self.valid | {"run": run}, 0), 1)
 
     def test_operator_report_and_environment_are_isolated_from_default_ci_output(self):
         private = self.directory / "operator.json"

@@ -72,7 +72,7 @@ def probe(
     pinned: dict[str, str],
     startup: Sequence[dict[str, Any]] = (),
 ) -> None:
-    """Stop the run unless the server answers and, in fixture mode, reaches the fixture server.
+    """Fail dependent tests unless the server answers and reaches the fixtures in fixture mode.
 
     The probe is a resolve_release call, which asks the platform for the current release; a
     server of a profile without that tool is only asked for its tools. The requests the server
@@ -87,7 +87,7 @@ def probe(
         asked = _ask(url, authorization, upstream, pinned, refused)
     except Exception as error:  # noqa: BLE001 - the type is shown, the message may hold secrets
         why = f"HTTP {refused[0]}" if refused else type(error).__name__
-        pytest.exit(f"{NOT_ANSWERING} ({why})", returncode=1)
+        pytest.fail(f"{NOT_ANSWERING} ({why})", pytrace=False)
     if upstream:
         _require_fixture_requests(upstream, asked, startup)
         upstream.reset()
@@ -97,9 +97,9 @@ def _require_fixture_requests(
     upstream: FixtureServer, asked: bool, startup: Sequence[dict[str, Any]]
 ) -> None:
     if unmatched := unmatched_requests(startup):
-        pytest.exit(str(UnmatchedUpstream(unmatched, " while the server started")), returncode=1)
+        pytest.fail(str(UnmatchedUpstream(unmatched, " while the server started")), pytrace=False)
     if asked and not (startup or upstream.log()):
-        pytest.exit(NOT_REACHING, returncode=1)
+        pytest.fail(NOT_REACHING, pytrace=False)
 
 
 def _ask(
@@ -201,15 +201,15 @@ class StateHook:
                     timeout=seconds,
                 )
             except subprocess.TimeoutExpired:
-                pytest.exit(f"the state hook did not return within {seconds:g} s", returncode=1)
+                pytest.fail(f"the state hook did not return within {seconds:g} s", pytrace=False)
         if ran.returncode:
             said = withhold_authorization(self._log.read_text(encoding="utf-8", errors="replace"))
-            pytest.exit(
+            pytest.fail(
                 f"the state hook failed with exit status {ran.returncode}:\n{said[-2000:]}",
-                returncode=1,
+                pytrace=False,
             )
         if why := wait_for_endpoint(self._url, self._authorization, seconds):
-            pytest.exit(f"{NOT_ANSWERING} ({why}) after the state change", returncode=1)
+            pytest.fail(f"{NOT_ANSWERING} ({why}) after the state change", pytrace=False)
         startup = tuple(self._upstream.log())
         self._upstream.reset()
         return startup

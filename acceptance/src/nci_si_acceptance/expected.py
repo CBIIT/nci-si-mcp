@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from nci_si_acceptance.record import FIXTURES
+from nci_si_acceptance.report import load_report
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -38,13 +39,6 @@ def outcomes_of(report: dict[str, Any]) -> dict[str, str]:
     """The outcome of every test of a fixture-mode report, by test id."""
 
     return {nodeid: test["outcome"] for nodeid, test in sorted(report["tests"].items())}
-
-
-def load_report(path: Path) -> dict[str, Any]:
-    report = json.loads(path.read_text(encoding="utf-8"))
-    if report.get("mode") != "fixture":
-        raise SystemExit(f"{path} is the report of a {report.get('mode')} run, not a fixture run")
-    return report
 
 
 def differences(expected: dict[str, str], actual: dict[str, str]) -> list[tuple[str, str, str]]:
@@ -73,7 +67,7 @@ def check(expected_path: Path, report_path: Path) -> tuple[int, str]:
     """The exit status and the Markdown that compare a report with the expected outcomes."""
 
     expected = json.loads(expected_path.read_text(encoding="utf-8"))
-    actual = outcomes_of(load_report(report_path))
+    actual = outcomes_of(load_report(report_path, "fixture"))
     found = differences(expected, actual)
     if not found:
         return 0, f"All {len(actual)} tests have the outcome expected.\n"
@@ -84,7 +78,7 @@ def check(expected_path: Path, report_path: Path) -> tuple[int, str]:
 def update(expected_path: Path, report_path: Path) -> int:
     """Rewrite the expected outcomes from a report; the number of tests written."""
 
-    written = outcomes_of(load_report(report_path))
+    written = outcomes_of(load_report(report_path, "fixture"))
     expected_path.parent.mkdir(parents=True, exist_ok=True)
     expected_path.write_text(json.dumps(written, indent=2) + "\n", encoding="utf-8")
     return len(written)

@@ -93,6 +93,14 @@ Missing cases have a null outcome.
 `inventory_complete` means all selected cases were recorded in a terminated completed/failed
 run; **it does not mean all passed or ran to a verdict**. Skipped cases and failed processes
 remain visible. With no report, counts and tools are null, not invented zeroes.
+Reports carrying `run` also require the shared `nci_si_acceptance.report.complete` predicate:
+status 0 or 1, no worker crash, and matching selected, finished and recorded-outcome counts.
+The native schema accepts its existing fields with or without `run`. Phase 5 recordings and
+older imports without `run` retain the independent selection-bound check alone; historical
+completion fields are never invented. Partial evidence can be projected without being complete.
+The run page shows tool verdicts only when `inventory_complete` is true. Otherwise it reports
+the number of selected cases without an outcome and explicitly withholds verdicts; recorded
+case outcomes remain visible, including when a crash leaves no cases missing.
 
 ### Benchmark projection and comparisons
 

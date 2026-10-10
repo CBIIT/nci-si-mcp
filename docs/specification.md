@@ -960,14 +960,15 @@ A remote server is tested over streamable HTTP, and the report records the trans
 operator sets the fixture server's base URLs and `NCI_SI_UPSTREAM_MODE`, which the harness prints
 at the start of a fixture-mode run. Before the first test the harness requires that the server
 answers and, against fixtures, that its `resolve_release` call reaches the fixture server;
-otherwise the run stops. For a profile without `resolve_release` (caDSR) the probe only calls
+otherwise every dependent test fails with the probe's reason. For a profile without `resolve_release` (caDSR) the probe only calls
 `tools/list`. The state-change hook is called with the name of a scenario set (in `NCI_SI_ACCEPTANCE_SCENARIOS`,
 the scenarios separated by commas, empty for none) and its settings, and its contract is: apply these settings and forget every upstream answer cached so far. A
 restart is the simplest implementation and satisfies it; an operator whose server can flush its
 cache and reread its settings may do that instead. It is called once for each distinct scenario
 set, before each test that needs a server of its own (one that no earlier call can have filled a
 cache of), before the probe, and at the end without settings. A test that needs such a state runs
-when the hook gives it; otherwise it is not run, and its tool is never PASS. A test that needs a
+when the hook gives it; a failed state change fails that test with its reason. Without a hook,
+it is not run, and its tool is never PASS. A test that needs a
 server without the index (`unprepared`) is always skipped against a remote server, which cannot
 be made one, and counts as not run. The harness never prepares a remote server: the operator
 indexes the concepts that `pdm run acceptance-index-codes` prints, one per line, and declares the

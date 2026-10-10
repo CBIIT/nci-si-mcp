@@ -15,7 +15,7 @@ The operator's prepare command, where one is given, runs once, before the first 
 starts a server, in the server's environment, with the codes of the index set listed in the file
 `NCI_SI_ACCEPTANCE_INDEX_CODES` names; every server then starts from a copy of the data
 directory it produced. A prepare command that fails, or whose requests find no fixture,
-ends the run.
+fails every test that depends on it, without aborting unrelated tests.
 """
 
 from __future__ import annotations
@@ -138,9 +138,9 @@ def remote_ready(
     state_hook: StateHook | None,
 ) -> None:
     """Before any test, a remote server is told what to reach, and is found to answer and,
-    against fixtures, to reach the fixture server; otherwise the run stops. Where the operator
-    gave a state-change hook, it runs first: a server that answers from a cache filled before
-    the run asks the fixture server nothing, and would fail the probe. What the server asks
+    against fixtures, to reach the fixture server; otherwise dependent tests fail. Where the
+    operator gave a state-change hook, it runs first: a server answering from a pre-run cache
+    asks the fixture server nothing and would fail the probe. What the server asks
     while the hook runs counts as reaching the fixture server."""
 
     if target.url is None:
@@ -190,17 +190,17 @@ def prepared(
     if upstream:
         upstream.reset()
     # The operator's own command line, as a shell runs it (the acceptance README); its output
-    # is kept for its failure, not charged to the first test that starts a server.
+    # is kept with the failure of every dependent test.
     ran = subprocess.run(  # noqa: S602
         target.prepare, shell=True, env=environment, check=False, capture_output=True, text=True
     )
     if ran.returncode:
         said = (ran.stdout + ran.stderr)[-2000:]
-        pytest.exit(
-            f"the prepare command failed with exit status {ran.returncode}:\n{said}", returncode=1
+        pytest.fail(
+            f"the prepare command failed with exit status {ran.returncode}:\n{said}", pytrace=False
         )
     if unmatched := unmatched_requests(_startup_requests(upstream)):
-        pytest.exit(str(UnmatchedUpstream(unmatched, " while preparing")), returncode=1)
+        pytest.fail(str(UnmatchedUpstream(unmatched, " while preparing")), pytrace=False)
     return data
 
 
