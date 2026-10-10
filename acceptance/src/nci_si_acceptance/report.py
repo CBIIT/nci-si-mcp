@@ -134,6 +134,9 @@ class Collector:
         self.listing_bytes: int | None = None
         # Set from the target at the end of the run; the default is the harness's original one.
         self.transport = "stdio"
+        self.finished: set[str] = set()
+        self.worker_crashes = 0
+        self.run: dict[str, int] | None = None
 
     # The collector is itself a plugin, so that it collects in the process that writes the
     # report: under xdist, the controller, which sees the workers' reports here and nothing
@@ -142,13 +145,27 @@ class Collector:
     def pytest_runtest_logreport(self, report: pytest.TestReport) -> None:
         self.record(report)
 
-    def pytest_sessionfinish(self, session: pytest.Session) -> None:
+    def pytest_runtest_logfinish(self, nodeid: str) -> None:
+        self.finished.add(nodeid)
+
+    @pytest.hookimpl(tryfirst=True)
+    def pytest_sessionfinish(self, session: pytest.Session, exitstatus: int) -> None:
+        # xdist sets the controller's testscollected from the workers' agreed collection.
+        # Record this before the suite's sessionfinish hook writes the report.
+        self.run = {
+            "exit_status": int(exitstatus),
+            "selected": session.testscollected,
+            "finished": len(self.finished),
+            "worker_crashes": self.worker_crashes,
+        }
         output = getattr(session.config, "workeroutput", None)  # set on an xdist worker only
         if (noted := self.noted_tools()) is not None and output is not None:
             output[WORKER_TOOLS] = noted
 
     @pytest.hookimpl(optionalhook=True)
-    def pytest_testnodedown(self, node: Any) -> None:
+    def pytest_testnodedown(self, node: Any, error: Any) -> None:
+        if error is not None:
+            self.worker_crashes += 1
         if noted := getattr(node, "workeroutput", {}).get(WORKER_TOOLS):
             self.merge_tools(noted)
 
@@ -207,6 +224,7 @@ class Collector:
         return {
             "mode": mode,
             "transport": self.transport,
+            "run": self.run,
             "failed_gates": gates,
             "unrun_gates": self._gates(UNRUN),
             "tools_list_bytes": self.listing_bytes,
@@ -402,13 +420,53 @@ def withheld(value: Any) -> Any:
     return value
 
 
-def _read(path: Path, mode: str) -> dict[str, Any]:
+def load_report(path: Path, mode: str) -> dict[str, Any]:
+    """Load a fresh run only when every selected test finished without a worker crash."""
     report = json.loads(path.read_text(encoding="utf-8"))
-    if "transport" not in report:
+    if "transport" not in report or "run" not in report:
         raise SystemExit(f"{path} was written by an older suite; re-run it")
     if report["mode"] != mode:
-        raise SystemExit(f"{path} is the report of a {report['mode']} run, not of a {mode} run")
+        expected = "a fixture run" if mode == "fixture" else "of a live run"
+        raise SystemExit(f"{path} is the report of a {report['mode']} run, not {expected}")
+    if not _complete(report):
+        raise SystemExit(f"{path} is an incomplete run; re-run it")
     return report
+
+
+def _complete(report: dict[str, Any]) -> bool:
+    run = report["run"]
+    if not isinstance(run, dict):
+        return False
+    fields = ("exit_status", "selected", "finished", "worker_crashes")
+    if not all(type(run.get(key)) is int and run[key] >= 0 for key in fields):
+        return False
+    return (
+        run["exit_status"] in (0, 1)
+        and run["worker_crashes"] == 0
+        and run["selected"] == run["finished"] == len(report["tests"])
+    )
+
+
+def drift(fixture: dict[str, Any], live: dict[str, Any]) -> int:
+    """Report fixture passes that fail live; inputs have passed the completion guard."""
+    if live["tests"].keys() != fixture["tests"].keys():
+        raise SystemExit("the fixture and live reports select different tests; re-run them")
+    changed = sorted(
+        test
+        for test, result in fixture["tests"].items()
+        if result["outcome"] == "passed" and live["tests"][test]["outcome"] in FAILED
+    )
+    sys.stdout.write(f"{len(changed)} tests pass on the fixtures and fail live.\n")
+    for test in changed:
+        sys.stdout.write(f"- `{test}`\n")
+    return int(bool(changed))
+
+
+def _live_report(fixture: dict[str, Any], path: Path) -> dict[str, Any]:
+    live = load_report(path, "live")
+    if live["suite"] != fixture["suite"]:
+        raise SystemExit("the fixture and live reports come from different suites")
+    return live
 
 
 def main(arguments: Iterable[str] | None = None) -> int:
@@ -416,12 +474,22 @@ def main(arguments: Iterable[str] | None = None) -> int:
     parser.add_argument("fixture", type=Path, help="the report of the fixture-mode run")
     parser.add_argument("--live", type=Path, help="the report of the live run")
     parser.add_argument("--limitations", type=Path, help="YAML: test id -> upstream requirement")
+    parser.add_argument("--check-complete", choices=("fixture", "live"), help="validate only")
+    parser.add_argument("--drift", action="store_true", help="fail on upstream drift")
     options = parser.parse_args(arguments)
-    fixture = _read(options.fixture, "fixture")
+    fixture = load_report(options.fixture, options.check_complete or "fixture")
+    if options.check_complete:
+        return 0
+    if options.drift and not options.live:
+        parser.error("--drift requires --live")
+    return _render_options(options, fixture)
+
+
+def _render_options(options: argparse.Namespace, fixture: dict[str, Any]) -> int:
     if options.live:
-        live = _read(options.live, "live")
-        if live["suite"] != fixture["suite"]:
-            raise SystemExit("the fixture and live reports come from different suites")
+        live = _live_report(fixture, options.live)
+        if options.drift:
+            return drift(fixture, live)
         limitations = {}
         if options.limitations:
             limitations = yaml.safe_load(options.limitations.read_text(encoding="utf-8")) or {}

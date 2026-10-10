@@ -193,6 +193,7 @@ def overview(
 
 def generate(root: Path = ROOT) -> dict[str, str]:
     catalogue = yaml.safe_load((root / DIRECTORY / "catalogue.yaml").read_text())
+    # Frozen snapshots checked by test-set identity, not fresh runs.
     fixture = json.loads((root / EVIDENCE / "acceptance-fixture.json").read_text())
     live = json.loads((root / EVIDENCE / "acceptance-live.json").read_text())
     validate_reports(fixture, live)

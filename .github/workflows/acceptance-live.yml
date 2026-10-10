@@ -43,8 +43,7 @@ jobs:
             echo "- EVS over IPv6 (curl -6): $(probe -6)"
           } > acceptance/network.md
           { echo "### Network location"; echo; cat acceptance/network.md; } >> "$GITHUB_STEP_SUMMARY"
-      # Pytest's exit status 0 and 1 are both a run (the outcomes are the result, here
-      # unratcheted); any other status, or a missing report, is a run that did not happen.
+      # Status 1 may mean failed tests or an early stop; completion comes from the report.
       - name: Run the suite against the fixtures
         env:
           NCI_SI_ACCEPTANCE_PREPARE: 'nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")'
@@ -55,6 +54,7 @@ jobs:
             echo "::error title=The fixture run did not finish::exit status ${status}, or no report."
             exit 1
           fi
+          pdm run python -m nci_si_acceptance.report acceptance/fixture.json --check-complete fixture
       # The credentials reach only this step, and through it only the server under test (the
       # suite hands a server nothing else of NCI_SI_*, and the credentials only in live mode).
       # A secret that is not set arrives as an empty variable, which the suite would take as
@@ -77,26 +77,15 @@ jobs:
             echo "::error title=The live run did not finish::exit status ${status}, or no report."
             exit 1
           fi
+          pdm run python -m nci_si_acceptance.report acceptance/live.json --check-complete live
       # Drift: a test that passes on the fixtures and fails live. A test that cannot run live
       # (not_live) or is skipped there is no drift.
       - name: Compare the live outcomes with the fixture outcomes
         run: |
-          pdm run python - <<'PY' > acceptance/drift.md
-          import json
-          fixture = json.load(open("acceptance/fixture.json"))["tests"]
-          live = json.load(open("acceptance/live.json"))["tests"]
-          drift = sorted(
-              test for test, result in fixture.items()
-              if result["outcome"] == "passed" and live.get(test, {}).get("outcome") in ("failed", "error")
-          )
-          print(f"{len(drift)} tests pass on the fixtures and fail live.")
-          print(*(f"- `{test}`" for test in drift), sep="\n")
-          PY
+          status=0
+          pdm run python -m nci_si_acceptance.report acceptance/fixture.json --live acceptance/live.json --drift > acceptance/drift.md || status=$?
           { echo "### Upstream drift"; echo; cat acceptance/drift.md; } >> "$GITHUB_STEP_SUMMARY"
-          if ! head -n 1 acceptance/drift.md | grep -q '^0 tests'; then
-            echo "::error title=Upstream drift::$(head -n 1 acceptance/drift.md) See the summary."
-            exit 1
-          fi
+          exit "$status"
       - name: Render the combined per-tool report
         if: always()
         run: |

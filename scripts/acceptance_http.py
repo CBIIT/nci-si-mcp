@@ -25,6 +25,7 @@ import yaml
 
 from nci_si_acceptance.client import server_environment, without_nci_si_settings
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
+from nci_si_acceptance.report import load_report
 from nci_si_acceptance.suite import index_set, unmatched_requests
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -199,7 +200,11 @@ def run_suite(
         stop(suite)
     if status or not output.exists():
         return 1
-    observed = json.loads(output.read_text())
+    try:
+        observed = load_report(output, "fixture")
+    except SystemExit as error:
+        print(error, file=sys.stderr)
+        return 1
     expected = set(json.loads((ACCEPTANCE / "expected/fixture.json").read_text()))
     return 0 if verdict(observed, expected) else 1
 

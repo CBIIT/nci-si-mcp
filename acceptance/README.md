@@ -166,12 +166,27 @@ Combined with a live report, a tool that
 passes against fixtures but fails live is PASS (fixture only) only when every failing live test
 has a documented upstream limitation (`--limitations`, YAML of test id to requirement).
 
+Each fresh report records `run.exit_status`, `run.selected` (the selected test count, agreed
+by workers under xdist), `run.finished` (tests whose execution, including teardown, finished),
+and `run.worker_crashes`. The shared report loader requires status 0 or 1, no worker crashes,
+and equal selected, finished and recorded-outcome counts. Complete failing or skipped runs
+are valid evidence; an early stop or recovered worker crash is not. Rendering, ratchet check
+and update, live drift checking and the HTTP acceptance runner all use this guard. Reports
+without these fields must be rerun. `--check-complete fixture` (or `live`) validates without
+rendering; `--live live.json --drift` reports fixture passes that fail live and exits nonzero.
+
+The frozen Phase 5 snapshots are the archival exception: `scripts/upstream_requirements.py`
+checks their identical, nonempty 944-test sets and suite digest itself. Their historical JSON
+is not given invented completion fields. This exception lasts for those recorded snapshots;
+new snapshots must come from guarded runs and carry completion fields.
+
 ## CI: the ratchet on expected outcomes
 
 The `acceptance` job of `.github/workflows/ci.yml` runs the suite in fixture mode against the
 server built from the checkout (`pdm run acceptance -n 4 --report=fixture.json` with the prepare
 step above), beside the `test` and `selftest` jobs and depending on none of them. Pytest's exit
-status 0 and 1 are both a run; any other status, or a missing report, fails the job. The verdict
+status 0 and 1 are eligible, but the report must also prove completion; any other status or a
+missing or incomplete report fails the job. The verdict
 is the comparison with [`expected/fixture.json`](expected/fixture.json), which maps the id of
 every test to its outcome (`passed`, `failed`, `no_fixture`, `skipped`, `not_implemented`,
 `not_live`: the report's own vocabulary) and holds nothing else, so a reworded failure is not a
