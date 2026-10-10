@@ -428,12 +428,13 @@ def load_report(path: Path, mode: str) -> dict[str, Any]:
     if report["mode"] != mode:
         expected = "a fixture run" if mode == "fixture" else "of a live run"
         raise SystemExit(f"{path} is the report of a {report['mode']} run, not {expected}")
-    if not _complete(report):
+    if not complete(report):
         raise SystemExit(f"{path} is an incomplete run; re-run it")
     return report
 
 
-def _complete(report: dict[str, Any]) -> bool:
+def complete(report: dict[str, Any]) -> bool:
+    """Whether a report's run metadata proves all selected tests finished without a crash."""
     run = report["run"]
     if not isinstance(run, dict):
         return False

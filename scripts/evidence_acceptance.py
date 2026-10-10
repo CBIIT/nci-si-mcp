@@ -9,7 +9,7 @@ from typing import Any
 
 from scripts.evidence_envelope import EvidenceError, decode_json, validate_envelope
 
-from nci_si_acceptance.report import FAILED, RANK, UNRUN, tool_outcome
+from nci_si_acceptance.report import FAILED, RANK, UNRUN, complete, tool_outcome
 
 _REPORT_FIELDS = {
     "mode",
@@ -91,7 +91,7 @@ def _selection(selected: Any, cases: dict[str, Any]) -> None:
 
 
 def _native_header(report: dict[str, Any], catalogue: dict[str, Any]) -> None:
-    fields(report, _REPORT_FIELDS)
+    require(isinstance(report, dict) and set(report) - {"run"} == _REPORT_FIELDS)
     require(report["mode"] in ("fixture", "live"))
     require(report["transport"] in ("stdio", "streamable-http"))
     fields(report["suite"], {"version", "fixture_set", "digest"})
@@ -187,6 +187,14 @@ def _case_rows(context: dict[str, Any], tests: dict[str, Any]) -> list[dict[str,
     ]
 
 
+def _inventory_complete(native: dict[str, Any], missing: list[str], state: str) -> bool:
+    return (
+        not missing
+        and state in ("completed", "failed")
+        and ("run" not in native or complete(native))
+    )
+
+
 def project_acceptance(
     envelope: bytes,
     report: bytes | None,
@@ -201,6 +209,9 @@ def project_acceptance(
     This is a local projection, not an authentication or public publication decision. The
     caller supplies snapshots from the recorded run, never substitutes the current checkout.
     A historical import without these snapshots remains unverified outside this adapter.
+    Reports with run metadata must also pass the harness's completion predicate. Older
+    imports without it retain the independent selection-bound completeness check alone;
+    no historical completion fields are invented. Partial evidence remains displayable.
     """
     record = validate_envelope(envelope, report)
     require(record["kind"] == "acceptance")
@@ -219,7 +230,7 @@ def project_acceptance(
     return record | {
         "mode": native.get("mode"),
         "transport": native.get("transport"),
-        "inventory_complete": not missing and record["state"] in ("completed", "failed"),
+        "inventory_complete": _inventory_complete(native, missing, record["state"]),
         "missing": missing,
         "cases": _case_rows(context, tests),
         "tools": tools,
