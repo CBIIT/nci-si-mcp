@@ -88,7 +88,8 @@ does not create a new attempt. By default only the newest 100 imports are retain
 <code>--retention</code> from 1 to 1,000. Pruned records are unavailable in this store.</p>
 </section>
 <section id="acceptance"><h2>Understand acceptance results</h2>
-<p>Tool verdicts preserve the acceptance harness's own decision. Individual cases show the
+<p>Tool verdicts are shown only for complete evidence and preserve the harness's own decision.
+Incomplete runs retain their recorded cases but show no tool verdict. Individual cases show the
 original expected outcome alongside the recorded outcome. An expected fixture result is a
 regression baseline, not a substitute for the requirement or proof of production correctness.</p>
 <p>A gate checks a shared requirement that can affect a tool verdict even when its ordinary
