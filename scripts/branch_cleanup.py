@@ -13,7 +13,7 @@ def run(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
         [shutil.which(args[0]) or args[0], *args[1:]],
         check=check,
         text=True,
-        capture_output=True,
+        stdout=subprocess.PIPE,
     )
 
 
