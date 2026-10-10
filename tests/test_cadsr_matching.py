@@ -129,42 +129,6 @@ class MatchingTest(ServerTestCase):
         self.assertEqual(result["matches"], [])
         self.assertEqual(result["provenance"]["release"], {"registry": "cadsr"})
 
-    def test_invalid_cde_inputs_never_reach_the_platform(self):
-        server = self.serve()
-        cases = [
-            ({"entities": []}, "entities"),
-            ({"entities": [{"name": "Q"}] * 11}, "entities"),
-            ({"entities": ["Q"]}, "entities"),
-            ({"entities": [{"name": ""}]}, "entities.name"),
-            ({"entities": [{"name": "Q", "unknown": "x"}]}, "entities"),
-            ({"entities": [{"name": "Q", "permissibleValues": "x"}]}, "entities.permissibleValues"),
-            ({"matchLimit": 0}, "matchLimit"),
-            ({"modelVariant": ""}, "modelVariant"),
-            ({"similarityThreshold": 0}, "similarityThreshold"),
-            ({"filters": []}, "filters"),
-            ({"filters": {"other": "x"}}, "filters"),
-            ({"filters": {"context": "a\nb"}}, "filters.context"),
-            ({"filters": {"context": "é"}}, "filters.context"),
-            (
-                {"filters": {"classificationScheme": {"publicId": "123"}}},
-                "filters.classificationScheme",
-            ),
-            (
-                {"filters": {"classificationScheme": {"publicId": "bad", "version": "1"}}},
-                "filters.classificationScheme",
-            ),
-            (
-                {"filters": {"classificationScheme": {"publicId": "123", "version": "bad"}}},
-                "filters.classificationScheme",
-            ),
-        ]
-        for overrides, parameter in cases:
-            with self.subTest(overrides=overrides):
-                result = self.call(server, **({"entities": [{"name": "Q"}]} | overrides))
-                self.assertEqual(result["error"]["code"], "invalid_request")
-                self.assertEqual(result["error"]["details"]["parameter"], parameter)
-        self.assertEqual(server.seen, [])
-
     def test_duplicate_entities_reuse_the_same_request_but_keep_both_result_positions(self):
         server = self.serve(reply(cde_response(matches=[cde_row()])))
         result = self.call(server, entities=[{"name": "Q"}, {"name": "Q"}])
@@ -292,24 +256,6 @@ class MatchingTest(ServerTestCase):
         self.assertNotIn("crosswalk", first)
         self.assertEqual(server.seen[0][1]["matchtype"], "Restricted")
         self.assertNotIn("evsterminologycodes", server.seen[0][1])
-
-    def test_vm_invalid_inputs_fail_before_requests(self):
-        server = self.serve()
-        for overrides in (
-            {"values": []},
-            {"values": ["Q"] * 11},
-            {"values": [""]},
-            {"strictness": "other"},
-            {"terminologyScope": []},
-            {"terminologyScope": "NCI"},
-            {"terminologyScope": ["NCI,SNOMED"]},
-        ):
-            with self.subTest(overrides=overrides):
-                result = self.call(
-                    server, "match_value_meanings", **({"values": ["Q"]} | overrides)
-                )
-                self.assertEqual(result["error"]["code"], "invalid_request")
-        self.assertEqual(server.seen, [])
 
     def test_vm_preserves_platform_group_order_and_checks_every_requested_occurrence(self):
         groups = [

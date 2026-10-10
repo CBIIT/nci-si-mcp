@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from fakes import FakeEVS, concept, release, terminology_row
 from nci_si_mcp import invocation as invocation_module
+from nci_si_mcp.bounds import RequestBudgetError
 from nci_si_mcp.config import Settings
 from nci_si_mcp.context import Context
 from nci_si_mcp.embeddings import HashingEmbeddingProvider
@@ -23,18 +24,22 @@ from nci_si_mcp.evs import (
     LICENSE_KEY_HEADER,
     LOOKUP_INCLUDE,
     EVSClient,
+    EVSError,
     EVSNotFoundError,
     EVSReleaseMismatchError,
     EVSReleaseNotFoundError,
     EVSResponseError,
 )
 from nci_si_mcp.http_client import (
+    UpstreamError,
+    UpstreamRejectedError,
     UpstreamTimeoutError,
     UpstreamTooLargeError,
     UpstreamUnavailableError,
 )
 from nci_si_mcp.index import LocalIndex
 from nci_si_mcp.registry import invoke
+from nci_si_mcp.release import RegistryMetadataError
 from test_traversal import complete_graph
 
 # Two releases that EVS marks latest for the monthly channel at once.
@@ -677,9 +682,12 @@ class FailureHandlingTest(HandlerTestCase):
                 self.assertIn(str(database), result["error"]["message"])
 
     def test_misuse_of_the_index_is_not_disguised_as_a_result(self):
+        # IndexBuildError is a bug at the boundary, not an expected failure: it propagates.
         with self.assertRaises(IndexBuildError):
-            self.context.index.upsert_concepts([], None, HashingEmbeddingProvider())
-        self.assertNotIn(IndexBuildError, invocation_module._ERROR_CODES)
+            invocation_module.call(
+                "index_codes",
+                lambda: self.context.index.upsert_concepts([], None, HashingEmbeddingProvider()),
+            )
 
     def test_unexpected_exceptions_are_not_disguised_as_results(self):
         class BrokenProvider(HashingEmbeddingProvider):
@@ -746,6 +754,36 @@ class ErrorModelTest(HandlerTestCase):
                 "invalid_request",
                 "Correct the argument",
                 {"parameter": "code", "reason": "bad"},
+            ),
+            (
+                RequestBudgetError(limit=5, reached=6),
+                "bound_exceeded",
+                "fewer start codes",
+                {"bound": "requests", "limit": 5, "reached": 6},
+            ),
+            (
+                EVSError("odd", surface="evs"),
+                "upstream_unavailable",
+                "Retry later",
+                {"surface": "evs"},
+            ),
+            (
+                UpstreamError("odd", surface="ssis"),
+                "upstream_unavailable",
+                "Retry later",
+                {"surface": "ssis"},
+            ),
+            (
+                UpstreamRejectedError("refused", status=401),
+                "upstream_unavailable",
+                "credentials",
+                {"status": 401},
+            ),
+            (
+                RegistryMetadataError("unusable"),
+                "upstream_unavailable",
+                "no registry state",
+                {"surface": "cadsr"},
             ),
             (NoActiveIndexError("none"), "internal_error", "index-sample", None),
             (IndexCompatibilityError("other model"), "internal_error", "index-rebuild", None),

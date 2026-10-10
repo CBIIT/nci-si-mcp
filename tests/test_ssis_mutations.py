@@ -129,6 +129,7 @@ class SSISValidationContractsTest(unittest.TestCase):
             (client.get_permissible_values, "0", {}, "publicId"),
             (client.get_permissible_values, "007", {}, "publicId"),
             (client.find_data_elements, "C1", {"expand_descendants": 1}, "expandDescendants"),
+            (client.find_data_elements, "C1", {"expand_descendants": "true"}, "expandDescendants"),
             (client.find_permissible_values, "C1", {"expand_descendants": 1}, "expandDescendants"),
         ]
         with patch("nci_si_mcp.http_client._open", side_effect=AssertionError("Unexpected HTTP")):
@@ -141,6 +142,7 @@ class SSISValidationContractsTest(unittest.TestCase):
     def test_every_value_operation_validates_maximum(self):
         client = SSISClient(Settings())
         for operation, argument in (
+            (client.find_data_elements, "C1"),
             (client.get_permissible_values, "123"),
             (client.find_permissible_values, "C1"),
         ):

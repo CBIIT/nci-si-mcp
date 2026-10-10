@@ -24,6 +24,11 @@ class ContentMutationTest(CaDSRFixture):
 
     def test_invalid_arguments_precede_registry_discovery_for_every_content_tool(self):
         cases = (
+            ("get_data_element", {}, "publicId"),
+            ("get_data_element", {"publicId": "123", "questionText": "Q"}, "publicId"),
+            ("get_data_element", {"publicId": ""}, "publicId"),
+            ("get_data_element", {"publicId": "1/2"}, "publicId"),
+            ("get_data_element", {"questionText": " "}, "questionText"),
             ("get_data_element", {"publicId": "0"}, "publicId"),
             ("get_data_element", {"publicId": 123}, "publicId"),
             ("get_data_element", {"questionText": 123}, "questionText"),

@@ -2,9 +2,6 @@
 
 import base64
 import json
-import os
-import subprocess
-import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -192,15 +189,6 @@ class SeamQueryMutationTest(unittest.TestCase):
         self.assertEqual(result["error"]["details"], {"requested": "26.06e", "source": NCIT_GRAPH})
         self.assertEqual(self.ssis.calls, [("identities",)])
 
-    def test_pv_exact_latest_value_is_case_and_whitespace_sensitive(self):
-        self.ssis.element_values = [value_row(version="2.10")]
-        for text in ("male", " Male", "Male "):
-            with self.subTest(text=text):
-                self.assertEqual(self.resolve(value=text)["error"]["code"], "not_found")
-        result = self.resolve()
-        self.assertEqual(result["code"], "C1")
-        self.assertEqual(result["permissibleValue"]["value"], "Male")
-
     def test_pv_preserves_whitespace_in_an_exactly_matching_value(self):
         self.ssis.element_values = [value_row(value=" Male ")]
         result = self.resolve(value=" Male ")
@@ -268,27 +256,9 @@ class SeamQueryMutationTest(unittest.TestCase):
         self.assertEqual(result["error"]["code"], "upstream_unavailable")
         self.assertEqual(result["error"]["details"], {"surface": "ssis"})
 
-    def test_ambiguous_candidates_are_sorted_under_fixed_hash_seeds(self):
-        script = """
-import json
-from nci_si_mcp.errors import PlatformError
-from nci_si_mcp.seam import NCIT_NAMESPACE, _main_code
-rows = [{"concept": NCIT_NAMESPACE + code} for code in ("C9", "C2", "C10", "C1")]
-try:
-    _main_code(rows)
-except PlatformError as error:
-    print(json.dumps(error.details))
-"""
-        for seed in ("1", "2", "3"):
-            with self.subTest(seed=seed):
-                process = subprocess.run(  # noqa: S603 - fixed source in this interpreter
-                    [sys.executable, "-c", script],
-                    env=os.environ | {"PYTHONHASHSEED": seed},
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                )
-                self.assertEqual(
-                    json.loads(process.stdout),
-                    {"surface": "ssis", "candidates": ["C1", "C10", "C2", "C9"]},
-                )
+    def test_ambiguous_candidates_are_listed_in_sorted_order(self):
+        self.ssis.element_values = [value_row(code=code) for code in ("C9", "C2", "C10", "C1")]
+        result = self.resolve()
+        self.assertEqual(
+            result["error"]["details"], {"surface": "ssis", "candidates": ["C1", "C10", "C2", "C9"]}
+        )

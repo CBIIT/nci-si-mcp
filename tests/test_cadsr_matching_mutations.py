@@ -38,18 +38,27 @@ class MatchingBoundariesTest(ServerTestCase):
         cases = [
             ({"entities": None}, "entities"),
             ({"entities": "Q"}, "entities"),
+            ({"entities": []}, "entities"),
+            ({"entities": [{"name": "Q"}] * 11}, "entities"),
             ({"entities": [[]]}, "entities"),
+            ({"entities": ["Q"]}, "entities"),
+            ({"entities": [{"name": "Q", "unknown": "x"}]}, "entities"),
             ({"entities": [{}]}, "entities.name"),
+            ({"entities": [{"name": ""}]}, "entities.name"),
             ({"entities": [{"name": " \t\n"}]}, "entities.name"),
             ({"entities": [{"name": 5}]}, "entities.name"),
             ({"matchLimit": 0}, "matchLimit"),
+            ({"modelVariant": ""}, "modelVariant"),
             ({"modelVariant": "model"}, "modelVariant"),
+            ({"similarityThreshold": 0}, "similarityThreshold"),
             ({"similarityThreshold": 0.5}, "similarityThreshold"),
         ]
         self.assert_invalid("match_data_elements", {"entities": [{"name": "Q"}]}, cases)
 
     def test_invalid_descriptions_are_rejected_before_pinned_registry_discovery(self):
-        cases = []
+        cases = [
+            ({"entities": [{"name": "Q", "permissibleValues": "x"}]}, "entities.permissibleValues")
+        ]
         for value in ("", " \t\n", None, 5):
             cases.append(({"entities": [{"name": "Q", "userTip": value}]}, "entities.userTip"))
             cases.append(
@@ -66,12 +75,25 @@ class MatchingBoundariesTest(ServerTestCase):
             for key in ("context", "workflowStatus", "registrationStatus", "valueDomainType")
             for value in ("", " \t", None, 5)
         ]
+        cases.extend(
+            [
+                ({"filters": []}, "filters"),
+                ({"filters": {"other": "x"}}, "filters"),
+                ({"filters": {"context": "a\nb"}}, "filters.context"),
+                ({"filters": {"context": "é"}}, "filters.context"),
+            ]
+        )
         self.assert_invalid("match_data_elements", {"entities": [{"name": "Q"}]}, cases)
 
     def test_invalid_scheme_identity_is_rejected_before_pinned_registry_discovery(self):
         schemes = [None, [], {"publicId": "123", "version": "1", "extra": "x"}]
-        schemes.extend({"publicId": value, "version": "1"} for value in (0, 123, "0", "007", ""))
-        schemes.extend({"publicId": "123", "version": value} for value in (1, "", "1.", "1.2.3"))
+        schemes.append({"publicId": "123"})
+        schemes.extend(
+            {"publicId": value, "version": "1"} for value in (0, 123, "0", "007", "", "bad")
+        )
+        schemes.extend(
+            {"publicId": "123", "version": value} for value in (1, "", "1.", "1.2.3", "bad")
+        )
         self.assert_invalid(
             "match_data_elements",
             {"entities": [{"name": "Q"}]},
@@ -82,7 +104,14 @@ class MatchingBoundariesTest(ServerTestCase):
         )
 
     def test_invalid_values_and_headers_are_rejected_before_pinned_registry_discovery(self):
-        cases = [({"values": value}, "values") for value in (None, "Q", [5], [" \t\n"])]
+        cases = [
+            ({"values": value}, "values")
+            for value in (None, "Q", [], [5], [""], [" \t\n"], ["Q"] * 11)
+        ]
+        cases.extend(
+            ({"terminologyScope": value}, "terminologyScope")
+            for value in ([], "NCI", ["NCI,SNOMED"])
+        )
         cases.extend(
             ({"terminologyScope": [value]}, "terminologyScope")
             for value in ("é", "NCI\n", "NCI\x00", 5)
