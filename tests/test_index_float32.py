@@ -146,7 +146,7 @@ class VectorIntegrityTest(IndexTestCase):
             self.assertEqual(index.get_active_manifest(), active)
             self.assertIsNone(index.get_concept_snapshot("C99")[1])
 
-    def test_vector_page_offset_reaches_the_last_concept_beyond_one_scan_batch(self):
+    def test_vector_page_offset_reaches_the_last_concept(self):
         provider = HashingEmbeddingProvider(dimensions=2)
         with patch.object(provider, "embed", side_effect=lambda texts: [[0.0, 1.0] for _ in texts]):
             index = LocalIndex(self.path)

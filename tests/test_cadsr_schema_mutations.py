@@ -38,12 +38,13 @@ def fields_in(text, occurrence=0):
     }
 
 
-# Parameters whose values are free text or opaque (audited as a SHA-256 digest); every other
-# parameter of these tools is an identifier, a closed value or a number, audited in the clear.
 def _free_text_roots(tool: str) -> set[str]:
+    # The specification's free-text argument names, without index or path suffixes.
     return {p.split("[")[0].split(".")[0] for p in TOOLS[tool].get("free_text", [])}
 
 
+# Parameters whose values are free text or opaque (audited as a SHA-256 digest); every other
+# parameter of these tools is an identifier, a closed value or a number, audited in the clear.
 HASHED = {
     "get_form": {"keyword"},
     "get_permissible_value": set(),
