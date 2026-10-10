@@ -175,3 +175,70 @@ class HierarchyPagingTest(ServerFixture):
             ["C2", "C3", "C4", "C5"],
         )
         self.assertNotIn("nextCursor", second)
+
+    def test_hierarchy_clamps_page_limit_for_both_directions(self):
+        for direction, relation in (("child", "children"), ("parent", "parents")):
+            with self.subTest(direction=direction):
+                children = [f"C{i}" for i in range(2, 1003)]
+                self.evs.concepts = {code: concept(code, active=True) for code in children}
+                self.evs.concepts["C1"] = concept(
+                    "C1", active=True, **{relation: [{"code": code} for code in children]}
+                )
+                result = invoke(
+                    self.context,
+                    "get_concept_hierarchy",
+                    terminology="ncit",
+                    code="C1",
+                    direction=direction,
+                    limit=1001,
+                )
+                self.assertEqual(len(result["nodes"]), 1000)
+                self.assertIn("nextCursor", result)
+
+    def test_hierarchy_clamps_depth_for_both_directions(self):
+        for direction, relation in (("child", "children"), ("parent", "parents")):
+            with self.subTest(direction=direction):
+                self.evs.concepts = {
+                    f"C{i}": concept(f"C{i}", active=True, **{relation: [{"code": f"C{i + 1}"}]})
+                    for i in range(1, 7)
+                }
+                result = invoke(
+                    self.context,
+                    "get_concept_hierarchy",
+                    terminology="ncit",
+                    code="C1",
+                    direction=direction,
+                    depth=5,
+                )
+                self.assertEqual(
+                    {node["code"] for node in result["nodes"]}, {"C2", "C3", "C4", "C5"}
+                )
+                self.assertEqual(result["truncation"]["bound"], "depth")
+                self.assertEqual(result["truncation"]["limit"], 4)
+
+    def test_cursor_binds_the_applied_depth_for_both_directions(self):
+        for direction, relation in (("child", "children"), ("parent", "parents")):
+            with self.subTest(direction=direction):
+                self.evs.concepts = {
+                    "C1": concept(
+                        "C1", active=True, **{relation: [{"code": "C2"}, {"code": "C3"}]}
+                    ),
+                    "C2": concept("C2", active=True),
+                    "C3": concept("C3", active=True),
+                }
+                arguments = {
+                    "terminology": "ncit",
+                    "code": "C1",
+                    "direction": direction,
+                    "limit": 1,
+                }
+                first = invoke(self.context, "get_concept_hierarchy", **arguments, depth=5)
+                continued = invoke(
+                    self.context,
+                    "get_concept_hierarchy",
+                    **arguments,
+                    depth=4,
+                    cursor=first["nextCursor"],
+                )
+                self.assertNotIn("error", continued)
+                self.assertEqual([node["code"] for node in continued["nodes"]], ["C3"])

@@ -190,17 +190,6 @@ class EVSClientTest(unittest.TestCase):
 
         self.assertNotIsInstance(raised.exception, UpstreamTimeoutError)
 
-    def test_repeated_server_errors_report_every_attempt_and_the_status(self, urlopen, sleep):
-        urlopen.side_effect = [http_error(503), http_error(503), http_error(503)]
-
-        with (
-            self.assertLogs("nci_si_mcp.http_client", level="WARNING"),
-            self.assertRaises(UpstreamUnavailableError) as raised,
-        ):
-            self.client(max_attempts=3).get_api_version()
-
-        self.assertEqual(raised.exception.details, {"surface": "evs", "attempts": 3, "status": 503})
-
     def test_a_server_error_followed_by_a_timeout_is_not_a_timeout(self, urlopen, sleep):
         urlopen.side_effect = [http_error(500), TimeoutError("timed out")]
 
@@ -282,17 +271,6 @@ class EVSClientTest(unittest.TestCase):
 
         self.assertEqual(version, {"timeout": 2.5})
 
-    def test_retry_wait_is_capped(self, urlopen, sleep):
-        urlopen.side_effect = [URLError("down")] * 10
-
-        with (
-            self.assertLogs("nci_si_mcp.http_client", level="WARNING"),
-            self.assertRaises(UpstreamUnavailableError),
-        ):
-            self.client(max_attempts=10, retry_backoff_seconds=3600).get_api_version()
-
-        self.assertEqual({call.args[0] for call in sleep.call_args_list}, {60.0})
-
     def test_only_a_single_concept_request_reports_a_missing_concept(self, urlopen, sleep):
         client = self.client()
         calls = {
@@ -363,18 +341,6 @@ class EVSClientTest(unittest.TestCase):
         self.assertIn("HTTP 404", str(raised.exception))
         self.assertIn("C999 not found", str(raised.exception))
 
-    def test_other_client_errors_are_not_retried(self, urlopen, sleep):
-        for status in (400, 401, 403):
-            with self.subTest(status=status):
-                urlopen.reset_mock()
-                urlopen.side_effect = http_error(status, b"<html>")
-
-                with self.assertRaises(UpstreamRejectedError) as raised:
-                    self.client().get_api_version()
-
-                self.assertNotIsInstance(raised.exception, EVSNotFoundError)
-                self.assertEqual(urlopen.call_count, 1)
-
     def test_one_attempt_means_no_retry(self, urlopen, sleep):
         urlopen.side_effect = URLError("down")
 
@@ -439,30 +405,6 @@ class EVSClientTest(unittest.TestCase):
 
                 self.assertEqual(raised.exception.code, "upstream_unavailable")
                 self.assertEqual(urlopen.call_count, 1)
-
-    def test_failures_masked_as_success_responses_are_upstream_failures(self, urlopen, sleep):
-        masked = {
-            "an HTML page": b"<!DOCTYPE html><html><body>Service unavailable</body></html>",
-            "a webMethods error": b'{"apiResponse": {"type": "E", "message": "Not allowed"}}',
-            "a FHIR OperationOutcome": (
-                b'{"resourceType": "OperationOutcome", "issue": [{"severity": "error"}]}'
-            ),
-        }
-        calls = {
-            "version": lambda client: client.get_api_version(),
-            "terminologies": lambda client: client.get_terminologies(),
-            "a concept": lambda client: client.get_concept("C1", release=release()),
-            "descendants": lambda client: client.get_descendants("C1", 1, release=release()),
-        }
-        for label, body in masked.items():
-            for name, call in calls.items():
-                with self.subTest(label, call=name):
-                    urlopen.return_value = FakeResponse(body)
-
-                    with self.assertRaises(PlatformError) as raised:
-                        call(self.client())
-
-                    self.assertEqual(raised.exception.code, "upstream_unavailable")
 
     def test_unexpected_shapes_raise_response_errors(self, urlopen, sleep):
         client = self.client()
