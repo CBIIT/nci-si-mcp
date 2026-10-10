@@ -70,6 +70,44 @@ def project(native=None, context=None, **changes):
 
 
 class AcceptanceProjectionTest(unittest.TestCase):
+    def test_a_fresh_report_with_completion_evidence_is_projected(self):
+        native = report() | {
+            "run": {"exit_status": 0, "selected": 2, "finished": 2, "worker_crashes": 0}
+        }
+        try:
+            result = project(native)
+        except EvidenceError as error:
+            self.fail(f"Fresh report rejected by the projection: {error}")
+        self.assertTrue(result["inventory_complete"])
+        self.assertEqual(result["counts"], {"passed": 2})
+        self.assertEqual(result["tools"]["lookup"]["outcome"], "PASS")
+
+    def test_all_recorded_cases_do_not_override_a_crash_or_interrupted_status(self):
+        for status, crashes in ((0, 1), (2, 0)):
+            native = report() | {
+                "run": {
+                    "exit_status": status,
+                    "selected": 2,
+                    "finished": 2,
+                    "worker_crashes": crashes,
+                }
+            }
+            with self.subTest(status=status, crashes=crashes):
+                result = project(native)
+                self.assertFalse(result["inventory_complete"])
+                self.assertEqual(result["missing"], [])
+                self.assertEqual(result["counts"], {"passed": 2})
+
+    def test_run_completion_does_not_override_the_bound_selection(self):
+        native = report() | {
+            "run": {"exit_status": 0, "selected": 1, "finished": 1, "worker_crashes": 0}
+        }
+        del native["tests"]["tests/test_example.py::test_protocol"]
+        result = project(native)
+        self.assertFalse(result["inventory_complete"])
+        self.assertEqual(len(result["missing"]), 1)
+        self.assertEqual(result["counts"], {"passed": 1})
+
     def test_a_report_without_the_alias_field_keeps_its_verdict(self):
         native = report()
         self.assertNotIn("implemented_as", native["tools"]["lookup"])
