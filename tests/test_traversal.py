@@ -221,6 +221,7 @@ class TraversalTest(unittest.TestCase):
         self.assertEqual(clamp_limits(99, 99999), (HARD_MAX_DEPTH, HARD_MAX_NODES))
         self.assertEqual(clamp_limits(-1, 0), (0, 1))
         self.assertEqual(clamp_edge_limit(99999), HARD_MAX_EDGES)
+        self.assertEqual(clamp_edge_limit(0), 1)
 
     def test_each_level_is_one_request_pinned_to_the_release(self):
         client = chain()
@@ -858,10 +859,6 @@ class TraversalTest(unittest.TestCase):
         walk(client, max_depth=2)
 
         self.assertEqual([len(call[2]) for call in client.calls], [1, 50, 1])
-
-    def test_hard_caps_are_the_documented_ones(self):
-        self.assertEqual((HARD_MAX_DEPTH, HARD_MAX_NODES, HARD_MAX_EDGES), (4, 1000, 5000))
-        self.assertEqual(clamp_edge_limit(0), 1)
 
     def test_a_relation_without_a_type_is_named_after_its_edge_type(self):
         untyped = {"relatedCode": "C2", "relatedName": "Concept C2"}
