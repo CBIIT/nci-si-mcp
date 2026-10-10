@@ -241,6 +241,7 @@ class GroundTest(WorkflowFixture):
         ):
             result = self.call(conceptCode="C1", commons="GDC")
         self.assertEqual(result["error"]["code"], "upstream_unavailable")
+        self.assertEqual(result["error"]["details"]["surface"], "evs")
         self.assertNotIn("storedValues", result)
 
     def test_malformed_join_is_an_error_with_no_partial_hops(self):

@@ -34,6 +34,7 @@ from .models import (
     TraversalProvenance,
     TraversalResult,
     Truncation,
+    attribution_of,
     release_ref,
     upstream_origin,
     utc_now_iso,
@@ -235,14 +236,16 @@ def _level(item: dict[str, Any], depth_limit: int) -> int:
 
 
 def _relationship(edge_type: str, item: dict[str, Any]) -> dict[str, str]:
-    """The relationship that brought a relation item in: its kind, and for a role or an
-    association its code and name. A hierarchy link has neither, and none is invented."""
+    """The relationship that brought a relation item in: its kind and its name (the record
+    requires one; a hierarchy link's is empty) and, for a role or an association, its code
+    where upstream gave one. No code is invented."""
 
+    name = _relationship_name(edge_type, item)
     if EDGE_KINDS[edge_type].hierarchy:
-        return {"kind": edge_type}
-    relationship = {"kind": "role" if "role" in edge_type else "association"}
-    named = {"code": item.get("code"), "name": item.get("type")}
-    return relationship | {key: str(value) for key, value in named.items() if value}
+        return {"kind": edge_type, "name": name}
+    relationship = {"kind": "role" if "role" in edge_type else "association", "name": name}
+    code = item.get("code")
+    return relationship | ({"code": str(code)} if code else {})
 
 
 def _target_code(code: str, edge_type: str, item: dict[str, Any]) -> str:
@@ -376,7 +379,7 @@ class _Walk:
             correlation_id=self.correlation_id,
             source_uri=uri,
             upstream=upstream,
-            attribution=item.get("licenseText"),
+            attribution=attribution_of(item, "evs"),
             depth=depth,
             relationship=relationship,
             direction=EDGE_KINDS[edge_type].direction if edge_type else None,

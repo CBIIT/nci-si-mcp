@@ -23,6 +23,8 @@ from .parameters import (
 )
 from .permissions import require
 from .validation import (
+    ITEM_VERSION_FORM,
+    REGISTRY_ID_FORM,
     MatchedItemType,
     MatchStrictness,
     bounded,
@@ -101,8 +103,8 @@ def _scheme_headers(value: Any) -> dict[str, str]:
     parameter = "filters.classificationScheme"
     if not isinstance(value, dict) or set(value) != {"publicId", "version"}:
         raise InputValidationError("Give both publicId and version", parameter)
-    validate_identifier(value["publicId"], r"[1-9][0-9]*", parameter)
-    validate_identifier(value["version"], r"[0-9]+([.][0-9]+)?", parameter)
+    validate_identifier(value["publicId"], REGISTRY_ID_FORM, parameter)
+    validate_identifier(value["version"], ITEM_VERSION_FORM, parameter)
     return {
         "classificationSchemePublicId": value["publicId"],
         "classificationSchemeVersion": value["version"],
@@ -120,15 +122,7 @@ def _reject_unsupported(model: str | None, threshold: float | None) -> None:
 
 
 def _matching_release(context: Context, pin: str | None) -> dict[str, str]:
-    release = records._pin(context, pin)
-    if pin is not None:
-        raise PlatformError(
-            "capability_unavailable",
-            "The matching APIs lack a registryRelease contract field (C-1 for matching, "
-            "docs/upstream/cadsr.md#cadsr-registry). Omit the pin until caDSR adds it.",
-            capability="pinned matching",
-        )
-    return release
+    return records.refuse_pinned(context, pin, "pinned matching")
 
 
 def _result(matches: list[dict[str, Any]], provenance: dict[str, Any]) -> dict[str, Any]:

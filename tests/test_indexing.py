@@ -38,8 +38,8 @@ class FullBuildTest(ServerFixture):
         return result, [call.args[0].full_url for call in opened.call_args_list]
 
     def test_all_pages_reconcile_before_inactive_build_and_progress_is_aggregated(self):
-        first = [concept(f"C{number}") for number in range(1000)]
-        last = concept("C1000", active=False)
+        first = [concept(f"C{number}") for number in range(1, 1001)]
+        last = concept("C1001", active=False)
         with captured() as stream:
             built, urls = self.build_pages(
                 [
@@ -61,14 +61,14 @@ class FullBuildTest(ServerFixture):
         evaluate_build(
             self.context.index,
             self.context.embedding_provider,
-            fixture_calibration("C1000", last["name"]),
+            fixture_calibration("C1001", last["name"]),
             built.build_id,
         )
         self.context.index.activate(built.build_id)
-        self.assertFalse(self.context.index.get_concept_snapshot("C1000")[1].raw["active"])
+        self.assertFalse(self.context.index.get_concept_snapshot("C1001")[1].raw["active"])
 
     def test_shifted_page_duplicate_and_missing_concept_reject_before_database_write(self):
-        first = [concept(f"C{number}") for number in range(1000)]
+        first = [concept(f"C{number}") for number in range(1, 1001)]
         with self.assertRaisesRegex(EVSResponseError, "duplicate"):
             self.build_pages(
                 [
@@ -79,12 +79,12 @@ class FullBuildTest(ServerFixture):
         self.assertEqual(self.context.index.list_builds(), [self.active])
 
     def test_changing_total_rejects_build(self):
-        first = [concept(f"C{number}") for number in range(1000)]
+        first = [concept(f"C{number}") for number in range(1, 1001)]
         with self.assertRaisesRegex(EVSResponseError, "total changed"):
             self.build_pages(
                 [
                     {"total": 1001, "concepts": first},
-                    {"total": 1002, "concepts": [concept("C1000")]},
+                    {"total": 1002, "concepts": [concept("C1001")]},
                 ]
             )
         self.assertEqual(self.context.index.list_builds(), [self.active])

@@ -123,6 +123,8 @@ class SSISValidationContractsTest(unittest.TestCase):
         client = SSISClient(Settings())
         cases = [
             (client.find_data_elements, "C", {}, "conceptCode"),
+            (client.find_data_elements, "C0", {}, "conceptCode"),
+            (client.find_permissible_values, "C0", {}, "conceptCode"),
             (client.find_permissible_values, "17357", {}, "conceptCode"),
             (client.get_permissible_values, "0", {}, "publicId"),
             (client.get_permissible_values, "007", {}, "publicId"),

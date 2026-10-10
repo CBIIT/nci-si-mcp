@@ -182,6 +182,15 @@ class SubsetsMappingsTest(ServerFixture):
         result, _ = self.reply("subsets")
         self.assertNotIn("attribution", result["subsets"][0]["provenance"])
 
+    def test_licence_text_of_another_type_is_rejected_not_passed_on(self):
+        for kind in ("subsets", "mappings"):
+            for licence in (7, {"unexpected": "object"}):
+                with self.subTest(kind=kind, licence=licence):
+                    self.raw["licenseText"] = licence
+                    result, _ = self.reply(kind)
+                    self.assertEqual(result["error"]["code"], "upstream_unavailable")
+                    self.assertEqual(result["error"]["details"]["surface"], "evs")
+
     def test_wrong_identity_or_release_fails_closed(self):
         original = self.raw
         for fields, expected in (

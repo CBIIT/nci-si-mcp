@@ -9,11 +9,9 @@ from . import cursor as cursors
 from .caching import select_cache_hint
 from .cadsr import DATA_API, EXPORT_FOLDER, FORM_API, data_element_request
 from .context import Context
-from .errors import InputValidationError, PlatformError, call_correlation_id
-from .models import ProvenanceEnvelope, Truncation, utc_now_iso
+from .errors import InputValidationError, PlatformError
+from .models import Truncation, live_provenance, results_cut, with_attribution
 from .parameters import (
-    REGISTRY_ID_FORM,
-    REGISTRY_VERSION_FORM,
     Cursor,
     Described,
     RegistryRelease,
@@ -24,6 +22,8 @@ from .permissions import require
 from .release import RegistryMetadataError, registry_state
 from .upstream import MaskedSuccessError
 from .validation import (
+    ITEM_VERSION_FORM,
+    REGISTRY_ID_FORM,
     CodeMapSource,
     DataElementInclude,
     RegistrySearchMode,
@@ -99,6 +99,25 @@ def _pin(context: Context, requested: str | None) -> dict[str, str]:
     return release | {"identifier": requested, "date": state.generated_at}
 
 
+def refuse_pinned(context: Context, pin: str | None, capability: str) -> dict[str, str]:
+    """The registry release of an unpinned call; a published pin is refused (C-1).
+
+    A pin is first checked as the server's own input (a blank or unpublished one is not the
+    capability gap). Then every operation that has no caDSR transport field for it refuses it
+    in one wording, naming the capability.
+    """
+
+    release = _pin(context, pin)
+    if pin is not None:
+        raise PlatformError(
+            "capability_unavailable",
+            f"{capability} is unavailable: no upstream registryRelease field exists for it "
+            "(C-1, docs/upstream/cadsr.md#cadsr-registry). Omit registryRelease until it does.",
+            capability=capability,
+        )
+    return release
+
+
 def _registry_row(context: Context, requested: str) -> dict[str, Any]:
     rows = [
         row for row in context.cadsr.get_registry_releases() if row.get("identifier") == requested
@@ -119,25 +138,16 @@ def _registry_row(context: Context, requested: str) -> dict[str, Any]:
 def _provenance(
     context: Context, release: dict[str, str], path: str, params: dict[str, Any] | None = None
 ) -> dict[str, Any]:
-    return ProvenanceEnvelope(
-        release=release,
-        source="cadsr_rest",
-        served_by="live",
-        retrieved_at=utc_now_iso(),
-        correlation_id=call_correlation_id(),
-        source_uri=context.cadsr.http.url(path, params),
-    ).to_dict()
+    return live_provenance(release, "cadsr_rest", uri=context.cadsr.http.url(path, params))
 
 
-def _item_provenance(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
-    origin = {key: raw[key] for key in ("publicId", "version", "dateModified") if key in raw}
-    result = provenance | ({"upstream": origin} if origin else {})
-    attribution = raw.get("licenseText")
-    if attribution is not None:
-        if not isinstance(attribution, str):
-            _malformed("licence text")
-        result = result | {"attribution": attribution}
-    return result
+def _item_provenance(
+    raw: dict[str, Any],
+    provenance: dict[str, Any],
+    origin_keys: tuple[str, ...] = ("publicId", "version", "dateModified"),
+) -> dict[str, Any]:
+    origin = {key: raw[key] for key in origin_keys if key in raw}
+    return with_attribution(provenance | ({"upstream": origin} if origin else {}), raw, "cadsr")
 
 
 def _element(
@@ -153,7 +163,7 @@ def _element(
 def _identity(raw: dict[str, Any]) -> dict[str, Any]:
     _candidate_id(raw)
     if not isinstance(raw.get("version"), str) or not re.fullmatch(
-        r"[0-9]+([.][0-9]+)?", raw["version"]
+        ITEM_VERSION_FORM, raw["version"]
     ):
         _malformed("registry item version")
     return _fields(raw, _IDENTITY)
@@ -243,9 +253,9 @@ def _lookup_fields(
     public_id: str | None, version: str | None, include: list[DataElementInclude] | None
 ) -> list[DataElementInclude]:
     if public_id is not None:
-        validate_identifier(public_id, r"[1-9][0-9]*", "publicId")
+        validate_identifier(public_id, REGISTRY_ID_FORM, "publicId")
     if version is not None:
-        validate_identifier(version, r"[0-9]+([.][0-9]+)?", "version")
+        validate_identifier(version, ITEM_VERSION_FORM, "version")
     for section in include or []:
         validate_choice(section, get_args(DataElementInclude), "include")
     return list(dict.fromkeys(include or []))
@@ -271,7 +281,7 @@ def _question_id(context: Context, text: str, pin: str | None) -> str:
 
 def _candidate_id(raw: dict[str, Any]) -> str:
     value = raw.get("publicId")
-    if not isinstance(value, str) or not re.fullmatch(r"[1-9][0-9]*", value):
+    if not isinstance(value, str) or not re.fullmatch(REGISTRY_ID_FORM, value):
         _malformed("registry item identifier")
     return value
 
@@ -305,7 +315,7 @@ def get_data_element(
         str | None,
         Described(
             "Version of the data element, for example 1.0. Leave unset for the latest.",
-            pattern=REGISTRY_VERSION_FORM,
+            pattern=ITEM_VERSION_FORM,
         ),
     ] = None,
     include: Annotated[
@@ -470,12 +480,12 @@ def _search_truncation(length: int, count: Any) -> dict[str, Any]:
     _validate_count(length, count)
     if length >= _SEARCH_CAP:
         return Truncation(
-            True,
-            "upstream_cap",
-            _SEARCH_CAP,
-            _SEARCH_CAP,
-            max(1, (count or length) - _SEARCH_CAP),
-            False,
+            occurred=True,
+            bound="upstream_cap",
+            limit=_SEARCH_CAP,
+            reached=_SEARCH_CAP,
+            omitted=max(1, (count or length) - _SEARCH_CAP),
+            exact=False,
         ).to_dict()
     return Truncation(False).to_dict()
 
@@ -610,16 +620,13 @@ def registry_resource(context: Context) -> dict[str, Any]:
     release = {"registry": "cadsr"}
     if state.identifier is not None:
         release |= {"identifier": state.identifier, "date": state.generated_at}
-    provenance = ProvenanceEnvelope(
-        release=release,
-        source="cadsr_rest" if state.identifier else "cadsr_export",
-        served_by="live",
-        retrieved_at=utc_now_iso(),
-        correlation_id=call_correlation_id(),
-        source_uri=state.source_distribution
+    provenance = live_provenance(
+        release,
+        "cadsr_rest" if state.identifier else "cadsr_export",
+        uri=state.source_distribution
         if state.identifier
         else context.cadsr.export_http.url(EXPORT_FOLDER),
-    ).to_dict()
+    )
     select_cache_hint(resolution=False, unpinned=True)
     return state.to_dict() | {"provenance": provenance}
 
@@ -642,7 +649,7 @@ def get_form(
         str | None,
         Described(
             "Version of the form, for example 1.0. Leave unset for the latest.",
-            pattern=REGISTRY_VERSION_FORM,
+            pattern=ITEM_VERSION_FORM,
         ),
     ] = None,
     includeModules: Annotated[  # noqa: N803 - public specification spelling.
@@ -667,14 +674,7 @@ def get_form(
     pinned, release_not_available for an unpublished one; upstream_unavailable otherwise.
     """
     identifier = _form_options(publicId, keyword, version, includeModules)
-    release = _pin(context, registryRelease)
-    if registryRelease is not None:
-        raise PlatformError(
-            "capability_unavailable",
-            "Form lookup lacks a registryRelease field (C-1, docs/upstream/cadsr.md#cadsr-forms). "
-            "Omit the pin until caDSR supports it.",
-            capability="pinned form lookup",
-        )
+    release = refuse_pinned(context, registryRelease, "pinned form lookup")
     raw = context.cadsr.get_form(identifier, version)
     if raw is None:
         raise PlatformError(
@@ -687,9 +687,10 @@ def get_form(
     provenance = _provenance(
         context, release, f"{FORM_API}/Form/{identifier}", {"version": version}
     )
-    result = _element(item, [], provenance)
-    result["provenance"] = _item_provenance(raw, provenance) | {
-        "upstream": {key: raw[key] for key in ("publicID", "version", "dateModified") if key in raw}
+    _identity(item)
+    result = _fields(item, _OWN) | {
+        # The Form API spells its identifier publicID; the origin is reported as it sent it.
+        "provenance": _item_provenance(raw, provenance, ("publicID", "version", "dateModified"))
     }
     if includeModules:
         if "modules" not in raw:
@@ -704,9 +705,9 @@ def _form_options(
 ) -> str:
     if keyword is not None:
         raise InputValidationError("The Form API needs an identifier, not a keyword", "keyword")
-    validated = validate_identifier(identifier or "", r"[1-9][0-9]*", "publicId")
+    validated = validate_identifier(identifier or "", REGISTRY_ID_FORM, "publicId")
     if version is not None:
-        validate_identifier(version, r"[0-9]+([.][0-9]+)?", "version")
+        validate_identifier(version, ITEM_VERSION_FORM, "version")
     if not isinstance(modules, bool):
         raise InputValidationError("includeModules must be true or false", "includeModules")
     return validated
@@ -738,7 +739,7 @@ def get_permissible_value(
     release_not_available for an unpublished pin, both checked first. Read the containing value
     domain with the element's permissibleValues section instead.
     """
-    validate_identifier(permissibleValueId, r"[1-9][0-9]*", "permissibleValueId")
+    validate_identifier(permissibleValueId, REGISTRY_ID_FORM, "permissibleValueId")
     _pin(context, registryRelease)
     _unavailable("permissible-value retrieval by identifier (OP-C10)")
 
@@ -770,7 +771,7 @@ def _code_map(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]
 def _map_options(source: str, target: str | None, identifier: str | None) -> None:
     validate_choice(source, get_args(CodeMapSource), "sourceSystem")
     if identifier is not None:
-        validate_identifier(identifier, r"[1-9][0-9]*", "dataElementId")
+        validate_identifier(identifier, REGISTRY_ID_FORM, "dataElementId")
     if target is not None and (not isinstance(target, str) or not target.strip()):
         raise InputValidationError("targetContext must be nonblank text", "targetContext")
 
@@ -846,9 +847,7 @@ def crosswalk_resource(context: Context) -> dict[str, Any]:
     maps, provenance = read_code_maps(context, {"registry": "cadsr"}, None)
     result: dict[str, Any] = {"codeMaps": maps[:_CODE_MAP_LIMIT]}
     if len(maps) > _CODE_MAP_LIMIT:
-        result["truncation"] = Truncation(
-            True, "results", _CODE_MAP_LIMIT, _CODE_MAP_LIMIT, len(maps) - _CODE_MAP_LIMIT, True
-        ).to_dict()
+        result["truncation"] = results_cut(len(maps), _CODE_MAP_LIMIT, exact=True)
     if not maps:
         result["provenance"] = provenance
     select_cache_hint(resolution=False, unpinned=True)

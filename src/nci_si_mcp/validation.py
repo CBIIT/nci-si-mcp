@@ -69,7 +69,14 @@ TRANSPORTS = frozenset(get_args(Transport))
 HTTP_SESSIONS = frozenset(get_args(HTTPSessions))
 HTTP_AUTH_MODES = frozenset(get_args(HTTPAuthMode))
 
-NCIT_CODE_RE = re.compile(r"C[0-9]+")
+# The stated forms of the identifiers that go into an upstream path or query: the `patterns` of
+# spec/tools.yaml, once. A test holds them equal to the specification.
+TERMINOLOGY_FORM = "^[a-z][a-z0-9_]*$"
+RELEASE_FORM = "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+NCIT_CODE_FORM = "^C[1-9][0-9]*$"
+REGISTRY_ID_FORM = "^[1-9][0-9]*$"
+ITEM_VERSION_FORM = "^[0-9]+([.][0-9]+)?$"
+NCIT_CODE_RE = re.compile(NCIT_CODE_FORM)
 SEARCH_MODES = frozenset(get_args(SearchMode))
 TRAVERSAL_DIRECTIONS = frozenset(get_args(Direction))
 TRAVERSAL_EDGE_TYPES = frozenset(get_args(EdgeType))
@@ -96,7 +103,7 @@ def bounded(value: int, maximum: int, parameter: str) -> int:
 
 
 def validate_terminology(terminology: str) -> str:
-    if not isinstance(terminology, str) or not re.fullmatch(r"[a-z][a-z0-9_]*", terminology):
+    if not isinstance(terminology, str) or not re.fullmatch(TERMINOLOGY_FORM, terminology):
         raise InputValidationError(
             "terminology must be a lowercase identifier starting with a letter", "terminology"
         )
@@ -131,7 +138,8 @@ def validate_ncit_code(code: str, parameter: str = "code") -> str:
     normalized = str(code or "").strip().upper()
     if not NCIT_CODE_RE.fullmatch(normalized):
         raise InputValidationError(
-            f"NCIt code must have the form C followed by digits, not {str(code)[:40]!r}",
+            "NCIt code must have the form C followed by digits with no leading zero, "
+            f"not {str(code)[:40]!r}",
             parameter,
         )
     return normalized
