@@ -435,16 +435,27 @@ def load_report(path: Path, mode: str) -> dict[str, Any]:
 
 def complete(report: dict[str, Any]) -> bool:
     """Whether a report's run metadata proves all selected tests finished without a crash."""
+    return completion_problem(report) is None
+
+
+def completion_problem(report: dict[str, Any]) -> str | None:
+    """A safe explanation of refused completion, without echoing arbitrary report content."""
     run = report["run"]
-    if not isinstance(run, dict):
-        return False
+    if not _valid_run_metadata(run):
+        return "invalid run completion metadata"
+    if run["worker_crashes"]:
+        return f"worker crashes: {run['worker_crashes']}"
+    if run["exit_status"] not in (0, 1):
+        return f"run exit status: {run['exit_status']}"
+    if not run["selected"] == run["finished"] == len(report["tests"]):
+        return "selected, finished and recorded outcome counts differ"
+    return None
+
+
+def _valid_run_metadata(run: Any) -> bool:
     fields = ("exit_status", "selected", "finished", "worker_crashes")
-    if not all(type(run.get(key)) is int and run[key] >= 0 for key in fields):
-        return False
-    return (
-        run["exit_status"] in (0, 1)
-        and run["worker_crashes"] == 0
-        and run["selected"] == run["finished"] == len(report["tests"])
+    return isinstance(run, dict) and all(
+        type(run.get(key)) is int and run[key] >= 0 for key in fields
     )
 
 

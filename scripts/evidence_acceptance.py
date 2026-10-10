@@ -9,7 +9,7 @@ from typing import Any
 
 from scripts.evidence_envelope import EvidenceError, decode_json, validate_envelope
 
-from nci_si_acceptance.report import FAILED, RANK, UNRUN, complete, tool_outcome
+from nci_si_acceptance.report import FAILED, RANK, UNRUN, complete, completion_problem, tool_outcome
 
 _REPORT_FIELDS = {
     "mode",
@@ -231,6 +231,7 @@ def project_acceptance(
         "mode": native.get("mode"),
         "transport": native.get("transport"),
         "inventory_complete": _inventory_complete(native, missing, record["state"]),
+        "completion_problem": completion_problem(native) if "run" in native else None,
         "missing": missing,
         "cases": _case_rows(context, tests),
         "tools": tools,
