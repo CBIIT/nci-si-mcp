@@ -131,7 +131,7 @@ class ValidationTest(unittest.TestCase):
     def test_start_codes_must_fit_the_effective_node_limit(self):
         def traversal(count, max_nodes):
             return validate_traversal(
-                [f"C{number}" for number in range(count)], "out", 1, max_nodes, 10, None
+                [f"C{number}" for number in range(1, count + 1)], "out", 1, max_nodes, 10, None
             )
 
         self.assertEqual(len(traversal(2, 2)[0]), 2)

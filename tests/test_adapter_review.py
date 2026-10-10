@@ -48,6 +48,19 @@ class RecordReviewTest(TestCase):
                 self.assertEqual(set(schema["properties"]), set(fields))
                 self.assertEqual(set(schema["required"]), required)
 
+    def test_provenance_graphs_are_optional_in_the_record_and_in_the_schema(self):
+        # EVS items carry no graphs; only the Shared SI Service's do.
+        fields = yaml.safe_load((ROOT / "spec/records.yaml").read_text())["provenance"]["fields"]
+        schema = TypeAdapter(results.Provenance).json_schema()
+        self.assertTrue(fields["graphs"].get("optional"))
+        self.assertNotIn("graphs", schema["required"])
+
+    def test_a_traversal_relationship_requires_its_kind_and_name(self):
+        # The record gives the shape as { code?, name, kind } in prose.
+        schema = TypeAdapter(results.Relationship).json_schema()
+        self.assertEqual(set(schema["required"]), {"kind", "name"})
+        self.assertEqual(set(schema["properties"]), {"kind", "name", "code"})
+
     def test_catalogue_closed_values_match_specification(self):
         fields = yaml.safe_load((ROOT / "spec/records.yaml").read_text())["relationship"]["fields"]
         schema = TypeAdapter(results.CatalogueRelationship).json_schema()

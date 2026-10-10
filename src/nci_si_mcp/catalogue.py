@@ -5,9 +5,14 @@ from __future__ import annotations
 from typing import Any, get_args
 
 from .config import Settings
-from .errors import PlatformError, call_correlation_id
+from .errors import PlatformError
 from .evs import EVSClient, EVSResponseError, catalogue_path
-from .models import ProvenanceEnvelope, release_ref, upstream_origin, utc_now_iso
+from .models import (
+    attribution_of,
+    live_provenance,
+    release_ref,
+    upstream_origin,
+)
 from .release import ReleaseContext
 from .validation import Polarity, RelationshipKind
 
@@ -61,17 +66,13 @@ def _record(
     row: dict[str, Any],
     exclusions: frozenset[str],
 ) -> dict[str, Any]:
-    provenance = ProvenanceEnvelope(
-        release=release_ref(release.terminology, release.version, release.date),
-        source="evs_rest",
-        served_by="live",
-        retrieved_at=utc_now_iso(),
-        correlation_id=call_correlation_id(),
-        source_uri=client.uri(catalogue_path(release.pinned_terminology, kind)),
+    provenance = live_provenance(
+        release_ref(release.terminology, release.version, release.date),
+        "evs_rest",
+        uri=client.uri(catalogue_path(release.pinned_terminology, kind)),
         upstream=upstream_origin(row),
-    ).to_dict()
-    if row.get("licenseText"):
-        provenance["attribution"] = row["licenseText"]
+        attribution=attribution_of(row, "evs"),
+    )
     return {
         "code": row["code"],
         "terminology": row["terminology"],

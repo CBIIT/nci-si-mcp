@@ -17,7 +17,10 @@ from typing import Any
 
 from .errors import PlatformError, with_next_step
 from .evs import EVSClient
-from .validation import RELEASE_CHANNELS
+from .validation import (
+    RELEASE_CHANNELS,
+    RELEASE_FORM,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,7 +92,7 @@ def _verify_selection(row: dict[str, Any], terminology: str, channel: str) -> No
     if not isinstance(tags, dict) or tags.get(channel) != "true":
         raise _not_available("EVS returned a release without the requested channel", channel)
     version = row.get("version")
-    if not isinstance(version, str) or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", version) is None:
+    if not isinstance(version, str) or re.fullmatch(RELEASE_FORM, version) is None:
         raise _not_available("EVS returned an invalid release version", f"{terminology} {channel}")
     _verify_pinned_segment(row.get("terminologyVersion"), terminology)
 
@@ -101,7 +104,7 @@ def _verify_pinned_segment(segment: Any, terminology: str) -> None:
         return
     if (
         not isinstance(segment, str)
-        or re.fullmatch(re.escape(terminology) + r"_[A-Za-z0-9][A-Za-z0-9._-]*", segment) is None
+        or re.fullmatch(re.escape(terminology) + "_" + RELEASE_FORM.strip("^$"), segment) is None
     ):
         raise _not_available("EVS returned a conflicting pinned terminology", terminology)
 

@@ -229,7 +229,7 @@ Every returned item carries one, beside its identifier and status, which are fie
 | `retrievedAt` | When it was retrieved, ISO-8601 | A4.1 |
 | `sourceUri` | The upstream URL that produced the item | A4.1 |
 | `correlationId` | The call's correlation identifier | M7.1 |
-| `graphs` | For items served by the Shared SI Service: each graph touched, { graph, version?, date }: its IRI, its owl:versionInfo where it has one, and its dc:date, ISO-8601 | A1.5 |
+| `graphs` | For items served by the Shared SI Service: each graph touched, { graph, version?, date }: its IRI, its owl:versionInfo where it has one, and its dc:date, ISO-8601 (optional) | A1.5 |
 | `registry` | The registry state, { registry, identifier?, date? } as the registry form of release gives it, beside release in its terminology form: present exactly where an item of a cross-domain or workflow tool rests on caDSR content, so that the item names both content states (optional) | A1.5 |
 | `attribution` | The licence text the platform's answer gave with the item, unchanged: present exactly where that answer carried licence text for it (optional) | A7.3 |
 | `upstream` | The fields the platform supplied about the item's origin, under its names and with its values; at least: from EVS REST the item's terminology and version; from EVS FHIR the value set's url and version; from caDSR the item's public id and version, as each API names them (publicId, the Form API's publicID, the CRDC list's CDE Public ID and Version, vmMatch's itemId); from the Shared SI Service the identity and date of each graph | A4.3 |
@@ -241,7 +241,7 @@ The provenance record, with these fields added (A4.2).
 | Field | Content | Rule |
 |---|---|---|
 | `depth` | Steps from the concept the caller asked about; an edge has the depth of the item it reaches | A4.2 |
-| `relationship` | The relationship that brought the item in: { code?, name, kind }; code is absent where the platform names none, as for computed associations; such a relationship is positive. The code decides polarity. Hierarchy links carry only their kind, with no invented code or name. | A5.7 |
+| `relationship` | The relationship that brought the item in: { code?, name, kind }; code is absent where the platform names none, as for computed associations; such a relationship is positive. The code decides polarity. A role or association the platform gives no type is named after its edge type; a hierarchy link carries its kind and an empty name, with no invented code. | A5.7 |
 | `direction` | Whether the assertion points outward from the origin or inward to it | A4.2 |
 | `polarity` | Negative exactly when the relationship's code is in its terminology's exclusion set below, positive otherwise, whatever the relationship is named (A5.7); the set is checked against the release's relationship catalogue (the relationship record): one of `positive`, `negative`; exclusion set of ncit: R135, R136, R137, R138, R139, R140, R141, R142 | A5.6 |
 | `qualifiers` | Any qualifying detail the platform attaches | A4.2 |

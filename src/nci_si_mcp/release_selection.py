@@ -14,7 +14,11 @@ from .caching import select_cache_hint
 from .errors import InputValidationError, PlatformError
 from .evs import EVSReleaseNotFoundError
 from .release import ReleaseContext, resolve_evs_release
-from .validation import validate_identifier, validate_terminology
+from .validation import (
+    RELEASE_FORM,
+    validate_identifier,
+    validate_terminology,
+)
 
 if TYPE_CHECKING:
     from .context import Context
@@ -82,7 +86,7 @@ def select(context: Context, terminology: str, release: str | None) -> ReleaseCo
     """Called only after content arguments have been validated, before content access."""
     validate_terminology(terminology)
     if release is not None:
-        validate_identifier(release, r"[A-Za-z0-9][A-Za-z0-9._-]*", "release")
+        validate_identifier(release, RELEASE_FORM, "release")
         selected = ReleaseContext(
             terminology, context.settings.release_channel, release, None, f"{terminology}_{release}"
         )

@@ -157,7 +157,7 @@ The registry derives adapter parameters from handler signatures; closed choices 
 | `evaluation.py` | Reports per-query rankings and Hit@1, Hit@5 and reciprocal-rank metrics for BM25, vector and hybrid search; evaluates inactive candidates and stores build-specific gate evidence. | Local index, embedding provider, evaluation sets |
 | `evaluation_sets.py` | Validates versioned judgments, calibration identity and measured regression floors; distinguishes test-only calibration. | Standard library |
 | `config.py` | Loads the profile, the upstream mode and the five upstream base URLs (taken as a set: production defaults in live mode, all required in fixture mode), release channel, exclusion role codes, the two credentials (kept out of every string form), timeouts, EVS retry, batching, logging, data-directory and embedding settings from environment variables and validates them; whether the data directory is usable shows only when the index is opened. | Environment, `embeddings.py`, `validation.py` |
-| `validation.py` | Defines the closed value sets (search modes, directions, edge types), normalizes NCIt codes, and validates search and traversal inputs. | Shared errors, limits in `bounds.py` |
+| `validation.py` | Defines the closed value sets (search modes, directions, edge types), the identifier forms of `spec/tools.yaml` (`NCIT_CODE_FORM`, `REGISTRY_ID_FORM`, `ITEM_VERSION_FORM`, `RELEASE_FORM`, `TERMINOLOGY_FORM`), normalizes NCIt codes, and validates search and traversal inputs. | Shared errors, limits in `bounds.py` |
 | `errors.py` | Defines the validation and index errors, `PlatformError` with the closed error-code set of the specification, the per-call correlation identifier, and `serialise`, the one function that builds the error record. | Python standard library |
 
 ## Primary flows
@@ -385,7 +385,12 @@ It returns a specification concept record with upstream name, active/status and 
 `models.py` holds the records that every tool result is built from: `ProvenanceEnvelope`
 (the specification's provenance record, field for field, written in camelCase by `to_dict`),
 `TraversalProvenance` (adds the traversal record's fields) and `Truncation` (the truncation
-record). Each item is given its envelope where it is built: `NcitConcept.provenance` for a
+record). `live_provenance` builds the envelope of an item read live in this call, `attribution_of`
+carries the licence text upstream sent (none when it sent none; a non-text value is
+`upstream_unavailable`; `with_attribution` applies it to a shared record), and `results_cut` is the one
+truncation record of a list cut at its limit. `cadsr_content.refuse_pinned` is the one C-1 refusal of a
+published registry pin, and `seam.gdc_pages` the one GDC paginator with the changing-total check.
+Each item is given its envelope where it is built: `NcitConcept.provenance` for a
 looked-up or indexed concept, the `_Walk` for traversal nodes and edges, `IndexManifest.to_result`
 for the index (the same record in `index-sample` and in the release report), and the handlers for
 the release report. The correlation identifier is read from
@@ -453,7 +458,7 @@ erDiagram
     }
     MANIFESTS ||--o{ CONCEPTS : build_id
     CONCEPTS ||--o{ FIELDS : "build_id, code"
-    CONCEPTS ||--|| CONCEPT_VECTORS : "build_id, code"
+    CONCEPTS ||--o| CONCEPT_VECTORS : "build_id, code"
 ```
 
 Schema 6 retains completed build snapshots. One partial unique index permits only one active
@@ -466,6 +471,8 @@ samples are exempt. Rebuilt unclassified snapshots become production builds, whi
 originals remain available for rollback. The next build start
 removes stale rows, while a separate SQLite lease protects concurrently running builders.
 Field vectors are grouped per concept, with their kinds and positions linking them to FTS.
+A concept has at most one vector row: a build migrated from an earlier schema (`needs_rebuild`) keeps
+its concept rows and has none until an explicit rebuild.
 The manifest supplies the dimension; malformed BLOB lengths are storage failures.
 New SQLite files use 64 KiB pages to reduce overflow-page I/O for vector scans. Existing files
 keep their page size; conversion requires an explicit offline `VACUUM` as described in QUICKSTART.

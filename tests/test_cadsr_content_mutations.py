@@ -234,6 +234,22 @@ class ContentMutationTest(CaDSRFixture):
                 self.assertEqual(result["error"]["code"], "capability_unavailable")
                 self.assertEqual(result["error"]["details"]["capability"], expected)
 
+    def test_every_unpinnable_capability_refuses_a_published_pin_in_one_wording(self):
+        refusals = {}
+        for tool, args in (
+            ("get_form", {"publicId": "123"}),
+            ("match_data_elements", {"entities": [{"name": "Q"}]}),
+            ("match_value_meanings", {"values": ["Q"]}),
+            ("ground_value", {"conceptCode": "C1"}),
+        ):
+            server = self.serve(reply({"registryReleases": [PIN]}))
+            error = self.call(server, tool, registryRelease="26.1", **args)["error"]
+            self.assertEqual(error["code"], "capability_unavailable")
+            refusals[tool] = error["message"].replace(error["details"]["capability"], "<it>")
+        self.assertEqual(len(set(refusals.values())), 1, refusals)
+        self.assertIn("C-1", refusals["get_form"])
+        self.assertIn("Omit registryRelease", refusals["get_form"])
+
     def test_search_page_size_caps_at_one_hundred(self):
         rows = [element(str(i + 1)) for i in range(102)]
         for limit in (100, 101):

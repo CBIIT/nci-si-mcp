@@ -32,14 +32,16 @@ from .evs import (
     replacements_path,
 )
 from .models import (
-    ProvenanceEnvelope,
     TraversalEdge,
     TraversalProvenance,
     TraversalResult,
     Truncation,
+    attribution_of,
+    live_provenance,
     release_ref,
     upstream_origin,
     utc_now_iso,
+    with_attribution,
 )
 from .parameters import Code, Cursor, Described, Release, Terminology, count_bound
 from .release import ReleaseContext, resolve_evs_release
@@ -47,6 +49,7 @@ from .release_selection import implicit_selection, select
 from .traversal import BATCH_SIZE, traverse_ncit
 from .validation import (
     MAX_INDEX_SEARCH_LIMIT,
+    NCIT_CODE_FORM,
     ConceptInclude,
     CrossDomainTerminology,
     HierarchyDirection,
@@ -60,17 +63,9 @@ from .validation import (
 )
 
 
-def _unavailable(capability: str) -> NoReturn:
-    raise PlatformError(
-        "capability_unavailable",
-        f"{capability} is not implemented. Use a supported option or retry after it is available.",
-        capability=capability,
-    )
-
-
 def _code(code: str, terminology: str) -> str:
     if terminology == "ncit":
-        return validate_identifier(code, r"C[1-9][0-9]*", "code")
+        return validate_identifier(code, NCIT_CODE_FORM, "code")
     return code
 
 
@@ -79,8 +74,7 @@ def _record(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
         raise EVSResponseError("EVS returned a concept without its boolean active status")
     if not raw.get("code") or not raw.get("name"):
         raise EVSResponseError("EVS returned a concept without its code or name")
-    if raw.get("licenseText"):
-        provenance = provenance | {"attribution": raw["licenseText"]}
+    provenance = with_attribution(provenance, raw, "evs")
     result = {
         "code": raw["code"],
         "terminology": raw["terminology"],
@@ -172,7 +166,7 @@ def get_concept_subsets(
                     "code": fields["relatedCode"],
                     "terminology": terminology,
                     "name": fields["relatedName"],
-                    "provenance": _item_provenance(row, provenance),
+                    "provenance": with_attribution(provenance, row, "evs"),
                 }
             )
     return {"subsets": subsets} | ({"provenance": provenance} if not subsets else {})
@@ -293,12 +287,6 @@ def _text_fields(row: dict[str, Any], fields: tuple[str, ...]) -> dict[str, str]
     return result
 
 
-def _item_provenance(row: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
-    return (
-        provenance | {"attribution": row["licenseText"]} if row.get("licenseText") else provenance
-    )
-
-
 def _mapping_record(row: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
     result: dict[str, Any] = _text_fields(
         row, ("targetCode", "targetTerminology", "targetName", "type")
@@ -306,7 +294,7 @@ def _mapping_record(row: dict[str, Any], provenance: dict[str, Any]) -> dict[str
     for field in ("targetTermType", "targetTerminologyVersion"):
         if row.get(field) not in (None, ""):
             result.update(_text_fields(row, (field,)))
-    return result | {"provenance": _item_provenance(row, provenance)}
+    return result | {"provenance": with_attribution(provenance, row, "evs")}
 
 
 def project_concept(
@@ -355,17 +343,13 @@ def _replacement_record(row: dict[str, Any], release: ReleaseContext, uri: str) 
         raise EVSResponseError("EVS returned a replacement without its code")
     if not isinstance(name, str) or not name:
         raise EVSResponseError("EVS returned a replacement without its name")
-    provenance = ProvenanceEnvelope(
-        release=release_ref(release.terminology, release.version, release.date),
-        source="evs_rest",
-        served_by="live",
-        retrieved_at=utc_now_iso(),
-        correlation_id=call_correlation_id(),
-        source_uri=uri,
+    provenance = live_provenance(
+        release_ref(release.terminology, release.version, release.date),
+        "evs_rest",
+        uri=uri,
         upstream=upstream_origin(row),
-    ).to_dict()
-    if row.get("licenseText"):
-        provenance["attribution"] = row["licenseText"]
+        attribution=attribution_of(row, "evs"),
+    )
     return {
         "code": code,
         "terminology": release.terminology,
@@ -427,13 +411,9 @@ def get_concepts(
 
 
 def _empty_provenance(release: ReleaseContext) -> dict[str, Any]:
-    return ProvenanceEnvelope(
-        release=release_ref(release.terminology, release.version, release.date),
-        source="evs_rest",
-        served_by="live",
-        retrieved_at=utc_now_iso(),
-        correlation_id=call_correlation_id(),
-    ).to_dict()
+    return live_provenance(
+        release_ref(release.terminology, release.version, release.date), "evs_rest"
+    )
 
 
 def _batch_codes(codes: list[str], terminology: str) -> list[str]:
@@ -596,7 +576,13 @@ def _indexed_search(
             retired_status=status,
         )
     except NoActiveIndexError:
-        _unavailable("semantic/hybrid search without an active NCIt index")
+        capability = "semantic/hybrid search without an active NCIt index"
+        raise PlatformError(
+            "capability_unavailable",
+            f"{capability} is not implemented. Use a supported option or retry after it is "
+            "available.",
+            capability=capability,
+        ) from None
     results = []
     for hit in hits:
         uri = context.evs.uri(concept_path(selected.pinned_terminology, hit.concept.code))
@@ -631,14 +617,11 @@ def _live_search(
     results = [_live_match(context, selected, row, arguments["mode"], status) for row in rows]
     result = _search_page(results, total, arguments, position)
     if not rows:
-        result["provenance"] = ProvenanceEnvelope(
-            release=release_ref(selected.terminology, selected.version, selected.date),
-            source="evs_rest",
-            served_by="live",
-            retrieved_at=utc_now_iso(),
-            correlation_id=call_correlation_id(),
-            source_uri=context.evs.uri(concept_path(selected.pinned_terminology) + "/search"),
-        ).to_dict()
+        result["provenance"] = live_provenance(
+            release_ref(selected.terminology, selected.version, selected.date),
+            "evs_rest",
+            uri=context.evs.uri(concept_path(selected.pinned_terminology) + "/search"),
+        )
     return result
 
 
@@ -831,13 +814,7 @@ def _hierarchy_replay(
     except EVSReleaseNotFoundError:
         if cursor is None or implicit_selection():
             raise
-        current = resolve_evs_release(context.evs, release.terminology, release.channel)
-        raise PlatformError(
-            "cursor_expired",
-            "EVS no longer serves the cursor release. Restart with the current release.",
-            cursorRelease=release.version,
-            currentRelease=current.version,
-        ) from None
+        _expired_release(context, release)
     except RequestBudgetError as exc:
         raise PlatformError(
             "bound_exceeded",
@@ -887,7 +864,7 @@ def _path_provenance(release: ReleaseContext, uri: str, depth: int) -> dict[str,
         correlation_id=call_correlation_id(),
         source_uri=uri,
         depth=depth,
-        relationship={"kind": "parent"} if depth else None,
+        relationship={"kind": "parent", "name": ""} if depth else None,
         direction="out" if depth else None,
         polarity="positive" if depth else None,
     ).to_dict()
@@ -1003,8 +980,7 @@ def _graph(
             exclusions=exclusions,
             include_negative=include_negative,
         )
-        truncation = _hydrate(context, graph, release, budget, kinds)
-    return replace(graph, truncation=truncation)
+        return _hydrate(context, graph, release, budget, kinds)
 
 
 def _graph_record(graph: TraversalResult) -> dict[str, Any]:
@@ -1029,20 +1005,25 @@ def _hydrate(
     release: ReleaseContext,
     budget: Budget,
     kinds: list[str],
-) -> Truncation:
-    missing = [node.code for node in graph.nodes if node.code not in graph.concepts]
+) -> TraversalResult:
+    """The graph with the status of every node it names, fetched in batches; the input is
+    frozen and stays as it was."""
+
+    concepts = dict(graph.concepts)
+    missing = [node.code for node in graph.nodes if node.code not in concepts]
     for batch in batched(missing, BATCH_SIZE, strict=False):
         try:
             raw = context.evs.get_concepts_by_codes(batch, release=release, include="minimal")
         except RequestBudgetError:
             # Returning relation names as full concepts would invent their active status.
             # The caller gets the verified portion, with the first omission retained.
-            return _hydration_cut(graph, budget, kinds)
+            partial = replace(graph, concepts=concepts)
+            return replace(partial, truncation=_hydration_cut(partial, budget, kinds))
         by_code = {item["code"]: item for item in raw}
         if set(by_code) != set(batch):
             raise EVSResponseError("EVS did not return exactly the requested graph concepts")
-        graph.concepts.update(by_code)
-    return graph.truncation
+        concepts.update(by_code)
+    return replace(graph, concepts=concepts)
 
 
 def _hydration_cut(graph: TraversalResult, budget: Budget, kinds: list[str]) -> Truncation:
