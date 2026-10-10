@@ -887,7 +887,7 @@ def _path_provenance(release: ReleaseContext, uri: str, depth: int) -> dict[str,
         correlation_id=call_correlation_id(),
         source_uri=uri,
         depth=depth,
-        relationship={"kind": "parent"} if depth else None,
+        relationship={"kind": "parent", "name": ""} if depth else None,
         direction="out" if depth else None,
         polarity="positive" if depth else None,
     ).to_dict()
@@ -1003,8 +1003,7 @@ def _graph(
             exclusions=exclusions,
             include_negative=include_negative,
         )
-        truncation = _hydrate(context, graph, release, budget, kinds)
-    return replace(graph, truncation=truncation)
+        return _hydrate(context, graph, release, budget, kinds)
 
 
 def _graph_record(graph: TraversalResult) -> dict[str, Any]:
@@ -1029,20 +1028,25 @@ def _hydrate(
     release: ReleaseContext,
     budget: Budget,
     kinds: list[str],
-) -> Truncation:
-    missing = [node.code for node in graph.nodes if node.code not in graph.concepts]
+) -> TraversalResult:
+    """The graph with the status of every node it names, fetched in batches; the input is
+    frozen and stays as it was."""
+
+    concepts = dict(graph.concepts)
+    missing = [node.code for node in graph.nodes if node.code not in concepts]
     for batch in batched(missing, BATCH_SIZE, strict=False):
         try:
             raw = context.evs.get_concepts_by_codes(batch, release=release, include="minimal")
         except RequestBudgetError:
             # Returning relation names as full concepts would invent their active status.
             # The caller gets the verified portion, with the first omission retained.
-            return _hydration_cut(graph, budget, kinds)
+            partial = replace(graph, concepts=concepts)
+            return replace(partial, truncation=_hydration_cut(partial, budget, kinds))
         by_code = {item["code"]: item for item in raw}
         if set(by_code) != set(batch):
             raise EVSResponseError("EVS did not return exactly the requested graph concepts")
-        graph.concepts.update(by_code)
-    return graph.truncation
+        concepts.update(by_code)
+    return replace(graph, concepts=concepts)
 
 
 def _hydration_cut(graph: TraversalResult, budget: Budget, kinds: list[str]) -> Truncation:

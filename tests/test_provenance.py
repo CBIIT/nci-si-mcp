@@ -263,13 +263,13 @@ class AnItemReachedByTraversalSaysHowTest(ProvenanceTestCase):
         self.assertEqual(by_target["C777"]["direction"], "in")
         self.assertEqual(by_target["C777"]["relationship"]["kind"], "association")
 
-    def test_a_hierarchy_link_has_a_kind_and_no_invented_code_or_name(self):
+    def test_a_hierarchy_link_has_a_kind_an_empty_name_and_no_invented_code(self):
         result = self.traversal(direction="both", edge_types=["child", "parent"])
 
         child_edge = self.edge(result, "C4741")["provenance"]
         parent_edge = self.edge(result, "C2991")["provenance"]
-        self.assertEqual(child_edge["relationship"], {"kind": "child"})
-        self.assertEqual(parent_edge["relationship"], {"kind": "parent"})
+        self.assertEqual(child_edge["relationship"], {"kind": "child", "name": ""})
+        self.assertEqual(parent_edge["relationship"], {"kind": "parent", "name": ""})
         self.assertEqual((child_edge["direction"], parent_edge["direction"]), ("out", "in"))
         self.assertEqual(child_edge["polarity"], "positive")
 
@@ -305,7 +305,7 @@ class AnItemReachedByTraversalSaysHowTest(ProvenanceTestCase):
 
         edge = self.edge(self.traversal(edge_types=["descendant"]), "C4741")["provenance"]
 
-        self.assertEqual(edge["relationship"], {"kind": "descendant"})
+        self.assertEqual(edge["relationship"], {"kind": "descendant", "name": ""})
         self.assertTrue(edge["sourceUri"].endswith("/ncit_26.06e/C3262/descendants"))
 
     def test_polarity_follows_the_relationship_code_never_its_name(self):
@@ -727,14 +727,17 @@ class EdgeTypeProvenanceTest(ProvenanceTestCase):
         }
         self.assertEqual(seen, expected)
 
-    def test_a_relation_without_a_code_or_a_name_names_only_its_kind(self):
+    def test_a_relation_without_a_code_or_a_type_is_named_after_its_edge_type(self):
         bare = {"relatedCode": "C5", "relatedName": "Five"}
         self.evs.concepts["C3262"].update(roles=[bare], associations=[bare])
 
         result = self.traversal(edge_types=["role", "association"])
 
         kinds = [edge["provenance"]["relationship"] for edge in result["edges"]]
-        self.assertEqual(kinds, [{"kind": "role"}, {"kind": "association"}])
+        self.assertEqual(
+            kinds,
+            [{"kind": "role", "name": "role"}, {"kind": "association", "name": "association"}],
+        )
         self.assertEqual({edge["provenance"]["polarity"] for edge in result["edges"]}, {"positive"})
 
     def test_traversal_items_are_live_and_index_items_are_indexed(self):

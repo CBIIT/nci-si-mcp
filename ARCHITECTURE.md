@@ -453,7 +453,7 @@ erDiagram
     }
     MANIFESTS ||--o{ CONCEPTS : build_id
     CONCEPTS ||--o{ FIELDS : "build_id, code"
-    CONCEPTS ||--|| CONCEPT_VECTORS : "build_id, code"
+    CONCEPTS ||--o| CONCEPT_VECTORS : "build_id, code"
 ```
 
 Schema 6 retains completed build snapshots. One partial unique index permits only one active
@@ -466,6 +466,8 @@ samples are exempt. Rebuilt unclassified snapshots become production builds, whi
 originals remain available for rollback. The next build start
 removes stale rows, while a separate SQLite lease protects concurrently running builders.
 Field vectors are grouped per concept, with their kinds and positions linking them to FTS.
+A concept has at most one vector row: a build migrated from an earlier schema (`needs_rebuild`) keeps
+its concept rows and has none until an explicit rebuild.
 The manifest supplies the dimension; malformed BLOB lengths are storage failures.
 New SQLite files use 64 KiB pages to reduce overflow-page I/O for vector scans. Existing files
 keep their page size; conversion requires an explicit offline `VACUUM` as described in QUICKSTART.

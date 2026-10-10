@@ -142,8 +142,8 @@ class GraphReference(TypedDict):
 
 class Relationship(TypedDict):
     kind: str
+    name: str
     code: NotRequired[str]
-    name: NotRequired[str]
 
 
 class TraversalProvenance(Provenance):
