@@ -69,9 +69,6 @@ def main() -> None:
     head = os.environ["MERGED_HEAD"]
     milestone = os.environ["MILESTONE_BRANCH"]
     number = os.environ["PR_NUMBER"]
-    # The workflow supplies these fields from the merge event, not shell source.
-    if not number.isdecimal() or not milestone.startswith("milestone/"):
-        raise ValueError("Expected a milestone pull request")
     with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as summary:
         summary.write(
             "## Branch cleanup\n\n| Status | Branch | Tip | Reason |\n|---|---|---|---|\n"
