@@ -11,7 +11,7 @@ from dataclasses import asdict, dataclass, field, fields
 from datetime import UTC, datetime
 from typing import Any, Literal
 
-from .errors import call_correlation_id
+from .errors import PlatformError, call_correlation_id
 from .validation import Polarity
 
 
@@ -52,6 +52,58 @@ class ProvenanceEnvelope:
         if self.attribution:
             data["attribution"] = self.attribution
         return data
+
+
+def live_provenance(
+    release: dict[str, str],
+    source: str,
+    *,
+    uri: str | None = None,
+    upstream: dict[str, Any] | None = None,
+    attribution: str | None = None,
+) -> dict[str, Any]:
+    """The provenance record of an item read live from upstream in this call (A4.4).
+
+    The retrieval time and correlation id are the server's own; everything else is carried
+    forward from the call or from what upstream supplied, and a missing one stays missing.
+    """
+
+    return ProvenanceEnvelope(
+        release=release,
+        source=source,
+        served_by="live",
+        retrieved_at=utc_now_iso(),
+        correlation_id=call_correlation_id(),
+        source_uri=uri,
+        upstream=upstream,
+        attribution=attribution,
+    ).to_dict()
+
+
+def attribution_of(raw: dict[str, Any], surface: str, key: str = "licenseText") -> str | None:
+    """The licence or attribution text upstream sent with an item (A7.3), or None.
+
+    The text is passed through as sent: the server keeps no licence text of its own, so an item
+    upstream sent none for has none. Text of another type is a malformed response, not coerced.
+    """
+
+    text = raw.get(key)
+    if text is not None and not isinstance(text, str):
+        raise PlatformError(
+            "upstream_unavailable",
+            f"The {surface} licence text is malformed. Ask the provider to correct it.",
+            surface=surface,
+        )
+    return text or None
+
+
+def with_attribution(
+    provenance: dict[str, Any], raw: dict[str, Any], surface: str, key: str = "licenseText"
+) -> dict[str, Any]:
+    """A provenance record shared by several items, with the licence text this item carries."""
+
+    text = attribution_of(raw, surface, key)
+    return provenance | {"attribution": text} if text else provenance
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -109,6 +161,17 @@ class Truncation:
         if self.per_kind is not None:
             data["perKind"] = {kind: record.to_dict() for kind, record in self.per_kind.items()}
         return {key: value for key, value in data.items() if value is not None}
+
+
+def results_cut(
+    count: int, limit: int, *, exact: bool = False, skipped: bool = False
+) -> dict[str, Any]:
+    """The truncation record of a list cut at `limit` results (A5.4); `skipped` marks a cut even
+    when nothing is left over, for a list that was itself assembled from a bounded read."""
+
+    if count <= limit and not skipped:
+        return {"occurred": False}
+    return Truncation(True, "results", limit, limit, max(0, count - limit), exact).to_dict()
 
 
 # The surface and the way of serving that each stored `source` stands for.

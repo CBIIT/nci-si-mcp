@@ -29,8 +29,9 @@ class CaDSRProtocolTest(ServerFixture):
                 )
                 if isinstance(licence, str):
                     self.assertFalse(result.is_error)
+                    # Empty text is no text: nothing is attributed that upstream did not say.
                     self.assertEqual(
-                        result.structured_content["provenance"]["attribution"], licence
+                        result.structured_content["provenance"].get("attribution"), licence or None
                     )
                 else:
                     self.assertTrue(result.is_error)

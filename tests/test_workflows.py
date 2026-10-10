@@ -181,6 +181,22 @@ class GroundTest(WorkflowFixture):
         self.assertEqual(result["truncation"]["perHop"]["storedValues"]["omitted"], 1)
         self.assertEqual(result["truncation"]["perHop"]["dataElements"], {"occurred": False})
 
+    def test_gdc_hop_whose_total_changes_between_pages_fails_without_partial_success(self):
+        pages = iter([([gdc_map(f"C1{i}") for i in range(10)], 11), ([gdc_map()], 12)])
+        with (
+            patch.object(
+                self.evs,
+                "get_gdc_mapset",
+                create=True,
+                return_value={"code": "NCIt_Maps_To_GDC", "version": "26.06e"},
+            ),
+            patch.object(self.evs, "get_gdc_maps", create=True, side_effect=lambda *_: next(pages)),
+        ):
+            result = self.call(conceptCode="C1", commons="GDC")
+        self.assertEqual(result["error"]["code"], "upstream_unavailable")
+        self.assertEqual(result["error"]["details"]["surface"], "evs")
+        self.assertNotIn("storedValues", result)
+
     def test_shared_request_budget_exhaustion_is_not_an_empty_hop(self):
         def charged_identity():
             current_budget().request()

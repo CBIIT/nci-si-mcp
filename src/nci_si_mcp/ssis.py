@@ -14,7 +14,12 @@ from typing import Any, NotRequired, TypedDict
 from .config import Settings
 from .errors import InputValidationError, PlatformError
 from .http_client import HttpClient
-from .validation import bounded, validate_identifier
+from .validation import (
+    NCIT_CODE_FORM,
+    REGISTRY_ID_FORM,
+    bounded,
+    validate_identifier,
+)
 
 NCIT_GRAPH = "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf"
 CADSR_GRAPH = "http://cbiit.nci.nih.gov/caDSR"
@@ -119,7 +124,7 @@ def _value_binding(row: dict[str, str]) -> dict[str, str]:
 
 
 def _concept_clause(code: str, expand: bool) -> str:
-    validate_identifier(code, r"C[0-9]+", "conceptCode")
+    validate_identifier(code, NCIT_CODE_FORM, "conceptCode")
     if type(expand) is not bool:
         raise InputValidationError("expandDescendants must be boolean", "expandDescendants")
     if expand:
@@ -212,7 +217,7 @@ class SSISClient:
         A SPARQL 1.1 plain quoted string is an xsd:string literal. No caller value or
         version text is interpolated; the recorded query retrieves both as variables.
         """
-        validate_identifier(public_id, r"[1-9][0-9]*", "publicId")
+        validate_identifier(public_id, REGISTRY_ID_FORM, "publicId")
         maximum = bounded(maximum, MAXIMUM, "maximum")
         query = f"""SELECT DISTINCT ?version ?value ?concept ?role
 WHERE {{

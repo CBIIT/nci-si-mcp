@@ -2,10 +2,9 @@
 
 from typing import Any
 
-from .errors import call_correlation_id
 from .evs import EVSResponseError, _object_list, verify_release
 from .http_client import HttpClient
-from .models import ProvenanceEnvelope, release_ref, utc_now_iso
+from .models import attribution_of, live_provenance, release_ref
 from .release import ReleaseContext
 
 # The canonical NCIt system, as the recorded EVS ValueSet.url names it.
@@ -83,15 +82,10 @@ def _member_text(row: dict[str, Any], field: str) -> str:
 
 
 def _provenance(raw: dict[str, Any], release: ReleaseContext, uri: str) -> dict[str, Any]:
-    result = ProvenanceEnvelope(
-        release=release_ref(release.terminology, release.version, release.date),
-        source="evs_fhir",
-        served_by="live",
-        retrieved_at=utc_now_iso(),
-        correlation_id=call_correlation_id(),
-        source_uri=uri,
+    return live_provenance(
+        release_ref(release.terminology, release.version, release.date),
+        "evs_fhir",
+        uri=uri,
         upstream={"url": raw["url"], "version": raw["version"]},
-    ).to_dict()
-    if raw.get("copyright"):
-        result["attribution"] = raw["copyright"]
-    return result
+        attribution=attribution_of(raw, "evs", "copyright"),
+    )

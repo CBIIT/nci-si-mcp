@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import Iterator
 from datetime import date, datetime
 from typing import Annotated, Any, NoReturn
 
@@ -14,12 +15,16 @@ from .bounds import Budget, budgeted, current_budget
 from .caching import select_cache_hint
 from .cadsr import EXPORT_FOLDER, export_state
 from .context import Context
-from .errors import InputValidationError, PlatformError, call_correlation_id
+from .errors import InputValidationError, PlatformError
 from .evs import verify_release
-from .models import ProvenanceEnvelope, Truncation, release_ref, utc_now_iso
+from .models import (
+    attribution_of,
+    live_provenance,
+    release_ref,
+    results_cut,
+    with_attribution,
+)
 from .parameters import (
-    NCIT_CODE_FORM,
-    REGISTRY_ID_FORM,
     Cursor,
     Described,
     NcitRelease,
@@ -29,7 +34,15 @@ from .permissions import require, require_operation
 from .release import ReleaseContext, resolve_evs_release, served_evs_release
 from .release_selection import implicit_selection, select
 from .ssis import NCIT_GRAPH, GraphIdentity
-from .validation import CrossDomainTerminology, bounded, validate_identifier
+from .validation import (
+    ITEM_VERSION_FORM,
+    NCIT_CODE_FORM,
+    REGISTRY_ID_FORM,
+    RELEASE_FORM,
+    CrossDomainTerminology,
+    bounded,
+    validate_identifier,
+)
 
 MAX_RESULTS = 1000
 NCIT_NAMESPACE = "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#"
@@ -57,7 +70,7 @@ def _identifier(value: Any, pattern: str, field: str, surface: str = "ssis") -> 
 
 
 def _version(value: Any) -> tuple[int, int]:
-    value = _identifier(value, r"[0-9]+([.][0-9]+)?", "data-element version")
+    value = _identifier(value, ITEM_VERSION_FORM, "data-element version")
     major, _, minor = value.partition(".")
     return int(major), int(minor or "0")
 
@@ -107,15 +120,12 @@ def _graphs(context: Context, selected: ReleaseContext) -> list[GraphIdentity]:
 def _provenance(
     context: Context, selected: ReleaseContext, graphs: list[GraphIdentity]
 ) -> dict[str, Any]:
-    base = ProvenanceEnvelope(
-        release=release_ref("ncit", selected.version, selected.date),
-        source="ssis_sparql",
-        served_by="live",
-        retrieved_at=utc_now_iso(),
-        correlation_id=call_correlation_id(),
-        source_uri=context.ssis.sparql_http.url("/sparql"),
+    base = live_provenance(
+        release_ref("ncit", selected.version, selected.date),
+        "ssis_sparql",
+        uri=context.ssis.sparql_http.url("/sparql"),
         upstream={"graphs": graphs},
-    ).to_dict()
+    )
     return base | {
         "graphs": [dict(row) | {"date": _date(row["date"], "ssis")} for row in graphs],
         "registry": {"registry": "cadsr"},
@@ -127,7 +137,7 @@ def _mixed_cache() -> None:
 
 
 def _identity(row: dict[str, str]) -> dict[str, str]:
-    identifier = _identifier(row.get("id"), r"[1-9][0-9]*", "data-element id")
+    identifier = _identifier(row.get("id"), REGISTRY_ID_FORM, "data-element id")
     _version(row.get("version"))
     return {"publicId": identifier, "version": row["version"]}
 
@@ -136,7 +146,7 @@ def _concept_code(uri: str) -> str:
     uri = _text(uri, "concept IRI")
     if not uri.startswith(NCIT_NAMESPACE):
         _malformed("concept IRI")
-    return _identifier(uri.removeprefix(NCIT_NAMESPACE), r"C[1-9][0-9]*", "concept code")
+    return _identifier(uri.removeprefix(NCIT_NAMESPACE), NCIT_CODE_FORM, "concept code")
 
 
 def _element_use(row: dict[str, str], provenance: dict[str, Any]) -> dict[str, Any]:
@@ -157,7 +167,7 @@ def _value_use(row: dict[str, str], provenance: dict[str, Any]) -> dict[str, Any
 
 
 def _find_options(code: str, terminology: str, expand: bool, values: bool) -> None:
-    validate_identifier(code, r"C[1-9][0-9]*", "conceptCode")
+    validate_identifier(code, NCIT_CODE_FORM, "conceptCode")
     if terminology != "ncit":
         raise InputValidationError("Only ncit is supported", "terminology")
     for name, value in (("expandDescendants", expand), ("includePermissibleValues", values)):
@@ -213,11 +223,7 @@ def _page(
 
 
 def _truncation(count: int, skipped: bool) -> dict[str, Any]:
-    if count <= MAX_RESULTS and not skipped:
-        return {"occurred": False}
-    return Truncation(
-        True, "results", MAX_RESULTS, MAX_RESULTS, max(0, count - MAX_RESULTS), False
-    ).to_dict()
+    return results_cut(count, MAX_RESULTS, skipped=skipped)
 
 
 def _page_items(
@@ -311,9 +317,9 @@ def _value_options(
     identifier: str | None, element: str | None, value: str | None, release: str | None
 ) -> tuple[str, str]:
     if release is not None:
-        validate_identifier(release, r"[A-Za-z0-9][A-Za-z0-9._-]*", "release")
+        validate_identifier(release, RELEASE_FORM, "release")
     if identifier is not None:
-        validate_identifier(identifier, r"[1-9][0-9]*", "permissibleValueId")
+        validate_identifier(identifier, REGISTRY_ID_FORM, "permissibleValueId")
         if element is not None or value is not None:
             raise InputValidationError(
                 "Choose permissibleValueId or dataElementId with value", "permissibleValueId"
@@ -325,7 +331,7 @@ def _value_options(
         )
     if not isinstance(element, str):
         raise InputValidationError("dataElementId must be an identifier", "dataElementId")
-    validate_identifier(element, r"[1-9][0-9]*", "dataElementId")
+    validate_identifier(element, REGISTRY_ID_FORM, "dataElementId")
     if not isinstance(value, str):
         raise InputValidationError("value must be text", "value")
     return element, value
@@ -430,11 +436,11 @@ def get_concept_for_permissible_value(
 
 
 def _stored_options(code: str, commons: str, identifier: str | None) -> None:
-    validate_identifier(code, r"C[1-9][0-9]*", "conceptCode")
+    validate_identifier(code, NCIT_CODE_FORM, "conceptCode")
     if not isinstance(commons, str) or not commons.strip():
         raise InputValidationError("commons must be nonblank text", "commons")
     if identifier is not None:
-        validate_identifier(identifier, r"[1-9][0-9]*", "dataElementId")
+        validate_identifier(identifier, REGISTRY_ID_FORM, "dataElementId")
         if commons == "GDC":
             raise PlatformError(
                 "capability_unavailable",
@@ -443,21 +449,30 @@ def _stored_options(code: str, commons: str, identifier: str | None) -> None:
             )
 
 
-def _gdc_rows(context: Context, code: str) -> list[dict[str, Any]]:
-    rows, total = context.evs.get_gdc_maps(code)
-    if total > MAX_RESULTS:
-        raise PlatformError(
-            "bound_exceeded",
-            "GDC search exceeds the result bound. Ask the provider for an exact-code query.",
-            bound="results",
-            limit=MAX_RESULTS,
-            reached=len(rows),
-        )
-    while len(rows) < total:
-        page, current_total = context.evs.get_gdc_maps(code, len(rows))
-        if current_total != total:
+def gdc_pages(context: Context, code: str) -> Iterator[tuple[list[dict[str, Any]], int]]:
+    """The GDC mapping pages of a code with their total; a total that moves is an upstream fault."""
+    offset, total = 0, None
+    while total is None or offset < total:
+        rows, current_total = context.evs.get_gdc_maps(code, offset)
+        if total is not None and current_total != total:
             _malformed("changing GDC mapping total", "evs")
+        total = current_total
+        offset += len(rows)
+        yield rows, total
+
+
+def _gdc_rows(context: Context, code: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for page, total in gdc_pages(context, code):
         rows.extend(page)
+        if total > MAX_RESULTS:
+            raise PlatformError(
+                "bound_exceeded",
+                "GDC search exceeds the result bound. Ask the provider for an exact-code query.",
+                bound="results",
+                limit=MAX_RESULTS,
+                reached=len(rows),
+            )
     return rows
 
 
@@ -478,17 +493,9 @@ def _gdc_value(
         "value": row["targetName"],
         "field": row["targetCode"],
         "source": source,
-        "provenance": _attributed(row, provenance | {"upstream": row}),
+        "provenance": with_attribution(provenance | {"upstream": row}, row, "evs"),
     }
     return record
-
-
-def _attributed(row: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
-    if "licenseText" not in row:
-        return provenance
-    if not isinstance(row["licenseText"], str):
-        _malformed("licence text", "evs")
-    return provenance | {"attribution": row["licenseText"]}
 
 
 def _gdc(context: Context, selected: ReleaseContext, code: str) -> dict[str, Any]:
@@ -504,7 +511,7 @@ def gdc_values(
     return [
         _gdc_value(row, source, provenance)
         for row in rows
-        if _identifier(row.get("sourceCode"), r"C[1-9][0-9]*", "GDC source code", "evs") == code
+        if _identifier(row.get("sourceCode"), NCIT_CODE_FORM, "GDC source code", "evs") == code
     ]
 
 
@@ -514,16 +521,13 @@ def gdc_provenance(
     """Verify the mapset identity for both direct resolution and bounded grounding."""
     mapset = context.evs.get_gdc_mapset(selected)
     source = {"mapset": mapset["code"], "version": mapset["version"]}
-    provenance = ProvenanceEnvelope(
-        release=release_ref("ncit", selected.version, selected.date),
-        source="evs_rest",
-        served_by="live",
-        retrieved_at=utc_now_iso(),
-        correlation_id=call_correlation_id(),
-        source_uri=context.evs.uri("/api/v1/mapset/NCIt_Maps_To_GDC"),
+    provenance = live_provenance(
+        release_ref("ncit", selected.version, selected.date),
+        "evs_rest",
+        uri=context.evs.uri("/api/v1/mapset/NCIt_Maps_To_GDC"),
         upstream=mapset,
-    ).to_dict()
-    provenance = _attributed(mapset, provenance)
+        attribution=attribution_of(mapset, "evs"),
+    )
     return source, provenance
 
 
@@ -641,19 +645,16 @@ def _dataset(
 def _alignment_datasets(context: Context) -> list[dict[str, Any]]:
     # Status discovery stays fresh and does not establish or replace a content pin.
     selected = resolve_evs_release(context.evs, "ncit", context.settings.release_channel)
-    provenance = ProvenanceEnvelope(
-        release=release_ref("ncit", selected.version, selected.date),
-        source="evs_rest",
-        served_by="live",
-        retrieved_at=utc_now_iso(),
-        correlation_id=call_correlation_id(),
-        source_uri=context.evs.uri("/api/v1/metadata/terminologies"),
+    provenance = live_provenance(
+        release_ref("ncit", selected.version, selected.date),
+        "evs_rest",
+        uri=context.evs.uri("/api/v1/metadata/terminologies"),
         upstream={
             "terminology": selected.terminology,
             "version": selected.version,
             "date": selected.date,
         },
-    ).to_dict()
+    )
     datasets = [_dataset("ncit", selected.date, "evs", selected.version, provenance)]
     graphs = context.ssis.get_graph_identities()
     graph_provenance = _provenance(context, selected, graphs)
@@ -680,18 +681,15 @@ def _alignment_datasets(context: Context) -> list[dict[str, Any]]:
             )
         )
     state = export_state(context.cadsr.export_http.get_text(EXPORT_FOLDER))
-    export_provenance = ProvenanceEnvelope(
-        release={"registry": "cadsr"},
-        source="cadsr_export",
-        served_by="live",
-        retrieved_at=utc_now_iso(),
-        correlation_id=call_correlation_id(),
-        source_uri=context.cadsr.export_http.url(EXPORT_FOLDER),
+    export_provenance = live_provenance(
+        {"registry": "cadsr"},
+        "cadsr_export",
+        uri=context.cadsr.export_http.url(EXPORT_FOLDER),
         upstream={
             "generatedAt": state.generated_at,
             "sourceDistribution": state.source_distribution,
         },
-    ).to_dict()
+    )
     datasets.append(_dataset("cadsr_export", state.generated_at, "cadsr", None, export_provenance))
     return datasets
 

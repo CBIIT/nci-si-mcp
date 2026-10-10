@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .errors import InputValidationError
+from .validation import RELEASE_FORM
 
 MAX_CURSOR_LENGTH = 8192
 
@@ -50,7 +51,7 @@ def validate_before_selection(
     if arguments.get("release") is None:
         recorded = _payload(token).get("arguments")
         release = recorded.get("release") if isinstance(recorded, dict) else None
-        if not isinstance(release, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", release):
+        if not isinstance(release, str) or not re.fullmatch(RELEASE_FORM, release):
             raise InputValidationError("The cursor has no valid release identity", "cursor")
         arguments = arguments | {"release": release}
     decode(token, arguments, indexed=indexed)

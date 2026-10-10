@@ -9,12 +9,7 @@ argument (TypedDicts) are described with `describe_fields`, which the server add
 from dataclasses import dataclass
 from typing import Annotated, Any, TypedDict
 
-# The stated forms of the identifiers that go into an upstream path or query (spec/tools.yaml).
-TERMINOLOGY_FORM = "^[a-z][a-z0-9_]*$"
-RELEASE_FORM = "^[A-Za-z0-9][A-Za-z0-9._-]*$"
-NCIT_CODE_FORM = "^C[1-9][0-9]*$"
-REGISTRY_ID_FORM = "^[1-9][0-9]*$"
-REGISTRY_VERSION_FORM = "^[0-9]+([.][0-9]+)?$"
+from .validation import RELEASE_FORM, TERMINOLOGY_FORM
 
 
 @dataclass(frozen=True)
