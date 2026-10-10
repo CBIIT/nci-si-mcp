@@ -184,6 +184,10 @@ class CaDSRSchemaMutationTest(TestCase):
         tools = {spec.name: spec for spec in SPECS if spec.group == "cadsr" and spec.name in TOOLS}
         self.assertEqual(set(tools), set(HASHED))
         for name, spec in tools.items():
+            # The specification's free-text arguments are hashed; the table may hash more
+            # (identifiers that correlate callers), never less.
+            free_text = {p.split("[")[0].split(".")[0] for p in TOOLS[name].get("free_text", [])}
+            self.assertLessEqual(free_text, HASHED[name], name)
             for parameter in spec.parameters:
                 with self.subTest(tool=name, parameter=parameter.name):
                     expected = "hash" if parameter.name in HASHED[name] else "plain"

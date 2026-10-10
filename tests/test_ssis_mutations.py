@@ -147,9 +147,12 @@ class SSISValidationContractsTest(unittest.TestCase):
             (client.find_permissible_values, "C1"),
         ):
             for maximum in (0, -1, True, 1.5, "2"):
-                with self.subTest(operation=operation.__name__, maximum=maximum):
-                    with self.assertRaises(InputValidationError) as raised:
-                        operation(argument, maximum=maximum)
+                with (
+                    self.subTest(operation=operation.__name__, maximum=maximum),
+                    patch("nci_si_mcp.http_client._open", side_effect=AssertionError("HTTP")),
+                    self.assertRaises(InputValidationError) as raised,
+                ):
+                    operation(argument, maximum=maximum)
                     self.assertEqual(raised.exception.details["parameter"], "maximum")
 
     def test_host_and_timeout_reach_the_transport(self):
