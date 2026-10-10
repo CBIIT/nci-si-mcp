@@ -43,6 +43,7 @@ provenance:
       content: >-
         For items served by the Shared SI Service: each graph touched, { graph, version?, date }:
         its IRI, its owl:versionInfo where it has one, and its dc:date, ISO-8601
+      optional: true
       of: A1.5
     registry:
       content: >-
@@ -77,7 +78,8 @@ traversal:
       content: >-
         The relationship that brought the item in: { code?, name, kind }; code is absent where
         the platform names none, as for computed associations; such a relationship is positive.
-        The code decides polarity. Hierarchy links carry only their kind, with no invented code or name.
+        The code decides polarity. A role or association the platform gives no type is named
+        after its edge type; a hierarchy link carries its kind and an empty name, with no invented code.
       of: A5.7
     direction:
       content: Whether the assertion points outward from the origin or inward to it

@@ -3,9 +3,12 @@ from unittest.mock import patch
 from jsonschema import Draft202012Validator
 
 from fakes import catalogue_rows, concept, release
+from nci_si_mcp import content
 from nci_si_mcp.bounds import Budget, current_budget
+from nci_si_mcp.errors import correlated
 from nci_si_mcp.evs import EVSClient
 from nci_si_mcp.registry import invoke
+from nci_si_mcp.traversal import traverse_ncit
 from test_bounds import BudgetHub
 from test_server import ServerFixture
 
@@ -310,6 +313,22 @@ class ContentTest(ServerFixture):
         )
         self.assertEqual(self.evs.includes, ["minimal,children", "minimal,children"])
 
+    def test_hydrating_a_traversal_leaves_the_frozen_input_unchanged(self):
+        self.evs.concepts["C1"]["children"].append({"code": "C3", "name": "Three"})
+        pinned = release()
+        budget = Budget(depth=1, edges=1)
+        with correlated():
+            walked = traverse_ncit(
+                self.evs, ["C1"], pinned, ["child"], budget, exclusions=frozenset()
+            )
+            before = dict(walked.concepts)
+            self.assertNotIn("C2", before)
+
+            hydrated = content._hydrate(self.context, walked, pinned, budget, ["child"])
+
+        self.assertEqual(walked.concepts, before)
+        self.assertEqual(hydrated.concepts["C2"]["code"], "C2")
+
     def test_an_edge_stop_still_fetches_the_status_of_returned_nodes(self):
         self.evs.concepts["C1"]["children"].append({"code": "C3", "name": "Three"})
         result = self.content(
@@ -354,7 +373,10 @@ class ContentTest(ServerFixture):
         self.assertEqual(
             (result["edges"][0]["sourceCode"], result["edges"][0]["targetCode"]), ("C2", "C1")
         )
-        self.assertEqual(result["edges"][0]["provenance"]["relationship"], {"kind": "child"})
+        self.assertEqual(
+            result["edges"][0]["provenance"]["relationship"],
+            {"kind": "child", "name": ""},
+        )
 
     def test_inverse_negative_assertions_are_returned_with_reversed_endpoints(self):
         self.evs.concepts["C1"]["inverseRoles"] = [

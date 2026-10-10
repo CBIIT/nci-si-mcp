@@ -367,7 +367,8 @@ Result:
         "sourceUri": "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit_26.09d/C4741",
         "depth": 1,
         "relationship": {
-          "kind": "child"
+          "kind": "child",
+          "name": ""
         },
         "direction": "in",
         "polarity": "positive",
@@ -397,7 +398,8 @@ Result:
         "sourceUri": "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit_26.09d/C3262",
         "depth": 1,
         "relationship": {
-          "kind": "child"
+          "kind": "child",
+          "name": ""
         },
         "direction": "in",
         "polarity": "positive"
@@ -440,9 +442,10 @@ not. The same fields everywhere:
 | `graphs`, `registry` | The two graph-joined tools name both graph identities; cross-domain results include `registry` where caDSR content participates. An unpublished registry has no invented release identifier |
 
 An item reached by traversal adds `depth` (an edge has that of the node it reaches; the start
-codes have 0); and, for any item but a start code, `relationship` (`kind`; for a role or
-association its `name` and its `code` when upstream supplied one; a hierarchy link has only its kind: `parent`, `child` or
-`descendant`), `direction` (`out` or `in`, the way the edge type is followed) and `polarity`
+codes have 0); and, for any item but a start code, `relationship` (`kind` and `name`; for a role
+or association the name is upstream's type, else the edge type, and the `code` is present when
+upstream supplied one; a hierarchy link has the kind `parent`, `child` or `descendant`, an empty
+`name` and no code), `direction` (`out` or `in`, the way the edge type is followed) and `polarity`
 (`negative` for configured NCIt exclusion roles, R135 to R142 by default, otherwise
 `positive`). Polarity follows the relationship code. Other terminologies have no exclusion
 set today. A node carries the provenance of the edge that first reached it.

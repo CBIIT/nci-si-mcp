@@ -47,7 +47,7 @@ class PathsToRootTest(ServerFixture):
         self.assertEqual(root["status"], "Retired_Concept")
         self.assertEqual(root["provenance"]["attribution"], "Verbatim licence")
         self.assertEqual(root["provenance"]["depth"], 2)
-        self.assertEqual(root["provenance"]["relationship"], {"kind": "parent"})
+        self.assertEqual(root["provenance"]["relationship"], {"kind": "parent", "name": ""})
         self.assertEqual(result["truncation"], {"occurred": False})
         self.assertNotIn("nextCursor", result)
         self.assertEqual(
