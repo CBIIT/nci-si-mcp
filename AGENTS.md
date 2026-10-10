@@ -174,6 +174,15 @@ the order the phase's plan gives, one at a time. Each milestone is built on its 
 after a light check; the milestone reaches `main` in one pull request that gets the full review.
 The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for them.
 
+A milestone fits one pull request reviewable in one sitting: about four issues, 1,500 changed
+lines (excluding generated files and `acceptance/expected/fixture.json`), and two days of work
+at most. If it outgrows those bounds, split it before opening the pull request and move the
+remaining work to a new milestone. Measure insertions plus deletions with
+`git diff --shortstat origin/main...milestone/<phase> -- . ':!acceptance/expected/fixture.json'`,
+adding exclusion pathspecs for generated files. Until #221 removes generated scenarios, exclude
+each path returned by `nci_si_acceptance.craft.craft(FIXTURES)` with
+`':!acceptance/fixtures/<path>'`; recorded scenario fixtures remain in the count.
+
 **Each issue:**
 
 1. **Read the issue against `spec/` first.** The specification data is the source of record;
@@ -183,8 +192,18 @@ The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for t
    acceptance tests you expect to move in `acceptance/expected/fixture.json` and why, open
    questions with your recommendation, and the commit subject (a Conventional Commit). Wait for the reviewer's answer on the
    issue before writing code; a correction there is binding.
-3. **Build on an issue branch cut from the milestone branch,** test first (the failing test,
-   then the change), with tests written for their value (see the standards). Before merging run
+3. **Build on an issue branch cut from the milestone branch.** Every behavioural change has
+   at least two commits: a test-only red commit, subject `test(<scope>): … (red)`, whose body
+   quotes the test node id and failing assertion line exactly as `pdm run pytest <node>` printed
+   them, then a green commit with the change that makes it pass. The failure must demonstrate
+   the stated behaviour, not a collection, import or fixture error. For a new entry point, red
+   may come from its absence if the test drives the real interface and the failing line is a
+   behavioural assertion. The green commit changes the red tests only for renames required by
+   the implementation. Never squash or rebase the issue branch: the `--no-ff` merge preserves
+   red before green for review. Pure refactors say
+   "no behaviour change" in the plan and commit body, with existing tests passing before and
+   after; documentation-only changes are exempt.
+   Write tests for their value (see the standards). Before merging run
    `pdm run test`, `pdm run acceptance-selftest`, `pdm run pre-commit run --all-files`, then the
    fixture run and, where outcomes moved on purpose,
    `pdm run acceptance-expected update acceptance/fixture.json` and `pdm run acceptance-status`,
@@ -195,7 +214,8 @@ The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for t
    agent and no reviewer clearance at this step; the issue's commit message says what it does,
    names the issue (`#N`) and anything deferred; the milestone pull request body closes the issue
    (step 6). The reviewer reads each merged issue and says on the
-   issue if it is not done.
+   issue if it is not done. The branch-cleanup workflow deletes merged issue branches and the
+   milestone branch after its pull request merges, as a backstop to this immediate deletion.
 
 **The milestone, once all its issues are merged:**
 
@@ -205,8 +225,9 @@ The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for t
    1. **Code review:** the engineering standards above, the architecture, and the scope.
    2. **Silent failures:** swallowed exceptions, broad `except`, fallbacks that hide an error,
       results that look complete but are not.
-   3. **Tests:** apply the outside-in rules below to every changed behavioral claim. Identify
-      its caller scenario, owning interface and test, plausible regression, and observed
+   3. **Tests:** apply the outside-in rules below to every changed behavioral claim. A behavioural
+      change without a red commit is a finding; check its quoted failure. Identify the claim's
+      caller scenario, owning interface and test, plausible regression, and observed
       assertion failure under the original defect or a restored targeted mutation. Distinguish
       setup failures from sensitivity evidence. Check exact error contracts, boundary cases,
       and independent expected values. Challenge internal spies, duplicate claims and
@@ -240,7 +261,8 @@ The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for t
     issues closed, and that the release was cut. After confirming every milestone issue is
     closed, close the milestone explicitly through the GitHub API; GitHub does not close it
     automatically. Then remove your branches, worktrees, scratch files and any process or
-    wait loop you started.
+    wait loop you started. Verify that no merged issue branches or the milestone branch remain
+    on origin; check the branch-cleanup run and remove any leftovers yourself.
 
 The `milestone branches` ruleset forbids force pushes to `milestone/*` and requires no status
 checks, because the milestone pull request into `main` runs the full CI on the milestone head and
