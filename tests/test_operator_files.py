@@ -30,6 +30,15 @@ class OperatorFilesTest(unittest.TestCase):
             write_json(target, {"b": [1], "a": {}}, indent=2)
             self.assertEqual(target.read_bytes(), b'{\n  "b": [\n    1\n  ],\n  "a": {}\n}\n')
 
+    def test_a_reader_of_the_previous_report_keeps_it_whole_across_a_rewrite(self):
+        with TemporaryDirectory() as temporary:
+            target = Path(temporary) / "report.json"
+            target.write_text('{"complete": false}\n')
+            with target.open() as reader:
+                write_json(target, {"complete": True}, indent=2)
+                self.assertEqual(reader.read(), '{"complete": false}\n')
+            self.assertEqual(target.read_text(), '{\n  "complete": true\n}\n')
+
     def test_output_symlink_is_rejected_and_its_target_left_alone(self):
         with TemporaryDirectory() as temporary:
             root = Path(temporary)
