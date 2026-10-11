@@ -59,6 +59,7 @@ class DataElementMetadataTest(MetadataFixture):
         documents = body["DataElement"]["ReferenceDocuments"]
         self.assertEqual(len(documents), 10)
         documents.append({"documentType": "Future type", "extra": {"kept": [1, None]}})
+        documents.insert(5, {})
 
         result = self.answer(body, publicId="2200604", include=["referenceDocuments"])
 
@@ -133,6 +134,7 @@ class FormAndMatchMetadataTest(MetadataFixture):
     def test_recorded_form_metadata_survives_both_module_choices(self):
         body = json.loads((FIXTURES / "form-5406471.json").read_text())["response"]["body"]
         raw = body["form"]
+        raw["instructions"].insert(0, {})
         expected = {key: raw[key] for key in (*FORM_SCALARS, *FORM_ARRAYS)}
         for include in (True, False):
             with self.subTest(includeModules=include):
@@ -223,6 +225,17 @@ class FormAndMatchMetadataTest(MetadataFixture):
         )
         self.assertFalse(result.is_error)
         self.assertEqual(self.paths, ["/vmMatch/v1/vmMatch"])
+
+    def test_each_match_carries_only_its_own_licence_text(self):
+        rows = [vm_row(licenseText="Licence of the first"), vm_row(itemId="456", version="3")]
+        result = self.answer(vm_response(matches=rows), "match_value_meanings", values=["Q"])
+        first, second = (
+            match["item"]["provenance"] for match in result.structured_content["matches"]
+        )
+
+        self.assertEqual(first["attribution"], "Licence of the first")
+        self.assertNotIn("attribution", second)
+        self.assertEqual(second["upstream"], {"itemId": "456", "version": "3"})
 
     def test_malformed_match_definition_refuses_the_whole_answer(self):
         for invalid in ([], {}, 42, False):

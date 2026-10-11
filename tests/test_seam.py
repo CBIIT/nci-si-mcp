@@ -285,6 +285,11 @@ class SeamTest(unittest.TestCase):
             result["permissibleValue"],
             {"dataElement": {"publicId": "123", "version": "2.10"}, "value": "Male"},
         )
+        # The concept read and the graphs queried are both the call's origin.
+        self.assertEqual(
+            result["provenance"]["upstream"],
+            {"terminology": "ncit", "version": "26.06e", "graphs": self.ssis.graphs},
+        )
         self.assertEqual(result["provenance"]["registry"], {"registry": "cadsr"})
 
     def test_older_values_and_inexact_spelling_are_not_candidates(self):

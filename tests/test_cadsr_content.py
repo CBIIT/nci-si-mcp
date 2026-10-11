@@ -283,6 +283,30 @@ class CaDSRContentTest(CaDSRFixture):
                     self.assertEqual(actual[0].pop("provenance")["release"], {"registry": "cadsr"})
                 self.assertEqual(actual, value)
 
+    def test_each_section_item_carries_only_its_own_origin_and_licence(self):
+        def scheme(identifier, **extra):
+            row = {"publicId": identifier, "version": "1", "longName": "S", "context": "TEST"}
+            return row | {"ClassificationSchemeItems": []} | extra
+
+        raw = element(
+            ClassificationSchemes=[
+                scheme("700", dateModified="2026-01-01", licenseText="Scheme licence"),
+                scheme("710"),
+            ]
+        )
+        server = self.serve(reply({"DataElement": raw}))
+        result = self.call(server, publicId="123", include=["classificationSchemes"])
+        first, second = (row["provenance"] for row in result["classificationSchemes"])
+
+        self.assertEqual(
+            first["upstream"], {"publicId": "700", "version": "1", "dateModified": "2026-01-01"}
+        )
+        self.assertEqual(first["attribution"], "Scheme licence")
+        self.assertEqual(second["upstream"], {"publicId": "710", "version": "1"})
+        self.assertNotIn("attribution", second)
+        self.assertNotIn("attribution", result["provenance"])
+        self.assertEqual(result["provenance"]["upstream"]["publicId"], "123")
+
     def test_known_unavailable_capabilities_make_no_content_request(self):
         for tool, args in (
             ("get_data_element", {"longName": "Name"}),

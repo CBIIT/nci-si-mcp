@@ -48,6 +48,16 @@ class TerminologyMetadataTest(ServerFixture):
                     self.assertNotIn("attribution", item["provenance"])
                 self.assertNotIn("tags", result["terminologies"][1])
 
+    def test_the_retired_status_value_is_kept_verbatim(self):
+        for value in ("", " Retired_Concept "):
+            with self.subTest(value=value):
+                self.evs.rows = listing({"metadata": {"retiredStatusValue": value}})
+
+                failed, result = self.call("list_terminologies")
+
+                self.assertFalse(failed)
+                self.assertEqual(result["terminologies"][0].get("retiredStatusValue"), value)
+
     def test_an_empty_tag_mapping_is_kept(self):
         self.evs.rows = listing({}, {"terminology": "icd10", "tags": {}})
 
@@ -62,6 +72,9 @@ class TerminologyMetadataTest(ServerFixture):
             {"terminology": "icd10", "tags": {"monthly": True}},
             {"terminology": "icd10", "tags": ["monthly"]},
             {"metadata": {"retiredStatusValue": 1}},
+            {"metadata": {"retiredStatusValue": 0}},
+            {"metadata": {"retiredStatusValue": False}},
+            {"metadata": {"retiredStatusValue": []}},
             {"metadata": {"licenseText": ["text"]}},
             {"metadata": "none"},
             {"metadata": []},
