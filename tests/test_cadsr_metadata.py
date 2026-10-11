@@ -1,11 +1,13 @@
 """CDE metadata is passed through the real MCP boundary, never filled from another call."""
 
 import json
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import urlsplit
 
 from fakes import data_element
+from nci_si_mcp.cadsr import CaDSRClient
 from test_cadsr_matching import cde_response, cde_row
 from test_evs_client import FakeResponse
 from test_server import ServerFixture
@@ -26,6 +28,12 @@ def recorded_element():
 
 
 class DataElementMetadataTest(ServerFixture):
+    def setUp(self):
+        super().setUp()
+        self.context.cadsr = CaDSRClient(
+            replace(self.settings, cadsr_base_url="https://cadsr.test")
+        )
+
     def answer(self, body, tool="get_data_element", **arguments):
         with patch(
             "nci_si_mcp.http_client._open",
