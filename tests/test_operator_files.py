@@ -18,6 +18,30 @@ class OperatorFilesTest(unittest.TestCase):
             self.assertEqual(target.read_text(), '{"complete": true}')
             self.assertEqual(list(root.iterdir()), [target])
 
+    def test_evidence_files_are_compact_with_sorted_keys(self):
+        with TemporaryDirectory() as temporary:
+            target = Path(temporary) / "state.json"
+            write_json(target, {"b": [1, 2], "a": "é"})
+            self.assertEqual(target.read_bytes(), b'{"a": "\\u00e9", "b": [1, 2]}')
+
+    def test_reports_are_indented_in_insertion_order_and_end_with_a_newline(self):
+        with TemporaryDirectory() as temporary:
+            target = Path(temporary) / "nested/report.json"
+            write_json(target, {"b": [1], "a": {}}, indent=2)
+            self.assertEqual(target.read_bytes(), b'{\n  "b": [\n    1\n  ],\n  "a": {}\n}\n')
+
+    def test_output_symlink_is_rejected_and_its_target_left_alone(self):
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            private = root / "private"
+            private.write_bytes(b"PRIVATE-CANARY")
+            link = root / "report.json"
+            link.symlink_to(private)
+            with self.assertRaisesRegex(ValueError, "symlink"):
+                write_json(link, {"complete": True}, indent=2)
+            self.assertEqual(private.read_bytes(), b"PRIVATE-CANARY")
+            self.assertTrue(link.is_symlink())
+
     def test_read_accepts_exact_limit_and_rejects_one_extra_byte(self):
         with TemporaryDirectory() as temporary:
             target = Path(temporary) / "report.json"
