@@ -31,6 +31,9 @@ fixture set pinned to NCIt 26.09d.
   digest instead of files (`--check` verifies it, `--out DIR` writes the fixtures to read), and
   a crafted name that also lies on disk is refused. The recorded fixtures and every test's
   answers are unchanged.
+- Phase 15 review (§5 outcomes, `spec/acceptance.md`): INCOMPLETE also covers a gate that could
+  not run (skipped or not implemented); a gate a live run skips by design (fixture mode only)
+  leaves its tools as they are. Agreed by the reviewer on #265.
 
 <!-- The shape of a release, from the furnished tag on:
 
