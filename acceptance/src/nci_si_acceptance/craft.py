@@ -89,29 +89,22 @@ INACTIVE_MEMBERS = (1, 3)
 
 
 class Recorded:
-    """The recorded fixture set, read by file, with what has been crafted from it so far."""
+    """The recorded fixture set, read by file."""
 
     def __init__(self, root: Path) -> None:
         self.root = root
-        self.crafted: Documents = {}
 
     def __call__(self, file: str) -> dict[str, Any]:
-        if file in self.crafted:
-            return self.crafted[file]
         return json.loads((self.root / file).read_text(encoding="utf-8"))
 
     def files(self) -> list[str]:
-        """Every recorded and derived fixture, by file, the crafted ones under `crafted/`
-        included."""
+        """Every recorded and derived fixture on disk, by file."""
 
-        directories = (RECORDED, "crafted")
-        on_disk = {
+        return sorted(
             path.relative_to(self.root).as_posix()
-            for directory in directories
+            for directory in (RECORDED, "crafted")
             for path in (self.root / directory).rglob("*.json")
-        }
-        made = {file for file in self.crafted if file.partition("/")[0] in directories}
-        return sorted(on_disk | made)
+        )
 
 
 def crafted(requirement: str, request: dict[str, Any], **answer: Any) -> dict[str, Any]:
@@ -1076,12 +1069,7 @@ def cadsr_over_cap(_: Recorded) -> Documents:
     }
 
 
-# The scenarios that craft fixtures under crafted/ come before release_mismatch, which serves
-# every crafted fixture from another release as well.
 SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
-    release_unknown_expand,
-    cadsr_match_without_a_concept,
-    cadsr_over_cap,
     release_session,
     release_mismatch,
     release_two_latest,
@@ -1090,6 +1078,7 @@ SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     traversal_exclusions,
     traversal_starvation,
     relationships_exclusion_missing,
+    release_unknown_expand,
     valueset_inactive_members,
     upstream_unavailable,
     upstream_rate_limited,
@@ -1100,7 +1089,9 @@ SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     cadsr_with_registry_release,
     cadsr_credentialed,
     cadsr_match_timeout,
+    cadsr_over_cap,
     cadsr_html_for_json,
+    cadsr_match_without_a_concept,
     upstream_masked_error,
     ssis_query_rejected,
 )
@@ -1112,12 +1103,13 @@ def craft(
     """Every crafted scenario fixture, by file."""
 
     recorded = Recorded(root)
+    crafted: Documents = {}
     for scenario in scenarios:
         documents = scenario(recorded)
-        if twice := sorted(set(documents) & set(recorded.crafted)):
+        if twice := sorted(set(documents) & set(crafted)):
             raise ValueError(f"{', '.join(twice)}: crafted by two scenarios")
-        recorded.crafted |= documents
-    return recorded.crafted
+        crafted |= documents
+    return crafted
 
 
 def digest(documents: Documents) -> str:
