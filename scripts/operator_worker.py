@@ -3,7 +3,6 @@
 import argparse
 import asyncio
 import os
-import signal
 import socket
 import subprocess
 import sys
@@ -18,6 +17,7 @@ from scripts import acceptance_http
 from scripts.benchmark import CASES, cases
 from scripts.benchmark_http import _save, run_http
 from scripts.benchmark_limits import Limits
+from scripts.processes import exit_on_sigterm, stop
 
 from nci_si_acceptance.client import server_environment
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
@@ -83,7 +83,7 @@ def _server(directory: Path, settings: dict[str, str]):
             _ready(process, port)
             yield f"http://127.0.0.1:{port}/mcp"
         finally:
-            acceptance_http.stop(process)
+            stop(process)
 
 
 def fixture_benchmark(
@@ -133,5 +133,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGTERM, acceptance_http.interrupted)
+    exit_on_sigterm()
     raise SystemExit(main())

@@ -11,7 +11,7 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from scripts import benchmark, container_smoke
+from scripts import benchmark, container_smoke, processes
 
 
 class SmokeProbeTest(unittest.TestCase):
@@ -59,9 +59,9 @@ class SmokeProbeTest(unittest.TestCase):
         for response in ({"status": "starting"}, urllib.error.URLError("not yet listening")):
             with (
                 self.subTest(response=response),
-                patch.object(container_smoke.time, "monotonic", side_effect=[0, 1, 181]),
-                patch.object(container_smoke.time, "sleep"),
-                patch.object(container_smoke, "request", side_effect=[response]),
+                patch.object(processes.time, "monotonic", side_effect=[0, 1, 181]),
+                patch.object(processes.time, "sleep"),
+                patch.object(container_smoke, "request", side_effect=[response, response]),
                 self.assertRaisesRegex(RuntimeError, "never became ready"),
             ):
                 container_smoke.wait_ready(8000)
@@ -69,7 +69,7 @@ class SmokeProbeTest(unittest.TestCase):
     def test_readiness_recovers_from_transient_failures(self):
         replies = [TimeoutError(), ConnectionError(), {"status": "ready"}]
         with (
-            patch.object(container_smoke.time, "sleep"),
+            patch.object(processes.time, "sleep"),
             patch.object(container_smoke, "request", side_effect=replies),
         ):
             # The positive control makes rejecting every image fail this same test.

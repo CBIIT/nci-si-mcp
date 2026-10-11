@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 import os
 import shlex
-import signal
 import socket
 import socketserver
 import subprocess
@@ -22,6 +21,7 @@ from threading import Thread
 from typing import Any
 
 import yaml
+from scripts.processes import exit_on_sigterm, stop
 
 from nci_si_acceptance.client import server_environment, without_nci_si_settings
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
@@ -44,17 +44,6 @@ UNPREPARED = {
     )
     for argument in arguments
 }
-
-
-def stop(process: subprocess.Popen[bytes]) -> None:
-    if process.poll() is not None:
-        return
-    process.terminate()
-    try:
-        process.wait(timeout=10)
-    except subprocess.TimeoutExpired:
-        process.kill()
-        process.wait(timeout=10)
 
 
 class ServerProcess:
@@ -178,8 +167,11 @@ def run_suite(
     environment: dict[str, str] | None = None,
 ) -> int:
     output = REPORT if report is None else report
-    command = shlex.join([sys.executable, str(Path(__file__).resolve()), "state", str(socket_path)])
-    environment = without_nci_si_settings(os.environ if environment is None else environment) | {
+    command = shlex.join(
+        [sys.executable, "-m", "scripts.acceptance_http", "state", str(socket_path)]
+    )
+    base = without_nci_si_settings(os.environ if environment is None else environment)
+    environment = base | {
         "NCI_SI_ACCEPTANCE_URL": f"http://127.0.0.1:{port}/mcp",
         "NCI_SI_ACCEPTANCE_MODE": "fixture",
         "NCI_SI_ACCEPTANCE_PREPARED": "1",
@@ -187,6 +179,8 @@ def run_suite(
             [sys.executable, str(ROOT / "scripts/permissions_fixture.py")]
         ),
         "NCI_SI_ACCEPTANCE_STATE_HOOK": command,
+        # The hook runs `-m scripts.acceptance_http` from the suite's directory.
+        "PYTHONPATH": os.pathsep.join(filter(None, [str(ROOT), base.get("PYTHONPATH")])),
     }
     output.unlink(missing_ok=True)
     suite = subprocess.Popen(  # noqa: S603 - the existing suite in this checkout
@@ -233,14 +227,9 @@ def run(*, report: Path | None = None, environment: dict[str, str] | None = None
             process.close()
 
 
-def interrupted(_signum: int, _frame: Any) -> None:
-    # Unwind both owned processes and the temporary directory on CI cancellation too.
-    raise KeyboardInterrupt
-
-
 if __name__ == "__main__":
     if sys.argv[1:] and sys.argv[1] == "state":
         state(sys.argv[2])
     else:
-        signal.signal(signal.SIGTERM, interrupted)
+        exit_on_sigterm()
         raise SystemExit(run())

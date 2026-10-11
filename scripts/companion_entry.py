@@ -2,27 +2,22 @@
 
 from __future__ import annotations
 
-import signal
 import sys
 from pathlib import Path
-from typing import Any
 
 from scripts.portal import _serve
 from scripts.portal_configuration import LocalConfiguration
 from scripts.portal_store import EvidenceStore
+from scripts.processes import exit_on_sigterm
 
 from nci_si_mcp.config import configure_logging
-
-
-def _stop(_signal: int, _frame: Any) -> None:
-    raise KeyboardInterrupt
 
 
 def main() -> None:
     # This image is for local composition only; it is not a deployed identity boundary.
     sys.stderr = sys.stdout
     configure_logging("INFO")
-    signal.signal(signal.SIGTERM, _stop)
+    exit_on_sigterm()
     _serve(
         EvidenceStore(Path("/state/evidence.sqlite")),
         8081,

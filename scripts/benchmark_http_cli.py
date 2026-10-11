@@ -3,13 +3,12 @@
 import argparse
 import asyncio
 import os
-import signal
 from pathlib import Path
 
-from scripts.acceptance_http import interrupted
 from scripts.benchmark import CASES, cases
 from scripts.benchmark_http import run_http
 from scripts.benchmark_limits import Limits, approved_target
+from scripts.processes import exit_on_sigterm
 
 
 def arguments() -> tuple[argparse.Namespace, Limits, str]:
@@ -57,5 +56,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGTERM, interrupted)
+    exit_on_sigterm()
     raise SystemExit(main())

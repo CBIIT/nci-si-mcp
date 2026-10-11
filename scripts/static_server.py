@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import signal
 import sys
 from contextlib import suppress
 from functools import partial
@@ -14,6 +13,8 @@ from os import PathLike
 from pathlib import Path
 from typing import Any, BinaryIO
 from urllib.parse import urlsplit
+
+from scripts.processes import exit_on_sigterm
 
 
 class _StaticHandler(SimpleHTTPRequestHandler):
@@ -91,10 +92,6 @@ def create_server(site: Path, *, host: str = "127.0.0.1", port: int = 8080) -> T
     return _StaticServer((host, port), partial(_StaticHandler, directory=str(site.resolve())))
 
 
-def _stop(_signal: int, _frame: Any) -> None:
-    raise KeyboardInterrupt
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--directory", type=Path, required=True)
@@ -102,7 +99,7 @@ def main() -> None:
     parser.add_argument("--host", choices=("127.0.0.1", "0.0.0.0"), default="127.0.0.1")  # noqa: S104
     parser.add_argument("--port", type=int, default=8080)
     args = parser.parse_args()
-    signal.signal(signal.SIGTERM, _stop)
+    exit_on_sigterm()
     with (
         create_server(args.directory, host=args.host, port=args.port) as server,
         suppress(KeyboardInterrupt),

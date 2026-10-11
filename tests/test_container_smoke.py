@@ -11,7 +11,7 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from scripts import container_smoke
+from scripts import container_smoke, processes
 
 
 class SmokeLifecycle:
@@ -165,8 +165,8 @@ class DockerHealthTest(unittest.TestCase):
         replies = [SimpleNamespace(stdout=status) for status in ("starting", "starting", "healthy")]
         with (
             patch.object(container_smoke, "docker", side_effect=replies) as docker,
-            patch.object(container_smoke.time, "monotonic", side_effect=[0, 1, 2, 3]),
-            patch.object(container_smoke.time, "sleep") as sleep,
+            patch.object(processes.time, "monotonic", side_effect=[0, 1, 2, 3]),
+            patch.object(processes.time, "sleep") as sleep,
         ):
             try:
                 result = container_smoke.wait_healthy("owned")
@@ -181,8 +181,8 @@ class DockerHealthTest(unittest.TestCase):
             patch.object(
                 container_smoke, "docker", return_value=SimpleNamespace(stdout="unhealthy")
             ),
-            patch.object(container_smoke.time, "monotonic", side_effect=[0, 1, 181]),
-            patch.object(container_smoke.time, "sleep") as sleep,
+            patch.object(processes.time, "monotonic", side_effect=[0, 1, 181]),
+            patch.object(processes.time, "sleep") as sleep,
             self.assertRaisesRegex(RuntimeError, "^Docker health is unhealthy, not healthy$"),
         ):
             container_smoke.wait_healthy("owned")
@@ -193,11 +193,11 @@ class DockerHealthTest(unittest.TestCase):
             patch.object(
                 container_smoke, "docker", return_value=SimpleNamespace(stdout="starting")
             ) as docker,
-            patch.object(container_smoke.time, "monotonic", side_effect=[0, 1, 181]),
-            patch.object(container_smoke.time, "sleep"),
+            patch.object(processes.time, "monotonic", side_effect=[0, 1, 181]),
+            patch.object(processes.time, "sleep"),
             self.assertRaisesRegex(
                 RuntimeError, "^Docker health did not become healthy within 180 seconds$"
             ),
         ):
             container_smoke.wait_healthy("owned")
-        self.assertEqual(docker.call_count, 1)
+        self.assertEqual(docker.call_count, 2)  # the last probe falls at the deadline
