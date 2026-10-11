@@ -25,6 +25,12 @@ fixture set pinned to NCIt 26.09d.
   A skip is classified by the property its site sets (`acceptance_skip`), not by its reason
   text. The weekly live workflow's fixture run runs the permission gates as CI's does. No test
   assertion of the suite or fixture outcome changes.
+- Phase 15 #221 (§5 fixture set): the 1,583 fixtures `craft.py` makes are no longer committed;
+  `fixture_server.load_fixtures` builds them in memory when the manifest declares them
+  (`crafted:`, the digest of what `craft.py` makes now). `pdm run acceptance-craft` writes that
+  digest instead of files (`--check` verifies it, `--out DIR` writes the fixtures to read), and
+  a crafted name that also lies on disk is refused. The recorded fixtures and every test's
+  answers are unchanged.
 
 <!-- The shape of a release, from the furnished tag on:
 

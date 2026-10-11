@@ -95,7 +95,7 @@ get_code_map:
     - arguments: {limit: 40}
       changed: [{limit: 41}, {targetContext: GDC}, {dataElementId: "88"}]
 # Crafted: no keyword search exists today, and the crafted answer of its form is the
-# contract's cap of 1,000 data elements (crafted/OP-C03/search-over-cap.json).
+# contract's cap of 1,000 data elements (crafted/OP-C03/search-over-cap.json, made by craft.py).
 search_data_elements:
   arguments: {query: patient}
   empty: {query: qqxyzzyqq}

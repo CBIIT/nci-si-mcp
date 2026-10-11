@@ -34,7 +34,7 @@ pdm run pre-commit install     # run the gates on every commit
 | `pdm run acceptance-selftest` | The acceptance harness's own tests, on four workers |
 | `pdm run acceptance-index-codes` | Print the sample concept codes the suite indexes before a run |
 | `pdm run acceptance-record` | Re-record `acceptance/fixtures/recorded/` from the live services, under change control |
-| `pdm run acceptance-craft` | Regenerate the crafted fixture scenarios from the recorded ones |
+| `pdm run acceptance-craft` | Record the digest of the crafted fixtures in the manifest; `--out DIR` writes them to read |
 | `pdm run acceptance-register` | Regenerate the request-forms register (`acceptance/request-forms/`) |
 | `pdm run acceptance-stories` | Regenerate [docs/behavioural-tests.md](docs/behavioural-tests.md) from the suite; `--check` verifies it |
 | `pdm run spec-render` | Regenerate [docs/specification.md](docs/specification.md) from `spec/`, after any change there |
