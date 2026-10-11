@@ -210,7 +210,15 @@ def test_each_cross_cutting_test_fails_on_its_own_defect(outcomes, monkeypatch, 
 
 
 @pytest.mark.parametrize(
-    "defect", ["no-correlation", "wrong-correlation", "no-source-uri", "no-upstream"]
+    "defect",
+    [
+        "no-correlation",
+        "wrong-correlation",
+        "no-source-uri",
+        "no-upstream",
+        "live-as-index",
+        "cache-loses-origin",
+    ],
 )
 def test_provenance_contract_rejects_missing_or_substituted_source_facts(
     outcomes, monkeypatch, defect
@@ -219,5 +227,12 @@ def test_provenance_contract_rejects_missing_or_substituted_source_facts(
 
     monkeypatch.setenv("COMPLIANT_SERVER_DEFECT", defect)
     case = "test_every_item_carries_its_provenance[get_concept]"
+
+    assert outcomes(f"{CROSS_CUTTING}::{case}") == {case: "failed"}
+
+
+def test_empty_result_provenance_cannot_invent_an_item_origin(outcomes, monkeypatch):
+    monkeypatch.setenv("COMPLIANT_SERVER_DEFECT", "itemless-origin")
+    case = "test_a_query_that_matches_nothing_is_an_empty_result_with_provenance[search_concepts]"
 
     assert outcomes(f"{CROSS_CUTTING}::{case}") == {case: "failed"}

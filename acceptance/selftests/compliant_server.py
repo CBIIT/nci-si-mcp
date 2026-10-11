@@ -37,6 +37,9 @@ requirements, for the harness's own tests.
     wrong-correlation provenance ignores the caller's correlation id                (X-7)
     no-source-uri    a live concept without its upstream URL                        (X-7)
     no-upstream      a live concept without the origin its answer supplied          (X-7)
+    live-as-index    a live response claims index origin to evade its obligations   (X-7)
+    cache-loses-origin a repeated live answer loses its original source facts       (X-7)
+    itemless-origin  an empty page invents an item's upstream origin                (X-7)
     bad-timestamp     a retrievedAt that is no ISO-8601 timestamp                   (X-7)
     no-polarity       an item reached by traversal without polarity                 (X-7)
     nothing-reached   a traversal whose items are all at depth 0                    (X-7)
@@ -490,14 +493,18 @@ def _provenance(name: str, arguments: dict, correlation: str, answer: dict) -> d
         "correlationId": correlation,
         "upstream": _upstream(name, arguments),
     }
-    if DEFECT == "no-served-by":
-        del provenance["servedBy"]
-    if DEFECT == "no-correlation":
-        del provenance["correlationId"]
+    omitted = {
+        "no-served-by": "servedBy",
+        "no-correlation": "correlationId",
+        "no-upstream": "upstream",
+    }.get(DEFECT)
+    if omitted:
+        del provenance[omitted]
     if DEFECT == "wrong-correlation":
         provenance["correlationId"] = "not-the-callers-correlation"
-    if DEFECT == "no-upstream":
-        del provenance["upstream"]
+    if DEFECT == "live-as-index":
+        provenance.update(source="evs_index", servedBy="index")
+        provenance.pop("upstream", None)
     return provenance | _attribution(terminology, answer)
 
 
@@ -651,6 +658,8 @@ def _content(name: str, arguments: dict, correlation: str, answer: dict) -> obje
     # With no item to carry it, the result carries the provenance itself (M3.2).
     if not items and DEFECT != "empty-without-provenance":
         content["provenance"] = provenance
+        if DEFECT == "itemless-origin":
+            provenance["upstream"] = {"version": "invented-item-version"}
     return content | _truncation(name, arguments) | _next_cursor(name, arguments, items)
 
 
@@ -664,7 +673,7 @@ def _identified_concept(content: dict, arguments: dict) -> dict:
     code = quote(arguments["code"], safe="")
     source = f"https://example.invalid/api/v1/concept/{terminology}_{release}/{code}"
     content["provenance"]["sourceUri"] = source
-    if DEFECT == "no-source-uri":
+    if DEFECT in ("no-source-uri", "live-as-index"):
         del content["provenance"]["sourceUri"]
     if DEFECT == "concept-wrong-uri":
         content["provenance"]["sourceUri"] = f"{source}-other"
@@ -926,6 +935,7 @@ def _answer(name: str, arguments: dict, correlation: str) -> tuple[object, bool]
 
 def _ordinary_answer(name: str, arguments: dict, correlation: str) -> tuple[object, bool]:
     call = json.dumps([name, arguments], sort_keys=True)
+    cached = call in answered
     if refusal := _refusal(name, arguments, correlation):
         return refusal, True
     arguments = _implicit_arguments(name, arguments)
@@ -939,7 +949,17 @@ def _ordinary_answer(name: str, arguments: dict, correlation: str) -> tuple[obje
     content = _content(name, arguments, correlation, answered.get(call, {}))
     if NO_CACHE:
         answered.clear()
-    return content, False
+    return _cached_origin(content, cached), False
+
+
+def _cached_origin(content: object, cached: bool) -> object:
+    """One cache-hit defect; the normal stub keeps the original live source facts."""
+
+    if cached and DEFECT == "cache-loses-origin" and isinstance(content, dict):
+        provenance = content.get("provenance", {})
+        provenance.pop("sourceUri", None)
+        provenance.pop("upstream", None)
+    return content
 
 
 def _implicit_arguments(name: str, arguments: dict) -> dict:
