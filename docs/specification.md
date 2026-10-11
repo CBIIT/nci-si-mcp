@@ -258,6 +258,7 @@ A concept as a terminology tool returns it: these fields, status where the platf
 | `name` | The preferred name | A4.1 |
 | `active` | Whether the platform publishes the concept as active, its boolean unchanged | A8.1 |
 | `status` | The platform's own status value, unchanged, where it publishes one (from EVS: DEFAULT, Header_Concept, Retired_Concept, ...) (optional) | A8.1 |
+| `leaf` | Whether the platform publishes the concept as a leaf of its hierarchy, its boolean unchanged; absent, never null, where the platform gives none (optional) | A4.1 |
 | `provenance` | The provenance record | A4.4 |
 | `synonyms` | The platform's synonym entries, unchanged, when include selects them (optional) | get_concept |
 | `definitions` | The platform's definition entries, unchanged, when include selects them (optional) | get_concept |
@@ -368,7 +369,9 @@ A terminology the platform serves, as list_terminologies returns it.
 |---|---|---|
 | `terminology` | The terminology's identifier, as the platform's metadata names it | A7.1 |
 | `release` | Its current release identifier | A7.2 |
-| `provenance` | The provenance record | A4.4 |
+| `tags` | The platform's mapping of channel tags for that release (NCIt: monthly, weekly), unchanged; absent where the platform sends none (optional) | A7.2 |
+| `retiredStatusValue` | The status value the platform's metadata names for a retired concept (NCIt: Retired_Concept), unchanged; absent where the platform sends none (optional) | A8.1 |
+| `provenance` | The provenance record; its attribution is the licence text the platform's metadata carries for the terminology, where it carries one | A4.4 |
 
 ### The registry release record
 

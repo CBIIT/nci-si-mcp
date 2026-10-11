@@ -42,6 +42,7 @@ from .models import (
     live_provenance,
     release_ref,
     upstream_origin,
+    with_attribution,
 )
 from .parameters import Described, Terminology
 from .release import ReleaseContext, current_terminologies, resolve_evs_release, served_evs_release
@@ -122,8 +123,10 @@ def list_terminologies(context: Context) -> dict[str, Any]:
     otherwise), because EVS can mark both channels latest; every other terminology at its sole
     latest release.
 
-    Returns terminologies, each with its name, release and live EVS provenance. Use it to see
-    what can be read and at which release.
+    Returns terminologies, each with its name, release and live EVS provenance, and, where EVS
+    sends them, its channel tags, the status value that marks a retired concept
+    (retiredStatusValue) and its licence text as the provenance's attribution. Use it to see what
+    can be read, at which release, and whether retired concepts can be told apart.
 
     release_not_available when the current release of any one listed terminology is ambiguous
     or missing: the whole listing fails closed rather than omit that terminology or guess its
@@ -133,17 +136,39 @@ def list_terminologies(context: Context) -> dict[str, Any]:
     """
 
     rows = current_terminologies(context.evs.get_terminologies(), context.settings.release_channel)
-    return {
-        "terminologies": [
-            {
-                "terminology": row["terminology"],
-                "release": row["version"],
-                "provenance": _release_provenance(context, row)
-                | {"upstream": upstream_origin(row)},
-            }
-            for row in rows
-        ]
+    return {"terminologies": [_terminology(context, row) for row in rows]}
+
+
+def _terminology(context: Context, row: dict[str, Any]) -> dict[str, Any]:
+    metadata = row.get("metadata", {})
+    if not isinstance(metadata, dict):
+        raise EVSResponseError("EVS listed a terminology with malformed metadata")
+    provenance = with_attribution(_release_provenance(context, row), metadata, "evs")
+    item = {
+        "terminology": row["terminology"],
+        "release": row["version"],
+        "provenance": provenance | {"upstream": upstream_origin(row)},
     }
+    # Passed through as EVS sends them; absent where it sends none.
+    if row.get("tags") is not None:
+        item["tags"] = _text_mapping(row["tags"], "tags")
+    if metadata.get("retiredStatusValue") is not None:
+        item["retiredStatusValue"] = _text(metadata["retiredStatusValue"], "retiredStatusValue")
+    return item
+
+
+def _text_mapping(value: Any, name: str) -> dict[str, str]:
+    if not isinstance(value, dict) or not all(
+        isinstance(key, str) and isinstance(text, str) for key, text in value.items()
+    ):
+        raise EVSResponseError(f"EVS listed a terminology with malformed {name}")
+    return value
+
+
+def _text(value: Any, name: str) -> str:
+    if not isinstance(value, str):
+        raise EVSResponseError(f"EVS listed a terminology with malformed {name}")
+    return value
 
 
 def release_info(context: Context) -> dict[str, Any]:

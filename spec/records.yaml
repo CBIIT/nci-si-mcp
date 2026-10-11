@@ -133,6 +133,12 @@ concept:
         DEFAULT, Header_Concept, Retired_Concept, ...)
       optional: true
       of: A8.1
+    leaf:
+      content: >-
+        Whether the platform publishes the concept as a leaf of its hierarchy, its boolean
+        unchanged; absent, never null, where the platform gives none
+      optional: true
+      of: A4.1
     provenance:
       content: The provenance record
       of: A4.4
@@ -366,8 +372,22 @@ terminology:
     release:
       content: Its current release identifier
       of: A7.2
+    tags:
+      content: >-
+        The platform's mapping of channel tags for that release (NCIt: monthly, weekly), unchanged;
+        absent where the platform sends none
+      optional: true
+      of: A7.2
+    retiredStatusValue:
+      content: >-
+        The status value the platform's metadata names for a retired concept (NCIt:
+        Retired_Concept), unchanged; absent where the platform sends none
+      optional: true
+      of: A8.1
     provenance:
-      content: The provenance record
+      content: >-
+        The provenance record; its attribution is the licence text the platform's metadata
+        carries for the terminology, where it carries one
       of: A4.4
 registry_release:
   title: The registry release record
