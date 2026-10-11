@@ -236,6 +236,12 @@ class PortalViewsTest(unittest.TestCase):
         del evidence["tools"]["lookup"]["gates_unrun"]
         html = run_page(self.record(evidence))
         self.assertIn("<td>PASS (gate status not recorded)</td>", html)
+        for outcome in ("INCOMPLETE", "FAIL"):
+            with self.subTest(outcome=outcome):
+                evidence["tools"]["lookup"]["outcome"] = outcome
+                html = run_page(self.record(evidence))
+                self.assertIn(f"<td>{outcome}</td>", html)
+                self.assertNotIn("not recorded", html)
 
     def test_unverified_legacy_report_has_no_results_or_pass_claim(self):
         record = {

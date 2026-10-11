@@ -206,6 +206,33 @@ class AcceptanceProjectionTest(unittest.TestCase):
                 tool = project(native, context)["tools"]["lookup"]
                 self.assertEqual((tool["outcome"], tool["gates_unrun"]), (verdict, decided))
 
+    def test_another_tool_s_own_skipped_test_is_no_unrun_gate(self):
+        other = "tests/test_example.py::test_search"
+        context = bundle()
+        catalogue = json.loads(context["catalogue"])
+        catalogue["tools"]["search"] = "evs"
+        catalogue["cases"][other] = {"tool": "search", "gate": False}
+        context |= {
+            "catalogue": encoded(catalogue),
+            "stories": encoded(dict.fromkeys(catalogue["cases"], "find-a-concept")),
+            "expectations": encoded(dict.fromkeys(catalogue["cases"], "passed")),
+            "selection": encoded(list(catalogue["cases"])),
+        }
+        native = report()
+        native["tests"][other] = {"tool": "search", "gate": False, "unmatched": []}
+        native["tests"][other]["outcome"] = "skipped"
+        native["tools"]["search"] = {
+            "group": "evs",
+            "outcome": "NOT RUN",
+            "gates_only": False,
+            "counts": {"skipped": 1},
+        }
+        tools = project(native, context)["tools"]
+        self.assertEqual(
+            {name: (tool["outcome"], tool["gates_unrun"]) for name, tool in tools.items()},
+            {"lookup": ("PASS", False), "search": ("NOT RUN", False)},
+        )
+
     def test_an_incomplete_verdict_no_harness_gives_is_refused(self):
         native = report()
         native["tools"]["lookup"]["outcome"] = "INCOMPLETE"
