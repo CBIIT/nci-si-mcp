@@ -60,7 +60,9 @@ def test_every_scenario_file_on_disk_is_recorded():
 def test_the_crafted_scenarios_are_served_with_no_crafted_file_on_disk(tmp_path):
     fixtures = load_fixtures(without_crafted(tmp_path))
 
-    assert "traversal/starvation" in fixtures.scenarios
+    # Concept recordings, which is all traversal/starvation holds, load apart from exact fixtures.
+    assert "traversal/starvation" in fixtures.recordings
+    assert "release/mismatch" in fixtures.scenarios
     with FixtureServer(fixtures) as running:
         # A synthetic concept recording and a recorded answer with its release changed.
         for scenario, name in (
