@@ -23,9 +23,9 @@ def utc_now_iso() -> str:
 class ProvenanceEnvelope:
     """The provenance record of one returned item (A4.4), field for field.
 
-    `source_uri` is None only for a result that holds no item and so was produced from no
-    upstream URL; `upstream` holds what the platform supplied about the item's origin, unchanged,
-    and is left out when it supplied nothing (A4.3).
+    Index items carry neither `source_uri` nor `upstream`. Live answers retain their source
+    facts when cached; `upstream` describes the item or the resource actually read, even when
+    a filter leaves no items, and is absent when the answer supplied no origin (A4.3).
     """
 
     release: dict[str, str]
@@ -216,7 +216,7 @@ class NcitConcept:
     def to_stored(self) -> dict[str, Any]:
         return asdict(self)
 
-    def provenance(self, source_uri: str) -> ProvenanceEnvelope:
+    def provenance(self, source_uri: str | None) -> ProvenanceEnvelope:
         surface, served_by = _ORIGINS[self.source]
         return ProvenanceEnvelope(
             release=release_ref(self.terminology, self.release_version, self.release_date),
@@ -224,11 +224,11 @@ class NcitConcept:
             served_by=served_by,
             retrieved_at=self.retrieved_at,
             correlation_id=call_correlation_id(),
-            source_uri=source_uri,
-            upstream=upstream_origin(self.raw),
+            source_uri=source_uri if served_by != "index" else None,
+            upstream=upstream_origin(self.raw) if served_by != "index" else None,
         )
 
-    def to_dict(self, source_uri: str, include_raw: bool = False) -> dict[str, Any]:
+    def to_dict(self, source_uri: str | None, include_raw: bool = False) -> dict[str, Any]:
         """The concept as an item of a result: its provenance replaces the release fields.
 
         The full EVS payload is added only when `include_raw` asks for it, which the CLI does.
@@ -328,7 +328,7 @@ class SearchHit:
     matched_on: str
     score_components: dict[str, float] = field(default_factory=dict)
 
-    def to_dict(self, source_uri: str, include_raw: bool = False) -> dict[str, Any]:
+    def to_dict(self, source_uri: str | None, include_raw: bool = False) -> dict[str, Any]:
         return {
             "concept": self.concept.to_dict(source_uri, include_raw=include_raw),
             "score": self.score,

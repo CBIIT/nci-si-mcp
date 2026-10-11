@@ -75,16 +75,26 @@ def _record(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
     if not raw.get("code") or not raw.get("name"):
         raise EVSResponseError("EVS returned a concept without its code or name")
     provenance = with_attribution(provenance, raw, "evs")
+    if provenance["source"] != "evs_index":
+        provenance = provenance | {"upstream": upstream_origin(raw)}
     result = {
         "code": raw["code"],
         "terminology": raw["terminology"],
         "name": raw["name"],
         "active": raw["active"],
-        "provenance": _provenance(provenance) | {"upstream": upstream_origin(raw)},
+        "provenance": _provenance(provenance),
     }
     if raw.get("conceptStatus") not in (None, ""):
         result["status"] = raw["conceptStatus"]
+    if raw.get("leaf") is not None:
+        result["leaf"] = _leaf(raw["leaf"])
     return result
+
+
+def _leaf(value: Any) -> bool:
+    if not isinstance(value, bool):
+        raise EVSResponseError("EVS returned a concept whose leaf flag is not a boolean")
+    return value
 
 
 def _provenance(provenance: dict[str, Any]) -> dict[str, Any]:
@@ -114,8 +124,8 @@ def get_concept(
 
     include adds synonyms, definitions, properties and semanticType.
 
-    Returns code, terminology, name, active, the status EVS gives when it gives one, and
-    provenance naming the verified release.
+    Returns code, terminology, name, active, the status and leaf flag EVS gives when it gives
+    them, and provenance naming the verified release.
 
     not_found when the code is absent; release_not_available when the release is not served;
     upstream_unavailable when EVS cannot answer.
@@ -513,8 +523,10 @@ def search_concepts(
     semantic and hybrid rank by meaning from the local NCIt index, NCIt only; leaving retired
     concepts out and the upstream search types are not offered.
 
-    Returns results with the concept's code, name and status but no sections, so read a concept
-    by code for its definitions. Also totalKnown, truncation and nextCursor: pass nextCursor
+    Returns results with the concept's code, name, active flag, and the status and leaf flag EVS
+    gives where it gives them, but no sections, so read a concept by code for its definitions.
+    Semantic and hybrid results come from the index, so their provenance has no sourceUri or
+    upstream. Also totalKnown, truncation and nextCursor: pass nextCursor
     back unchanged as cursor for the next page. Lexical and typeahead keep EVS order and have no
     scores. Semantic and hybrid carry a score (not comparable between queries) and matchedOn
     naming name, synonym or definition; exact preferred names win ties.
@@ -586,10 +598,9 @@ def _indexed_search(
         ) from None
     results = []
     for hit in hits:
-        uri = context.evs.uri(concept_path(selected.pinned_terminology, hit.concept.code))
         results.append(
             {
-                "concept": _record(hit.concept.raw, hit.concept.provenance(uri).to_dict()),
+                "concept": _record(hit.concept.raw, hit.concept.provenance(None).to_dict()),
                 "score": hit.score,
                 "matchedOn": hit.matched_on,
             }

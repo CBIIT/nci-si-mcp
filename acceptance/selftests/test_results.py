@@ -18,6 +18,7 @@ from nci_si_acceptance.results import (
     is_iso8601,
     is_name,
     is_timestamp,
+    is_url,
     pinned_release,
     provenance_of,
     release_of,
@@ -25,7 +26,9 @@ from nci_si_acceptance.results import (
     sparql_rows,
     value_ids,
     wrong_fields,
+    wrong_origin,
 )
+from nci_si_acceptance.spec import items_of
 from nci_si_acceptance.tools import Result
 
 RECORD = {"code": "invalid_request", "message": "no such include value"}
@@ -191,6 +194,7 @@ def test_uses_are_named_by_their_data_element_and_value():
 
 
 PROVENANCE = {
+    "correlationId": "test-call",
     "release": {"terminology": "ncit", "identifier": "26.09d"},
     "source": "evs_rest",
     "servedBy": "live",
@@ -267,3 +271,66 @@ def test_a_count_is_a_positive_integer_and_a_name_a_non_empty_string(value, coun
 )
 def test_a_caching_hint_fits_the_class_of_what_the_content_holds(ttl, scope, pinned, fits):
     assert hint_fits(ttl, scope, pinned) is fits
+
+
+LIVE = {
+    "release": {"terminology": "ncit", "identifier": "26.09d"},
+    "source": "evs_rest",
+    "retrievedAt": "2026-10-11T00:00:00Z",
+    "servedBy": "live",
+    "correlationId": "call-1",
+}
+
+
+@pytest.mark.parametrize("correlation", [None, "", 5])
+def test_every_carried_provenance_needs_a_nonempty_correlation_id(correlation):
+    provenance = dict(LIVE, correlationId=correlation)
+    if correlation is None:
+        del provenance["correlationId"]
+
+    assert wrong_fields(provenance, CARRIED) == ["correlationId"]
+    assert wrong_fields(LIVE, CARRIED) == []
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("https://api-evsrest.nci.nih.gov/api/v1/concept/ncit_26.09d/C3262", True),
+        ("http://example.invalid/x", True),
+        ("https:///x", False),
+        ("https://", False),
+        ("//example.invalid/x", False),
+        ("example.invalid/x", False),
+        ("mailto:someone@example.invalid", False),
+        ("ftp://example.invalid/x", False),
+        ("file:///x", False),
+        ("", False),
+        (None, False),
+    ],
+)
+def test_a_source_uri_is_an_absolute_http_url_with_a_host(value, expected):
+    assert is_url(value) is expected
+
+
+@pytest.mark.parametrize(
+    ("upstream", "wrong"),
+    [
+        ({"terminology": "ncit", "version": "26.09d"}, []),
+        ({}, ["upstream"]),
+        ("ncit", ["upstream"]),
+        (["ncit"], ["upstream"]),
+    ],
+)
+def test_an_owed_origin_is_a_nonempty_object(upstream, wrong):
+    provenance = dict(LIVE, sourceUri="https://example.invalid/x", upstream=upstream)
+
+    assert wrong_origin(provenance, uri=True, origin=True) == wrong
+
+
+def test_the_items_of_a_result_come_from_every_items_path():
+    result = {"nodes": [{"code": "C2"}], "edges": [{"source": "C1", "target": "C2"}]}
+
+    assert items_of("get_concept_neighborhood", result) == [
+        {"code": "C2"},
+        {"source": "C1", "target": "C2"},
+    ]

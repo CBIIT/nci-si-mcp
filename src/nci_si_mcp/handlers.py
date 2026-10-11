@@ -38,10 +38,10 @@ from .indexing import full_build
 from .invocation import error_record
 from .models import (
     IndexManifest,
-    NcitConcept,
     live_provenance,
     release_ref,
     upstream_origin,
+    with_attribution,
 )
 from .parameters import Described, Terminology
 from .release import ReleaseContext, current_terminologies, resolve_evs_release, served_evs_release
@@ -122,8 +122,10 @@ def list_terminologies(context: Context) -> dict[str, Any]:
     otherwise), because EVS can mark both channels latest; every other terminology at its sole
     latest release.
 
-    Returns terminologies, each with its name, release and live EVS provenance. Use it to see
-    what can be read and at which release.
+    Returns terminologies, each with its name, release and live EVS provenance, and, where EVS
+    sends them, its channel tags, the status value that marks a retired concept
+    (retiredStatusValue) and its licence text as the provenance's attribution. Use it to see what
+    can be read, at which release, and whether retired concepts can be told apart.
 
     release_not_available when the current release of any one listed terminology is ambiguous
     or missing: the whole listing fails closed rather than omit that terminology or guess its
@@ -133,17 +135,38 @@ def list_terminologies(context: Context) -> dict[str, Any]:
     """
 
     rows = current_terminologies(context.evs.get_terminologies(), context.settings.release_channel)
-    return {
-        "terminologies": [
-            {
-                "terminology": row["terminology"],
-                "release": row["version"],
-                "provenance": _release_provenance(context, row)
-                | {"upstream": upstream_origin(row)},
-            }
-            for row in rows
-        ]
+    return {"terminologies": [_terminology(context, row) for row in rows]}
+
+
+def _terminology(context: Context, row: dict[str, Any]) -> dict[str, Any]:
+    metadata = row.get("metadata")
+    if metadata is None:
+        metadata = {}
+    if not isinstance(metadata, dict):
+        raise EVSResponseError("EVS listed a terminology with malformed metadata")
+    provenance = with_attribution(_release_provenance(context, row), metadata, "evs")
+    item = {
+        "terminology": row["terminology"],
+        "release": row["version"],
+        "provenance": provenance | {"upstream": upstream_origin(row)},
     }
+    # Passed through as EVS sends them; absent where it sends none.
+    if row.get("tags") is not None:
+        item["tags"] = _text_mapping(row["tags"], "tags")
+    retired = metadata.get("retiredStatusValue")
+    if retired is not None:
+        if not isinstance(retired, str):
+            raise EVSResponseError("EVS listed a terminology with a malformed retiredStatusValue")
+        item["retiredStatusValue"] = retired
+    return item
+
+
+def _text_mapping(value: Any, name: str) -> dict[str, str]:
+    if not isinstance(value, dict) or not all(
+        isinstance(key, str) and isinstance(text, str) for key, text in value.items()
+    ):
+        raise EVSResponseError(f"EVS listed a terminology with malformed {name}")
+    return value
 
 
 def release_info(context: Context) -> dict[str, Any]:
@@ -310,9 +333,9 @@ def search(
     concepts that share a term with it.
 
     Each hit's concept carries a `provenance` record: `source` is
-    `evs_index`, `servedBy` is `index`, `retrievedAt` is when the concept
-    was indexed, and `upstream` holds the terminology and version that EVS
-    gave it. A search with no hit carries the `provenance` itself.
+    `evs_index`, `servedBy` is `index` and `retrievedAt` is when the concept
+    was indexed; it has no `sourceUri` or `upstream`, which only a live read
+    carries. A search with no hit carries the `provenance` itself.
     `truncation` is `{occurred: false}` unless `limit` left scored concepts
     out; it then names the `results` bound and how many were `omitted`,
     `exact` where that is a count and not a lower bound."""
@@ -323,10 +346,7 @@ def search(
     result: dict[str, Any] = {
         "query": query,
         "mode": normalized_mode,
-        "hits": [
-            hit.to_dict(_indexed_concept_uri(context, hit.concept), include_raw=include_raw)
-            for hit in hits
-        ],
+        "hits": [hit.to_dict(None, include_raw=include_raw) for hit in hits],
         "truncation": truncation.to_dict(),
     }
     # A result with no item has none to carry the provenance (M3.2).
@@ -341,12 +361,6 @@ def _concept_uri(context: Context, code: str, pinned_terminology: str) -> str:
     return context.evs.uri(concept_path(pinned_terminology, code))
 
 
-def _indexed_concept_uri(context: Context, concept: NcitConcept) -> str:
-    """The URL the indexed concept was read from, in the form EVS names a release."""
-
-    return _concept_uri(context, concept.code, f"{concept.terminology}_{concept.release_version}")
-
-
 def lookup(
     context: Context, code: str, live_only: bool = False, include_raw: bool = False
 ) -> dict[str, Any]:
@@ -359,8 +373,9 @@ def lookup(
     `provenance.upstream` holds the terminology and version EVS gave it. A
     code that release does not contain returns `not_found`. If EVS cannot
     be reached and the concept is in the local index, it is served from
-    there instead, with `source: evs_index`, `servedBy: index` and a
-    `fallback` object giving the reason; otherwise the call fails with
+    there instead, with `source: evs_index`, `servedBy: index`, no
+    `sourceUri` or `upstream`, and a `fallback` object giving the reason;
+    otherwise the call fails with
     `upstream_unavailable`.
 
     When the local index holds a different release than the current
@@ -394,7 +409,7 @@ def lookup(
             code=code,
             errorType=type(exc).__name__,
         )
-        result = cached.to_dict(_indexed_concept_uri(context, cached), include_raw=include_raw)
+        result = cached.to_dict(None, include_raw=include_raw)
         # Fixed wording: upstream text would reach the client verbatim.
         result["fallback"] = {
             "reason": "upstream_unavailable",

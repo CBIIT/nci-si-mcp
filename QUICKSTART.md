@@ -290,12 +290,7 @@ Result:
           "source": "evs_index",
           "servedBy": "index",
           "retrievedAt": "2026-10-05T11:59:13.792416Z",
-          "correlationId": "bce00f09f12d456bad1ab270f7f3b908",
-          "sourceUri": "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit_26.09d/C40704",
-          "upstream": {
-            "terminology": "ncit",
-            "version": "26.09d"
-          }
+          "correlationId": "bce00f09f12d456bad1ab270f7f3b908"
         },
         "status": "DEFAULT"
       },
@@ -435,9 +430,9 @@ not. The same fields everywhere:
 | `source` | `evs_rest` for EVS REST, `evs_fhir` for EVS FHIR expansion, `evs_index` for the local NCIt index |
 | `servedBy` | `live` or `index` |
 | `retrievedAt` | When the item was retrieved; for an indexed concept, when it was indexed |
-| `sourceUri` | The upstream URL used for the item: a concept, relationship catalogue, traversal endpoint or FHIR expansion. It may include query parameters, such as the expansion's canonical value-set URL. Optional on empty results; absent for a local search with no hits |
+| `sourceUri` | The upstream URL read for the item or resource, including query parameters. A cached live answer retains its original URL. Absent on NCIt index items and when no upstream URL was read |
 | `correlationId` | The call's `_meta.correlationId`, or one the server generated; the same in every item of the call and in the error record |
-| `upstream` | Origin fields the platform supplied, unchanged: REST `terminology` and `version`, or FHIR value-set `url` and `version`. Omitted where the returned item carried none; hydrated concepts retain their own origin fields |
+| `upstream` | Origin fields the platform supplied, unchanged, including in a cached live answer. Result-level provenance retains the origin of the concept, mapset or graphs read even when no rows match. Absent on NCIt index items and where no answer supplied origin fields (release reports, caDSR call-level provenance and empty search pages) |
 | `attribution` | Licence or copyright text supplied upstream for that item. Omitted when none was supplied; an edge's licence is not copied onto its target concept |
 | `graphs`, `registry` | The two graph-joined tools name both graph identities; cross-domain results include `registry` where caDSR content participates. An unpublished registry has no invented release identifier |
 
@@ -517,8 +512,8 @@ The tools, generated from `spec/tools.yaml` by `pdm run quickstart-tools`:
 | `get_data_element` | caDSR | One data element, at its latest version or the version given, with the sections include selects; without include, the record's own fields. questionText finds it by its preferred question text, an invalid request naming the candidates where several have it and not_found where none has; longName is capability_unavailable until the platform serves that lookup (OP-C02). |
 | `search_data_elements` | caDSR | Search of data elements, filtered by context, status and value-domain type, a page at a time up to the platform's cap of 1,000 results a query, which truncation reports (upstream_cap). semantic and hybrid are capability_unavailable until the platform serves them (OP-C04). |
 | `match_data_elements` | caDSR | Data elements matched to described entities, scored and rule-attributed, at most matchLimit for each entity; the contract's default is 10, and the maximum of 100 is this specification's, the contract stating none. The classificationScheme filter takes both publicId and version. modelVariant and similarityThreshold, which the platform does not take, are an invalid request when given. At most 10 entities a call: the contract states no maximum, and one entity took 28.9 s (10 September 2026) against a match timeout of 45 s. |
-| `match_value_meanings` | caDSR | Value meanings and concepts matched to values, each rule-attributed with its crosswalk; strictness is vmMatch's matchType, terminologyScope its evsTerminologyCodes. At most 10 values a call: the contract states no maximum, and one value took 15.5 s (10 September 2026) against a match timeout of 45 s. |
-| `get_form` | caDSR | A form or case report form by public id, with its modules and questions; a keyword is an invalid request saying the platform needs an identifier (Form/query takes a public or protocol id only). |
+| `match_value_meanings` | caDSR | Value meanings and concepts matched to values, each rule-attributed with its crosswalk and with the matched item's definition where vmMatch gives one; strictness is vmMatch's matchType, terminologyScope its evsTerminologyCodes. At most 10 values a call: the contract states no maximum, and one value took 15.5 s (10 September 2026) against a match timeout of 45 s. |
+| `get_form` | caDSR | A form or case report form by public id, with its definition, type, dates, instructions and classification schemes as the platform gives them, and its modules and questions; a keyword is an invalid request saying the platform needs an identifier (Form/query takes a public or protocol id only). |
 | `get_permissible_value` | caDSR | A permissible value by the identifier caDSR REST publishes for it; capability_unavailable until the platform retrieves a value by it (OP-C10). |
 | `get_code_map` | caDSR | Code maps between source code systems and registered value sets, one per data element of the CRDC crosswalk with the contexts and commons that use it; targetContext selects those a context or commons uses, dataElementId one data element. |
 | `list_contexts` | caDSR | The registry's contexts, by name. |
@@ -538,8 +533,15 @@ what comes back and how it fails, and names the requirement (OP-*, C-*) of every
 platform lacks. The server instructions carry what spans tools: the error record, the release rule and
 a map from each decision to the tool that serves it.
 The caDSR tools are available in `cadsr` and `unified`, the cross-domain and workflow tools in
-`unified`; caDSR credentials have not been issued, so their tests use contract-crafted fixtures.
+`unified`. CDE Match and the lists-of-values API need credentials and use contract-crafted
+fixtures; the data element API, vmMatch and Form API 2.0 are anonymous and can be tested live.
 Runtime responses always come from the configured upstream, never from a built-in fixture.
+
+Data elements include their definition, short name, latest-version indicator, begin/end dates
+and origin. Null means that the answer producing this record supplied no value; search and
+match results do not trigger a detail lookup to fill one. Request `include: [referenceDocuments]`
+for all upstream document rows, including question texts, references and templates, unchanged.
+The section is absent unless requested.
 
 ### CLI
 

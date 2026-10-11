@@ -133,6 +133,7 @@ class LookupTest(HandlerTestCase):
                     ("evs_index", "index"),
                 )
                 self.assertEqual(result["provenance"]["release"]["identifier"], "26.06e")
+                self.assertEqual({"sourceUri", "upstream"} & result["provenance"].keys(), set())
                 self.assertEqual(
                     result["fallback"],
                     {
@@ -328,6 +329,11 @@ class SearchTest(HandlerTestCase):
             result = invoke(self.context, "search", "zzzz", mode="bm25")
         self.assertEqual(result["hits"], [])
         self.assertEqual(result["provenance"]["release"]["identifier"], "26.06e")
+        # An index page that read no item names no live origin.
+        self.assertEqual(
+            set(result["provenance"]),
+            {"release", "source", "servedBy", "retrievedAt", "correlationId"},
+        )
         self.assertEqual(self.context.index.get_active_manifest().release_version, "26.07a")
 
     def test_search_returns_ranked_hits_of_the_indexed_release(self):

@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlsplit
 
 from nci_si_acceptance.spec import RECORDS, REQUIRED_TOOLS
 
@@ -54,7 +55,7 @@ def _words(entry: dict[str, Any]) -> set[str]:
 
 # The fields of a provenance record, and those every item's carries (X-7).
 PROVENANCE_FIELDS = RECORDS["provenance"]["fields"] | RECORDS["traversal"]["fields"]
-CARRIED = ("release", "source", "retrievedAt", "servedBy")
+CARRIED = ("release", "source", "retrievedAt", "servedBy", "correlationId")
 
 
 def provenance_of(item: Any) -> dict[str, Any]:
@@ -64,7 +65,25 @@ def provenance_of(item: Any) -> dict[str, Any]:
 def wrong_fields(provenance: dict[str, Any], names: Iterable[str]) -> list[str]:
     """The fields among `names` that `provenance` lacks or holds outside their closed set."""
 
-    return [name for name in names if not _valid(provenance.get(name), PROVENANCE_FIELDS[name])]
+    return [
+        name
+        for name in names
+        if not _valid(provenance.get(name), PROVENANCE_FIELDS[name])
+        or (name == "correlationId" and not is_name(provenance.get(name)))
+    ]
+
+
+def wrong_origin(provenance: dict[str, Any], *, uri: bool, origin: bool) -> list[str]:
+    """Wrong origin fields under obligations fixed by the call, not its claimed source."""
+
+    upstream = provenance.get("upstream")
+    valid = {
+        "sourceUri": is_url(provenance.get("sourceUri")) if uri else "sourceUri" not in provenance,
+        "upstream": isinstance(upstream, dict) and bool(upstream)
+        if origin
+        else "upstream" not in provenance,
+    }
+    return [name for name, held in valid.items() if not held]
 
 
 def _valid(value: Any, field: dict[str, Any]) -> bool:
@@ -101,6 +120,15 @@ def is_name(value: Any) -> bool:
     """Whether `value` is a non-empty string."""
 
     return isinstance(value, str) and value != ""
+
+
+def is_url(value: Any) -> bool:
+    """Whether `value` is an absolute http(s) URL, as an upstream request has."""
+
+    if not is_name(value):
+        return False
+    parts = urlsplit(value)
+    return parts.scheme in ("http", "https") and bool(parts.netloc)
 
 
 # M2.2: governed content that no release pins is cached briefly, at most this long.

@@ -86,6 +86,7 @@ class MatchedRegistryItem(TypedDict):
     name: str
     concept: NotRequired[str]
     evsSource: NotRequired[str]
+    matchedDefinition: NotRequired[str]
     context: str
     workflowStatus: str
     registrationStatus: NotRequired[str]
@@ -237,16 +238,28 @@ class ConceptAssociation(TypedDict):
 
 
 class Form(RegistryItemIdentity):
+    definition: str | None
+    type: str | None
+    beginDate: str | None
+    endDate: str | None
     context: str | None
     workflowStatus: str | None
     registrationStatus: str | None
     dateCreated: str | None
     dateModified: str | None
     provenance: Provenance
+    instructions: NotRequired[list[dict[str, Any]]]
+    classificationSchemes: NotRequired[list[dict[str, Any]]]
     modules: NotRequired[list[dict[str, Any]]]
 
 
 class DataElement(RegistryItemIdentity):
+    definition: str | None
+    shortName: str | None
+    latestVersionIndicator: str | None
+    beginDate: str | None
+    endDate: str | None
+    origin: str | None
     context: str | None
     workflowStatus: str | None
     registrationStatus: str | None
@@ -258,6 +271,7 @@ class DataElement(RegistryItemIdentity):
     conceptAssociations: NotRequired[list[ConceptAssociation]]
     alternateNames: NotRequired[list[dict[str, Any]]]
     classificationSchemes: NotRequired[list[ClassificationScheme]]
+    referenceDocuments: NotRequired[list[dict[str, Any]]]
 
 
 class DataElementHit(TypedDict):
@@ -297,6 +311,7 @@ class Concept(TypedDict):
     name: str
     active: bool
     status: NotRequired[str]
+    leaf: NotRequired[bool]
     provenance: Provenance
     synonyms: NotRequired[list[dict[str, Any]]]
     definitions: NotRequired[list[dict[str, Any]]]
@@ -591,6 +606,8 @@ class ResolvedReleaseResult(SelectedRelease):
 class TerminologyResult(TypedDict):
     terminology: str
     release: str
+    tags: NotRequired[dict[str, str]]
+    retiredStatusValue: NotRequired[str]
     provenance: Provenance
 
 

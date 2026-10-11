@@ -14,6 +14,25 @@ from test_server import ServerFixture
 
 
 class ContentTest(ServerFixture):
+    def test_filtered_mappings_keep_the_read_concepts_origin(self):
+        self.evs.concepts["C1"]["maps"] = [
+            {
+                "targetCode": "T1",
+                "targetTerminology": "Other",
+                "targetName": "One",
+                "type": "Maps_To",
+            }
+        ]
+        full = self.content("get_concept_mappings", code="C1")
+        empty = self.content("get_concept_mappings", code="C1", targetTerminology="Missing")
+
+        self.assertEqual(empty["mappings"], [])
+        for provenance in (full["mappings"][0]["provenance"], empty["provenance"]):
+            self.assertEqual(provenance["upstream"], {"terminology": "ncit", "version": "26.06e"})
+            self.assertEqual(
+                provenance["sourceUri"], "https://evs.test/api/v1/concept/ncit_26.06e/C1"
+            )
+
     def test_neighborhood_preserves_supplied_edge_attribution(self):
         edge = self.evs.concepts["C1"]["children"][0]
         edge["licenseText"] = "Platform edge licence"

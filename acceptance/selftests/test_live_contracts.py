@@ -60,6 +60,12 @@ ELEMENT = {
     "registrationStatus": "Application",
     "dateCreated": "2026-01-01",
     "dateModified": "2026-10-10",
+    "definition": "Changed definition",
+    "shortName": "Changed short name",
+    "latestVersionIndicator": "Yes",
+    "beginDate": "2026-01-01",
+    "endDate": None,
+    "origin": "Changed origin",
     "provenance": REGISTRY,
 }
 EVS_SECTIONS = {
@@ -95,6 +101,7 @@ CDE_SECTIONS = {
             "provenance": REGISTRY,
         }
     ],
+    "referenceDocuments": [{"documentType": "Future type", "unknown": ["unchanged"]}],
 }
 
 
@@ -296,6 +303,21 @@ def test_live_checks_accept_changed_release_and_content(live_suite, family):
 MISSING = object()
 
 
+@pytest.mark.parametrize("field", ["context", "dateCreated", "dateModified"])
+def test_live_element_accepts_null_only_for_nullable_scalar_fields(live_suite, field):
+    result, outcomes = run_family(live_suite, "element", corruption=(0, field, None))
+
+    assert set(outcomes.values()) == {"passed"}
+    assert result.ret == 0
+
+
+def test_live_nullable_text_can_be_empty_without_becoming_an_identity(live_suite):
+    result, outcomes = run_family(live_suite, "element", corruption=(0, "dateModified", ""))
+
+    assert set(outcomes.values()) == {"passed"}
+    assert result.ret == 0
+
+
 def corrupt(content, path, value):
     keys = [int(key) if key.isdigit() else key for key in path.split(".")]
     for key in keys[:-1]:
@@ -321,6 +343,11 @@ CORRUPTIONS = (
         ("element", 1, "version", "99"),
         ("element", 0, "context", MISSING),
         ("element", 0, "extra", True),
+        ("element", 0, "dateModified", 5),
+        ("element", 0, "context", ["x"]),
+        ("element", 0, "longName", ""),
+        ("element", 0, "workflowStatus", ""),
+        ("element", 0, "registrationStatus", ""),
         ("sections", 0, "publicId", "9999999"),
         ("sections", 1, "valueDomain", []),
         ("sections", 0, "valueDomain", {}),
@@ -331,6 +358,10 @@ CORRUPTIONS = (
         ("paths", 0, "nodes.0.code", "C999"),
         ("relationships", 0, "relationships.0.kind", "invented"),
         ("relationships", 0, "relationships.0.polarity", "unknown"),
+    ]
+    + [
+        ("element", 0, field, None)
+        for field in ("publicId", "version", "longName", "workflowStatus", "registrationStatus")
     ]
     + [
         (family, 0, prefix + "provenance.release." + field, value)

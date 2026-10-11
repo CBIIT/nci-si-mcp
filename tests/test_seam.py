@@ -40,6 +40,35 @@ def gdc_map(code="C1", version="26.06e"):
 
 
 class SeamTest(unittest.TestCase):
+    def test_empty_graph_results_keep_the_queried_graphs_origin(self):
+        self.ssis.elements = [element(123)]
+        full = self.call(conceptCode="C1", release="26.06e")
+        self.ssis.elements = []
+        empty = self.call(conceptCode="C1", release="26.06e")
+
+        self.assertEqual(empty["dataElements"], [])
+        origin = full["dataElements"][0]["provenance"]
+        self.assertEqual(empty["provenance"]["upstream"], {"graphs": self.ssis.graphs})
+        self.assertEqual(empty["provenance"]["sourceUri"], origin["sourceUri"])
+
+    def test_empty_gdc_results_keep_the_read_mapsets_origin(self):
+        self.context.evs = EVSClient("https://evs.test")
+        mapset = {"code": "NCIt_Maps_To_GDC", "version": "26.06e"}
+        with patch.object(
+            self.context.evs,
+            "_get_existing",
+            side_effect=[self.evs.get_terminologies(), mapset, {"total": 0, "maps": []}],
+        ):
+            result = self.call(
+                "resolve_stored_value", conceptCode="C1", commons="GDC", release="26.06e"
+            )
+
+        self.assertEqual(result["storedValues"], [])
+        self.assertEqual(result["provenance"]["upstream"], mapset)
+        self.assertEqual(
+            result["provenance"]["sourceUri"], "https://evs.test/api/v1/mapset/NCIt_Maps_To_GDC"
+        )
+
     def test_invalid_graph_dates_fail_without_returning_joined_content(self):
         for graph in self.ssis.graphs:
             with self.subTest(graph=graph["graph"]):
@@ -255,6 +284,11 @@ class SeamTest(unittest.TestCase):
         self.assertEqual(
             result["permissibleValue"],
             {"dataElement": {"publicId": "123", "version": "2.10"}, "value": "Male"},
+        )
+        # The concept read and the graphs queried are both the call's origin.
+        self.assertEqual(
+            result["provenance"]["upstream"],
+            {"terminology": "ncit", "version": "26.06e", "graphs": self.ssis.graphs},
         )
         self.assertEqual(result["provenance"]["registry"], {"registry": "cadsr"})
 

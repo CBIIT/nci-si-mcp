@@ -14,7 +14,16 @@ from urllib.parse import urlsplit
 import pytest
 import yaml
 
-from nci_si_acceptance.results import error_code, is_name, release_of, requests_naming
+from nci_si_acceptance.results import (
+    CARRIED,
+    error_code,
+    is_name,
+    provenance_of,
+    release_of,
+    requests_naming,
+    wrong_fields,
+    wrong_origin,
+)
 from nci_si_acceptance.spec import RECORDS, TOOLS, items_of
 from nci_si_acceptance.suite import index_set
 
@@ -94,7 +103,13 @@ def test_a_discovered_release_identifies_the_concept_and_its_provenance(tools):
     version = release.get("version")
     assert isinstance(version, str) and version.strip(), release
 
-    result = tools.call("get_concept", {"terminology": "ncit", "release": version, "code": CONCEPT})
+    assert wrong_fields(provenance_of(release), CARRIED) == []
+    correlation = "acceptance-live-concept"
+    result = tools.call(
+        "get_concept",
+        {"terminology": "ncit", "release": version, "code": CONCEPT},
+        meta={"correlationId": correlation},
+    )
     assert not result.is_error, result.content
     concept = result.content
     assert isinstance(concept, dict), concept
@@ -103,6 +118,8 @@ def test_a_discovered_release_identifies_the_concept_and_its_provenance(tools):
     assert isinstance(concept.get("active"), bool), concept
     provenance = concept.get("provenance", {})
     assert isinstance(provenance, dict), provenance
+    assert provenance.get("correlationId") == correlation, provenance
+    assert wrong_origin(provenance, uri=True, origin=True) == [], provenance
     release_identity = provenance.get("release")
     assert isinstance(release_identity, dict), provenance
     assert release_identity.get("identifier") == version, provenance
@@ -508,6 +525,7 @@ def _index_checks(entry, release):
         "release": named == release,
         "source": provenance.get("source") == "evs_index",
         "servedBy": provenance.get("servedBy") == "index",
+        "origin": wrong_origin(provenance, uri=False, origin=False) == [],
     }
 
 
