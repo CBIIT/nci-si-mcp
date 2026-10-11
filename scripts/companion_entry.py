@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from scripts.portal import _serve
+from scripts.portal import serve_portal
 from scripts.portal_configuration import LocalConfiguration
 from scripts.portal_store import EvidenceStore
 from scripts.processes import exit_on_sigterm
@@ -18,7 +18,7 @@ def main() -> None:
     sys.stderr = sys.stdout
     configure_logging("INFO")
     exit_on_sigterm()
-    _serve(
+    serve_portal(
         EvidenceStore(Path("/state/evidence.sqlite")),
         8081,
         retention=100,

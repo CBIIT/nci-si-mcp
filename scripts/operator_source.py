@@ -11,6 +11,7 @@ import tarfile
 import typing
 from pathlib import Path, PurePosixPath
 
+from scripts.formats import SHA1_HEX
 from scripts.operator_files import read_bytes
 
 SOURCE_PATHS = ("src", "scripts", "acceptance", "spec", "pyproject.toml", "pdm.lock")
@@ -34,7 +35,7 @@ def head_commit(repository: Path) -> str:
 
 
 def _commit(commit: str) -> None:
-    if re.fullmatch(r"[a-f0-9]{40}", commit) is None:
+    if re.fullmatch(SHA1_HEX, commit) is None:
         raise ValueError("Validation source requires an exact commit")
 
 

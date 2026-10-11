@@ -4,7 +4,7 @@ from typing import Any
 from urllib.parse import parse_qs
 
 from scripts.portal_configuration import MAX_VALUE, LocalConfiguration
-from scripts.portal_views import _table, page, text
+from scripts.portal_views import page, table, text
 
 from nci_si_mcp.config_snapshot import PROPOSABLE
 
@@ -22,7 +22,7 @@ def configuration_page(configuration: LocalConfiguration) -> tuple[int, str]:
     body = "<p>Recorded startup configuration, not a live-state or availability guarantee. "
     body += "The selected target may have stopped since capture. "
     body += '<a href="/help#configuration">Understand settings and proposals</a>.</p>'
-    body += _table(
+    body += table(
         "Selected target snapshot",
         ["Field", "Recorded value"],
         [
@@ -36,7 +36,7 @@ def configuration_page(configuration: LocalConfiguration) -> tuple[int, str]:
         [name, row["value"], row["origin"], "Required"]
         for name, row in snapshot["settings"].items()
     ]
-    body += _table(
+    body += table(
         "Recorded safe settings", ["Setting", "Value", "Origin", "Restart after change"], rows
     )
     body += (
@@ -75,12 +75,12 @@ def proposal_page(proposal: dict[str, Any]) -> str:
     body += "for the deployment owner to review and implement through the authoritative "
     body += "environment or IaC. A target restart is required; this page does not apply, restart "
     body += "or roll back any replica.</p>"
-    body += _table(
+    body += table(
         "Proposed change",
         ["Setting", "Recorded before", "Proposed after"],
         [[proposal["setting"], proposal["before"], proposal["after"]]],
     )
-    body += _table(
+    body += table(
         "Proposal basis",
         ["Field", "Recorded value"],
         [

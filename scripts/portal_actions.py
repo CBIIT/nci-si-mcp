@@ -6,6 +6,7 @@ import re
 from email.message import Message
 from urllib.parse import parse_qs
 
+from scripts.formats import JOB_ID
 from scripts.portal_jobs import JobController
 
 MAX_FORM_BYTES = 1024
@@ -61,7 +62,7 @@ def perform(jobs: JobController, target: str, raw: bytes) -> str:
 
 
 def _cancel(jobs: JobController, target: str, fields: dict[str, str]) -> dict:
-    match = re.fullmatch(r"/jobs/([a-f0-9]{32})/cancel", target)
+    match = re.fullmatch(f"/jobs/({JOB_ID})/cancel", target)
     if match is None or fields != {"run_id": match[1]}:
         raise ValueError("Choose a fixed run or cancel action")
     return jobs.cancel(match[1])

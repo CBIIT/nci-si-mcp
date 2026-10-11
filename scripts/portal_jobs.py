@@ -16,7 +16,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
+from scripts.evidence_envelope import MAX_EXIT_CODE
+from scripts.formats import JOB_ID, SHA1_HEX
 from scripts.operator_files import read_bytes, write_json
+from scripts.portal_store import MAX_RETENTION
 
 from nci_si_mcp.audit import emit
 
@@ -37,10 +40,8 @@ REASONS = {
     "owner_shutdown",
 }
 MAX_ADMITTED = 3
-MAX_RETENTION = 1000
 MAX_STATE_BYTES = 2 * 1024 * 1024
 MAX_TIMESTAMP_LENGTH = 40
-MAX_EXIT_CODE = 255
 FIELDS = {
     "run_id",
     "profile",
@@ -69,7 +70,7 @@ def _now() -> str:
 
 
 def _identifier(value: str) -> None:
-    if re.fullmatch(r"[a-f0-9]{32}", value) is None:
+    if re.fullmatch(JOB_ID, value) is None:
         raise ValueError("Invalid local job identifier")
 
 
@@ -105,7 +106,7 @@ def _validate_job(row: Any) -> None:
 
 
 def _validate_identity(row: dict[str, Any]) -> None:
-    if type(row["sequence"]) is not int or re.fullmatch(r"[a-f0-9]{40}", row["commit"]) is None:
+    if type(row["sequence"]) is not int or re.fullmatch(SHA1_HEX, row["commit"]) is None:
         raise ValueError("Invalid job identity")
     if row["sequence"] < 1:
         raise ValueError("Invalid job sequence")

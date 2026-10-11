@@ -7,6 +7,7 @@ import re
 from typing import Any
 
 from scripts.evidence_acceptance import digest, fields, identifier, require
+from scripts.formats import SHA256_HEX
 
 FINGERPRINT_FIELDS = {
     "mode",
@@ -35,14 +36,14 @@ def fingerprint_value(value: Any) -> str:
     return digest(json.dumps(value, sort_keys=True, separators=(",", ":")).encode())
 
 
-def _fingerprint_dimension(value: Any, measured: str | None) -> None:
+def check_fingerprint_dimension(value: Any, measured: str | None) -> None:
     if value is not None:
-        require(isinstance(value, str) and re.fullmatch(r"[a-f0-9]{64}", value) is not None)
+        require(isinstance(value, str) and re.fullmatch(SHA256_HEX, value) is not None)
     if measured is not None:
         require(value == measured)
 
 
-def _selected_cases(cases: Any, native: dict[str, Any]) -> None:
+def check_selected_cases(cases: Any, native: dict[str, Any]) -> None:
     require(isinstance(cases, list))
     for case in cases:
         fields(case, {"tool", "arguments", "scenario"})

@@ -6,7 +6,7 @@ import uuid
 from typing import Any
 
 from scripts.portal_jobs import ACTIVE
-from scripts.portal_views import _table, page, text
+from scripts.portal_views import page, table, text
 
 LABELS = {
     "acceptance-http-fixture": "Acceptance checks · HTTP fixtures",
@@ -63,7 +63,7 @@ def job_page(row: dict[str, Any], *, has_evidence: bool) -> str:
         body += (
             "<p>No validated result bundle is available yet. Missing results are not passes.</p>"
         )
-    body += _table(
+    body += table(
         "Run details",
         ["Field", "Recorded value"],
         [
