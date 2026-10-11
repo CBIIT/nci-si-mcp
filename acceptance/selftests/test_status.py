@@ -73,6 +73,14 @@ def test_a_gate_that_found_no_fixture_fails_a_tool_that_passes():
     assert outcomes["resolve_release"] == "FAIL"
 
 
+def test_a_gate_that_calls_an_absent_tool_leaves_no_tool_passing():
+    expected = dict.fromkeys(ATTRIBUTION, "passed") | {"t.py::gate": "not_implemented"}
+
+    outcomes = tool_outcomes(expected, ATTRIBUTION)
+
+    assert outcomes["resolve_release"] == "INCOMPLETE"
+
+
 def test_the_table_lists_each_groups_tools_under_their_outcome():
     expected = dict.fromkeys(ATTRIBUTION, "passed") | {"t.py::form": "failed"}
 

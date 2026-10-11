@@ -628,3 +628,69 @@ def test_a_gate_that_found_no_fixture_fails_every_passing_tool():
         "FAIL",
         True,
     )
+
+
+def _rendered(report):
+    report = report | {"suite": SUITE}
+    combined = {name: (row["outcome"], []) for name, row in report["tools"].items()}
+    return render(report, combined, "fixture only")
+
+
+def test_only_an_incomplete_verdict_is_said_to_rest_on_unrun_gates():
+    report = collected(
+        (
+            phase("setup", "skipped", "t.py::live", "fixture mode only", skip=LIVE),
+            "get_form",
+            False,
+        ),
+        (phase("call", "passed", "t.py::concept"), "get_concept", False),
+        (phase("setup", "skipped", "t.py::gate", "no security server"), None, True),
+    )
+
+    text = _rendered(report)
+
+    assert "| `get_form` | cadsr | NOT RUN | 0 / 0 / 0 / 1 |  |" in text
+    assert "| `get_concepts` | evs | NO TESTS | 0 / 0 / 0 / 0 |  |" in text
+    assert "| `get_concept` | evs | INCOMPLETE (gates not run) | 1 / 0 / 0 / 0 |  |" in text
+
+
+def test_a_tool_incomplete_by_its_own_absent_tool_is_plainly_incomplete():
+    report = collected(
+        (phase("call", "passed", "t.py::form"), "get_form", False),
+        (phase("call", "skipped", "t.py::other", "NOT IMPLEMENTED: x", skip=NI), "get_form", False),
+        (phase("setup", "skipped", "t.py::gate", "no security server"), None, True),
+    )
+
+    assert "| `get_form` | cadsr | INCOMPLETE | 1 / 0 / 0 / 1 |  |" in _rendered(report)
+
+
+def test_a_tool_that_did_not_run_is_not_shown_failing_by_the_gates():
+    # gates_only holds for a tool none of whose own tests failed; it is FAIL only if one passed.
+    report = collected(
+        (phase("setup", "skipped", "t.py::form", "needs a prepared index"), "get_form", False),
+        (phase("call", "failed", "t.py::gate"), None, True),
+    )
+
+    form = report["tools"]["get_form"]
+    assert (form["outcome"], form["gates_only"]) == ("NOT RUN", True)
+    assert "| `get_form` | cadsr | NOT RUN | 0 / 0 / 0 / 1 |  |" in _rendered(report)
+
+
+def test_a_gate_that_calls_an_absent_tool_leaves_no_tool_passing():
+    report = collected(
+        (phase("call", "passed", "t.py::form"), "get_form", False),
+        (phase("call", "skipped", "t.py::gate", "NOT IMPLEMENTED: x", skip=NI), None, True),
+    )
+
+    assert report["tools"]["get_form"]["outcome"] == "INCOMPLETE"
+
+
+def test_a_tool_without_a_fixture_is_not_failing_by_the_gates_only():
+    missing = ["GET evs /api/v1/version {}"]
+    report = collected(
+        (phase("call", "failed", "t.py::form", unmatched=missing), "get_form", False),
+        (phase("call", "failed", "t.py::gate"), None, True),
+    )
+
+    form = report["tools"]["get_form"]
+    assert (form["outcome"], form["gates_only"]) == ("NO FIXTURE", False)
