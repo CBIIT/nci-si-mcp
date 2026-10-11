@@ -15,7 +15,7 @@ NCI_SI_ACCEPTANCE_URL=https://... pdm run acceptance # a remote server over stre
 NCI_SI_ACCEPTANCE_PROFILE=evs NCI_SI_ACCEPTANCE_SERVER="..." pdm run acceptance  # a server of one profile (default: unified)
 pdm run python -m nci_si_acceptance.report acceptance/fixture.json --live acceptance/live.json
 pdm run acceptance-index-codes                       # the index set, one code per line (remote server)
-pdm run acceptance -n 4 --report=fixture.json        # the same on four workers; the report is identical
+pdm run acceptance -n 4 --dist worksteal --report=fixture.json  # four workers, stealing work; the same report
 pdm run acceptance-expected check acceptance/fixture.json   # a report against the expected outcomes
 pdm run acceptance-expected update acceptance/fixture.json  # rewrite the expected outcomes from a report
 pdm run acceptance-status                            # regenerate the README's status table
@@ -199,7 +199,7 @@ new snapshots must come from guarded runs and carry completion fields.
 ## CI: the ratchet on expected outcomes
 
 The `acceptance` job of `.github/workflows/ci.yml` runs the suite in fixture mode against the
-server built from the checkout (`pdm run acceptance -n 4 --report=fixture.json` with the prepare
+server built from the checkout (`pdm run acceptance -n 4 --dist worksteal --report=fixture.json` with the prepare
 step above), beside the `test` and `selftest` jobs and depending on none of them. Pytest's exit
 status 0 and 1 are eligible, but the report must also prove completion; any other status or a
 missing or incomplete report fails the job. The verdict
@@ -227,8 +227,9 @@ reports its workers forward.
 
 `.github/workflows/acceptance-live.yml` runs by hand (`workflow_dispatch`) and every Monday at
 06:41 UTC; the scheduled run fails when a test that passes on the fixtures fails live. It runs the
-fixture suite and the live suite (`NCI_SI_ACCEPTANCE_MODE=live`, both with `-n 4`; the live
-outcomes are not ratcheted), renders the combined report into the job summary and uploads
+fixture suite and the live suite (`NCI_SI_ACCEPTANCE_MODE=live`, both with `-n 4 --dist worksteal`,
+so that no worker is left with the slow tail; the live outcomes are not ratcheted), renders the
+combined report into the job summary and uploads
 `fixture.json`, `live.json`, the rendered report and `network.md` as the artifact
 `acceptance-live`. `network.md` records where the run came from: the runner's environment,
 operating system, architecture and name, and whether EVS answers over IPv4 and over IPv6

@@ -1,4 +1,5 @@
-"""Both fixture runs of the acceptance suite run its gates, and neither is given a secret."""
+"""Both fixture runs of the acceptance suite run its gates, neither is given a secret, and every
+parallel run steals work."""
 
 import unittest
 from pathlib import Path
@@ -15,10 +16,28 @@ FIXTURE_ENV = {
 }
 
 
-def fixture_env(workflow, job):
+LIVE_STEP = "Run the suite against the live services"
+
+
+def step(workflow, job, name):
     steps = yaml.safe_load((WORKFLOWS / workflow).read_text())["jobs"][job]["steps"]
-    (step,) = [step for step in steps if step.get("name") == FIXTURE_STEP]
-    return step["env"]
+    (found,) = [step for step in steps if step.get("name") == name]
+    return found
+
+
+def fixture_env(workflow, job):
+    return step(workflow, job, FIXTURE_STEP)["env"]
+
+
+def suite_line(workflow, job, name):
+    """The line of a step that runs the suite."""
+
+    (line,) = [
+        line.strip()
+        for line in step(workflow, job, name)["run"].splitlines()
+        if line.strip().startswith("pdm run acceptance ")
+    ]
+    return line
 
 
 class AcceptanceGateWorkflowTest(unittest.TestCase):
@@ -31,3 +50,16 @@ class AcceptanceGateWorkflowTest(unittest.TestCase):
             with self.subTest(workflow=workflow):
                 values = fixture_env(workflow, job).values()
                 self.assertEqual([value for value in values if "secrets." in value], [])
+
+    def test_every_parallel_suite_run_steals_work(self):
+        # The default load distribution left one worker with the slow tail (#222).
+        fixture = "pdm run acceptance -n 4 --dist worksteal --report=fixture.json || status=$?"
+        live = "pdm run acceptance -n 4 --dist worksteal --report=live.json || status=$?"
+        runs = {
+            ("ci.yml", "acceptance", FIXTURE_STEP): fixture,
+            ("acceptance-live.yml", "acceptance-live", FIXTURE_STEP): fixture,
+            ("acceptance-live.yml", "acceptance-live", LIVE_STEP): live,
+        }
+        for (workflow, job, name), expected in runs.items():
+            with self.subTest(workflow=workflow, step=name):
+                self.assertEqual(suite_line(workflow, job, name), expected)
