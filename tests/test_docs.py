@@ -117,6 +117,39 @@ def tracked_mentions_of_local_agent_files(root):
     return found
 
 
+def read(name):
+    return (ROOT / name).read_text(encoding="utf-8")
+
+
+def tracked_documents():
+    """Tracked Markdown files, except the generated specification and the upstream packages."""
+
+    tracked = subprocess.run(
+        ["git", "ls-files", "*.md"],  # noqa: S607
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.split()
+    return [
+        name
+        for name in tracked
+        if not name.startswith(("spec/", "docs/upstream/")) and name != "docs/specification.md"
+    ]
+
+
+def shell_lines(name):
+    """(line number, text) of each line inside a shell or unlabelled fenced block."""
+
+    fence = None
+    for number, line in enumerate(read(name).splitlines(), 1):
+        text = line.strip()
+        if text.startswith("```"):
+            fence = None if fence is not None else text[3:]
+        elif fence in ("", "bash", "sh", "console"):
+            yield number, text
+
+
 class DocumentationTest(unittest.TestCase):
     def test_quickstart_introduces_exactly_the_settings_the_code_reads(self):
         setting = re.compile(r"NCI_SI_[A-Z_]+")
@@ -335,6 +368,45 @@ class DocumentationTest(unittest.TestCase):
 
         self.assertTrue(names)
         self.assertEqual([name for name in names if name != name.lower()], [])
+
+    def test_the_platform_statement_exists_once_and_the_setup_documents_link_to_it(self):
+        statement = "Supported platforms: macOS (primary) and Linux, with a POSIX shell."
+        holders = [name for name in tracked_documents() if statement in read(name)]
+        links = {
+            "README.md": "QUICKSTART.md",
+            "CONTRIBUTING.md": "QUICKSTART.md",
+            "docs/container.md": "../QUICKSTART.md",
+            "docs/local-validation.md": "../QUICKSTART.md",
+            "docs/companion-containers.md": "../QUICKSTART.md",
+            "docs/documentation-site.md": "../QUICKSTART.md",
+        }
+
+        self.assertEqual(holders, ["QUICKSTART.md"])
+        self.assertEqual(
+            [
+                name
+                for name, target in links.items()
+                if f"]({target}#platforms-and-prerequisites)" not in read(name)
+            ],
+            [],
+        )
+
+    def test_shell_blocks_run_project_commands_through_pdm_run(self):
+        # After `pdm install` the environment is not activated, so a bare `python -m ...`
+        # or `nci-si-mcp ...` fails for a new developer. The one exception installs the
+        # released package with pip, which puts `nci-si-mcp` on the PATH itself.
+        released = {("QUICKSTART.md", "nci-si-mcp serve")}
+        bare = re.compile(
+            r"(?:\w+=\S+\s+)*(?:python3?(?:\.\d+)?|nci-si-mcp|pytest|ruff|basedpyright)\s"
+        )
+        found = [
+            (name, number)
+            for name in tracked_documents()
+            for number, line in shell_lines(name)
+            if bare.match(line + " ") and (name, line) not in released
+        ]
+
+        self.assertEqual(found, [])
 
 
 if __name__ == "__main__":
