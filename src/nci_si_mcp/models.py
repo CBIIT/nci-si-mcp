@@ -228,7 +228,7 @@ class NcitConcept:
             upstream=upstream_origin(self.raw) if served_by != "index" else None,
         )
 
-    def to_dict(self, source_uri: str, include_raw: bool = False) -> dict[str, Any]:
+    def to_dict(self, source_uri: str | None, include_raw: bool = False) -> dict[str, Any]:
         """The concept as an item of a result: its provenance replaces the release fields.
 
         The full EVS payload is added only when `include_raw` asks for it, which the CLI does.
@@ -328,7 +328,7 @@ class SearchHit:
     matched_on: str
     score_components: dict[str, float] = field(default_factory=dict)
 
-    def to_dict(self, source_uri: str, include_raw: bool = False) -> dict[str, Any]:
+    def to_dict(self, source_uri: str | None, include_raw: bool = False) -> dict[str, Any]:
         return {
             "concept": self.concept.to_dict(source_uri, include_raw=include_raw),
             "score": self.score,

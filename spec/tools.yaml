@@ -261,8 +261,8 @@ match_value_meanings:
   lists: {values: 10}
   computed: true
   summary: >-
-    Value meanings and concepts matched to values, each rule-attributed with its crosswalk;
-    strictness is vmMatch's matchType, terminologyScope its evsTerminologyCodes. At most 10
+    Value meanings and concepts matched to values, each rule-attributed with its crosswalk and
+    with the matched item's definition where vmMatch gives one; strictness is vmMatch's matchType, terminologyScope its evsTerminologyCodes. At most 10
     values a call: the contract states no maximum, and one value took 15.5 s (10 September
     2026) against a match timeout of 45 s.
 get_form:
@@ -274,8 +274,9 @@ get_form:
   items: ["."]
   defaults: {includeModules: true}
   summary: >-
-    A form or case report form by public id, with its modules and questions; a keyword is an
-    invalid request saying the platform needs an identifier (Form/query takes a public or
+    A form or case report form by public id, with its definition, type, dates, instructions and
+    classification schemes as the platform gives them, and its modules and questions; a keyword
+    is an invalid request saying the platform needs an identifier (Form/query takes a public or
     protocol id only).
 get_permissible_value:
   title: Permissible value details

@@ -709,7 +709,7 @@ def get_form(
     }
     # The form's own lists are its metadata: present when the platform sends them, whatever
     # includeModules says.
-    result |= {key: _rows(raw, key) for key in _FORM_LISTS if key in raw}
+    result |= {key: _rows(raw, key) for key in _FORM_LISTS if raw.get(key) is not None}
     if includeModules:
         if "modules" not in raw:
             _malformed("form modules")

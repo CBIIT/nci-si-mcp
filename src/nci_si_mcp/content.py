@@ -523,8 +523,10 @@ def search_concepts(
     semantic and hybrid rank by meaning from the local NCIt index, NCIt only; leaving retired
     concepts out and the upstream search types are not offered.
 
-    Returns results with the concept's code, name and status but no sections, so read a concept
-    by code for its definitions. Also totalKnown, truncation and nextCursor: pass nextCursor
+    Returns results with the concept's code, name, active flag, and the status and leaf flag EVS
+    gives where it gives them, but no sections, so read a concept by code for its definitions.
+    Semantic and hybrid results come from the index, so their provenance has no sourceUri or
+    upstream. Also totalKnown, truncation and nextCursor: pass nextCursor
     back unchanged as cursor for the next page. Lexical and typeahead keep EVS order and have no
     scores. Semantic and hybrid carry a score (not comparable between queries) and matchedOn
     naming name, synonym or definition; exact preferred names win ties.

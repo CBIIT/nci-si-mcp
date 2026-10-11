@@ -351,7 +351,8 @@ def match_value_meanings(
     registryRelease is left unset: matching cannot yet address published registry releases (C-1).
 
     Returns matches in platform order, each with its type, rule, identity, context and workflow
-    status and, where the platform gives them, concept, source, registration status and score.
+    status and, where the platform gives them (absent otherwise, never null), concept, source,
+    matched definition, registration status and score.
     An empty or NA crosswalk means none, and an unscored match has no score. Results are
     computed from the text given.
 
