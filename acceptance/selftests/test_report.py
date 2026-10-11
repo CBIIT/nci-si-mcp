@@ -26,34 +26,47 @@ from nci_si_acceptance.spec import REQUIRED_TOOLS
 
 
 @pytest.mark.parametrize(
-    ("counts", "gates_failed", "implemented", "outcome"),
+    ("counts", "gates_failed", "gates_unrun", "implemented", "outcome"),
     [
-        ({"passed": 3}, False, True, "PASS"),
-        ({"passed": 2, "failed": 1}, False, True, "FAIL"),
-        ({"passed": 3}, True, True, "FAIL"),
-        ({"skipped": 2}, True, True, "NOT RUN"),
-        ({"passed": 2, "no_fixture": 1}, False, True, "NO FIXTURE"),
-        ({"no_fixture": 1, "failed": 1}, False, True, "FAIL"),
-        ({"passed": 2, "skipped": 1}, False, True, "INCOMPLETE"),
-        ({"passed": 2, "not_implemented": 1}, False, True, "INCOMPLETE"),
-        ({"passed": 2, "not_live": 1}, False, True, "PASS"),
-        ({"not_live": 2}, False, True, "NOT RUN"),
-        ({"not_implemented": 2}, True, False, "NOT IMPLEMENTED"),
-        ({"failed": 2}, False, False, "FAIL"),
-        ({"no_fixture": 2}, False, False, "NO FIXTURE"),
-        ({"not_live": 1}, False, None, "NOT RUN"),
-        ({}, False, False, "NO TESTS"),
+        ({"passed": 3}, False, False, True, "PASS"),
+        ({"passed": 2, "failed": 1}, False, False, True, "FAIL"),
+        ({"passed": 3}, True, False, True, "FAIL"),
+        ({"skipped": 2}, True, False, True, "NOT RUN"),
+        ({"passed": 2, "no_fixture": 1}, False, False, True, "NO FIXTURE"),
+        ({"no_fixture": 1, "failed": 1}, False, False, True, "FAIL"),
+        ({"passed": 2, "skipped": 1}, False, False, True, "INCOMPLETE"),
+        ({"passed": 2, "not_implemented": 1}, False, False, True, "INCOMPLETE"),
+        ({"passed": 2, "not_live": 1}, False, False, True, "PASS"),
+        ({"not_live": 2}, False, False, True, "NOT RUN"),
+        ({"not_implemented": 2}, True, False, False, "NOT IMPLEMENTED"),
+        ({"failed": 2}, False, False, False, "FAIL"),
+        ({"no_fixture": 2}, False, False, False, "NO FIXTURE"),
+        ({"not_live": 1}, False, False, None, "NOT RUN"),
+        ({}, False, False, False, "NO TESTS"),
+        ({"passed": 3}, False, True, True, "INCOMPLETE"),
+        ({"passed": 3}, True, True, True, "FAIL"),
+        ({"passed": 2, "skipped": 1}, False, True, True, "INCOMPLETE"),
+        ({"skipped": 2}, False, True, True, "NOT RUN"),
+        ({"passed": 2, "no_fixture": 1}, False, True, True, "NO FIXTURE"),
+        ({"not_implemented": 2}, False, True, False, "NOT IMPLEMENTED"),
+        ({}, False, True, False, "NO TESTS"),
     ],
 )
 def test_a_tool_outcome_follows_from_its_test_outcomes_and_the_gates(
-    counts, gates_failed, implemented, outcome
+    counts, gates_failed, gates_unrun, implemented, outcome
 ):
-    assert tool_outcome(Counter(counts), gates_failed, implemented) == outcome
+    assert tool_outcome(Counter(counts), gates_failed, gates_unrun, implemented) == outcome
 
 
-def phase(when, outcome, nodeid="t.py::test_a", reason="", unmatched=None):
+# The property a skip site sets to say why the test did not run (not_live, not_implemented).
+SKIP = "acceptance_skip"
+NI, LIVE = "not_implemented", "not_live"
+
+
+def phase(when, outcome, nodeid="t.py::test_a", reason="", unmatched=None, skip=None):
     longrepr = ("t.py", 1, f"Skipped: {reason}") if outcome == "skipped" else None
     properties = [(UNMATCHED, unmatched)] if unmatched else []
+    properties += [(SKIP, skip)] if skip else []
     return pytest.TestReport(
         nodeid, ("t.py", 1, "test_a"), {}, outcome, longrepr, when, user_properties=properties
     )
@@ -122,7 +135,13 @@ def test_a_failure_from_a_missing_fixture_is_its_own_outcome_and_names_the_reque
 def test_skips_are_not_implemented_or_not_run_and_a_failed_gate_fails_every_passing_tool():
     report = collected(
         (
-            phase("call", "skipped", "t.py::b", "NOT IMPLEMENTED: get_concepts"),
+            phase(
+                "call",
+                "skipped",
+                "t.py::b",
+                "NOT IMPLEMENTED: get_concepts",
+                skip="not_implemented",
+            ),
             "get_concepts",
             False,
         ),
@@ -156,8 +175,16 @@ def test_a_report_lists_its_tests_and_gates_in_order_whatever_order_they_finishe
 def test_a_gate_that_did_not_run_is_listed_and_the_listing_size_kept():
     report = collected(
         (phase("call", "passed", "t.py::listed"), None, True),
-        (phase("call", "skipped", "t.py::called", "NOT IMPLEMENTED: get_concept"), None, True),
-        (phase("call", "skipped", "t.py::tool", "NOT IMPLEMENTED: get_form"), "get_form", False),
+        (
+            phase("call", "skipped", "t.py::called", "NOT IMPLEMENTED: get_concept", skip=NI),
+            None,
+            True,
+        ),
+        (
+            phase("call", "skipped", "t.py::tool", "NOT IMPLEMENTED: get_form", skip=NI),
+            "get_form",
+            False,
+        ),
     )
 
     gates = (report["failed_gates"], report["unrun_gates"])
@@ -166,9 +193,13 @@ def test_a_gate_that_did_not_run_is_listed_and_the_listing_size_kept():
 
 def test_a_live_run_counts_a_fixture_only_test_without_making_its_tool_incomplete():
     report = collected(
-        (phase("setup", "skipped", "t.py::a", "fixture mode only"), "get_form", False),
+        (phase("setup", "skipped", "t.py::a", "fixture mode only", skip=LIVE), "get_form", False),
         (phase("call", "passed", "t.py::b"), "get_form", False),
-        (phase("setup", "skipped", "t.py::c", "fixture mode only"), "get_concept", False),
+        (
+            phase("setup", "skipped", "t.py::c", "fixture mode only", skip=LIVE),
+            "get_concept",
+            False,
+        ),
     )
 
     assert report["tests"]["t.py::a"]["outcome"] == "not_live"
@@ -509,3 +540,65 @@ def test_a_worker_that_started_no_server_forwards_nothing():
     )
 
     assert output == {}
+
+
+def test_an_unrun_gate_leaves_no_tool_passing():
+    unrun_gate = (phase("setup", "skipped", "t.py::gate", "no security server"), None, True)
+    report = collected(
+        (phase("call", "passed", "t.py::form"), "get_form", False),
+        (phase("call", "passed", "t.py::concept"), "get_concept", False),
+        (phase("setup", "skipped", "t.py::index", "needs a prepared index"), "get_concept", False),
+        (
+            phase("setup", "skipped", "t.py::contexts", "needs a prepared index"),
+            "list_contexts",
+            False,
+        ),
+        unrun_gate,
+    )
+
+    tools = report["tools"]
+    outcomes = {name: tools[name]["outcome"] for name in ("get_form", "get_concept")}
+    assert outcomes == {"get_form": "INCOMPLETE", "get_concept": "INCOMPLETE"}
+    assert tools["list_contexts"]["outcome"] == "NOT RUN"
+    assert tools["get_concepts"]["outcome"] == "NO TESTS"
+    assert (report["failed_gates"], report["unrun_gates"]) == ([], ["t.py::gate"])
+
+
+def test_a_failed_gate_still_fails_a_tool_when_another_gate_did_not_run():
+    report = collected(
+        (phase("call", "passed", "t.py::form"), "get_form", False),
+        (phase("call", "failed", "t.py::failed_gate"), None, True),
+        (phase("setup", "skipped", "t.py::unrun_gate", "no security server"), None, True),
+    )
+
+    form = report["tools"]["get_form"]
+    assert (form["outcome"], form["gates_only"]) == ("FAIL", True)
+
+
+def test_a_tool_incomplete_only_by_unrun_gates_says_so():
+    fixture = run({"get_form": "INCOMPLETE", "get_concept": "INCOMPLETE"})
+    fixture["tools"]["get_form"]["counts"] = {"passed": 3}
+    fixture["tools"]["get_concept"]["counts"] = {"passed": 2, "skipped": 1}
+    fixture["unrun_gates"] = ["t.py::gate"]
+    combined = {name: (row["outcome"], []) for name, row in fixture["tools"].items()}
+
+    text = render(fixture, combined, "fixture only")
+
+    assert "| `get_form` | cadsr | INCOMPLETE (gates not run) | 3 / 0 / 0 / 0 |  |" in text
+    assert "| `get_concept` | evs | INCOMPLETE | 2 / 0 / 0 / 1 |  |" in text
+
+
+def test_skips_are_classified_by_the_property_their_site_sets_not_by_reason_text():
+    report = collected(
+        (phase("call", "skipped", "t.py::a", "tool absent: get_form", skip=NI), "get_form", False),
+        (phase("setup", "skipped", "t.py::b", "recordings only", skip=LIVE), "get_form", False),
+        (phase("call", "skipped", "t.py::c", "NOT IMPLEMENTED: get_form"), "get_form", False),
+        (phase("setup", "skipped", "t.py::d", "fixture mode only"), "get_form", False),
+    )
+
+    assert {nodeid: test["outcome"] for nodeid, test in report["tests"].items()} == {
+        "t.py::a": "not_implemented",
+        "t.py::b": "not_live",
+        "t.py::c": "skipped",
+        "t.py::d": "skipped",
+    }
