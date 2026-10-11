@@ -2,6 +2,8 @@
 
 import os
 import socket
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -111,3 +113,60 @@ def test_a_foreign_listener_on_the_port_is_not_taken_for_the_server(tmp_path):
         expected = f"^The owned server's port {server.port} is already in use by another process$"
         with pytest.raises(RuntimeError, match=expected):
             server.start(settings(tmp_path))
+
+
+LISTENS = (
+    "import os, socket, time; listener = socket.socket(); "
+    "listener.bind(('127.0.0.1', int(os.environ['NCI_SI_HTTP_PORT']))); "
+    "listener.listen(); time.sleep(300)"
+)
+
+
+def stand_in_children(monkeypatch, script):
+    """Replace the server child by `script`; returns the environments and processes it got."""
+    spawn = subprocess.Popen
+    launched = []
+
+    def launch(_command, **options):
+        process = spawn([sys.executable, "-c", script], **options)
+        launched.append((options["env"], process))
+        return process
+
+    monkeypatch.setattr("nci_si_acceptance.client.subprocess.Popen", launch)
+    return launched
+
+
+@pytest.mark.parametrize("required", [False, True])
+def test_the_child_is_told_whether_an_index_is_required(tmp_path, monkeypatch, required):
+    launched = stand_in_children(monkeypatch, LISTENS)
+    server = OwnedServer(
+        {}, tmp_path / "server.log", data_dir=tmp_path / "data", require_index=required
+    )
+    with server:
+        server.start({})
+    assert launched[0][0]["NCI_SI_HTTP_REQUIRE_INDEX"] == ("1" if required else "0")
+
+
+def test_an_ambient_server_setting_does_not_reach_the_child(tmp_path, monkeypatch):
+    launched = stand_in_children(monkeypatch, LISTENS)
+    ambient = {"PATH": "/bin", "NCI_SI_LOG_LEVEL": "ambient"}
+    with OwnedServer(
+        ambient, tmp_path / "server.log", data_dir=tmp_path / "data", require_index=False
+    ) as server:
+        server.start({})
+    assert "NCI_SI_LOG_LEVEL" not in launched[0][0]
+    assert launched[0][0]["PATH"] == "/bin"
+
+
+def test_a_failed_start_outside_a_scope_still_reaps_the_child(tmp_path, monkeypatch):
+    launched = stand_in_children(monkeypatch, "import time; time.sleep(300)")
+    server = OwnedServer(
+        {},
+        tmp_path / "server.log",
+        data_dir=tmp_path / "data",
+        require_index=False,
+        ready_seconds=0,
+    )
+    with pytest.raises(TimeoutError):
+        server.start({})
+    assert launched[0][1].poll() is not None
