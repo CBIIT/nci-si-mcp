@@ -30,26 +30,44 @@ class TerminologyMetadataTest(ServerFixture):
         self.assertEqual(icd10["provenance"]["attribution"], "Use requires a licence. ")
 
     def test_a_terminology_without_that_metadata_gets_none_of_it(self):
-        self.evs.rows = listing({"metadata": {"uiLabel": "NCI Thesaurus"}})
+        # Missing, null and empty all mean EVS sent none; an empty tag mapping is still a mapping.
+        ncit = {"metadata": {"uiLabel": "NCI Thesaurus", "licenseText": ""}}
+        for other in (
+            {"tags": None},
+            {"tags": None, "metadata": None},
+            {"tags": None, "metadata": {"retiredStatusValue": None}},
+        ):
+            with self.subTest(other=other):
+                self.evs.rows = listing(ncit, {"terminology": "icd10", **other})
+
+                failed, result = self.call("list_terminologies")
+
+                self.assertFalse(failed)
+                for item in result["terminologies"]:
+                    self.assertNotIn("retiredStatusValue", item)
+                    self.assertNotIn("attribution", item["provenance"])
+                self.assertNotIn("tags", result["terminologies"][1])
+
+    def test_an_empty_tag_mapping_is_kept(self):
+        self.evs.rows = listing({}, {"terminology": "icd10", "tags": {}})
 
         failed, result = self.call("list_terminologies")
 
         self.assertFalse(failed)
-        (item,) = result["terminologies"]
-        self.assertEqual(item.get("tags"), {"monthly": "true"})
-        self.assertNotIn("retiredStatusValue", item)
-        self.assertNotIn("attribution", item["provenance"])
+        self.assertEqual(result["terminologies"][1].get("tags"), {})
 
     def test_malformed_terminology_metadata_fails_the_listing(self):
-        # Malformed tags already fail release selection, which reads them first.
+        # NCIt's tags are read by release selection first; another terminology's are not.
         cases = (
+            {"terminology": "icd10", "tags": {"monthly": True}},
+            {"terminology": "icd10", "tags": ["monthly"]},
             {"metadata": {"retiredStatusValue": 1}},
             {"metadata": {"licenseText": ["text"]}},
             {"metadata": "none"},
         )
         for fields in cases:
             with self.subTest(fields=fields):
-                self.evs.rows = listing(fields)
+                self.evs.rows = listing({}, fields) if "terminology" in fields else listing(fields)
 
                 failed, result = self.call("list_terminologies")
 

@@ -159,7 +159,9 @@ class FormAndMatchMetadataTest(MetadataFixture):
                 self.assertEqual(self.paths, ["/NCIFormAPI.v2_0:NciFormApiRad/Form/123"])
 
     def test_form_array_absence_and_empty_remain_distinct(self):
-        for extras in ({}, {key: [] for key in FORM_ARRAYS}):
+        # caDSR sending null is sending none: the list is absent, as when the key is missing.
+        empty = {key: [] for key in FORM_ARRAYS}
+        for extras, expected in (({}, {}), (dict.fromkeys(FORM_ARRAYS), {}), (empty, empty)):
             with self.subTest(extras=extras):
                 result = self.answer(
                     {"form": form(**extras)}, "get_form", publicId="123", includeModules=False
@@ -171,14 +173,14 @@ class FormAndMatchMetadataTest(MetadataFixture):
                         for key in FORM_ARRAYS
                         if key in result.structured_content
                     },
-                    extras,
+                    expected,
                 )
                 self.assertFalse(result.is_error)
                 self.assertNotIn("modules", result.structured_content)
 
     def test_form_malformed_metadata_is_refused_even_without_modules(self):
         cases = [(key, []) for key in FORM_SCALARS] + [
-            (key, value) for key in FORM_ARRAYS for value in (None, {}, ["not an object"])
+            (key, value) for key in FORM_ARRAYS for value in ({}, "rows", ["not an object"])
         ]
         for key, value in cases:
             with self.subTest(field=key, value=value):
