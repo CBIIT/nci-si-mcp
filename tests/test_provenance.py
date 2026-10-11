@@ -206,10 +206,6 @@ class TheReleaseOfAnItemIsTheReleaseServedTest(ProvenanceTestCase):
         hit = invoke(self.context, "search", "neoplasm")["hits"][0]
 
         self.assertEqual(hit["concept"]["provenance"]["release"]["identifier"], "26.06e")
-        self.assertEqual(
-            hit["concept"]["provenance"]["sourceUri"],
-            "https://evs.test/api/v1/concept/ncit_26.06e/C3262",
-        )
 
 
 class CorrelationTest(ProvenanceTestCase):
@@ -325,12 +321,12 @@ class UpstreamPassThroughTest(ProvenanceTestCase):
 
         self.assertEqual(provenance["upstream"], {"terminology": "ncit", "version": "26.06e"})
 
-    def test_an_indexed_concept_passes_through_what_the_index_stored(self):
+    def test_an_indexed_concept_does_not_claim_a_live_upstream_origin(self):
         invoke(self.context, "index_codes", ["C3262"])
 
         provenance = invoke(self.context, "search", "neoplasm")["hits"][0]["concept"]["provenance"]
 
-        self.assertEqual(provenance["upstream"], {"terminology": "ncit", "version": "26.06e"})
+        self.assertEqual({"sourceUri", "upstream"} & provenance.keys(), set())
 
     def test_upstream_is_absent_where_the_platform_supplied_nothing(self):
         bare = NcitConcept(
