@@ -101,7 +101,7 @@ class ImageSelectionTest(unittest.TestCase):
             ("acceptance/selftests/test_new.py", "false", "true"),
             (".github/ISSUE_TEMPLATE/new.yml", "false", "false"),
             (".github/PULL_REQUEST_TEMPLATE.md", "false", "false"),
-            ("AGENTS.md", "false", "false"),
+            ("AGENTS.md", "false", "true"),
             ("README.md", "true", "true"),
             ("QUICKSTART.md", "false", "true"),
             ("CONTRIBUTING.md", "false", "true"),
