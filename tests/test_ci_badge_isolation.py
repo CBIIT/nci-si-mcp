@@ -38,6 +38,10 @@ class BadgeTokenBoundaryTest(unittest.TestCase):
             },
         )
         self.assertEqual(
+            set(writer["needs"]), set(WORKFLOW["jobs"]) - {"selftest", "coverage-badges"}
+        )
+        self.assertEqual(WORKFLOW["jobs"]["coverage"]["needs"], "selftest")
+        self.assertEqual(
             writer.get("concurrency"),
             {"group": "coverage-badges-main", "cancel-in-progress": False},
         )
