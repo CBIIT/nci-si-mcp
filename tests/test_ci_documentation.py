@@ -81,7 +81,7 @@ class DocumentationWorkflowTest(unittest.TestCase):
         caches = [step for step in steps if step.get("id") == "playwright-cache"]
         self.assertEqual(len(caches), 1, "Cache only the pinned browser binaries")
         cache = caches[0]
-        self.assertTrue(cache["uses"].startswith("actions/cache@"))
+        self.assertEqual(cache["uses"], "actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9")
         self.assertEqual(cache["with"]["path"], "~/.cache/ms-playwright")
         self.assertEqual(
             cache["with"]["key"],

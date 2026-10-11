@@ -60,8 +60,9 @@ class BadgeTokenBoundaryTest(unittest.TestCase):
         self.assertEqual(len(writer["steps"]), 2, "Only download and fixed publication belong here")
         self.assertNotIn("python", commands, "Repository code belongs in the read-only renderer")
         actions = [step["uses"] for step in writer["steps"] if "uses" in step]
-        self.assertEqual(len(actions), 1)
-        self.assertTrue(actions[0].startswith("actions/download-artifact@"))
+        self.assertEqual(
+            actions, ["actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c"]
+        )
         self.assertEqual(writer["permissions"], {"contents": "write"})
         download = next(step for step in writer["steps"] if "uses" in step)
         self.assertEqual(
