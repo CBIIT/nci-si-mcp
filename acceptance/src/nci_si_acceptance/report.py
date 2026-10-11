@@ -108,10 +108,10 @@ def _without_failures(counts: Counter[str], gates_unrun: bool, implemented: bool
         return NOT_IMPLEMENTED
     if not counts["passed"]:
         return NOT_RUN
-    return INCOMPLETE if _own_unrun(counts) or gates_unrun else PASS
+    return INCOMPLETE if own_unrun(counts) or gates_unrun else PASS
 
 
-def _own_unrun(counts: Counter[str]) -> int:
+def own_unrun(counts: Counter[str]) -> int:
     """The tool's own tests that could not run; a live run's fixture-only tests are not among
     them."""
 
@@ -275,7 +275,7 @@ def _row(
     name: str, row: dict[str, Any], gates_unrun: bool, outcome: str, excused: list[str]
 ) -> str:
     counts = Counter(row["counts"])
-    outcome = _label(outcome, row["gates_only"], gates_unrun and not _own_unrun(counts))
+    outcome = _label(outcome, row["gates_only"], gates_unrun and not own_unrun(counts))
     unrun = sum(counts[kind] for kind in UNRUN)
     tests = f"{counts['passed']} / {counts['failed']} / {counts['no_fixture']} / {unrun}"
     return f"| `{name}` | {row['group']} | {outcome} | {tests} | {', '.join(excused)} |"

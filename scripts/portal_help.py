@@ -93,7 +93,9 @@ Incomplete runs retain their recorded cases but show no tool verdict. Individual
 original expected outcome alongside the recorded outcome. An expected fixture result is a
 regression baseline, not a substitute for the requirement or proof of production correctness.</p>
 <p>A gate checks a shared requirement that can affect a tool verdict even when its ordinary
-cases pass. “Gate-only failure” identifies that situation. An unreported case stays unknown.</p>
+cases pass. “Gate-only failure” identifies that situation. A gate that did not run keeps a tool
+from passing: its verdict reads “INCOMPLETE (gates not run)”, or, in a report recorded before
+that rule, “PASS (gates not run, recorded before #265)”. An unreported case stays unknown.</p>
 <p>Tool and Story filters match exact recorded names. Leave either blank to include every value;
 leave both blank and choose <strong>Filter</strong> to reset. The displayed case count shows the
 filtered subset. Tool verdicts still describe the full recorded run. Case IDs are stable opaque

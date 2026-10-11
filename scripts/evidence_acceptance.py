@@ -9,7 +9,15 @@ from typing import Any
 
 from scripts.evidence_envelope import EvidenceError, decode_json, validate_envelope
 
-from nci_si_acceptance.report import FAILED, RANK, UNRUN, complete, completion_problem, tool_outcome
+from nci_si_acceptance.report import (
+    FAILED,
+    RANK,
+    UNRUN,
+    complete,
+    completion_problem,
+    own_unrun,
+    tool_outcome,
+)
 
 _REPORT_FIELDS = {
     "mode",
@@ -136,6 +144,8 @@ def _tool(row: Any, counts: Counter[str], group: str, failed: bool, unrun: bool)
         "group": group,
         "outcome": row["outcome"],
         "gates_only": row["gates_only"],
+        # The verdict rests on gates that did not run, the tool's own tests having all run.
+        "gates_unrun": unrun and not own_unrun(counts),
         "counts": dict(counts),
     }
 

@@ -200,6 +200,18 @@ def _comparison_form(rows: list[dict[str, Any]]) -> str:
     )
 
 
+def _verdict(row: dict[str, Any]) -> str:
+    """A tool's native verdict, saying so when gates that did not run decide it (#265): a report
+    written before #265 recorded PASS, a current one INCOMPLETE."""
+
+    # Projections stored before the gates_unrun field have none.
+    if row.get("gates_unrun") and row["outcome"] == "PASS":
+        return "PASS (gates not run, recorded before #265)"
+    if row.get("gates_unrun") and row["outcome"] == "INCOMPLETE":
+        return "INCOMPLETE (gates not run)"
+    return row["outcome"]
+
+
 def _acceptance(evidence: dict[str, Any], tool: str, story: str) -> str:
     cases = evidence["cases"]
     selected = _filter_cases(cases, tool, story)
@@ -216,7 +228,7 @@ def _acceptance(evidence: dict[str, Any], tool: str, story: str) -> str:
         body += _table(
             "Tool verdicts",
             ["Tool", "Native verdict", "Gate-only failure"],
-            [[name, row["outcome"], row["gates_only"]] for name, row in tools.items()],
+            [[name, _verdict(row), row["gates_only"]] for name, row in tools.items()],
         )
     else:
         absent = "No report was produced. " if tools is None else ""
