@@ -34,6 +34,8 @@ from __future__ import annotations
 
 import os
 import shlex
+import socket
+import subprocess
 import sys
 import time
 from contextlib import asynccontextmanager, contextmanager
@@ -441,3 +443,102 @@ def wait_for_endpoint(url: str, authorization: str | None, seconds: float) -> st
                 break
             time.sleep(min(0.5, max(deadline - time.monotonic(), 0)))
     return f"HTTP {status}" if status else f"nothing within {seconds:g} s"
+
+
+STOP_SECONDS = 10
+
+
+def _free_port() -> int:
+    with socket.socket() as listener:
+        listener.bind(("127.0.0.1", 0))
+        return listener.getsockname()[1]
+
+
+class OwnedServer:
+    """The server under test as a child process this object owns, serving streamable HTTP on a
+    free local port; it is reaped on leaving the scope, an exception included.
+
+    `environment` is the child's base environment, less any `NCI_SI_*` setting; each
+    `start` adds the given settings and the fixed ones that make the server a stateful HTTP
+    one with its data in `data_dir`. Its standard error is appended to `log`.
+    """
+
+    def __init__(
+        self,
+        environment: Mapping[str, str],
+        log: Path,
+        *,
+        data_dir: Path,
+        require_index: bool,
+        ready_seconds: float = 15,
+    ) -> None:
+        self.port = _free_port()
+        self.url = f"http://127.0.0.1:{self.port}/mcp"
+        self._environment = without_nci_si_settings(environment)
+        self._log, self._data_dir = log, data_dir
+        self._require_index, self._ready_seconds = require_index, ready_seconds
+        self._process: subprocess.Popen[bytes] | None = None
+
+    def __enter__(self) -> OwnedServer:
+        return self
+
+    def __exit__(self, *_exception: object) -> None:
+        self.stop()
+
+    def start(self, settings: dict[str, str]) -> None:
+        """Launch the server with `settings` and return once it accepts connections; if it
+        exits first (its log is named in the error) or the time runs out, reap it and fail."""
+
+        environment = (
+            self._environment
+            | settings
+            | {
+                "NCI_SI_DATA_DIR": str(self._data_dir),
+                "NCI_SI_TRANSPORT": "streamable-http",
+                "NCI_SI_HTTP_PORT": str(self.port),
+                "NCI_SI_HTTP_SESSIONS": "stateful",
+                "NCI_SI_HTTP_REQUIRE_INDEX": "1" if self._require_index else "0",
+            }
+        )
+        with self._log.open("ab") as log:
+            self._process = subprocess.Popen(
+                [sys.executable, "-m", "nci_si_mcp.cli", "serve"],
+                env=environment,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=log,
+            )
+        try:
+            self._wait_ready()
+        except BaseException:
+            self.stop()
+            raise
+
+    def stop(self) -> None:
+        process, self._process = self._process, None
+        if process is None or process.poll() is not None:
+            return
+        process.terminate()
+        try:
+            process.wait(timeout=STOP_SECONDS)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=STOP_SECONDS)
+
+    def restart(self, settings: dict[str, str]) -> None:
+        self.stop()
+        self.start(settings)
+
+    def _wait_ready(self) -> None:
+        deadline = time.monotonic() + self._ready_seconds
+        while self._process is not None and self._process.poll() is None:
+            try:
+                with socket.create_connection(("127.0.0.1", self.port), timeout=0.2):
+                    return
+            except OSError:
+                if time.monotonic() >= deadline:
+                    raise TimeoutError(
+                        f"The owned server did not become ready; see {self._log}"
+                    ) from None
+                time.sleep(0.05)
+        raise RuntimeError(f"The owned server exited before readiness; see {self._log}")

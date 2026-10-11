@@ -43,9 +43,9 @@ class OperatorEnvironmentTest(unittest.TestCase):
 
         with TemporaryDirectory() as directory:
             with (
-                patch("scripts.operator_worker.subprocess.Popen", side_effect=sleeping),
-                patch("scripts.operator_worker.time.monotonic", side_effect=(0, 16, 16)),
-                patch("scripts.operator_worker.socket.create_connection", side_effect=OSError),
+                patch("nci_si_acceptance.client.subprocess.Popen", side_effect=sleeping),
+                patch("nci_si_acceptance.client.time.monotonic", side_effect=(0, 16, 16)),
+                patch("nci_si_acceptance.client.socket.create_connection", side_effect=OSError),
                 self.assertRaisesRegex(TimeoutError, "did not become ready"),
                 _server(Path(directory), {}),
             ):

@@ -3,11 +3,7 @@
 import argparse
 import asyncio
 import os
-import socket
-import subprocess
-import sys
 import threading
-import time
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -18,9 +14,9 @@ from scripts.benchmark import CASES, cases
 from scripts.benchmark_http import run_http
 from scripts.benchmark_limits import Limits
 from scripts.operator_files import write_json
-from scripts.processes import exit_on_sigterm, stop
+from scripts.processes import exit_on_sigterm
 
-from nci_si_acceptance.client import server_environment
+from nci_si_acceptance.client import OwnedServer, server_environment
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
 from nci_si_acceptance.suite import unmatched_requests
 
@@ -45,46 +41,16 @@ def clean_environment(directory: Path, *, source: Path | None = None) -> dict[st
     }
 
 
-def _ready(process: subprocess.Popen[bytes], port: int) -> None:
-    deadline = time.monotonic() + 15
-    while process.poll() is None:
-        try:
-            with socket.create_connection(("127.0.0.1", port), timeout=0.2):
-                return
-        except OSError:
-            if time.monotonic() >= deadline:
-                raise TimeoutError("Owned fixture server did not become ready") from None
-            time.sleep(0.05)
-    raise RuntimeError("Owned fixture server exited before readiness")
-
-
 @contextmanager
 def _server(directory: Path, settings: dict[str, str]):
-    port = acceptance_http.free_port()
-    environment = (
-        clean_environment(directory)
-        | settings
-        | {
-            "NCI_SI_DATA_DIR": str(directory / "data"),
-            "NCI_SI_TRANSPORT": "streamable-http",
-            "NCI_SI_HTTP_PORT": str(port),
-            "NCI_SI_HTTP_SESSIONS": "stateful",
-            "NCI_SI_HTTP_REQUIRE_INDEX": "0",
-        }
-    )
-    with (directory / "server.log").open("wb") as log:
-        process = subprocess.Popen(
-            [sys.executable, "-m", "nci_si_mcp.cli", "serve"],
-            env=environment,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=log,
-        )
-        try:
-            _ready(process, port)
-            yield f"http://127.0.0.1:{port}/mcp"
-        finally:
-            stop(process)
+    with OwnedServer(
+        clean_environment(directory),
+        directory / "server.log",
+        data_dir=directory / "data",
+        require_index=False,
+    ) as server:
+        server.start(settings)
+        yield server.url
 
 
 def fixture_benchmark(
