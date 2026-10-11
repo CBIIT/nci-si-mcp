@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import subprocess
 import tomllib
@@ -44,11 +45,13 @@ def _wheels(root: Path, output: Path) -> None:
     )
 
 
-def prepare_context(root: Path, output: Path) -> None:
+def prepare_context(root: Path, output: Path, *, site: Path | None = None) -> None:
     """No recursive checkout copy; Git/config, local evidence and credentials stay outside."""
     if output.exists() or output.is_symlink():
         raise FileExistsError("Choose a fresh companion context directory")
     commit = clean_commit(root)
+    if site is not None:
+        _check_site(site, commit)
     requirements = render(tomllib.loads((root / "pdm.lock").read_text()))
     if requirements != (root / "container/companion-requirements.txt").read_text():
         raise ValueError("Companion dependency lock drifted")
@@ -56,17 +59,30 @@ def prepare_context(root: Path, output: Path) -> None:
     with TemporaryDirectory(prefix="companion-", dir=output.parent) as temporary:
         staging = Path(temporary) / "context"
         staging.mkdir()
-        _populate(root, staging, requirements, commit)
+        _populate(root, staging, requirements, commit, site)
         if clean_commit(root) != commit:
             raise ValueError("Checkout changed while companion inputs were built")
         staging.rename(output)
 
 
-def _populate(root: Path, output: Path, requirements: str, commit: str) -> None:
+def _check_site(site: Path, commit: str) -> None:
+    if not site.is_dir():
+        raise ValueError("Prebuilt site directory is missing")
+    if site.is_symlink() or any(path.is_symlink() for path in site.rglob("*")):
+        raise ValueError("Prebuilt site cannot contain or follow a symlink")
+    identity = json.loads((site / "build.json").read_text())
+    if identity.get("source_commit") != commit or identity.get("dirty") is not False:
+        raise ValueError("Prebuilt site must name this clean source commit")
+
+
+def _populate(root: Path, output: Path, requirements: str, commit: str, site: Path | None) -> None:
     docs, admin = output / "docs", output / "admin"
     docs.mkdir()
     admin.mkdir()
-    build_site(root, docs / "site")
+    if site is None:
+        build_site(root, docs / "site")
+    else:
+        shutil.copytree(site, docs / "site")
     shutil.copyfile(root / "scripts/static_server.py", docs / "static_server.py")
     shutil.copyfile(root / "scripts/companion_relay.py", docs / "companion_relay.py")
     shutil.copyfile(root / "container/Docs.Dockerfile", docs / "Dockerfile")
@@ -84,8 +100,15 @@ def _populate(root: Path, output: Path, requirements: str, commit: str) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=Path("tmp/companion-context"))
+    parser.add_argument(
+        "--site", type=Path, help="Reuse a clean public site built from this commit"
+    )
     args = parser.parse_args()
-    prepare_context(Path(__file__).resolve().parents[1], args.output.resolve())
+    prepare_context(
+        Path(__file__).resolve().parents[1],
+        args.output.resolve(),
+        site=args.site.absolute() if args.site is not None else None,
+    )
 
 
 if __name__ == "__main__":

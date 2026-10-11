@@ -16,23 +16,51 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  companions:
-    name: companion containers (amd64)
+  changes:
+    name: image selection
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 5
+    outputs:
+      image: ${{ steps.select.outputs.image }}
+      companions: ${{ steps.select.outputs.companions }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: $/.github/actions/setup
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
         with:
-          node-version: "24"
-          package-manager-cache: false
-      - run: npm ci --prefix docs/site-assets --ignore-scripts
-      - run: npm run build --prefix docs/site-assets
-      - run: pdm run python -m scripts.companion_context
+          python-version: "3.14"
+      - name: Select images from the event change set
+        id: select
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 scripts/ci_images.py "$EVENT_NAME" "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+
+  companions:
+    name: companion containers (amd64)
+    needs: [changes, documentation]
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.companions == 'true') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Require the documentation producer
+        if: needs.documentation.result != 'success'
+        run: |
+          echo "::error::The documentation artifact producer did not succeed."
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: $/.github/actions/setup
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: documentation-preview-${{ github.sha }}
+          path: tmp/docs-site
+      - run: pdm run python -m scripts.companion_context --site tmp/docs-site
       - name: Build isolated local images
         run: |
           docker build --platform linux/amd64 --load -t nci-si-docs:local tmp/companion-context/docs
@@ -76,7 +104,15 @@ jobs:
       - run: npm run build --prefix docs/site-assets
       - run: pdm run acceptance-stories --check
       - run: pdm run docs-build
-      - run: npm exec --prefix docs/site-assets -- playwright install --with-deps chromium
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('docs/site-assets/package-lock.json') }}
+      # Browser binaries can be reused; Linux system libraries belong to this runner.
+      - run: npm exec --prefix docs/site-assets -- playwright install-deps chromium
+      - run: npm exec --prefix docs/site-assets -- playwright install chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
       - run: npm run test:browser --prefix docs/site-assets
       # Documentation only: never upload an evidence database, operational report or tmp/ tree.
       # PR artifacts are previews; this job has no deployment permissions or promotion step.
@@ -89,6 +125,8 @@ jobs:
 
   image:
     name: container (amd64)
+    needs: [changes]
+    if: github.event_name != 'pull_request' || needs.changes.outputs.image == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -296,17 +334,13 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  coverage-badges:
-    name: publish coverage badges
-    needs: [quality, test, coverage, acceptance, acceptance-http, image, documentation, companions]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  coverage-badges-render:
+    name: render coverage badges
+    needs: [test, coverage]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: write  # generated data branch only; never modify main
-    concurrency:
-      group: coverage-badges-main
-      cancel-in-progress: false
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -320,6 +354,32 @@ jobs:
           path: tmp/coverage
       - name: Render badges and source measurements
         run: pdm run python scripts/coverage_badges.py tmp/coverage tmp/coverage-badges
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: badge-data-${{ github.sha }}
+          path: |
+            tmp/coverage-badges/server.json
+            tmp/coverage-badges/harness.json
+            tmp/coverage-badges/provenance.json
+          if-no-files-found: error
+          retention-days: 1
+
+  coverage-badges:
+    name: publish coverage badges
+    needs: [changes, quality, test, coverage, acceptance, acceptance-http, image, documentation, companions, coverage-badges-render]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write  # only fixed data publication; no checkout or repository execution
+    concurrency:
+      group: coverage-badges-main
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: badge-data-${{ github.sha }}
+          path: tmp/coverage-badges
       - name: Publish generated badge data
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -339,7 +399,7 @@ jobs:
             git -C "$directory" fetch --depth=1 origin coverage-badges
             git -C "$directory" reset --hard FETCH_HEAD
           fi
-          cp tmp/coverage-badges/*.json "$directory/"
+          cp tmp/coverage-badges/server.json tmp/coverage-badges/harness.json tmp/coverage-badges/provenance.json "$directory/"
           git -C "$directory" config user.name "Coverage CI"
           git -C "$directory" config user.email "github-actions[bot]@users.noreply.github.com"
           git -C "$directory" add server.json harness.json provenance.json

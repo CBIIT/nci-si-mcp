@@ -6,7 +6,7 @@ contains no operational results.
 
 ## Build and start locally
 
-Use Python 3.14+, PDM, Node.js 22.12+ and a Docker-compatible engine with Compose. Images currently
+Use Python 3.14+, PDM, Node.js 24 and a Docker-compatible engine with Compose. Images currently
 target Linux amd64; the Dockerfiles do not bake in an architecture. On Apple Silicon, the engine
 needs amd64 emulation. No registry login or institutional account is required.
 
@@ -28,6 +28,11 @@ docker build --platform linux/amd64 --load -t nci-si-docs:local tmp/companion-co
 docker build --platform linux/amd64 --load -t nci-si-admin:local tmp/companion-context/admin
 docker compose -f container/compose.local.yaml up -d
 ```
+
+To reuse an already browser-tested public site, pass `--site tmp/docs-site` to
+`scripts.companion_context` instead of building it again. Its `build.json` must name the
+same clean source commit; missing, mismatched, dirty or symlinked input is rejected.
+CI downloads that run's documentation artifact for this input, with no fallback rebuild.
 
 Open documentation at `http://127.0.0.1:8080/` and administration at
 `http://127.0.0.1:8081/`. Ports are fixed to preserve the exact local Host/Origin boundary.

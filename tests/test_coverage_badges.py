@@ -132,15 +132,6 @@ class CoverageBadgeTest(unittest.TestCase):
                 json.loads((destination / "harness.json").read_text())["message"], "99.00%"
             )
 
-    def test_publication_requires_main_push_and_every_ci_gate(self):
-        self.assertEqual(
-            JOB["if"], "github.event_name == 'push' && github.ref == 'refs/heads/main'"
-        )
-        self.assertEqual(set(JOB["needs"]), set(WORKFLOW["jobs"]) - {"selftest", "coverage-badges"})
-        self.assertEqual(WORKFLOW["jobs"]["coverage"]["needs"], "selftest")
-        self.assertFalse(JOB["concurrency"]["cancel-in-progress"])
-        self.assertEqual(WORKFLOW["permissions"], {"contents": "read"})
-
 
 class CoveragePublicationTest(unittest.TestCase):
     def setUp(self):

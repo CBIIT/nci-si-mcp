@@ -6,7 +6,7 @@ to the MCP process or an operational results store. Local use requires no instit
 
 ## Build and preview
 
-From the repository root, with Python 3.14+, PDM and Node.js 22.12+ / npm installed:
+From the repository root, with Python 3.14+, PDM and Node.js 24 / npm installed:
 
 ```bash
 pdm install -G docs
@@ -107,6 +107,10 @@ issue covers the complete accessibility matrix. This is not a WCAG certification
 
 Each CI run builds a separate `documentation-preview-<commit>` artifact with a 30-day lifetime.
 It contains only the checked static site, never validation reports or the local evidence store.
+The companion image job consumes this same-run artifact rather than rebuilding it. The
+documentation producer runs on every PR; a missing or unsuccessful producer cannot be
+silently replaced. CI caches Playwright's browser binaries by runner and dependency lock,
+but installs Linux system libraries on every run; cache reuse is not a promised speedup.
 Download and serve it over HTTP to review that commit. Uploading this artifact neither deploys
 a website nor promotes pull-request content into a release. The lifetime is an engineering
 retention setting, not an agency records schedule.

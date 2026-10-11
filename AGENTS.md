@@ -46,7 +46,9 @@ These are the owner's rules. They apply to every change.
   decision, not a code change.
 - **Never lose sight of the stated goal.** Do what the task asks; do not drift into adjacent work.
 - **Tests are written for their value, always.** Each test verifies behaviour a user or caller
-  could observe and must be able to fail on a regression.
+  could observe and must be able to fail on a regression. A test of a workflow or other
+  configuration file asserts the exact value of each property it protects (a job's condition,
+  permissions, dependencies, environment and commands), never a substring or one member of a list.
 - **Coverage: the checked minimum is 90%, the aim is above 95%.** The gap exists so that nobody
   pads coverage to pass a threshold. Take every real opportunity to cover untested behaviour;
   never write a test whose purpose is the number (no assertion-free tests, no tests that only
@@ -199,7 +201,11 @@ each path returned by `nci_si_acceptance.craft.craft(FIXTURES)` with
    issue body in the same step, saying what changed.
 2. **Plan before building.** Post the plan as a comment on the issue: what changes, which
    acceptance tests you expect to move in `acceptance/expected/fixture.json` and why, open
-   questions with your recommendation, and the commit subject (a Conventional Commit). Wait for the reviewer's answer on the
+   questions with your recommendation, and the commit subject (a Conventional Commit).
+   The plan also lists the invariants the change must keep (security, fail-safe and scope
+   properties, such as token permissions, the conditions a job runs under, or what a failure
+   falls back to), each with the test that will fail if it breaks; the reviewer checks this list
+   before approving. Wait for the reviewer's answer on the
    issue before writing code; a correction there is binding.
 3. **Build on an issue branch cut from the milestone branch.** Every behavioural change has
    at least two commits: a test-only red commit, subject `test(<scope>): … (red)`, whose body
