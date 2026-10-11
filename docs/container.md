@@ -140,10 +140,10 @@ path as a build argument so an additional architecture can be added later. To re
 the amd64 CPU lock from `pdm.lock`:
 
 ```bash
-pdm run python scripts/container_lock.py prepare tmp/container-lock
+pdm run python -m scripts.container_lock prepare tmp/container-lock
 docker build --platform linux/amd64 -f container/Dockerfile.resolve --output type=local,dest=tmp/container-lock/report tmp/container-lock
-pdm run python scripts/container_lock.py write tmp/container-lock/report/resolution.json
-pdm run python scripts/container_lock.py check
+pdm run python -m scripts.container_lock write tmp/container-lock/report/resolution.json
+pdm run python -m scripts.container_lock check
 ```
 
 Remove `tmp/container-lock` afterwards. Installation requires hashes. The check fails if

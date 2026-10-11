@@ -6,24 +6,17 @@ import argparse
 import hashlib
 import json
 import re
-import tomllib
 from pathlib import Path
+
+from scripts.formats import SHA256_HEX
+from scripts.requirements_lock import normalize, pdm_versions, requirement_line
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCK = ROOT / "container/requirements-amd64.txt"
 
 
 def versions() -> dict[str, str]:
-    packages = tomllib.loads((ROOT / "pdm.lock").read_text())["package"]
-    return {
-        package["name"]: package["version"]
-        for package in packages
-        if set(package.get("groups", [])) & {"server", "index", "embeddings"}
-    }
-
-
-def normalize(name: str) -> str:
-    return re.sub(r"[-_.]+", "-", name).lower()
+    return pdm_versions({"server", "index", "embeddings"})
 
 
 def fingerprint() -> str:
@@ -59,7 +52,7 @@ def render(report: dict) -> str:
             if not download["url"].startswith("https://download.pytorch.org/whl/cpu/"):
                 raise ValueError("torch must come from the CPU wheel index")
             requirement = f"torch @ {download['url']}"
-        lines.append(f"{requirement} --hash=sha256:{digest}")
+        lines.append(requirement_line(requirement, [f"sha256:{digest}"]))
     return "\n".join(lines) + "\n"
 
 
@@ -74,17 +67,26 @@ def check_requirement(requirement: str, pins: dict[str, str]) -> None:
             raise ValueError(f"{name} drifted from pdm.lock")
 
 
+def entries(text: str) -> list[tuple[str, str]]:
+    """The requirement and digest of each entry: a requirement line, then its hash line."""
+    lines = [line for line in text.splitlines() if not line.startswith("#")]
+    if len(lines) % 2:
+        raise ValueError("A dependency has no SHA-256 hash")
+    found = []
+    for requirement, hash_line in zip(lines[::2], lines[1::2], strict=True):
+        digest = re.fullmatch(f"    --hash=sha256:({SHA256_HEX})", hash_line)
+        if not requirement.endswith(" \\") or digest is None:
+            raise ValueError("A dependency has no SHA-256 hash")
+        found.append((requirement.removesuffix(" \\"), digest.group(1)))
+    return found
+
+
 def check() -> None:
     text = LOCK.read_text()
     if f"# PDM: {fingerprint()}\n" not in text:
         raise ValueError("Container lock drifted from pdm.lock; regenerate it")
     pins = versions()
-    for line in text.splitlines():
-        if line.startswith("#"):
-            continue
-        requirement, digest = line.split(" --hash=sha256:")
-        if not re.fullmatch(r"[a-f0-9]{64}", digest):
-            raise ValueError("A dependency has no SHA-256 hash")
+    for requirement, _digest in entries(text):
         check_requirement(requirement, pins)
 
 
