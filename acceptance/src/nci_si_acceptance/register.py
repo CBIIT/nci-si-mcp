@@ -16,12 +16,12 @@ import argparse
 import json
 import sys
 from collections import Counter
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 import yaml
 
-from nci_si_acceptance.fixture_server import MANIFEST, SCENARIOS, SETTINGS
+from nci_si_acceptance.fixture_server import MANIFEST, SCENARIOS, SETTINGS, fixture_documents
 from nci_si_acceptance.record import DISCOVERY, FIXTURES, reported_releases
 
 REGISTER = FIXTURES.parent / "request-forms"
@@ -222,11 +222,19 @@ def _table(header: str, rows: list[str]) -> list[str]:
     return [header, "|" + "---|" * columns, *rows, ""]
 
 
-def _documents(directory: Path) -> list[dict[str, Any]]:
-    """The fixtures of a scenario, without its settings."""
+def _scenario_documents(root: Path) -> dict[str, list[dict[str, Any]]]:
+    """The fixtures of each scenario of the set, recorded or crafted, without its settings, in
+    the order of their names."""
 
-    paths = sorted(directory.rglob("*.json"))
-    return [json.loads(path.read_text(encoding="utf-8")) for path in paths if path.name != SETTINGS]
+    found: dict[str, list[dict[str, Any]]] = {}
+    for name, document in sorted(fixture_documents(root).items()):
+        path = PurePosixPath(name)
+        if path.parts[0] != SCENARIOS:
+            continue
+        documents = found.setdefault("/".join(path.parts[1:3]), [])
+        if path.name != SETTINGS:
+            documents.append(document)
+    return found
 
 
 def _made(documents: list[dict[str, Any]]) -> str:
@@ -261,16 +269,14 @@ def _scenario_table(entries: list[dict[str, Any]]) -> list[str]:
     return _table(SCENARIO_HEADER, rows) if rows else []
 
 
-def _scenario_names(manifest: dict[str, Any], root: Path) -> list[str]:
-    """The scenarios in the manifest's order, each described there and present on disk."""
+def _scenario_names(manifest: dict[str, Any], found: dict[str, Any]) -> list[str]:
+    """The scenarios in the manifest's order, each described there and in the fixture set."""
 
     described = list(manifest.get("scenarios", {}))
-    found = {
-        path.relative_to(root / SCENARIOS).as_posix() for path in (root / SCENARIOS).glob("*/*")
-    }
-    if differing := sorted(found.symmetric_difference(described)):
+    if differing := sorted(set(found).symmetric_difference(described)):
         raise ValueError(
-            f"{MANIFEST} describes the scenarios on disk and no others: {', '.join(differing)}"
+            f"{MANIFEST} describes the scenarios of the fixture set and no others: "
+            + ", ".join(differing)
         )
     return described
 
@@ -282,8 +288,9 @@ def _touches(documents: list[dict[str, Any]], surfaces: set[str] | None) -> bool
 def _scenarios(manifest: dict[str, Any], root: Path, surfaces: set[str] | None) -> list[str]:
     requests = [entry for entry in manifest["record"].get("requests", []) if _in_scenario(entry)]
     lines = []
-    for name in _scenario_names(manifest, root):
-        documents = _documents(root / SCENARIOS / name)
+    found = _scenario_documents(root)
+    for name in _scenario_names(manifest, found):
+        documents = found[name]
         if _touches(documents, surfaces):
             lines += _scenario(name, manifest["scenarios"][name], documents, requests)
     return lines or ["None yet.", ""]

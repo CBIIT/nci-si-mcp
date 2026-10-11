@@ -12,7 +12,7 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 
 **Observation.** The catalogue exposes relationship codes and names; the exclusion scenario deliberately gives misleading names. That crafted scenario is a regression probe, not an observed production mislabelling.
 
-**Reproduction.** Read the pinned role catalogue (OP-E02); run the traversal/exclusions scenario to distinguish classification by code from name matching.
+**Reproduction.** Read the pinned role catalogue (OP-E02); run the traversal/exclusions scenario, crafted in memory by traversal_exclusions in acceptance/src/nci_si_acceptance/craft.py, to distinguish classification by code from name matching.
 
 **Expected.** Publish a versioned machine-readable exclusion/polarity classification keyed by stable relationship code.
 
@@ -25,7 +25,6 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 Evidence (linked request/response files retain their original form):
 
 - [acceptance/fixtures/recorded/evs/roles.json](../../acceptance/fixtures/recorded/evs/roles.json) — recorded on 2026-10-02; GET evs /api/v1/metadata/ncit_26.09d/roles; SHA-256 `45df4a71fc5d3fcf0c4d818faac07223b1054de7ca568d8044b974d70bf4c593`.
-- [acceptance/fixtures/scenarios/traversal/exclusions/roles.json](../../acceptance/fixtures/scenarios/traversal/exclusions/roles.json) — crafted; GET evs /api/v1/metadata/ncit_26.09d/roles; SHA-256 `6e94ce1ae33cf239d180e8fa15e6b6ced6b8698f9e52b6f70ad537c5dd52f260`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|

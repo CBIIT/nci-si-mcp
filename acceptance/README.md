@@ -22,7 +22,7 @@ pdm run acceptance-status                            # regenerate the README's s
 pdm run acceptance-selftest                          # the harness's own tests
 SELFTEST_SHARD=1/3 pdm run acceptance-selftest       # one of three shards, as CI runs them
 pdm run acceptance-record                            # re-record fixtures/recorded/ from live
-pdm run acceptance-craft                             # rebuild the crafted scenarios
+pdm run acceptance-craft                             # record the crafted fixtures' digest
 pdm run acceptance-register                          # regenerate request-forms/ from the manifest
 pdm run acceptance-stories                           # regenerate the complete domain story catalogue
 pdm run acceptance-stories --check                   # verify its mapping and generated content
@@ -250,7 +250,7 @@ decides whether a report is an acceptance report, `spec.py` reads the specificat
 requirements, `document.py` renders it as `../docs/specification.md`, and `suite.py` holds the
 rules of a run. `concepts.py` composes EVS concept answers from one recording per
 concept, `record.py` records the set from live,
-`craft.py` crafts the scenarios EVS does not produce on demand, `register.py` writes the
+`craft.py` crafts, in memory, the scenarios EVS does not produce on demand, `register.py` writes the
 register of request forms (`request-forms/`), `expected.py` compares a report with the expected
 outcomes (`expected/fixture.json`) and rewrites them, and `status.py` writes the README's status
 table from them. `results.py` holds what the tests read from a tool's result and from the upstream

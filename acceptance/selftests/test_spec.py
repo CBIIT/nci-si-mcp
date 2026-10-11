@@ -1,7 +1,6 @@
 """The specification read as data: where a result's items are, the parameters each tool takes,
 and the tools of a profile."""
 
-import json
 import re
 from pathlib import Path
 
@@ -14,7 +13,12 @@ from nci_si_acceptance.client import (
     CREDENTIAL_VARIABLES,
     INDEX_CODES_VARIABLE,
 )
-from nci_si_acceptance.fixture_server import HARNESS_VARIABLES, SCENARIOS, SETTINGS
+from nci_si_acceptance.fixture_server import (
+    HARNESS_VARIABLES,
+    SCENARIOS,
+    SETTINGS,
+    fixture_documents,
+)
 from nci_si_acceptance.record import FIXTURES
 from nci_si_acceptance.spec import (
     PROFILES,
@@ -162,10 +166,11 @@ def _scenario_settings():
     """Each setting a scenario's settings.json gives its server, with the scenarios that do."""
 
     found = {}
-    for path in sorted((FIXTURES / SCENARIOS).glob(f"*/*/{SETTINGS}")):
-        name = path.parent.relative_to(FIXTURES / SCENARIOS).as_posix()
-        for setting in json.loads(path.read_text(encoding="utf-8")):
-            found.setdefault(setting, []).append(name)
+    for name, settings in sorted(fixture_documents(FIXTURES).items()):
+        group, *scenario, file = name.split("/")
+        if group == SCENARIOS and file == SETTINGS:
+            for setting in settings:
+                found.setdefault(setting, []).append("/".join(scenario))
     return found
 
 

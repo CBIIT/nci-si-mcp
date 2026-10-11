@@ -1274,3 +1274,8 @@ record:
     - /api/v1/concept/ncit_26.09d/C4817/inverseAssociations
     - /api/v1/concept/ncit_26.09d/C4817/maps
     - /api/v1/concept/ncit_26.09d/C7806/roles
+
+# The fixtures craft.py makes are built in memory when the set loads; this is the digest
+# of what it makes now. `pdm run acceptance-craft` writes it, `--out DIR` writes the
+# fixtures to read (fixtures/README.md).
+crafted: sha256:80a80e43b182563781a0bb9ac26f9738fd86cd4caad6415c51720f74d04d5822

@@ -138,15 +138,17 @@ def test_the_evs_view_states_the_concept_rules_the_ignored_parameters_and_each_r
 
 
 @pytest.mark.parametrize("change", ["undescribed", "absent"])
-def test_every_scenario_on_disk_is_described_in_the_manifest_and_no_other(tmp_path, change):
+def test_every_scenario_of_the_set_is_described_in_the_manifest_and_no_other(tmp_path, change):
     root = shutil.copytree(FIXTURES, tmp_path / "fixtures")
     if change == "undescribed":
         (root / "scenarios" / "release" / "new").mkdir()
+        shutil.copy(root / "recorded/evs/version.json", root / "scenarios/release/new/v.json")
     else:
         shutil.rmtree(root / "scenarios" / "batch")
 
     name = "release/new" if change == "undescribed" else "batch/silent-drop"
-    with pytest.raises(ValueError, match=f"describes the scenarios on disk and no others: {name}$"):
+    expected = f"describes the scenarios of the fixture set and no others: {name}$"
+    with pytest.raises(ValueError, match=expected):
         render(root)
 
 

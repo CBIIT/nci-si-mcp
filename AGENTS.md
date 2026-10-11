@@ -190,9 +190,7 @@ lines (excluding generated files and `acceptance/expected/fixture.json`), and tw
 at most. If it outgrows those bounds, split it before opening the pull request and move the
 remaining work to a new milestone. Measure insertions plus deletions with
 `git diff --shortstat origin/main...milestone/<phase> -- . ':!acceptance/expected/fixture.json'`,
-adding exclusion pathspecs for generated files. Until #221 removes generated scenarios, exclude
-each path returned by `nci_si_acceptance.craft.craft(FIXTURES)` with
-`':!acceptance/fixtures/<path>'`; recorded scenario fixtures remain in the count.
+adding exclusion pathspecs for generated files.
 
 **Each issue:**
 

@@ -20,7 +20,7 @@ fails every test that depends on it, without aborting unrelated tests.
 
 from __future__ import annotations
 
-import json
+import copy
 import shutil
 import subprocess
 import sys
@@ -38,7 +38,12 @@ from nci_si_acceptance.client import (
     open_session,
     server_environment,
 )
-from nci_si_acceptance.fixture_server import MANIFEST, FixtureServer, load_fixtures
+from nci_si_acceptance.fixture_server import (
+    MANIFEST,
+    FixtureServer,
+    fixture_documents,
+    load_fixtures,
+)
 from nci_si_acceptance.remote import StateHook, announcement, probe
 from nci_si_acceptance.report import COLLECTOR, write_report
 from nci_si_acceptance.suite import (
@@ -126,10 +131,12 @@ def content_pin(tools, target, pinned):
 
 @pytest.fixture(scope="session")
 def recorded() -> Callable[[str], Any]:
-    """A fixture file by its path under fixtures/, read as JSON: a test derives what it expects
-    from the recording, never from a copy of it."""
+    """A fixture of the set by its name under fixtures/, recorded or crafted in memory: a test
+    derives what it expects from the fixture, never from a copy of it. Each call returns a
+    fresh copy."""
 
-    return lambda name: json.loads((FIXTURES / name).read_text(encoding="utf-8"))
+    documents = fixture_documents(FIXTURES)
+    return lambda name: copy.deepcopy(documents[name])
 
 
 @pytest.fixture(scope="session")
