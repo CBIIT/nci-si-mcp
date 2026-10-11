@@ -7,17 +7,17 @@ from fnmatch import fnmatchcase
 
 TESTS_AND_TEMPLATES = (
     "tests/*",
-    "acceptance/selftests/*",
     ".github/ISSUE_TEMPLATE/*",
     ".github/PULL_REQUEST_TEMPLATE*",
-    "AGENTS.md",
 )
-# Public prose is a companion-site input, but is not a server-image runtime input.
+# Acceptance self-tests are archived into Admin; AGENTS is a checked site link.
+# README feeds installed wheel metadata, so it is deliberately absent from both lists.
 # Unknown paths deliberately match neither list: new build inputs fail safe.
 NONINPUTS = {
     "image": (
         *TESTS_AND_TEMPLATES,
-        "README.md",
+        "acceptance/selftests/*",
+        "AGENTS.md",
         "QUICKSTART.md",
         "CONTRIBUTING.md",
         "ARCHITECTURE.md",
