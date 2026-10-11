@@ -1,6 +1,8 @@
 """Fixed local validation profiles do not inherit production secrets or serving data."""
 
 import json
+import os
+import signal
 import subprocess
 import sys
 import unittest
@@ -10,6 +12,7 @@ from unittest.mock import patch
 
 from scripts.benchmark_limits import Limits
 from scripts.operator_worker import _server, clean_environment, fixture_benchmark
+from scripts.processes import wait_until
 
 
 class OperatorEnvironmentTest(unittest.TestCase):
@@ -52,6 +55,65 @@ class OperatorEnvironmentTest(unittest.TestCase):
                 self.fail("Unready process must not be measured")
             self.assertIsNotNone(children[0].poll())
 
+    def test_owned_server_does_not_require_an_index_in_the_child(self):
+        spawn = subprocess.Popen
+        environments = []
+        listens = (
+            "import os, socket, time; listener = socket.socket(); "
+            "listener.bind(('127.0.0.1', int(os.environ['NCI_SI_HTTP_PORT']))); "
+            "listener.listen(); time.sleep(300)"
+        )
+
+        def listening(_command, **options):
+            environments.append(options["env"])
+            return spawn([sys.executable, "-c", listens], **options)
+
+        with (
+            TemporaryDirectory() as directory,
+            patch("nci_si_acceptance.client.subprocess.Popen", side_effect=listening),
+            _server(Path(directory), {}),
+        ):
+            pass
+        self.assertEqual(environments[0]["NCI_SI_HTTP_REQUIRE_INDEX"], "0")
+
+    def test_sigterm_ends_a_running_worker_and_reaps_its_owned_server(self):
+        with TemporaryDirectory() as directory:
+            output = Path(directory) / "report.json"
+            worker = subprocess.Popen(  # noqa: S603 - fixed project worker in an owned directory
+                [
+                    sys.executable,
+                    "-m",
+                    "scripts.operator_worker",
+                    "benchmark-http-fixture",
+                    "--output",
+                    str(output),
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            try:
+                self.assertTrue(
+                    wait_until(
+                        lambda: any(Path(directory).glob("worker-*/server.log")), 30, interval=0.05
+                    )
+                )
+                children = subprocess.run(  # noqa: S603 - fixed argv
+                    ["/usr/bin/pgrep", "-P", str(worker.pid)],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                ).stdout.split()
+                worker.send_signal(signal.SIGTERM)
+                # Unwound as by Ctrl-C: Python then re-raises SIGINT for its own exit status.
+                self.assertEqual(worker.wait(timeout=30), -signal.SIGINT)
+            finally:
+                if worker.poll() is None:
+                    worker.kill()
+                    worker.wait(timeout=10)
+        self.assertEqual(len(children), 1)
+        with self.assertRaises(ProcessLookupError):
+            os.kill(int(children[0]), 0)
+
     def test_fixed_benchmark_command_writes_report_and_returns_success(self):
         with TemporaryDirectory() as directory:
             output = Path(directory) / "report.json"
@@ -85,9 +147,11 @@ class OperatorEnvironmentTest(unittest.TestCase):
                 fixture_benchmark(
                     output, limits=Limits(repetitions=1, warmups=0), names=["get_concept"]
                 )
-            report = json.loads(output.read_text())
+            written = output.read_text()
+            report = json.loads(written)
             self.assertFalse(report["complete"])
             self.assertEqual(report["state"], "failed")
+            self.assertEqual(written, json.dumps(report, indent=2) + "\n")
 
     def test_fixture_benchmark_runs_owned_http_server_and_removes_working_data(self):
         with TemporaryDirectory() as directory:

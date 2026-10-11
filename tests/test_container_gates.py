@@ -126,6 +126,22 @@ class ContainerGateTest(unittest.TestCase):
             with patch.object(container_lock, "LOCK", lock), self.assertRaises(ValueError):
                 container_lock.check()
 
+    def test_lock_entries_must_be_a_continued_requirement_then_an_indented_hash(self):
+        digest = "--hash=sha256:" + "a" * 64
+        for text in (
+            f"mcp==2.2.0\n    {digest}\n",
+            f"mcp==2.2.0 \\\n  {digest}\n",
+            f"mcp==2.2.0 \\\n{digest}\n",
+        ):
+            with self.subTest(text=text), self.assertRaises(ValueError) as caught:
+                container_lock.requirements(text)
+            self.assertEqual(str(caught.exception), "A dependency has no SHA-256 hash")
+
+    def test_an_unpaired_lock_line_is_refused(self):
+        with self.assertRaises(ValueError) as caught:
+            container_lock.requirements(f"mcp==2.2.0 \\\n    --hash=sha256:{'a' * 64}\nnumpy==1\n")
+        self.assertEqual(str(caught.exception), "A dependency has no SHA-256 hash")
+
     def test_check_rejects_text_after_the_hash_digest(self):
         lines = container_lock.LOCK.read_text().splitlines(keepends=True)
         first_hash = next(i for i, line in enumerate(lines) if line.startswith("    --hash="))

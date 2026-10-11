@@ -12,8 +12,9 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 
-from scripts.operator_process import LIFELINE, MAX_REPORT_BYTES, run_owned
+from scripts.operator_process import LIFELINE, MAX_REPORT_BYTES, _wait, run_owned
 from scripts.operator_worker import clean_environment
 
 
@@ -78,6 +79,25 @@ class OperatorProcessTest(unittest.TestCase):
                 )
                 self.assertEqual((result["state"], result["reason"]), ("failed", reason))
                 self.assertEqual(private.read_text(), "PRIVATE-CANARY")
+
+    def test_a_report_that_appears_as_the_worker_exits_is_still_judged(self):
+        # The worker is seen running with no report, then finished with a linked one: only the
+        # check after the wait can see it.
+        with TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            (directory / "bundle").mkdir()
+            (directory / "private").write_text("PRIVATE-CANARY")
+            answers = [None, 0]
+
+            def poll():
+                answer = answers.pop(0)
+                if answer is not None:
+                    (directory / "bundle/report.json").symlink_to(directory / "private")
+                return answer
+
+            process = SimpleNamespace(poll=poll)
+            reason = _wait(process, directory, 5, threading.Event())
+        self.assertEqual(reason, "invalid_evidence")
 
     def test_normal_worker_exit_stops_a_descendant_that_ignores_termination(self):
         with TemporaryDirectory() as temporary:

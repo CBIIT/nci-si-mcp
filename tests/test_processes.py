@@ -4,6 +4,7 @@ import select
 import signal
 import subprocess
 import sys
+import time
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -40,6 +41,19 @@ class StopTest(unittest.TestCase):
             if process.poll() is None:
                 process.kill()
             wait(timeout=5)
+            process.stdout.close()
+
+    def test_a_slow_child_gets_its_full_grace_period_before_it_is_killed(self):
+        # Ignores termination for 2 s, then exits by itself: the 10 s grace must outlast it.
+        slow = (
+            "import signal,sys,time; signal.signal(signal.SIGTERM,signal.SIG_IGN); "
+            "print('ready',flush=True); time.sleep(2); sys.exit(7)"
+        )
+        process = spawn(slow)
+        try:
+            stop(process)
+            self.assertEqual(process.returncode, 7)
+        finally:
             process.stdout.close()
 
     def test_a_cooperative_child_is_terminated(self):
@@ -107,6 +121,11 @@ class WaitUntilTest(unittest.TestCase):
     def test_false_when_the_deadline_passes_first(self):
         with patch("scripts.processes.time.monotonic", side_effect=(0, 0, 11)):
             self.assertFalse(wait_until(lambda: False, 10, interval=0))
+
+    def test_a_never_true_predicate_returns_false_after_about_the_given_seconds(self):
+        started = time.monotonic()
+        self.assertFalse(wait_until(lambda: False, 0.05, interval=0.01))
+        self.assertLess(time.monotonic() - started, 0.5)
 
     def test_a_predicate_true_at_once_is_not_delayed_by_a_spent_deadline(self):
         self.assertTrue(wait_until(lambda: True, 0, interval=0))
