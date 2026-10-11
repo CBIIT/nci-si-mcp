@@ -43,6 +43,8 @@ _OWN = (
     "dateModified",
 )
 _IDENTITY = ("publicId", "version", "longName")
+_FORM_TEXT = ("definition", "type", "beginDate", "endDate")
+_FORM_LISTS = ("instructions", "classificationSchemes")
 _ELEMENT = (
     *_OWN,
     "definition",
@@ -678,8 +680,9 @@ def get_form(
     A keyword is not accepted: the platform needs an identifier. registryRelease is left unset
     today (C-1).
 
-    Returns the form with its statuses unchanged (a retired form stays retired) and, unless left
-    out, modules and questions in platform order, with provenance.
+    Returns the form with its statuses unchanged (a retired form stays retired), its definition,
+    type, dates, instructions and classification schemes as the platform gives them, and, unless
+    left out, modules and questions in platform order, with provenance.
 
     not_found when the platform reports an unknown form; invalid_request for a keyword or a bad
     id; capability_unavailable for a published registry pin until C-1 defines how forms are
@@ -700,10 +703,13 @@ def get_form(
         context, release, f"{FORM_API}/Form/{identifier}", {"version": version}
     )
     _identity(item)
-    result = _fields(item, _OWN) | {
+    result = _fields(item, _OWN + _FORM_TEXT) | {
         # The Form API spells its identifier publicID; the origin is reported as it sent it.
         "provenance": _item_provenance(raw, provenance, ("publicID", "version", "dateModified"))
     }
+    # The form's own lists are its metadata: present when the platform sends them, whatever
+    # includeModules says.
+    result |= {key: _rows(raw, key) for key in _FORM_LISTS if key in raw}
     if includeModules:
         if "modules" not in raw:
             _malformed("form modules")

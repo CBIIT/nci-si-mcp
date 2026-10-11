@@ -460,7 +460,7 @@ One match of match_value_meanings, in the platform's order.
 
 | Field | Content | Rule |
 |---|---|---|
-| `item` | The item matched, as vmMatch gives it: { itemType, publicId, version, name, concept?, evsSource?, context, workflowStatus, registrationStatus?, provenance }. itemType is Concept or ValueMeaning, publicId that item's caDSR public id (itemId), name its matchedName; concept is the code it stands for, in the code system evsSource names (NCI_CONCEPT_CODE, SNOMED-CT_CODE, ...), each absent where the platform gives none; registrationStatus is absent, never null, where the platform gives none | A9.1 |
+| `item` | The item matched, as vmMatch gives it: { itemType, publicId, version, name, concept?, evsSource?, matchedDefinition?, context, workflowStatus, registrationStatus?, provenance }. itemType is Concept or ValueMeaning, publicId that item's caDSR public id (itemId), name its matchedName; concept is the code it stands for, in the code system evsSource names (NCI_CONCEPT_CODE, SNOMED-CT_CODE, ...), each absent where the platform gives none; matchedDefinition is that item's definition as vmMatch gives it, unchanged; matchedDefinition and registrationStatus are absent, never null, where the platform gives none | A9.1 |
 | `rule` | The rule the platform says matched (vmMatch's ruleDescription), unchanged | A9.2 |
 | `score` | The platform's score, where it gives one; absent, never null, where it does not (vmMatch gives none) (optional) | A9.2 |
 | `crosswalk` | The crosswalk the platform gives, { code, description } from crosswalkCode and crosswalkDescription; absent where it gives none, an empty code or the platform's NA meaning no crosswalk (optional) | match_value_meanings |
@@ -474,12 +474,18 @@ A form as get_form returns it, its status the platform's own (A8.1).
 | `publicId` | The form's public id (the Form API's publicID) | A1.2 |
 | `version` | The form's version | A3.8.3 |
 | `longName` | Its long name | A4.1 |
+| `definition` | Its definition unchanged; null means caDSR sent none in the answer that produced this record | A4.1 |
+| `type` | Its form type unchanged (CRF, ...); null means caDSR sent none in the answer that produced this record | A3.8.3 |
+| `beginDate` | Its begin date unchanged; null means caDSR sent none in the answer that produced this record | A3.8.2 |
+| `endDate` | Its end date unchanged; null means caDSR sent none in the answer that produced this record | A3.8.2 |
 | `context` | The context that owns it | A3.8.3 |
 | `workflowStatus` | The platform's workflow status, unchanged (RETIRED ARCHIVED is surfaced, not hidden) | A8.1 |
 | `registrationStatus` | The platform's registration status, unchanged | A3.8.3 |
 | `dateCreated` | When the platform created it, its own value unchanged | A3.8.2 |
 | `dateModified` | When the platform last modified it, its own value unchanged | A3.8.2 |
 | `provenance` | The provenance record, its release in the registry form | A4.4 |
+| `instructions` | Its instructions, the platform's entries unchanged and in its order, whatever includeModules says; absent where the platform sends none (optional) | A4.1 |
+| `classificationSchemes` | Its classification schemes, the platform's entries unchanged and in its order, whatever includeModules says; absent where the platform sends none (optional) | A4.1 |
 | `modules` | Its modules in the platform's order, each with its questions, the platform's entries unchanged; absent when includeModules is false (optional) | get_form |
 
 ### The code map record

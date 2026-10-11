@@ -170,7 +170,7 @@ class CaDSRSchemaMutationTest(TestCase):
                 "endDate",
                 "origin",
             },
-            results.Form: item_text,
+            results.Form: item_text | {"definition", "type", "beginDate", "endDate"},
             results.RegistryItemIdentity: {"longName"},
             results.ValueMeaning: {"longName"},
             results.ValueMeaningConcept: {"longName"},
