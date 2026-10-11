@@ -9,13 +9,13 @@ import shutil
 import socket
 import subprocess
 import tempfile
-import time
 import urllib.error
 import urllib.request
 import uuid
 from pathlib import Path
 
 from mcp.client import Client
+from scripts.processes import wait_until
 
 from nci_si_mcp.registry import SPECS
 
@@ -107,27 +107,25 @@ def default_auth_refusal(image: str, assets: Path) -> None:
 
 
 def wait_healthy(name: str) -> None:
-    deadline = time.monotonic() + STARTUP_SECONDS
-    while time.monotonic() < deadline:
+    def healthy() -> bool:
         status = docker("inspect", "--format", "{{.State.Health.Status}}", name).stdout.strip()
-        if status == "healthy":
-            return
-        if status != "starting":
+        if status not in {"healthy", "starting"}:
             raise RuntimeError(f"Docker health is {status}, not healthy")
-        time.sleep(1)
-    raise RuntimeError(f"Docker health did not become healthy within {STARTUP_SECONDS} seconds")
+        return status == "healthy"
+
+    if not wait_until(healthy, STARTUP_SECONDS, interval=1):
+        raise RuntimeError(f"Docker health did not become healthy within {STARTUP_SECONDS} seconds")
 
 
 def wait_ready(port: int) -> None:
-    until = time.monotonic() + STARTUP_SECONDS
-    while time.monotonic() < until:
+    def ready() -> bool:
         try:
-            if request(port, "/ready") == {"status": "ready"}:
-                return
+            return request(port, "/ready") == {"status": "ready"}
         except urllib.error.URLError, TimeoutError, ConnectionError:
-            pass  # A bounded startup poll; failure is reported below, never treated as ready.
-        time.sleep(1)
-    raise RuntimeError(f"Container never became ready within {STARTUP_SECONDS} seconds")
+            return False  # A bounded startup poll; failure is reported below, never ready.
+
+    if not wait_until(ready, STARTUP_SECONDS, interval=1):
+        raise RuntimeError(f"Container never became ready within {STARTUP_SECONDS} seconds")
 
 
 async def surface(port: int, assets: Path) -> None:

@@ -8,6 +8,7 @@ from collections import Counter
 from typing import Any
 
 from scripts.evidence_envelope import EvidenceError, decode_json, validate_envelope
+from scripts.formats import SHA256_HEX
 
 from nci_si_acceptance.report import (
     CANNOT_RUN,
@@ -60,7 +61,7 @@ def _catalogue(value: Any) -> None:
     fields(value, {"schema", "suite_digest", "tools", "cases"})
     require(type(value["schema"]) is int and value["schema"] == 1)
     require(isinstance(value["suite_digest"], str))
-    require(re.fullmatch(r"[a-f0-9]{64}", value["suite_digest"]) is not None)
+    require(re.fullmatch(SHA256_HEX, value["suite_digest"]) is not None)
     require(isinstance(value["tools"], dict) and isinstance(value["cases"], dict))
     for name, group in value["tools"].items():
         identifier(name)

@@ -8,8 +8,8 @@ a requested future platform contract.
 ## Reproduce the benchmark
 
 ```bash
-pdm run python scripts/benchmark.py --repetitions 20 --output tmp/benchmark-fixture.json
-pdm run python scripts/benchmark.py --mode live --repetitions 20 --output tmp/benchmark-live.json
+pdm run python -m scripts.benchmark --repetitions 20 --output tmp/benchmark-fixture.json
+pdm run python -m scripts.benchmark --mode live --repetitions 20 --output tmp/benchmark-live.json
 ```
 
 Run these sequentially. `--case TOOL` selects a case; `--repetitions 1` is an orchestration

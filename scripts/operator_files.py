@@ -6,11 +6,21 @@ from tempfile import NamedTemporaryFile
 from typing import Any
 
 
-def write_json(path: Path, value: Any) -> None:
+def write_json(path: Path, value: Any, *, indent: int | None = None) -> None:
+    """Replace `path` atomically with `value` as JSON; the old file survives any failure.
+
+    The default is the compact, key-sorted form of the evidence files. With `indent` the
+    keys keep their order and the text ends with a newline, as in the benchmark reports.
+    """
+
+    if path.is_symlink():
+        raise ValueError("Output cannot be a symlink")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    text = json.dumps(value, indent=indent, sort_keys=indent is None)
     with NamedTemporaryFile(mode="w", dir=path.parent, delete=False) as stream:
         temporary = Path(stream.name)
         try:
-            json.dump(value, stream, sort_keys=True)
+            stream.write(text if indent is None else text + "\n")
             stream.close()
             temporary.replace(path)
         finally:

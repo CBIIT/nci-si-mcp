@@ -5,6 +5,7 @@ from __future__ import annotations
 from html import escape
 from typing import Any, Literal
 
+from scripts.docs_links import REPOSITORY_URL
 from scripts.evidence_benchmark import comparable
 
 FOIA_URL = (
@@ -123,7 +124,7 @@ UAT/PROD administration is disabled pending platform integration.</p>
 <p class="footer-context">Semantic Infrastructure · Local validation prototype<br>
 <a href="/help#provenance">Understand the evidence</a></p></div>
 <div class="footer-contact"><h2>Contact us</h2>
-<a href="https://github.com/CBIIT/nci-si-mcp/issues">Contact project maintainers</a>
+<a href="{REPOSITORY_URL}/issues">Contact project maintainers</a>
 <nav class="footer-agencies" aria-label="Government agencies"><ul>
 <li><a href="https://www.hhs.gov">U.S. Department of Health and Human Services</a></li>
 <li><a href="https://www.nih.gov">National Institutes of Health</a></li>
@@ -139,7 +140,7 @@ HHS Vulnerability Disclosure</a></li>
 </ul></nav><a href="#top">Back to top ↑</a></div></div></footer></body></html>"""
 
 
-def _table(title: str, headers: list[str], rows: list[list[Any]]) -> str:
+def table(title: str, headers: list[str], rows: list[list[Any]]) -> str:
     heading = "".join(f'<th scope="col">{text(value)}</th>' for value in headers)
     body = "".join("<tr>" + "".join(f"<td>{text(v)}</td>" for v in row) + "</tr>" for row in rows)
     return (
@@ -235,7 +236,7 @@ def _acceptance(evidence: dict[str, Any], tool: str, story: str) -> str:
     )
     tools = evidence["tools"]
     if evidence["inventory_complete"]:
-        body += _table(
+        body += table(
             "Tool verdicts",
             ["Tool", "Native verdict", "Gate-only failure"],
             [[name, _verdict(row), row["gates_only"]] for name, row in tools.items()],
@@ -252,7 +253,7 @@ def _acceptance(evidence: dict[str, Any], tool: str, story: str) -> str:
             f"{len(evidence['missing'])}; no verdict shown. "
             f"{text(reason)}.</p>"
         )
-    body += _table(
+    body += table(
         "Acceptance cases",
         ["Case ID", "Tool", "Story", "Expected", "Recorded outcome", "Gate"],
         [
@@ -297,11 +298,11 @@ def _benchmark(evidence: dict[str, Any]) -> str:
                     _latency(data["summary"].get("p95Ms")),
                 ]
             )
-    body += _table(
+    body += table(
         "Benchmark measurements", ["Tool", "Phase", "Samples", "Errors", "p50 ms", "p95 ms"], rows
     )
     body += "<h3>Comparison fingerprint</h3>"
-    return body + _table(
+    return body + table(
         "Comparison fingerprint",
         ["Dimension", "Digest (unknown blocks comparison)"],
         [[key, evidence["fingerprint"][key]] for key in sorted(evidence["fingerprint"])],
@@ -317,7 +318,7 @@ def run_page(record: dict[str, Any], *, tool: str = "", story: str = "") -> str:
     body = "<p>Origin unverified: imported locally. Checksums bind bytes; they do not authenticate "
     body += "the runner. Server identity not independently verified.</p>"
     body += '<p><a href="/help#provenance">What does this provenance establish?</a></p>'
-    body += _table(
+    body += table(
         "Run provenance",
         ["Field", "Recorded value"],
         [

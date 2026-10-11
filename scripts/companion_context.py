@@ -83,8 +83,10 @@ def _populate(root: Path, output: Path, requirements: str, commit: str, site: Pa
         build_site(root, docs / "site")
     else:
         shutil.copytree(site, docs / "site")
-    shutil.copyfile(root / "scripts/static_server.py", docs / "static_server.py")
-    shutil.copyfile(root / "scripts/companion_relay.py", docs / "companion_relay.py")
+    # The servers import scripts.processes, so they ship as that package's modules.
+    (docs / "scripts").mkdir()
+    for name in ("processes", "static_server", "companion_relay"):
+        shutil.copyfile(root / f"scripts/{name}.py", docs / f"scripts/{name}.py")
     shutil.copyfile(root / "container/Docs.Dockerfile", docs / "Dockerfile")
     shutil.copyfile(root / "container/Admin.Dockerfile", admin / "Dockerfile")
     (admin / "requirements.txt").write_text(requirements)

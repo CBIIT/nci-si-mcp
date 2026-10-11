@@ -127,7 +127,7 @@ Run `pdm build --no-sdist` in a tagged checkout, then
 `docker build --platform linux/amd64 -t nci-si-mcp:local .`.
 With Podman, use `podman build --format docker` to preserve the image health check.
 Keep exactly one current wheel in `dist/`. Run
-`pdm run python scripts/container_smoke.py nci-si-mcp:local` to check the image with an
+`pdm run python -m scripts.container_smoke nci-si-mcp:local` to check the image with an
 external, test-only model and a recorded concept. CI builds the same wheel/image and runs
 the same smoke check, including default-auth refusal, explicit local serving and Docker's
 healthy status. This is packaging evidence, not production retrieval calibration.
@@ -135,15 +135,17 @@ healthy status. This is packaging evidence, not production retrieval calibration
 The image uses a digest-pinned Amazon Linux 2023 base, refreshes OS packages and installs
 its `python3.14` package. The builder creates a virtual environment on the same base and
 copies it into the runtime; builder package installations and caches stay behind.
+The OS upgrade is not pinned, so image contents vary with the build date despite the
+digest-pinned base; that is accepted because every build is scanned.
 The Dockerfile accepts a requirements
 path as a build argument so an additional architecture can be added later. To regenerate
 the amd64 CPU lock from `pdm.lock`:
 
 ```bash
-pdm run python scripts/container_lock.py prepare tmp/container-lock
+pdm run python -m scripts.container_lock prepare tmp/container-lock
 docker build --platform linux/amd64 -f container/Dockerfile.resolve --output type=local,dest=tmp/container-lock/report tmp/container-lock
-pdm run python scripts/container_lock.py write tmp/container-lock/report/resolution.json
-pdm run python scripts/container_lock.py check
+pdm run python -m scripts.container_lock write tmp/container-lock/report/resolution.json
+pdm run python -m scripts.container_lock check
 ```
 
 Remove `tmp/container-lock` afterwards. Installation requires hashes. The check fails if

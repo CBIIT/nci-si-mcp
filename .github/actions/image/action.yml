@@ -11,7 +11,7 @@ runs:
     - name: Check dependency lock and build wheel
       shell: bash
       run: |
-        pdm run python scripts/container_lock.py check
+        pdm run python -m scripts.container_lock check
         export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
         pdm build --no-sdist
     - name: Build the image
@@ -25,7 +25,7 @@ runs:
         docker save --output tmp/image/image.tar nci-si-mcp:verified
     - name: Exercise the built image
       shell: bash
-      run: pdm run python scripts/container_smoke.py nci-si-mcp:verified
+      run: pdm run python -m scripts.container_smoke nci-si-mcp:verified
     - name: Produce complete vulnerability report and SBOM
       shell: bash
       run: |

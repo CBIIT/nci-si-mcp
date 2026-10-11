@@ -5,6 +5,8 @@ import subprocess
 import sys
 from fnmatch import fnmatchcase
 
+from scripts.formats import SHA1_HEX
+
 TESTS_AND_TEMPLATES = (
     "tests/*",
     ".github/ISSUE_TEMPLATE/*",
@@ -28,7 +30,7 @@ NONINPUTS = {
 
 
 def changed_paths(base: str, head: str) -> list[str]:
-    if not all(re.fullmatch(r"[a-f0-9]{40}", value) for value in (base, head)):
+    if not all(re.fullmatch(SHA1_HEX, value) for value in (base, head)):
         return []
     try:
         result = subprocess.run(  # noqa: S603 - validated SHAs, fixed Git arguments, no shell

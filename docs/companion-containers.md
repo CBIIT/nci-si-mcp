@@ -102,7 +102,7 @@ CI builds both images, runs a real fixture benchmark, checks network and mount i
 tests that stopping administration leaves a separate MCP healthy, and retains vulnerability
 reports and CycloneDX SBOMs. The existing scan gate requires zero High and zero Critical findings.
 These local images are not published as new GHCR packages. The hash-locked companion dependency
-file is derived from `pdm.lock`; regenerate with `pdm run python scripts/companion_lock.py write`
+file is derived from `pdm.lock`; regenerate with `pdm run python -m scripts.companion_lock write`
 when the relevant lock groups change. Model and embedding runtimes are excluded.
 
 ```bash

@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import json
 import select
-import signal
 import socket
 import socketserver
 import sys
 import time
 from contextlib import suppress
 from typing import Any
+
+from scripts.processes import exit_on_sigterm
 
 
 def transfer(incoming: socket.socket, outgoing: socket.socket) -> None:
@@ -49,12 +50,8 @@ class Server(socketserver.TCPServer):
         )
 
 
-def stop(_signal: int, _frame: Any) -> None:
-    raise KeyboardInterrupt
-
-
 def main() -> None:
-    signal.signal(signal.SIGTERM, stop)
+    exit_on_sigterm()
     with Server(("0.0.0.0", 8081), Relay) as server, suppress(KeyboardInterrupt):  # noqa: S104
         server.serve_forever()
 

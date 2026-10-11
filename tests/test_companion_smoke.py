@@ -6,7 +6,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from scripts import companion_smoke
+from scripts import companion_smoke, processes
 
 
 class CompanionSmokeTest(unittest.TestCase):
@@ -63,7 +63,7 @@ class CompanionSmokeTest(unittest.TestCase):
             patch.object(companion_smoke.uuid, "uuid4", return_value=SimpleNamespace(hex=run_id)),
             patch.object(companion_smoke, "docker", side_effect=history),
             patch.object(companion_smoke, "request", side_effect=[(303, ""), (503, "Unavailable")]),
-            patch.object(companion_smoke.time, "sleep"),
+            patch.object(processes.time, "sleep"),
             self.assertRaisesRegex(RuntimeError, "Benchmark results are unavailable"),
         ):
             companion_smoke.benchmark("owned-admin")

@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 
 from packaging.markers import Marker, default_environment
+from scripts.formats import SHA256_HEX
+from scripts.requirements_lock import requirement_line
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCK = ROOT / "container/companion-requirements.txt"
@@ -38,7 +40,7 @@ def _hashes(rows: list[dict[str, Any]]) -> list[str]:
         for item in row.get("files", [])
         if item["file"].endswith(".whl")
     }
-    if not hashes or any(re.fullmatch(r"sha256:[a-f0-9]{64}", digest) is None for digest in hashes):
+    if not hashes or any(re.fullmatch(f"sha256:{SHA256_HEX}", digest) is None for digest in hashes):
         raise ValueError("Companion dependency needs SHA-256 wheel hashes")
     return sorted(hashes)
 
@@ -60,10 +62,7 @@ def render(lock: dict[str, Any]) -> str:
         versions = {row["version"] for row in rows}
         if len(versions) != 1:
             raise ValueError("Conflicting companion dependency versions")
-        requirement = f"{name}=={versions.pop()}"
-        lines.append(
-            " \\\n    ".join([requirement, *(f"--hash={digest}" for digest in _hashes(rows))])
-        )
+        lines.append(requirement_line(f"{name}=={versions.pop()}", _hashes(rows)))
     return "\n".join(lines) + "\n"
 
 

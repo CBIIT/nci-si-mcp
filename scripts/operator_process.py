@@ -6,30 +6,13 @@ import os
 import signal
 import subprocess
 import threading
-import time
-from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
 from scripts.evidence_envelope import MAX_REPORT_BYTES
+from scripts.processes import stop, wait_until
 
 LIFELINE = "NCI_SI_OPERATOR_LIFELINE"
-
-
-def _signal_group(process: subprocess.Popen[bytes], sig: signal.Signals) -> None:
-    with suppress(ProcessLookupError):
-        os.killpg(process.pid, sig)
-
-
-def _stop(process: subprocess.Popen[bytes]) -> None:
-    _signal_group(process, signal.SIGTERM)
-    try:
-        process.wait(timeout=10)
-    except subprocess.TimeoutExpired:
-        _signal_group(process, signal.SIGKILL)
-        process.wait(timeout=10)
-    # A group leader can exit while an owned descendant ignores graceful termination.
-    _signal_group(process, signal.SIGKILL)
 
 
 def _output_problem(directory: Path) -> str | None:
@@ -47,16 +30,18 @@ def _wait(
     seconds: float,
     cancelled: threading.Event,
 ) -> str | None:
-    deadline = time.monotonic() + seconds
-    while process.poll() is None:
-        if cancelled.is_set():
-            return "cancelled"
-        if time.monotonic() >= deadline:
-            return "deadline"
-        if problem := _output_problem(directory):
-            return problem
-        time.sleep(0.05)
-    return _output_problem(directory)
+    reason: str | None = None
+
+    def settled() -> bool:
+        nonlocal reason
+        if process.poll() is not None:
+            return True
+        reason = "cancelled" if cancelled.is_set() else _output_problem(directory)
+        return reason is not None
+
+    if not wait_until(settled, seconds, interval=0.05):
+        return "deadline"
+    return reason or _output_problem(directory)
 
 
 def run_owned(
@@ -84,7 +69,7 @@ def run_owned(
         try:
             reason = _wait(process, directory, seconds, cancelled)
         finally:
-            _stop(process)
+            stop(process, group=True)
     code = process.returncode if process.returncode >= 0 else 128 - process.returncode
     if reason is not None:
         return {
