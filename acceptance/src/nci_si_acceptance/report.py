@@ -11,8 +11,8 @@ each required tool one outcome:
     NO FIXTURE       the tool's tests failed only because a request found no fixture:
                      a question for the fixture set, not a defect of the server
     INCOMPLETE       the tool's tests that ran passed, but some could not run: skipped, or
-                     needing a capability the tool lacks; a hardening
-                     candidate, not a pass
+                     needing a capability the tool lacks, or a gate could not run (shown as
+                     "gates not run"); a hardening candidate, not a pass
     NOT IMPLEMENTED  the server does not expose the required tool name
     NOT RUN          no test of the tool ran (in live mode: none is live-capable)
     NO TESTS         the suite has no test for the tool: a defect of the suite
@@ -45,8 +45,7 @@ import yaml
 
 from nci_si_acceptance.client import withhold_authorization
 from nci_si_acceptance.spec import REQUIRED_TOOLS
-from nci_si_acceptance.suite import FIXTURE_ONLY as FIXTURE_ONLY_SKIP
-from nci_si_acceptance.suite import UnmatchedUpstream
+from nci_si_acceptance.suite import SKIP, UnmatchedUpstream
 from nci_si_acceptance.suite_identity import (
     APPROVED,
     REPOSITORY,
@@ -55,7 +54,7 @@ from nci_si_acceptance.suite_identity import (
     heading,
     identity,
 )
-from nci_si_acceptance.tools import NOT_IMPLEMENTED
+from nci_si_acceptance.tools import NOT_IMPLEMENTED, NotImplementedSkip
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -86,10 +85,13 @@ FAILED = ("failed", "no_fixture")
 UNRUN = ("skipped", "not_implemented", "not_live")
 
 
-def tool_outcome(counts: Counter[str], gates_failed: bool, implemented: bool | None) -> str:
-    """The outcome of one tool in one run, from the final outcomes of its tests.
+def tool_outcome(
+    counts: Counter[str], gates_failed: bool, gates_unrun: bool, implemented: bool | None
+) -> str:
+    """The outcome of one tool in one run, from the final outcomes of its tests and the gates.
 
-    `implemented` is None when no server started, so the run cannot tell.
+    `implemented` is None when no server started, so the run cannot tell. A gate that did not
+    run keeps a tool from passing and changes no other outcome.
     """
 
     if not counts:
@@ -98,22 +100,27 @@ def tool_outcome(counts: Counter[str], gates_failed: bool, implemented: bool | N
         return FAIL
     if counts["no_fixture"]:
         return NO_FIXTURE
-    return _without_failures(counts, implemented)
+    return _without_failures(counts, gates_unrun, implemented)
 
 
-def _without_failures(counts: Counter[str], implemented: bool | None) -> str:
+def _without_failures(counts: Counter[str], gates_unrun: bool, implemented: bool | None) -> str:
     if implemented is False:
         return NOT_IMPLEMENTED
     if not counts["passed"]:
         return NOT_RUN
-    return INCOMPLETE if counts["skipped"] or counts["not_implemented"] else PASS
+    return INCOMPLETE if _own_unrun(counts) or gates_unrun else PASS
+
+
+def _own_unrun(counts: Counter[str]) -> int:
+    """The tool's own tests that could not run; a live run's fixture-only tests are not among
+    them."""
+
+    return counts["skipped"] + counts["not_implemented"]
 
 
 def _skip_outcome(report: pytest.TestReport) -> str:
-    reason = str(report.longrepr[2]) if isinstance(report.longrepr, tuple) else ""
-    if FIXTURE_ONLY_SKIP in reason:
-        return "not_live"
-    return "not_implemented" if NOT_IMPLEMENTED in reason else "skipped"
+    # The site of the skip says why (suite.SKIP); its reason text is for people.
+    return str(dict(report.user_properties).get(SKIP, "skipped"))
 
 
 def _phase_outcome(report: pytest.TestReport) -> str | None:
@@ -201,12 +208,12 @@ class Collector:
             self.implemented = noted["implemented"]
             self.listing_bytes = noted["listing_bytes"]
 
-    def _row(self, name: str, group: str, gates_failed: bool) -> dict[str, Any]:
+    def _row(self, name: str, group: str, gates_failed: bool, gates_unrun: bool) -> dict[str, Any]:
         counts = Counter(test["outcome"] for test in self.tests.values() if test["tool"] == name)
         implemented = None if self.implemented is None else self.implemented.get(name, False)
         return {
             "group": group,
-            "outcome": tool_outcome(counts, gates_failed, implemented),
+            "outcome": tool_outcome(counts, gates_failed, gates_unrun, implemented),
             "gates_only": gates_failed and not (counts["failed"] or counts["no_fixture"]),
             "counts": dict(counts),
         }
@@ -219,14 +226,17 @@ class Collector:
         )
 
     def report(self, mode: str) -> dict[str, Any]:
-        gates = self._gates(FAILED)
-        rows = {name: self._row(name, group, bool(gates)) for name, group in REQUIRED_TOOLS.items()}
+        gates, unrun = self._gates(FAILED), self._gates(UNRUN)
+        rows = {
+            name: self._row(name, group, bool(gates), bool(unrun))
+            for name, group in REQUIRED_TOOLS.items()
+        }
         return {
             "mode": mode,
             "transport": self.transport,
             "run": self.run,
             "failed_gates": gates,
-            "unrun_gates": self._gates(UNRUN),
+            "unrun_gates": unrun,
             "tools_list_bytes": self.listing_bytes,
             "tools": rows,
             # Workers report in the order they finish; a report is the same whatever that was.
@@ -261,13 +271,24 @@ def _over_both(
     return (FIXTURE_ONLY if all(nodeid in limitations for nodeid in failing) else FAIL), excused
 
 
-def _row(name: str, row: dict[str, Any], outcome: str, excused: list[str]) -> str:
-    if outcome == FAIL and row["gates_only"]:
-        outcome = "FAIL (gates only)"
+def _row(
+    name: str, row: dict[str, Any], gates_unrun: bool, outcome: str, excused: list[str]
+) -> str:
     counts = Counter(row["counts"])
+    outcome = _label(outcome, row["gates_only"], gates_unrun and not _own_unrun(counts))
     unrun = sum(counts[kind] for kind in UNRUN)
     tests = f"{counts['passed']} / {counts['failed']} / {counts['no_fixture']} / {unrun}"
     return f"| `{name}` | {row['group']} | {outcome} | {tests} | {', '.join(excused)} |"
+
+
+def _label(outcome: str, gates_only: bool, by_unrun_gates: bool) -> str:
+    """The outcome as a row shows it, saying so when the gates alone decide it."""
+
+    if outcome == FAIL and gates_only:
+        return "FAIL (gates only)"
+    if outcome == INCOMPLETE and by_unrun_gates:
+        return "INCOMPLETE (gates not run)"
+    return outcome
 
 
 def _named(combined: dict[str, tuple[str, list[str]]], *kinds: str) -> str:
@@ -296,7 +317,8 @@ def render(
         "| Upstream limitation |",
         "|---|---|---|---|---|",
     ]
-    lines += [_row(name, row, *combined[name]) for name, row in report["tools"].items()]
+    unrun = bool(report["unrun_gates"])
+    lines += [_row(name, row, unrun, *combined[name]) for name, row in report["tools"].items()]
     missing = sorted(
         {request for test in report["tests"].values() for request in test.get("unmatched", [])}
     )
@@ -352,6 +374,8 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[None]) ->
     withhold_from(report)
     if call.excinfo is not None and isinstance(call.excinfo.value, UnmatchedUpstream):
         report.user_properties.append((UNMATCHED, call.excinfo.value.requests))
+    if call.excinfo is not None and isinstance(call.excinfo.value, NotImplementedSkip):
+        report.user_properties.append((SKIP, "not_implemented"))
     marker = item.get_closest_marker("tool")
     attribution = {
         "tool": marker.args[0] if marker else None,

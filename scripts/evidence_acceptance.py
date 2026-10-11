@@ -123,13 +123,13 @@ def _gates(report: dict[str, Any], field: str, outcomes: tuple[str, ...]) -> lis
     return expected
 
 
-def _tool(row: Any, counts: Counter[str], group: str, failed: bool) -> dict[str, Any]:
+def _tool(row: Any, counts: Counter[str], group: str, failed: bool, unrun: bool) -> dict[str, Any]:
     require(isinstance(row, dict) and set(row) - {_RECORDED_TOOL_FIELD} == _TOOL_FIELDS)
     require(row["group"] == group)
     _counts(row["counts"], counts)
     availability = _availability(row)
     require(isinstance(row["outcome"], str))
-    require(row["outcome"] in {tool_outcome(counts, failed, value) for value in availability})
+    require(row["outcome"] in _verdicts(counts, failed, unrun, availability))
     expected = failed and not (counts["failed"] or counts["no_fixture"])
     require(type(row["gates_only"]) is bool and row["gates_only"] == expected)
     return {
@@ -138,6 +138,16 @@ def _tool(row: Any, counts: Counter[str], group: str, failed: bool) -> dict[str,
         "gates_only": row["gates_only"],
         "counts": dict(counts),
     }
+
+
+def _verdicts(
+    counts: Counter[str], failed: bool, unrun: bool, availability: tuple[bool | None, ...]
+) -> set[str]:
+    """The verdicts a harness gives the row. A report written before #265 left a tool PASS
+    while a gate did not run; that stays the recorded run's verdict, displayed unchanged."""
+
+    gates = {unrun, False}
+    return {tool_outcome(counts, failed, gated, value) for value in availability for gated in gates}
 
 
 def _availability(row: dict[str, Any]) -> tuple[bool | None, ...]:
@@ -166,11 +176,11 @@ def _native(raw: bytes, context: dict[str, Any]) -> tuple[dict[str, Any], dict[s
     _native_header(report, context["catalogue"])
     _native_cases(report, context)
     failed = bool(_gates(report, "failed_gates", FAILED))
-    _gates(report, "unrun_gates", UNRUN)
+    unrun = bool(_gates(report, "unrun_gates", UNRUN))
     tools = {}
     for name, group in context["catalogue"]["tools"].items():
         counts = Counter(row["outcome"] for row in report["tests"].values() if row["tool"] == name)
-        tools[name] = _tool(report["tools"][name], counts, group, failed)
+        tools[name] = _tool(report["tools"][name], counts, group, failed, unrun)
     return report, tools
 
 
