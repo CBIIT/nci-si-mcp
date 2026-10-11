@@ -15,6 +15,7 @@ from nci_si_acceptance.suite import (
     NOT_DECLARED_PREPARED,
     NOT_PREPARED,
     PREPARED,
+    SKIP,
     UnmatchedUpstream,
     index_set,
     main,
@@ -32,6 +33,7 @@ class Item:
 
     def __init__(self, *markers):
         self.markers = [getattr(marker, "mark", marker) for marker in markers]
+        self.user_properties = []
 
     def iter_markers(self, name):
         return (marker for marker in self.markers if marker.name == name)
@@ -53,6 +55,9 @@ def test_a_live_run_skips_every_test_not_marked_live_capable_and_every_scenario(
     assert live.get_closest_marker("skip") is None
     assert fixture_only.get_closest_marker("skip").kwargs == {"reason": "fixture mode only"}
     assert scenario.get_closest_marker("skip").kwargs == {"reason": "fixture mode only"}
+    # The report reads why from the property, never from the reason (#265).
+    assert live.user_properties == []
+    assert fixture_only.user_properties == scenario.user_properties == [(SKIP, "not_live")]
 
 
 def test_a_test_selects_the_scenarios_of_all_its_markers():
