@@ -211,7 +211,8 @@ def match_data_elements(
     matching rule and matched text. Results are computed from the text given.
 
     One request goes out per entity and any failure fails the call, never a partial success:
-    timeout beyond the match limit (45 seconds by default), upstream_unavailable,
+    timeout beyond the match limit (45 seconds by default), upstream_unavailable (also when a
+    matched data element lacks its longName, workflowStatus or registrationStatus),
     capability_unavailable for a published pin (C-1), release_not_available for an unpublished
     one, invalid_request for bad input.
     """
@@ -279,7 +280,7 @@ def _vm_item(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
     if raw.get("itemType") not in get_args(MatchedItemType):
         records._malformed("match itemType")
     item = {"publicId": raw.get("itemId"), "version": raw.get("version")}
-    records._identity(item)
+    records._validate_key(item)
     item["itemType"] = raw["itemType"]
     item["name"] = _required_text(raw, "matchedName")
     for key in ("context", "workflowStatus"):
