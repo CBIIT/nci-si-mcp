@@ -7,7 +7,14 @@ from scripts.portal_configuration import LocalConfiguration
 from scripts.portal_configuration_views import configuration_page
 from scripts.portal_help import help_page
 from scripts.portal_job_views import jobs_page
-from scripts.portal_views import comparison_page, history_page, page, run_page
+from scripts.portal_views import (
+    GATE_STATUS_UNRECORDED,
+    GATES_UNRUN_LABELS,
+    comparison_page,
+    history_page,
+    page,
+    run_page,
+)
 
 from test_evidence_acceptance import missing_report, project, report
 from test_evidence_benchmark import project as benchmark_projection
@@ -218,6 +225,12 @@ class PortalViewsTest(unittest.TestCase):
             with self.subTest(recorded=recorded, gate=gate_outcome):
                 html = run_page(self.record(project(native)))
                 self.assertIn(f"<td>{shown}</td>", html)
+
+    def test_the_help_page_explains_every_gate_label_the_dashboard_shows(self):
+        html = help_page()
+        for label in (*GATES_UNRUN_LABELS.values(), GATE_STATUS_UNRECORDED):
+            with self.subTest(label=label):
+                self.assertIn(label, html)
 
     def test_a_failing_tool_keeps_its_verdict_when_a_gate_did_not_run(self):
         native = report()

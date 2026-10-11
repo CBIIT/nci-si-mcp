@@ -194,6 +194,7 @@ class AcceptanceProjectionTest(unittest.TestCase):
             ("passed", "skipped", "INCOMPLETE", True),
             ("skipped", "skipped", "INCOMPLETE", False),
             ("passed", "not_live", "PASS", False),
+            ("passed", "not_implemented", "INCOMPLETE", True),
         ):
             native = report()
             native["tests"][again] = {"tool": "lookup", "gate": False, "unmatched": []}
@@ -232,6 +233,32 @@ class AcceptanceProjectionTest(unittest.TestCase):
             {name: (tool["outcome"], tool["gates_unrun"]) for name, tool in tools.items()},
             {"lookup": ("PASS", False), "search": ("NOT RUN", False)},
         )
+
+    def test_the_gate_lists_are_checked_in_order(self):
+        names = [f"tests/test_example.py::test_gate_{letter}" for letter in "abcd"]
+        context = bundle()
+        catalogue = json.loads(context["catalogue"])
+        catalogue["cases"] |= {name: {"tool": None, "gate": True} for name in names}
+        context |= {
+            "catalogue": encoded(catalogue),
+            "stories": encoded(dict.fromkeys(catalogue["cases"], "find-a-concept")),
+            "expectations": encoded(dict.fromkeys(catalogue["cases"], "passed")),
+            "selection": encoded(list(catalogue["cases"])),
+        }
+        native = report()
+        for name, outcome in zip(names, ("failed", "failed", "skipped", "skipped"), strict=True):
+            native["tests"][name] = {
+                "tool": None,
+                "gate": True,
+                "outcome": outcome,
+                "unmatched": [],
+            }
+        native["tools"]["lookup"].update(outcome="FAIL", gates_only=True)
+        native |= {"failed_gates": names[:2], "unrun_gates": names[2:]}
+        self.assertEqual(project(native, context)["tools"]["lookup"]["outcome"], "FAIL")
+        for field, listed in (("failed_gates", names[1::-1]), ("unrun_gates", names[:1:-1])):
+            with self.subTest(unsorted=field), self.assertRaises(EvidenceError):
+                project(native | {field: listed}, context)
 
     def test_an_incomplete_verdict_no_harness_gives_is_refused(self):
         native = report()
