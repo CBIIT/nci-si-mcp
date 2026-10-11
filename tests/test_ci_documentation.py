@@ -93,10 +93,16 @@ class DocumentationWorkflowTest(unittest.TestCase):
             step for step in steps if "playwright install-deps chromium" in step.get("run", "")
         )
         self.assertNotIn("if", system)
+        self.assertEqual(
+            system["run"], "npm exec --prefix docs/site-assets -- playwright install-deps chromium"
+        )
         browser = next(
             step for step in steps if "playwright install chromium" in step.get("run", "")
         )
         self.assertEqual(browser["if"], "steps.playwright-cache.outputs.cache-hit != 'true'")
+        self.assertEqual(
+            browser["run"], "npm exec --prefix docs/site-assets -- playwright install chromium"
+        )
 
     def test_node_contract_matches_the_ci_major_in_package_and_operator_docs(self):
         package = json.loads(Path("docs/site-assets/package.json").read_text())
