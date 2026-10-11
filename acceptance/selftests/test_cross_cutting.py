@@ -219,6 +219,7 @@ def test_each_cross_cutting_test_fails_on_its_own_defect(outcomes, monkeypatch, 
         "uri-not-a-url",
         "live-as-index",
         "cache-loses-origin",
+        "cache-swaps-origin",
     ],
 )
 def test_provenance_contract_rejects_missing_or_substituted_source_facts(

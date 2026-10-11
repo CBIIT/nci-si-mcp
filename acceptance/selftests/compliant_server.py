@@ -40,6 +40,7 @@ requirements, for the harness's own tests.
     uri-not-a-url    a live concept whose sourceUri is text, not an absolute URL    (X-7)
     live-as-index    a live response claims index origin to evade its obligations   (X-7)
     cache-loses-origin a repeated live answer loses its original source facts       (X-7)
+    cache-swaps-origin a repeated live answer names another valid source URI        (X-7)
     itemless-origin  an empty page invents an item's upstream origin                (X-7)
     bad-timestamp     a retrievedAt that is no ISO-8601 timestamp                   (X-7)
     no-polarity       an item reached by traversal without polarity                 (X-7)
@@ -988,6 +989,9 @@ def _cached_origin(content: object, cached: bool) -> object:
         provenance = content.get("provenance", {})
         provenance.pop("sourceUri", None)
         provenance.pop("upstream", None)
+    if cached and DEFECT == "cache-swaps-origin" and isinstance(content, dict):
+        provenance = content.get("provenance", {})
+        provenance["sourceUri"] = f"{provenance['sourceUri']}?repeated"
     return content
 
 
