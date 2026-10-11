@@ -97,13 +97,9 @@ def _call(tools, pinned, name, arguments=None, meta=None):
 
 
 def _items(tools, pinned, name):
-    """The items of a successful call; none is a failure, since every call returns content."""
+    """The items of the pinned call of `name`, which must succeed."""
 
-    result = _call(tools, pinned, name)
-    assert not result.is_error, result.content
-    found = items_of(name, result.content)
-    assert found, f"no item where {TOOLS[name]['items']} say: {result.content!r:.300}"
-    return found
+    return _successful_items(name, _call(tools, pinned, name))
 
 
 def _codes(item):
@@ -804,6 +800,8 @@ def _licensed_cases(scenario):
 
 
 def _successful_items(name, result):
+    """The items of a successful call; none is a failure, since every call returns content."""
+
     assert not result.is_error, result.content
     found = items_of(name, result.content)
     assert found, f"no item where {TOOLS[name]['items']} say: {result.content!r:.300}"
