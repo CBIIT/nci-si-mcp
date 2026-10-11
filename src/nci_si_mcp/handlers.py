@@ -139,7 +139,9 @@ def list_terminologies(context: Context) -> dict[str, Any]:
 
 
 def _terminology(context: Context, row: dict[str, Any]) -> dict[str, Any]:
-    metadata = row.get("metadata") or {}
+    metadata = row.get("metadata")
+    if metadata is None:
+        metadata = {}
     if not isinstance(metadata, dict):
         raise EVSResponseError("EVS listed a terminology with malformed metadata")
     provenance = with_attribution(_release_provenance(context, row), metadata, "evs")
