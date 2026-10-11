@@ -25,9 +25,13 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import yaml
-
-from nci_si_acceptance.fixture_server import CONCEPTS, CRAFTED, EVERY_PATH, MANIFEST
+from nci_si_acceptance.fixture_server import (
+    CONCEPTS,
+    CRAFTED,
+    EVERY_PATH,
+    MANIFEST,
+    read_manifest,
+)
 from nci_si_acceptance.record import (
     DISCOVERY,
     FIXTURES,
@@ -1109,7 +1113,10 @@ def craft(
 
     recorded = Recorded(root)
     for scenario in scenarios:
-        recorded.crafted |= scenario(recorded)
+        documents = scenario(recorded)
+        if twice := sorted(set(documents) & set(recorded.crafted)):
+            raise ValueError(f"{', '.join(twice)}: crafted by two scenarios")
+        recorded.crafted |= documents
     return recorded.crafted
 
 
@@ -1137,8 +1144,9 @@ def _record_digest(root: Path, value: str) -> None:
 def main(arguments: Iterable[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Record the digest of the crafted fixtures.")
     parser.add_argument("--fixtures", type=Path, default=FIXTURES, help="the fixture directory")
-    parser.add_argument("--check", action="store_true", help="exit 1 if the digest is stale")
-    parser.add_argument("--out", type=Path, help="write the crafted fixtures here, to read them")
+    action = parser.add_mutually_exclusive_group()
+    action.add_argument("--check", action="store_true", help="exit 1 if the digest is stale")
+    action.add_argument("--out", type=Path, help="write the crafted fixtures here, to read them")
     options = parser.parse_args(arguments)
     documents = craft(options.fixtures)
     if options.out:
@@ -1147,8 +1155,7 @@ def main(arguments: Iterable[str] | None = None) -> int:
         return 0
     value = digest(documents)
     if options.check:
-        manifest = yaml.safe_load((options.fixtures / MANIFEST).read_text(encoding="utf-8"))
-        if manifest.get(CRAFTED) != value:
+        if read_manifest(options.fixtures).get(CRAFTED) != value:
             sys.stderr.write("The crafted digest is stale: run pdm run acceptance-craft.\n")
             return 1
         return 0

@@ -10,6 +10,7 @@ from typing import Any
 from scripts.evidence_envelope import EvidenceError, decode_json, validate_envelope
 
 from nci_si_acceptance.report import (
+    CANNOT_RUN,
     FAILED,
     RANK,
     UNRUN,
@@ -186,7 +187,10 @@ def _native(raw: bytes, context: dict[str, Any]) -> tuple[dict[str, Any], dict[s
     _native_header(report, context["catalogue"])
     _native_cases(report, context)
     failed = bool(_gates(report, "failed_gates", FAILED))
-    unrun = bool(_gates(report, "unrun_gates", UNRUN))
+    _gates(report, "unrun_gates", UNRUN)
+    # Only a gate that could not run keeps a tool from passing; one skipped by design in a live
+    # run (not_live) does not.
+    unrun = any(row["gate"] and row["outcome"] in CANNOT_RUN for row in report["tests"].values())
     tools = {}
     for name, group in context["catalogue"]["tools"].items():
         counts = Counter(row["outcome"] for row in report["tests"].values() if row["tool"] == name)

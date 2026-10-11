@@ -200,16 +200,24 @@ def _comparison_form(rows: list[dict[str, Any]]) -> str:
     )
 
 
-def _verdict(row: dict[str, Any]) -> str:
-    """A tool's native verdict, saying so when gates that did not run decide it (#265): a report
-    written before #265 recorded PASS, a current one INCOMPLETE."""
+# A verdict that gates which could not run decide (#265): an earlier harness recorded PASS, the
+# current one INCOMPLETE.
+_GATES_UNRUN = {
+    "PASS": "PASS (gates not run; recorded by an earlier harness)",
+    "INCOMPLETE": "INCOMPLETE (gates not run)",
+}
 
-    # Projections stored before the gates_unrun field have none.
-    if row.get("gates_unrun") and row["outcome"] == "PASS":
-        return "PASS (gates not run, recorded before #265)"
-    if row.get("gates_unrun") and row["outcome"] == "INCOMPLETE":
-        return "INCOMPLETE (gates not run)"
-    return row["outcome"]
+
+def _verdict(row: dict[str, Any]) -> str:
+    """A tool's native verdict, saying so when gates that could not run decide it."""
+
+    outcome: str = row["outcome"]
+    if "gates_unrun" not in row:
+        # A projection stored before the gate status was projected cannot tell.
+        return "PASS (gate status not recorded)" if outcome == "PASS" else outcome
+    if row["gates_unrun"] and outcome in _GATES_UNRUN:
+        return _GATES_UNRUN[outcome]
+    return outcome
 
 
 def _acceptance(evidence: dict[str, Any], tool: str, story: str) -> str:

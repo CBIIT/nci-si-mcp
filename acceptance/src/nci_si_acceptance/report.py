@@ -17,7 +17,8 @@ each required tool one outcome:
     NOT RUN          no test of the tool ran (in live mode: none is live-capable)
     NO TESTS         the suite has no test for the tool: a defect of the suite
 
-In a live run, the tests that run in fixture mode only leave a tool NOT RUN, never INCOMPLETE.
+In a live run, the tests and gates that run in fixture mode only (not_live) leave a tool NOT
+RUN, never INCOMPLETE: they do not run live by design, while a gate that could not run did not.
 
 Combining the fixture run with the live run gives the final outcome. A tool that
 passes against fixtures is PASS (fixture only) when each of its live failures is a
@@ -83,6 +84,9 @@ RANK = {
 FAILED = ("failed", "no_fixture")
 # The final outcomes of a test that did not run to a verdict.
 UNRUN = ("skipped", "not_implemented", "not_live")
+# Those of them that could not run. A live run's fixture-only tests and gates do not run there
+# by design (not_live), so they keep no tool from passing.
+CANNOT_RUN = ("skipped", "not_implemented")
 
 
 def tool_outcome(
@@ -112,10 +116,9 @@ def _without_failures(counts: Counter[str], gates_unrun: bool, implemented: bool
 
 
 def own_unrun(counts: Counter[str]) -> int:
-    """The tool's own tests that could not run; a live run's fixture-only tests are not among
-    them."""
+    """The tool's own tests that could not run (CANNOT_RUN)."""
 
-    return counts["skipped"] + counts["not_implemented"]
+    return sum(counts[outcome] for outcome in CANNOT_RUN)
 
 
 def _skip_outcome(report: pytest.TestReport) -> str:
@@ -227,8 +230,9 @@ class Collector:
 
     def report(self, mode: str) -> dict[str, Any]:
         gates, unrun = self._gates(FAILED), self._gates(UNRUN)
+        blocked = bool(self._gates(CANNOT_RUN))
         rows = {
-            name: self._row(name, group, bool(gates), bool(unrun))
+            name: self._row(name, group, bool(gates), blocked)
             for name, group in REQUIRED_TOOLS.items()
         }
         return {

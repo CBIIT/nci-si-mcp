@@ -376,10 +376,17 @@ def _recording_problem(document: dict[str, Any], rules: ConceptRules) -> str | N
     return rules.recording_problem(document["request"], response["status"], response.get("body"))
 
 
-def _read_manifest(root: Path) -> dict[str, Any]:
+def read_manifest(root: Path) -> dict[str, Any]:
+    """The manifest of a fixture set: empty where the set has none, refused where it is not a
+    mapping, since the concept rules and the crafted layer would then be left out unseen."""
+
     path = root / MANIFEST
-    manifest = yaml.safe_load(path.read_text(encoding="utf-8")) if path.is_file() else None
-    return manifest if isinstance(manifest, dict) else {}
+    if not path.is_file():
+        return {}
+    manifest = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(manifest, dict):
+        raise ValueError(f"{path}: {MANIFEST} must be a mapping")
+    return manifest
 
 
 def _rules(manifest: dict[str, Any]) -> ConceptRules | None:
@@ -391,11 +398,10 @@ def fixture_documents(root: Path) -> dict[str, Any]:
     """Every fixture document of the set by name: the files, and the crafted ones the manifest
     declares, made in memory."""
 
-    return _documents(root, _read_manifest(root))
+    return _documents(root, read_manifest(root))
 
 
 def _documents(root: Path, manifest: dict[str, Any]) -> dict[str, Any]:
-
     documents = {
         path.relative_to(root).as_posix(): json.loads(path.read_text(encoding="utf-8"))
         for path in sorted(root.rglob("*.json"))
@@ -437,7 +443,7 @@ def load_fixtures(root: Path) -> FixtureSet:
 
     if not root.is_dir():
         raise ValueError(f"{root} is not a fixture directory")
-    manifest = _read_manifest(root)
+    manifest = read_manifest(root)
     fixtures = FixtureSet({}, {}, rules=_rules(manifest))
     for name, document in sorted(_documents(root, manifest).items()):
         scenario, path = _scenario_of(name), PurePosixPath(name)

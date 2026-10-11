@@ -24,6 +24,7 @@ import pytest
 
 from nci_si_acceptance.expected import EXPECTED
 from nci_si_acceptance.report import (
+    CANNOT_RUN,
     FAIL,
     FAILED,
     INCOMPLETE,
@@ -32,7 +33,6 @@ from nci_si_acceptance.report import (
     NOT_IMPLEMENTED,
     NOT_RUN,
     PASS,
-    UNRUN,
     tool_outcome,
 )
 from nci_si_acceptance.spec import REQUIRED_TOOLS
@@ -98,10 +98,11 @@ def tool_outcomes(expected: dict[str, str], attribution: Attribution) -> dict[st
 
 
 def _gates(expected: dict[str, str], attribution: Attribution) -> tuple[bool, bool]:
-    """Whether a gate failed, and whether one did not run, in the expected outcomes."""
+    """Whether a gate failed, and whether one could not run, in the expected outcomes."""
 
     gates = [expected.get(nodeid) for nodeid, (_, gate) in attribution.items() if gate]
-    return any(outcome in FAILED for outcome in gates), any(outcome in UNRUN for outcome in gates)
+    failed = any(outcome in FAILED for outcome in gates)
+    return failed, any(outcome in CANNOT_RUN for outcome in gates)
 
 
 def _cell(outcome: str, names: list[str]) -> str:
