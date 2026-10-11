@@ -14,6 +14,8 @@ class BadgeTokenBoundaryTest(unittest.TestCase):
         writer = WORKFLOW["jobs"]["coverage-badges"]
         commands = "\n".join(step.get("run", "") for step in writer["steps"])
         self.assertNotIn("pdm ", commands, "The write-token job must not run repository Python")
+        self.assertEqual(len(writer["steps"]), 2, "Only download and fixed publication belong here")
+        self.assertNotIn("python", commands, "Repository code belongs in the read-only renderer")
         actions = [step["uses"] for step in writer["steps"] if "uses" in step]
         self.assertEqual(len(actions), 1)
         self.assertTrue(actions[0].startswith("actions/download-artifact@"))

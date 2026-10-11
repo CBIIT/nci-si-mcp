@@ -59,6 +59,10 @@ class DocumentationWorkflowTest(unittest.TestCase):
     def test_node_contract_matches_the_ci_major_in_package_and_operator_docs(self):
         package = json.loads(Path("docs/site-assets/package.json").read_text())
         self.assertEqual(package.get("engines", {}).get("node"), ">=24 <25")
+        setup = next(
+            step for step in JOBS["documentation"]["steps"] if "setup-node@" in step.get("uses", "")
+        )
+        self.assertEqual(setup["with"]["node-version"], "24")
         lock = json.loads(Path("docs/site-assets/package-lock.json").read_text())
         self.assertEqual(lock["packages"][""]["engines"]["node"], ">=24 <25")
         for path in ("docs/companion-containers.md", "docs/documentation-site.md"):
