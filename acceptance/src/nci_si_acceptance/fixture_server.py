@@ -76,8 +76,8 @@ scenario's recording; an active scenario's exact fixture (a fault) answers befor
 another active scenario's recording, by design.
 
 The manifest's `crafted:` line declares the fixtures `craft.py` makes: they are built in
-memory when the set loads and laid over the files by name, a crafted name that also lies on
-disk being refused.
+memory when the set loads and added to the files by name; a crafted name that also lies on disk
+is refused.
 
 Every log entry records when the request arrived (`received_at`, monotonic seconds),
 and the fixture or recordings that answered it.

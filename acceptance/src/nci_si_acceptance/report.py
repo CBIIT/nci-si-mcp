@@ -17,8 +17,9 @@ each required tool one outcome:
     NOT RUN          no test of the tool ran (in live mode: none is live-capable)
     NO TESTS         the suite has no test for the tool: a defect of the suite
 
-In a live run, the tests and gates that run in fixture mode only (not_live) leave a tool NOT
-RUN, never INCOMPLETE: they do not run live by design, while a gate that could not run did not.
+In a live run, the tests that run in fixture mode only (not_live) leave a tool NOT RUN, never
+INCOMPLETE, and the gates among them change no outcome: they do not run live by design, while a
+gate that could not run did not.
 
 Combining the fixture run with the live run gives the final outcome. A tool that
 passes against fixtures is PASS (fixture only) when each of its live failures is a

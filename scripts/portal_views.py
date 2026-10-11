@@ -200,8 +200,8 @@ def _comparison_form(rows: list[dict[str, Any]]) -> str:
     )
 
 
-# A verdict that gates which could not run decide (#265): an earlier harness recorded PASS, the
-# current one INCOMPLETE.
+# The verdicts that gates which could not run decide (#265): an earlier harness recorded PASS,
+# the current one INCOMPLETE.
 _GATES_UNRUN = {
     "PASS": "PASS (gates not run; recorded by an earlier harness)",
     "INCOMPLETE": "INCOMPLETE (gates not run)",

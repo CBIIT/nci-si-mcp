@@ -21,7 +21,8 @@ fixture set pinned to NCIt 26.09d.
   Correct the fixture README's claim of live verification for credentialed content: the
   current live-capable tests cover protocol behavior only.
 - Phase 15 #265 (§5 report outcomes): a gate that cannot run makes every tool that would pass
-  INCOMPLETE, rendered "INCOMPLETE (gates not run)", in the report and the README status table.
+  INCOMPLETE: the rendered report shows "INCOMPLETE (gates not run)", the README status table
+  lists those tools under INCOMPLETE.
   A skip is classified by the property its site sets (`acceptance_skip`), not by its reason
   text. The weekly live workflow's fixture run runs the permission gates as CI's does. No test
   assertion of the suite or fixture outcome changes.
