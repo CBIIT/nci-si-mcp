@@ -502,7 +502,7 @@ class OwnedServer:
             raise RuntimeError("The owned server is already running")
         if _listening(self.port):
             raise RuntimeError(
-                f"The owned server's port {self.port} is already in use; see {self._log}"
+                f"The owned server's port {self.port} is already in use by another process"
             )
 
         environment = (
