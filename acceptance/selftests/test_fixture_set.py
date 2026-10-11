@@ -6,9 +6,10 @@ from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+import pytest
 import yaml
+from conftest import CRAFTED, crafted_digest, without_crafted
 
-from nci_si_acceptance.craft import craft
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
 from nci_si_acceptance.record import FIXTURES, plan, request_of, stale
 
@@ -42,26 +43,55 @@ def test_the_recorded_set_is_exactly_what_the_manifest_records():
     ] == []
 
 
-CRAFTED = craft(FIXTURES)
+def test_the_manifest_records_the_digest_of_what_craft_py_makes_now():
+    # A change to the generated scenarios shows as this one line (pdm run acceptance-craft).
+    assert MANIFEST.get("crafted") == crafted_digest(CRAFTED)
 
 
-def test_the_crafted_scenarios_are_what_craft_py_makes_now():
-    on_disk = {
-        name: json.loads((FIXTURES / name).read_text(encoding="utf-8"))
-        for name in CRAFTED
-        if (FIXTURES / name).is_file()
-    }
-
-    assert on_disk == CRAFTED
-
-
-def test_every_scenario_file_is_recorded_or_crafted():
-    produced = {each.file for each in plan(MANIFEST)} | set(CRAFTED)
+def test_every_scenario_file_on_disk_is_recorded():
+    recorded = {each.file for each in plan(MANIFEST)}
     scenario_files = {
         path.relative_to(FIXTURES).as_posix() for path in (FIXTURES / "scenarios").rglob("*.json")
     }
 
-    assert sorted(scenario_files - produced) == []
+    assert sorted(scenario_files - recorded) == []
+
+
+def test_the_crafted_scenarios_are_served_with_no_crafted_file_on_disk(tmp_path):
+    fixtures = load_fixtures(without_crafted(tmp_path))
+
+    assert "traversal/starvation" in fixtures.scenarios
+    with FixtureServer(fixtures) as running:
+        # A synthetic concept recording and a recorded answer with its release changed.
+        for scenario, name in (
+            ("traversal/starvation", "scenarios/traversal/starvation/concepts/C99200000.json"),
+            ("release/mismatch", "scenarios/release/mismatch/OP-E06-subset-gdc.json"),
+        ):
+            running.activate(scenario)
+            document = CRAFTED[name]
+            assert _answer(running, document["request"]) == document["response"], name
+
+
+def test_a_crafted_name_that_also_lies_on_disk_is_refused(tmp_path):
+    root = without_crafted(tmp_path)
+    name = "scenarios/release/two-latest/latest.json"
+    (root / name).parent.mkdir(parents=True)
+    (root / name).write_text(json.dumps(CRAFTED[name]), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=name):
+        load_fixtures(root)
+
+
+def _answer(running, request):
+    """The status and body the fixture server gives for a fixture's request."""
+
+    query = urlencode(request.get("params", {}), doseq=True)
+    url = running.base_url(request["surface"]) + request["path"] + (f"?{query}" if query else "")
+    try:
+        with urlopen(Request(url, headers=request.get("headers", {})), timeout=10) as response:  # noqa: S310
+            return {"status": response.status, "body": json.loads(response.read() or "null")}
+    except HTTPError as error:
+        return {"status": error.code, "body": json.loads(error.read() or "null")}
 
 
 def test_every_recorded_fixture_is_dated_and_pinned():

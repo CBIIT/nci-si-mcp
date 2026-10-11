@@ -2,7 +2,6 @@
 
 import base64
 import json
-import shutil
 from http import HTTPStatus
 from pathlib import Path
 from urllib.error import HTTPError
@@ -11,6 +10,7 @@ from urllib.request import Request, urlopen
 
 import pytest
 import yaml
+from conftest import crafted_digest, without_crafted
 from jsonschema import Draft4Validator
 
 from nci_si_acceptance.craft import (
@@ -23,7 +23,7 @@ from nci_si_acceptance.craft import (
     mismatched,
 )
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
-from nci_si_acceptance.record import DISCOVERY, FIXTURES, plan, reported_releases
+from nci_si_acceptance.record import DISCOVERY, FIXTURES, reported_releases
 from nci_si_acceptance.register import EVS_SURFACES
 
 CRAFTED = craft(FIXTURES)
@@ -503,22 +503,58 @@ def test_the_recorded_scenarios_are_not_crafted(name):
     assert scenario(name) == {}
 
 
-def test_the_command_writes_what_craft_makes(tmp_path, capsys):
-    for directory in ("recorded", "crafted"):
-        shutil.copytree(FIXTURES / directory, tmp_path / directory)
-    # The scenario fixtures recorded live, which some crafted ones are made from.
-    for file in (each.file for each in plan(MANIFEST) if each.file.startswith("scenarios/")):
-        (tmp_path / file).parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(FIXTURES / file, tmp_path / file)
+def _status(arguments):
+    """The exit status of the command, whether it returns or exits."""
 
-    assert main(["--fixtures", str(tmp_path)]) == 0
+    try:
+        return main(arguments)
+    except SystemExit as exited:
+        return exited.code
 
-    assert f"Crafted {len(CRAFTED)} fixtures." in capsys.readouterr().out
-    written = tmp_path / "scenarios/release/two-latest/latest.json"
-    assert (
-        json.loads(written.read_text(encoding="utf-8"))
-        == CRAFTED["scenarios/release/two-latest/latest.json"]
-    )
+
+def _files(root):
+    return sorted(path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file())
+
+
+def _crafted_line(root):
+    return yaml.safe_load((root / "manifest.yaml").read_text(encoding="utf-8"))["crafted"]
+
+
+def _stale(root):
+    manifest = root / "manifest.yaml"
+    text = manifest.read_text(encoding="utf-8")
+    manifest.write_text(text.replace(_crafted_line(root), "sha256:" + "0" * 64), encoding="utf-8")
+
+
+def test_the_command_records_the_digest_and_writes_no_fixture(tmp_path):
+    root = without_crafted(tmp_path / "fixtures")
+    _stale(root)
+    before = _files(root)
+
+    assert _status(["--fixtures", str(root)]) == 0
+
+    assert _files(root) == before
+    assert _crafted_line(root) == crafted_digest(CRAFTED)
+
+
+def test_check_fails_on_a_stale_digest_and_passes_on_a_current_one(tmp_path, capsys):
+    root = without_crafted(tmp_path / "fixtures")
+
+    assert _status(["--fixtures", str(root), "--check"]) == 0
+    _stale(root)
+    assert _status(["--fixtures", str(root), "--check"]) == 1
+    assert "pdm run acceptance-craft" in capsys.readouterr().err
+
+
+def test_out_writes_what_craft_makes_for_review(tmp_path):
+    root = without_crafted(tmp_path / "fixtures")
+    out = tmp_path / "out"
+
+    assert _status(["--fixtures", str(root), "--out", str(out)]) == 0
+
+    assert _files(out) == sorted(CRAFTED)
+    name = "scenarios/release/two-latest/latest.json"
+    assert json.loads((out / name).read_text(encoding="utf-8")) == CRAFTED[name]
 
 
 # The crafted answers of the APIs that refuse an anonymous caller, each with the recorded

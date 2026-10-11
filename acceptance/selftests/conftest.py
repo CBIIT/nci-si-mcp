@@ -2,14 +2,17 @@
 suite and its fixture set, and the outcome of each test of a run. And the sharding by which CI
 runs the self-tests in several jobs at once."""
 
+import hashlib
 import json
 import os
+import shutil
 import sys
 from pathlib import Path
 
 import pytest
 
-from nci_si_acceptance.craft import Recorded, release_session
+from nci_si_acceptance.craft import Recorded, craft, release_session
+from nci_si_acceptance.record import FIXTURES
 
 # "i/n": run the i-th of n shards of the self-tests (CI's selftest jobs).
 SHARD_VARIABLE = "SELFTEST_SHARD"
@@ -184,3 +187,31 @@ def outcomes(compliant):
         return {nodeid.partition("::")[2]: test["outcome"] for nodeid, test in tests.items()}
 
     return run
+
+
+# The crafted layer of the real fixture set, built from the files on disk.
+CRAFTED = craft(FIXTURES)
+
+
+def crafted_digest(documents):
+    """The digest the manifest records for crafted documents: SHA-256 of their canonical JSON,
+    by name. Stated here independently of craft.py."""
+
+    canonical = json.dumps(documents, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def without_crafted(root):
+    """A copy of the fixture set at `root` with every file the generator makes left out, and the
+    manifest's crafted line written."""
+
+    for path in sorted(FIXTURES.rglob("*")):
+        name = path.relative_to(FIXTURES).as_posix()
+        if path.is_file() and name not in CRAFTED:
+            (root / name).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(path, root / name)
+    lines = (root / "manifest.yaml").read_text(encoding="utf-8").splitlines()
+    kept = [line for line in lines if not line.startswith("crafted:")]
+    text = "\n".join([*kept, f"crafted: {crafted_digest(CRAFTED)}", ""])
+    (root / "manifest.yaml").write_text(text, encoding="utf-8")
+    return root
