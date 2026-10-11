@@ -8,6 +8,36 @@ import yaml
 
 WORKFLOW = yaml.safe_load(Path(".github/workflows/ci.yml").read_text())
 
+PUBLICATION = (
+    """\
+set -euo pipefail
+current="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
+if [ "$current" != "$GITHUB_SHA" ]; then
+  echo "main has moved; leave publication to its successful CI run."
+  exit 0
+fi
+gh auth setup-git
+directory="$RUNNER_TEMP/coverage-badges"
+git init --quiet --initial-branch=coverage-badges "$directory"
+git -C "$directory" remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+existing="$(git -C "$directory" ls-remote --heads origin coverage-badges)"
+if [ -n "$existing" ]; then
+  git -C "$directory" fetch --depth=1 origin coverage-badges
+  git -C "$directory" reset --hard FETCH_HEAD
+fi
+"""
+    "cp tmp/coverage-badges/server.json tmp/coverage-badges/harness.json "
+    'tmp/coverage-badges/provenance.json "$directory/"\n'
+    """\
+git -C "$directory" config user.name "Coverage CI"
+git -C "$directory" config user.email "github-actions[bot]@users.noreply.github.com"
+git -C "$directory" add server.json harness.json provenance.json
+if git -C "$directory" diff --cached --quiet; then exit 0; fi
+git -C "$directory" commit -m "ci: refresh coverage badges"
+git -C "$directory" push origin HEAD:refs/heads/coverage-badges
+"""
+)
+
 
 class BadgeTokenBoundaryTest(unittest.TestCase):
     def test_only_the_main_publisher_has_write_authority(self):
@@ -56,9 +86,10 @@ class BadgeTokenBoundaryTest(unittest.TestCase):
     def test_write_job_only_downloads_same_run_data_and_publishes_it(self):
         writer = WORKFLOW["jobs"]["coverage-badges"]
         commands = writer["steps"][1]["run"]
-        self.assertNotIn("pdm ", commands, "The write-token job must not run repository Python")
+        self.assertEqual(
+            commands, PUBLICATION, "Only the fixed publication script has write authority"
+        )
         self.assertEqual(len(writer["steps"]), 2, "Only download and fixed publication belong here")
-        self.assertNotIn("python", commands, "Repository code belongs in the read-only renderer")
         actions = [step["uses"] for step in writer["steps"] if "uses" in step]
         self.assertEqual(
             actions, ["actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c"]
@@ -68,14 +99,6 @@ class BadgeTokenBoundaryTest(unittest.TestCase):
         self.assertEqual(
             download["with"],
             {"name": "badge-data-${{ github.sha }}", "path": "tmp/coverage-badges"},
-        )
-        copies = [line for line in commands.splitlines() if line.startswith("cp ")]
-        self.assertEqual(
-            copies,
-            [
-                "cp tmp/coverage-badges/server.json tmp/coverage-badges/harness.json "
-                'tmp/coverage-badges/provenance.json "$directory/"'
-            ],
         )
 
     def test_renderer_is_read_only_and_exports_only_the_three_badge_files(self):
