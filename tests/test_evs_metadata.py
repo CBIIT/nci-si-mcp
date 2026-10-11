@@ -64,6 +64,9 @@ class TerminologyMetadataTest(ServerFixture):
             {"metadata": {"retiredStatusValue": 1}},
             {"metadata": {"licenseText": ["text"]}},
             {"metadata": "none"},
+            {"metadata": []},
+            {"metadata": ""},
+            {"metadata": False},
         )
         for fields in cases:
             with self.subTest(fields=fields):
