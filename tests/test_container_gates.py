@@ -38,13 +38,14 @@ class ContainerGateTest(unittest.TestCase):
                 with patch("sys.argv", ["container_lock.py", "write", str(resolution)]):
                     container_lock.main()
                 rendered = lock.read_text()
-                requirements = {line for line in rendered.splitlines() if not line.startswith("#")}
                 self.assertEqual(
-                    requirements,
-                    {
-                        roots[-1] + " --hash=sha256:" + "a" * 64,
-                        "numpy==2.5.0 --hash=sha256:" + "b" * 64,
-                    },
+                    rendered.splitlines()[2:],
+                    [
+                        "numpy==2.5.0 \\",
+                        "    --hash=sha256:" + "b" * 64,
+                        roots[-1] + " \\",
+                        "    --hash=sha256:" + "a" * 64,
+                    ],
                 )
                 with patch("sys.argv", ["container_lock.py", "check"]):
                     container_lock.main()
@@ -114,6 +115,15 @@ class ContainerGateTest(unittest.TestCase):
                         lock.write_text(changed)
                         with self.assertRaises(ValueError):
                             container_lock.check()
+
+    def test_check_accepts_only_the_continuation_line_shape(self):
+        original = container_lock.LOCK.read_text()
+        single_line = original.replace(" \\\n    ", " ")
+        with tempfile.TemporaryDirectory() as directory:
+            lock = Path(directory) / "requirements.txt"
+            lock.write_text(single_line)
+            with patch.object(container_lock, "LOCK", lock), self.assertRaises(ValueError):
+                container_lock.check()
 
     def test_resolved_version_must_match_pdm_and_torch_must_be_cpu(self):
         report = {
