@@ -26,11 +26,13 @@ from nci_si_acceptance.results import (
     provenance_of,
     release_of,
     wrong_fields,
+    wrong_origin,
 )
 from nci_si_acceptance.spec import (
     TOOLS,
     alternatives,
     defaults,
+    items_at,
     items_of,
     parameters,
 )
@@ -83,14 +85,14 @@ RELEASED = [name for name in PINNED_TOOLS if not CALLS[name].get("unversioned")]
 LICENSED = {"terminology": "mdr", "release": "29_0", "code": "10000000"}
 
 
-def _call(tools, pinned, name, arguments=None):
+def _call(tools, pinned, name, arguments=None, meta=None):
     """The tool's call in calls.yaml, or with `arguments` in place of the call's, pinned to the
     fixture set's release where it takes one."""
 
     taken = parameters(name)[0]
     release = {key: value for key, value in pinned.items() if key in taken}
     return tools.call(
-        name, release | (CALLS[name]["arguments"] if arguments is None else arguments)
+        name, release | (CALLS[name]["arguments"] if arguments is None else arguments), meta=meta
     )
 
 
@@ -153,12 +155,37 @@ def test_a_result_is_an_object(tools, pinned, name):
 @pytest.mark.requirement("X-7")
 @pytest.mark.parametrize("name", CALLED)
 def test_every_item_carries_its_provenance(tools, pinned, name):
-    provenances = [provenance_of(item) for item in _items(tools, pinned, name)]
-
-    assert [wrong_fields(provenance, CARRIED) for provenance in provenances] == [[]] * len(
-        provenances
+    original = _checked_provenances(_call(tools, pinned, name), name)
+    correlation = "acceptance-provenance-repeat"
+    repeated = _checked_provenances(
+        _call(tools, pinned, name, meta={"correlationId": correlation}), name
     )
-    assert all(is_timestamp(provenance.get("retrievedAt")) for provenance in provenances)
+    assert [each["correlationId"] for each in repeated] == [correlation] * len(repeated)
+    # Same pinned fixture call: a cached live answer must keep its original source facts.
+    assert _origins(repeated) == _origins(original)
+
+
+def _checked_provenances(result, name):
+    assert not result.is_error, result.content
+    found = []
+    for path in TOOLS[name]["items"]:
+        for item in items_at(result.content, path):
+            provenance = provenance_of(item)
+            assert wrong_fields(provenance, CARRIED) == []
+            assert is_timestamp(provenance.get("retrievedAt"))
+            assert (
+                wrong_origin(
+                    provenance, uri=True, origin=path not in CALLS[name].get("originless", [])
+                )
+                == []
+            )
+            found.append(provenance)
+    assert found, "the call must return items to test their provenance"
+    return found
+
+
+def _origins(provenances):
+    return [(each.get("sourceUri"), each.get("upstream")) for each in provenances]
 
 
 @pytest.mark.requirement("X-7")
@@ -458,6 +485,7 @@ def test_a_query_that_matches_nothing_is_an_empty_result_with_provenance(tools, 
     # With no item to carry it, the result carries the provenance itself.
     provenance = provenance_of(result.content)
     assert wrong_fields(provenance, CARRIED) == []
+    assert wrong_origin(provenance, uri=True, origin=CALLS[name].get("emptyOrigin", False)) == []
     assert release_of(result.content) == pinned_release(name, pinned)
     if name in REGISTRY:
         assert provenance["release"] == UNPINNED_REGISTRY

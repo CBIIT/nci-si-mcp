@@ -33,6 +33,13 @@ requirements, for the harness's own tests.
     wrong-terminology items name another terminology than the one requested         (X-1)
     invalid-result    a result its outputSchema refuses                             (X-6)
     no-served-by      provenance without servedBy                                   (X-7)
+    no-correlation   provenance without a generated correlation id                  (X-7)
+    wrong-correlation provenance ignores the caller's correlation id                (X-7)
+    no-source-uri    a live concept without its upstream URL                        (X-7)
+    no-upstream      a live concept without the origin its answer supplied          (X-7)
+    live-as-index    a live response claims index origin to evade its obligations   (X-7)
+    cache-loses-origin a repeated live answer loses its original source facts       (X-7)
+    itemless-origin  an empty page invents an item's upstream origin                (X-7)
     bad-timestamp     a retrievedAt that is no ISO-8601 timestamp                   (X-7)
     no-polarity       an item reached by traversal without polarity                 (X-7)
     nothing-reached   a traversal whose items are all at depth 0                    (X-7)
@@ -176,6 +183,7 @@ from datetime import UTC, datetime
 from http import HTTPStatus
 from pathlib import Path
 from urllib.parse import quote, urlencode
+from uuid import uuid4
 
 import anyio
 import mcp_types as types
@@ -485,9 +493,20 @@ def _provenance(name: str, arguments: dict, correlation: str, answer: dict) -> d
         "servedBy": "live",
         "correlationId": correlation,
         "upstream": _upstream(name, arguments),
+        "sourceUri": "https://example.invalid/api/v1/version",
     }
-    if DEFECT == "no-served-by":
-        del provenance["servedBy"]
+    omitted = {
+        "no-served-by": "servedBy",
+        "no-correlation": "correlationId",
+        "no-upstream": "upstream",
+    }.get(DEFECT)
+    if omitted:
+        del provenance[omitted]
+    if DEFECT == "wrong-correlation":
+        provenance["correlationId"] = "not-the-callers-correlation"
+    if DEFECT == "live-as-index":
+        provenance.update(source="evs_index", servedBy="index")
+        provenance.pop("upstream", None)
     return provenance | _attribution(terminology, answer)
 
 
@@ -538,7 +557,9 @@ def _upstream(name: str, arguments: dict) -> dict:
     """What EVS says of the origin of the call's items, as the suite's calls list it, the
     pin (`$terminology`, `$release`) taken from the call."""
 
-    listed = CALLS.get(name, {}).get("upstream", {})
+    listed = CALLS.get(name, {}).get(
+        "upstream", {"terminology": "$terminology", "version": "$release"}
+    )
     supplied = {
         key: arguments.get(value[1:]) if str(value).startswith("$") else value
         for key, value in listed.items()
@@ -640,8 +661,18 @@ def _content(name: str, arguments: dict, correlation: str, answer: dict) -> obje
         content = _identified_concept(content, arguments)
     # With no item to carry it, the result carries the provenance itself (M3.2).
     if not items and DEFECT != "empty-without-provenance":
-        content["provenance"] = provenance
+        content["provenance"] = _empty_origin(name, provenance)
     return content | _truncation(name, arguments) | _next_cursor(name, arguments, items)
+
+
+def _empty_origin(name: str, provenance: dict) -> dict:
+    """An empty page has no item origin; a read resource may still have one."""
+
+    if not CALLS[name].get("emptyOrigin"):
+        provenance.pop("upstream", None)
+    if DEFECT == "itemless-origin":
+        provenance["upstream"] = {"version": "invented-item-version"}
+    return provenance
 
 
 def _identified_concept(content: dict, arguments: dict) -> dict:
@@ -654,6 +685,8 @@ def _identified_concept(content: dict, arguments: dict) -> dict:
     code = quote(arguments["code"], safe="")
     source = f"https://example.invalid/api/v1/concept/{terminology}_{release}/{code}"
     content["provenance"]["sourceUri"] = source
+    if DEFECT in ("no-source-uri", "live-as-index"):
+        del content["provenance"]["sourceUri"]
     if DEFECT == "concept-wrong-uri":
         content["provenance"]["sourceUri"] = f"{source}-other"
     if DEFECT == "concept-no-name":
@@ -811,8 +844,22 @@ def _shaped(name: str, items: list[dict]) -> dict:
     """A result of `name` with `items` where its `items` paths say."""
 
     paths = TOOLS[name].get("items", ["."])
-    placed = [_placed([step for step in path.split(".") if step], items) for path in paths]
+    placed = [
+        _placed([step for step in path.split(".") if step], _path_items(name, path, items))
+        for path in paths
+    ]
     return placed[0] if len(placed) == 1 else _merged(placed)
+
+
+def _path_items(name: str, path: str, items: list[dict]) -> list[dict]:
+    """Bare edges and release reports have no item origin to pass through."""
+
+    if path not in CALLS.get(name, {}).get("originless", []):
+        return items
+    return [
+        item | {"provenance": {k: v for k, v in item["provenance"].items() if k != "upstream"}}
+        for item in items
+    ]
 
 
 def _merged(parts: list) -> dict:
@@ -914,6 +961,7 @@ def _answer(name: str, arguments: dict, correlation: str) -> tuple[object, bool]
 
 def _ordinary_answer(name: str, arguments: dict, correlation: str) -> tuple[object, bool]:
     call = json.dumps([name, arguments], sort_keys=True)
+    cached = call in answered
     if refusal := _refusal(name, arguments, correlation):
         return refusal, True
     arguments = _implicit_arguments(name, arguments)
@@ -927,7 +975,17 @@ def _ordinary_answer(name: str, arguments: dict, correlation: str) -> tuple[obje
     content = _content(name, arguments, correlation, answered.get(call, {}))
     if NO_CACHE:
         answered.clear()
-    return content, False
+    return _cached_origin(content, cached), False
+
+
+def _cached_origin(content: object, cached: bool) -> object:
+    """One cache-hit defect; the normal stub keeps the original live source facts."""
+
+    if cached and DEFECT == "cache-loses-origin" and isinstance(content, dict):
+        provenance = content.get("provenance", {})
+        provenance.pop("sourceUri", None)
+        provenance.pop("upstream", None)
+    return content
 
 
 def _implicit_arguments(name: str, arguments: dict) -> dict:
@@ -976,7 +1034,7 @@ def _meta() -> dict:
 
 
 async def call_tool(_context, params: types.CallToolRequestParams) -> types.CallToolResult:
-    correlation = (params.meta or {}).get("correlationId", "")
+    correlation = (params.meta or {}).get("correlationId", uuid4().hex)
     content, failed = _answer(params.name, params.arguments or {}, correlation)
     text = json.dumps(content) + (f" {LICENCE_KEY}" if DEFECT == "key-in-text" else "")
     return types.CallToolResult(
@@ -1124,6 +1182,7 @@ def _registry_resource(tool_answer: dict, _values: dict[str, str]) -> dict:
         "source": "cadsr_export",
         "retrievedAt": _retrieved(),
         "servedBy": "live",
+        "correlationId": uuid4().hex,
     }
     return state | {"provenance": provenance}
 
@@ -1180,7 +1239,9 @@ async def read_resource(
             raise
         return _read_result("concept", [types.TextResourceContents(uri=params.uri, text="{}")])
     tool, arguments = _read_call(key, template, values)
-    content, failed = _answer(tool, arguments, "")
+    content, failed = _answer(
+        tool, arguments, (params.meta or {}).get("correlationId", uuid4().hex)
+    )
     if failed:
         raise MCPError(types.INVALID_PARAMS, json.dumps(content))
     content = _as_resource(key, content, values)

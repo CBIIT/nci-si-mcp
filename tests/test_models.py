@@ -153,7 +153,6 @@ class SearchHitSerialisationTest(unittest.TestCase):
         data["score_components"]["bm25"] = 9
 
         self.assertEqual(list(data), ["concept", "score", "rank", "matched_on", "score_components"])
-        self.assertEqual(data["concept"]["provenance"]["upstream"], {"version": "26.06e"})
         self.assertNotIn("raw", data["concept"])
         self.assertEqual((data["score"], data["rank"], data["matched_on"]), (0.5, 1, "name"))
         self.assertEqual(hit.score_components, {"bm25": 0.25})

@@ -290,12 +290,7 @@ Result:
           "source": "evs_index",
           "servedBy": "index",
           "retrievedAt": "2026-10-05T11:59:13.792416Z",
-          "correlationId": "bce00f09f12d456bad1ab270f7f3b908",
-          "sourceUri": "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit_26.09d/C40704",
-          "upstream": {
-            "terminology": "ncit",
-            "version": "26.09d"
-          }
+          "correlationId": "bce00f09f12d456bad1ab270f7f3b908"
         },
         "status": "DEFAULT"
       },
@@ -435,9 +430,9 @@ not. The same fields everywhere:
 | `source` | `evs_rest` for EVS REST, `evs_fhir` for EVS FHIR expansion, `evs_index` for the local NCIt index |
 | `servedBy` | `live` or `index` |
 | `retrievedAt` | When the item was retrieved; for an indexed concept, when it was indexed |
-| `sourceUri` | The upstream URL used for the item: a concept, relationship catalogue, traversal endpoint or FHIR expansion. It may include query parameters, such as the expansion's canonical value-set URL. Optional on empty results; absent for a local search with no hits |
+| `sourceUri` | The upstream URL read for the item or resource, including query parameters. A cached live answer retains its original URL. Absent on NCIt index items and when no upstream URL was read |
 | `correlationId` | The call's `_meta.correlationId`, or one the server generated; the same in every item of the call and in the error record |
-| `upstream` | Origin fields the platform supplied, unchanged: REST `terminology` and `version`, or FHIR value-set `url` and `version`. Omitted where the returned item carried none; hydrated concepts retain their own origin fields |
+| `upstream` | Origin fields the platform supplied, unchanged, including in a cached live answer. Result-level provenance retains the origin of the concept, mapset or graphs read even when no rows match. Absent on NCIt index items and where no answer supplied origin fields (release reports, caDSR call-level provenance and empty search pages) |
 | `attribution` | Licence or copyright text supplied upstream for that item. Omitted when none was supplied; an edge's licence is not copied onto its target concept |
 | `graphs`, `registry` | The two graph-joined tools name both graph identities; cross-domain results include `registry` where caDSR content participates. An unpublished registry has no invented release identifier |
 

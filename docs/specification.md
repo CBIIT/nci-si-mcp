@@ -227,12 +227,12 @@ Every returned item carries one, beside its identifier and status, which are fie
 | `source` | The surface that supplied the item; cadsr_export is the caDSR export folder's listing, the only source of the registry's content state (A3.8.2): one of `evs_rest`, `evs_fhir`, `evs_index`, `cadsr_rest`, `cadsr_export`, `ssis_facade`, `ssis_sparql` | A4.1 |
 | `servedBy` | Where the answer came from: one of `live`, `cache`, `index`, `fixture` | A4.1 |
 | `retrievedAt` | When it was retrieved, ISO-8601 | A4.1 |
-| `sourceUri` | The upstream URL that produced the item | A4.1 |
+| `sourceUri` | The upstream URL, present when the item was read live in this call or in the earlier call whose result is served from the cache; absent on items served from the NCIt index (optional) | A4.1 |
 | `correlationId` | The call's correlation identifier | M7.1 |
 | `graphs` | For items served by the Shared SI Service: each graph touched, { graph, version?, date }: its IRI, its owl:versionInfo where it has one, and its dc:date, ISO-8601 (optional) | A1.5 |
 | `registry` | The registry state, { registry, identifier?, date? } as the registry form of release gives it, beside release in its terminology form: present exactly where an item of a cross-domain or workflow tool rests on caDSR content, so that the item names both content states (optional) | A1.5 |
 | `attribution` | The licence text the platform's answer gave with the item, unchanged: present exactly where that answer carried licence text for it (optional) | A7.3 |
-| `upstream` | The fields the platform supplied about the item's origin, under its names and with its values; at least: from EVS REST the item's terminology and version; from EVS FHIR the value set's url and version; from caDSR the item's public id and version, as each API names them (publicId, the Form API's publicID, the CRDC list's CDE Public ID and Version, vmMatch's itemId); from the Shared SI Service the identity and date of each graph | A4.3 |
+| `upstream` | Present when a live answer, in this call or served from the cache, supplied origin fields for what the provenance describes: an item or, for result-level provenance, the upstream resource the call read (a concept, a mapset, the graphs queried). Absent on NCIt index items and where no upstream answer supplied origin fields: the release report, caDSR call-level provenance and an empty search page that read no item. Fields keep the platform's names and values; at least: from EVS REST the item's terminology and version; from EVS FHIR the value set's url and version; from caDSR the item's public id and version, as each API names them (publicId, the Form API's publicID, the CRDC list's CDE Public ID and Version, vmMatch's itemId); from the Shared SI Service the identity and date of each graph (optional) | A4.3 |
 
 ### The provenance record of an item reached by traversal
 

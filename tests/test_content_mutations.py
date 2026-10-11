@@ -61,10 +61,9 @@ class ContentMutationTest(ServerFixture):
                     self.assertEqual([hit["concept"]["code"] for hit in hits], expected)
                     self.assertGreater(hits[0]["score"], hits[1]["score"])
                     for hit in hits:
-                        self.assertTrue(
-                            hit["concept"]["provenance"]["sourceUri"].endswith(
-                                f"/concept/ncit_26.06e/{hit['concept']['code']}"
-                            )
+                        self.assertEqual(
+                            {"sourceUri", "upstream"} & hit["concept"]["provenance"].keys(),
+                            set(),
                         )
 
     def test_unsupported_search_options_are_refused_even_with_a_usable_index(self):

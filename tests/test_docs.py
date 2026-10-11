@@ -242,7 +242,7 @@ class DocumentationTest(unittest.TestCase):
         found = [record for block in blocks for record in provenances(json.loads(block))]
         fields = RECORDS["provenance"]["fields"]
         required = {name for name, spec in fields.items() if not spec.get("optional")}
-        required -= {"graphs", "upstream"}
+        required -= {"graphs"}
         allowed = set(fields) | set(RECORDS["traversal"]["fields"])
 
         # One lookup, one hit, and in the shortened neighborhood two nodes plus one edge.
