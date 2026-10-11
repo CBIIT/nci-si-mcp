@@ -55,7 +55,7 @@ class BadgeTokenBoundaryTest(unittest.TestCase):
 
     def test_write_job_only_downloads_same_run_data_and_publishes_it(self):
         writer = WORKFLOW["jobs"]["coverage-badges"]
-        commands = "\n".join(step.get("run", "") for step in writer["steps"])
+        commands = writer["steps"][1]["run"]
         self.assertNotIn("pdm ", commands, "The write-token job must not run repository Python")
         self.assertEqual(len(writer["steps"]), 2, "Only download and fixed publication belong here")
         self.assertNotIn("python", commands, "Repository code belongs in the read-only renderer")
@@ -63,15 +63,19 @@ class BadgeTokenBoundaryTest(unittest.TestCase):
         self.assertEqual(len(actions), 1)
         self.assertTrue(actions[0].startswith("actions/download-artifact@"))
         self.assertEqual(writer["permissions"], {"contents": "write"})
-        self.assertIn("coverage-badges-render", writer["needs"])
         download = next(step for step in writer["steps"] if "uses" in step)
         self.assertEqual(
             download["with"],
             {"name": "badge-data-${{ github.sha }}", "path": "tmp/coverage-badges"},
         )
-        self.assertNotIn("tmp/coverage-badges/*.json", commands)
-        for name in ("server.json", "harness.json", "provenance.json"):
-            self.assertIn("tmp/coverage-badges/" + name, commands)
+        copies = [line for line in commands.splitlines() if line.startswith("cp ")]
+        self.assertEqual(
+            copies,
+            [
+                "cp tmp/coverage-badges/server.json tmp/coverage-badges/harness.json "
+                'tmp/coverage-badges/provenance.json "$directory/"'
+            ],
+        )
 
     def test_renderer_is_read_only_and_exports_only_the_three_badge_files(self):
         jobs = WORKFLOW["jobs"]
@@ -80,9 +84,10 @@ class BadgeTokenBoundaryTest(unittest.TestCase):
         self.assertEqual(renderer.get("permissions", WORKFLOW["permissions"]), {"contents": "read"})
         self.assertNotIn("secrets.", json.dumps(renderer))
         self.assertEqual(set(renderer["needs"]), {"test", "coverage"})
-        commands = "\n".join(step.get("run", "") for step in renderer["steps"])
-        self.assertIn("pdm run python scripts/coverage_badges.py", commands)
-        self.assertNotIn("git push", commands)
+        commands = [step["run"] for step in renderer["steps"] if "run" in step]
+        self.assertEqual(
+            commands, ["pdm run python scripts/coverage_badges.py tmp/coverage tmp/coverage-badges"]
+        )
         artifact = next(
             step["with"]
             for step in renderer["steps"]

@@ -12,7 +12,7 @@ JOBS = yaml.safe_load(Path(".github/workflows/ci.yml").read_text())["jobs"]
 class DocumentationWorkflowTest(unittest.TestCase):
     def test_companions_consume_the_always_available_documentation_artifact(self):
         companion = JOBS["companions"]
-        self.assertIn("documentation", companion["needs"])
+        self.assertEqual(companion["needs"], ["changes", "documentation"])
         self.assertNotIn("if", JOBS["documentation"])
         self.assertEqual(
             companion["if"],
@@ -24,11 +24,22 @@ class DocumentationWorkflowTest(unittest.TestCase):
             for step in companion["steps"]
             if step.get("if") == "needs.documentation.result != 'success'"
         )
-        self.assertIn("exit 1", guard["run"])
+        self.assertEqual(
+            guard["run"],
+            'echo "::error::The documentation artifact producer did not succeed."\nexit 1\n',
+        )
+
+    def test_companions_reuse_site_without_a_second_build(self):
+        companion = JOBS["companions"]
         commands = "\n".join(step.get("run", "") for step in companion["steps"])
         self.assertNotIn("npm ", commands)
         self.assertNotIn("docs-build", commands)
-        self.assertIn("scripts.companion_context --site tmp/docs-site", commands)
+        reuse = next(
+            step["run"]
+            for step in companion["steps"]
+            if "scripts.companion_context" in step.get("run", "")
+        )
+        self.assertEqual(reuse, "pdm run python -m scripts.companion_context --site tmp/docs-site")
         self.assertFalse(any("setup-node" in step.get("uses", "") for step in companion["steps"]))
         download = next(
             step["with"]

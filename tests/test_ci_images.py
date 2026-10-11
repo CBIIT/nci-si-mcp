@@ -52,18 +52,16 @@ class ImageWorkflowTest(unittest.TestCase):
                 "HEAD_SHA": "${{ github.event.pull_request.head.sha }}",
             },
         )
+        self.assertEqual(jobs["image"]["needs"], ["changes"])
+        self.assertEqual(
+            jobs["image"]["if"],
+            "github.event_name != 'pull_request' || needs.changes.outputs.image == 'true'",
+        )
         for job, name in (
             ("image", "container (amd64)"),
             ("companions", "companion containers (amd64)"),
         ):
-            self.assertIn("changes", jobs[job]["needs"])
             self.assertEqual(jobs[job]["name"], name)
-            self.assertIn(
-                "github.event_name != 'pull_request' || needs.changes.outputs."
-                + job
-                + " == 'true'",
-                jobs[job]["if"],
-            )
             self.assertEqual(selector["outputs"][job], "${{ steps.select.outputs." + job + " }}")
 
 
