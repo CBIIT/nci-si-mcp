@@ -6,7 +6,6 @@ import socket
 import socketserver
 import subprocess
 import sys
-import time
 import unittest
 import urllib.error
 import urllib.request
@@ -19,11 +18,7 @@ from unittest.mock import patch
 
 from scripts import acceptance_http
 
-
-def free_port():
-    with socket.socket() as taken:
-        taken.bind(("127.0.0.1", 0))
-        return taken.getsockname()[1]
+from nci_si_acceptance.client import OwnedServer
 
 
 def listening(port):
@@ -35,7 +30,12 @@ def listening(port):
 
 
 def owned_server(directory):
-    return acceptance_http.ServerProcess(directory, free_port())
+    return OwnedServer(
+        os.environ,
+        directory / "server.log",
+        data_dir=directory / "index",
+        require_index=True,
+    )
 
 
 @contextmanager
@@ -50,6 +50,13 @@ def answering_hook(directory, server):
             yield socket_path
         finally:
             thread.join(timeout=45)
+
+
+LISTENS = (
+    "import os, socket, time; listener = socket.socket(); "
+    "listener.bind(('127.0.0.1', int(os.environ['NCI_SI_HTTP_PORT']))); "
+    "listener.listen(); time.sleep(300)"
+)
 
 
 class StateHookReadinessTest(unittest.TestCase):
@@ -77,12 +84,7 @@ class StateHookReadinessTest(unittest.TestCase):
                 server.stop()
 
     def test_state_hook_acknowledges_only_a_server_that_accepts_connections(self):
-        listen = (
-            "import os, socket, time; time.sleep(1); listener = socket.socket(); "
-            "listener.bind(('127.0.0.1', int(os.environ['NCI_SI_HTTP_PORT']))); "
-            "listener.listen(); time.sleep(300)"
-        )
-        with self.hooked(listen) as (server, _root, call):
+        with self.hooked("import time; time.sleep(1); " + LISTENS) as (server, _root, call):
             call()
             self.assertTrue(listening(server.port), "The hook answered before the server listened")
 
@@ -106,11 +108,25 @@ class HTTPControlTest(unittest.TestCase):
                     acceptance_http.state(str(socket_path))
                 return 0
 
-            process = SimpleNamespace(restart=settings.append, close=lambda: None)
+            class Restarts:
+                port = 8123
+
+                def __init__(self, *_arguments, **_options):
+                    pass
+
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *_exception):
+                    pass
+
+                def restart(self, new):
+                    settings.append(new)
+
             with (
                 patch.object(acceptance_http, "ROOT", root),
                 patch.object(acceptance_http, "prepare"),
-                patch.object(acceptance_http, "ServerProcess", return_value=process),
+                patch.object(acceptance_http, "OwnedServer", Restarts),
                 patch.object(acceptance_http, "run_suite", side_effect=suite),
             ):
                 result = acceptance_http.run()
@@ -150,28 +166,33 @@ class HTTPControlTest(unittest.TestCase):
         ):
             acceptance_http.prepare(Path(directory))
 
-    def test_interrupted_runner_closes_its_log_and_removes_control_directory(self):
-        processes = []
-        constructor = acceptance_http.ServerProcess
+    def test_interrupted_runner_reaps_its_server_and_removes_control_directory(self):
+        ports = []
 
-        def opened(directory, port, **options):
-            process = constructor(directory, port, **options)
-            processes.append(process)
-            return process
+        def suite(port, socket_path, **_options):
+            ports.append(port)
+            with patch.dict(os.environ, {"NCI_SI_PROFILE": "fixture-profile"}, clear=True):
+                acceptance_http.state(str(socket_path))
+            self.assertTrue(listening(port))
+            raise KeyboardInterrupt
+
+        spawn = subprocess.Popen
+
+        def launch(_command, **options):
+            return spawn([sys.executable, "-c", LISTENS], **options)
 
         with TemporaryDirectory() as directory:
             root = Path(directory)
             with (
                 patch.object(acceptance_http, "ROOT", root),
                 patch.object(acceptance_http, "prepare"),
-                patch.object(acceptance_http, "ServerProcess", opened),
-                patch.object(acceptance_http, "run_suite", side_effect=KeyboardInterrupt),
+                patch.object(acceptance_http, "run_suite", side_effect=suite),
+                patch.object(acceptance_http.subprocess, "Popen", launch),
                 self.assertRaises(KeyboardInterrupt),
             ):
                 acceptance_http.run()
             self.assertEqual(list((root / "tmp").iterdir()), [])
-            self.assertTrue(processes[0].log.closed)
-            self.assertIsNone(processes[0].process)
+            self.assertFalse(listening(ports[0]))
 
     def test_state_hook_sends_only_server_settings_and_requires_acknowledgement(self):
         with TemporaryDirectory() as directory:
@@ -222,35 +243,30 @@ class HTTPControlTest(unittest.TestCase):
         spawn = subprocess.Popen
         children = []
         script = (
-            "import json, os, time; "
+            "import json, os, sys; "
             "print(json.dumps({k:v for k,v in os.environ.items() if k.startswith('NCI_SI_')}), "
-            "file=__import__('sys').stderr, flush=True); time.sleep(300)"
+            "file=sys.stderr, flush=True); " + LISTENS
         )
 
         def launch(_command, **options):
-            child = spawn([sys.executable, "-c", script], **options)
-            children.append(child)
-            deadline = time.monotonic() + 5
-            while len((root / "server.log").read_text().splitlines()) < len(children):
-                if time.monotonic() > deadline:
-                    raise TimeoutError("Owned child did not write its settings")
-                time.sleep(0.01)
-            return child
+            children.append(spawn([sys.executable, "-c", script], **options))
+            return children[-1]
 
         with TemporaryDirectory() as directory:
             root = Path(directory)
-            process = acceptance_http.ServerProcess(root, 8123)
+            server = owned_server(root)
             try:
                 with (
                     patch.dict(os.environ, {"NCI_SI_PROFILE": "inherited-profile"}),
                     patch.object(acceptance_http.subprocess, "Popen", launch),
                 ):
-                    process.restart({"NCI_SI_EVS_BASE_URL": "http://first.invalid"})
-                    process.restart({"NCI_SI_EVS_BASE_URL": "http://second.invalid"})
-                process.close()
+                    server.restart({"NCI_SI_EVS_BASE_URL": "http://first.invalid"})
+                    server.restart({"NCI_SI_EVS_BASE_URL": "http://second.invalid"})
+                    running = listening(server.port)
+                server.stop()
                 statuses = [child.poll() for child in children]
             finally:
-                process.close()
+                server.stop()
                 for child in children:
                     if child.poll() is None:
                         child.kill()
@@ -259,7 +275,7 @@ class HTTPControlTest(unittest.TestCase):
             forced = {
                 "NCI_SI_DATA_DIR": str(root / "index"),
                 "NCI_SI_TRANSPORT": "streamable-http",
-                "NCI_SI_HTTP_PORT": "8123",
+                "NCI_SI_HTTP_PORT": str(server.port),
                 "NCI_SI_HTTP_SESSIONS": "stateful",
                 "NCI_SI_HTTP_REQUIRE_INDEX": "1",
             }
@@ -271,5 +287,4 @@ class HTTPControlTest(unittest.TestCase):
                 ],
             )
             self.assertEqual(statuses, [-15, -15])
-            self.assertIsNone(process.process)
-            self.assertTrue(process.log.closed)
+            self.assertTrue(running)
