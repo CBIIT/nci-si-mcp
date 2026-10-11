@@ -126,6 +126,16 @@ class ContainerGateTest(unittest.TestCase):
             with patch.object(container_lock, "LOCK", lock), self.assertRaises(ValueError):
                 container_lock.check()
 
+    def test_check_rejects_text_after_the_hash_digest(self):
+        lines = container_lock.LOCK.read_text().splitlines(keepends=True)
+        first_hash = next(i for i, line in enumerate(lines) if line.startswith("    --hash="))
+        lines[first_hash] = lines[first_hash].rstrip("\n") + "junk\n"
+        with tempfile.TemporaryDirectory() as directory:
+            lock = Path(directory) / "requirements.txt"
+            lock.write_text("".join(lines))
+            with patch.object(container_lock, "LOCK", lock), self.assertRaises(ValueError):
+                container_lock.check()
+
     def test_resolved_version_must_match_pdm_and_torch_must_be_cpu(self):
         report = {
             "install": [
