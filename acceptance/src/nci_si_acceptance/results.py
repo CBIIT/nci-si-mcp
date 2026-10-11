@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlsplit
 
 from nci_si_acceptance.spec import RECORDS, REQUIRED_TOOLS
 
@@ -77,7 +78,7 @@ def wrong_origin(provenance: dict[str, Any], *, uri: bool, origin: bool) -> list
 
     upstream = provenance.get("upstream")
     valid = {
-        "sourceUri": is_name(provenance.get("sourceUri")) if uri else "sourceUri" not in provenance,
+        "sourceUri": is_url(provenance.get("sourceUri")) if uri else "sourceUri" not in provenance,
         "upstream": isinstance(upstream, dict) and bool(upstream)
         if origin
         else "upstream" not in provenance,
@@ -119,6 +120,15 @@ def is_name(value: Any) -> bool:
     """Whether `value` is a non-empty string."""
 
     return isinstance(value, str) and value != ""
+
+
+def is_url(value: Any) -> bool:
+    """Whether `value` is an absolute http(s) URL, as an upstream request has."""
+
+    if not is_name(value):
+        return False
+    parts = urlsplit(value)
+    return parts.scheme in ("http", "https") and bool(parts.netloc)
 
 
 # M2.2: governed content that no release pins is cached briefly, at most this long.
