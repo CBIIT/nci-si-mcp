@@ -164,6 +164,20 @@ class AcceptanceProjectionTest(unittest.TestCase):
         self.assertTrue(result["inventory_complete"])
         self.assertEqual(result["tools"]["lookup"]["outcome"], "PASS")
 
+    def test_an_unrun_gate_leaves_the_tool_incomplete_in_a_current_report(self):
+        # Since #265 the harness keeps a tool from passing while a gate did not run; the PASS
+        # of an older report, above, stays that run's verdict.
+        native = report()
+        key = "tests/test_example.py::test_protocol"
+        native["tests"][key]["outcome"] = "skipped"
+        native["unrun_gates"] = [key]
+        native["tools"]["lookup"]["outcome"] = "INCOMPLETE"
+        result = project(native)
+        self.assertEqual(result["tools"]["lookup"]["outcome"], "INCOMPLETE")
+        native["tools"]["lookup"]["outcome"] = "NOT RUN"
+        with self.assertRaises(EvidenceError):
+            project(native)
+
     def test_malformed_verdict_is_a_safe_validation_error(self):
         native = report()
         native["tools"]["lookup"]["outcome"] = ["PRIVATE-CANARY"]
