@@ -96,6 +96,50 @@ class StateHookReadinessTest(unittest.TestCase):
             self.assertFalse(listening(server.port))
 
 
+class StateHookFailureTest(unittest.TestCase):
+    def test_a_server_that_is_not_ready_in_time_is_reported_to_the_suite(self):
+        def restart(_settings):
+            raise TimeoutError("The owned server did not become ready; see server.log")
+
+        with (
+            TemporaryDirectory() as directory,
+            answering_hook(Path(directory), SimpleNamespace(restart=restart)) as socket_path,
+            self.assertRaises(RuntimeError) as caught,
+        ):
+            acceptance_http.state(socket_path)
+        self.assertEqual(
+            str(caught.exception),
+            "The fixture server restart failed: "
+            "The owned server did not become ready; see server.log",
+        )
+
+    def test_the_runner_waits_for_readiness_inside_the_suites_thirty_second_hook_window(self):
+        # The suite's state hook gives up after 30 s, so a restart must be answered sooner.
+        options = []
+
+        class Recorded:
+            port = 8123
+
+            def __init__(self, *_arguments, **keywords):
+                options.append(keywords)
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_exception):
+                pass
+
+        with (
+            TemporaryDirectory() as directory,
+            patch.object(acceptance_http, "ROOT", Path(directory)),
+            patch.object(acceptance_http, "prepare"),
+            patch.object(acceptance_http, "OwnedServer", Recorded),
+            patch.object(acceptance_http, "run_suite", return_value=0),
+        ):
+            acceptance_http.run()
+        self.assertEqual(options[0]["ready_seconds"], 25)
+
+
 class HTTPControlTest(unittest.TestCase):
     def test_deep_worker_workspace_still_has_a_working_private_control_channel(self):
         settings = []
