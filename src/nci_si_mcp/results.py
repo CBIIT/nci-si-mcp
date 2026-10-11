@@ -205,7 +205,7 @@ class RegistryReleaseResult(TypedDict):
 class RegistryItemIdentity(TypedDict):
     publicId: str
     version: str
-    longName: str | None
+    longName: str
 
 
 class ValueMeaningConcept(TypedDict):
@@ -226,7 +226,7 @@ class PermissibleValue(TypedDict):
 
 
 class ClassificationScheme(RegistryItemIdentity):
-    context: str | None
+    context: str
     items: list[RegistryItemIdentity]
     provenance: Provenance
 
@@ -243,8 +243,8 @@ class Form(RegistryItemIdentity):
     beginDate: str | None
     endDate: str | None
     context: str | None
-    workflowStatus: str | None
-    registrationStatus: str | None
+    workflowStatus: str
+    registrationStatus: str
     dateCreated: str | None
     dateModified: str | None
     provenance: Provenance
@@ -261,8 +261,8 @@ class DataElement(RegistryItemIdentity):
     endDate: str | None
     origin: str | None
     context: str | None
-    workflowStatus: str | None
-    registrationStatus: str | None
+    workflowStatus: str
+    registrationStatus: str
     dateCreated: str | None
     dateModified: str | None
     provenance: Provenance
