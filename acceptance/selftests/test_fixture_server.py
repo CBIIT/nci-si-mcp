@@ -1,6 +1,7 @@
 """The fixture server answers from fixtures, refuses what it cannot answer, and records it all."""
 
 import json
+import re
 import time
 from http import HTTPStatus
 from http.client import RemoteDisconnected
@@ -445,7 +446,8 @@ def test_an_unknown_scenario_is_refused(server):
 def test_a_scenario_fixture_lies_two_levels_below_scenarios(tmp_path):
     fixture_file(tmp_path, "scenarios/release/version.json")
 
-    with pytest.raises(ValueError, match="a scenario fixture lies in scenarios/<group>/<name>/"):
+    message = "scenarios/release/version.json: a scenario fixture lies in scenarios/<group>/<name>/"
+    with pytest.raises(ValueError, match=re.escape(message)):
         load_fixtures(tmp_path)
 
 

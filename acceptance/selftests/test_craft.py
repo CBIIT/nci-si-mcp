@@ -556,6 +556,46 @@ def test_check_and_out_are_refused_together(tmp_path):
     assert not out.exists()
 
 
+def _manifest_lines(root):
+    return (root / "manifest.yaml").read_text(encoding="utf-8").splitlines()
+
+
+def test_re_recording_replaces_a_stale_line_and_ends_the_file_with_a_newline(tmp_path):
+    root = without_crafted(tmp_path / "fixtures")
+    _stale(root)
+
+    assert _status(["--fixtures", str(root)]) == 0
+
+    crafted = [line for line in _manifest_lines(root) if line.startswith("crafted:")]
+    assert crafted == [f"crafted: {crafted_digest(CRAFTED)}"]
+    assert (root / "manifest.yaml").read_text(encoding="utf-8").endswith("\n")
+
+
+def test_out_leaves_the_manifest_as_it_was(tmp_path):
+    root = without_crafted(tmp_path / "fixtures")
+    manifest = root / "manifest.yaml"
+    manifest.write_text(
+        "\n".join(line for line in _manifest_lines(root) if not line.startswith("crafted:")),
+        encoding="utf-8",
+    )
+    before = manifest.read_text(encoding="utf-8")
+
+    assert _status(["--fixtures", str(root), "--out", str(tmp_path / "out")]) == 0
+
+    assert manifest.read_text(encoding="utf-8") == before
+
+
+def test_check_crafts_the_fixture_set_it_is_given(tmp_path):
+    # A recording the crafted scenarios derive from differs here, so their digest does.
+    root = without_crafted(tmp_path / "fixtures")
+    roles = root / "recorded/evs/roles.json"
+    document = json.loads(roles.read_text(encoding="utf-8"))
+    document["response"]["body"].append({"code": "R999", "name": "Changed here"})
+    roles.write_text(json.dumps(document), encoding="utf-8")
+
+    assert _status(["--fixtures", str(root), "--check"]) == 1
+
+
 def test_the_command_adds_the_digest_line_to_a_manifest_without_one(tmp_path):
     root = without_crafted(tmp_path / "fixtures")
     manifest = root / "manifest.yaml"

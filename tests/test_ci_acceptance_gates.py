@@ -1,6 +1,7 @@
 """Both fixture runs of the acceptance suite run its gates, neither is given a secret, and every
 parallel run steals work."""
 
+import json
 import unittest
 from pathlib import Path
 
@@ -19,8 +20,12 @@ FIXTURE_ENV = {
 LIVE_STEP = "Run the suite against the live services"
 
 
+def jobs(workflow):
+    return yaml.safe_load((WORKFLOWS / workflow).read_text())["jobs"]
+
+
 def step(workflow, job, name):
-    steps = yaml.safe_load((WORKFLOWS / workflow).read_text())["jobs"][job]["steps"]
+    steps = jobs(workflow)[job]["steps"]
     (found,) = [step for step in steps if step.get("name") == name]
     return found
 
@@ -46,10 +51,17 @@ class AcceptanceGateWorkflowTest(unittest.TestCase):
         self.assertEqual(fixture_env("acceptance-live.yml", "acceptance-live"), FIXTURE_ENV)
 
     def test_no_secret_reaches_either_fixture_run(self):
+        # The job's environment and the fixture step's environment, inputs, condition and
+        # script: everything the fixture run can see.
         for workflow, job in (("ci.yml", "acceptance"), ("acceptance-live.yml", "acceptance-live")):
             with self.subTest(workflow=workflow):
-                values = fixture_env(workflow, job).values()
-                self.assertEqual([value for value in values if "secrets." in value], [])
+                fixture = step(workflow, job, FIXTURE_STEP)
+                visible = {
+                    "job env": jobs(workflow)[job].get("env", {}),
+                    **{key: fixture.get(key, "") for key in ("env", "with", "if", "run")},
+                }
+                leaking = [key for key, part in visible.items() if "secrets." in json.dumps(part)]
+                self.assertEqual(leaking, [])
 
     def test_every_parallel_suite_run_steals_work(self):
         # The default load distribution left one worker with the slow tail (#222).

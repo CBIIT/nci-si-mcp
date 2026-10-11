@@ -1,6 +1,8 @@
 """The suite's fixture set loads and is what the manifest records."""
 
 import json
+import re
+import shutil
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import urlencode
@@ -76,13 +78,15 @@ def test_the_crafted_scenarios_are_served_with_no_crafted_file_on_disk(tmp_path)
             assert _answer(running, document["request"]) == document["response"], name
 
 
-def test_a_crafted_name_that_also_lies_on_disk_is_refused(tmp_path):
+@pytest.mark.parametrize(
+    "name", ["scenarios/release/two-latest/latest.json", "crafted/OP-C03/search-over-cap.json"]
+)
+def test_a_crafted_name_that_also_lies_on_disk_is_refused(tmp_path, name):
     root = without_crafted(tmp_path)
-    name = "scenarios/release/two-latest/latest.json"
-    (root / name).parent.mkdir(parents=True)
+    (root / name).parent.mkdir(parents=True, exist_ok=True)
     (root / name).write_text(json.dumps(CRAFTED[name]), encoding="utf-8")
 
-    with pytest.raises(ValueError, match=name):
+    with pytest.raises(ValueError, match=re.escape(name)):
         load_fixtures(root)
 
 
@@ -180,3 +184,28 @@ def test_each_read_of_a_fixture_is_a_fresh_copy(compliant, outcomes):
         "test_a_changes_what_it_read": "passed",
         "test_b_reads_it_unchanged": "passed",
     }
+
+
+CRAFTED_READ = """import json
+
+import pytest
+
+NAME = "scenarios/traversal/starvation/concepts/C99200000.json"
+
+
+@pytest.mark.tool("get_concept")
+def test_reads_a_crafted_fixture(recorded):
+    expected = json.loads(open("expected.json", encoding="utf-8").read())
+    assert recorded(NAME) == expected
+"""
+
+
+def test_the_suite_reads_crafted_fixtures_from_memory(compliant, outcomes):
+    # The real fixture set, whose crafted fixtures are no files, read through the suite.
+    name = "scenarios/traversal/starvation/concepts/C99200000.json"
+    shutil.rmtree(compliant.path / "fixtures")
+    shutil.copytree(FIXTURES, compliant.path / "fixtures")
+    (compliant.path / "expected.json").write_text(json.dumps(CRAFTED[name]), encoding="utf-8")
+    (compliant.path / "tests" / "test_crafted_read.py").write_text(CRAFTED_READ, encoding="utf-8")
+
+    assert outcomes("tests/test_crafted_read.py") == {"test_reads_a_crafted_fixture": "passed"}
