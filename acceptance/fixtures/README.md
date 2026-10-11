@@ -6,28 +6,35 @@ whether it was **recorded** from a live service (and when) or **crafted** for a 
 service does not produce on demand (and which requirement it stands in for).
 
 - `manifest.yaml`: the pinned release (NCIt `ncit_26.09d`), the concept rules, what each
-  scenario provokes, and every request `pdm run acceptance-record` records, with its operation and rationale.
+  scenario provokes, every request `pdm run acceptance-record` records, with its operation and
+  rationale, and the digest of the crafted fixtures (`crafted:`).
 - `recorded/<surface>/`: captured from the live service by `acceptance-record` (EVS and its FHIR
   surface, the caDSR APIs and the caDSR export folder, the Shared SI façade and SPARQL
   endpoint); concepts in `recorded/evs/concepts/`.
 - `crafted/<requirement>/`: the form a requirement prescribes where the service does not answer
   it yet, carrying a recording's answer (`acceptance-record`, the manifest's `derived`), or
-  crafted outright (`acceptance-craft`: caDSR's capped keyword search).
+  crafted outright, in memory, by `craft.py` (for example caDSR's capped keyword search).
 - `scenarios/<group>/<name>/`: the fixtures of one scenario, which answer before the ordinary
   ones while a test selects it (`@pytest.mark.scenario("<group>/<name>")`). A `settings.json`
-  there holds the `NCI_SI_*` settings the scenario's server process starts with.
+  there holds the `NCI_SI_*` settings the scenario's server process starts with. Only recorded
+  scenario fixtures are files; the crafted ones are built in memory.
 
 ## Scenarios
 
 The scenario fixtures are recorded from live where EVS produces the
-case on demand (`acceptance-record`) and crafted otherwise (`pdm run acceptance-craft`, from the
-recorded set where they change a real answer). The manifest's `scenarios` section says what each
+case on demand (`acceptance-record`) and crafted otherwise by `src/nci_si_acceptance/craft.py`,
+from the recorded set where they change a real answer. Crafted fixtures are not files: they are
+built in memory whenever the set loads, and the manifest's `crafted:` line holds the digest of
+what `craft.py` makes now, so a change to them shows in review as that one line. To review a
+change to `craft.py`, write the fixtures before and after with `pdm run acceptance-craft --out
+DIR` and compare the two directories. The manifest's `scenarios` section says what each
 provokes; the register below lists them with how each is made and its requests.
 
 ## Recording
 
-After `pdm run acceptance-record`, run `pdm run acceptance-craft` and `pdm run
-acceptance-register`: the self-tests check that crafted scenarios and the register are current.
+After `pdm run acceptance-record` or a change to `craft.py`, run `pdm run acceptance-craft` and
+`pdm run acceptance-register`: the self-tests check that the crafted digest and the register are
+current.
 `acceptance-record` re-records the set from live and writes nothing unless every check
 holds: the live monthly release is still the pinned one; every request answers with the status
 its entry expects; every concept recording is one the fixture server accepts and the composed

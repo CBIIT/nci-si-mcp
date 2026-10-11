@@ -9,7 +9,18 @@ from typing import Any
 
 from scripts.evidence_envelope import EvidenceError, decode_json, validate_envelope
 
-from nci_si_acceptance.report import FAILED, RANK, UNRUN, complete, completion_problem, tool_outcome
+from nci_si_acceptance.report import (
+    CANNOT_RUN,
+    FAILED,
+    RANK,
+    UNRUN,
+    complete,
+    completion_problem,
+    fails_by_gates_only,
+    gate_names,
+    own_unrun,
+    tool_outcome,
+)
 
 _REPORT_FIELDS = {
     "mode",
@@ -116,28 +127,39 @@ def _native_cases(report: dict[str, Any], context: dict[str, Any]) -> None:
 
 
 def _gates(report: dict[str, Any], field: str, outcomes: tuple[str, ...]) -> list[str]:
-    expected = sorted(
-        name for name, row in report["tests"].items() if row["gate"] and row["outcome"] in outcomes
-    )
+    expected = gate_names(report["tests"], outcomes)
     require(report[field] == expected)
     return expected
 
 
-def _tool(row: Any, counts: Counter[str], group: str, failed: bool) -> dict[str, Any]:
+def _tool(row: Any, counts: Counter[str], group: str, failed: bool, unrun: bool) -> dict[str, Any]:
     require(isinstance(row, dict) and set(row) - {_RECORDED_TOOL_FIELD} == _TOOL_FIELDS)
     require(row["group"] == group)
     _counts(row["counts"], counts)
     availability = _availability(row)
     require(isinstance(row["outcome"], str))
-    require(row["outcome"] in {tool_outcome(counts, failed, value) for value in availability})
-    expected = failed and not (counts["failed"] or counts["no_fixture"])
+    require(row["outcome"] in _verdicts(counts, failed, unrun, availability))
+    expected = fails_by_gates_only(counts, failed)
     require(type(row["gates_only"]) is bool and row["gates_only"] == expected)
     return {
         "group": group,
         "outcome": row["outcome"],
         "gates_only": row["gates_only"],
+        # A gate could not run and the tool's own tests all ran; the portal says so for a PASS
+        # or INCOMPLETE verdict.
+        "gates_unrun": unrun and not own_unrun(counts),
         "counts": dict(counts),
     }
+
+
+def _verdicts(
+    counts: Counter[str], failed: bool, unrun: bool, availability: tuple[bool | None, ...]
+) -> set[str]:
+    """The verdicts a harness gives the row. A report written before #265 left a tool PASS
+    while a gate did not run; that stays the recorded run's verdict, displayed unchanged."""
+
+    gates = {unrun, False}
+    return {tool_outcome(counts, failed, gated, value) for value in availability for gated in gates}
 
 
 def _availability(row: dict[str, Any]) -> tuple[bool | None, ...]:
@@ -167,10 +189,13 @@ def _native(raw: bytes, context: dict[str, Any]) -> tuple[dict[str, Any], dict[s
     _native_cases(report, context)
     failed = bool(_gates(report, "failed_gates", FAILED))
     _gates(report, "unrun_gates", UNRUN)
+    # Only a gate that could not run keeps a tool from passing; one skipped by design in a live
+    # run (not_live) does not.
+    unrun = bool(gate_names(report["tests"], CANNOT_RUN))
     tools = {}
     for name, group in context["catalogue"]["tools"].items():
         counts = Counter(row["outcome"] for row in report["tests"].values() if row["tool"] == name)
-        tools[name] = _tool(report["tools"][name], counts, group, failed)
+        tools[name] = _tool(report["tools"][name], counts, group, failed, unrun)
     return report, tools
 
 

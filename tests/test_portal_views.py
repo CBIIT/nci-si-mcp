@@ -7,7 +7,14 @@ from scripts.portal_configuration import LocalConfiguration
 from scripts.portal_configuration_views import configuration_page
 from scripts.portal_help import help_page
 from scripts.portal_job_views import jobs_page
-from scripts.portal_views import comparison_page, history_page, page, run_page
+from scripts.portal_views import (
+    GATE_STATUS_UNRECORDED,
+    GATES_UNRUN_LABELS,
+    comparison_page,
+    history_page,
+    page,
+    run_page,
+)
 
 from test_evidence_acceptance import missing_report, project, report
 from test_evidence_benchmark import project as benchmark_projection
@@ -201,6 +208,53 @@ class PortalViewsTest(unittest.TestCase):
         self.assertIn("<caption>Tool verdicts</caption>", html)
         self.assertIn("<td>PASS</td>", html)
         self.assertNotIn("no verdict shown", html)
+
+    def test_a_verdict_decided_by_unrun_gates_says_so(self):
+        # Since #265 an unrun gate leaves a tool INCOMPLETE; an earlier harness recorded PASS.
+        gate = "tests/test_example.py::test_protocol"
+        for recorded, gate_outcome, shown in (
+            ("PASS", "skipped", "PASS (gates not run; recorded by an earlier harness)"),
+            ("INCOMPLETE", "skipped", "INCOMPLETE (gates not run)"),
+            ("PASS", "not_live", "PASS"),
+            ("PASS", "passed", "PASS"),
+        ):
+            native = report()
+            native["tests"][gate]["outcome"] = gate_outcome
+            native["unrun_gates"] = [] if gate_outcome == "passed" else [gate]
+            native["tools"]["lookup"]["outcome"] = recorded
+            with self.subTest(recorded=recorded, gate=gate_outcome):
+                html = run_page(self.record(project(native)))
+                self.assertIn(f"<td>{shown}</td>", html)
+
+    def test_the_help_page_explains_every_gate_label_the_dashboard_shows(self):
+        html = help_page()
+        for label in (*GATES_UNRUN_LABELS.values(), GATE_STATUS_UNRECORDED):
+            with self.subTest(label=label):
+                self.assertIn(label, html)
+
+    def test_a_failing_tool_keeps_its_verdict_when_a_gate_did_not_run(self):
+        native = report()
+        gate = "tests/test_example.py::test_protocol"
+        native["tests"][gate]["outcome"] = "skipped"
+        native["unrun_gates"] = [gate]
+        native["tests"]["tests/test_example.py::test_lookup"]["outcome"] = "failed"
+        native["tools"]["lookup"].update(outcome="FAIL", counts={"failed": 1})
+        html = run_page(self.record(project(native)))
+        self.assertIn("<td>FAIL</td>", html)
+        self.assertNotIn("gates not run", html)
+
+    def test_a_pass_stored_without_its_gate_status_says_so(self):
+        # A projection stored before the gate status was projected cannot tell; it says so.
+        evidence = project(report())
+        del evidence["tools"]["lookup"]["gates_unrun"]
+        html = run_page(self.record(evidence))
+        self.assertIn("<td>PASS (gate status not recorded)</td>", html)
+        for outcome in ("INCOMPLETE", "FAIL"):
+            with self.subTest(outcome=outcome):
+                evidence["tools"]["lookup"]["outcome"] = outcome
+                html = run_page(self.record(evidence))
+                self.assertIn(f"<td>{outcome}</td>", html)
+                self.assertNotIn("not recorded", html)
 
     def test_unverified_legacy_report_has_no_results_or_pass_claim(self):
         record = {

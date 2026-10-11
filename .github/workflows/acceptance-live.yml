@@ -46,10 +46,13 @@ jobs:
       # Status 1 may mean failed tests or an early stop; completion comes from the report.
       - name: Run the suite against the fixtures
         env:
+          # The permission gates run as in CI's fixture run; without them every tool would be
+          # INCOMPLETE. The step gets no secret.
+          NCI_SI_ACCEPTANCE_SECURITY_SERVER: python ../scripts/permissions_fixture.py
           NCI_SI_ACCEPTANCE_PREPARE: 'nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")'
         run: |
           status=0
-          pdm run acceptance -n 4 --report=fixture.json || status=$?
+          pdm run acceptance -n 4 --dist worksteal --report=fixture.json || status=$?
           if [ "$status" -gt 1 ] || [ ! -s acceptance/fixture.json ]; then
             echo "::error title=The fixture run did not finish::exit status ${status}, or no report."
             exit 1
@@ -72,7 +75,7 @@ jobs:
           done
           echo "- Credentials given to the live run:${given:- none}" | tee -a acceptance/network.md >> "$GITHUB_STEP_SUMMARY"
           status=0
-          pdm run acceptance -n 4 --report=live.json || status=$?
+          pdm run acceptance -n 4 --dist worksteal --report=live.json || status=$?
           if [ "$status" -gt 1 ] || [ ! -s acceptance/live.json ]; then
             echo "::error title=The live run did not finish::exit status ${status}, or no report."
             exit 1

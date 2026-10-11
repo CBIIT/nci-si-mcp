@@ -44,6 +44,43 @@ def test_a_failed_gate_fails_a_tool_that_passes():
     assert outcomes["resolve_release"] == "FAIL"
 
 
+def test_an_unrun_gate_in_the_expected_outcomes_leaves_no_tool_passing():
+    expected = dict.fromkeys(ATTRIBUTION, "passed") | {"t.py::gate": "skipped"}
+
+    outcomes = tool_outcomes(expected, ATTRIBUTION)
+
+    assert {name: outcomes[name] for name in ("resolve_release", "get_concept", "get_form")} == {
+        "resolve_release": "INCOMPLETE",
+        "get_concept": "INCOMPLETE",
+        "get_form": "INCOMPLETE",
+    }
+    assert outcomes["list_contexts"] == "NO TESTS"
+
+
+def test_a_gate_that_does_not_run_live_by_design_leaves_tools_passing():
+    expected = dict.fromkeys(ATTRIBUTION, "passed") | {"t.py::gate": "not_live"}
+
+    outcomes = tool_outcomes(expected, ATTRIBUTION)
+
+    assert outcomes["resolve_release"] == "PASS"
+
+
+def test_a_gate_that_found_no_fixture_fails_a_tool_that_passes():
+    expected = dict.fromkeys(ATTRIBUTION, "passed") | {"t.py::gate": "no_fixture"}
+
+    outcomes = tool_outcomes(expected, ATTRIBUTION)
+
+    assert outcomes["resolve_release"] == "FAIL"
+
+
+def test_a_gate_that_calls_an_absent_tool_leaves_no_tool_passing():
+    expected = dict.fromkeys(ATTRIBUTION, "passed") | {"t.py::gate": "not_implemented"}
+
+    outcomes = tool_outcomes(expected, ATTRIBUTION)
+
+    assert outcomes["resolve_release"] == "INCOMPLETE"
+
+
 def test_the_table_lists_each_groups_tools_under_their_outcome():
     expected = dict.fromkeys(ATTRIBUTION, "passed") | {"t.py::form": "failed"}
 

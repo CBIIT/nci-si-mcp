@@ -75,6 +75,10 @@ ordinary one for a request the rules answer is refused, since it would answer be
 scenario's recording; an active scenario's exact fixture (a fault) answers before
 another active scenario's recording, by design.
 
+The manifest's `crafted:` line declares the fixtures `craft.py` makes: they are built in
+memory when the set loads and added to the files by name; a crafted name that also lies on disk
+is refused.
+
 Every log entry records when the request arrived (`received_at`, monotonic seconds),
 and the fixture or recordings that answered it.
 """
@@ -88,6 +92,7 @@ from dataclasses import dataclass, field
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from itertools import permutations
+from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, Any, Self
 from urllib.parse import parse_qs, unquote, urlsplit
 
@@ -121,6 +126,8 @@ FAULTS = frozenset({"close"})
 LICENCE_HEADER = "x-evsrestapi-license-key"
 SETTINGS = "settings.json"
 MANIFEST = "manifest.yaml"
+# The manifest key that declares the crafted fixtures and records their digest (craft.py).
+CRAFTED = "crafted"
 CONCEPTS = "concepts"
 RESPONSE_FIELDS = frozenset({"status", "headers", "body", "delay_seconds", "fault"})
 FORM_TYPE = "application/x-www-form-urlencoded"
@@ -324,9 +331,7 @@ def _matched_params(request: dict[str, Any]) -> Params:
     return {} if "*" in request.get("ignored", {}) else request.get("params", {})
 
 
-def _read_fixture(path: Path, root: Path) -> tuple[Key, Fixture]:
-    document = json.loads(path.read_text(encoding="utf-8"))
-    name = path.relative_to(root).as_posix()
+def _read_fixture(name: str, document: Any) -> tuple[Key, Fixture]:
     if problem := _problem(document):
         raise ValueError(f"{name}: {problem}")
     request = document["request"]
@@ -346,12 +351,10 @@ def _read_fixture(path: Path, root: Path) -> tuple[Key, Fixture]:
 
 
 def _read_recording(
-    path: Path, root: Path, rules: ConceptRules | None
+    name: str, document: Any, rules: ConceptRules | None
 ) -> tuple[tuple[str, str], Recording]:
     """A concept recording, keyed by the terminology and code its request names."""
 
-    document = json.loads(path.read_text(encoding="utf-8"))
-    name = path.relative_to(root).as_posix()
     if rules is None:
         raise ValueError(f"{name}: concept recordings need the concept rules of {MANIFEST}")
     problem = _problem(document) or _recording_problem(document, rules)
@@ -373,29 +376,57 @@ def _recording_problem(document: dict[str, Any], rules: ConceptRules) -> str | N
     return rules.recording_problem(document["request"], response["status"], response.get("body"))
 
 
-def _read_manifest(root: Path) -> ConceptRules | None:
+def read_manifest(root: Path) -> dict[str, Any]:
+    """The manifest of a fixture set: empty where the set has none, refused where it is not a
+    mapping, since the concept rules and the crafted layer would then be left out unseen."""
+
     path = root / MANIFEST
     if not path.is_file():
-        return None
-    manifest = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    section = manifest.get("evs", {}).get("concepts") if isinstance(manifest, dict) else None
+        return {}
+    manifest = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(manifest, dict):
+        raise ValueError(f"{path}: {MANIFEST} must be a mapping")
+    return manifest
+
+
+def _rules(manifest: dict[str, Any]) -> ConceptRules | None:
+    section = manifest.get("evs", {}).get("concepts")
     return None if section is None else ConceptRules.from_manifest(section)
 
 
-def _scenario_of(path: Path, root: Path) -> str | None:
-    parts = path.relative_to(root).parts
+def fixture_documents(root: Path) -> dict[str, Any]:
+    """Every fixture document of the set by name: the files, and the crafted ones the manifest
+    declares, made in memory."""
+
+    return _documents(root, read_manifest(root))
+
+
+def _documents(root: Path, manifest: dict[str, Any]) -> dict[str, Any]:
+    documents = {
+        path.relative_to(root).as_posix(): json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted(root.rglob("*.json"))
+    }
+    if CRAFTED not in manifest:
+        return documents
+    # craft.py imports this module for its constants, so it is imported when it is needed.
+    from nci_si_acceptance.craft import craft  # noqa: PLC0415
+
+    crafted = craft(root)
+    if twice := sorted(set(crafted) & set(documents)):
+        raise ValueError(f"{', '.join(twice)}: crafted in memory and also on disk; delete it")
+    return documents | crafted
+
+
+def _scenario_of(name: str) -> str | None:
+    parts = name.split("/")
     if parts[0] != SCENARIOS:
         return None
     if len(parts) < 4:  # noqa: PLR2004 - scenarios/<group>/<name>/<fixture>
-        raise ValueError(
-            f"{path.relative_to(root)}: a scenario fixture lies in scenarios/<group>/<name>/"
-        )
+        raise ValueError(f"{name}: a scenario fixture lies in scenarios/<group>/<name>/")
     return f"{parts[1]}/{parts[2]}"
 
 
-def _read_settings(path: Path, root: Path, scenario: str | None) -> dict[str, str]:
-    settings = json.loads(path.read_text(encoding="utf-8"))
-    name = path.relative_to(root).as_posix()
+def _read_settings(name: str, settings: Any, scenario: str | None) -> dict[str, str]:
     if scenario is None:
         raise ValueError(f"{name}: settings belong to a scenario")
     if not isinstance(settings, dict) or not all(
@@ -412,15 +443,16 @@ def load_fixtures(root: Path) -> FixtureSet:
 
     if not root.is_dir():
         raise ValueError(f"{root} is not a fixture directory")
-    fixtures = FixtureSet({}, {}, rules=_read_manifest(root))
-    for path in sorted(root.rglob("*.json")):
-        scenario = _scenario_of(path, root)
+    manifest = read_manifest(root)
+    fixtures = FixtureSet({}, {}, rules=_rules(manifest))
+    for name, document in sorted(_documents(root, manifest).items()):
+        scenario, path = _scenario_of(name), PurePosixPath(name)
         if path.name == SETTINGS:
-            fixtures.settings[str(scenario)] = _read_settings(path, root, scenario)
+            fixtures.settings[str(scenario)] = _read_settings(name, document, scenario)
         elif path.parent.name == CONCEPTS:
-            _add_recording(fixtures, scenario, _read_recording(path, root, fixtures.rules))
+            _add_recording(fixtures, scenario, _read_recording(name, document, fixtures.rules))
         else:
-            _add_fixture(fixtures, scenario, path, root)
+            _add_fixture(fixtures, scenario, name, document)
     return fixtures
 
 
@@ -434,9 +466,9 @@ def _add_recording(
     table[key] = recording
 
 
-def _add_fixture(fixtures: FixtureSet, scenario: str | None, path: Path, root: Path) -> None:
+def _add_fixture(fixtures: FixtureSet, scenario: str | None, name: str, document: Any) -> None:
     table = fixtures.ordinary if scenario is None else fixtures.scenarios.setdefault(scenario, {})
-    key, fixture = _read_fixture(path, root)
+    key, fixture = _read_fixture(name, document)
     if _misplaced_everywhere(key, scenario):
         raise ValueError(
             f"{fixture.name}: a fixture for every path belongs to a scenario and matches on"

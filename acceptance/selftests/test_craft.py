@@ -2,7 +2,6 @@
 
 import base64
 import json
-import shutil
 from http import HTTPStatus
 from pathlib import Path
 from urllib.error import HTTPError
@@ -11,6 +10,7 @@ from urllib.request import Request, urlopen
 
 import pytest
 import yaml
+from conftest import crafted_digest, without_crafted
 from jsonschema import Draft4Validator
 
 from nci_si_acceptance.craft import (
@@ -23,7 +23,7 @@ from nci_si_acceptance.craft import (
     mismatched,
 )
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
-from nci_si_acceptance.record import DISCOVERY, FIXTURES, plan, reported_releases
+from nci_si_acceptance.record import DISCOVERY, FIXTURES, reported_releases
 from nci_si_acceptance.register import EVS_SURFACES
 
 CRAFTED = craft(FIXTURES)
@@ -32,6 +32,8 @@ MANIFEST = yaml.safe_load((FIXTURES / "manifest.yaml").read_text(encoding="utf-8
 MAX_NODES, MAX_DEPTH = 1000, 4
 PINNED, MISMATCHED_RELEASE = "26.09d", "26.08e"
 CONCEPT = "/api/v1/concept/ncit_26.09d"
+# argparse's exit status for arguments it refuses.
+USAGE_ERROR = 2
 # caDSR's cap, stated here, not imported: "The maximum number of results per query is 1000."
 CONTRACT_CAP = 1000
 
@@ -503,22 +505,135 @@ def test_the_recorded_scenarios_are_not_crafted(name):
     assert scenario(name) == {}
 
 
-def test_the_command_writes_what_craft_makes(tmp_path, capsys):
-    for directory in ("recorded", "crafted"):
-        shutil.copytree(FIXTURES / directory, tmp_path / directory)
-    # The scenario fixtures recorded live, which some crafted ones are made from.
-    for file in (each.file for each in plan(MANIFEST) if each.file.startswith("scenarios/")):
-        (tmp_path / file).parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(FIXTURES / file, tmp_path / file)
+def _status(arguments):
+    """The exit status of the command, whether it returns or exits."""
 
-    assert main(["--fixtures", str(tmp_path)]) == 0
+    try:
+        return main(arguments)
+    except SystemExit as exited:
+        return exited.code
 
-    assert f"Crafted {len(CRAFTED)} fixtures." in capsys.readouterr().out
-    written = tmp_path / "scenarios/release/two-latest/latest.json"
-    assert (
-        json.loads(written.read_text(encoding="utf-8"))
-        == CRAFTED["scenarios/release/two-latest/latest.json"]
+
+def _files(root):
+    return sorted(path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file())
+
+
+def _crafted_line(root):
+    return yaml.safe_load((root / "manifest.yaml").read_text(encoding="utf-8"))["crafted"]
+
+
+def _stale(root):
+    manifest = root / "manifest.yaml"
+    text = manifest.read_text(encoding="utf-8")
+    manifest.write_text(text.replace(_crafted_line(root), "sha256:" + "0" * 64), encoding="utf-8")
+
+
+def test_the_command_records_the_digest_and_writes_no_fixture(tmp_path):
+    root = without_crafted(tmp_path / "fixtures")
+    _stale(root)
+    before = _files(root)
+
+    assert _status(["--fixtures", str(root)]) == 0
+
+    assert _files(root) == before
+    assert _crafted_line(root) == crafted_digest(CRAFTED)
+
+
+def test_check_fails_on_a_stale_digest_and_passes_on_a_current_one(tmp_path, capsys):
+    root = without_crafted(tmp_path / "fixtures")
+
+    assert _status(["--fixtures", str(root), "--check"]) == 0
+    _stale(root)
+    assert _status(["--fixtures", str(root), "--check"]) == 1
+    assert "pdm run acceptance-craft" in capsys.readouterr().err
+
+
+def test_check_and_out_are_refused_together(tmp_path):
+    root = without_crafted(tmp_path / "fixtures")
+    out = tmp_path / "out"
+
+    assert _status(["--fixtures", str(root), "--check", "--out", str(out)]) == USAGE_ERROR
+    assert not out.exists()
+
+
+def _manifest_lines(root):
+    return (root / "manifest.yaml").read_text(encoding="utf-8").splitlines()
+
+
+def test_re_recording_replaces_a_stale_line_and_ends_the_file_with_a_newline(tmp_path):
+    root = without_crafted(tmp_path / "fixtures")
+    _stale(root)
+
+    assert _status(["--fixtures", str(root)]) == 0
+
+    crafted = [line for line in _manifest_lines(root) if line.startswith("crafted:")]
+    assert crafted == [f"crafted: {crafted_digest(CRAFTED)}"]
+    assert (root / "manifest.yaml").read_text(encoding="utf-8").endswith("\n")
+
+
+def test_out_leaves_the_manifest_as_it_was(tmp_path):
+    root = without_crafted(tmp_path / "fixtures")
+    manifest = root / "manifest.yaml"
+    manifest.write_text(
+        "\n".join(line for line in _manifest_lines(root) if not line.startswith("crafted:")),
+        encoding="utf-8",
     )
+    before = manifest.read_text(encoding="utf-8")
+
+    assert _status(["--fixtures", str(root), "--out", str(tmp_path / "out")]) == 0
+
+    assert manifest.read_text(encoding="utf-8") == before
+
+
+def test_check_crafts_the_fixture_set_it_is_given(tmp_path):
+    # A recording the crafted scenarios derive from differs here, so their digest does.
+    root = without_crafted(tmp_path / "fixtures")
+    roles = root / "recorded/evs/roles.json"
+    document = json.loads(roles.read_text(encoding="utf-8"))
+    document["response"]["body"].append({"code": "R999", "name": "Changed here"})
+    roles.write_text(json.dumps(document), encoding="utf-8")
+
+    assert _status(["--fixtures", str(root), "--check"]) == 1
+
+
+def test_the_command_adds_the_digest_line_to_a_manifest_without_one(tmp_path):
+    root = without_crafted(tmp_path / "fixtures")
+    manifest = root / "manifest.yaml"
+    text = manifest.read_text(encoding="utf-8").replace(f"crafted: {_crafted_line(root)}\n", "")
+    manifest.write_text(text, encoding="utf-8")
+
+    assert _status(["--fixtures", str(root)]) == 0
+
+    assert _crafted_line(root) == crafted_digest(CRAFTED)
+
+
+def test_check_refuses_a_manifest_that_is_not_a_mapping(tmp_path):
+    root = without_crafted(tmp_path / "fixtures")
+    (root / "manifest.yaml").write_text("", encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"manifest\.yaml"):
+        _status(["--fixtures", str(root), "--check"])
+
+
+def test_two_scenarios_crafting_one_name_are_refused():
+    name = "scenarios/release/two-latest/latest.json"
+
+    def twice(_):
+        return {name: {}}
+
+    with pytest.raises(ValueError, match=name):
+        craft(FIXTURES, (twice, twice))
+
+
+def test_out_writes_what_craft_makes_for_review(tmp_path):
+    root = without_crafted(tmp_path / "fixtures")
+    out = tmp_path / "out"
+
+    assert _status(["--fixtures", str(root), "--out", str(out)]) == 0
+
+    assert _files(out) == sorted(CRAFTED)
+    name = "scenarios/release/two-latest/latest.json"
+    assert json.loads((out / name).read_text(encoding="utf-8")) == CRAFTED[name]
 
 
 # The crafted answers of the APIs that refuse an anonymous caller, each with the recorded

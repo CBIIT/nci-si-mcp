@@ -15,14 +15,14 @@ NCI_SI_ACCEPTANCE_URL=https://... pdm run acceptance # a remote server over stre
 NCI_SI_ACCEPTANCE_PROFILE=evs NCI_SI_ACCEPTANCE_SERVER="..." pdm run acceptance  # a server of one profile (default: unified)
 pdm run python -m nci_si_acceptance.report acceptance/fixture.json --live acceptance/live.json
 pdm run acceptance-index-codes                       # the index set, one code per line (remote server)
-pdm run acceptance -n 4 --report=fixture.json        # the same on four workers; the report is identical
+pdm run acceptance -n 4 --dist worksteal --report=fixture.json  # four workers, stealing work; the same report
 pdm run acceptance-expected check acceptance/fixture.json   # a report against the expected outcomes
 pdm run acceptance-expected update acceptance/fixture.json  # rewrite the expected outcomes from a report
 pdm run acceptance-status                            # regenerate the README's status table
 pdm run acceptance-selftest                          # the harness's own tests
 SELFTEST_SHARD=1/3 pdm run acceptance-selftest       # one of three shards, as CI runs them
 pdm run acceptance-record                            # re-record fixtures/recorded/ from live
-pdm run acceptance-craft                             # rebuild the crafted scenarios
+pdm run acceptance-craft                             # record the crafted fixtures' digest
 pdm run acceptance-register                          # regenerate request-forms/ from the manifest
 pdm run acceptance-stories                           # regenerate the complete domain story catalogue
 pdm run acceptance-stories --check                   # verify its mapping and generated content
@@ -166,10 +166,11 @@ with credentials withheld, rather than aborting the run or counting as `not_live
 ## The report
 
 `--report` writes one JSON report per run; `nci_si_acceptance.report` renders it as the per-tool
-table of the specification's §5. A tool is PASS, FAIL (a failed gate fails every tool), NO FIXTURE (a request lacked
-a fixture: a question for the fixture set), INCOMPLETE (the tests that ran passed but some could
-not run: a hardening candidate), NOT IMPLEMENTED, NOT RUN or NO TESTS; the module docstring
-defines each, and each row counts the tests passed, failed, without a fixture and not run.
+table of the specification's §5. A tool is PASS, FAIL (a failed gate fails every tool), NO
+FIXTURE (a request lacked a fixture: a question for the fixture set), INCOMPLETE (the tests that
+ran passed but some could not run, or a gate could not run, shown as "gates not run": a
+hardening candidate), NOT IMPLEMENTED, NOT RUN or NO TESTS; the module docstring defines each,
+and each row counts the tests passed, failed, without a fixture and not run.
 The rendered report opens with its title and the identity of the suite: the suite version, the
 fixture-set version (the pinned release and the date of the latest recording) and the suite
 digest. The title is ACCEPTANCE REPORT only when that digest is in `approved.yaml`; otherwise it
@@ -199,7 +200,7 @@ new snapshots must come from guarded runs and carry completion fields.
 ## CI: the ratchet on expected outcomes
 
 The `acceptance` job of `.github/workflows/ci.yml` runs the suite in fixture mode against the
-server built from the checkout (`pdm run acceptance -n 4 --report=fixture.json` with the prepare
+server built from the checkout (`pdm run acceptance -n 4 --dist worksteal --report=fixture.json` with the prepare
 step above), beside the `test` and `selftest` jobs and depending on none of them. Pytest's exit
 status 0 and 1 are eligible, but the report must also prove completion; any other status or a
 missing or incomplete report fails the job. The verdict
@@ -227,8 +228,9 @@ reports its workers forward.
 
 `.github/workflows/acceptance-live.yml` runs by hand (`workflow_dispatch`) and every Monday at
 06:41 UTC; the scheduled run fails when a test that passes on the fixtures fails live. It runs the
-fixture suite and the live suite (`NCI_SI_ACCEPTANCE_MODE=live`, both with `-n 4`; the live
-outcomes are not ratcheted), renders the combined report into the job summary and uploads
+fixture suite and the live suite (`NCI_SI_ACCEPTANCE_MODE=live`, both with `-n 4 --dist worksteal`,
+so that no worker is left with the slow tail; the live outcomes are not ratcheted), renders the
+combined report into the job summary and uploads
 `fixture.json`, `live.json`, the rendered report and `network.md` as the artifact
 `acceptance-live`. `network.md` records where the run came from: the runner's environment,
 operating system, architecture and name, and whether EVS answers over IPv4 and over IPv6
@@ -250,7 +252,7 @@ decides whether a report is an acceptance report, `spec.py` reads the specificat
 requirements, `document.py` renders it as `../docs/specification.md`, and `suite.py` holds the
 rules of a run. `concepts.py` composes EVS concept answers from one recording per
 concept, `record.py` records the set from live,
-`craft.py` crafts the scenarios EVS does not produce on demand, `register.py` writes the
+`craft.py` crafts, in memory, the scenarios EVS does not produce on demand, `register.py` writes the
 register of request forms (`request-forms/`), `expected.py` compares a report with the expected
 outcomes (`expected/fixture.json`) and rewrites them, and `status.py` writes the README's status
 table from them. `results.py` holds what the tests read from a tool's result and from the upstream

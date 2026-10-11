@@ -200,6 +200,28 @@ def _comparison_form(rows: list[dict[str, Any]]) -> str:
     )
 
 
+# The verdicts that gates which could not run decide (#265): an earlier harness recorded PASS,
+# the current one INCOMPLETE.
+GATES_UNRUN_LABELS = {
+    "PASS": "PASS (gates not run; recorded by an earlier harness)",
+    "INCOMPLETE": "INCOMPLETE (gates not run)",
+}
+# A PASS stored before the projection kept the gate status: whether the gates ran is unknown.
+GATE_STATUS_UNRECORDED = "PASS (gate status not recorded)"
+
+
+def _verdict(row: dict[str, Any]) -> str:
+    """A tool's native verdict, saying so when gates that could not run decide it."""
+
+    outcome: str = row["outcome"]
+    if "gates_unrun" not in row:
+        # A projection stored before the gate status was projected cannot tell.
+        return GATE_STATUS_UNRECORDED if outcome == "PASS" else outcome
+    if row["gates_unrun"] and outcome in GATES_UNRUN_LABELS:
+        return GATES_UNRUN_LABELS[outcome]
+    return outcome
+
+
 def _acceptance(evidence: dict[str, Any], tool: str, story: str) -> str:
     cases = evidence["cases"]
     selected = _filter_cases(cases, tool, story)
@@ -216,7 +238,7 @@ def _acceptance(evidence: dict[str, Any], tool: str, story: str) -> str:
         body += _table(
             "Tool verdicts",
             ["Tool", "Native verdict", "Gate-only failure"],
-            [[name, row["outcome"], row["gates_only"]] for name, row in tools.items()],
+            [[name, _verdict(row), row["gates_only"]] for name, row in tools.items()],
         )
     else:
         absent = "No report was produced. " if tools is None else ""

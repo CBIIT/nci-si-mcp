@@ -21,6 +21,9 @@ SCENARIO = "scenario"
 # A test marked so runs against a server process of its own, as a scenario test does.
 OWN_SERVER = "own_server"
 FIXTURE_ONLY = "fixture mode only"
+# The property a skip site sets to say why a test did not run: not_live or not_implemented.
+# The report reads it, never the reason text.
+SKIP = "acceptance_skip"
 # A test marked so expects requests without a fixture, and checks them itself.
 UNMATCHED_UPSTREAM = "unmatched_upstream"
 # A test marked so needs what the operator's prepare command produced (the interim index).
@@ -61,6 +64,7 @@ def skip_fixture_only(items: Iterable[pytest.Item]) -> None:
     for item in items:
         if item.get_closest_marker(LIVE_CAPABLE) is None or scenarios_of(item):
             item.add_marker(skip)
+            item.user_properties.append((SKIP, "not_live"))
 
 
 def skip_unprepared(items: Iterable[pytest.Item], reason: str = NOT_PREPARED) -> None:

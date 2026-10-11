@@ -79,7 +79,7 @@ pdm run pytest tests/test_handlers.py -k LookupTest
 pdm run lint                              # ruff check + basedpyright, the fast check
 pdm run fmt                               # ruff format
 pdm run pre-commit run --all-files        # every hook, as the CI quality job runs them
-NCI_SI_ACCEPTANCE_SECURITY_SERVER='python ../scripts/permissions_fixture.py' NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")' pdm run acceptance -n 4 --report=fixture.json  # fixture mode, prepared as in CI
+NCI_SI_ACCEPTANCE_SECURITY_SERVER='python ../scripts/permissions_fixture.py' NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")' pdm run acceptance -n 4 --dist worksteal --report=fixture.json  # fixture mode, prepared as in CI
 pdm run acceptance-expected check acceptance/fixture.json    # the report against the expected outcomes
 pdm run acceptance-expected update acceptance/fixture.json   # rewrite the expected outcomes
 pdm run acceptance-status                 # regenerate the README status table
@@ -190,9 +190,7 @@ lines (excluding generated files and `acceptance/expected/fixture.json`), and tw
 at most. If it outgrows those bounds, split it before opening the pull request and move the
 remaining work to a new milestone. Measure insertions plus deletions with
 `git diff --shortstat origin/main...milestone/<phase> -- . ':!acceptance/expected/fixture.json'`,
-adding exclusion pathspecs for generated files. Until #221 removes generated scenarios, exclude
-each path returned by `nci_si_acceptance.craft.craft(FIXTURES)` with
-`':!acceptance/fixtures/<path>'`; recorded scenario fixtures remain in the count.
+adding exclusion pathspecs for generated files.
 
 **Each issue:**
 

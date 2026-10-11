@@ -12,7 +12,7 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 
 **Observation.** The release route is recorded 404. The export folder names 2026-07-01 22:19 without a timezone while its README says daily updates; matching/forms declare no registryRelease transport. C-1 fixtures are requested future behavior.
 
-**Reproduction.** Read the release route and the exact releasedCDEsXML-OD.zip folder row; inspect the matching/form contracts and the crafted pinned getCRDCList request/echo.
+**Reproduction.** Read the release route and the exact releasedCDEsXML-OD.zip folder row; inspect the matching/form contracts and the crafted pinned getCRDCList request/echo of the cadsr/with-registry-release scenario, crafted in memory by cadsr_with_registry_release in acceptance/src/nci_si_acceptance/craft.py.
 
 **Expected.** Publish stable registry identifiers and generation dates; specify pin transport and response verification for every content, form and matching operation, including getCRDCList.
 
@@ -27,7 +27,6 @@ Evidence (linked request/response files retain their original form):
 - [acceptance/fixtures/recorded/cadsr/registry-releases.json](../../acceptance/fixtures/recorded/cadsr/registry-releases.json) — recorded on 2026-10-03; GET cadsr /NCIAPI/1.0/api/registry/releases; SHA-256 `7104dba3ddd6cef86e2410d8572ee2b032e4a0593f5f6d72433275f29d953963`.
 - [acceptance/fixtures/recorded/cadsr-ftp/cde-xml-listing.json](../../acceptance/fixtures/recorded/cadsr-ftp/cde-xml-listing.json) — recorded on 2026-10-03; GET cadsr-ftp /CDE/XML/; SHA-256 `3801e0ce4d9b8e2f1d717affe45fe5bd0d2533079c76e0cdc0736471b26de797`.
 - [acceptance/fixtures/recorded/cadsr-ftp/cde-xml-readme.json](../../acceptance/fixtures/recorded/cadsr-ftp/cde-xml-readme.json) — recorded on 2026-10-03; GET cadsr-ftp /CDE/XML/README; SHA-256 `eb62930ae94a0faa6fb21ce086a22b65f0774c14b155c6fc24af999fee46a60b`.
-- [acceptance/fixtures/scenarios/cadsr/with-registry-release/crdc-list.json](../../acceptance/fixtures/scenarios/cadsr/with-registry-release/crdc-list.json) — crafted; GET cadsr /NCIAPI/1.0/api/DataElements/getCRDCList; SHA-256 `8e9e32d2b1b18b444a7a9be4d69dfcbb67a836a10614b941fb03f71246d71a85`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|
@@ -45,7 +44,7 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 
 **Observation.** Keyword search is requested OP-C03, not a verified served operation; the capped search answer is crafted. The live benchmark returned upstream_unavailable. Context/workflow/registration/value-domain filter parameter names are absent from that requested form.
 
-**Reproduction.** Use DataElement/search with keyword and pageSize from the request inventory; compare with public-id lookup. The recorded malformed-id response illustrates the HTTP-200 error convention, not a recording of keyword search.
+**Reproduction.** Use DataElement/search with keyword and pageSize from the request inventory; compare with public-id lookup. The capped answer crafted/OP-C03/search-over-cap.json is crafted in memory by cadsr_over_cap in acceptance/src/nci_si_acceptance/craft.py. The recorded malformed-id response illustrates the HTTP-200 error convention, not a recording of keyword search.
 
 **Expected.** A keyword endpoint with explicit filter names, registryRelease verification, pagination or a machine-readable 1000-result truncation signal.
 
@@ -57,7 +56,6 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 
 Evidence (linked request/response files retain their original form):
 
-- [acceptance/fixtures/crafted/OP-C03/search-over-cap.json](../../acceptance/fixtures/crafted/OP-C03/search-over-cap.json) — crafted; GET cadsr /NCIAPI/1.0/api/DataElement/search; SHA-256 `8b10c5a685b7370828dc5e0850b131ef6d1cb396f3e9f6a08cd81558f32346c3`.
 - [acceptance/fixtures/recorded/cadsr/data-element-refused.json](../../acceptance/fixtures/recorded/cadsr/data-element-refused.json) — recorded on 2026-10-03; GET cadsr /NCIAPI/1.0/api/DataElement/notanumber; SHA-256 `ed10c3eb0e0477fbd90decab2dde6ca9fabb374dd7e9abe822b393b78c8edaaf`.
 - [docs/evidence/phase-5/benchmark-live.json](../../docs/evidence/phase-5/benchmark-live.json) — measurement report; SHA-256 `7c55e576784413ca805d45c9a71e5fefd524188197f1216277958676102dfbbb`.
 

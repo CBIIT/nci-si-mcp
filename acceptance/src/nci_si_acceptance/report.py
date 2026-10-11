@@ -11,13 +11,15 @@ each required tool one outcome:
     NO FIXTURE       the tool's tests failed only because a request found no fixture:
                      a question for the fixture set, not a defect of the server
     INCOMPLETE       the tool's tests that ran passed, but some could not run: skipped, or
-                     needing a capability the tool lacks; a hardening
-                     candidate, not a pass
+                     needing a capability the tool lacks, or a gate could not run (shown as
+                     "gates not run"); a hardening candidate, not a pass
     NOT IMPLEMENTED  the server does not expose the required tool name
     NOT RUN          no test of the tool ran (in live mode: none is live-capable)
     NO TESTS         the suite has no test for the tool: a defect of the suite
 
-In a live run, the tests that run in fixture mode only leave a tool NOT RUN, never INCOMPLETE.
+In a live run, the tests that run in fixture mode only (not_live) leave a tool NOT RUN, never
+INCOMPLETE, and the gates among them change no outcome: they do not run live by design, while a
+gate that could not run did not.
 
 Combining the fixture run with the live run gives the final outcome. A tool that
 passes against fixtures is PASS (fixture only) when each of its live failures is a
@@ -45,8 +47,7 @@ import yaml
 
 from nci_si_acceptance.client import withhold_authorization
 from nci_si_acceptance.spec import REQUIRED_TOOLS
-from nci_si_acceptance.suite import FIXTURE_ONLY as FIXTURE_ONLY_SKIP
-from nci_si_acceptance.suite import UnmatchedUpstream
+from nci_si_acceptance.suite import SKIP, UnmatchedUpstream
 from nci_si_acceptance.suite_identity import (
     APPROVED,
     REPOSITORY,
@@ -55,7 +56,7 @@ from nci_si_acceptance.suite_identity import (
     heading,
     identity,
 )
-from nci_si_acceptance.tools import NOT_IMPLEMENTED
+from nci_si_acceptance.tools import NOT_IMPLEMENTED, NotImplementedSkip
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -84,12 +85,18 @@ RANK = {
 FAILED = ("failed", "no_fixture")
 # The final outcomes of a test that did not run to a verdict.
 UNRUN = ("skipped", "not_implemented", "not_live")
+# Those of them that could not run. A live run's fixture-only tests and gates do not run there
+# by design (not_live), so they keep no tool from passing.
+CANNOT_RUN = ("skipped", "not_implemented")
 
 
-def tool_outcome(counts: Counter[str], gates_failed: bool, implemented: bool | None) -> str:
-    """The outcome of one tool in one run, from the final outcomes of its tests.
+def tool_outcome(
+    counts: Counter[str], gates_failed: bool, gates_unrun: bool, implemented: bool | None
+) -> str:
+    """The outcome of one tool in one run, from the final outcomes of its tests and the gates.
 
-    `implemented` is None when no server started, so the run cannot tell.
+    `implemented` is None when no server started, so the run cannot tell. A gate that did not
+    run keeps a tool from passing and changes no other outcome.
     """
 
     if not counts:
@@ -98,22 +105,41 @@ def tool_outcome(counts: Counter[str], gates_failed: bool, implemented: bool | N
         return FAIL
     if counts["no_fixture"]:
         return NO_FIXTURE
-    return _without_failures(counts, implemented)
+    return _without_failures(counts, gates_unrun, implemented)
 
 
-def _without_failures(counts: Counter[str], implemented: bool | None) -> str:
+def _without_failures(counts: Counter[str], gates_unrun: bool, implemented: bool | None) -> str:
     if implemented is False:
         return NOT_IMPLEMENTED
     if not counts["passed"]:
         return NOT_RUN
-    return INCOMPLETE if counts["skipped"] or counts["not_implemented"] else PASS
+    return INCOMPLETE if own_unrun(counts) or gates_unrun else PASS
+
+
+def gate_names(tests: dict[str, dict[str, Any]], outcomes: tuple[str, ...]) -> list[str]:
+    """The gates among a run's tests whose final outcome is one of `outcomes`, in order."""
+
+    return sorted(
+        nodeid for nodeid, test in tests.items() if test["gate"] and test["outcome"] in outcomes
+    )
+
+
+def fails_by_gates_only(counts: Counter[str], gates_failed: bool) -> bool:
+    """Whether a failed gate, and none of the tool's own tests, would fail the tool: none of its
+    own tests failed or lacked a fixture."""
+
+    return gates_failed and not (counts["failed"] or counts["no_fixture"])
+
+
+def own_unrun(counts: Counter[str]) -> int:
+    """The tool's own tests that could not run (CANNOT_RUN)."""
+
+    return sum(counts[outcome] for outcome in CANNOT_RUN)
 
 
 def _skip_outcome(report: pytest.TestReport) -> str:
-    reason = str(report.longrepr[2]) if isinstance(report.longrepr, tuple) else ""
-    if FIXTURE_ONLY_SKIP in reason:
-        return "not_live"
-    return "not_implemented" if NOT_IMPLEMENTED in reason else "skipped"
+    # The site of the skip says why (suite.SKIP); its reason text is for people.
+    return str(dict(report.user_properties).get(SKIP, "skipped"))
 
 
 def _phase_outcome(report: pytest.TestReport) -> str | None:
@@ -201,32 +227,29 @@ class Collector:
             self.implemented = noted["implemented"]
             self.listing_bytes = noted["listing_bytes"]
 
-    def _row(self, name: str, group: str, gates_failed: bool) -> dict[str, Any]:
+    def _row(self, name: str, group: str, gates_failed: bool, gates_unrun: bool) -> dict[str, Any]:
         counts = Counter(test["outcome"] for test in self.tests.values() if test["tool"] == name)
         implemented = None if self.implemented is None else self.implemented.get(name, False)
         return {
             "group": group,
-            "outcome": tool_outcome(counts, gates_failed, implemented),
-            "gates_only": gates_failed and not (counts["failed"] or counts["no_fixture"]),
+            "outcome": tool_outcome(counts, gates_failed, gates_unrun, implemented),
+            "gates_only": fails_by_gates_only(counts, gates_failed),
             "counts": dict(counts),
         }
 
-    def _gates(self, outcomes: tuple[str, ...]) -> list[str]:
-        return sorted(
-            nodeid
-            for nodeid, test in self.tests.items()
-            if test["gate"] and test["outcome"] in outcomes
-        )
-
     def report(self, mode: str) -> dict[str, Any]:
-        gates = self._gates(FAILED)
-        rows = {name: self._row(name, group, bool(gates)) for name, group in REQUIRED_TOOLS.items()}
+        gates, unrun = gate_names(self.tests, FAILED), gate_names(self.tests, UNRUN)
+        blocked = bool(gate_names(self.tests, CANNOT_RUN))
+        rows = {
+            name: self._row(name, group, bool(gates), blocked)
+            for name, group in REQUIRED_TOOLS.items()
+        }
         return {
             "mode": mode,
             "transport": self.transport,
             "run": self.run,
             "failed_gates": gates,
-            "unrun_gates": self._gates(UNRUN),
+            "unrun_gates": unrun,
             "tools_list_bytes": self.listing_bytes,
             "tools": rows,
             # Workers report in the order they finish; a report is the same whatever that was.
@@ -262,12 +285,22 @@ def _over_both(
 
 
 def _row(name: str, row: dict[str, Any], outcome: str, excused: list[str]) -> str:
-    if outcome == FAIL and row["gates_only"]:
-        outcome = "FAIL (gates only)"
     counts = Counter(row["counts"])
+    # An INCOMPLETE tool whose own tests all ran can only rest on gates that could not run.
+    outcome = _label(outcome, row["gates_only"], not own_unrun(counts))
     unrun = sum(counts[kind] for kind in UNRUN)
     tests = f"{counts['passed']} / {counts['failed']} / {counts['no_fixture']} / {unrun}"
     return f"| `{name}` | {row['group']} | {outcome} | {tests} | {', '.join(excused)} |"
+
+
+def _label(outcome: str, gates_only: bool, by_unrun_gates: bool) -> str:
+    """The outcome as a row shows it, saying so when the gates alone decide it."""
+
+    if outcome == FAIL and gates_only:
+        return "FAIL (gates only)"
+    if outcome == INCOMPLETE and by_unrun_gates:
+        return "INCOMPLETE (gates not run)"
+    return outcome
 
 
 def _named(combined: dict[str, tuple[str, list[str]]], *kinds: str) -> str:
@@ -352,6 +385,8 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[None]) ->
     withhold_from(report)
     if call.excinfo is not None and isinstance(call.excinfo.value, UnmatchedUpstream):
         report.user_properties.append((UNMATCHED, call.excinfo.value.requests))
+    if call.excinfo is not None and isinstance(call.excinfo.value, NotImplementedSkip):
+        report.user_properties.append((SKIP, "not_implemented"))
     marker = item.get_closest_marker("tool")
     attribution = {
         "tool": marker.args[0] if marker else None,

@@ -43,6 +43,7 @@ _OWN = (
     "dateModified",
 )
 _IDENTITY = ("publicId", "version", "longName")
+_STATUSES = ("workflowStatus", "registrationStatus")
 _FORM_TEXT = ("definition", "type", "beginDate", "endDate")
 _FORM_LISTS = ("instructions", "classificationSchemes")
 _ELEMENT = (
@@ -164,20 +165,29 @@ def _item_provenance(
 def _element(
     raw: dict[str, Any], include: list[DataElementInclude], provenance: dict[str, Any]
 ) -> dict[str, Any]:
-    _identity(raw)
+    _identity(raw, "data element", _STATUSES)
     result = _fields(raw, _ELEMENT) | {"provenance": _item_provenance(raw, provenance)}
     for section in include:
         result[section] = _section(raw, section, provenance)
     return result
 
 
-def _identity(raw: dict[str, Any]) -> dict[str, Any]:
+def _validate_key(raw: dict[str, Any]) -> None:
     _candidate_id(raw)
     if not isinstance(raw.get("version"), str) or not re.fullmatch(
         ITEM_VERSION_FORM, raw["version"]
     ):
         _malformed("registry item version")
-    return _fields(raw, _IDENTITY)
+
+
+def _identity(raw: dict[str, Any], kind: str, required: tuple[str, ...] = ()) -> dict[str, Any]:
+    # The record never admits null for a registry item's name or the fields it requires:
+    # caDSR omitting one is a malformed answer, not an empty field (#295).
+    _validate_key(raw)
+    for name in ("longName", *required):
+        if not isinstance(raw.get(name), str):
+            _malformed(f"{kind} {name}")
+    return _fields(raw, (*_IDENTITY, *required))
 
 
 def _section(raw: dict[str, Any], section: DataElementInclude, provenance: dict[str, Any]) -> Any:
@@ -199,14 +209,13 @@ def _domain_section(raw: dict[str, Any], section: str, provenance: dict[str, Any
 
 
 def _scheme(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
-    return (
-        _identity(raw)
-        | _fields(raw, ("context",))
-        | {
-            "items": [_identity(row) for row in _rows(raw, "ClassificationSchemeItems")],
-            "provenance": _item_provenance(raw, provenance),
-        }
-    )
+    return _identity(raw, "classification scheme", ("context",)) | {
+        "items": [
+            _identity(row, "classification scheme item")
+            for row in _rows(raw, "ClassificationSchemeItems")
+        ],
+        "provenance": _item_provenance(raw, provenance),
+    }
 
 
 def _value(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
@@ -215,7 +224,7 @@ def _value(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
         _malformed("permissible value")
     meaning = _object(raw, "ValueMeaning")
     return _fields(raw, ("publicId", "value")) | {
-        "valueMeaning": _identity(meaning)
+        "valueMeaning": _identity(meaning, "value meaning")
         | {"concepts": [_meaning_concept(row) for row in _rows(meaning, "Concepts")]},
         "provenance": _item_provenance(raw, provenance),
     }
@@ -353,7 +362,9 @@ def get_data_element(
     not_found when no element has that publicId and version or that question text;
     invalid_request naming the candidates when several have the text. longName is not served by
     caDSR today and is capability_unavailable (OP-C02). A pin must be published and confirmed
-    upstream, else release_not_available or release_mismatch.
+    upstream, else release_not_available or release_mismatch. upstream_unavailable when caDSR
+    sends the element without its longName, workflowStatus or registrationStatus, or an included
+    scheme, scheme item or value meaning without its longName (a scheme also its context).
     """
     sections = _lookup_options(publicId, longName, questionText, version, include)
     release = _pin(context, registryRelease)
@@ -419,9 +430,11 @@ def search_data_elements(
     list of 1,000 rows reports upstream_cap, omitted at least one and exact false. totalKnown
     appears only when the platform gives a count.
 
-    upstream_unavailable when the route fails; when caDSR answers with its error envelope the
-    message adds that keyword search is not served, so read an element by publicId or question
-    text instead.
+    upstream_unavailable when the route fails, or when any of the up to 1,000 rows it returned
+    lacks its longName, workflowStatus or registrationStatus (the whole call fails, even for a
+    row beyond the requested page); when caDSR answers with its
+    error envelope the message adds that keyword search is not served, so read an element by
+    publicId or question text instead.
     """
     _search_options(query, mode, filters)
     size = bounded(limit, 100, "limit")
@@ -686,7 +699,8 @@ def get_form(
 
     not_found when the platform reports an unknown form; invalid_request for a keyword or a bad
     id; capability_unavailable for a published registry pin until C-1 defines how forms are
-    pinned, release_not_available for an unpublished one; upstream_unavailable otherwise.
+    pinned, release_not_available for an unpublished one; upstream_unavailable otherwise,
+    including a form without its longName, workflowStatus or registrationStatus.
     """
     identifier = _form_options(publicId, keyword, version, includeModules)
     release = refuse_pinned(context, registryRelease, "pinned form lookup")
@@ -702,7 +716,7 @@ def get_form(
     provenance = _provenance(
         context, release, f"{FORM_API}/Form/{identifier}", {"version": version}
     )
-    _identity(item)
+    _identity(item, "form", _STATUSES)
     result = _fields(item, _OWN + _FORM_TEXT) | {
         # The Form API spells its identifier publicID; the origin is reported as it sent it.
         "provenance": _item_provenance(raw, provenance, ("publicID", "version", "dateModified"))
@@ -771,7 +785,7 @@ def _map_value(raw: dict[str, Any]) -> dict[str, str]:
 
 def _code_map(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
     item = {"publicId": raw.get("CDE Public ID"), "version": raw.get("Version")}
-    _identity(item)
+    _validate_key(item)
     names = _fields(raw, ("CRDC Name", "Used By"))
     values = [_map_value(value) for value in _rows(raw, "permissibleValues")]
     return {

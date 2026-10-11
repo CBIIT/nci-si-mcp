@@ -454,7 +454,7 @@ acceptance/
     fixture_server.py       serves fixtures by (surface, method, path, params, headers, body), active scenarios first, with a request log endpoint
     concepts.py             composes EVS concept answers from one recording per concept (§9.6)
     record.py               re-records `recorded/` from live against the manifest's pins (`pdm run acceptance-record`)
-    craft.py                crafts the scenario fixtures EVS does not produce on demand (`pdm run acceptance-craft`)
+    craft.py                crafts, in memory, the scenario fixtures EVS does not produce on demand (`pdm run acceptance-craft` records their digest)
     register.py             writes the register of request forms from the manifest (`pdm run acceptance-register`)
     tools.py                direct tool dispatch and result decoding
     requirements.py         the rule that tests cite `spec/requirements.yaml` and every requirement is cited or planned
@@ -462,8 +462,8 @@ acceptance/
   fixtures/
     manifest.yaml           pinned NCIt release (caDSR export date and SI graph dates to come), concept rules, the scenarios, the requests recorded
     recorded/<surface>/…    captured responses with the request that produced them
-    crafted/<requirement>/… hand-written responses naming the requirement they stand in for
-    scenarios/<group>/<name>/ the fixtures of each scenario the manifest describes
+    crafted/<requirement>/… responses derived from recordings, naming the requirement they stand in for (craft.py's are in memory)
+    scenarios/<group>/<name>/ the recorded fixtures of a scenario the manifest describes; craft.py's are in memory
   request-forms/            the register of request forms: a view for each team (EVS, caDSR, Shared SI) and one for all
   tests/
     test_protocol.py        the P requirements (protocol gates)

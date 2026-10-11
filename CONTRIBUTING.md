@@ -28,13 +28,13 @@ pdm run pre-commit install     # run the gates on every commit
 | `pdm run acceptance-http` | Real HTTP fixture suite, managed restarts and explicit remote-contract skips ([transport details](docs/transport.md)) |
 | `pdm run python scripts/benchmark.py --output tmp/benchmark.json` | Representative MCP measurements with actual outbound counts ([method and evidence](docs/benchmark.md)) |
 | `pdm run python scripts/upstream_requirements.py` | Regenerate the [upstream requirements packages](docs/upstream/README.md) from the catalogue and measured reports; `--check` verifies them without writing |
-| `pdm run acceptance -n 4 --report=fixture.json` | The acceptance suite on four workers, with the report CI compares ([the ratchet](acceptance/README.md#ci-the-ratchet-on-expected-outcomes)) |
+| `pdm run acceptance -n 4 --dist worksteal --report=fixture.json` | The acceptance suite on four workers, with the report CI compares ([the ratchet](acceptance/README.md#ci-the-ratchet-on-expected-outcomes)) |
 | `pdm run acceptance-expected check acceptance/fixture.json` | The report against `acceptance/expected/fixture.json`, test by test |
 | `pdm run acceptance-status` | Regenerate the status table of the README from the expected outcomes |
 | `pdm run acceptance-selftest` | The acceptance harness's own tests, on four workers |
 | `pdm run acceptance-index-codes` | Print the sample concept codes the suite indexes before a run |
 | `pdm run acceptance-record` | Re-record `acceptance/fixtures/recorded/` from the live services, under change control |
-| `pdm run acceptance-craft` | Regenerate the crafted fixture scenarios from the recorded ones |
+| `pdm run acceptance-craft` | Record the digest of the crafted fixtures in the manifest; `--out DIR` writes them to read |
 | `pdm run acceptance-register` | Regenerate the request-forms register (`acceptance/request-forms/`) |
 | `pdm run acceptance-stories` | Regenerate [docs/behavioural-tests.md](docs/behavioural-tests.md) from the suite; `--check` verifies it |
 | `pdm run spec-render` | Regenerate [docs/specification.md](docs/specification.md) from `spec/`, after any change there |

@@ -164,6 +164,108 @@ class AcceptanceProjectionTest(unittest.TestCase):
         self.assertTrue(result["inventory_complete"])
         self.assertEqual(result["tools"]["lookup"]["outcome"], "PASS")
 
+    def test_an_unrun_gate_leaves_the_tool_incomplete_in_a_current_report(self):
+        # Since #265 the harness keeps a tool from passing while a gate did not run; the PASS
+        # of an older report, above, stays that run's verdict.
+        native = report()
+        key = "tests/test_example.py::test_protocol"
+        native["tests"][key]["outcome"] = "skipped"
+        native["unrun_gates"] = [key]
+        native["tools"]["lookup"]["outcome"] = "INCOMPLETE"
+        result = project(native)
+        self.assertEqual(result["tools"]["lookup"]["outcome"], "INCOMPLETE")
+        native["tools"]["lookup"]["outcome"] = "NOT RUN"
+        with self.assertRaises(EvidenceError):
+            project(native)
+
+    def test_the_projection_says_when_unrun_gates_alone_decide_a_verdict(self):
+        again = "tests/test_example.py::test_lookup_again"
+        context = bundle()
+        catalogue = json.loads(context["catalogue"])
+        catalogue["cases"][again] = {"tool": "lookup", "gate": False}
+        context |= {
+            "catalogue": encoded(catalogue),
+            "stories": encoded(dict.fromkeys(catalogue["cases"], "find-a-concept")),
+            "expectations": encoded(dict.fromkeys(catalogue["cases"], "passed")),
+            "selection": encoded(list(catalogue["cases"])),
+        }
+        gate = "tests/test_example.py::test_protocol"
+        for own, gate_outcome, verdict, decided in (
+            ("passed", "skipped", "INCOMPLETE", True),
+            ("skipped", "skipped", "INCOMPLETE", False),
+            ("passed", "not_live", "PASS", False),
+            ("passed", "not_implemented", "INCOMPLETE", True),
+        ):
+            native = report()
+            native["tests"][again] = {"tool": "lookup", "gate": False, "unmatched": []}
+            native["tests"][again]["outcome"] = own
+            native["tests"][gate]["outcome"] = gate_outcome
+            native["unrun_gates"] = [gate]
+            counts = {"passed": 2} if own == "passed" else {"passed": 1, "skipped": 1}
+            native["tools"]["lookup"].update(outcome=verdict, counts=counts)
+            with self.subTest(own=own, gate=gate_outcome):
+                tool = project(native, context)["tools"]["lookup"]
+                self.assertEqual((tool["outcome"], tool["gates_unrun"]), (verdict, decided))
+
+    def test_another_tool_s_own_skipped_test_is_no_unrun_gate(self):
+        other = "tests/test_example.py::test_search"
+        context = bundle()
+        catalogue = json.loads(context["catalogue"])
+        catalogue["tools"]["search"] = "evs"
+        catalogue["cases"][other] = {"tool": "search", "gate": False}
+        context |= {
+            "catalogue": encoded(catalogue),
+            "stories": encoded(dict.fromkeys(catalogue["cases"], "find-a-concept")),
+            "expectations": encoded(dict.fromkeys(catalogue["cases"], "passed")),
+            "selection": encoded(list(catalogue["cases"])),
+        }
+        native = report()
+        native["tests"][other] = {"tool": "search", "gate": False, "unmatched": []}
+        native["tests"][other]["outcome"] = "skipped"
+        native["tools"]["search"] = {
+            "group": "evs",
+            "outcome": "NOT RUN",
+            "gates_only": False,
+            "counts": {"skipped": 1},
+        }
+        tools = project(native, context)["tools"]
+        self.assertEqual(
+            {name: (tool["outcome"], tool["gates_unrun"]) for name, tool in tools.items()},
+            {"lookup": ("PASS", False), "search": ("NOT RUN", False)},
+        )
+
+    def test_the_gate_lists_are_checked_in_order(self):
+        names = [f"tests/test_example.py::test_gate_{letter}" for letter in "abcd"]
+        context = bundle()
+        catalogue = json.loads(context["catalogue"])
+        catalogue["cases"] |= {name: {"tool": None, "gate": True} for name in names}
+        context |= {
+            "catalogue": encoded(catalogue),
+            "stories": encoded(dict.fromkeys(catalogue["cases"], "find-a-concept")),
+            "expectations": encoded(dict.fromkeys(catalogue["cases"], "passed")),
+            "selection": encoded(list(catalogue["cases"])),
+        }
+        native = report()
+        for name, outcome in zip(names, ("failed", "failed", "skipped", "skipped"), strict=True):
+            native["tests"][name] = {
+                "tool": None,
+                "gate": True,
+                "outcome": outcome,
+                "unmatched": [],
+            }
+        native["tools"]["lookup"].update(outcome="FAIL", gates_only=True)
+        native |= {"failed_gates": names[:2], "unrun_gates": names[2:]}
+        self.assertEqual(project(native, context)["tools"]["lookup"]["outcome"], "FAIL")
+        for field, listed in (("failed_gates", names[1::-1]), ("unrun_gates", names[:1:-1])):
+            with self.subTest(unsorted=field), self.assertRaises(EvidenceError):
+                project(native | {field: listed}, context)
+
+    def test_an_incomplete_verdict_no_harness_gives_is_refused(self):
+        native = report()
+        native["tools"]["lookup"]["outcome"] = "INCOMPLETE"
+        with self.assertRaises(EvidenceError):
+            project(native)
+
     def test_malformed_verdict_is_a_safe_validation_error(self):
         native = report()
         native["tools"]["lookup"]["outcome"] = ["PRIVATE-CANARY"]

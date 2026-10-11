@@ -1,12 +1,15 @@
 """Craft the scenario fixtures the live services do not produce on demand.
 
-    pdm run acceptance-craft [--fixtures DIR]
+    pdm run acceptance-craft [--fixtures DIR] [--check] [--out DIR]
 
 Each scenario is built here, from the recorded set where it changes a real answer, so
 that it follows a re-recording, or from scratch where it is synthetic. Every crafted
-fixture names the requirement it stands in for. The self-tests check that the files
-this writes are the ones in the fixture set. The scenarios recorded from live
-(`release/unknown`, `batch/silent-drop`, `retired/with-replacement`, the refusal of
+fixture names the requirement it stands in for. No fixture file is written:
+`fixture_server.load_fixtures` builds these fixtures in memory whenever the set loads. The
+command records their digest in the manifest (`crafted:`), so every change to them shows as
+that one line; `--check` exits 1 when the line is stale, and `--out DIR` writes the fixtures
+under DIR to read, for example to diff what a change to this file does. The scenarios recorded
+from live (`release/unknown`, `batch/silent-drop`, `retired/with-replacement`, the refusal of
 `license/restricted`) come from `record.py`.
 
 Synthetic concepts use codes from C99000000 up, which NCIt does not use.
@@ -16,12 +19,19 @@ from __future__ import annotations
 
 import argparse
 import base64
+import hashlib
 import json
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from nci_si_acceptance.fixture_server import CONCEPTS, EVERY_PATH
+from nci_si_acceptance.fixture_server import (
+    CONCEPTS,
+    CRAFTED,
+    EVERY_PATH,
+    MANIFEST,
+    read_manifest,
+)
 from nci_si_acceptance.record import (
     DISCOVERY,
     FIXTURES,
@@ -88,7 +98,7 @@ class Recorded:
         return json.loads((self.root / file).read_text(encoding="utf-8"))
 
     def files(self) -> list[str]:
-        """Every recorded and derived fixture, by file."""
+        """Every recorded and derived fixture on disk, by file."""
 
         return sorted(
             path.relative_to(self.root).as_posix()
@@ -1093,19 +1103,56 @@ def craft(
     """Every crafted scenario fixture, by file."""
 
     recorded = Recorded(root)
-    documents: Documents = {}
+    crafted: Documents = {}
     for scenario in scenarios:
-        documents |= scenario(recorded)
-    return documents
+        documents = scenario(recorded)
+        if twice := sorted(set(documents) & set(crafted)):
+            raise ValueError(f"{', '.join(twice)}: crafted by two scenarios")
+        crafted |= documents
+    return crafted
+
+
+def digest(documents: Documents) -> str:
+    """What the manifest records of the crafted fixtures: the SHA-256 of their canonical JSON."""
+
+    canonical = json.dumps(documents, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _record_digest(root: Path, value: str) -> None:
+    """Write the manifest's crafted line, in place, or at its end when it has none."""
+
+    path = root / MANIFEST
+    lines = path.read_text(encoding="utf-8").splitlines()
+    line = f"{CRAFTED}: {value}"
+    found = [index for index, text in enumerate(lines) if text.startswith(f"{CRAFTED}:")]
+    if found:
+        lines[found[0]] = line
+    else:
+        lines.append(line)
+    path.write_text("\n".join([*lines, ""]), encoding="utf-8")
 
 
 def main(arguments: Iterable[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Craft the scenario fixtures.")
+    parser = argparse.ArgumentParser(description="Record the digest of the crafted fixtures.")
     parser.add_argument("--fixtures", type=Path, default=FIXTURES, help="the fixture directory")
+    action = parser.add_mutually_exclusive_group()
+    action.add_argument("--check", action="store_true", help="exit 1 if the digest is stale")
+    action.add_argument("--out", type=Path, help="write the crafted fixtures here, to read them")
     options = parser.parse_args(arguments)
     documents = craft(options.fixtures)
-    write(options.fixtures, documents)
-    sys.stdout.write(f"Crafted {len(documents)} fixtures.\n")
+    if options.out:
+        write(options.out, documents)
+        sys.stdout.write(f"Wrote {len(documents)} crafted fixtures to {options.out}.\n")
+        return 0
+    value = digest(documents)
+    if options.check:
+        if read_manifest(options.fixtures).get(CRAFTED) != value:
+            sys.stderr.write("The crafted digest is stale: run pdm run acceptance-craft.\n")
+            return 1
+        return 0
+    _record_digest(options.fixtures, value)
+    sys.stdout.write(f"Crafted {len(documents)} fixtures: {value}.\n")
     return 0
 
 

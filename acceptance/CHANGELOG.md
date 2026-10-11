@@ -20,6 +20,21 @@ fixture set pinned to NCIt 26.09d.
   self-test verifies the override; no assertion, request form or fixture outcome changes.
   Correct the fixture README's claim of live verification for credentialed content: the
   current live-capable tests cover protocol behavior only.
+- Phase 15 #265 (§5 report outcomes): a gate that cannot run makes every tool that would pass
+  INCOMPLETE: the rendered report shows "INCOMPLETE (gates not run)", the README status table
+  lists those tools under INCOMPLETE.
+  A skip is classified by the property its site sets (`acceptance_skip`), not by its reason
+  text. The weekly live workflow's fixture run runs the permission gates as CI's does. No test
+  assertion of the suite or fixture outcome changes.
+- Phase 15 #221 (§5 fixture set): the 1,583 fixtures `craft.py` makes are no longer committed;
+  `fixture_server.load_fixtures` builds them in memory when the manifest declares them
+  (`crafted:`, the digest of what `craft.py` makes now). `pdm run acceptance-craft` writes that
+  digest instead of files (`--check` verifies it, `--out DIR` writes the fixtures to read), and
+  a crafted name that also lies on disk is refused. The recorded fixtures and every test's
+  answers are unchanged.
+- Phase 15 review (§5 outcomes, `spec/acceptance.md`): INCOMPLETE also covers a gate that could
+  not run (skipped or not implemented); a gate a live run skips by design (fixture mode only)
+  leaves its tools as they are. Agreed by the reviewer on #265.
 
 <!-- The shape of a release, from the furnished tag on:
 

@@ -915,7 +915,7 @@ required tool one outcome:
 | PASS | Every gate, every cross-cutting test and every test of the tool passes, in fixture mode and, for the live-capable tests, in live mode |
 | PASS (fixture only) | Passes in fixture mode; each live failure is a test with a documented upstream limitation, named per test |
 | FAIL | A test fails in fixture mode, or a live-capable test fails live without a documented upstream limitation |
-| INCOMPLETE | The tests that ran passed, but others could not run for want of a capability: a hardening candidate, never PASS |
+| INCOMPLETE | The tests that ran passed, but others could not run for want of a capability, or a gate could not run: a hardening candidate, never PASS |
 | NO FIXTURE | An upstream request found no fixture; the report names it |
 | NOT RUN | No test of the tool ran, for example in a live run or without the operator's prepare step |
 | NO TESTS | The suite has no test for the tool: a defect of the suite |
