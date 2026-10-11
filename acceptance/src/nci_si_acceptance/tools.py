@@ -22,6 +22,14 @@ if TYPE_CHECKING:
 NOT_IMPLEMENTED = "NOT IMPLEMENTED"
 
 
+class NotImplementedSkip(pytest.skip.Exception):
+    """A test skipped because the server does not list the required tool it calls; the report
+    counts it as NOT IMPLEMENTED by this type, not by its text."""
+
+    def __init__(self, name: str) -> None:
+        super().__init__(f"{NOT_IMPLEMENTED}: {name}")
+
+
 @dataclass(frozen=True, slots=True)
 class Result:
     """A tool's answer: the tool that gave it, whether it is an error, its content, its
@@ -214,7 +222,7 @@ class Tools:
 
         arguments = arguments or {}
         if not self.implemented(name):
-            pytest.skip(f"{NOT_IMPLEMENTED}: {name}")
+            raise NotImplementedSkip(name)
         before = self._requests() if self._requests else 0
         result = self._session.call_tool(name, arguments, meta)
         self._check_requests(name, before)
