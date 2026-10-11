@@ -135,6 +135,8 @@ healthy status. This is packaging evidence, not production retrieval calibration
 The image uses a digest-pinned Amazon Linux 2023 base, refreshes OS packages and installs
 its `python3.14` package. The builder creates a virtual environment on the same base and
 copies it into the runtime; builder package installations and caches stay behind.
+The OS upgrade is not pinned, so image contents vary with the build date despite the
+digest-pinned base; that is accepted because every build is scanned.
 The Dockerfile accepts a requirements
 path as a build argument so an additional architecture can be added later. To regenerate
 the amd64 CPU lock from `pdm.lock`:

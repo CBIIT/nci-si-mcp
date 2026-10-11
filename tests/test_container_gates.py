@@ -1,4 +1,5 @@
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -162,3 +163,23 @@ class ContainerGateTest(unittest.TestCase):
         self.assertEqual(image_scan.findings({"Results": [{"Target": "clean"}]}), [])
         with self.assertRaises(ValueError):
             image_scan.findings(json.loads('{"Results": []}'))
+
+
+class BaseImageTest(unittest.TestCase):
+    def test_every_amazon_linux_stanza_uses_one_base_digest_and_the_same_upgrade(self):
+        root = Path(__file__).resolve().parents[1]
+        base = re.compile(r"^FROM (public\.ecr\.aws/amazonlinux/amazonlinux@sha256:[a-f0-9]{64})")
+        digests = set()
+        for name in (
+            "Dockerfile",
+            "container/Admin.Dockerfile",
+            "container/Docs.Dockerfile",
+            "container/Dockerfile.resolve",
+        ):
+            lines = (root / name).read_text().splitlines()
+            with self.subTest(dockerfile=name):
+                froms = [match.group(1) for line in lines if (match := base.match(line))]
+                self.assertEqual(len(froms), 1)
+                digests.update(froms)
+                self.assertEqual(lines.count("RUN dnf -y upgrade --refresh"), 1)
+        self.assertEqual(len(digests), 1)
