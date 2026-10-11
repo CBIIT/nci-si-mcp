@@ -16,6 +16,7 @@ from typing import Any
 
 from scripts.docs_links import rewrite_page
 from scripts.docs_stories import stage_story_pages
+from scripts.formats import RELEASE_TAG, SHA1_HEX
 from scripts.site_assets import FONT_FILES
 
 MAX_PAGE_BYTES = 2_097_152
@@ -69,7 +70,7 @@ def build_identity(
     tag_commit: str | None = None,
 ) -> dict[str, Any]:
     """Keep installed metadata separate from a release label verified against source."""
-    if re.fullmatch(r"[a-f0-9]{40}", source_commit) is None:
+    if re.fullmatch(SHA1_HEX, source_commit) is None:
         raise ValueError("Documentation needs its full source commit")
     if re.fullmatch(r"\d+\.\d+\.\d+[a-zA-Z0-9.+-]*", package_version) is None:
         raise ValueError("Invalid installed package version")
@@ -91,7 +92,7 @@ def _release_label(source: str, dirty: bool, tag: str | None, target: str | None
         if target is not None:
             raise ValueError("A tag commit requires a release tag")
         return
-    if re.fullmatch(r"v\d+\.\d+\.\d+", tag) is None:
+    if re.fullmatch(RELEASE_TAG, tag) is None:
         raise ValueError("Invalid release tag")
     if dirty or target != source:
         raise ValueError("Release documentation requires clean source at the verified tag")
@@ -117,7 +118,7 @@ def _git(root: Path, *arguments: str) -> str:
 
 
 def source_identity(root: Path, tag: str | None) -> dict[str, Any]:
-    if tag is not None and re.fullmatch(r"v\d+\.\d+\.\d+", tag) is None:
+    if tag is not None and re.fullmatch(RELEASE_TAG, tag) is None:
         raise ValueError("Invalid release tag")
     target = _git(root, "rev-parse", "--verify", f"{tag}^{{commit}}") if tag else None
     return build_identity(

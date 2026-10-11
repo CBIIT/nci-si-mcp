@@ -60,6 +60,13 @@ class PortalViewsTest(unittest.TestCase):
         self.assertIn('class="usa-skipnav skip" href="#main"', html)
         self.assertNotIn("An official website of the United States government", html)
 
+    def test_the_contact_link_points_at_the_project_issue_tracker(self):
+        footer = page("Run checks", "<p>Content</p>").split("<footer>", 1)[1]
+        self.assertIn(
+            '<a href="https://github.com/CBIIT/nci-si-mcp/issues">Contact project maintainers</a>',
+            footer,
+        )
+
     def record(self, evidence):
         return {
             "sequence": 1,

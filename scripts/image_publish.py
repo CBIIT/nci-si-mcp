@@ -9,6 +9,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+from scripts.formats import RELEASE_TAG
+
 
 def run(*args: str) -> str:
     command = [shutil.which(args[0]) or args[0], *args[1:]]
@@ -17,7 +19,7 @@ def run(*args: str) -> str:
 
 def main() -> None:
     tag = sys.argv[1]
-    if not re.fullmatch(r"v\d+\.\d+\.\d+", tag):
+    if not re.fullmatch(RELEASE_TAG, tag):
         raise ValueError("Expected a release tag")
     repository = os.environ["GITHUB_REPOSITORY"]
     image = "ghcr.io/" + repository.lower()

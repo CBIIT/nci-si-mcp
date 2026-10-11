@@ -18,6 +18,7 @@ from tempfile import TemporaryDirectory
 from typing import Any
 
 import yaml
+from scripts.operator_files import write_json
 
 from nci_si_acceptance.client import Mode, Session, open_session, server_environment
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
@@ -166,11 +167,6 @@ def source_digest() -> str:
     return digest.hexdigest()
 
 
-def save(output: Path, report: dict[str, Any]) -> None:
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(report, indent=2) + "\n")
-
-
 def run(mode: Mode, names: list[str], repetitions: int, output: Path) -> dict[str, Any]:
     if repetitions < 1:
         raise ValueError("At least one measured repetition is required")
@@ -197,7 +193,8 @@ def run(mode: Mode, names: list[str], repetitions: int, output: Path) -> dict[st
         },
         "cases": [],
     }
-    save(output, report)  # An interrupted first case must not leave an older successful report.
+    # An interrupted first case must not leave an older successful report.
+    write_json(output, report, form="report")
     fixture = FixtureServer(load_fixtures(FIXTURES)) if mode == "fixture" else nullcontext(None)
     with fixture as upstream:
         for case in cases(names):
@@ -205,10 +202,10 @@ def run(mode: Mode, names: list[str], repetitions: int, output: Path) -> dict[st
             report["cases"].append(run_case(case, environment, repetitions))
             if upstream and unmatched_requests(upstream.log()):
                 raise ValueError("Benchmark requested an unrecorded fixture response")
-            save(output, report)
+            write_json(output, report, form="report")
             print(f"{mode}: measured {case['tool']}", flush=True)
     report["complete"] = True
-    save(output, report)
+    write_json(output, report, form="report")
     return report
 
 

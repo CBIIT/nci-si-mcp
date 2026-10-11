@@ -1,4 +1,5 @@
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -38,13 +39,14 @@ class ContainerGateTest(unittest.TestCase):
                 with patch("sys.argv", ["container_lock.py", "write", str(resolution)]):
                     container_lock.main()
                 rendered = lock.read_text()
-                requirements = {line for line in rendered.splitlines() if not line.startswith("#")}
                 self.assertEqual(
-                    requirements,
-                    {
-                        roots[-1] + " --hash=sha256:" + "a" * 64,
-                        "numpy==2.5.0 --hash=sha256:" + "b" * 64,
-                    },
+                    rendered.splitlines()[2:],
+                    [
+                        "numpy==2.5.0 \\",
+                        "    --hash=sha256:" + "b" * 64,
+                        roots[-1] + " \\",
+                        "    --hash=sha256:" + "a" * 64,
+                    ],
                 )
                 with patch("sys.argv", ["container_lock.py", "check"]):
                     container_lock.main()
@@ -115,6 +117,41 @@ class ContainerGateTest(unittest.TestCase):
                         with self.assertRaises(ValueError):
                             container_lock.check()
 
+    def test_check_accepts_only_the_continuation_line_shape(self):
+        original = container_lock.LOCK.read_text()
+        single_line = original.replace(" \\\n    ", " ")
+        with tempfile.TemporaryDirectory() as directory:
+            lock = Path(directory) / "requirements.txt"
+            lock.write_text(single_line)
+            with patch.object(container_lock, "LOCK", lock), self.assertRaises(ValueError):
+                container_lock.check()
+
+    def test_lock_entries_must_be_a_continued_requirement_then_an_indented_hash(self):
+        digest = "--hash=sha256:" + "a" * 64
+        for text in (
+            f"mcp==2.2.0\n    {digest}\n",
+            f"mcp==2.2.0 \\\n  {digest}\n",
+            f"mcp==2.2.0 \\\n{digest}\n",
+        ):
+            with self.subTest(text=text), self.assertRaises(ValueError) as caught:
+                container_lock.requirements(text)
+            self.assertEqual(str(caught.exception), "A dependency has no SHA-256 hash")
+
+    def test_an_unpaired_lock_line_is_refused(self):
+        with self.assertRaises(ValueError) as caught:
+            container_lock.requirements(f"mcp==2.2.0 \\\n    --hash=sha256:{'a' * 64}\nnumpy==1\n")
+        self.assertEqual(str(caught.exception), "A dependency has no SHA-256 hash")
+
+    def test_check_rejects_text_after_the_hash_digest(self):
+        lines = container_lock.LOCK.read_text().splitlines(keepends=True)
+        first_hash = next(i for i, line in enumerate(lines) if line.startswith("    --hash="))
+        lines[first_hash] = lines[first_hash].rstrip("\n") + "junk\n"
+        with tempfile.TemporaryDirectory() as directory:
+            lock = Path(directory) / "requirements.txt"
+            lock.write_text("".join(lines))
+            with patch.object(container_lock, "LOCK", lock), self.assertRaises(ValueError):
+                container_lock.check()
+
     def test_resolved_version_must_match_pdm_and_torch_must_be_cpu(self):
         report = {
             "install": [
@@ -152,3 +189,23 @@ class ContainerGateTest(unittest.TestCase):
         self.assertEqual(image_scan.findings({"Results": [{"Target": "clean"}]}), [])
         with self.assertRaises(ValueError):
             image_scan.findings(json.loads('{"Results": []}'))
+
+
+class BaseImageTest(unittest.TestCase):
+    def test_every_amazon_linux_stanza_uses_one_base_digest_and_the_same_upgrade(self):
+        root = Path(__file__).resolve().parents[1]
+        base = re.compile(r"^FROM (public\.ecr\.aws/amazonlinux/amazonlinux@sha256:[a-f0-9]{64})")
+        digests = set()
+        for name in (
+            "Dockerfile",
+            "container/Admin.Dockerfile",
+            "container/Docs.Dockerfile",
+            "container/Dockerfile.resolve",
+        ):
+            lines = (root / name).read_text().splitlines()
+            with self.subTest(dockerfile=name):
+                froms = [match.group(1) for line in lines if (match := base.match(line))]
+                self.assertEqual(len(froms), 1)
+                digests.update(froms)
+                self.assertEqual(lines.count("RUN dnf -y upgrade --refresh"), 1)
+        self.assertEqual(len(digests), 1)

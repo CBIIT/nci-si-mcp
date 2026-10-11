@@ -154,4 +154,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ needs.release.outputs.image_tag }}
-        run: pdm run python scripts/image_publish.py "$RELEASE_TAG"
+        run: pdm run python -m scripts.image_publish "$RELEASE_TAG"

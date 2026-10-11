@@ -61,7 +61,7 @@ def main() -> None:
     else:
         remote = _remote(parser, args)
         configure_logging("INFO")
-        _serve(
+        serve_portal(
             store,
             args.port,
             retention=args.retention,
@@ -81,7 +81,7 @@ def _remote(parser: argparse.ArgumentParser, args: argparse.Namespace) -> Remote
         parser.error("Remote probes require an exact HTTPS endpoint and a valid header")
 
 
-def _serve(
+def serve_portal(
     store: EvidenceStore,
     port: int,
     *,

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import json
 import threading
 import time
 import uuid
@@ -13,7 +12,6 @@ from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from typing import Any
 
 import httpx2
@@ -23,20 +21,7 @@ from scripts.benchmark import CASES
 from scripts.benchmark_limits import Budget, Limits, RunStoppedError, approved_target
 from scripts.benchmark_transport import http_client
 from scripts.http_measurement import MeasurementError, failure_sample, measure_reply, summarize_http
-
-
-def _save(output: Path, report: dict[str, Any]) -> None:
-    if output.is_symlink():
-        raise ValueError("Benchmark output cannot be a symlink")
-    output.parent.mkdir(parents=True, exist_ok=True)
-    with NamedTemporaryFile(mode="w", dir=output.parent, delete=False) as stream:
-        temporary = Path(stream.name)
-        try:
-            stream.write(json.dumps(report, indent=2) + "\n")
-            stream.close()
-            temporary.replace(output)
-        finally:
-            temporary.unlink(missing_ok=True)
+from scripts.operator_files import write_json
 
 
 def _validate_cases(cases: list[dict[str, Any]]) -> None:
@@ -135,7 +120,7 @@ class _Campaign:
 
     def save(self) -> None:
         self.report["httpRequests"] = self.budget.requests
-        _save(self.output, self.report)
+        write_json(self.output, self.report, form="report")
 
     @asynccontextmanager
     async def session(self) -> AsyncIterator[Client]:

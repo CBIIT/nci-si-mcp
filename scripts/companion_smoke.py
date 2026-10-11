@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
-import time
 import uuid
 from contextlib import ExitStack
 from http import HTTPStatus
@@ -13,6 +12,7 @@ from http.client import HTTPConnection
 from typing import Any
 
 from scripts.portal_jobs import ACTIVE
+from scripts.processes import wait_until
 
 COMPOSE = "container/compose.local.yaml"
 
@@ -48,15 +48,14 @@ def request(port: int, path: str, body: str | None = None) -> tuple[int, str]:
 
 
 def ready(port: int) -> None:
-    deadline = time.monotonic() + 45
-    while time.monotonic() < deadline:
+    def healthy() -> bool:
         try:
-            if request(port, "/health")[0] == HTTPStatus.OK:
-                return
+            return request(port, "/health")[0] == HTTPStatus.OK
         except OSError:
-            pass  # Startup may not yet have bound its socket; the deadline remains fixed.
-        time.sleep(0.2)
-    raise TimeoutError("Companion did not become healthy")
+            return False  # Startup may not yet have bound its socket; the deadline remains fixed.
+
+    if not wait_until(healthy, 45, interval=0.2):
+        raise TimeoutError("Companion did not become healthy")
 
 
 def inspect_boundary(container: str) -> None:
@@ -105,22 +104,24 @@ def benchmark(admin: str) -> None:
     run_id = uuid.uuid4().hex
     status, _ = request(8081, "/jobs", f"run_id={run_id}&profile=benchmark-http-fixture")
     require(status == HTTPStatus.SEE_OTHER, "Fixture benchmark was not admitted")
-    deadline = time.monotonic() + 300
-    while time.monotonic() < deadline:
+
+    states: list[str] = []
+
+    def finished() -> bool:
         value: dict[str, Any] = json.loads(
             docker("exec", admin, "cat", "/state/evidence.jobs/jobs.json")
         )
-        row = next(row for row in value["jobs"] if row["run_id"] == run_id)
-        if row["state"] not in ACTIVE:
-            require(row["state"] == "completed", f"Fixture benchmark ended as {row['state']}")
-            status, page = request(8081, "/runs/" + run_id)
-            require(
-                status == HTTPStatus.OK and "cold" in page.lower() and "warm" in page.lower(),
-                "Benchmark results are unavailable",
-            )
-            return
-        time.sleep(1)
-    raise TimeoutError("Container benchmark did not terminate within its smoke bound")
+        states.append(next(row for row in value["jobs"] if row["run_id"] == run_id)["state"])
+        return states[-1] not in ACTIVE
+
+    if not wait_until(finished, 300, interval=1):
+        raise TimeoutError("Container benchmark did not terminate within its smoke bound")
+    require(states[-1] == "completed", f"Fixture benchmark ended as {states[-1]}")
+    status, page = request(8081, "/runs/" + run_id)
+    require(
+        status == HTTPStatus.OK and "cold" in page.lower() and "warm" in page.lower(),
+        "Benchmark results are unavailable",
+    )
 
 
 def _serving_probe(network: str, name: str) -> tuple[str, int]:

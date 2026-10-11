@@ -7,6 +7,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import quote, unquote, urlsplit
 
+REPOSITORY_URL = "https://github.com/CBIIT/nci-si-mcp"
+
 
 class _Identifiers(HTMLParser):
     def __init__(self, content: str):
@@ -41,7 +43,7 @@ def _source_link(path: Path, root: Path, commit: str, fragment: str) -> str:
     relative = source.relative_to(root.resolve()).as_posix()
     suffix = "#" + quote(fragment) if fragment else ""
     kind = "tree" if source.is_dir() else "blob"
-    return f"https://github.com/CBIIT/nci-si-mcp/{kind}/{commit}/{quote(relative)}{suffix}"
+    return f"{REPOSITORY_URL}/{kind}/{commit}/{quote(relative)}{suffix}"
 
 
 def _check_fragment(target: Path, fragment: str) -> None:

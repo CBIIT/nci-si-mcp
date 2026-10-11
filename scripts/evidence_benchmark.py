@@ -10,13 +10,14 @@ from scripts.evidence_acceptance import digest, fields, identifier, require
 from scripts.evidence_benchmark_common import (
     FINGERPRINT_FIELDS,
     MAX_MEASUREMENT,
-    _fingerprint_dimension,
-    _selected_cases,
+    check_fingerprint_dimension,
+    check_selected_cases,
     comparable,
     fingerprint_value,
 )
 from scripts.evidence_envelope import decode_json, validate_envelope
 from scripts.evidence_http import project_http
+from scripts.formats import SHA256_HEX
 
 from nci_si_mcp.errors import ErrorCode
 
@@ -55,10 +56,10 @@ def _header(report: Any) -> None:
     require(type(report["repetitions"]) is int and 0 < report["repetitions"] <= MAX_REPETITIONS)
     for key in ("createdAt", "serverVersion", "sourceSha256", "python", "platform"):
         require(isinstance(report[key], str))
-    require(re.fullmatch(r"[a-f0-9]{64}", report["sourceSha256"]) is not None)
+    require(re.fullmatch(SHA256_HEX, report["sourceSha256"]) is not None)
     fields(report["suite"], {"version", "fixture_set", "digest"})
     require(all(isinstance(value, str) for value in report["suite"].values()))
-    require(re.fullmatch(r"[a-f0-9]{64}", report["suite"]["digest"]) is not None)
+    require(re.fullmatch(SHA256_HEX, report["suite"]["digest"]) is not None)
     require(isinstance(report["conditions"], dict) and isinstance(report["cases"], list))
 
 
@@ -148,13 +149,13 @@ def _selection_fingerprint(
     require(digest(selection) == record["selection_sha256"])
     fields(manifest, {"schema", "cases", "fingerprint"})
     require(type(manifest["schema"]) is int and manifest["schema"] == 1)
-    _selected_cases(manifest["cases"], native)
+    check_selected_cases(manifest["cases"], native)
     # An interrupted report contains completed cases only; the wrapper retains the full plan.
     measured["workload"] = fingerprint_value(manifest["cases"])
     fingerprint = manifest["fingerprint"]
     fields(fingerprint, FINGERPRINT_FIELDS)
     for key, value in fingerprint.items():
-        _fingerprint_dimension(value, measured[key])
+        check_fingerprint_dimension(value, measured[key])
     return fingerprint
 
 

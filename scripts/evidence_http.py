@@ -10,12 +10,12 @@ from scripts.evidence_acceptance import digest, fields, identifier, require
 from scripts.evidence_benchmark_common import (
     FINGERPRINT_FIELDS,
     MAX_MEASUREMENT,
-    _fingerprint_dimension,
-    _selected_cases,
+    check_fingerprint_dimension,
+    check_selected_cases,
     comparable,
     fingerprint_value,
 )
-from scripts.evidence_envelope import _time, decode_json
+from scripts.evidence_envelope import decode_json, timestamp
 from scripts.http_measurement import summarize_http
 
 from nci_si_mcp.errors import ErrorCode
@@ -88,7 +88,7 @@ def _header(native: Any, record: dict[str, Any]) -> Limits:
         type(native["httpRequests"]) is int and 0 <= native["httpRequests"] <= limits.max_requests
     )
     _hex(native["targetSha256"], 64)
-    _time(native["createdAt"])
+    timestamp(native["createdAt"])
     _termination(native, record)
     _conditions(native["conditions"])
     require(isinstance(native["cases"], list))
@@ -236,10 +236,10 @@ def _selection(measured: dict, native: dict, record: dict, selection: bytes | No
     require(digest(selection) == record["selection_sha256"])
     fields(manifest, {"schema", "cases", "fingerprint"})
     require(type(manifest["schema"]) is int and manifest["schema"] == 1)
-    _selected_cases(manifest["cases"], native)
+    check_selected_cases(manifest["cases"], native)
     fields(manifest["fingerprint"], FINGERPRINT_FIELDS)
     for key, value in manifest["fingerprint"].items():
-        _fingerprint_dimension(value, measured[key])
+        check_fingerprint_dimension(value, measured[key])
     return manifest["fingerprint"]
 
 

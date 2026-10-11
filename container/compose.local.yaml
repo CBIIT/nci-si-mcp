@@ -31,7 +31,7 @@ services:
   admin-ingress:
     image: nci-si-docs:local
     platform: linux/amd64
-    entrypoint: ["python3.14", "/app/companion_relay.py"]
+    entrypoint: ["python3.14", "-m", "scripts.companion_relay"]
     ports: ["127.0.0.1:8081:8081"]
     networks: [access, validation]
     depends_on: [administration]

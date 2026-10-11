@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import cast
 from urllib.parse import SplitResult, parse_qs, urlsplit
 
+from scripts.formats import JOB_ID
 from scripts.portal_actions import form_length, perform, same_origin
 from scripts.portal_configuration import ConfigurationConflictError, LocalConfiguration
 from scripts.portal_configuration_views import configuration_page, propose
@@ -74,7 +75,7 @@ def _job_route(
         )
     if path == "/jobs":
         return 200, "text/html", jobs_page(jobs.history(), jobs.profiles)
-    match = re.fullmatch(r"/jobs/([a-f0-9]{32})", path)
+    match = re.fullmatch(f"/jobs/({JOB_ID})", path)
     if match is None:
         raise EvidenceNotFoundError("No such job route")
     try:
@@ -96,7 +97,7 @@ def _result_route(store: EvidenceStore, path: str, query: str) -> tuple[int, str
     if path.startswith("/assets/"):
         _query(query, set())
         return _asset(path.removeprefix("/assets/"))
-    match = re.fullmatch(r"/runs/([a-f0-9]{32})", path)
+    match = re.fullmatch(f"/runs/({JOB_ID})", path)
     if match:
         return 200, "text/html", run_page(store.get(match[1]), **_query(query, {"tool", "story"}))
     if path == "/compare":

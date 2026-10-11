@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 import os
 import shlex
-import signal
 import socket
 import socketserver
 import subprocess
@@ -22,8 +21,9 @@ from threading import Thread
 from typing import Any
 
 import yaml
+from scripts.processes import exit_on_sigterm, stop
 
-from nci_si_acceptance.client import server_environment, without_nci_si_settings
+from nci_si_acceptance.client import OwnedServer, server_environment, without_nci_si_settings
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
 from nci_si_acceptance.report import load_report
 from nci_si_acceptance.suite import index_set, unmatched_requests
@@ -46,64 +46,16 @@ UNPREPARED = {
 }
 
 
-def stop(process: subprocess.Popen[bytes]) -> None:
-    if process.poll() is not None:
-        return
-    process.terminate()
-    try:
-        process.wait(timeout=10)
-    except subprocess.TimeoutExpired:
-        process.kill()
-        process.wait(timeout=10)
-
-
-class ServerProcess:
-    def __init__(
-        self, directory: Path, port: int, *, environment: dict[str, str] | None = None
-    ) -> None:
-        self.directory, self.port = directory, port
-        self.environment = dict(os.environ if environment is None else environment)
-        self.process: subprocess.Popen[bytes] | None = None
-        self.log = (directory / "server.log").open("ab")
-
-    def stop(self) -> None:
-        if self.process is None:
-            return
-        stop(self.process)
-        self.process = None
-
-    def close(self) -> None:
-        self.stop()
-        self.log.close()
-
-    def restart(self, settings: dict[str, str]) -> None:
-        self.stop()
-        environment = (
-            without_nci_si_settings(self.environment)
-            | settings
-            | {
-                "NCI_SI_DATA_DIR": str(self.directory / "index"),
-                "NCI_SI_TRANSPORT": "streamable-http",
-                "NCI_SI_HTTP_PORT": str(self.port),
-                "NCI_SI_HTTP_SESSIONS": "stateful",
-                "NCI_SI_HTTP_REQUIRE_INDEX": "1",
-            }
-        )
-        self.process = subprocess.Popen(
-            [sys.executable, "-m", "nci_si_mcp.cli", "serve"],
-            env=environment,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=self.log,
-        )
-
-
-def hook_handler(process: ServerProcess) -> type[socketserver.StreamRequestHandler]:
+def hook_handler(server: OwnedServer) -> type[socketserver.StreamRequestHandler]:
     class Handler(socketserver.StreamRequestHandler):
         def handle(self) -> None:
             settings = json.loads(self.rfile.readline())
-            process.restart(settings)
-            self.wfile.write(b"ok\n")
+            try:
+                server.restart(settings)
+            except (RuntimeError, TimeoutError) as error:
+                self.wfile.write(f"{error}\n".encode())
+            else:
+                self.wfile.write(b"ok\n")
 
     return Handler
 
@@ -121,8 +73,10 @@ def state(socket_path: str) -> None:
         with chdir(path.parent):
             connection.connect(path.name)
         connection.sendall(json.dumps(settings).encode() + b"\n")
-        if connection.recv(16) != b"ok\n":
-            raise RuntimeError("The fixture server restart failed")
+        with connection.makefile("rb") as replies:
+            reply = replies.readline()
+        if reply != b"ok\n":
+            raise RuntimeError(f"The fixture server restart failed: {reply.decode().strip()}")
 
 
 def prepare(directory: Path, *, environment: dict[str, str] | None = None) -> None:
@@ -143,12 +97,6 @@ def prepare(directory: Path, *, environment: dict[str, str] | None = None) -> No
         )
         if unmatched_requests(upstream.log()):
             raise RuntimeError("Index preparation requested an unrecorded upstream response")
-
-
-def free_port() -> int:
-    with socket.socket() as listener:
-        listener.bind(("127.0.0.1", 0))
-        return listener.getsockname()[1]
 
 
 def report_skips(tests: dict[str, Any]) -> None:
@@ -178,8 +126,11 @@ def run_suite(
     environment: dict[str, str] | None = None,
 ) -> int:
     output = REPORT if report is None else report
-    command = shlex.join([sys.executable, str(Path(__file__).resolve()), "state", str(socket_path)])
-    environment = without_nci_si_settings(os.environ if environment is None else environment) | {
+    command = shlex.join(
+        [sys.executable, "-m", "scripts.acceptance_http", "state", str(socket_path)]
+    )
+    base = without_nci_si_settings(os.environ if environment is None else environment)
+    environment = base | {
         "NCI_SI_ACCEPTANCE_URL": f"http://127.0.0.1:{port}/mcp",
         "NCI_SI_ACCEPTANCE_MODE": "fixture",
         "NCI_SI_ACCEPTANCE_PREPARED": "1",
@@ -187,6 +138,8 @@ def run_suite(
             [sys.executable, str(ROOT / "scripts/permissions_fixture.py")]
         ),
         "NCI_SI_ACCEPTANCE_STATE_HOOK": command,
+        # The hook runs `-m scripts.acceptance_http` from the suite's directory.
+        "PYTHONPATH": os.pathsep.join(filter(None, [str(ROOT), base.get("PYTHONPATH")])),
     }
     output.unlink(missing_ok=True)
     suite = subprocess.Popen(  # noqa: S603 - the existing suite in this checkout
@@ -214,33 +167,33 @@ def run(*, report: Path | None = None, environment: dict[str, str] | None = None
     with TemporaryDirectory(prefix="http-", dir=ROOT / "tmp") as temporary:
         directory = Path(temporary)
         prepare(directory, environment=environment)
-        port = free_port()
-        process = ServerProcess(directory, port, environment=environment)
         socket_path = directory / "control"
-        try:
-            # The runner owns its process. Restore cwd before starting the control thread.
+        # The runner owns the server. A restart answers the hook within its 30 s.
+        with OwnedServer(
+            os.environ if environment is None else environment,
+            directory / "server.log",
+            data_dir=directory / "index",
+            require_index=True,
+            ready_seconds=25,
+        ) as server:
+            # Restore cwd before starting the control thread.
             with chdir(directory):
-                control = socketserver.UnixStreamServer("control", hook_handler(process))
+                control = socketserver.UnixStreamServer("control", hook_handler(server))
             with control:
                 thread = Thread(target=control.serve_forever, daemon=True)
                 thread.start()
                 try:
-                    return run_suite(port, socket_path, report=report, environment=environment)
+                    return run_suite(
+                        server.port, socket_path, report=report, environment=environment
+                    )
                 finally:
                     control.shutdown()
                     thread.join()
-        finally:
-            process.close()
-
-
-def interrupted(_signum: int, _frame: Any) -> None:
-    # Unwind both owned processes and the temporary directory on CI cancellation too.
-    raise KeyboardInterrupt
 
 
 if __name__ == "__main__":
     if sys.argv[1:] and sys.argv[1] == "state":
         state(sys.argv[2])
     else:
-        signal.signal(signal.SIGTERM, interrupted)
+        exit_on_sigterm()
         raise SystemExit(run())

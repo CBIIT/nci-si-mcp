@@ -86,7 +86,7 @@ def _hex(value: Any, length: int) -> None:
         _reject()
 
 
-def _time(value: Any) -> datetime:
+def timestamp(value: Any) -> datetime:
     if not isinstance(value, str) or re.fullmatch(_TIMESTAMP, value) is None:
         _reject()
     try:
@@ -100,7 +100,7 @@ def _identity(record: dict[str, Any]) -> None:
         _hex(record[field], length)
     if record["server_commit"] is not None:
         _hex(record["server_commit"], 40)
-    if _time(record["finished_at"]) < _time(record["started_at"]):
+    if timestamp(record["finished_at"]) < timestamp(record["started_at"]):
         _reject()
 
 

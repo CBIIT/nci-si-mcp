@@ -41,7 +41,7 @@ def benchmark_selection(mode: str) -> dict[str, Any]:
         "mode": mode,
         "transport": "streamable-http",
         "conditions": conditions(),
-        "limits": asdict(Limits(max_requests=500)),
+        "limits": asdict(Limits()),
         "cases": selected,
     }
     return {"schema": 1, "cases": selected, "fingerprint": http_fingerprint(planned)}

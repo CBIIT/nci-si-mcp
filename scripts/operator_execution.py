@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
-import signal
 import subprocess
 import sys
 import threading
@@ -13,7 +12,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from scripts.acceptance_http import interrupted
 from scripts.benchmark_limits import approved_target
 from scripts.operator_evidence import bind_original, finish_evidence
 from scripts.operator_process import run_owned, watch_parent
@@ -21,6 +19,7 @@ from scripts.operator_source import archive_source
 from scripts.operator_worker import clean_environment
 from scripts.portal_jobs import PROFILES
 from scripts.portal_store import EvidenceStore
+from scripts.processes import exit_on_sigterm
 
 ROOT = Path(__file__).resolve().parents[1]
 REMOTE_TARGET = "NCI_SI_OPERATOR_REMOTE_TARGET"
@@ -164,6 +163,6 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGTERM, interrupted)
+    exit_on_sigterm()
     watch_parent()
     raise SystemExit(main())

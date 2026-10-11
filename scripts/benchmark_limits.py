@@ -10,6 +10,8 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from urllib.parse import urlsplit, urlunsplit
 
+DEFAULT_MAX_REQUESTS = 500
+
 
 class RunStoppedError(Exception):
     """A bounded campaign stopped; the reason contains no endpoint or credential."""
@@ -62,7 +64,7 @@ def approved_target(url: str, allowed: Sequence[str], *, fixture: bool = False) 
 
 @dataclass(frozen=True)
 class Limits:
-    max_requests: int = 200
+    max_requests: int = DEFAULT_MAX_REQUESTS
     seconds: float = 120
     timeout: float = 15
     repetitions: int = 5

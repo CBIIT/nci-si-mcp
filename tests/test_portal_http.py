@@ -39,6 +39,14 @@ class PortalHTTPTest(unittest.TestCase):
         body = response.read()
         return response.status, dict(response.getheaders()), body if raw else body.decode()
 
+    def test_every_response_carries_the_exact_content_security_policy(self):
+        _, headers, _ = self.request("/")
+        self.assertEqual(
+            headers["Content-Security-Policy"],
+            "default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; "
+            "form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+        )
+
     def test_local_typography_serves_exact_font_bytes_with_self_only_policy(self):
         status, headers, body = self.request("/assets/open-sans.ttf", raw=True)
         self.assertEqual(status, 200)
