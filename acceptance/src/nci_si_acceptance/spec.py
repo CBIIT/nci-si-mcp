@@ -126,10 +126,12 @@ def items_of(tool: str, result: Any) -> list[Any]:
     """The items of a result of `tool`, where its `items` in tools.yaml say they are; a part
     of the path the result lacks contributes none."""
 
-    return [item for path in TOOLS[tool].get("items", []) for item in _walk(result, path)]
+    return [item for path in TOOLS[tool].get("items", []) for item in items_at(result, path)]
 
 
-def _walk(value: Any, path: str) -> list[Any]:
+def items_at(value: Any, path: str) -> list[Any]:
+    """Items at one specification path, preserving its independent provenance obligation."""
+
     found = [value]
     for step in filter(None, path.split(".")):
         found = _step(found, step)

@@ -181,6 +181,11 @@ class LiveSearchTest(ServerFixture):
         self.assertNotIn("nextCursor", last)
         self.assertNotIn("truncation", page)
         self.assertEqual(page["totalKnown"], 2)
+        provenance = page["results"][0]["concept"]["provenance"]
+        self.assertEqual(provenance["upstream"], {"terminology": "ncit", "version": "26.06e"})
+        self.assertEqual(
+            provenance["sourceUri"], "https://evs.invalid/api/v1/concept/ncit_26.06e/C2"
+        )
         self.assertIn("fromRecord=1", opened.call_args_list[1].args[0].full_url)
 
     def test_typeahead_omits_score_and_highlight_and_encodes_the_whole_query(self):
@@ -189,6 +194,11 @@ class LiveSearchTest(ServerFixture):
         with self.replies([{"total": 1, "concepts": [row]}]) as opened:
             result = self.search(query=query, mode="typeahead")
         self.assertEqual(set(result["results"][0]), {"concept"})
+        provenance = result["results"][0]["concept"]["provenance"]
+        self.assertEqual(provenance["upstream"], {"terminology": "ncit", "version": "26.06e"})
+        self.assertEqual(
+            provenance["sourceUri"], "https://evs.invalid/api/v1/concept/ncit_26.06e/C1"
+        )
         params = parse_qs(urlsplit(opened.call_args.args[0].full_url).query)
         self.assertEqual(params["term"], [query])
         self.assertEqual(params["type"], ["startsWith"])
@@ -200,6 +210,7 @@ class LiveSearchTest(ServerFixture):
         self.assertEqual(result["totalKnown"], 0)
         self.assertEqual(result["provenance"]["release"]["identifier"], "26.06e")
         self.assertEqual(result["provenance"]["servedBy"], "live")
+        self.assertNotIn("upstream", result["provenance"])
 
     def test_explicit_defaults_continue_a_cursor_issued_with_defaults_omitted(self):
         rows = [concept(f"C{i}", active=True) for i in range(1, 12)]

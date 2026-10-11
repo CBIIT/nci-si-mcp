@@ -183,6 +183,7 @@ from datetime import UTC, datetime
 from http import HTTPStatus
 from pathlib import Path
 from urllib.parse import quote, urlencode
+from uuid import uuid4
 
 import anyio
 import mcp_types as types
@@ -492,6 +493,7 @@ def _provenance(name: str, arguments: dict, correlation: str, answer: dict) -> d
         "servedBy": "live",
         "correlationId": correlation,
         "upstream": _upstream(name, arguments),
+        "sourceUri": "https://example.invalid/api/v1/version",
     }
     omitted = {
         "no-served-by": "servedBy",
@@ -555,7 +557,9 @@ def _upstream(name: str, arguments: dict) -> dict:
     """What EVS says of the origin of the call's items, as the suite's calls list it, the
     pin (`$terminology`, `$release`) taken from the call."""
 
-    listed = CALLS.get(name, {}).get("upstream", {})
+    listed = CALLS.get(name, {}).get(
+        "upstream", {"terminology": "$terminology", "version": "$release"}
+    )
     supplied = {
         key: arguments.get(value[1:]) if str(value).startswith("$") else value
         for key, value in listed.items()
@@ -657,10 +661,18 @@ def _content(name: str, arguments: dict, correlation: str, answer: dict) -> obje
         content = _identified_concept(content, arguments)
     # With no item to carry it, the result carries the provenance itself (M3.2).
     if not items and DEFECT != "empty-without-provenance":
-        content["provenance"] = provenance
-        if DEFECT == "itemless-origin":
-            provenance["upstream"] = {"version": "invented-item-version"}
+        content["provenance"] = _empty_origin(name, provenance)
     return content | _truncation(name, arguments) | _next_cursor(name, arguments, items)
+
+
+def _empty_origin(name: str, provenance: dict) -> dict:
+    """An empty page has no item origin; a read resource may still have one."""
+
+    if not CALLS[name].get("emptyOrigin"):
+        provenance.pop("upstream", None)
+    if DEFECT == "itemless-origin":
+        provenance["upstream"] = {"version": "invented-item-version"}
+    return provenance
 
 
 def _identified_concept(content: dict, arguments: dict) -> dict:
@@ -832,8 +844,22 @@ def _shaped(name: str, items: list[dict]) -> dict:
     """A result of `name` with `items` where its `items` paths say."""
 
     paths = TOOLS[name].get("items", ["."])
-    placed = [_placed([step for step in path.split(".") if step], items) for path in paths]
+    placed = [
+        _placed([step for step in path.split(".") if step], _path_items(name, path, items))
+        for path in paths
+    ]
     return placed[0] if len(placed) == 1 else _merged(placed)
+
+
+def _path_items(name: str, path: str, items: list[dict]) -> list[dict]:
+    """Bare edges and release reports have no item origin to pass through."""
+
+    if path not in CALLS.get(name, {}).get("originless", []):
+        return items
+    return [
+        item | {"provenance": {k: v for k, v in item["provenance"].items() if k != "upstream"}}
+        for item in items
+    ]
 
 
 def _merged(parts: list) -> dict:
@@ -1008,7 +1034,7 @@ def _meta() -> dict:
 
 
 async def call_tool(_context, params: types.CallToolRequestParams) -> types.CallToolResult:
-    correlation = (params.meta or {}).get("correlationId", "")
+    correlation = (params.meta or {}).get("correlationId", uuid4().hex)
     content, failed = _answer(params.name, params.arguments or {}, correlation)
     text = json.dumps(content) + (f" {LICENCE_KEY}" if DEFECT == "key-in-text" else "")
     return types.CallToolResult(
@@ -1156,6 +1182,7 @@ def _registry_resource(tool_answer: dict, _values: dict[str, str]) -> dict:
         "source": "cadsr_export",
         "retrievedAt": _retrieved(),
         "servedBy": "live",
+        "correlationId": uuid4().hex,
     }
     return state | {"provenance": provenance}
 
@@ -1212,7 +1239,9 @@ async def read_resource(
             raise
         return _read_result("concept", [types.TextResourceContents(uri=params.uri, text="{}")])
     tool, arguments = _read_call(key, template, values)
-    content, failed = _answer(tool, arguments, "")
+    content, failed = _answer(
+        tool, arguments, (params.meta or {}).get("correlationId", uuid4().hex)
+    )
     if failed:
         raise MCPError(types.INVALID_PARAMS, json.dumps(content))
     content = _as_resource(key, content, values)

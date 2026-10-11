@@ -75,12 +75,14 @@ def _record(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
     if not raw.get("code") or not raw.get("name"):
         raise EVSResponseError("EVS returned a concept without its code or name")
     provenance = with_attribution(provenance, raw, "evs")
+    if provenance["source"] != "evs_index":
+        provenance = provenance | {"upstream": upstream_origin(raw)}
     result = {
         "code": raw["code"],
         "terminology": raw["terminology"],
         "name": raw["name"],
         "active": raw["active"],
-        "provenance": _provenance(provenance) | {"upstream": upstream_origin(raw)},
+        "provenance": _provenance(provenance),
     }
     if raw.get("conceptStatus") not in (None, ""):
         result["status"] = raw["conceptStatus"]
@@ -586,10 +588,9 @@ def _indexed_search(
         ) from None
     results = []
     for hit in hits:
-        uri = context.evs.uri(concept_path(selected.pinned_terminology, hit.concept.code))
         results.append(
             {
-                "concept": _record(hit.concept.raw, hit.concept.provenance(uri).to_dict()),
+                "concept": _record(hit.concept.raw, hit.concept.provenance(None).to_dict()),
                 "score": hit.score,
                 "matchedOn": hit.matched_on,
             }

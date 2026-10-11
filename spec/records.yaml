@@ -34,7 +34,10 @@ provenance:
       content: When it was retrieved, ISO-8601
       of: A4.1
     sourceUri:
-      content: The upstream URL that produced the item
+      content: >-
+        The upstream URL, present when the item was read live in this call or in the earlier
+        call whose result is served from the cache; absent on items served from the NCIt index
+      optional: true
       of: A4.1
     correlationId:
       content: The call's correlation identifier
@@ -61,11 +64,17 @@ provenance:
       of: A7.3
     upstream:
       content: >-
-        The fields the platform supplied about the item's origin, under its names and with its
-        values; at least: from EVS REST the item's terminology and version; from EVS FHIR the
+        Present when a live answer, in this call or served from the cache, supplied origin
+        fields for what the provenance describes: an item or, for result-level provenance,
+        the upstream resource the call read (a concept, a mapset, the graphs queried).
+        Absent on NCIt index items and where no upstream answer supplied origin fields:
+        the release report, caDSR call-level provenance and an empty search page that read
+        no item. Fields keep the platform's names and values; at least: from EVS REST the
+        item's terminology and version; from EVS FHIR the
         value set's url and version; from caDSR the item's public id and version, as each API
         names them (publicId, the Form API's publicID, the CRDC list's CDE Public ID and Version,
         vmMatch's itemId); from the Shared SI Service the identity and date of each graph
+      optional: true
       of: A4.3
 traversal:
   title: The provenance record of an item reached by traversal

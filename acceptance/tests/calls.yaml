@@ -27,8 +27,12 @@
 #
 # A limit a call gives is the page size of the recordings; a server's own default could ask
 # for another, which no fixture answers.
+# X-7: the recorded calls read live resources. Their items have origin fields except at
+# the declared originless paths (release reports, named contexts and bare edges). An empty
+# result retains resource origin only where emptyOrigin says the call read such a resource.
+# These obligations come from the call and upstream contract, never returned provenance.
 
-resolve_release: {arguments: {}}
+resolve_release: {arguments: {}, originless: ["."]}
 get_concept:
   arguments: {code: C4817}
   upstream: &concept {terminology: $terminology, version: $release}
@@ -59,6 +63,7 @@ expand_value_set:
   upstream: {url: "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492", version: $release}
 get_concept_neighborhood:
   arguments: {code: C4817, depth: 1}
+  originless: ["edges[]"]
   unversioned: true
   truncating: {arguments: {maxNodes: 2}, bound: nodes}   # C4817: 93 assertions, 88 concepts
   defaulted:
@@ -68,6 +73,7 @@ get_concept_neighborhood:
 get_concept_subsets: {arguments: {code: C4817}}
 get_concept_mappings:
   arguments: {code: C4817}
+  emptyOrigin: true
   empty: {code: C4817, targetTerminology: SNOMEDCT_US}   # C4817 maps to no SNOMED CT term
 resolve_retired_code: {arguments: {code: C4817}}   # active: its concept names the release
 list_relationships: {arguments: {}}
@@ -103,6 +109,7 @@ match_data_elements:
   scenario: cadsr/credentialed
 list_contexts:
   arguments: {}
+  originless: ["contexts[]"]
   scenario: cadsr/credentialed
   paged:
     - arguments: {limit: 5}
@@ -113,6 +120,7 @@ list_contexts:
 # served unpinned, reports the release resolve_stored_value compares (unpinned).
 find_data_elements_for_concept:
   arguments: {conceptCode: C17357}   # Gender: 17 data elements in the caDSR graph
+  emptyOrigin: true
   unpinned: true
   empty: {conceptCode: C116977}
   truncating:   # Disease or Disorder's descendants: more than the maximum
@@ -125,6 +133,7 @@ find_data_elements_for_concept:
 get_concept_for_permissible_value: {arguments: {dataElementId: "2200604", value: Male}}
 resolve_stored_value:
   arguments: {conceptCode: C4817, commons: GDC}
+  emptyOrigin: true
   unpinned: true
   empty: {conceptCode: C116977, commons: GDC}
 get_release_alignment: {arguments: {}}
@@ -136,6 +145,7 @@ ground_value:
   unpinned: true
 expand_cohort:
   arguments: {conceptCode: C4817}   # 10 children
+  originless: ["edges[]", "excluded[]"]
   unversioned: true
   truncating: {arguments: {maxNodes: 2}, bound: nodes}
 harmonize_data_dictionary:

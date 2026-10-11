@@ -191,6 +191,7 @@ def test_uses_are_named_by_their_data_element_and_value():
 
 
 PROVENANCE = {
+    "correlationId": "test-call",
     "release": {"terminology": "ncit", "identifier": "26.09d"},
     "source": "evs_rest",
     "servedBy": "live",

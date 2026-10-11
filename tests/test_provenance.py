@@ -28,9 +28,9 @@ PROVENANCE = RECORDS["provenance"]["fields"]
 TRAVERSAL = RECORDS["traversal"]["fields"]
 TRUNCATION = RECORDS["truncation"]["fields"]
 # Fields the record lists but a server supplies only where its source does: graphs belong to
-# items the Shared SI Service serves, upstream is what the platform supplied, and qualifiers and
+# items the Shared SI Service serves, and qualifiers and
 # evidence are what the platform attaches to a relation.
-CONDITIONAL = {"graphs", "upstream", "qualifiers", "evidence"}
+CONDITIONAL = {"graphs", "qualifiers", "evidence"}
 REQUIRED = {name for name, spec in PROVENANCE.items() if not spec.get("optional")} - CONDITIONAL
 REQUIRED_TRAVERSAL = {name for name in TRAVERSAL if name not in CONDITIONAL}
 ALLOWED = set(PROVENANCE)
