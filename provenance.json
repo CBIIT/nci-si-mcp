@@ -1,38 +1,38 @@
 {
-  "commit": "c0cdc71b8c50a46c34b32bc1e453479f25f77dde",
-  "run": "https://github.com/CBIIT/nci-si-mcp/actions/runs/38137271791",
+  "commit": "db35bac9a4deeaf9cd15c0ee1a3a32200d30a8cb",
+  "run": "https://github.com/CBIIT/nci-si-mcp/actions/runs/38159391749",
   "totals": {
     "server": {
-      "covered_lines": 9636,
-      "num_statements": 9835,
-      "percent_covered": 97.84033001698617,
-      "percent_covered_display": "97.84",
+      "covered_lines": 9655,
+      "num_statements": 9854,
+      "percent_covered": 97.84503631961259,
+      "percent_covered_display": "97.85",
       "missing_lines": 199,
       "excluded_lines": 76,
-      "percent_statements_covered": 97.97661413319776,
+      "percent_statements_covered": 97.98051552668967,
       "percent_statements_covered_display": "97.98",
-      "num_branches": 2528,
+      "num_branches": 2536,
       "num_partial_branches": 38,
-      "covered_branches": 2460,
+      "covered_branches": 2468,
       "missing_branches": 68,
-      "percent_branches_covered": 97.31012658227849,
-      "percent_branches_covered_display": "97.31"
+      "percent_branches_covered": 97.3186119873817,
+      "percent_branches_covered_display": "97.32"
     },
     "harness": {
-      "covered_lines": 2710,
-      "num_statements": 2715,
-      "percent_covered": 99.70405445398046,
-      "percent_covered_display": "99.70",
+      "covered_lines": 2776,
+      "num_statements": 2781,
+      "percent_covered": 99.71173248774863,
+      "percent_covered_display": "99.71",
       "missing_lines": 5,
       "excluded_lines": 37,
-      "percent_statements_covered": 99.8158379373849,
+      "percent_statements_covered": 99.82020855807264,
       "percent_statements_covered_display": "99.82",
-      "num_branches": 664,
+      "num_branches": 688,
       "num_partial_branches": 5,
-      "covered_branches": 659,
+      "covered_branches": 683,
       "missing_branches": 5,
-      "percent_branches_covered": 99.24698795180723,
-      "percent_branches_covered_display": "99.25"
+      "percent_branches_covered": 99.27325581395348,
+      "percent_branches_covered_display": "99.27"
     }
   }
 }
