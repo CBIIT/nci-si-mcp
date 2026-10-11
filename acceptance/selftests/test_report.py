@@ -613,3 +613,18 @@ def test_a_gate_skipped_by_design_in_a_live_run_leaves_a_passing_tool_passing():
 
     assert report["tools"]["get_form"]["outcome"] == "PASS"
     assert report["unrun_gates"] == ["t.py::gate"]
+
+
+def test_a_gate_that_found_no_fixture_fails_every_passing_tool():
+    missing = ["GET evs /api/v1/version {}"]
+    report = collected(
+        (phase("call", "passed", "t.py::form"), "get_form", False),
+        (phase("call", "failed", "t.py::gate", unmatched=missing), None, True),
+    )
+
+    form = report["tools"]["get_form"]
+    assert (report["failed_gates"], form["outcome"], form["gates_only"]) == (
+        ["t.py::gate"],
+        "FAIL",
+        True,
+    )

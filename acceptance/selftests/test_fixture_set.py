@@ -13,6 +13,8 @@ from conftest import CRAFTED, crafted_digest, without_crafted
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
 from nci_si_acceptance.record import FIXTURES, plan, request_of, stale
 
+pytest_plugins = ["pytester"]
+
 MANIFEST = yaml.safe_load((FIXTURES / "manifest.yaml").read_text(encoding="utf-8"))
 DOCUMENTS = {
     path.relative_to(FIXTURES).as_posix(): json.loads(path.read_text(encoding="utf-8"))
@@ -151,3 +153,30 @@ def test_each_published_query_is_answered_by_its_recording_whatever_its_whitespa
     assert {"form", "body"} <= {key for entry in forms for key in entry}
     assert statuses == [entry.get("status", 200) for entry in forms]
     assert answered == [entry["fixture"] for entry in forms]
+
+
+FRESH_COPIES = """import pytest
+
+NAME = "recorded/evs/terminologies.json"
+
+
+@pytest.mark.tool("resolve_release")
+def test_a_changes_what_it_read(recorded):
+    recorded(NAME)["response"]["status"] = 0
+
+
+@pytest.mark.tool("resolve_release")
+def test_b_reads_it_unchanged(recorded):
+    assert recorded(NAME)["response"]["status"] == 200
+"""
+
+
+def test_each_read_of_a_fixture_is_a_fresh_copy(compliant, outcomes):
+    # The suite reads the fixture set once per session; a test changing what it read must not
+    # change what the next test reads.
+    (compliant.path / "tests" / "test_copies.py").write_text(FRESH_COPIES, encoding="utf-8")
+
+    assert outcomes("tests/test_copies.py", "-p", "no:randomly") == {
+        "test_a_changes_what_it_read": "passed",
+        "test_b_reads_it_unchanged": "passed",
+    }
