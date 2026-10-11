@@ -124,6 +124,13 @@ def gate_names(tests: dict[str, dict[str, Any]], outcomes: tuple[str, ...]) -> l
     )
 
 
+def fails_by_gates_only(counts: Counter[str], gates_failed: bool) -> bool:
+    """Whether a failed gate, and none of the tool's own tests, would fail the tool: none of its
+    own tests failed or lacked a fixture."""
+
+    return gates_failed and not (counts["failed"] or counts["no_fixture"])
+
+
 def own_unrun(counts: Counter[str]) -> int:
     """The tool's own tests that could not run (CANNOT_RUN)."""
 
@@ -226,7 +233,7 @@ class Collector:
         return {
             "group": group,
             "outcome": tool_outcome(counts, gates_failed, gates_unrun, implemented),
-            "gates_only": gates_failed and not (counts["failed"] or counts["no_fixture"]),
+            "gates_only": fails_by_gates_only(counts, gates_failed),
             "counts": dict(counts),
         }
 
@@ -277,11 +284,10 @@ def _over_both(
     return (FIXTURE_ONLY if all(nodeid in limitations for nodeid in failing) else FAIL), excused
 
 
-def _row(
-    name: str, row: dict[str, Any], gates_unrun: bool, outcome: str, excused: list[str]
-) -> str:
+def _row(name: str, row: dict[str, Any], outcome: str, excused: list[str]) -> str:
     counts = Counter(row["counts"])
-    outcome = _label(outcome, row["gates_only"], gates_unrun and not own_unrun(counts))
+    # An INCOMPLETE tool whose own tests all ran can only rest on gates that could not run.
+    outcome = _label(outcome, row["gates_only"], not own_unrun(counts))
     unrun = sum(counts[kind] for kind in UNRUN)
     tests = f"{counts['passed']} / {counts['failed']} / {counts['no_fixture']} / {unrun}"
     return f"| `{name}` | {row['group']} | {outcome} | {tests} | {', '.join(excused)} |"
@@ -323,8 +329,7 @@ def render(
         "| Upstream limitation |",
         "|---|---|---|---|---|",
     ]
-    unrun = bool(report["unrun_gates"])
-    lines += [_row(name, row, unrun, *combined[name]) for name, row in report["tools"].items()]
+    lines += [_row(name, row, *combined[name]) for name, row in report["tools"].items()]
     missing = sorted(
         {request for test in report["tests"].values() for request in test.get("unmatched", [])}
     )

@@ -16,6 +16,7 @@ from nci_si_acceptance.report import (
     UNRUN,
     complete,
     completion_problem,
+    fails_by_gates_only,
     gate_names,
     own_unrun,
     tool_outcome,
@@ -138,7 +139,7 @@ def _tool(row: Any, counts: Counter[str], group: str, failed: bool, unrun: bool)
     availability = _availability(row)
     require(isinstance(row["outcome"], str))
     require(row["outcome"] in _verdicts(counts, failed, unrun, availability))
-    expected = failed and not (counts["failed"] or counts["no_fixture"])
+    expected = fails_by_gates_only(counts, failed)
     require(type(row["gates_only"]) is bool and row["gates_only"] == expected)
     return {
         "group": group,
