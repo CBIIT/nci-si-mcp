@@ -73,7 +73,7 @@ def requirements(text: str) -> list[str]:
     if len(lines) % 2:
         raise ValueError("A dependency has no SHA-256 hash")
     found = []
-    for requirement, hash_line in zip(lines[::2], lines[1::2], strict=True):
+    for requirement, hash_line in zip(lines[::2], lines[1::2], strict=False):
         digest = re.fullmatch(f"    --hash=sha256:{SHA256_HEX}", hash_line)
         if not requirement.endswith(" \\") or digest is None:
             raise ValueError("A dependency has no SHA-256 hash")
