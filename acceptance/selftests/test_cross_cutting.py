@@ -207,3 +207,17 @@ def test_each_cross_cutting_test_fails_on_its_own_defect(outcomes, monkeypatch, 
 
     assert failing
     assert set(failing.values()) == {"failed"}
+
+
+@pytest.mark.parametrize(
+    "defect", ["no-correlation", "wrong-correlation", "no-source-uri", "no-upstream"]
+)
+def test_provenance_contract_rejects_missing_or_substituted_source_facts(
+    outcomes, monkeypatch, defect
+):
+    """Given deficient live provenance, the suite must report the owning X-7 case failed."""
+
+    monkeypatch.setenv("COMPLIANT_SERVER_DEFECT", defect)
+    case = "test_every_item_carries_its_provenance[get_concept]"
+
+    assert outcomes(f"{CROSS_CUTTING}::{case}") == {case: "failed"}

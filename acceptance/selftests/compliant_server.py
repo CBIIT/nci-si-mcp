@@ -33,6 +33,10 @@ requirements, for the harness's own tests.
     wrong-terminology items name another terminology than the one requested         (X-1)
     invalid-result    a result its outputSchema refuses                             (X-6)
     no-served-by      provenance without servedBy                                   (X-7)
+    no-correlation   provenance without a generated correlation id                  (X-7)
+    wrong-correlation provenance ignores the caller's correlation id                (X-7)
+    no-source-uri    a live concept without its upstream URL                        (X-7)
+    no-upstream      a live concept without the origin its answer supplied          (X-7)
     bad-timestamp     a retrievedAt that is no ISO-8601 timestamp                   (X-7)
     no-polarity       an item reached by traversal without polarity                 (X-7)
     nothing-reached   a traversal whose items are all at depth 0                    (X-7)
@@ -488,6 +492,12 @@ def _provenance(name: str, arguments: dict, correlation: str, answer: dict) -> d
     }
     if DEFECT == "no-served-by":
         del provenance["servedBy"]
+    if DEFECT == "no-correlation":
+        del provenance["correlationId"]
+    if DEFECT == "wrong-correlation":
+        provenance["correlationId"] = "not-the-callers-correlation"
+    if DEFECT == "no-upstream":
+        del provenance["upstream"]
     return provenance | _attribution(terminology, answer)
 
 
@@ -654,6 +664,8 @@ def _identified_concept(content: dict, arguments: dict) -> dict:
     code = quote(arguments["code"], safe="")
     source = f"https://example.invalid/api/v1/concept/{terminology}_{release}/{code}"
     content["provenance"]["sourceUri"] = source
+    if DEFECT == "no-source-uri":
+        del content["provenance"]["sourceUri"]
     if DEFECT == "concept-wrong-uri":
         content["provenance"]["sourceUri"] = f"{source}-other"
     if DEFECT == "concept-no-name":
