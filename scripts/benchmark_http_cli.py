@@ -7,7 +7,7 @@ from pathlib import Path
 
 from scripts.benchmark import CASES, cases
 from scripts.benchmark_http import run_http
-from scripts.benchmark_limits import Limits, approved_target
+from scripts.benchmark_limits import DEFAULT_MAX_REQUESTS, Limits, approved_target
 from scripts.processes import exit_on_sigterm
 
 
@@ -20,7 +20,7 @@ def arguments() -> tuple[argparse.Namespace, Limits, str]:
     parser.add_argument("--case", choices=CASES, action="append", dest="names")
     parser.add_argument("--repetitions", type=int, default=5)
     parser.add_argument("--warmups", type=int, default=1)
-    parser.add_argument("--max-requests", type=int, default=500)
+    parser.add_argument("--max-requests", type=int, default=DEFAULT_MAX_REQUESTS)
     parser.add_argument("--seconds", type=float, default=120)
     parser.add_argument("--timeout", type=float, default=15)
     args = parser.parse_args()

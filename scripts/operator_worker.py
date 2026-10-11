@@ -20,7 +20,7 @@ from nci_si_acceptance.client import OwnedServer, server_environment
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
 from nci_si_acceptance.suite import unmatched_requests
 
-FIXTURE_LIMITS = Limits(max_requests=500)
+FIXTURE_LIMITS = Limits()
 
 
 def clean_environment(directory: Path, *, source: Path | None = None) -> dict[str, str]:
