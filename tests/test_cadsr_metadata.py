@@ -7,7 +7,7 @@ from unittest.mock import patch
 from urllib.parse import urlsplit
 
 from fakes import data_element
-from nci_si_mcp.cadsr import CaDSRClient
+from nci_si_mcp.cadsr import CDE_MATCH, CaDSRClient
 from test_cadsr_forms import form
 from test_cadsr_matching import cde_response, cde_row, vm_response, vm_row
 from test_evs_client import FakeResponse
@@ -248,3 +248,151 @@ class FormAndMatchMetadataTest(MetadataFixture):
                 self.assertTrue(result.is_error)
                 self.assertEqual(result.structured_content["error"]["code"], "upstream_unavailable")
                 self.assertNotIn("matches", result.structured_content)
+
+
+class Missing:
+    """A field caDSR left out of its answer."""
+
+    def __repr__(self):
+        return "MISSING"
+
+
+MISSING = Missing()
+NOT_TEXT = (MISSING, None, 7)
+NAME_AND_STATUS = ("longName", "workflowStatus", "registrationStatus")
+NULLABLE = ("context", "dateCreated", "dateModified")
+ELEMENT_PATH = "/NCIAPI/1.0/api/DataElement/123"
+FORM_PATH = "/NCIFormAPI.v2_0:NciFormApiRad/Form/123"
+
+
+def broken(raw, field, value):
+    """raw with field left out (MISSING) or set to value."""
+    changed = {key: item for key, item in raw.items() if key != field}
+    return changed if value is MISSING else changed | {field: value}
+
+
+def nested_element(record, field, value):
+    """A data element whose scheme, scheme item or value meaning has field broken."""
+    parts = {
+        "scheme": {"publicId": "700", "version": "1", "longName": "Scheme", "context": "TEST"},
+        "item": {"publicId": "701", "version": "1", "longName": "Item"},
+        "meaning": {"publicId": "801", "version": "1", "longName": "Meaning", "Concepts": []},
+    }
+    parts[record] = broken(parts[record], field, value)
+    scheme = parts["scheme"] | {"ClassificationSchemeItems": [parts["item"]]}
+    value_row = {"publicId": "800", "value": "A", "ValueMeaning": parts["meaning"]}
+    return data_element(
+        ClassificationSchemes=[scheme], ValueDomain={"PermissibleValues": [value_row]}
+    )
+
+
+class RequiredNameAndStatusTest(MetadataFixture):
+    """A registry item's name and statuses are never null (spec/records.yaml, #295)."""
+
+    def assert_refused(self, result, section, path):
+        self.assertTrue(result.is_error)
+        error = result.structured_content["error"]
+        self.assertEqual(
+            {key: value for key, value in error.items() if key != "correlationId"},
+            {
+                "code": "upstream_unavailable",
+                "message": (
+                    f"caDSR returned malformed {section}. Ask the operator to check the API."
+                ),
+                "details": {"surface": "cadsr"},
+            },
+        )
+        self.assertEqual(self.paths, [path])
+
+    def test_a_data_element_without_its_name_or_status_is_refused(self):
+        for field in NAME_AND_STATUS:
+            for value in NOT_TEXT:
+                with self.subTest(field=field, value=value):
+                    raw = broken(data_element(), field, value)
+                    result = self.answer({"DataElement": raw}, publicId="123")
+
+                    self.assert_refused(result, f"data element {field}", ELEMENT_PATH)
+
+    def test_a_form_without_its_name_or_status_is_refused(self):
+        for field in NAME_AND_STATUS:
+            for value in NOT_TEXT:
+                for modules in (True, False):
+                    with self.subTest(field=field, value=value, includeModules=modules):
+                        result = self.answer(
+                            {"form": broken(form(), field, value)},
+                            "get_form",
+                            publicId="123",
+                            includeModules=modules,
+                        )
+
+                        self.assert_refused(result, f"form {field}", FORM_PATH)
+
+    def test_one_search_row_without_its_name_or_status_fails_the_page(self):
+        for field in NAME_AND_STATUS:
+            for value in NOT_TEXT:
+                with self.subTest(field=field, value=value):
+                    rows = [data_element("123"), broken(data_element("456"), field, value)]
+                    result = self.answer({"DataElements": rows}, "search_data_elements", query="Q")
+
+                    self.assert_refused(
+                        result, f"data element {field}", "/NCIAPI/1.0/api/DataElement/search"
+                    )
+                    self.assertNotIn("results", result.structured_content)
+
+    def test_one_match_without_its_name_or_status_fails_the_page(self):
+        for field in NAME_AND_STATUS:
+            for value in NOT_TEXT:
+                with self.subTest(field=field, value=value):
+                    rows = [cde_row("123"), broken(cde_row("456"), field, value)]
+                    result = self.answer(
+                        cde_response(matches=rows), "match_data_elements", entities=[{"name": "Q"}]
+                    )
+
+                    self.assert_refused(result, f"data element {field}", CDE_MATCH)
+                    self.assertNotIn("matches", result.structured_content)
+
+    def test_a_nested_scheme_item_or_value_meaning_without_its_name_is_refused(self):
+        cases = (
+            ("classificationSchemes", "scheme", "longName", "classification scheme longName"),
+            ("classificationSchemes", "scheme", "context", "classification scheme context"),
+            ("classificationSchemes", "item", "longName", "classification scheme item longName"),
+            ("permissibleValues", "meaning", "longName", "value meaning longName"),
+        )
+        for section, record, field, malformed in cases:
+            for value in NOT_TEXT:
+                with self.subTest(record=record, field=field, value=value):
+                    raw = nested_element(record, field, value)
+                    result = self.answer({"DataElement": raw}, publicId="123", include=[section])
+
+                    self.assert_refused(result, malformed, ELEMENT_PATH)
+
+    def test_context_and_dates_stay_null_when_cadsr_omits_them(self):
+        calls = (
+            ("get_data_element", "DataElement", data_element(), {}),
+            ("get_form", "form", form(), {"includeModules": False}),
+        )
+        for tool, key, raw, extra in calls:
+            for field in NULLABLE:
+                for value in (MISSING, None):
+                    with self.subTest(tool=tool, field=field, value=value):
+                        result = self.answer(
+                            {key: broken(raw, field, value)}, tool, publicId="123", **extra
+                        )
+
+                        self.assertFalse(result.is_error)
+                        self.assertIsNone(result.structured_content[field])
+                        self.assertEqual(len(self.paths), 1)
+
+    def test_an_empty_name_or_status_is_passed_through_as_sent(self):
+        # The record says never null, not never blank; the live contract is stricter.
+        calls = (
+            ("get_data_element", "DataElement", data_element(), {}),
+            ("get_form", "form", form(), {"includeModules": False}),
+        )
+        for tool, key, raw, extra in calls:
+            for field in NAME_AND_STATUS:
+                with self.subTest(tool=tool, field=field):
+                    result = self.answer({key: raw | {field: ""}}, tool, publicId="123", **extra)
+
+                    self.assertFalse(result.is_error)
+                    self.assertEqual(result.structured_content[field], "")

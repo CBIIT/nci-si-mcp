@@ -150,16 +150,10 @@ class CaDSRSchemaMutationTest(TestCase):
                 self.assertEqual(set(actual), set(values))
 
     def test_every_cadsr_field_preserves_its_nullability_contract(self):
-        # caDSR's own nullable text metadata passes through unchanged (A9.1).
-        # vmMatch's optional metadata is instead absent on null, per its record.
-        item_text = {
-            "longName",
-            "context",
-            "workflowStatus",
-            "registrationStatus",
-            "dateCreated",
-            "dateModified",
-        }
+        # caDSR's own nullable text metadata passes through unchanged (A9.1); a registry item's
+        # name and statuses never do (#295). vmMatch's optional metadata is instead absent on
+        # null, per its record.
+        item_text = {"context", "dateCreated", "dateModified"}
         nullable = {
             results.DataElement: item_text
             | {
@@ -171,11 +165,11 @@ class CaDSRSchemaMutationTest(TestCase):
                 "origin",
             },
             results.Form: item_text | {"definition", "type", "beginDate", "endDate"},
-            results.RegistryItemIdentity: {"longName"},
-            results.ValueMeaning: {"longName"},
+            results.RegistryItemIdentity: set(),
+            results.ValueMeaning: set(),
             results.ValueMeaningConcept: {"longName"},
             results.ConceptAssociation: {"longName"},
-            results.ClassificationScheme: {"longName", "context"},
+            results.ClassificationScheme: set(),
             results.CodeMap: {"crdcName"},
         }
         nested = {
