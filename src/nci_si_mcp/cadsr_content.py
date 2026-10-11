@@ -43,6 +43,15 @@ _OWN = (
     "dateModified",
 )
 _IDENTITY = ("publicId", "version", "longName")
+_ELEMENT = (
+    *_OWN,
+    "definition",
+    "shortName",
+    "latestVersionIndicator",
+    "beginDate",
+    "endDate",
+    "origin",
+)
 _SEARCH_CAP = 1000
 _CODE_MAP_LIMIT = 1000
 
@@ -154,7 +163,7 @@ def _element(
     raw: dict[str, Any], include: list[DataElementInclude], provenance: dict[str, Any]
 ) -> dict[str, Any]:
     _identity(raw)
-    result = _fields(raw, _OWN) | {"provenance": _item_provenance(raw, provenance)}
+    result = _fields(raw, _ELEMENT) | {"provenance": _item_provenance(raw, provenance)}
     for section in include:
         result[section] = _section(raw, section, provenance)
     return result
@@ -170,8 +179,9 @@ def _identity(raw: dict[str, Any]) -> dict[str, Any]:
 
 
 def _section(raw: dict[str, Any], section: DataElementInclude, provenance: dict[str, Any]) -> Any:
-    if section == "alternateNames":
-        return _rows(raw, "AlternateNames")
+    raw_lists = {"alternateNames": "AlternateNames", "referenceDocuments": "ReferenceDocuments"}
+    if section in raw_lists:
+        return _rows(raw, raw_lists[section])
     if section == "classificationSchemes":
         return [_scheme(row, provenance) for row in _rows(raw, "ClassificationSchemes")]
     if section == "conceptAssociations":
@@ -322,8 +332,8 @@ def get_data_element(
         list[DataElementInclude] | None,
         Described(
             "Sections to add: any of permissibleValues, valueDomain, conceptAssociations, "
-            "alternateNames, classificationSchemes. Leave unset for the element's own "
-            "fields only."
+            "alternateNames, classificationSchemes, referenceDocuments. Leave unset for "
+            "the element's own fields only."
         ),
     ] = None,
     registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
@@ -334,7 +344,9 @@ def get_data_element(
 
     Returns the data element with provenance (the registry alone for unpinned content); nested
     permissible values and schemes carry provenance. Its conceptAssociations section lists the
-    concepts behind the element.
+    concepts behind the element. referenceDocuments returns all upstream rows, including
+    question texts, references and templates. Scalar metadata is null when the producing
+    answer supplies none; no other operation is queried to fill it.
 
     not_found when no element has that publicId and version or that question text;
     invalid_request naming the candidates when several have the text. longName is not served by

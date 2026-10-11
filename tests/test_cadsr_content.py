@@ -42,7 +42,12 @@ class CaDSRContentTest(CaDSRFixture):
         raw = element(AlternateNames=[{"name": "Alias"}])
         server = self.serve(reply({"DataElement": raw}))
         result = self.call(server, publicId="123")
-        self.assertEqual({k: v for k, v in result.items() if k != "provenance"}, element())
+        missing = dict.fromkeys(
+            ("definition", "shortName", "latestVersionIndicator", "beginDate", "endDate", "origin")
+        )
+        self.assertEqual(
+            {k: v for k, v in result.items() if k != "provenance"}, element() | missing
+        )
         self.assertEqual(result["provenance"]["release"], {"registry": "cadsr"})
         self.assertEqual(result["provenance"]["correlationId"], "fixture-call")
         self.assertEqual(self.hint, {"ttlMs": 3_600_000, "cacheScope": "public"})

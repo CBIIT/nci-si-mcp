@@ -533,8 +533,15 @@ what comes back and how it fails, and names the requirement (OP-*, C-*) of every
 platform lacks. The server instructions carry what spans tools: the error record, the release rule and
 a map from each decision to the tool that serves it.
 The caDSR tools are available in `cadsr` and `unified`, the cross-domain and workflow tools in
-`unified`; caDSR credentials have not been issued, so their tests use contract-crafted fixtures.
+`unified`. CDE Match and the lists-of-values API need credentials and use contract-crafted
+fixtures; the data element API, vmMatch and Form API 2.0 are anonymous and can be tested live.
 Runtime responses always come from the configured upstream, never from a built-in fixture.
+
+Data elements include their definition, short name, latest-version indicator, begin/end dates
+and origin. Null means that the answer producing this record supplied no value; search and
+match results do not trigger a detail lookup to fill one. Request `include: [referenceDocuments]`
+for all upstream document rows, including question texts, references and templates, unchanged.
+The section is absent unless requested.
 
 ### CLI
 

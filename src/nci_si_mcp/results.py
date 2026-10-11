@@ -247,6 +247,12 @@ class Form(RegistryItemIdentity):
 
 
 class DataElement(RegistryItemIdentity):
+    definition: str | None
+    shortName: str | None
+    latestVersionIndicator: str | None
+    beginDate: str | None
+    endDate: str | None
+    origin: str | None
     context: str | None
     workflowStatus: str | None
     registrationStatus: str | None
@@ -258,6 +264,7 @@ class DataElement(RegistryItemIdentity):
     conceptAssociations: NotRequired[list[ConceptAssociation]]
     alternateNames: NotRequired[list[dict[str, Any]]]
     classificationSchemes: NotRequired[list[ClassificationScheme]]
+    referenceDocuments: NotRequired[list[dict[str, Any]]]
 
 
 class DataElementHit(TypedDict):

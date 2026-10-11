@@ -208,7 +208,7 @@ get_data_element:
   free_text: [questionText]
   returns: data_element
   items: ["."]
-  values: {include: [permissibleValues, valueDomain, conceptAssociations, alternateNames, classificationSchemes]}
+  values: {include: [permissibleValues, valueDomain, conceptAssociations, alternateNames, classificationSchemes, referenceDocuments]}
   summary: >-
     One data element, at its latest version or the version given, with the sections include
     selects; without include, the record's own fields. questionText finds it by its preferred

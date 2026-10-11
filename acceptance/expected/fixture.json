@@ -36,6 +36,7 @@
   "tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[classificationSchemes]": "passed",
   "tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[conceptAssociations]": "passed",
   "tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[permissibleValues]": "passed",
+  "tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[referenceDocuments]": "passed",
   "tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[valueDomain]": "passed",
   "tests/test_cadsr.py::test_html_where_json_was_asked_for_is_an_upstream_error": "passed",
   "tests/test_cadsr.py::test_matching_slower_than_the_match_timeout_is_a_timeout[match_data_elements]": "passed",

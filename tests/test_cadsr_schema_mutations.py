@@ -161,7 +161,15 @@ class CaDSRSchemaMutationTest(TestCase):
             "dateModified",
         }
         nullable = {
-            results.DataElement: item_text,
+            results.DataElement: item_text
+            | {
+                "definition",
+                "shortName",
+                "latestVersionIndicator",
+                "beginDate",
+                "endDate",
+                "origin",
+            },
             results.Form: item_text,
             results.RegistryItemIdentity: {"longName"},
             results.ValueMeaning: {"longName"},
