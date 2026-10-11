@@ -454,6 +454,14 @@ def _free_port() -> int:
         return listener.getsockname()[1]
 
 
+def _listening(port: int) -> bool:
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=0.2):
+            return True
+    except OSError:
+        return False
+
+
 class OwnedServer:
     """The server under test as a child process this object owns, serving streamable HTTP on a
     free local port; it is reaped on leaving the scope, an exception included.
@@ -487,7 +495,15 @@ class OwnedServer:
 
     def start(self, settings: dict[str, str]) -> None:
         """Launch the server with `settings` and return once it accepts connections; if it
-        exits first (its log is named in the error) or the time runs out, reap it and fail."""
+        exits first (its log is named in the error) or the time runs out, reap it and fail.
+        Refused while a server is running, or when something else already listens on the port."""
+
+        if self._process is not None:
+            raise RuntimeError("The owned server is already running")
+        if _listening(self.port):
+            raise RuntimeError(
+                f"The owned server's port {self.port} is already in use; see {self._log}"
+            )
 
         environment = (
             self._environment
@@ -532,13 +548,9 @@ class OwnedServer:
     def _wait_ready(self) -> None:
         deadline = time.monotonic() + self._ready_seconds
         while self._process is not None and self._process.poll() is None:
-            try:
-                with socket.create_connection(("127.0.0.1", self.port), timeout=0.2):
-                    return
-            except OSError:
-                if time.monotonic() >= deadline:
-                    raise TimeoutError(
-                        f"The owned server did not become ready; see {self._log}"
-                    ) from None
-                time.sleep(0.05)
+            if _listening(self.port):
+                return
+            if time.monotonic() >= deadline:
+                raise TimeoutError(f"The owned server did not become ready; see {self._log}")
+            time.sleep(0.05)
         raise RuntimeError(f"The owned server exited before readiness; see {self._log}")
