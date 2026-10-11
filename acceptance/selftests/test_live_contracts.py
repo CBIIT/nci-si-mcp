@@ -304,6 +304,13 @@ def test_live_element_accepts_null_only_for_nullable_scalar_fields(live_suite, f
     assert result.ret == 0
 
 
+def test_live_nullable_text_can_be_empty_without_becoming_an_identity(live_suite):
+    result, outcomes = run_family(live_suite, "element", corruption=(0, "dateModified", ""))
+
+    assert set(outcomes.values()) == {"passed"}
+    assert result.ret == 0
+
+
 def corrupt(content, path, value):
     keys = [int(key) if key.isdigit() else key for key in path.split(".")]
     for key in keys[:-1]:

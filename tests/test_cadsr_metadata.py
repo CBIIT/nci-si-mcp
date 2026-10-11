@@ -117,4 +117,4 @@ class DataElementMetadataTest(ServerFixture):
 
         item = result.structured_content["results"][0]["dataElement"]
         self.assertEqual({key: item.get(key) for key in SCALARS}, SCALARS)
-        self.assertEqual(self.paths, ["/NCIAPI/1.0/api/DataElements/ReferenceDocument"])
+        self.assertEqual(self.paths, ["/NCIAPI/1.0/api/DataElement/search"])
