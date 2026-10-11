@@ -1,12 +1,38 @@
 """Operator targets and campaign bounds prevent unintended requests before transport."""
 
+import re
 import threading
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
+from scripts import benchmark_http_cli
 from scripts.benchmark_limits import Budget, Limits, RunStoppedError, approved_target
 
 
 class BenchmarkLimitsTest(unittest.TestCase):
+    def test_default_request_bound_is_the_documented_one_on_every_entry_point(self):
+        target = "https://example.org/mcp"
+        argv = [
+            "x",
+            "--target",
+            target,
+            "--allow-target",
+            target,
+            "--allow-remote",
+            "--output",
+            "o",
+        ]
+        with patch("sys.argv", argv):
+            command_default = benchmark_http_cli.arguments()[1].max_requests
+        documented = re.search(
+            r"Defaults are (\d+) total HTTP requests",
+            (Path(__file__).parents[1] / "docs/benchmark.md").read_text(),
+        )
+        self.assertIsNotNone(documented)
+        self.assertEqual(Limits().max_requests, command_default)
+        self.assertEqual(Limits().max_requests, int(documented.group(1)))
+
     def test_remote_target_requires_exact_normalized_https_origin_and_path(self):
         allowed = ("https://EXAMPLE.ORG:443/mcp",)
         self.assertEqual(
