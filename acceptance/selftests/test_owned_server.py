@@ -1,5 +1,6 @@
 """The server the harness owns is ready when `start` returns and gone when its scope ends."""
 
+import os
 import socket
 from pathlib import Path
 
@@ -67,3 +68,28 @@ def test_a_server_not_ready_in_time_is_reaped_and_reported(tmp_path):
         with pytest.raises(TimeoutError, match=f"did not become ready; see {tmp_path}/server.log"):
             server.start(settings(tmp_path))
         assert not listening(server.port)
+
+
+def test_stop_kills_a_server_that_ignores_termination(tmp_path, monkeypatch):
+    # sitecustomize runs in the child before the server: it records the child's pid and makes
+    # SIGTERM stick, even against the server's own handler installation.
+    hooks = tmp_path / "hooks"
+    hooks.mkdir()
+    (hooks / "sitecustomize.py").write_text(
+        "import os, signal\n"
+        f"open({str(tmp_path / 'child.pid')!r}, 'w').write(str(os.getpid()))\n"
+        "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+        "signal.signal = lambda *_arguments: None\n"
+    )
+    monkeypatch.setattr("nci_si_acceptance.client.STOP_SECONDS", 1)
+    environment = server_environment("fixture", tmp_path / "data", UPSTREAM) | {
+        "PYTHONPATH": str(hooks)
+    }
+    server = OwnedServer(
+        environment, tmp_path / "server.log", data_dir=tmp_path / "data", require_index=False
+    )
+    server.start(settings(tmp_path))
+    pid = int((tmp_path / "child.pid").read_text())
+    server.stop()
+    with pytest.raises(ProcessLookupError):
+        os.kill(pid, 0)
