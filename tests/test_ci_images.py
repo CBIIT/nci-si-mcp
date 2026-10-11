@@ -12,7 +12,7 @@ from unittest.mock import patch
 import yaml
 from scripts import ci_images
 
-SELECTOR = Path(__file__).resolve().parents[1] / "scripts/ci_images.py"
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class ImageWorkflowTest(unittest.TestCase):
@@ -22,7 +22,7 @@ class ImageWorkflowTest(unittest.TestCase):
         setup = [step for step in steps if "setup-python@" in step.get("uses", "")]
         self.assertEqual(len(setup), 1, "The selector requires Python 3.14, not runner Python")
         self.assertEqual(setup[0]["with"]["python-version"], "3.14")
-        command = next(step for step in steps if "scripts/ci_images.py" in step.get("run", ""))
+        command = next(step for step in steps if step.get("id") == "select")
         self.assertLess(steps.index(setup[0]), steps.index(command))
 
     def test_same_named_image_jobs_use_event_sha_selection_and_main_always_runs(self):
@@ -35,13 +35,11 @@ class ImageWorkflowTest(unittest.TestCase):
             if step.get("uses", "").startswith("actions/checkout@")
         )
         self.assertEqual(checkout["with"]["fetch-depth"], 0)
-        step = next(
-            step for step in selector["steps"] if "scripts/ci_images.py" in step.get("run", "")
-        )
+        step = next(step for step in selector["steps"] if step.get("id") == "select")
         self.assertEqual(step["id"], "select")
         self.assertEqual(
             step["run"],
-            'python3 scripts/ci_images.py "$EVENT_NAME" "$BASE_SHA" "$HEAD_SHA" '
+            'python3 -m scripts.ci_images "$EVENT_NAME" "$BASE_SHA" "$HEAD_SHA" '
             '>> "$GITHUB_OUTPUT"',
         )
         self.assertEqual(
@@ -90,9 +88,9 @@ class ImageSelectionTest(unittest.TestCase):
 
     def selected(self, base, head, event="pull_request"):
         result = subprocess.run(  # noqa: S603 - real local entry point, fixed arguments, no shell
-            [sys.executable, str(SELECTOR), event, base, head],
+            [sys.executable, "-P", "-m", "scripts.ci_images", event, base, head],
             cwd=self.root,
-            env={"PATH": os.environ["PATH"]},
+            env={"PATH": os.environ["PATH"], "PYTHONPATH": str(ROOT)},
             capture_output=True,
             text=True,
             check=False,
