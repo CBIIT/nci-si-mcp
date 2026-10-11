@@ -16,6 +16,7 @@ from nci_si_acceptance.report import (
     UNRUN,
     complete,
     completion_problem,
+    gate_names,
     own_unrun,
     tool_outcome,
 )
@@ -125,9 +126,7 @@ def _native_cases(report: dict[str, Any], context: dict[str, Any]) -> None:
 
 
 def _gates(report: dict[str, Any], field: str, outcomes: tuple[str, ...]) -> list[str]:
-    expected = sorted(
-        name for name, row in report["tests"].items() if row["gate"] and row["outcome"] in outcomes
-    )
+    expected = gate_names(report["tests"], outcomes)
     require(report[field] == expected)
     return expected
 
@@ -145,7 +144,8 @@ def _tool(row: Any, counts: Counter[str], group: str, failed: bool, unrun: bool)
         "group": group,
         "outcome": row["outcome"],
         "gates_only": row["gates_only"],
-        # The verdict rests on gates that did not run, the tool's own tests having all run.
+        # A gate could not run and the tool's own tests all ran; the portal says so for a PASS
+        # or INCOMPLETE verdict.
         "gates_unrun": unrun and not own_unrun(counts),
         "counts": dict(counts),
     }
@@ -190,7 +190,7 @@ def _native(raw: bytes, context: dict[str, Any]) -> tuple[dict[str, Any], dict[s
     _gates(report, "unrun_gates", UNRUN)
     # Only a gate that could not run keeps a tool from passing; one skipped by design in a live
     # run (not_live) does not.
-    unrun = any(row["gate"] and row["outcome"] in CANNOT_RUN for row in report["tests"].values())
+    unrun = bool(gate_names(report["tests"], CANNOT_RUN))
     tools = {}
     for name, group in context["catalogue"]["tools"].items():
         counts = Counter(row["outcome"] for row in report["tests"].values() if row["tool"] == name)

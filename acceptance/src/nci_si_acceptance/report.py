@@ -115,6 +115,14 @@ def _without_failures(counts: Counter[str], gates_unrun: bool, implemented: bool
     return INCOMPLETE if own_unrun(counts) or gates_unrun else PASS
 
 
+def gate_names(tests: dict[str, dict[str, Any]], outcomes: tuple[str, ...]) -> list[str]:
+    """The gates among a run's tests whose final outcome is one of `outcomes`, in order."""
+
+    return sorted(
+        nodeid for nodeid, test in tests.items() if test["gate"] and test["outcome"] in outcomes
+    )
+
+
 def own_unrun(counts: Counter[str]) -> int:
     """The tool's own tests that could not run (CANNOT_RUN)."""
 
@@ -221,16 +229,9 @@ class Collector:
             "counts": dict(counts),
         }
 
-    def _gates(self, outcomes: tuple[str, ...]) -> list[str]:
-        return sorted(
-            nodeid
-            for nodeid, test in self.tests.items()
-            if test["gate"] and test["outcome"] in outcomes
-        )
-
     def report(self, mode: str) -> dict[str, Any]:
-        gates, unrun = self._gates(FAILED), self._gates(UNRUN)
-        blocked = bool(self._gates(CANNOT_RUN))
+        gates, unrun = gate_names(self.tests, FAILED), gate_names(self.tests, UNRUN)
+        blocked = bool(gate_names(self.tests, CANNOT_RUN))
         rows = {
             name: self._row(name, group, bool(gates), blocked)
             for name, group in REQUIRED_TOOLS.items()
