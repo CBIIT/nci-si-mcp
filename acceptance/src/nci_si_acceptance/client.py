@@ -41,7 +41,7 @@ import time
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass, field
 from functools import partial
-from typing import TYPE_CHECKING, Any, Literal, TextIO
+from typing import TYPE_CHECKING, Any, Literal, Self, TextIO
 from urllib.parse import urlsplit
 
 import httpx2
@@ -487,13 +487,13 @@ class OwnedServer:
         self._require_index, self._ready_seconds = require_index, ready_seconds
         self._process: subprocess.Popen[bytes] | None = None
 
-    def __enter__(self) -> OwnedServer:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *_exception: object) -> None:
         self.stop()
 
-    def start(self, settings: dict[str, str]) -> None:
+    def start(self, settings: Mapping[str, str]) -> None:
         """Launch the server with `settings` and return once it accepts connections; if it
         exits first (its log is named in the error) or the time runs out, reap it and fail.
         Refused while a server is running, or when something else already listens on the port."""
@@ -507,7 +507,7 @@ class OwnedServer:
 
         environment = (
             self._environment
-            | settings
+            | dict(settings)
             | {
                 "NCI_SI_DATA_DIR": str(self._data_dir),
                 "NCI_SI_TRANSPORT": "streamable-http",
@@ -531,6 +531,8 @@ class OwnedServer:
             raise
 
     def stop(self) -> None:
+        # The same terminate, wait, kill sequence as scripts/processes.py: kept twice because
+        # nci_si_acceptance must not import scripts.
         process, self._process = self._process, None
         if process is None or process.poll() is not None:
             return
@@ -541,7 +543,7 @@ class OwnedServer:
             process.kill()
             process.wait(timeout=STOP_SECONDS)
 
-    def restart(self, settings: dict[str, str]) -> None:
+    def restart(self, settings: Mapping[str, str]) -> None:
         self.stop()
         self.start(settings)
 
