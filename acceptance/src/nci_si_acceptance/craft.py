@@ -4,7 +4,7 @@
 
 Each scenario is built here, from the recorded set where it changes a real answer, so
 that it follows a re-recording, or from scratch where it is synthetic. Every crafted
-fixture names the requirement it stands in for. Nothing is written to the fixture set:
+fixture names the requirement it stands in for. No fixture file is written:
 `fixture_server.load_fixtures` builds these fixtures in memory whenever the set loads. The
 command records their digest in the manifest (`crafted:`), so every change to them shows as
 that one line; `--check` exits 1 when the line is stale, and `--out DIR` writes the fixtures

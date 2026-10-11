@@ -120,7 +120,7 @@ remote-unprepared skips are a deliberate transport contract and remain visible.
 Run the live-capable suite with:
 
 ```bash
-NCI_SI_ACCEPTANCE_MODE=live NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")' pdm run acceptance -n 4 --report=live.json
+NCI_SI_ACCEPTANCE_MODE=live NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")' pdm run acceptance -n 4 --dist worksteal --report=live.json
 pdm run python -m nci_si_acceptance.report acceptance/fixture.json --live acceptance/live.json
 ```
 

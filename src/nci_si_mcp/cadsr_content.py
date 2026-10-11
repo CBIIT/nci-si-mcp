@@ -430,8 +430,9 @@ def search_data_elements(
     list of 1,000 rows reports upstream_cap, omitted at least one and exact false. totalKnown
     appears only when the platform gives a count.
 
-    upstream_unavailable when the route fails, or when one row lacks its longName,
-    workflowStatus or registrationStatus (the whole page fails); when caDSR answers with its
+    upstream_unavailable when the route fails, or when any of the up to 1,000 rows it returned
+    lacks its longName, workflowStatus or registrationStatus (the whole call fails, even for a
+    row beyond the requested page); when caDSR answers with its
     error envelope the message adds that keyword search is not served, so read an element by
     publicId or question text instead.
     """

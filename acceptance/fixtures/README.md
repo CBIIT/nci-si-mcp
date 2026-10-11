@@ -13,10 +13,11 @@ service does not produce on demand (and which requirement it stands in for).
   endpoint); concepts in `recorded/evs/concepts/`.
 - `crafted/<requirement>/`: the form a requirement prescribes where the service does not answer
   it yet, carrying a recording's answer (`acceptance-record`, the manifest's `derived`), or
-  crafted outright by `craft.py` (caDSR's capped keyword search, built in memory).
+  crafted outright, in memory, by `craft.py` (for example caDSR's capped keyword search).
 - `scenarios/<group>/<name>/`: the fixtures of one scenario, which answer before the ordinary
   ones while a test selects it (`@pytest.mark.scenario("<group>/<name>")`). A `settings.json`
-  there holds the `NCI_SI_*` settings the scenario's server process starts with.
+  there holds the `NCI_SI_*` settings the scenario's server process starts with. Only recorded
+  scenario fixtures are files; the crafted ones are built in memory.
 
 ## Scenarios
 

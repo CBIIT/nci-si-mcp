@@ -166,10 +166,11 @@ with credentials withheld, rather than aborting the run or counting as `not_live
 ## The report
 
 `--report` writes one JSON report per run; `nci_si_acceptance.report` renders it as the per-tool
-table of the specification's §5. A tool is PASS, FAIL (a failed gate fails every tool), NO FIXTURE (a request lacked
-a fixture: a question for the fixture set), INCOMPLETE (the tests that ran passed but some could
-not run, or a gate could not run, shown as "gates not run": a hardening candidate), NOT
-IMPLEMENTED, NOT RUN or NO TESTS; the module docstring defines each, and each row counts the tests passed, failed, without a fixture and not run.
+table of the specification's §5. A tool is PASS, FAIL (a failed gate fails every tool), NO
+FIXTURE (a request lacked a fixture: a question for the fixture set), INCOMPLETE (the tests that
+ran passed but some could not run, or a gate could not run, shown as "gates not run": a
+hardening candidate), NOT IMPLEMENTED, NOT RUN or NO TESTS; the module docstring defines each,
+and each row counts the tests passed, failed, without a fixture and not run.
 The rendered report opens with its title and the identity of the suite: the suite version, the
 fixture-set version (the pinned release and the date of the latest recording) and the suite
 digest. The title is ACCEPTANCE REPORT only when that digest is in `approved.yaml`; otherwise it
