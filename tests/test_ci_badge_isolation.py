@@ -10,6 +10,45 @@ WORKFLOW = yaml.safe_load(Path(".github/workflows/ci.yml").read_text())
 
 
 class BadgeTokenBoundaryTest(unittest.TestCase):
+    def test_only_the_main_publisher_has_write_authority(self):
+        self.assertEqual(WORKFLOW["permissions"], {"contents": "read"})
+        writers = {
+            name
+            for name, job in WORKFLOW["jobs"].items()
+            if "write" in job.get("permissions", {}).values()
+        }
+        self.assertEqual(writers, {"coverage-badges"})
+        writer = WORKFLOW["jobs"]["coverage-badges"]
+        self.assertEqual(
+            writer.get("if"), "github.event_name == 'push' && github.ref == 'refs/heads/main'"
+        )
+        self.assertEqual(
+            set(writer["needs"]),
+            {
+                "changes",
+                "quality",
+                "test",
+                "coverage",
+                "acceptance",
+                "acceptance-http",
+                "image",
+                "documentation",
+                "companions",
+                "coverage-badges-render",
+            },
+        )
+        self.assertEqual(
+            writer.get("concurrency"),
+            {"group": "coverage-badges-main", "cancel-in-progress": False},
+        )
+        self.assertEqual(writer["steps"][1]["env"], {"GH_TOKEN": "${{ secrets.GITHUB_TOKEN }}"})
+
+    def test_no_checkout_retains_credentials_for_repository_code(self):
+        for job in WORKFLOW["jobs"].values():
+            for step in job["steps"]:
+                if step.get("uses", "").startswith("actions/checkout@"):
+                    self.assertIs(step["with"]["persist-credentials"], False)
+
     def test_write_job_only_downloads_same_run_data_and_publishes_it(self):
         writer = WORKFLOW["jobs"]["coverage-badges"]
         commands = "\n".join(step.get("run", "") for step in writer["steps"])
@@ -55,3 +94,4 @@ class BadgeTokenBoundaryTest(unittest.TestCase):
             },
         )
         self.assertEqual(artifact["if-no-files-found"], "error")
+        self.assertEqual(artifact["retention-days"], 1)

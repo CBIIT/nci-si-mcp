@@ -74,6 +74,16 @@ class PrebuiltSiteTest(unittest.TestCase):
         self.assertFalse(self.output.exists())
         self.assertIn("Prebuilt site", error)
 
+    def test_unrecorded_clean_state_produces_no_context(self):
+        missing = {key: value for key, value in self.identity.items() if key != "dirty"}
+        for index, identity in enumerate((missing, self.identity | {"dirty": None})):
+            with self.subTest(identity=identity):
+                self.output = self.root / f"unrecorded-{index}"
+                (self.site / "build.json").write_text(json.dumps(identity))
+                error = self.command()
+                self.assertFalse(self.output.exists())
+                self.assertIn("clean source commit", error)
+
     def test_symlinked_site_or_descendant_is_not_copied(self):
         linked = self.root / "linked"
         linked.symlink_to(self.site, target_is_directory=True)
@@ -81,7 +91,8 @@ class PrebuiltSiteTest(unittest.TestCase):
             with self.subTest(site=site):
                 self.output = self.root / f"context-{site.name}"
                 if site == self.site:
-                    (self.site / "linked.html").symlink_to(self.site / "index.html")
+                    (self.site / "nested").mkdir()
+                    (self.site / "nested/linked.html").symlink_to(self.site / "index.html")
                 error = self.command(site)
                 self.assertFalse(self.output.exists())
                 self.assertIn("symlink", error)

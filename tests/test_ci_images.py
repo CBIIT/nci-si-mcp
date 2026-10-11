@@ -7,8 +7,10 @@ import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 import yaml
+from scripts import ci_images
 
 SELECTOR = Path(__file__).resolve().parents[1] / "scripts/ci_images.py"
 
@@ -36,8 +38,20 @@ class ImageWorkflowTest(unittest.TestCase):
         step = next(
             step for step in selector["steps"] if "scripts/ci_images.py" in step.get("run", "")
         )
-        self.assertEqual(step["env"]["BASE_SHA"], "${{ github.event.pull_request.base.sha }}")
-        self.assertEqual(step["env"]["HEAD_SHA"], "${{ github.event.pull_request.head.sha }}")
+        self.assertEqual(step["id"], "select")
+        self.assertEqual(
+            step["run"],
+            'python3 scripts/ci_images.py "$EVENT_NAME" "$BASE_SHA" "$HEAD_SHA" '
+            '>> "$GITHUB_OUTPUT"',
+        )
+        self.assertEqual(
+            step["env"],
+            {
+                "EVENT_NAME": "${{ github.event_name }}",
+                "BASE_SHA": "${{ github.event.pull_request.base.sha }}",
+                "HEAD_SHA": "${{ github.event.pull_request.head.sha }}",
+            },
+        )
         for job, name in (
             ("image", "container (amd64)"),
             ("companions", "companion containers (amd64)"),
@@ -101,6 +115,9 @@ class ImageSelectionTest(unittest.TestCase):
             ("acceptance/selftests/test_new.py", "false", "true"),
             (".github/ISSUE_TEMPLATE/new.yml", "false", "false"),
             (".github/PULL_REQUEST_TEMPLATE.md", "false", "false"),
+            (".github/PULL_REQUEST_TEMPLATE/other.md", "false", "false"),
+            ("acceptance/src/x.py", "true", "true"),
+            ("docs/site-assets/x.js", "true", "true"),
             ("AGENTS.md", "false", "true"),
             ("README.md", "true", "true"),
             ("QUICKSTART.md", "false", "true"),
@@ -122,6 +139,25 @@ class ImageSelectionTest(unittest.TestCase):
         self.commit("new_runtime/input.bin")
         head = self.commit("tests/test_later.py")
         self.assert_selection(base, head, "true", "true")
+
+    def test_base_only_changes_are_not_part_of_the_pull_request(self):
+        self.git("checkout", "-b", "topic")
+        head = self.commit("tests/topic.py")
+        self.git("checkout", "main")
+        base = self.commit("runtime.py")
+        self.assert_selection(base, head, "false", "false")
+
+    def test_non_full_sha_inputs_fail_safe_without_creating_output_files(self):
+        base = self.git("rev-parse", "HEAD")
+        middle = self.commit("tests/middle.py")
+        head = self.commit("tests/head.py")
+        self.git("branch", middle + "x", middle)
+        for invalid in ("HEAD~1", middle[:7], middle + "x", "--output=selector-output"):
+            for start, end in ((invalid, head), (base, invalid)):
+                with self.subTest(base=start, head=end):
+                    before = set(self.root.iterdir())
+                    self.assert_selection(start, end, "true", "true")
+                    self.assertEqual(set(self.root.iterdir()), before)
 
     def test_renames_count_both_paths_and_deletions_still_select(self):
         base = self.commit("runtime.bin")
@@ -146,3 +182,11 @@ class ImageSelectionTest(unittest.TestCase):
         ):
             with self.subTest(event=event, base=start, head=end):
                 self.assert_selection(start, end, "true", "true", event)
+
+
+class ChangePathFailureTest(unittest.TestCase):
+    def test_git_timeout_reports_no_trustworthy_change_set(self):
+        with patch.object(
+            ci_images.subprocess, "run", side_effect=subprocess.TimeoutExpired("git", 30)
+        ):
+            self.assertEqual(ci_images.changed_paths("a" * 40, "b" * 40), [])

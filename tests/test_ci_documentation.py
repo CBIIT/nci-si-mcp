@@ -14,7 +14,11 @@ class DocumentationWorkflowTest(unittest.TestCase):
         companion = JOBS["companions"]
         self.assertIn("documentation", companion["needs"])
         self.assertNotIn("if", JOBS["documentation"])
-        self.assertIn("!cancelled()", companion["if"])
+        self.assertEqual(
+            companion["if"],
+            "${{ !cancelled() && (github.event_name != 'pull_request' || "
+            "needs.changes.outputs.companions == 'true') }}",
+        )
         guard = next(
             step
             for step in companion["steps"]
@@ -23,6 +27,7 @@ class DocumentationWorkflowTest(unittest.TestCase):
         self.assertIn("exit 1", guard["run"])
         commands = "\n".join(step.get("run", "") for step in companion["steps"])
         self.assertNotIn("npm ", commands)
+        self.assertNotIn("docs-build", commands)
         self.assertIn("scripts.companion_context --site tmp/docs-site", commands)
         self.assertFalse(any("setup-node" in step.get("uses", "") for step in companion["steps"]))
         download = next(
@@ -33,6 +38,32 @@ class DocumentationWorkflowTest(unittest.TestCase):
         self.assertEqual(
             download, {"name": "documentation-preview-${{ github.sha }}", "path": "tmp/docs-site"}
         )
+
+    def test_companion_steps_cannot_ignore_a_missing_artifact(self):
+        for step in JOBS["companions"]["steps"]:
+            self.assertNotIn("continue-on-error", step)
+
+    def test_documentation_upload_is_the_same_run_site_and_nothing_else(self):
+        upload = next(
+            step["with"]
+            for step in JOBS["documentation"]["steps"]
+            if step.get("uses", "").startswith("actions/upload-artifact@")
+        )
+        self.assertEqual(
+            upload,
+            {
+                "name": "documentation-preview-${{ github.sha }}",
+                "path": "tmp/docs-site/",
+                "if-no-files-found": "error",
+                "retention-days": 30,
+            },
+        )
+        download = next(
+            step["with"]
+            for step in JOBS["companions"]["steps"]
+            if step.get("uses", "").startswith("actions/download-artifact@")
+        )
+        self.assertEqual(upload["name"], download["name"])
 
     def test_browser_cache_is_versioned_and_system_dependencies_are_always_installed(self):
         steps = JOBS["documentation"]["steps"]
@@ -59,10 +90,13 @@ class DocumentationWorkflowTest(unittest.TestCase):
     def test_node_contract_matches_the_ci_major_in_package_and_operator_docs(self):
         package = json.loads(Path("docs/site-assets/package.json").read_text())
         self.assertEqual(package.get("engines", {}).get("node"), ">=24 <25")
-        setup = next(
-            step for step in JOBS["documentation"]["steps"] if "setup-node@" in step.get("uses", "")
-        )
-        self.assertEqual(setup["with"]["node-version"], "24")
+        versions = {
+            step["with"]["node-version"]
+            for job in JOBS.values()
+            for step in job["steps"]
+            if "setup-node@" in step.get("uses", "")
+        }
+        self.assertEqual(versions, {"24"})
         lock = json.loads(Path("docs/site-assets/package-lock.json").read_text())
         self.assertEqual(lock["packages"][""]["engines"]["node"], ">=24 <25")
         for path in ("docs/companion-containers.md", "docs/documentation-site.md"):
