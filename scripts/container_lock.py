@@ -67,17 +67,17 @@ def check_requirement(requirement: str, pins: dict[str, str]) -> None:
             raise ValueError(f"{name} drifted from pdm.lock")
 
 
-def entries(text: str) -> list[tuple[str, str]]:
-    """The requirement and digest of each entry: a requirement line, then its hash line."""
+def requirements(text: str) -> list[str]:
+    """The requirement of each entry: a requirement line, then exactly one hash line."""
     lines = [line for line in text.splitlines() if not line.startswith("#")]
     if len(lines) % 2:
         raise ValueError("A dependency has no SHA-256 hash")
     found = []
     for requirement, hash_line in zip(lines[::2], lines[1::2], strict=True):
-        digest = re.fullmatch(f"    --hash=sha256:({SHA256_HEX})", hash_line)
+        digest = re.fullmatch(f"    --hash=sha256:{SHA256_HEX}", hash_line)
         if not requirement.endswith(" \\") or digest is None:
             raise ValueError("A dependency has no SHA-256 hash")
-        found.append((requirement.removesuffix(" \\"), digest.group(1)))
+        found.append(requirement.removesuffix(" \\"))
     return found
 
 
@@ -86,7 +86,7 @@ def check() -> None:
     if f"# PDM: {fingerprint()}\n" not in text:
         raise ValueError("Container lock drifted from pdm.lock; regenerate it")
     pins = versions()
-    for requirement, _digest in entries(text):
+    for requirement in requirements(text):
         check_requirement(requirement, pins)
 
 
