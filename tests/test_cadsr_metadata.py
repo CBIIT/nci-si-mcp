@@ -103,13 +103,15 @@ class DataElementMetadataTest(MetadataFixture):
                 self.assertTrue(result.is_error)
 
     def test_match_metadata_comes_only_from_its_producing_answer(self):
+        rows = [cde_row("123", definition="Own definition"), cde_row("456")]
         result = self.answer(
-            cde_response(matches=[cde_row()]), "match_data_elements", entities=[{"name": "Q"}]
+            cde_response(matches=rows), "match_data_elements", entities=[{"name": "Q"}]
         )
 
-        item = result.structured_content["matches"][0]["dataElement"]
-        self.assertEqual(set(SCALARS) - item.keys(), set())
-        self.assertEqual({key: item[key] for key in SCALARS}, dict.fromkeys(SCALARS))
+        first, second = (match["dataElement"] for match in result.structured_content["matches"])
+        self.assertEqual(first["definition"], "Own definition")
+        self.assertEqual(set(SCALARS) - second.keys(), set())
+        self.assertEqual({key: second[key] for key in SCALARS}, dict.fromkeys(SCALARS))
         self.assertEqual(len(self.paths), 1)
 
     def test_search_preserves_recorded_metadata_without_a_detail_fetch(self):
