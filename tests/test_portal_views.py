@@ -202,6 +202,21 @@ class PortalViewsTest(unittest.TestCase):
         self.assertIn("<td>PASS</td>", html)
         self.assertNotIn("no verdict shown", html)
 
+    def test_a_verdict_decided_by_unrun_gates_says_so(self):
+        # Since #265 an unrun gate leaves a tool INCOMPLETE; an older report recorded PASS.
+        for recorded, shown in (
+            ("PASS", "PASS (gates not run, recorded before #265)"),
+            ("INCOMPLETE", "INCOMPLETE (gates not run)"),
+        ):
+            native = report()
+            gate = "tests/test_example.py::test_protocol"
+            native["tests"][gate]["outcome"] = "skipped"
+            native["unrun_gates"] = [gate]
+            native["tools"]["lookup"]["outcome"] = recorded
+            with self.subTest(recorded=recorded):
+                html = run_page(self.record(project(native)))
+                self.assertIn(f"<td>{shown}</td>", html)
+
     def test_unverified_legacy_report_has_no_results_or_pass_claim(self):
         record = {
             "sequence": 1,
