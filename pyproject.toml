@@ -228,7 +228,7 @@ ignore_names = [
     "workflowStatus", "registrationStatus", "dateCreated", "dateModified", "permissibleValues",
     "valueDomain", "conceptAssociations", "alternateNames", "classificationSchemes", "dataElement",
     "shortName", "latestVersionIndicator", "beginDate", "endDate", "referenceDocuments",
-    "userTip", "valueDomainType", "classificationScheme", "matchedText", "itemType", "evsSource",
+    "userTip", "valueDomainType", "classificationScheme", "matchedText", "itemType", "evsSource", "matchedDefinition",
     "crdcName", "usedBy", "valueLevelBinding", "coverage", "codeMaps",
     "conceptTerminology", "dataElements", "permissibleValue", "storedValues", "confidence",
     "intervalDays",

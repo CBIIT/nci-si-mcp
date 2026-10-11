@@ -563,11 +563,13 @@ value_meaning_match:
     item:
       content: >-
         The item matched, as vmMatch gives it: { itemType, publicId, version, name, concept?,
-        evsSource?, context, workflowStatus, registrationStatus?, provenance }. itemType is
-        Concept or ValueMeaning, publicId that item's caDSR public id (itemId), name its
-        matchedName; concept is the code it stands for, in the code system evsSource names
-        (NCI_CONCEPT_CODE, SNOMED-CT_CODE, ...), each absent where the platform gives none;
-        registrationStatus is absent, never null, where the platform gives none
+        evsSource?, matchedDefinition?, context, workflowStatus, registrationStatus?, provenance
+        }. itemType is Concept or ValueMeaning, publicId that item's caDSR public id (itemId),
+        name its matchedName; concept is the code it stands for, in the code system evsSource
+        names (NCI_CONCEPT_CODE, SNOMED-CT_CODE, ...), each absent where the platform gives none;
+        matchedDefinition is that item's definition as vmMatch gives it, unchanged;
+        matchedDefinition and registrationStatus are absent, never null, where the platform
+        gives none
       of: A9.1
     rule:
       content: The rule the platform says matched (vmMatch's ruleDescription), unchanged
@@ -596,6 +598,22 @@ form:
     longName:
       content: Its long name
       of: A4.1
+    definition:
+      content: Its definition unchanged; null means caDSR sent none in the answer that produced this record
+      nullable: true
+      of: A4.1
+    type:
+      content: Its form type unchanged (CRF, ...); null means caDSR sent none in the answer that produced this record
+      nullable: true
+      of: A3.8.3
+    beginDate:
+      content: Its begin date unchanged; null means caDSR sent none in the answer that produced this record
+      nullable: true
+      of: A3.8.2
+    endDate:
+      content: Its end date unchanged; null means caDSR sent none in the answer that produced this record
+      nullable: true
+      of: A3.8.2
     context:
       content: The context that owns it
       of: A3.8.3
@@ -614,6 +632,18 @@ form:
     provenance:
       content: The provenance record, its release in the registry form
       of: A4.4
+    instructions:
+      content: >-
+        Its instructions, the platform's entries unchanged and in its order, whatever
+        includeModules says; absent where the platform sends none
+      optional: true
+      of: A4.1
+    classificationSchemes:
+      content: >-
+        Its classification schemes, the platform's entries unchanged and in its order, whatever
+        includeModules says; absent where the platform sends none
+      optional: true
+      of: A4.1
     modules:
       content: >-
         Its modules in the platform's order, each with its questions, the platform's entries

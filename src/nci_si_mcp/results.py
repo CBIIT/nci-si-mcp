@@ -86,6 +86,7 @@ class MatchedRegistryItem(TypedDict):
     name: str
     concept: NotRequired[str]
     evsSource: NotRequired[str]
+    matchedDefinition: NotRequired[str]
     context: str
     workflowStatus: str
     registrationStatus: NotRequired[str]
@@ -237,12 +238,18 @@ class ConceptAssociation(TypedDict):
 
 
 class Form(RegistryItemIdentity):
+    definition: str | None
+    type: str | None
+    beginDate: str | None
+    endDate: str | None
     context: str | None
     workflowStatus: str | None
     registrationStatus: str | None
     dateCreated: str | None
     dateModified: str | None
     provenance: Provenance
+    instructions: NotRequired[list[dict[str, Any]]]
+    classificationSchemes: NotRequired[list[dict[str, Any]]]
     modules: NotRequired[list[dict[str, Any]]]
 
 
