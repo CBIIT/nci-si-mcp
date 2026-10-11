@@ -27,7 +27,7 @@ class OperatorFilesTest(unittest.TestCase):
     def test_reports_are_indented_in_insertion_order_and_end_with_a_newline(self):
         with TemporaryDirectory() as temporary:
             target = Path(temporary) / "nested/report.json"
-            write_json(target, {"b": [1], "a": {}}, indent=2)
+            write_json(target, {"b": [1], "a": {}}, form="report")
             self.assertEqual(target.read_bytes(), b'{\n  "b": [\n    1\n  ],\n  "a": {}\n}\n')
 
     def test_a_reader_of_the_previous_report_keeps_it_whole_across_a_rewrite(self):
@@ -35,7 +35,7 @@ class OperatorFilesTest(unittest.TestCase):
             target = Path(temporary) / "report.json"
             target.write_text('{"complete": false}\n')
             with target.open() as reader:
-                write_json(target, {"complete": True}, indent=2)
+                write_json(target, {"complete": True}, form="report")
                 self.assertEqual(reader.read(), '{"complete": false}\n')
             self.assertEqual(target.read_text(), '{\n  "complete": true\n}\n')
 
@@ -47,7 +47,7 @@ class OperatorFilesTest(unittest.TestCase):
             link = root / "report.json"
             link.symlink_to(private)
             with self.assertRaisesRegex(ValueError, "symlink"):
-                write_json(link, {"complete": True}, indent=2)
+                write_json(link, {"complete": True}, form="report")
             self.assertEqual(private.read_bytes(), b"PRIVATE-CANARY")
             self.assertTrue(link.is_symlink())
 

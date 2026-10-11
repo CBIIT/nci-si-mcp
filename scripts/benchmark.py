@@ -194,7 +194,7 @@ def run(mode: Mode, names: list[str], repetitions: int, output: Path) -> dict[st
         "cases": [],
     }
     # An interrupted first case must not leave an older successful report.
-    write_json(output, report, indent=2)
+    write_json(output, report, form="report")
     fixture = FixtureServer(load_fixtures(FIXTURES)) if mode == "fixture" else nullcontext(None)
     with fixture as upstream:
         for case in cases(names):
@@ -202,10 +202,10 @@ def run(mode: Mode, names: list[str], repetitions: int, output: Path) -> dict[st
             report["cases"].append(run_case(case, environment, repetitions))
             if upstream and unmatched_requests(upstream.log()):
                 raise ValueError("Benchmark requested an unrecorded fixture response")
-            write_json(output, report, indent=2)
+            write_json(output, report, form="report")
             print(f"{mode}: measured {case['tool']}", flush=True)
     report["complete"] = True
-    write_json(output, report, indent=2)
+    write_json(output, report, form="report")
     return report
 
 

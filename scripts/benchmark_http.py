@@ -120,7 +120,7 @@ class _Campaign:
 
     def save(self) -> None:
         self.report["httpRequests"] = self.budget.requests
-        write_json(self.output, self.report, indent=2)
+        write_json(self.output, self.report, form="report")
 
     @asynccontextmanager
     async def session(self) -> AsyncIterator[Client]:

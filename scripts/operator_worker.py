@@ -81,7 +81,7 @@ def fixture_benchmark(
             )
         if unmatched_requests(upstream.log()):
             report.update(complete=False, state="failed", stopReason="runner_error")
-            write_json(output, report, indent=2)
+            write_json(output, report, form="report")
             raise RuntimeError("Fixture benchmark requested an unrecorded response")
         return report
 
