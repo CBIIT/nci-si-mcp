@@ -93,3 +93,20 @@ def test_stop_kills_a_server_that_ignores_termination(tmp_path, monkeypatch):
     server.stop()
     with pytest.raises(ProcessLookupError):
         os.kill(pid, 0)
+
+
+def test_a_second_start_is_refused_and_the_first_server_stays_owned(tmp_path):
+    with owned(tmp_path) as server:
+        server.start(settings(tmp_path))
+        with pytest.raises(RuntimeError, match="already running"):
+            server.start(settings(tmp_path))
+        assert listening(server.port)
+    assert not listening(server.port)
+
+
+def test_a_foreign_listener_on_the_port_is_not_taken_for_the_server(tmp_path):
+    with owned(tmp_path) as server, socket.socket() as foreign:
+        foreign.bind(("127.0.0.1", server.port))
+        foreign.listen()
+        with pytest.raises(RuntimeError, match=f"already in use; see {tmp_path}/server.log"):
+            server.start(settings(tmp_path))
