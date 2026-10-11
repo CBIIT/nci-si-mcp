@@ -86,7 +86,15 @@ def _record(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
     }
     if raw.get("conceptStatus") not in (None, ""):
         result["status"] = raw["conceptStatus"]
+    if raw.get("leaf") is not None:
+        result["leaf"] = _leaf(raw["leaf"])
     return result
+
+
+def _leaf(value: Any) -> bool:
+    if not isinstance(value, bool):
+        raise EVSResponseError("EVS returned a concept whose leaf flag is not a boolean")
+    return value
 
 
 def _provenance(provenance: dict[str, Any]) -> dict[str, Any]:
@@ -116,8 +124,8 @@ def get_concept(
 
     include adds synonyms, definitions, properties and semanticType.
 
-    Returns code, terminology, name, active, the status EVS gives when it gives one, and
-    provenance naming the verified release.
+    Returns code, terminology, name, active, the status and leaf flag EVS gives when it gives
+    them, and provenance naming the verified release.
 
     not_found when the code is absent; release_not_available when the release is not served;
     upstream_unavailable when EVS cannot answer.

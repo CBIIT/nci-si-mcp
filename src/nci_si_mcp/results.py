@@ -311,6 +311,7 @@ class Concept(TypedDict):
     name: str
     active: bool
     status: NotRequired[str]
+    leaf: NotRequired[bool]
     provenance: Provenance
     synonyms: NotRequired[list[dict[str, Any]]]
     definitions: NotRequired[list[dict[str, Any]]]
@@ -605,6 +606,8 @@ class ResolvedReleaseResult(SelectedRelease):
 class TerminologyResult(TypedDict):
     terminology: str
     release: str
+    tags: NotRequired[dict[str, str]]
+    retiredStatusValue: NotRequired[str]
     provenance: Provenance
 
 
