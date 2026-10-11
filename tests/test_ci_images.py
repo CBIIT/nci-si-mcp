@@ -61,7 +61,7 @@ class ImageSelectionTest(unittest.TestCase):
         self.git("init", "--initial-branch=main")
         self.git("config", "user.name", "Test role")
         self.git("config", "user.email", "test@example.invalid")
-        self.commit("README.md")
+        self.commit("initial.txt")
 
     def git(self, *arguments):
         return subprocess.check_output(  # noqa: S603 - fixed Git operations in the owned repository
@@ -98,8 +98,14 @@ class ImageSelectionTest(unittest.TestCase):
         cases = (
             ("new_runtime/input.bin", "true", "true"),
             ("tests/test_new.py", "false", "false"),
-            ("acceptance/selftests/test_new.py", "false", "false"),
+            ("acceptance/selftests/test_new.py", "false", "true"),
             (".github/ISSUE_TEMPLATE/new.yml", "false", "false"),
+            (".github/PULL_REQUEST_TEMPLATE.md", "false", "false"),
+            ("AGENTS.md", "false", "false"),
+            ("README.md", "true", "true"),
+            ("QUICKSTART.md", "false", "true"),
+            ("CONTRIBUTING.md", "false", "true"),
+            ("ARCHITECTURE.md", "false", "true"),
             ("docs/new-guide.md", "false", "true"),
             ("src/new_package/README.md", "true", "true"),
             ("scripts/ci_images.py", "true", "true"),
