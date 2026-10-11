@@ -6,6 +6,7 @@ import signal
 import subprocess
 import sys
 import unittest
+from contextlib import suppress
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -13,6 +14,21 @@ from unittest.mock import patch
 from scripts.benchmark_limits import Limits
 from scripts.operator_worker import _server, clean_environment, fixture_benchmark
 from scripts.processes import wait_until
+
+
+def children_of(pid: int) -> list[int]:
+    found = subprocess.run(  # noqa: S603 - fixed argv
+        ["/usr/bin/pgrep", "-P", str(pid)], capture_output=True, text=True, check=False
+    )
+    return [int(child) for child in found.stdout.split()]
+
+
+def kill_tree(worker: subprocess.Popen[bytes], children: list[int]) -> None:
+    """Leave no server behind when the test fails; an orphaned server is no longer a child."""
+    for pid in (*children, *children_of(worker.pid), worker.pid):
+        with suppress(ProcessLookupError):
+            os.kill(pid, signal.SIGKILL)
+    worker.wait(timeout=10)
 
 
 class OperatorEnvironmentTest(unittest.TestCase):
@@ -91,28 +107,20 @@ class OperatorEnvironmentTest(unittest.TestCase):
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
+            children: list[int] = []
             try:
-                self.assertTrue(
-                    wait_until(
-                        lambda: any(Path(directory).glob("worker-*/server.log")), 30, interval=0.05
-                    )
-                )
-                children = subprocess.run(  # noqa: S603 - fixed argv
-                    ["/usr/bin/pgrep", "-P", str(worker.pid)],
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                ).stdout.split()
+                # server.log is opened before the server starts, so wait for the child itself.
+                self.assertTrue(wait_until(lambda: children_of(worker.pid), 30, interval=0.05))
+                children = children_of(worker.pid)
                 worker.send_signal(signal.SIGTERM)
                 # Unwound as by Ctrl-C: Python then re-raises SIGINT for its own exit status.
                 self.assertEqual(worker.wait(timeout=30), -signal.SIGINT)
-            finally:
-                if worker.poll() is None:
-                    worker.kill()
-                    worker.wait(timeout=10)
+            except BaseException:
+                kill_tree(worker, children)
+                raise
         self.assertEqual(len(children), 1)
         with self.assertRaises(ProcessLookupError):
-            os.kill(int(children[0]), 0)
+            os.kill(children[0], 0)
 
     def test_fixed_benchmark_command_writes_report_and_returns_success(self):
         with TemporaryDirectory() as directory:
