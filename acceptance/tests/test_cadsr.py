@@ -144,9 +144,17 @@ def test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses(
         assert _own(content) == _own(_element(recorded, VERSION_1 if version else ELEMENT))
     else:
         assert content.get("publicId") == DATA_ELEMENT
-        assert all(is_name(content.get(key)) for key in OWN if key != "provenance")
+        assert all(_live_scalar(content, key) for key in OWN if key != "provenance")
         assert version is None or content["version"] == version
         assert release_of(content) == ("cadsr", None)
+
+
+def _live_scalar(content, key):
+    field = RECORDS["data_element"]["fields"][key]
+    value = content.get(key)
+    if field.get("nullable"):
+        return key in content and (value is None or isinstance(value, str))
+    return is_name(value)
 
 
 def _own(element):
@@ -178,6 +186,7 @@ def _section(element, include):
         "valueDomain": lambda: {k: v for k, v in domain.items() if k != "PermissibleValues"},
         "conceptAssociations": lambda: _concepts(element),
         "alternateNames": lambda: element["AlternateNames"],
+        "referenceDocuments": lambda: element["ReferenceDocuments"],
         "classificationSchemes": lambda: [
             (
                 _fields(scheme, SCHEME),

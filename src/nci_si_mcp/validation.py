@@ -52,6 +52,7 @@ DataElementInclude = Literal[
     "conceptAssociations",
     "alternateNames",
     "classificationSchemes",
+    "referenceDocuments",
 ]
 RegistrySearchMode = Literal["lexical", "semantic", "hybrid"]
 DataElementConceptRole = Literal["objectClass", "property"]

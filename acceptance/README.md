@@ -84,7 +84,7 @@ upstream requests it made while it started. A test marked
 `live_capable` also runs in live mode, unless it selects a scenario; every other test runs
 against fixtures only.
 
-Live coverage has 46 marked cases out of 965; 45 can run live, since the retired-concept
+Live coverage has 47 marked cases out of 966; 46 can run live, since the retired-concept
 scenario remains fixture-only. Alongside protocol, discovery, argument and cache checks,
 content checks discover the current monthly NCIt release for concept identity, includes,
 paths, maps, relationship catalogues and cross-domain CDE discovery. They check contracts
@@ -92,13 +92,18 @@ and matching release provenance, not historical names, counts or order; fixture 
 the exact recorded comparisons. These bounded calls prepare no index. Upstream errors and
 mismatched provenance fail, never become `not_live`.
 
-Both CDE identity/version and include families run anonymously. Their five sections come
+Both CDE identity/version and include families run anonymously. Their six sections come
 from the data element API's DataElement response (ValueDomain, DataElementConcept,
-AlternateNames and ClassificationSchemes), not CDE Match or the credentialed lists-of-values
-API. The calls are unpinned registry reads; an explicit version is the CDE's own, never an
+AlternateNames, ClassificationSchemes and ReferenceDocuments), not CDE Match or the credentialed
+lists-of-values API. The calls are unpinned registry reads; an explicit version is the CDE's own, never an
 NCIt release or an export date, so these cases need no registry-release discovery. Operations
 that need credentials remain fixture-only. This coverage does not certify all tool modes;
 the report retains every fixture-only case as not run in live mode.
+
+The live scalar check uses each DataElement field's `nullable` flag in `spec/records.yaml`;
+nullable metadata is text or null and must still be present. Identity, version and status
+fields remain nonblank text. A null metadata field means the producing answer supplied none;
+search and match results are not backfilled from a separate detail lookup.
 
 A test that passes against fixtures and fails live means a fixture is wrong (corrected by
 re-recording, under change control) or the live service has changed: both are findings. One

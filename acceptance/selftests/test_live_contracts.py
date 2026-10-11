@@ -60,6 +60,12 @@ ELEMENT = {
     "registrationStatus": "Application",
     "dateCreated": "2026-01-01",
     "dateModified": "2026-10-10",
+    "definition": "Changed definition",
+    "shortName": "Changed short name",
+    "latestVersionIndicator": "Yes",
+    "beginDate": "2026-01-01",
+    "endDate": None,
+    "origin": "Changed origin",
     "provenance": REGISTRY,
 }
 EVS_SECTIONS = {
@@ -95,6 +101,7 @@ CDE_SECTIONS = {
             "provenance": REGISTRY,
         }
     ],
+    "referenceDocuments": [{"documentType": "Future type", "unknown": ["unchanged"]}],
 }
 
 
