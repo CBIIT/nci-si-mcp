@@ -37,6 +37,7 @@ requirements, for the harness's own tests.
     wrong-correlation provenance ignores the caller's correlation id                (X-7)
     no-source-uri    a live concept without its upstream URL                        (X-7)
     no-upstream      a live concept without the origin its answer supplied          (X-7)
+    uri-not-a-url    a live concept whose sourceUri is text, not an absolute URL    (X-7)
     live-as-index    a live response claims index origin to evade its obligations   (X-7)
     cache-loses-origin a repeated live answer loses its original source facts       (X-7)
     itemless-origin  an empty page invents an item's upstream origin                (X-7)
@@ -689,6 +690,8 @@ def _identified_concept(content: dict, arguments: dict) -> dict:
         del content["provenance"]["sourceUri"]
     if DEFECT == "concept-wrong-uri":
         content["provenance"]["sourceUri"] = f"{source}-other"
+    if DEFECT == "uri-not-a-url":
+        content["provenance"]["sourceUri"] = "n/a"
     if DEFECT == "concept-no-name":
         del content["name"]
     malformed = {"concept-null-provenance": None, "concept-list-provenance": []}
