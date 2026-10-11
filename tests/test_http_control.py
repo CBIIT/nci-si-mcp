@@ -2,6 +2,7 @@
 
 import json
 import os
+import socket
 import socketserver
 import subprocess
 import sys
@@ -9,6 +10,7 @@ import time
 import unittest
 import urllib.error
 import urllib.request
+from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Thread
@@ -16,6 +18,80 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from scripts import acceptance_http
+
+
+def free_port():
+    with socket.socket() as taken:
+        taken.bind(("127.0.0.1", 0))
+        return taken.getsockname()[1]
+
+
+def listening(port):
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=1):
+            return True
+    except OSError:
+        return False
+
+
+def owned_server(directory):
+    return acceptance_http.ServerProcess(directory, free_port())
+
+
+@contextmanager
+def answering_hook(directory, server):
+    """The control socket of the runner, serving one hook request for `server`."""
+    socket_path = str(directory / "control")
+    with socketserver.UnixStreamServer(socket_path, acceptance_http.hook_handler(server)) as hook:
+        hook.timeout = 40
+        thread = Thread(target=hook.handle_request)
+        thread.start()
+        try:
+            yield socket_path
+        finally:
+            thread.join(timeout=45)
+
+
+class StateHookReadinessTest(unittest.TestCase):
+    """Given a runner whose server is slow to listen or dies, when the suite calls the state
+    hook, then the hook answers only for a server that accepts connections."""
+
+    @contextmanager
+    def hooked(self, script):
+        spawn = subprocess.Popen
+
+        def launch(_command, **options):
+            return spawn([sys.executable, "-c", script], **options)
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            server = owned_server(root)
+            try:
+                with (
+                    patch.object(acceptance_http.subprocess, "Popen", launch),
+                    answering_hook(root, server) as socket_path,
+                    patch.dict(os.environ, {"NCI_SI_PROFILE": "fixture-profile"}, clear=True),
+                ):
+                    yield server, root, lambda: acceptance_http.state(socket_path)
+            finally:
+                server.stop()
+
+    def test_state_hook_acknowledges_only_a_server_that_accepts_connections(self):
+        listen = (
+            "import os, socket, time; time.sleep(1); listener = socket.socket(); "
+            "listener.bind(('127.0.0.1', int(os.environ['NCI_SI_HTTP_PORT']))); "
+            "listener.listen(); time.sleep(300)"
+        )
+        with self.hooked(listen) as (server, _root, call):
+            call()
+            self.assertTrue(listening(server.port), "The hook answered before the server listened")
+
+    def test_state_hook_fails_naming_the_log_of_a_server_that_exits_first(self):
+        exits = "import sys; print('boom', file=sys.stderr); sys.exit(3)"
+        with self.hooked(exits) as (server, root, call):
+            with self.assertRaisesRegex(RuntimeError, str(root / "server.log")):
+                call()
+            self.assertFalse(listening(server.port))
 
 
 class HTTPControlTest(unittest.TestCase):
