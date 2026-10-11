@@ -127,7 +127,7 @@ Run `pdm build --no-sdist` in a tagged checkout, then
 `docker build --platform linux/amd64 -t nci-si-mcp:local .`.
 With Podman, use `podman build --format docker` to preserve the image health check.
 Keep exactly one current wheel in `dist/`. Run
-`pdm run python scripts/container_smoke.py nci-si-mcp:local` to check the image with an
+`pdm run python -m scripts.container_smoke nci-si-mcp:local` to check the image with an
 external, test-only model and a recorded concept. CI builds the same wheel/image and runs
 the same smoke check, including default-auth refusal, explicit local serving and Docker's
 healthy status. This is packaging evidence, not production retrieval calibration.
