@@ -72,6 +72,14 @@ def server(tmp_path):
         yield running
 
 
+def test_a_manifest_that_is_not_a_mapping_is_refused(tmp_path):
+    fixture_file(tmp_path, "version.json")
+    (tmp_path / "manifest.yaml").write_text("- crafted\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"manifest\.yaml"):
+        load_fixtures(tmp_path)
+
+
 def test_a_request_is_answered_by_its_fixture_and_recorded(server):
     before = time.monotonic()
     status, content_type, body = fetch(

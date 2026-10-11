@@ -203,19 +203,39 @@ class PortalViewsTest(unittest.TestCase):
         self.assertNotIn("no verdict shown", html)
 
     def test_a_verdict_decided_by_unrun_gates_says_so(self):
-        # Since #265 an unrun gate leaves a tool INCOMPLETE; an older report recorded PASS.
-        for recorded, shown in (
-            ("PASS", "PASS (gates not run, recorded before #265)"),
-            ("INCOMPLETE", "INCOMPLETE (gates not run)"),
+        # Since #265 an unrun gate leaves a tool INCOMPLETE; an earlier harness recorded PASS.
+        gate = "tests/test_example.py::test_protocol"
+        for recorded, gate_outcome, shown in (
+            ("PASS", "skipped", "PASS (gates not run; recorded by an earlier harness)"),
+            ("INCOMPLETE", "skipped", "INCOMPLETE (gates not run)"),
+            ("PASS", "not_live", "PASS"),
+            ("PASS", "passed", "PASS"),
         ):
             native = report()
-            gate = "tests/test_example.py::test_protocol"
-            native["tests"][gate]["outcome"] = "skipped"
-            native["unrun_gates"] = [gate]
+            native["tests"][gate]["outcome"] = gate_outcome
+            native["unrun_gates"] = [] if gate_outcome == "passed" else [gate]
             native["tools"]["lookup"]["outcome"] = recorded
-            with self.subTest(recorded=recorded):
+            with self.subTest(recorded=recorded, gate=gate_outcome):
                 html = run_page(self.record(project(native)))
                 self.assertIn(f"<td>{shown}</td>", html)
+
+    def test_a_failing_tool_keeps_its_verdict_when_a_gate_did_not_run(self):
+        native = report()
+        gate = "tests/test_example.py::test_protocol"
+        native["tests"][gate]["outcome"] = "skipped"
+        native["unrun_gates"] = [gate]
+        native["tests"]["tests/test_example.py::test_lookup"]["outcome"] = "failed"
+        native["tools"]["lookup"].update(outcome="FAIL", counts={"failed": 1})
+        html = run_page(self.record(project(native)))
+        self.assertIn("<td>FAIL</td>", html)
+        self.assertNotIn("gates not run", html)
+
+    def test_a_pass_stored_without_its_gate_status_says_so(self):
+        # A projection stored before the gate status was projected cannot tell; it says so.
+        evidence = project(report())
+        del evidence["tools"]["lookup"]["gates_unrun"]
+        html = run_page(self.record(evidence))
+        self.assertIn("<td>PASS (gate status not recorded)</td>", html)
 
     def test_unverified_legacy_report_has_no_results_or_pass_claim(self):
         record = {

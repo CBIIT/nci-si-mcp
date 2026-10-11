@@ -178,6 +178,40 @@ class AcceptanceProjectionTest(unittest.TestCase):
         with self.assertRaises(EvidenceError):
             project(native)
 
+    def test_the_projection_says_when_unrun_gates_alone_decide_a_verdict(self):
+        again = "tests/test_example.py::test_lookup_again"
+        context = bundle()
+        catalogue = json.loads(context["catalogue"])
+        catalogue["cases"][again] = {"tool": "lookup", "gate": False}
+        context |= {
+            "catalogue": encoded(catalogue),
+            "stories": encoded(dict.fromkeys(catalogue["cases"], "find-a-concept")),
+            "expectations": encoded(dict.fromkeys(catalogue["cases"], "passed")),
+            "selection": encoded(list(catalogue["cases"])),
+        }
+        gate = "tests/test_example.py::test_protocol"
+        for own, gate_outcome, verdict, decided in (
+            ("passed", "skipped", "INCOMPLETE", True),
+            ("skipped", "skipped", "INCOMPLETE", False),
+            ("passed", "not_live", "PASS", False),
+        ):
+            native = report()
+            native["tests"][again] = {"tool": "lookup", "gate": False, "unmatched": []}
+            native["tests"][again]["outcome"] = own
+            native["tests"][gate]["outcome"] = gate_outcome
+            native["unrun_gates"] = [gate]
+            counts = {"passed": 2} if own == "passed" else {"passed": 1, "skipped": 1}
+            native["tools"]["lookup"].update(outcome=verdict, counts=counts)
+            with self.subTest(own=own, gate=gate_outcome):
+                tool = project(native, context)["tools"]["lookup"]
+                self.assertEqual((tool["outcome"], tool["gates_unrun"]), (verdict, decided))
+
+    def test_an_incomplete_verdict_no_harness_gives_is_refused(self):
+        native = report()
+        native["tools"]["lookup"]["outcome"] = "INCOMPLETE"
+        with self.assertRaises(EvidenceError):
+            project(native)
+
     def test_malformed_verdict_is_a_safe_validation_error(self):
         native = report()
         native["tools"]["lookup"]["outcome"] = ["PRIVATE-CANARY"]

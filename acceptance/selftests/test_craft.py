@@ -32,6 +32,8 @@ MANIFEST = yaml.safe_load((FIXTURES / "manifest.yaml").read_text(encoding="utf-8
 MAX_NODES, MAX_DEPTH = 1000, 4
 PINNED, MISMATCHED_RELEASE = "26.09d", "26.08e"
 CONCEPT = "/api/v1/concept/ncit_26.09d"
+# argparse's exit status for arguments it refuses.
+USAGE_ERROR = 2
 # caDSR's cap, stated here, not imported: "The maximum number of results per query is 1000."
 CONTRACT_CAP = 1000
 
@@ -544,6 +546,43 @@ def test_check_fails_on_a_stale_digest_and_passes_on_a_current_one(tmp_path, cap
     _stale(root)
     assert _status(["--fixtures", str(root), "--check"]) == 1
     assert "pdm run acceptance-craft" in capsys.readouterr().err
+
+
+def test_check_and_out_are_refused_together(tmp_path):
+    root = without_crafted(tmp_path / "fixtures")
+    out = tmp_path / "out"
+
+    assert _status(["--fixtures", str(root), "--check", "--out", str(out)]) == USAGE_ERROR
+    assert not out.exists()
+
+
+def test_the_command_adds_the_digest_line_to_a_manifest_without_one(tmp_path):
+    root = without_crafted(tmp_path / "fixtures")
+    manifest = root / "manifest.yaml"
+    text = manifest.read_text(encoding="utf-8").replace(f"crafted: {_crafted_line(root)}\n", "")
+    manifest.write_text(text, encoding="utf-8")
+
+    assert _status(["--fixtures", str(root)]) == 0
+
+    assert _crafted_line(root) == crafted_digest(CRAFTED)
+
+
+def test_check_refuses_a_manifest_that_is_not_a_mapping(tmp_path):
+    root = without_crafted(tmp_path / "fixtures")
+    (root / "manifest.yaml").write_text("", encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"manifest\.yaml"):
+        _status(["--fixtures", str(root), "--check"])
+
+
+def test_two_scenarios_crafting_one_name_are_refused():
+    name = "scenarios/release/two-latest/latest.json"
+
+    def twice(_):
+        return {name: {}}
+
+    with pytest.raises(ValueError, match=name):
+        craft(FIXTURES, (twice, twice))
 
 
 def test_out_writes_what_craft_makes_for_review(tmp_path):

@@ -602,3 +602,14 @@ def test_skips_are_classified_by_the_property_their_site_sets_not_by_reason_text
         "t.py::c": "skipped",
         "t.py::d": "skipped",
     }
+
+
+def test_a_gate_skipped_by_design_in_a_live_run_leaves_a_passing_tool_passing():
+    # A fixture-only gate does not run live by design, as a fixture-only test does not.
+    report = collected(
+        (phase("call", "passed", "t.py::form"), "get_form", False),
+        (phase("setup", "skipped", "t.py::gate", "fixture mode only", skip=LIVE), None, True),
+    )
+
+    assert report["tools"]["get_form"]["outcome"] == "PASS"
+    assert report["unrun_gates"] == ["t.py::gate"]

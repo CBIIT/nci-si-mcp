@@ -57,6 +57,14 @@ def test_an_unrun_gate_in_the_expected_outcomes_leaves_no_tool_passing():
     assert outcomes["list_contexts"] == "NO TESTS"
 
 
+def test_a_gate_that_does_not_run_live_by_design_leaves_tools_passing():
+    expected = dict.fromkeys(ATTRIBUTION, "passed") | {"t.py::gate": "not_live"}
+
+    outcomes = tool_outcomes(expected, ATTRIBUTION)
+
+    assert outcomes["resolve_release"] == "PASS"
+
+
 def test_the_table_lists_each_groups_tools_under_their_outcome():
     expected = dict.fromkeys(ATTRIBUTION, "passed") | {"t.py::form": "failed"}
 
