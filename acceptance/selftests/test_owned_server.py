@@ -108,5 +108,6 @@ def test_a_foreign_listener_on_the_port_is_not_taken_for_the_server(tmp_path):
     with owned(tmp_path) as server, socket.socket() as foreign:
         foreign.bind(("127.0.0.1", server.port))
         foreign.listen()
-        with pytest.raises(RuntimeError, match=f"already in use; see {tmp_path}/server.log"):
+        expected = f"^The owned server's port {server.port} is already in use by another process$"
+        with pytest.raises(RuntimeError, match=expected):
             server.start(settings(tmp_path))
