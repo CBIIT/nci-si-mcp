@@ -83,12 +83,13 @@ def _job(store: EvidenceStore, jobs: JobController, path: str) -> tuple[int, str
         raise EvidenceNotFoundError("No such job route")
     try:
         row = jobs.get(match[1])
+        if match[2] is None:
+            evidence = _has_evidence(store, match[1])
+            body = job_page(row, has_evidence=evidence, has_log=jobs.has_worker_log(match[1]))
+            return 200, "text/html", body
         log = jobs.worker_log(match[1])
     except KeyError:
         raise EvidenceNotFoundError("No such job") from None
-    if match[2] is None:
-        evidence = _has_evidence(store, match[1])
-        return 200, "text/html", job_page(row, has_evidence=evidence, has_log=log is not None)
     if log is None:
         raise EvidenceNotFoundError("This job kept no worker log")
     return 200, "text/plain", log

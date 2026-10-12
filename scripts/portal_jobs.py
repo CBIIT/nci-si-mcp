@@ -218,15 +218,23 @@ class JobController:
             self._available()
             return deepcopy(self._get(run_id))
 
-    def worker_log(self, run_id: str) -> bytes | None:
-        """The job's worker log as recorded so far, or None when the run kept none."""
+    def has_worker_log(self, run_id: str) -> bool:
+        """Whether the run kept a worker log; a link is never one, as runs create it exclusively."""
         with self.condition:
             self._available()
             self._get(run_id)
         path = self.root / run_id / WORKER_LOG
-        if not path.exists() and not path.is_symlink():
+        return path.is_file() and not path.is_symlink()
+
+    def worker_log(self, run_id: str) -> bytes | None:
+        """The job's worker log as recorded so far, or None when the run kept none."""
+        if not self.has_worker_log(run_id):
             return None
-        return read_bytes(path, MAX_WORKER_LOG_BYTES)
+        try:
+            return read_bytes(self.root / run_id / WORKER_LOG, MAX_WORKER_LOG_BYTES)
+        except ValueError:
+            # Larger than any copy writes: unusable local evidence, not the caller's bad request.
+            raise OSError("Worker log exceeds its size bound") from None
 
     def submit(self, run_id: str, profile: str) -> dict[str, Any]:
         _identifier(run_id)
