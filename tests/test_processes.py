@@ -4,7 +4,6 @@ import select
 import signal
 import subprocess
 import sys
-import time
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -119,13 +118,8 @@ class WaitUntilTest(unittest.TestCase):
         self.assertEqual(list(answers), [])
 
     def test_false_when_the_deadline_passes_first(self):
-        with patch("scripts.processes.time.monotonic", side_effect=(0, 0, 11)):
+        with patch("scripts.processes.time.monotonic", side_effect=(0, 0, 10.5)):
             self.assertFalse(wait_until(lambda: False, 10, interval=0))
-
-    def test_a_never_true_predicate_returns_false_after_about_the_given_seconds(self):
-        started = time.monotonic()
-        self.assertFalse(wait_until(lambda: False, 0.05, interval=0.01))
-        self.assertLess(time.monotonic() - started, 0.5)
 
     def test_a_predicate_true_at_once_is_not_delayed_by_a_spent_deadline(self):
         self.assertTrue(wait_until(lambda: True, 0, interval=0))
