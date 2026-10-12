@@ -53,18 +53,18 @@ def _links(path: Path, table: dict[str, Any], key: str) -> tuple[FooterLink, ...
     return tuple(links)
 
 
-def load_footer(path: Path = FOOTER_SOURCE) -> Footer:
+def load_footer() -> Footer:
     """The footer links of the documentation configuration, validated; a missing or malformed
     table is an error naming the file, never an empty footer."""
     try:
-        config = tomllib.loads(path.read_text())
+        config = tomllib.loads(FOOTER_SOURCE.read_text())
     except tomllib.TOMLDecodeError as error:
-        raise ValueError(f"{path}: not valid TOML ({error})") from error
+        raise ValueError(f"{FOOTER_SOURCE}: not valid TOML ({error})") from error
     table = config.get("project", {}).get("extra", {}).get("footer")
     if not isinstance(table, dict):
-        raise ValueError(f"{path}: the [project.extra.footer] table is missing")
+        raise ValueError(f"{FOOTER_SOURCE}: the [project.extra.footer] table is missing")
     return Footer(
-        _url(path, table.get("contact_url")),
-        _links(path, table, "agencies"),
-        _links(path, table, "policies"),
+        _url(FOOTER_SOURCE, table.get("contact_url")),
+        _links(FOOTER_SOURCE, table, "agencies"),
+        _links(FOOTER_SOURCE, table, "policies"),
     )
