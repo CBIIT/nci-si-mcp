@@ -14,8 +14,13 @@ AFFECTED = (
 
 class DeveloperEnvironmentTest(unittest.TestCase):
     def test_a_developers_settings_do_not_decide_a_unit_tests_result(self):
-        # Given a shell that selects the fixture upstream mode, as a developer's may
-        environment = {**os.environ, "NCI_SI_UPSTREAM_MODE": "fixture"}
+        # Given a shell that selects the fixture upstream mode and holds an invalid licence key,
+        # as a developer's may; the fixture must remove every such variable, not just one
+        environment = {
+            **os.environ,
+            "NCI_SI_UPSTREAM_MODE": "fixture",
+            "NCI_SI_EVS_LICENSE_KEY": "k",
+        }
         # When one unit test that builds its settings from the environment runs in a child
         run = subprocess.run(  # noqa: S603 - fixed executable and a repository test id
             [sys.executable, "-m", "pytest", AFFECTED, "-q", "-p", "no:cacheprovider", "--no-cov"],

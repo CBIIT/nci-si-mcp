@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import json
 import socket
+import sys
 import threading
 import time
 from contextlib import asynccontextmanager
@@ -83,7 +84,8 @@ class HTTPBenchmarkTest(ServerFixture):
             report = asyncio.run(
                 run_http(url, (url,), [self.case], Limits(timeout=1), self.output, fixture=True)
             )
-        self.assertIn(report["stopReason"], ("transport_error", "timeout"))
+        expected = "timeout" if sys.platform == "darwin" else "transport_error"
+        self.assertEqual(report["stopReason"], expected)
         self.assertFalse(report["complete"])
         self.assertEqual(report["cases"][0]["cold"]["samples"], [])
 
