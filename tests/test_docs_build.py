@@ -50,7 +50,7 @@ nav = [{ Overview = "README.md" }, { Story = "docs/story.md" }]
 [project.extra.footer]
 contact_url = "https://example.test/contact"
 agencies = [{ label = "Agency One", url = "https://example.test/agency" }]
-policies = [{ label = "Policy One", url = "https://example.test/policy" }]
+policies = [{ label = "Privacy & Security", url = "https://example.test/policy?a=1&b=2" }]
 
 [project.theme]
 font = false
@@ -70,7 +70,7 @@ custom_dir = "overrides"
             [
                 ("https://example.test/contact", "Contact project maintainers"),
                 ("https://example.test/agency", "Agency One"),
-                ("https://example.test/policy", "Policy One"),
+                ("https://example.test/policy?a=1&amp;b=2", "Privacy &amp; Security"),
             ],
         )
 
