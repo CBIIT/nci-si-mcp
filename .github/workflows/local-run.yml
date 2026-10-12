@@ -1,0 +1,199 @@
+name: Local run
+
+# The documented local setup, walked literally on a clean runner of each platform a developer
+# uses (macOS first, Linux). Each `run:` line is copied from the document that tells a developer
+# to run it, in document order; tests/test_local_run_workflow.py compares them and lists, with a
+# reason each, the few lines that exist only in CI. The runs use the live EVS service as the
+# documents do (not a required check, so an outage cannot block a pull request); only the
+# acceptance run uses fixtures, as acceptance/README.md says. Containers are not run: macOS
+# runners have no container runtime, and the CI `image` and `companions` jobs cover Linux.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 7 * * 1"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - pyproject.toml
+      - pdm.lock
+      - docs/site-assets/package.json
+      - docs/site-assets/package-lock.json
+      - README.md
+      - QUICKSTART.md
+      - CONTRIBUTING.md
+      - acceptance/README.md
+      - docs/documentation-site.md
+      - docs/local-validation.md
+      - scripts/portal*.py
+      - scripts/operator_*.py
+      - scripts/docs_site.py
+      - .github/workflows/local-run.yml
+
+permissions:
+  contents: read
+
+# A newer push to a pull request replaces the run in progress; every commit on main keeps its own.
+concurrency:
+  group: local-run-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  local-run:
+    name: local run (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0  # the package version is derived from the nearest tag
+          persist-credentials: false
+
+      # QUICKSTART, "Platforms and prerequisites": Python and PDM by the documented route.
+      # Not actions/setup-python or setup-pdm, which are the tuned path.
+      - name: Install Python and PDM (macOS)
+        if: runner.os == 'macOS'
+        run: brew install python@3.14 pdm
+      - name: Install uv (Linux)
+        if: runner.os == 'Linux'
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      # The documents say "in a new shell"; a job's next step sees the path added here.
+      - name: Open a new shell (Linux)
+        if: runner.os == 'Linux'
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Install Python and PDM (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          uv python install 3.14
+          uv tool install pdm
+
+      - name: Install the project
+        run: pdm install
+
+      # A copy of Python or PDM that the runner image ships must not take over unnoticed.
+      - name: Check that the documented Python and PDM are in use (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          fail() { echo "::error::$1"; exit 1; }
+          [ "$(command -v pdm)" = "$(brew --prefix)/bin/pdm" ] || fail "pdm is $(command -v pdm), not the Homebrew install"
+          version="$(pdm run python -c "import sys; print('%d.%d' % sys.version_info[:2])" | tail -n 1)"
+          [ "$version" = "3.14" ] || fail "the project runs Python $version, not 3.14"
+          base="$(pdm run python -c "import sys; print(sys.base_prefix)" | tail -n 1)"
+          formula="$(cd "$(brew --prefix python@3.14)" && pwd -P)"
+          case "$base" in "$formula"/*) ;; *) fail "the project's Python is $base, not Homebrew's python@3.14 ($formula)" ;; esac
+      - name: Check that the documented Python and PDM are in use (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          fail() { echo "::error::$1"; exit 1; }
+          [ "$(command -v pdm)" = "$HOME/.local/bin/pdm" ] || fail "pdm is $(command -v pdm), not the uv tool install"
+          version="$(pdm run python -c "import sys; print('%d.%d' % sys.version_info[:2])" | tail -n 1)"
+          [ "$version" = "3.14" ] || fail "the project runs Python $version, not 3.14"
+          base="$(pdm run python -c "import sys; print(sys.base_prefix)" | tail -n 1)"
+          managed="$(uv python dir)"
+          case "$base" in "$managed"/*) ;; *) fail "the project's Python is $base, not a uv-managed one under $managed" ;; esac
+
+      # QUICKSTART: first commands, live EVS, and a small local index.
+      - name: Print the EVS release
+        run: pdm run nci-si-mcp release-info
+      - name: Build a small local index
+        run: pdm run nci-si-mcp index-sample C3262 C2991 C40704 C153397 C116938
+
+      # Probes for the servers QUICKSTART tells a developer to start: each starts the documented
+      # command, waits (bounded) until it answers, and stops it.
+      - name: Write the readiness probe (CI only)
+        run: |
+          cat > "$RUNNER_TEMP/ready.py" <<'PY'
+          import os, signal, subprocess, sys, time, urllib.request
+
+          url, command = sys.argv[1], sys.argv[2:]
+          server = subprocess.Popen(command, start_new_session=True)
+          try:
+              deadline = time.monotonic() + 90
+              while True:
+                  try:
+                      with urllib.request.urlopen(url, timeout=5) as reply:
+                          print(url, reply.status, reply.read().decode())
+                          break
+                  except OSError:
+                      if server.poll() is not None or time.monotonic() > deadline:
+                          sys.exit("not ready: " + url)
+                      time.sleep(1)
+          finally:
+              os.killpg(server.pid, signal.SIGTERM)
+              server.wait(timeout=30)
+          PY
+      - name: Serve over stdio and initialize (CI only)
+        timeout-minutes: 3
+        run: |
+          python3 - <<'PY'
+          import json, subprocess
+
+          request = {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
+              "protocolVersion": "2025-06-18", "capabilities": {},
+              "clientInfo": {"name": "local-run", "version": "0"}}}
+          server = subprocess.Popen(["pdm", "run", "nci-si-mcp", "serve"], stdin=subprocess.PIPE,
+                                    stdout=subprocess.PIPE, text=True)
+          try:
+              server.stdin.write(json.dumps(request) + "\n")
+              server.stdin.flush()
+              reply = json.loads(server.stdout.readline())
+              assert reply["id"] == 1 and "serverInfo" in reply["result"], reply
+              print("initialize answered by", reply["result"]["serverInfo"])
+          finally:
+              server.kill()
+              server.wait(timeout=30)
+          PY
+      - name: Serve over streamable HTTP until ready (CI only)
+        timeout-minutes: 3
+        run: python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8000/ready pdm run nci-si-mcp serve --transport streamable-http
+
+      # AGENTS.md: the fixture run, prepared as in CI. Exit status 1 means some tests did not pass,
+      # which is for the comparison below to judge; any other status, or no report, is no run.
+      - name: Run the acceptance suite against the fixtures
+        shell: bash {0}
+        run: |
+          NCI_SI_ACCEPTANCE_SECURITY_SERVER='python ../scripts/permissions_fixture.py' NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")' pdm run acceptance -n 4 --dist worksteal --report=fixture.json
+          status=$?
+          [ "$status" -le 1 ] && [ -s acceptance/fixture.json ] || { echo "::error::The fixture run did not finish (exit status $status)."; exit 1; }
+      - name: Compare the outcomes with the expected ones
+        run: pdm run acceptance-expected check acceptance/fixture.json
+
+      # QUICKSTART: Node.js 24 or newer, for the documentation site only.
+      - name: Install Node.js (macOS)
+        if: runner.os == 'macOS'
+        run: brew install node
+      - name: Install nvm and Node.js (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8/install.sh | bash
+          . "$HOME/.nvm/nvm.sh"
+          nvm install 24
+          echo "$(dirname "$(command -v node)")" >> "$GITHUB_PATH"
+      - name: Check that the documented Node.js is in use
+        run: |
+          fail() { echo "::error::$1"; exit 1; }
+          case "$RUNNER_OS" in
+            macOS) expected="$(brew --prefix)/bin/node" ;;
+            *) expected="$HOME/.nvm/versions/node/*/bin/node" ;;
+          esac
+          # shellcheck disable=SC2254 # the pattern is meant to expand
+          case "$(command -v node)" in $expected) ;; *) fail "node is $(command -v node), not the documented install ($expected)" ;; esac
+          node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 24 ? 0 : 1)' || fail "Node.js $(node --version) is older than 24"
+
+      # docs/documentation-site.md, "Build and preview", without the preview server.
+      - name: Build the documentation site
+        run: |
+          pdm install -G docs
+          npm ci --prefix docs/site-assets --ignore-scripts
+          npm audit --prefix docs/site-assets --audit-level high
+          npm run build --prefix docs/site-assets
+          pdm run docs-build
+
+      # docs/local-validation.md: the validation dashboard, until it answers.
+      - name: Serve the validation dashboard until ready (CI only)
+        timeout-minutes: 3
+        run: python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health pdm run portal serve
