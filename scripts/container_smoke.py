@@ -219,7 +219,11 @@ def main() -> None:
     parser.add_argument("image")
     args = parser.parse_args()
     (ROOT / "tmp").mkdir(exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="container-smoke-", dir=ROOT / "tmp") as directory:
+    # Removal errors are ignored: a root-owned leftover must not replace the step failure, and
+    # reap() has already reported why it could not remove it.
+    with tempfile.TemporaryDirectory(
+        prefix="container-smoke-", dir=ROOT / "tmp", ignore_cleanup_errors=True
+    ) as directory:
         assets = Path(directory)
         assets.chmod(0o777)  # Let the unprivileged image UID create and reap scratch assets.
         completed = False
