@@ -336,7 +336,11 @@ class JobController:
                 "validation_worker_failed",
                 errorType=type(error).__name__,
             )
-            result = {"state": "unavailable", "exit_code": None, "reason": "worker_error"}
+            result: JobOutcome = {
+                "state": "unavailable",
+                "exit_code": None,
+                "reason": "worker_error",
+            }
         with self.condition:
             # The executor owns cancellation and has already saved the terminal evidence.
             row.update(result, finished_at=_now())

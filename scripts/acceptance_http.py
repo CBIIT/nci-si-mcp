@@ -109,11 +109,6 @@ def report_skips(tests: dict[str, Any]) -> None:
         print(f"Skipped (remote unprepared contract): {name}")
 
 
-def verdict(report: dict[str, Any], expected: set[str]) -> bool:
-    report_skips(report["tests"])
-    return not differences(report, expected)
-
-
 def _outcome_differences(tests: dict[str, Any], expected: set[str]) -> list[str]:
     observed = {name: row["outcome"] for name, row in tests.items()}
     wanted = {name: "skipped" if name in UNPREPARED else "passed" for name in expected}

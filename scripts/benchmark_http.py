@@ -22,7 +22,7 @@ from scripts.benchmark_limits import Budget, Limits, RunStoppedError, approved_t
 from scripts.benchmark_transport import http_client
 from scripts.http_measurement import MeasurementError, failure_sample, measure_reply, summarize_http
 from scripts.operator_files import write_json
-from scripts.vocabulary import RunStop, run_stop
+from scripts.vocabulary import HttpStop, RunStop, run_stop
 
 
 def _validate_cases(cases: list[dict[str, Any]]) -> None:
@@ -41,11 +41,11 @@ def _case_names(names: list[str]) -> None:
         raise ValueError("Choose distinct representative benchmark tools")
 
 
-def _reason(error: BaseException) -> str | None:
+def _reason(error: BaseException) -> RunStop | HttpStop | None:
     if isinstance(error, BaseExceptionGroup):
         return _group_reason(error)
     if isinstance(error, RunStoppedError):
-        return str(error)
+        return error.reason
     if isinstance(error, (TimeoutError, httpx2.TimeoutException)):
         return "timeout"
     if isinstance(error, MeasurementError):
@@ -55,8 +55,8 @@ def _reason(error: BaseException) -> str | None:
     return None
 
 
-def _group_reason(error: BaseExceptionGroup) -> str | None:
-    reasons = []
+def _group_reason(error: BaseExceptionGroup) -> RunStop | HttpStop | None:
+    reasons: list[RunStop | HttpStop] = []
     for item in error.exceptions:
         if isinstance(item, asyncio.CancelledError):
             continue
@@ -185,12 +185,14 @@ class _Campaign:
                     await self.phase(client, case, "warm")
 
 
-async def _watch(task: asyncio.Task[None], budget: Budget, stopped: list[str]) -> None:
+async def _watch(
+    task: asyncio.Task[None], budget: Budget, stopped: list[RunStop | HttpStop]
+) -> None:
     while not task.done():
         try:
             budget.remaining()
         except RunStoppedError as error:
-            stopped.append(str(error))
+            stopped.append(error.reason)
             task.cancel()
             return
         await asyncio.sleep(0.05)
@@ -198,7 +200,7 @@ async def _watch(task: asyncio.Task[None], budget: Budget, stopped: list[str]) -
 
 async def _run(campaign: _Campaign) -> dict[str, Any]:
     campaign.save()
-    stopped: list[str] = []
+    stopped: list[RunStop | HttpStop] = []
     task = asyncio.create_task(campaign.execute())
     watcher = asyncio.create_task(_watch(task, campaign.budget, stopped))
     try:
@@ -219,7 +221,7 @@ async def _run(campaign: _Campaign) -> dict[str, Any]:
     return campaign.report
 
 
-def _stop_report(campaign: _Campaign, reason: RunStop | str) -> None:
+def _stop_report(campaign: _Campaign, reason: RunStop | HttpStop) -> None:
     campaign.report.update(
         state="cancelled" if reason == "cancelled" else "failed", stopReason=run_stop(reason)
     )
