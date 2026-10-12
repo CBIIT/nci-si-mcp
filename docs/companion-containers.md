@@ -7,8 +7,9 @@ contains no operational results.
 ## Build and start locally
 
 Install the [prerequisites](../QUICKSTART.md#platforms-and-prerequisites), including a
-Docker-compatible engine with Compose. Images currently target Linux amd64; the Dockerfiles do not bake in an architecture. On Apple Silicon, the engine
-needs amd64 emulation. No registry login or institutional account is required.
+Docker-compatible engine with Compose. Images currently target Linux amd64; the Dockerfiles do
+not bake in an architecture. On Apple Silicon, the engine needs amd64 emulation. No registry
+login or institutional account is required.
 
 On macOS, projects may share one authorized Podman VM. Use separate, explicitly named
 Compose projects, networks and volumes; do not reuse another project's containers or assets.
