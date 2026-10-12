@@ -45,6 +45,7 @@ site_name = "Test documentation"
 docs_dir = "content"
 site_dir = "site"
 use_directory_urls = false
+extra_css = ["assets/ncids.css", "assets/site.css"]
 nav = [{ Overview = "README.md" }, { Story = "docs/story.md" }]
 [project.extra.footer]
 contact_url = "https://example.test/contact"
@@ -87,6 +88,18 @@ custom_dir = "overrides"
             with self.subTest(path=path.relative_to(self.output)):
                 self.assertNotIn(b"PRIVATE-STORY-CANARY", path.read_bytes())
                 self.assertNotIn(b"PRIVATE-RESULT-CANARY", path.read_bytes())
+
+    def test_site_ships_the_shared_stylesheet_and_links_it_before_the_overrides(self):
+        self.build()
+        self.assertEqual(
+            (self.output / "assets/ncids.css").read_bytes(),
+            (ROOT / "docs/site-assets/ncids.css").read_bytes(),
+        )
+        links = re.findall(
+            r'<link[^>]+href="\./(assets/(?:ncids|site)\.css)"',
+            (self.output / "index.html").read_text(),
+        )
+        self.assertEqual(links, ["assets/ncids.css", "assets/site.css"])
 
     def test_existing_destination_preserves_human_files(self):
         self.output.mkdir()

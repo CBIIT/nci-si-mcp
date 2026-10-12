@@ -101,8 +101,7 @@ class FooterStartupTest(unittest.TestCase):
         assets = root / "docs/site-assets"
         shutil.copytree(ROOT / "docs/site-assets/fonts", assets / "fonts")
         for name in ("ncids.css", "portal.css"):
-            if (ROOT / "docs/site-assets" / name).is_file():
-                shutil.copyfile(ROOT / "docs/site-assets" / name, assets / name)
+            shutil.copyfile(ROOT / "docs/site-assets" / name, assets / name)
         (assets / "zensical.toml").write_text(text)
         return root
 

@@ -28,7 +28,7 @@ class SiteAssetsTest(unittest.TestCase):
 class StylesheetTest(unittest.TestCase):
     def test_shared_ncids_rules_are_separate_from_the_material_overrides(self):
         root = Path("docs/site-assets")
-        shared = (root / "ncids.css").read_text() if (root / "ncids.css").is_file() else ""
+        shared = (root / "ncids.css").read_text()
         overrides = (root / "site.css").read_text()
         for rule in ("@font-face", ".nci-footer__inner"):
             self.assertIn(rule, shared)
