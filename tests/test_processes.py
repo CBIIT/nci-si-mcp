@@ -36,6 +36,7 @@ class SlowToExit:
         self.grace = grace
         self.returncode = None
         self.killed = False
+        self.waits = []
 
     def poll(self):
         return self.returncode
@@ -44,6 +45,7 @@ class SlowToExit:
         self.killed = sig == signal.SIGKILL
 
     def wait(self, timeout):
+        self.waits.append(timeout)
         if self.killed:
             self.returncode = -signal.SIGKILL
         elif timeout >= self.grace:
@@ -72,6 +74,12 @@ class StopTest(unittest.TestCase):
         process = SlowToExit(grace=10)
         stop(process)
         self.assertEqual(process.returncode, 7)
+
+    def test_a_child_outliving_its_grace_period_is_waited_for_ten_seconds_twice(self):
+        process = SlowToExit(grace=11)
+        stop(process)
+        self.assertEqual(process.waits, [10, 10])
+        self.assertEqual(process.returncode, -signal.SIGKILL)
 
     def test_a_cooperative_child_is_terminated(self):
         process = spawn("import time; print('ready',flush=True); time.sleep(300)")
