@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
+from scripts.operator_process import WORKER_LOG
 from scripts.portal_views import page, table, text
 from scripts.vocabulary import ACTIVE
 
@@ -64,7 +65,7 @@ def job_page(row: dict[str, Any], *, has_evidence: bool, has_log: bool) -> str:
             "<p>No validated result bundle is available yet. Missing results are not passes.</p>"
         )
     if has_log:
-        body += f'<p><a href="/jobs/{row["run_id"]}/worker.log">Worker log</a></p>'
+        body += f'<p><a href="/jobs/{row["run_id"]}/{WORKER_LOG}">Worker log</a></p>'
     else:
         body += "<p>No worker log was recorded.</p>"
     body += table(

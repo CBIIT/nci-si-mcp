@@ -128,7 +128,13 @@ def _start(
         raise
     finally:
         os.close(log_input)
-    return process, _LogCopy(output, log)
+    try:
+        return process, _LogCopy(output, log)
+    except BaseException:
+        # Without its copier the worker must not outlive this call (a thread that cannot start).
+        stop(process, group=True)
+        os.close(output)
+        raise
 
 
 def run_owned(
