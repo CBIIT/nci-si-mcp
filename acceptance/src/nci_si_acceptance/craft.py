@@ -925,8 +925,8 @@ def _cde_match_request(entity: str = "Patient Gender") -> dict[str, Any]:
 
 def cadsr_match_timeout(recorded: Recorded) -> Documents:
     """vmMatch and CDE Match answer, but later than the match timeout the scenario sets: the
-    server reports a timeout, never an empty match (the caDSR SOW's declared timeout). CDE
-    Match needs credentials, so the scenario holds them too."""
+    server reports a timeout, never an empty match (A2.5's declared timeout). CDE Match needs
+    credentials, so the scenario holds them too."""
 
     requirement = "A2.5: matching slower than its declared timeout is a timeout error"
     source = recorded("recorded/cadsr/vm-match-male.json")

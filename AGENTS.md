@@ -6,12 +6,12 @@ detail.
 
 ## What this is
 
-The government-furnished NCI Semantic Infrastructure MCP server, and the acceptance suite it
-and its successors are measured by. Two Statements of Work build on it: EVS v2.1 and caDSR v1.1.
-Describe the repository as built to production standards and likely to become the production
-codebase, never as a prototype and never as in production. It is a lean wrapper over EVS
-and caDSR (plus the NCIt index), never a shadow of them; the two Statements of Work fund fixes to
-the upstream systems, and a functional gap there stays visible here (see the first standard
+The NCI Semantic Infrastructure MCP server, and the acceptance suite it and its successors are
+measured by. Describe the repository as the NCI Semantic Infrastructure MCP server, built to
+production standards and likely to become the production codebase: never as a prototype, never
+as in production, and never by contract terms or documents outside the repository. It is a lean
+wrapper over EVS and caDSR (plus the NCIt index), never a shadow of them; a functional gap in
+an upstream system is reported to its team and stays visible here (see the first standard
 below). Until NCI issues caDSR credentials, CDE Match and the lists-of-values API are tested
 against fixtures crafted from the published contracts; the data element API, vmMatch and
 Form API 2.0 are anonymous and may be tested live.
@@ -27,9 +27,7 @@ The specification of the required tools and their behaviour is owned by this rep
 source of record is the data in `spec/` (conventions, records, tools, requirements);
 `docs/specification.md` is generated from it with `pdm run spec-render` and is never edited by
 hand. `docs/implementation-plan.md` plans the implementation, and `acceptance/` holds the
-acceptance suite that tests the requirements (its README says how). The programme's other
-documents (the Statements of Work, which frame and bound the scope and are not a specification,
-and the Platform API Specification) live outside this repository; do not rely on them being present.
+acceptance suite that tests the requirements (its README says how).
 
 ## Engineering standards
 
@@ -121,8 +119,8 @@ directory. Set `NCI_SI_DATA_DIR` to a scratch directory for experiments.
 
 ## Tooling beyond the server
 
-The repository deliberately holds four things: the server (`src/`), the acceptance suite built
-for the two Statements of Work (`acceptance/`), the documentation site hosted alongside the MCP,
+The repository deliberately holds four things: the server (`src/`), the acceptance suite
+(`acceptance/`), the documentation site hosted alongside the MCP,
 and the validation companion with its benchmark and evaluation tooling. `scripts/` serves the
 last two and the suite's CI; each family below is operational, and what depends on it says why.
 

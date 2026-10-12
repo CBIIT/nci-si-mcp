@@ -4,9 +4,9 @@
 
 The work is tracked on GitHub as one milestone per phase and one for the furnished package (§11), with one issue per deliverable; issues cite this document by section. Where a section describes the code "today", it means `main` at the *Updated* date above.
 
-This document is the implementation plan: how `nci_si_mcp` is extended from the original EVS-first prototype into the shared platform, EVS module and caDSR module that the two Statements of Work scope, together with the acceptance suite that is the acceptance instrument for both. It is written against the code as it is, so every change is stated as a delta from a named module, and it is ordered so that each phase leaves the repository releasable.
+This document is the implementation plan: how `nci_si_mcp` is extended from the original EVS-first prototype into the shared platform, the EVS module and the caDSR module, together with the acceptance suite that is the acceptance instrument for both. It is written against the code as it is, so every change is stated as a delta from a named module, and it is ordered so that each phase leaves the repository releasable.
 
-The Statements of Work frame and bound the scope; within it, the specification of the required tools and their behaviour is the source of record. It lives in this repository as data in `spec/` (conventions, tools, requirements), rendered as [`docs/specification.md`](specification.md), and is cited below by convention id (A1–A11, M1–M5) and requirement id. The requests to the platform teams stay in the programme's *Platform API Specification*. Where this plan is more specific than the specification, it is because the code forces a decision the specification leaves open.
+The specification of the required tools and their behaviour is the source of record. It lives in this repository as data in `spec/` (conventions, tools, requirements), rendered as [`docs/specification.md`](specification.md), and is cited below by convention id (A1–A11, M1–M5) and requirement id. The requests to the platform teams are the [upstream requirements](upstream/README.md). Where this plan is more specific than the specification, it is because the code forces a decision the specification leaves open.
 
 ---
 
@@ -36,7 +36,7 @@ Done:
 
 Remaining:
 
-- Tag the furnished commit, when the owner decides to furnish it (§11), as `baseline-YYYY-MM` for the month it is cut (`baseline-2026-10` if that is this month). This is the commit the Prototype Baseline Package furnishes and the commit the baseline run reports against. It is a manual tag beside the automatic `vX.Y.Z` release tags.
+- Tag the furnished commit, when the owner decides to furnish it (§11), as `baseline-YYYY-MM` for the month it is cut (`baseline-2026-10` if that is this month). This is the commit the baseline package furnishes and the commit the baseline run reports against. It is a manual tag beside the automatic `vX.Y.Z` release tags.
 
 ### 1.3 Ground rules carried forward from the current code
 
@@ -499,7 +499,7 @@ Because the suite and the tools are written by the same hands, two rules keep th
 
 ### 9.6 Request forms
 
-The fixtures use the request forms of the platform operations (their `OP-` ids, from `operations.yaml` of the programme's platform conformance suite), release-pinned; the generated register (`acceptance/request-forms/`) gives each form's operation and rationale, including where the inventory's form and EVS differ. Where EVS does not yet answer the form a requirement prescribes, the ordinary fixture is crafted to the requirement and names it, and the live run shows the gap (*Acceptance Suite* §2.1). Two kinds of request are answered whatever their form:
+The fixtures use the request forms of the platform operations (their `OP-` ids), release-pinned; the generated register (`acceptance/request-forms/`) gives each form's operation and rationale, including where the inventory's form and EVS differ. Where EVS does not yet answer the form a requirement prescribes, the ordinary fixture is crafted to the requirement and names it, and the live run shows the gap (*Acceptance Suite* §2.1). Two kinds of request are answered whatever their form:
 
 - **EVS concepts.** One recording per concept answers every projection and relation list of that concept, and every batch is composed from the recordings of the concepts it names, through declared rules (`concepts.py`): project by `include` (the include-to-key table in the manifest; EVS's `include` is a clean key projection, verified 2 October 2026), select by `list` (each code once, unknown codes left out, in no particular order, since EVS keeps none), and one relation list on its own. `record.py` checks composed answers against real ones.
 - **Ignored parameters.** A parameter the service is shown to ignore is declared with its evidence and left out of the match.
@@ -530,7 +530,7 @@ and upstream error details.
 
 ## 11. Phases and definition of done
 
-The Prototype Baseline Package furnishes the specification, the acceptance suite with its fixture set, and the server: the shared platform, the EVS module and the caDSR client, tools and tests completed at award.
+The baseline package furnishes the specification, the acceptance suite with its fixture set, and the server: the shared platform, the EVS module and the caDSR client, with the tools and tests completed when it is cut.
 
 The suite is therefore completed first, for all twenty-nine tools, so that it is complete at whatever point the package is furnished. A tool the server lacks is a valid NOT IMPLEMENTED row; a required tool without tests is a defect in the package. The phases then make the tools pass their tests, in the order of the table below.
 
@@ -542,12 +542,12 @@ Each phase ends with the unit suite green, the acceptance suite's expected outco
 | **1 · Platform** | §3 in full; `service.py` retired; EVS tools re-homed on the registry with no behaviour change | §3 protocol gates pass; existing EVS behaviour unchanged under the new error and provenance model |
 | **2 · EVS module** | §4: release-pinned addressing, batch reconciliation, catalogue polarity, traversal rewrite, FHIR, mapsets, retired codes; index with activation and rollback | all EVS tools PASS in fixture mode; live-capable tests PASS live |
 | **3 · caDSR module** | §5 | all caDSR tools PASS in fixture mode; PASS (fixture only) rows name their upstream requirement |
-| **Furnished package** | §1.2: the tag and the Prototype Baseline Package, with the baseline run report against that commit, naming the tools whose tests have never passed against any implementation | the tag is on the commit the report ran against and both SOWs' package checklists are met (#3); cut when the owner decides, not before Phase 3 is done (*Project Plan* §7: "repository Phases 0–3 to the point where both modules yield a meaningful baseline report") |
+| **Furnished package** | The tag and the baseline package, with the baseline run report against that commit, naming the tools whose tests have never passed against any implementation | the tag is on the commit the report ran against and the package checklist is met (#3); cut when the owner decides, not before Phase 3 is done, so that both modules yield a meaningful baseline report |
 | **4 · Cross-domain** | §6 | cross-domain tools PASS; both release identities on every result |
 | **5 · Workflows, remote transport, audit** | §7, §3.8, §3.9 | workflow tools PASS; unified profile accepted under the specification's §4 |
 | **6 · SI architecture alignment, access control and assisted workflows** | §14: approved portable access contracts, conditional evaluation and integrations | approved behavior passes its tests; optional no-go/defer decisions remain explicit; documentation and release evidence match the delivered scope |
 
-Work proceeds in the order of the table above until award. What remains at the furnished commit is the contractors' work under the two Statements of Work, and the specification is what the Prototype Baseline Assessment measures the server against.
+Work proceeds in the order of the table above until the package is cut. What remains at the furnished commit is the remaining work on the modules, and the specification is what the baseline assessment measures the server against.
 
 ---
 

@@ -320,7 +320,7 @@ def get_data_element(
     longName: Annotated[  # noqa: N803 - public specification spelling.
         str | None,
         Described(
-            "Required by the caDSR SOW; caDSR does not serve it yet (OP-C02), so a value "
+            "Required by the specification; caDSR does not serve it yet (OP-C02), so a value "
             "is refused with capability_unavailable. Leave unset until it does."
         ),
     ] = None,
@@ -410,7 +410,7 @@ def search_data_elements(
     filters: Annotated[
         SearchFilters | None,
         Described(
-            "Required by the caDSR SOW (filtering by context, workflow status, "
+            "Required by the specification (filtering by context, workflow status, "
             "registration status and value domain type); the keyword route does not serve "
             "filters yet (OP-C03), so a value is refused with capability_unavailable. "
             "Leave unset until it does."
@@ -667,7 +667,7 @@ def get_form(
     keyword: Annotated[
         str | None,
         Described(
-            "Required by the caDSR SOW; the platform's Form/query takes a public or "
+            "Required by the specification; the platform's Form/query takes a public or "
             "protocol id only, so a keyword is refused with invalid_request. Leave unset "
             "and give publicId."
         ),

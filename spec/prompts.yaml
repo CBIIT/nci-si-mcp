@@ -1,4 +1,4 @@
-# The prompt templates the server furnishes: one per use the Statements of Work name, and only
+# The prompt templates the server furnishes: one per multi-step use of the tools, and only
 # where the prompt adds something the tools do not.
 #
 # Decision: there is no prompt for grounding a value. ground_value does it in one call, and a
