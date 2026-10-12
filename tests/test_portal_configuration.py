@@ -97,6 +97,7 @@ class PortalConfigurationTest(unittest.TestCase):
         for error in (unreadable.exception, malformed.exception):
             self.assertNotIn(str(self.path), str(error))
             self.assertIsNone(error.__cause__)
+            self.assertTrue(error.__suppress_context__)
 
     def test_unknown_and_malformed_target_configuration_is_not_a_default_snapshot(self):
         with self.assertRaises(OSError):

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import sqlite3
+from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import cast
 from urllib.parse import SplitResult, parse_qs, urlsplit
@@ -81,18 +82,23 @@ def _job(store: EvidenceStore, jobs: JobController, path: str) -> tuple[int, str
     match = re.fullmatch(f"/jobs/({JOB_ID})(/worker.log)?", path)
     if match is None:
         raise EvidenceNotFoundError("No such job route")
-    try:
-        row = jobs.get(match[1])
-        if match[2] is None:
-            evidence = _has_evidence(store, match[1])
-            body = job_page(row, has_evidence=evidence, has_log=jobs.has_worker_log(match[1]))
-            return 200, "text/html", body
-        log = jobs.worker_log(match[1])
-    except KeyError:
-        raise EvidenceNotFoundError("No such job") from None
+    row = _of_job(jobs.get, match[1])
+    if match[2] is None:
+        evidence = _has_evidence(store, match[1])
+        has_log = _of_job(jobs.has_worker_log, match[1])
+        return 200, "text/html", job_page(row, has_evidence=evidence, has_log=has_log)
+    log = _of_job(jobs.worker_log, match[1])
     if log is None:
         raise EvidenceNotFoundError("This job kept no worker log")
     return 200, "text/plain", log
+
+
+def _of_job[T](lookup: Callable[[str], T], run_id: str) -> T:
+    """A controller lookup; only its KeyError means "no such job", never one while rendering."""
+    try:
+        return lookup(run_id)
+    except KeyError:
+        raise EvidenceNotFoundError("No such job") from None
 
 
 def _has_evidence(store: EvidenceStore, run_id: str) -> bool:
