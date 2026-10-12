@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import re
-from typing import Any, get_args
+from typing import Any
 
 from scripts.benchmark_limits import Limits
+from scripts.benchmark_records import Sample
 from scripts.evidence_acceptance import digest, fields, identifier, require
 from scripts.evidence_benchmark_common import (
     FINGERPRINT_FIELDS,
-    MAX_MEASUREMENT,
     check_fingerprint_dimension,
     check_selected_cases,
     comparable,
@@ -18,8 +18,6 @@ from scripts.evidence_benchmark_common import (
 from scripts.evidence_envelope import decode_json, timestamp
 from scripts.http_measurement import summarize_http
 from scripts.vocabulary import RUN_STATES, is_run_stop
-
-from nci_si_mcp.errors import ErrorCode
 
 MAX_CONDITION_TEXT = 512
 
@@ -37,18 +35,6 @@ _FIELDS = {
     "expectedCases",
     "conditions",
     "cases",
-}
-_SAMPLE = {
-    "elapsedMs",
-    "resultBytes",
-    "httpRequests",
-    "responseCode",
-    "error",
-    "correlationId",
-    "outboundRequests",
-    "cacheState",
-    "serverCommit",
-    "replica",
 }
 PHASE_LABELS = {
     "cold": "First call in new client session",
@@ -104,43 +90,13 @@ def _termination(native: dict[str, Any], record: dict[str, Any]) -> None:
         require(state == "completed")
 
 
-def _number(value: Any) -> None:
-    require(type(value) in (int, float) and 0 <= value <= MAX_MEASUREMENT)
-
-
-def _sample(sample: Any, limits: Limits) -> None:
-    fields(sample, _SAMPLE)
-    _number(sample["elapsedMs"])
-    require(
-        type(sample["httpRequests"]) is int and 0 <= sample["httpRequests"] <= limits.max_requests
-    )
-    _hex(sample["correlationId"], 32)
-    require(
-        all(
-            sample[key] is None
-            for key in ("outboundRequests", "cacheState", "serverCommit", "replica")
-        )
-    )
-    _result(sample)
-
-
-def _result(sample: dict[str, Any]) -> None:
-    code = sample["responseCode"]
-    if code not in ("ok", *get_args(ErrorCode)):
-        _failure(code)
-    require(type(sample["error"]) is bool and sample["error"] == (code != "ok"))
-    size = sample["resultBytes"]
-    if size is None:
-        require(sample["error"])
-    else:
-        require(type(size) is int and 0 <= size <= MAX_MEASUREMENT)
-
-
-def _phase(phase: Any, count: int, limits: Limits) -> dict[str, Any]:
+def _phase(phase: Any, count: int, limits: Limits, path: str) -> dict[str, Any]:
     fields(phase, {"samples", "summary"})
     require(isinstance(phase["samples"], list) and len(phase["samples"]) <= count)
-    for sample in phase["samples"]:
-        _sample(sample, limits)
+    for index, sample in enumerate(phase["samples"]):
+        Sample.from_dict(
+            sample, "streamable-http", f"{path}.samples[{index}]", max_requests=limits.max_requests
+        )
     summary = summarize_http(phase["samples"])
     fields(phase["summary"], set(summary))
     require(
@@ -161,8 +117,8 @@ def _cases(native: dict[str, Any], limits: Limits) -> tuple[list[dict[str, Any]]
         identifier(name)
     require(len(set(expected)) == len(expected))
     result, missing = [], []
-    for case in native["cases"]:
-        projected, complete = _case(case, limits)
+    for index, case in enumerate(native["cases"]):
+        projected, complete = _case(case, limits, f"cases[{index}]")
         result.append(projected)
         if not complete:
             missing.append(case["tool"])
@@ -184,7 +140,7 @@ def _totals(native: dict[str, Any]) -> None:
     require(sum(sample["httpRequests"] for sample in samples) <= native["httpRequests"])
 
 
-def _case(case: Any, limits: Limits) -> tuple[dict[str, Any], bool]:
+def _case(case: Any, limits: Limits, path: str) -> tuple[dict[str, Any], bool]:
     fields(case, {"tool", "arguments", "scenario", "cold", "warm", "warmups"})
     identifier(case["tool"])
     require(isinstance(case["arguments"], dict))
@@ -193,7 +149,7 @@ def _case(case: Any, limits: Limits) -> tuple[dict[str, Any], bool]:
     complete = True
     for phase in PHASE_LABELS:
         count = limits.warmups if phase == "warmups" else limits.repetitions
-        result[phase] = _phase(case[phase], count, limits)
+        result[phase] = _phase(case[phase], count, limits, f"{path}.{phase}")
         complete &= len(case[phase]["samples"]) == count
     return result, complete
 

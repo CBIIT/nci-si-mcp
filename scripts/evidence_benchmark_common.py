@@ -28,9 +28,6 @@ FINGERPRINT_FIELDS = {
 }
 
 
-MAX_MEASUREMENT = 2**63 - 1
-
-
 def fingerprint_value(value: Any) -> str:
     """Fingerprint structured values; never expose raw arguments, URLs or machine labels."""
     return digest(json.dumps(value, sort_keys=True, separators=(",", ":")).encode())

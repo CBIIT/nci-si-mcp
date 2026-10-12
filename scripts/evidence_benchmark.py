@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import re
-from typing import Any, get_args
+from typing import Any
 
 from scripts.benchmark import summarize
+from scripts.benchmark_records import Sample
 from scripts.evidence_acceptance import digest, fields, identifier, require
 from scripts.evidence_benchmark_common import (
     FINGERPRINT_FIELDS,
-    MAX_MEASUREMENT,
     check_fingerprint_dimension,
     check_selected_cases,
     comparable,
@@ -18,8 +18,6 @@ from scripts.evidence_benchmark_common import (
 from scripts.evidence_envelope import decode_json, validate_envelope
 from scripts.evidence_http import project_http
 from scripts.formats import SHA256_HEX
-
-from nci_si_mcp.errors import ErrorCode
 
 _FIELDS = {
     "mode",
@@ -35,14 +33,6 @@ _FIELDS = {
     "complete",
     "conditions",
     "cases",
-}
-_SAMPLE_FIELDS = {
-    "elapsedMs",
-    "resultBytes",
-    "outboundRequests",
-    "responseCode",
-    "error",
-    "release",
 }
 MAX_REPETITIONS = 10_000
 
@@ -63,23 +53,11 @@ def _header(report: Any) -> None:
     require(isinstance(report["conditions"], dict) and isinstance(report["cases"], list))
 
 
-def _sample(sample: Any) -> None:
-    fields(sample, _SAMPLE_FIELDS)
-    elapsed = sample["elapsedMs"]
-    require(type(elapsed) in (float, int) and 0 <= elapsed <= MAX_MEASUREMENT)
-    for key in ("resultBytes", "outboundRequests"):
-        require(type(sample[key]) is int and 0 <= sample[key] <= MAX_MEASUREMENT)
-    require(type(sample["error"]) is bool)
-    require(sample["responseCode"] in ("ok", *get_args(ErrorCode)))
-    require(sample["error"] == (sample["responseCode"] != "ok"))
-    require(isinstance(sample["release"], dict))
-
-
-def _phase(phase: Any, repetitions: int) -> dict[str, Any]:
+def _phase(phase: Any, repetitions: int, path: str) -> dict[str, Any]:
     fields(phase, {"summary", "samples"})
     require(isinstance(phase["samples"], list) and len(phase["samples"]) == repetitions)
-    for sample in phase["samples"]:
-        _sample(sample)
+    for index, sample in enumerate(phase["samples"]):
+        Sample.from_dict(sample, "stdio", f"{path}.samples[{index}]")
     summary = summarize(phase["samples"])
     fields(phase["summary"], set(summary))
     require(all(type(value) in (float, int) for value in phase["summary"].values()))
@@ -102,8 +80,8 @@ def _cases(report: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
     expected = report["expectedCases"]
     _expected_cases(expected)
     result = []
-    for case in report["cases"]:
-        result.append(_case(case, report["repetitions"]))
+    for index, case in enumerate(report["cases"]):
+        result.append(_case(case, report["repetitions"], f"cases[{index}]"))
     found = [row["tool"] for row in result]
     require(len(set(found)) == len(found) and set(found) <= set(expected))
     missing = [name for name in expected if name not in found]
@@ -111,15 +89,15 @@ def _cases(report: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
     return result, missing
 
 
-def _case(case: Any, repetitions: int) -> dict[str, Any]:
+def _case(case: Any, repetitions: int, path: str) -> dict[str, Any]:
     fields(case, {"tool", "arguments", "scenario", "cold", "warm"})
     identifier(case["tool"])
     require(isinstance(case["arguments"], dict))
     require(case["scenario"] is None or isinstance(case["scenario"], str))
     return {
         "tool": case["tool"],
-        "cold": _phase(case["cold"], repetitions),
-        "warm": _phase(case["warm"], repetitions),
+        "cold": _phase(case["cold"], repetitions, f"{path}.cold"),
+        "warm": _phase(case["warm"], repetitions, f"{path}.warm"),
     }
 
 

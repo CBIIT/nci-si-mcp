@@ -18,6 +18,7 @@ from tempfile import TemporaryDirectory
 from typing import Any
 
 import yaml
+from scripts.benchmark_records import Sample
 from scripts.operator_files import write_json
 
 from nci_si_acceptance.client import Mode, Session, open_session, server_environment
@@ -98,14 +99,14 @@ def measure(session: Session, log: Path, case: dict[str, Any]) -> dict[str, Any]
     content = reply.structured_content
     if content is None or reply.is_error != (record["status"] == "error"):
         raise ValueError("MCP and its completion disagree about the measured result")
-    return {
-        "elapsedMs": elapsed,
-        "resultBytes": len(json.dumps(content, ensure_ascii=False, separators=(",", ":")).encode()),
-        "outboundRequests": record["outboundRequests"],
-        "responseCode": record["responseCode"],
-        "error": reply.is_error,
-        "release": record["release"],
-    }
+    return Sample(
+        elapsedMs=elapsed,
+        resultBytes=len(json.dumps(content, ensure_ascii=False, separators=(",", ":")).encode()),
+        outboundRequests=record["outboundRequests"],
+        responseCode=record["responseCode"],
+        error=reply.is_error,
+        release=record["release"],
+    ).to_dict("stdio")
 
 
 def summarize(samples: list[dict[str, Any]]) -> dict[str, Any]:

@@ -234,6 +234,9 @@ ignore_names = [
     "conceptTerminology", "dataElements", "permissibleValue", "storedValues", "confidence",
     "intervalDays",
     "perHop", "permissibleValueAlignment", "sampleValues",
+    # Benchmark sample fields are read by dataclasses.asdict and the transport field selector.
+    "elapsedMs", "resultBytes", "responseCode", "outboundRequests", "httpRequests",
+    "cacheState", "serverCommit", "replica",
 ]
 
 [tool.basedpyright]
