@@ -4,15 +4,16 @@ import os
 import re
 import subprocess
 import tempfile
-import textwrap
 import tomllib
 import unittest
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).parent.parent
-WORKFLOW = (ROOT / ".github" / "workflows" / "pr-title.yml").read_text(encoding="utf-8")
+WORKFLOW = yaml.safe_load((ROOT / ".github" / "workflows" / "pr-title.yml").read_text("utf-8"))
 # The shell script of the workflow's only step.
-SCRIPT = textwrap.dedent(WORKFLOW.split("        run: |\n")[1])
+[SCRIPT] = [step["run"] for step in WORKFLOW["jobs"]["conventional"]["steps"]]
 
 
 class PullRequestTitleTest(unittest.TestCase):
