@@ -74,6 +74,24 @@ custom_dir = "overrides"
             ],
         )
 
+    def test_footer_urls_cannot_break_out_of_their_attribute(self):
+        hostile = 'https://example.test/x?q="><b>'
+        in_toml = hostile.replace('"', '\\"')
+        config = self.root / "docs/site-assets/zensical.toml"
+        config.write_text(
+            config.read_text()
+            .replace("https://example.test/contact?a=1&b=2", in_toml)
+            .replace("https://example.test/agency?a=1&b=2", in_toml)
+            .replace("https://example.test/policy?a=1&b=2", in_toml)
+        )
+        self.build()
+        footer = (self.output / "index.html").read_text().split('<footer class="nci-footer">', 1)[1]
+        escaped = "https://example.test/x?q=&quot;&gt;&lt;b&gt;"
+        self.assertEqual(
+            re.findall(r'<a href="([^"#]*)">', footer.split("</footer>", 1)[0]),
+            [escaped, escaped, escaped],
+        )
+
     def test_complete_artifact_has_public_story_search_and_no_excluded_content(self):
         self.build()
         page = (self.output / "index.html").read_text()
