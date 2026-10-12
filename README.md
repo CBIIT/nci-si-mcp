@@ -25,6 +25,9 @@ pdm run nci-si-mcp serve     # the server, over MCP stdio
 pdm run acceptance           # the acceptance suite against it, on recorded upstream answers
 ```
 
+A plain `pdm run acceptance` skips the 46 prepared and secured cases; the
+[prepared fixture run](acceptance/README.md) (`NCI_SI_ACCEPTANCE_PREPARE`) runs all of them.
+
 [QUICKSTART.md](QUICKSTART.md) has the rest: connecting a client, settings, tools and errors.
 For a searchable local website of these documents and diagrams, see
 [Documentation website](docs/documentation-site.md).

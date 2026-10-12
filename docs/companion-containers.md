@@ -57,7 +57,8 @@ there. Proposals remain advisory; the admin container cannot apply them or resta
 
 ## Serving MCP alongside the companions
 
-Build the existing `nci-si-mcp:verified` image using the [container runbook](container.md).
+Build the image using the [container runbook](container.md), then tag it for Compose:
+`docker tag nci-si-mcp:local nci-si-mcp:verified`.
 The MCP compose service explicitly selects `NCI_SI_HTTP_AUTH_MODE=trusted-local` and publishes
 only on `127.0.0.1:8000`; the image itself defaults to required authentication. Its `/ready`
 healthcheck verifies the local index/model, not upstream availability, with a 180-second startup
@@ -69,8 +70,8 @@ completed index and offline model, readable by UID 65532, then:
 docker compose -f container/compose.local.yaml --profile mcp up -d
 ```
 
-The optional MCP service has its own network with upstream egress and read-only model/index
-mounts. Its required-index and offline-model startup checks still apply. It is not enabled by
+The optional MCP service has its own network with upstream egress and a read-only model mount
+and a writable index mount (SQLite needs its journal/WAL beside the database). Its required-index and offline-model startup checks still apply. It is not enabled by
 default because this repository does not distribute a production index or embedding model.
 No companion receives those assets. Configuration and secrets for real upstream connections
 belong to the serving service's deployment environment, not the validation container.
