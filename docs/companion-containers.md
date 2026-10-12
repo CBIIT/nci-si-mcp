@@ -6,8 +6,8 @@ contains no operational results.
 
 ## Build and start locally
 
-Use Python 3.14+, PDM, Node.js 24 and a Docker-compatible engine with Compose. Images currently
-target Linux amd64; the Dockerfiles do not bake in an architecture. On Apple Silicon, the engine
+Install the [prerequisites](../QUICKSTART.md#platforms-and-prerequisites), including a
+Docker-compatible engine with Compose. Images currently target Linux amd64; the Dockerfiles do not bake in an architecture. On Apple Silicon, the engine
 needs amd64 emulation. No registry login or institutional account is required.
 
 On macOS, projects may share one authorized Podman VM. Use separate, explicitly named
@@ -71,7 +71,8 @@ docker compose -f container/compose.local.yaml --profile mcp up -d
 ```
 
 The optional MCP service has its own network with upstream egress and a read-only model mount
-and a writable index mount (SQLite needs its journal/WAL beside the database). Its required-index and offline-model startup checks still apply. It is not enabled by
+and a writable index mount (SQLite needs its journal/WAL beside the database). Its
+required-index and offline-model startup checks still apply. It is not enabled by
 default because this repository does not distribute a production index or embedding model.
 No companion receives those assets. Configuration and secrets for real upstream connections
 belong to the serving service's deployment environment, not the validation container.
@@ -88,7 +89,7 @@ flowchart LR
     admin --> evidence["Private local evidence volume"]
   end
   serving --> upstream["Authorized upstream APIs"]
-  index["Read-only index and offline model"] --> serving
+  index["Index and read-only offline model"] --> serving
 ```
 
 Text alternative: the browser reaches separate docs and admin listeners. Fixture workers and

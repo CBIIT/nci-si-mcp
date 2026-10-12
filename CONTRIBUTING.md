@@ -8,7 +8,7 @@ local preview, reviewed page allowlist, source and version labels).
 
 ## Set up
 
-You need Python 3.14 or newer and [PDM](https://pdm-project.org).
+The [platforms and prerequisites](QUICKSTART.md#platforms-and-prerequisites) come first: Python 3.14 or newer and PDM.
 
 ```bash
 pdm install                    # .venv from pdm.lock, with the test and lint tools and the server and index extras

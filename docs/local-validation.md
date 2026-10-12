@@ -6,6 +6,8 @@ MCP server. Repository users need no account. UAT/PROD administration is disable
 
 ## Open and import
 
+With the [prerequisites](../QUICKSTART.md#platforms-and-prerequisites) installed:
+
 ```bash
 pdm install
 pdm run portal serve

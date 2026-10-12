@@ -20,11 +20,12 @@ did not retrieve.
 ## Try it
 
 ```bash
-pdm install                  # Python 3.14+ and PDM
+pdm install                  # Python 3.14+ and PDM; see the prerequisites below
 pdm run nci-si-mcp serve     # the server, over MCP stdio
 pdm run acceptance           # the acceptance suite against it, on recorded upstream answers
 ```
 
+[Platforms and prerequisites](QUICKSTART.md#platforms-and-prerequisites) lists what to install first.
 A plain `pdm run acceptance` skips the 46 prepared and secured cases; the
 [prepared fixture run](acceptance/README.md) (`NCI_SI_ACCEPTANCE_PREPARE`) runs all of them.
 
