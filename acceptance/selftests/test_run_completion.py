@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 import yaml
-from conftest import STAND_IN
 
+from conftest import STAND_IN
 from nci_si_acceptance.report import load_report
 
 pytest_plugins = ["pytester"]

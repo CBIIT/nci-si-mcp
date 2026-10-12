@@ -1,6 +1,7 @@
 """CI's selftest jobs share the self-tests out between them, each test to one job."""
 
 import pytest
+
 from conftest import shard
 
 NODEIDS = [f"selftests/test_x.py::test_{number}" for number in range(7)]

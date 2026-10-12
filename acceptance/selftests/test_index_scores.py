@@ -4,6 +4,7 @@ import runpy
 from types import SimpleNamespace
 
 import pytest
+
 from conftest import SUITE
 
 

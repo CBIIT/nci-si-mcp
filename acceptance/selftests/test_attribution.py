@@ -5,6 +5,7 @@ import json
 import shutil
 
 import pytest
+
 from conftest import STAND_IN, SUITE
 
 pytest_plugins = ["pytester"]

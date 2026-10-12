@@ -21,9 +21,9 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from conftest import LICENCE_KEY, STAND_IN
 from restart_stub import stop
 
+from conftest import LICENCE_KEY, STAND_IN
 from nci_si_acceptance import client
 from nci_si_acceptance import remote as remote_module
 from nci_si_acceptance.client import Target, open_remote_session, wait_for_endpoint

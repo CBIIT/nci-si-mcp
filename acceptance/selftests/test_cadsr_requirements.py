@@ -5,6 +5,7 @@ Accept out and still succeeds (compliant_server.py)."""
 import shutil
 
 import pytest
+
 from conftest import SUITE
 
 pytest_plugins = ["pytester"]
