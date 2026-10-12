@@ -61,7 +61,7 @@ P and X-25–X-28 requirements), is marked `gate`.
 Every test carries one of the two, or collection refuses the run. A gate that cannot
 run leaves the module unaccepted, since acceptance needs every gate to pass. When the
 server lacks that exact name, the test is skipped as NOT IMPLEMENTED. Calls and arguments
-are sent unchanged; no prototype tool stands in for a required tool. Each test asserts only
+are sent unchanged; no other tool stands in for a required tool. Each test asserts only
 what the specification says.
 
 Each test also cites the requirements it enforces, `@pytest.mark.requirement("X-2")`, by their
@@ -138,7 +138,7 @@ remain `no_fixture` outcomes with the missing requests listed, not ordinary `fai
 
 ## Remote server
 
-For this repository's prototype, `pdm run acceptance-http` supplies the local fixture server
+For this repository's server, `pdm run acceptance-http` supplies the local fixture server
 settings, prepared index and restart hook automatically; see [transport details](../docs/transport.md).
 Session-release cases marked `mcp_session` use handshake mode so they run in an actual MCP
 session. Other cases negotiate normally: native list/resource cache fields belong to the
@@ -296,7 +296,7 @@ The additive X-25–X-28 cases use `NCI_SI_ACCEPTANCE_SECURITY_SERVER`, an opera
 command that starts a loopback HTTP server. The furnished repository's CI and HTTP gate supply `scripts/permissions_fixture.py`. For a
 local fixture run set `NCI_SI_ACCEPTANCE_SECURITY_SERVER='python ../scripts/permissions_fixture.py'`
 alongside the preparation environment. Successors provide their own adapter;
-the suite imports no prototype code. Without an adapter these cases explicitly report NOT RUN.
+the suite imports no server code. Without an adapter these cases explicitly report NOT RUN.
 They are fixture-only, not evidence of production identity or revocation behavior.
 
 The adapter receives the normal fixture upstream environment plus `NCI_SI_TEST_HTTP_PORT`

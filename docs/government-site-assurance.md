@@ -28,7 +28,7 @@ requests. That future review is not an implementation or Phase 7 release gate.
 | Footer policies | Disclaimer Policy, Accessibility, FOIA, HHS Vulnerability Disclosure, and NCIDS Privacy and Security link |
 | Agency links | HHS, NIH, NCI, USA.gov, in that order and with agency names spelled out |
 | Footer utilities | Relevant contact route and Back to top; no placeholder subscriptions or unrelated cancer-information controls |
-| Government banner | Official domain/HTTPS statements only on an approved deployment where they are true; local previews stay visibly prototypes |
+| Government banner | Official domain/HTTPS statements only on an approved deployment where they are true; local previews stay visibly labelled as previews |
 | Identity assets | Use published NCI identity assets; do not invent a blended logo. The owner handles production review separately |
 
 [NCIDS header](https://designsystem.cancer.gov/components/header),
@@ -162,12 +162,12 @@ the #196 review. Final evidence must identify the tested release commit.
 
 HHS web policy covers digital modernization, accessibility, plain language, information collection,
 records, branding, domains, disclaimers and privacy. Apply requirements to the actual service;
-this local prototype is not an agency principal website.
+this local preview is not an agency principal website.
 [HHS web policies](https://www.hhs.gov/digital/policies/web/index.html).
 
 | Area | Repository checks | Deployment evidence/decision |
 |---|---|---|
-| Identity and links | About, policies, accessibility and external-reference notices; truthful prototype label | NCI approves branding, contacts and applicable links; official `.gov`/HTTPS statements must match the actual host |
+| Identity and links | About, policies, accessibility and external-reference notices; truthful build label | NCI approves branding, contacts and applicable links; official `.gov`/HTTPS statements must match the actual host |
 | Privacy | Inventory storage, search, logs, forms, analytics and third-party requests; describe actual behavior | Privacy/platform roles assess notices, logging, analytics, retention and any collection approval; no tracking or surveys added by default |
 | Usability | Responsive search/navigation, understandable stories/errors, current version/content labels | Confirm intended audiences, languages and public feedback arrangements |
 | Security | Keep public docs and local functionality accessible; exclude operational results from public builds | Platform verifies HTTPS, domains, headers, vulnerability reporting and UAT/PROD admin protection |

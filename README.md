@@ -10,12 +10,20 @@
 CI and CodeQL badges track `main`. Coverage badges show combined line and branch coverage
 from successful main CI, with the measured commit and run linked; they are not acceptance pass rates.
 
-The government-furnished prototype of the Model Context Protocol (MCP) server for the NCI
-Semantic Infrastructure, and the acceptance suite it and its successors are measured by. Two
-Statements of Work build on it: *EVS SOW v2.1* (terminology: NCI Thesaurus through EVS) and
-*caDSR SOW v1.1* (metadata: common data elements through caDSR), with the cross-domain tools that
-join them. It is a prototype, not a production service, and it never returns caDSR content it
-did not retrieve.
+The government-furnished Model Context Protocol (MCP) server for the NCI Semantic
+Infrastructure, built to production standards and likely to become the production codebase,
+though not yet declared production. Two Statements of Work build on it: *EVS SOW v2.1*
+(terminology: NCI Thesaurus through EVS) and *caDSR SOW v1.1* (metadata: common data elements
+through caDSR), with the cross-domain tools that join them. It never returns caDSR content it
+did not retrieve. The repository holds four deliverables:
+
+- **The MCP server** with its local NCIt index: [QUICKSTART.md](QUICKSTART.md).
+- **The acceptance suite** that it and its successors are measured by:
+  [acceptance/README.md](acceptance/README.md).
+- **The documentation site**, these documents as a searchable website:
+  [docs/documentation-site.md](docs/documentation-site.md).
+- **The admin interface**, the validation dashboard for acceptance and benchmark runs:
+  [docs/local-validation.md](docs/local-validation.md).
 
 ## Try it
 
@@ -30,9 +38,6 @@ A plain `pdm run acceptance` skips the prepared and secured cases; the
 [prepared fixture run](acceptance/README.md) (`NCI_SI_ACCEPTANCE_PREPARE`) runs all of them.
 
 [QUICKSTART.md](QUICKSTART.md) has the rest: connecting a client, settings, tools and errors.
-For a searchable local website of these documents and diagrams, see
-[Documentation website](docs/documentation-site.md).
-For local acceptance and benchmark history, see the [validation dashboard](docs/local-validation.md).
 
 ## How the pieces fit
 
@@ -101,6 +106,7 @@ The delivered phases are recorded, with their dates, in the
   [acceptance/fixtures/README.md](acceptance/fixtures/README.md), where the fixtures come from.
 - **Working on this repository**: [CONTRIBUTING.md](CONTRIBUTING.md) for the commands, standards
   and gates; [ARCHITECTURE.md](ARCHITECTURE.md) for how the server is built.
+  Everyone taking part follows the [code of conduct](CODE_OF_CONDUCT.md).
 
 ## License
 

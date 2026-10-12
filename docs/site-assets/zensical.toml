@@ -1,6 +1,6 @@
 [project]
 site_name = "NCI Semantic Infrastructure"
-site_description = "MCP prototype documentation, behavioral stories and deployment guidance"
+site_description = "MCP documentation, behavioral stories and deployment guidance"
 docs_dir = "content"
 site_dir = "site"
 use_directory_urls = false

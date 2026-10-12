@@ -102,7 +102,7 @@ missing argument with HTTP 200 (X-15).
 FALLBACK = """\
 ## Operations without a pinned form upstream
 
-These are served unpinned today. The verified fallback is approved for the prototype: the tool
+These are served unpinned today. The verified fallback is approved for this server: the tool
 calls the unpinned form, compares the release the payload reports with the one requested, and
 fails closed on a difference. NCI's approval under EVS SOW v2.1 item 5 is taken from this list. A
 mapset that reports a version of its own, not an NCIt release, cannot be verified that way: it is a
