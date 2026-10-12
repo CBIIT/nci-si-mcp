@@ -5,7 +5,7 @@ import json
 import subprocess
 import sys
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
@@ -121,3 +121,39 @@ class HTTPRunnerLifecycleTest(unittest.TestCase):
             if child.poll() is None:
                 child.kill()
             wait(timeout=5)
+
+
+class HTTPRunnerServerLogTest(unittest.TestCase):
+    HEADING = "Owned server log, last 65536 bytes:\n"
+
+    def run_with_status(self, status, content='{"event": "call_completed"}\n'):
+        class Server:
+            port = 8000
+
+            def __init__(self, _environment, log, **_options):
+                self.log = log
+
+            def __enter__(self):
+                self.log.write_text(content)
+                return self
+
+            def __exit__(self, *_exception):
+                return False
+
+        diagnostics = io.StringIO()
+        with (
+            patch.object(runner, "prepare"),
+            patch.object(runner, "OwnedServer", Server),
+            patch.object(runner, "run_suite", return_value=status),
+            redirect_stderr(diagnostics),
+        ):
+            self.assertEqual(runner.run(), status)
+        return diagnostics.getvalue()
+
+    def test_a_failed_run_ends_with_the_tail_of_the_owned_server_log(self):
+        self.assertEqual(self.run_with_status(1), self.HEADING + '{"event": "call_completed"}\n')
+        long = "a" * 10 + "b" * 65536
+        self.assertEqual(self.run_with_status(1, long), self.HEADING + "b" * 65536)
+
+    def test_a_successful_run_prints_no_server_log(self):
+        self.assertEqual(self.run_with_status(0), "")

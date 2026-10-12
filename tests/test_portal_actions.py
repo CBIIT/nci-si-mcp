@@ -2,6 +2,7 @@
 
 import socket
 import threading
+import time
 import unittest
 from http.client import HTTPConnection
 from pathlib import Path
@@ -163,3 +164,55 @@ class PortalActionsTest(unittest.TestCase):
         status, _, _ = self.post("/jobs/" + "4" * 32 + "/cancel", {"run_id": "4" * 32})
         self.assertEqual(status, 404)
         self.assertEqual(len(self.jobs.history()), 3)
+
+
+class WorkerLogPageTest(unittest.TestCase):
+    def setUp(self):
+        temporary = TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
+        self.finished = threading.Event()
+        self.jobs = JobController(root / "jobs", execute=self.execute, commit=lambda: "a" * 40)
+        self.addCleanup(self.jobs.close)
+        self.server = create_server(EvidenceStore(root / "store.sqlite"), port=0, jobs=self.jobs)
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        self.addCleanup(self.close_server)
+        self.origin = f"http://127.0.0.1:{self.server.server_port}"
+
+    close_server = PortalActionsTest.close_server
+    request = PortalActionsTest.request
+
+    def execute(self, job, directory, _cancelled):
+        directory.mkdir()
+        if job["run_id"] == "1" * 32:
+            (directory / "worker.log").write_bytes(b"Traceback: <worker> & failed\n")
+        self.finished.set()
+        return {"state": "failed", "exit_code": 1, "reason": "worker_failed"}
+
+    def run_job(self, run_id):
+        self.finished.clear()
+        self.jobs.submit(run_id, "benchmark-http-fixture")
+        self.assertTrue(self.finished.wait(5))
+        deadline = time.monotonic() + 5
+        while self.jobs.get(run_id)["state"] != "failed" and time.monotonic() < deadline:
+            time.sleep(0.01)
+
+    def test_the_job_page_links_the_worker_log_which_is_served_as_plain_text(self):
+        self.run_job("1" * 32)
+        status, _, page = self.request("/jobs/" + "1" * 32)
+        self.assertEqual(status, 200)
+        self.assertIn(f'<a href="/jobs/{"1" * 32}/worker.log">Worker log</a>', page)
+        status, headers, body = self.request(f"/jobs/{'1' * 32}/worker.log")
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["Content-Type"], "text/plain; charset=utf-8")
+        self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
+        self.assertEqual(body, "Traceback: <worker> & failed\n")
+
+    def test_a_job_without_a_worker_log_says_so_and_serves_none(self):
+        self.run_job("2" * 32)
+        _, _, page = self.request("/jobs/" + "2" * 32)
+        self.assertIn("No worker log was recorded.", page)
+        self.assertNotIn("/worker.log", page)
+        self.assertEqual(self.request(f"/jobs/{'2' * 32}/worker.log")[0], 404)
+        self.assertEqual(self.request(f"/jobs/{'3' * 32}/worker.log")[0], 404)
