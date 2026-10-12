@@ -5,7 +5,7 @@ import json
 import unittest
 from pathlib import Path
 
-from scripts.benchmark import summarize
+from scripts.benchmark_records import summarize
 from scripts.evidence_benchmark import comparable, project_benchmark
 from scripts.evidence_envelope import EvidenceError
 

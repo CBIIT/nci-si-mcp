@@ -6,7 +6,6 @@ import json
 from typing import Any, Literal, cast, get_args
 
 from mcp import types
-from scripts.benchmark import percentile
 from scripts.benchmark_records import Sample
 from scripts.vocabulary import HttpStop, RunStop
 
@@ -73,31 +72,3 @@ def failure_sample(
     reason: RunStop | HttpStop, elapsed_ms: float, correlation: str, *, http_requests: int
 ) -> dict[str, Any]:
     return _sample(elapsed_ms, correlation, http_requests, None, reason, True)
-
-
-def summarize_http(samples: list[dict[str, Any]]) -> dict[str, Any]:
-    if not samples:
-        return {
-            "calls": 0,
-            "p50Ms": None,
-            "p95Ms": None,
-            "errorRate": None,
-            "meanResultBytes": None,
-            "meanOutboundRequests": None,
-        }
-    times = [row["elapsedMs"] for row in samples]
-    return {
-        "calls": len(samples),
-        "p50Ms": percentile(times, 0.5),
-        "p95Ms": percentile(times, 0.95),
-        "errorRate": sum(row["error"] for row in samples) / len(samples),
-        "meanResultBytes": _mean_size(samples),
-        "meanOutboundRequests": None,
-    }
-
-
-def _mean_size(samples: list[dict[str, Any]]) -> float | None:
-    sizes = [row["resultBytes"] for row in samples]
-    if any(size is None for size in sizes):
-        return None
-    return sum(sizes) / len(sizes)

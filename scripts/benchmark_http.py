@@ -9,7 +9,6 @@ import time
 import uuid
 from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
-from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -19,8 +18,10 @@ from mcp.client import Client
 from mcp.client.streamable_http import streamable_http_client
 from scripts.benchmark import CASES
 from scripts.benchmark_limits import Budget, Limits, RunStoppedError, approved_target
+from scripts.benchmark_records import Case, Conditions, Phase, SelectedCase, summarize
+from scripts.benchmark_report import Report
 from scripts.benchmark_transport import http_client
-from scripts.http_measurement import MeasurementError, failure_sample, measure_reply, summarize_http
+from scripts.http_measurement import MeasurementError, failure_sample, measure_reply
 from scripts.operator_files import write_json
 from scripts.vocabulary import HttpStop, RunStop, run_stop
 
@@ -67,18 +68,6 @@ def _group_reason(error: BaseExceptionGroup) -> RunStop | HttpStop | None:
     return reasons[0] if reasons else None
 
 
-def conditions() -> dict[str, Any]:
-    """The same planned measurement definitions bind snapshots and resulting reports."""
-    return {
-        "cold": "first measured call in a new client session; not a cold server",
-        "warm": "same client session after the recorded warm-up calls",
-        "timing": "tool-call duration; setup excluded from latency, included in budget",
-        "concurrency": 1,
-        "remoteTermination": "not established by client cancellation",
-        "serverTelemetry": "unknown; no audit-fetch endpoint or trusted telemetry source",
-    }
-
-
 class _Campaign:
     def __init__(
         self,
@@ -95,29 +84,26 @@ class _Campaign:
             output,
             authorization,
         )
-        self.report: dict[str, Any] = {
-            "schema": 1,
-            "transport": "streamable-http",
-            "mode": "fixture" if fixture else "live",
-            "createdAt": datetime.now(UTC).isoformat(),
-            "state": "running",
-            "complete": False,
-            "stopReason": None,
-            "httpRequests": 0,
-            "limits": asdict(budget.limits),
-            "targetSha256": hashlib.sha256(target.encode()).hexdigest(),
-            "expectedCases": [case["tool"] for case in cases],
-            "conditions": conditions(),
-            "cases": [
-                case
-                | {
-                    "cold": {"samples": [], "summary": summarize_http([])},
-                    "warm": {"samples": [], "summary": summarize_http([])},
-                    "warmups": {"samples": [], "summary": summarize_http([])},
-                }
+        self.report = Report(
+            schema=1,
+            transport="streamable-http",
+            mode="fixture" if fixture else "live",
+            createdAt=datetime.now(UTC).isoformat(),
+            state="running",
+            complete=False,
+            stopReason=None,
+            httpRequests=0,
+            limits=budget.limits,
+            targetSha256=hashlib.sha256(target.encode()).hexdigest(),
+            expectedCases=[case["tool"] for case in cases],
+            conditions=Conditions(),
+            cases=[
+                Case(
+                    SelectedCase(**case), Phase.measured([]), Phase.measured([]), Phase.measured([])
+                )
                 for case in cases
             ],
-        }
+        ).to_dict()
 
     def save(self) -> None:
         self.report["httpRequests"] = self.budget.requests
@@ -168,7 +154,7 @@ class _Campaign:
     async def phase(self, client: Client, case: dict[str, Any], phase: str) -> None:
         sample, error = await self.measure(client, case)
         case[phase]["samples"].append(sample)
-        case[phase]["summary"] = summarize_http(case[phase]["samples"])
+        case[phase]["summary"] = summarize(case[phase]["samples"])
         self.save()
         if error is not None:
             raise error

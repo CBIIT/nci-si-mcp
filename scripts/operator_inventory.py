@@ -10,9 +10,9 @@ from typing import Any
 
 import pytest
 from scripts.benchmark import CASES, cases
-from scripts.benchmark_http import conditions
 from scripts.benchmark_limits import Limits
-from scripts.evidence_http import http_fingerprint
+from scripts.benchmark_records import Conditions, SelectedCase
+from scripts.benchmark_report import Selection, fingerprint
 
 from nci_si_acceptance.spec import REQUIRED_TOOLS
 from nci_si_acceptance.stories import ROOT, Collection, cases_of, collect, load_stories, validate
@@ -37,14 +37,11 @@ class Inventory(Collection):
 
 def benchmark_selection(mode: str) -> dict[str, Any]:
     selected = cases(list(CASES))
-    planned = {
-        "mode": mode,
-        "transport": "streamable-http",
-        "conditions": conditions(),
-        "limits": asdict(Limits()),
-        "cases": selected,
-    }
-    return {"schema": 1, "cases": selected, "fingerprint": http_fingerprint(planned)}
+    limits = Limits()
+    measured = fingerprint(
+        mode, "streamable-http", asdict(Conditions()), selected, limits.repetitions, limits
+    )
+    return asdict(Selection(1, [SelectedCase(**case) for case in selected], measured))
 
 
 def snapshots(inventory: Inventory, kind: str, mode: str) -> dict[str, Any]:

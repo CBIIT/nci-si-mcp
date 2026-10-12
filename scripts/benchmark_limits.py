@@ -7,9 +7,11 @@ import re
 import threading
 import time
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
+from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
+from scripts.benchmark_records import shape
 from scripts.vocabulary import HttpStop, RunStop, run_stop
 
 DEFAULT_MAX_REQUESTS = 500
@@ -84,24 +86,29 @@ class Limits:
     warmups: int = 1
 
     def __post_init__(self) -> None:
-        for value, low, high in (
-            (self.max_requests, 1, 1000),
-            (self.repetitions, 1, 20),
-            (self.warmups, 0, 3),
+        for name, low, high in (
+            ("max_requests", 1, 1000),
+            ("repetitions", 1, 20),
+            ("warmups", 0, 3),
         ):
-            _integer_limit(value, low, high)
-        for value, high in ((self.seconds, 1200), (self.timeout, 120)):
-            _time_limit(value, high)
+            _integer_limit(getattr(self, name), low, high, name)
+        for name, high in (("seconds", 1200), ("timeout", 120)):
+            _time_limit(getattr(self, name), high, name)
+
+    @classmethod
+    def from_dict(cls, value: Any) -> Limits:
+        shape(value, {item.name for item in fields(cls)}, "limits")
+        return cls(**value)
 
 
-def _integer_limit(value: int, low: int, high: int) -> None:
+def _integer_limit(value: int, low: int, high: int, name: str) -> None:
     if type(value) is not int or not low <= value <= high:
-        raise ValueError("Integer campaign limit is outside the supported range")
+        raise ValueError(f"Invalid benchmark field: limits.{name}")
 
 
-def _time_limit(value: float, high: int) -> None:
+def _time_limit(value: float, high: int, name: str) -> None:
     if type(value) not in (int, float) or not math.isfinite(value) or not 0 < value <= high:
-        raise ValueError("Time limit must be finite, positive and bounded")
+        raise ValueError(f"Invalid benchmark field: limits.{name}")
 
 
 class Budget:
