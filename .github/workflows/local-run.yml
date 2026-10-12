@@ -53,6 +53,14 @@ jobs:
           fetch-depth: 0  # the package version is derived from the nearest tag
           persist-credentials: false
 
+      # `brew install` exits 0 without installing a formula the runner image already ships, so the
+      # in-use checks below could pass without the documented install having run. A failed
+      # uninstall fails the job.
+      - name: Remove preinstalled Python and PDM (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          if brew list --versions python@3.14 >/dev/null; then brew uninstall --ignore-dependencies python@3.14; fi
+          if brew list --versions pdm >/dev/null; then brew uninstall --ignore-dependencies pdm; fi
       # QUICKSTART, "Platforms and prerequisites": Python and PDM by the documented route.
       # Not actions/setup-python or setup-pdm, which are the tuned path.
       - name: Install Python and PDM (macOS)
@@ -164,6 +172,10 @@ jobs:
         run: pdm run acceptance-expected check acceptance/fixture.json
 
       # QUICKSTART: Node.js 24 or newer, for the documentation site only.
+      - name: Remove a preinstalled Node.js (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          if brew list --versions node >/dev/null; then brew uninstall --ignore-dependencies node; fi
       - name: Install Node.js (macOS)
         if: runner.os == 'macOS'
         run: brew install node
