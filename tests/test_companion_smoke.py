@@ -14,6 +14,7 @@ from unittest.mock import patch
 from scripts import companion_smoke, processes
 from scripts.portal_http import create_server
 from scripts.portal_store import EvidenceStore
+from scripts.site_assets import load_footer
 
 
 class CompanionSmokeTest(unittest.TestCase):
@@ -129,6 +130,14 @@ class PortalStylingTest(unittest.TestCase):
 
     def test_a_correctly_styled_portal_with_its_footer_passes(self):
         self.assertEqual(self.smoke(), ["/", "/assets/ncids.css", "/assets/portal.css"])
+
+    def test_a_contact_url_that_needs_escaping_still_passes_on_a_correct_page(self):
+        footer = load_footer()._replace(contact_url='https://example.test/contact?a=1&b="2"')
+        with (
+            patch("scripts.portal_views.FOOTER", footer),
+            patch.object(companion_smoke, "load_footer", return_value=footer),
+        ):
+            self.assertEqual(self.smoke(), ["/", "/assets/ncids.css", "/assets/portal.css"])
 
     def test_a_missing_stylesheet_or_footer_contact_link_fails_the_smoke(self):
         connection = HTTPConnection("127.0.0.1", self.server.server_port, timeout=3)
