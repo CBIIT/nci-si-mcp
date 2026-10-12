@@ -20,25 +20,11 @@ from scripts.evidence_envelope import MAX_EXIT_CODE
 from scripts.formats import JOB_ID, SHA1_HEX
 from scripts.operator_files import read_bytes, write_json
 from scripts.portal_store import MAX_RETENTION
+from scripts.vocabulary import ACTIVE, JOB_REASONS, TERMINAL, JobOutcome
 
 from nci_si_mcp.audit import emit
 
 PROFILES = ("acceptance-http-fixture", "benchmark-http-fixture", "benchmark-http-remote")
-ACTIVE = {"pending", "running"}
-TERMINAL = {"completed", "failed", "cancelled", "interrupted", "unavailable"}
-REASONS = {
-    None,
-    "cancelled",
-    "deadline",
-    "output_limit",
-    "invalid_evidence",
-    "worker_failed",
-    "worker_error",
-    "missing_report",
-    "missing_inventory",
-    "owner_restart",
-    "owner_shutdown",
-}
 MAX_ADMITTED = 3
 MAX_STATE_BYTES = 2 * 1024 * 1024
 MAX_TIMESTAMP_LENGTH = 40
@@ -54,7 +40,7 @@ FIELDS = {
     "exit_code",
     "reason",
 }
-Executor = Callable[[dict[str, Any], Path, threading.Event], dict[str, Any]]
+Executor = Callable[[dict[str, Any], Path, threading.Event], JobOutcome]
 
 
 class JobConflictError(ValueError):
@@ -150,7 +136,7 @@ def _validate_outcome(row: dict[str, Any]) -> None:
     code = row["exit_code"]
     if code is not None and (type(code) is not int or not 0 <= code <= MAX_EXIT_CODE):
         raise ValueError("Invalid job exit code")
-    if row["reason"] not in REASONS:
+    if row["reason"] is not None and row["reason"] not in JOB_REASONS:
         raise ValueError("Invalid job stop reason")
 
 

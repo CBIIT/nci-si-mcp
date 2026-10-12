@@ -15,6 +15,7 @@ from scripts.benchmark_http import run_http
 from scripts.benchmark_limits import Limits
 from scripts.operator_files import write_json
 from scripts.processes import exit_on_sigterm
+from scripts.vocabulary import run_stop
 
 from nci_si_acceptance.client import OwnedServer, server_environment
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
@@ -80,7 +81,7 @@ def fixture_benchmark(
                 )
             )
         if unmatched_requests(upstream.log()):
-            report.update(complete=False, state="failed", stopReason="runner_error")
+            report.update(complete=False, state="failed", stopReason=run_stop("runner_error"))
             write_json(output, report, form="report")
             raise RuntimeError("Fixture benchmark requested an unrecorded response")
         return report

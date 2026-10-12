@@ -5,8 +5,8 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from scripts.portal_jobs import ACTIVE
 from scripts.portal_views import page, table, text
+from scripts.vocabulary import ACTIVE
 
 LABELS = {
     "acceptance-http-fixture": "Acceptance checks · HTTP fixtures",

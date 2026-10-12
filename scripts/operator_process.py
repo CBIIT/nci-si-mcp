@@ -7,15 +7,15 @@ import signal
 import subprocess
 import threading
 from pathlib import Path
-from typing import Any
 
 from scripts.evidence_envelope import MAX_REPORT_BYTES
 from scripts.processes import stop, wait_until
+from scripts.vocabulary import JobOutcome, JobReason
 
 LIFELINE = "NCI_SI_OPERATOR_LIFELINE"
 
 
-def _output_problem(directory: Path) -> str | None:
+def _output_problem(directory: Path) -> JobReason | None:
     report = directory / "bundle/report.json"
     if report.is_symlink():
         return "invalid_evidence"
@@ -29,8 +29,8 @@ def _wait(
     directory: Path,
     seconds: float,
     cancelled: threading.Event,
-) -> str | None:
-    reason: str | None = None
+) -> JobReason | None:
+    reason: JobReason | None = None
 
     def settled() -> bool:
         nonlocal reason
@@ -51,7 +51,7 @@ def run_owned(
     environment: dict[str, str],
     seconds: float,
     cancelled: threading.Event,
-) -> dict[str, Any]:
+) -> JobOutcome:
     if cancelled.is_set():
         return {"state": "cancelled", "exit_code": None, "reason": "cancelled"}
     read_fd, write_fd = os.pipe()

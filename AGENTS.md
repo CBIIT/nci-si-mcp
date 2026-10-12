@@ -135,7 +135,7 @@ last two and the suite's CI; each family below is operational, and what depends 
 | Validation companion | `portal*.py`, `operator_*.py`, `evidence_*.py`, `companion_entry.py`, `companion_relay.py`, `companion_smoke.py`, `container/Admin.Dockerfile`, `container/compose.local.yaml` | `pdm run portal`, `pdm run operator-worker`; the `companions` job | `docs/local-validation.md`, `docs/companion-containers.md` |
 | Benchmarks and evaluation | `benchmark*.py`, `http_measurement.py`, `assisted_evaluation.py`, `assisted_scoring.py` | `pdm run benchmark-http`; the companion's workers | `docs/benchmark.md`, `docs/assisted-evaluation.md` |
 | Shared process helpers | `processes.py` | imported by the acceptance, container, companion, operator and benchmark scripts | every script that owns or waits for a process |
-| Shared formats, lock lines and files | `formats.py`, `requirements_lock.py`, `operator_files.py` | imported by the evidence, portal, docs, operator, benchmark and lock scripts | every script that checks a hash, job id or release tag, both requirement locks, and every atomic JSON write |
+| Shared formats, vocabularies, lock lines and files | `formats.py`, `vocabulary.py`, `requirements_lock.py`, `operator_files.py` | imported by the evidence, portal, docs, operator, benchmark and lock scripts | every script that checks a hash, job id or release tag, every run and job stop reason and state, both requirement locks, and every atomic JSON write |
 | README badges | `coverage_badges.py` | the CI `coverage-badges` job | the README |
 
 A script that served an ephemeral purpose and is no longer needed to operate or maintain the

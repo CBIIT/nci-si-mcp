@@ -17,6 +17,7 @@ from scripts.evidence_benchmark_common import (
 )
 from scripts.evidence_envelope import decode_json, timestamp
 from scripts.http_measurement import summarize_http
+from scripts.vocabulary import RUN_STATES, is_run_stop
 
 from nci_si_mcp.errors import ErrorCode
 
@@ -49,19 +50,6 @@ _SAMPLE = {
     "serverCommit",
     "replica",
 }
-_FAILURES = {
-    "target",
-    "redirect",
-    "response_limit",
-    "content_encoding",
-    "deadline",
-    "request_budget",
-    "cancelled",
-    "timeout",
-    "invalid_response",
-    "transport_error",
-    "runner_error",
-}
 PHASE_LABELS = {
     "cold": "First call in new client session",
     "warm": "Warmed client session",
@@ -74,8 +62,7 @@ def _hex(value: Any, length: int) -> None:
 
 
 def _failure(value: Any) -> None:
-    require(isinstance(value, str))
-    require(value in _FAILURES or re.fullmatch(r"http_[45][0-9]{2}", value) is not None)
+    require(is_run_stop(value))
 
 
 def _header(native: Any, record: dict[str, Any]) -> Limits:
@@ -106,7 +93,7 @@ def _conditions(conditions: Any) -> None:
 
 def _termination(native: dict[str, Any], record: dict[str, Any]) -> None:
     state = native["state"]
-    require(state in ("running", "completed", "failed", "cancelled"))
+    require(state in RUN_STATES)
     require(type(native["complete"]) is bool and native["complete"] == (state == "completed"))
     if state in ("running", "completed"):
         require(native["stopReason"] is None)
