@@ -26,7 +26,7 @@ pdm run acceptance           # the acceptance suite against it, on recorded upst
 ```
 
 [Platforms and prerequisites](QUICKSTART.md#platforms-and-prerequisites) lists what to install first.
-A plain `pdm run acceptance` skips the 46 prepared and secured cases; the
+A plain `pdm run acceptance` skips the prepared and secured cases; the
 [prepared fixture run](acceptance/README.md) (`NCI_SI_ACCEPTANCE_PREPARE`) runs all of them.
 
 [QUICKSTART.md](QUICKSTART.md) has the rest: connecting a client, settings, tools and errors.

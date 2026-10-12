@@ -34,8 +34,8 @@ pdm run nci-si-mcp serve
 
 `pdm install` creates `.venv` from `pdm.lock` and installs the package in editable mode with
 the test and lint tools, the `server` extra (MCP), and the `index` extra (NumPy for exact
-indexed search). Every command below runs through `pdm run`, which uses that environment
-without activating it.
+indexed search). Every command below that runs from a checkout goes through `pdm run`, which
+uses that environment without activating it.
 
 To run a released version without a checkout, install it from its tag; the
 [releases page](https://github.com/CBIIT/nci-si-mcp/releases) lists the versions:
