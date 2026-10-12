@@ -13,7 +13,7 @@ from tempfile import TemporaryDirectory
 from scripts.companion_lock import render
 from scripts.docs_site import build_site
 from scripts.operator_source import archive_source, head_commit, package_source
-from scripts.site_assets import FONT_FILES
+from scripts.site_assets import FONT_FILES, PORTAL_FILES
 
 
 def clean_commit(root: Path) -> str:
@@ -96,6 +96,8 @@ def _populate(root: Path, output: Path, requirements: str, commit: str, site: Pa
     fonts.mkdir(parents=True)
     for name in FONT_FILES:
         shutil.copyfile(root / "docs/site-assets/fonts" / name, fonts / name)
+    for name in PORTAL_FILES:
+        shutil.copyfile(root / "docs/site-assets" / name, fonts.parent / name)
     _wheels(root, admin / "wheels")
 
 

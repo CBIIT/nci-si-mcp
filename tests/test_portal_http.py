@@ -99,7 +99,7 @@ class PortalHTTPTest(unittest.TestCase):
         self.assertEqual(self.request("/assets/open-sans.ttf?path=private")[0], 400)
 
     def test_unreadable_font_reports_asset_repair_without_disclosing_filesystem_details(self):
-        with patch("scripts.portal_http.Path.read_bytes", side_effect=OSError("PRIVATE-CANARY")):
+        with patch("pathlib.Path.read_bytes", side_effect=OSError("PRIVATE-CANARY")):
             status, _, body = self.request("/assets/open-sans.ttf")
         self.assertEqual(status, 503)
         self.assertIn("Local assets unavailable", body)

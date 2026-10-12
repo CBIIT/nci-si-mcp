@@ -135,6 +135,7 @@ def _assets(root: Path, workspace: Path) -> None:
     assets = workspace / "content/assets"
     assets.mkdir()
     files = {
+        "ncids.css": source / "ncids.css",
         "site.css": source / "site.css",
         "search-placement.js": source / "search-placement.js",
         "mermaid.min.js": source / "node_modules/.cache/nci-si/mermaid.min.js",
