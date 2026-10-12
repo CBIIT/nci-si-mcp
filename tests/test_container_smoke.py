@@ -1,7 +1,9 @@
 """The smoke command checks retention and reaps its container-owned assets."""
 
+import errno
 import io
 import json
+import os
 import shutil
 import subprocess
 import unittest
@@ -163,6 +165,25 @@ class DockerFailureReportTest(unittest.TestCase):
             stderr,
             r"^Cleanup of the smoke assets failed: Command .* timed out after 300 seconds\n$",
         )
+
+    def test_a_directory_that_cannot_be_removed_does_not_hide_the_first_failure(self):
+        # Native Linux leaves container-owned files the host user cannot remove; the removal
+        # reports each such path to the caller's onexc handler, as shutil.rmtree does.
+        remove = shutil.rmtree
+
+        def rmtree(path, *args, onexc=None, **options):
+            if Path(path).name.startswith("container-smoke-"):
+                try:
+                    raise OSError(errno.EBUSY, "Device or resource busy")
+                except OSError as error:  # as in shutil.rmtree, the handler runs in the except
+                    onexc(os.rmdir, str(path), error)
+                return None
+            return remove(path, *args, onexc=onexc, **options)
+
+        with patch.object(shutil, "rmtree", rmtree):
+            error, stderr = self.smoke(failure=RuntimeError("primary index failure"))
+        self.assertEqual(str(error), "primary index failure")
+        self.assertRegex(stderr, "^Cleanup of the smoke assets failed: .*cleanup boom\n$")
 
     def test_a_failed_cleanup_alone_fails_the_command_and_says_why(self):
         error, stderr = self.smoke()
