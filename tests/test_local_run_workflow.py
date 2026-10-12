@@ -205,6 +205,27 @@ TRIGGERS = {
 }
 
 
+STDIO_INITIALIZE_RUN = r"""python3 - <<'PY'
+import json, subprocess
+
+request = {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
+    "protocolVersion": "2025-06-18", "capabilities": {},
+    "clientInfo": {"name": "local-run", "version": "0"}}}
+server = subprocess.Popen(["pdm", "run", "nci-si-mcp", "serve"], stdin=subprocess.PIPE,
+                          stdout=subprocess.PIPE, text=True)
+try:
+    server.stdin.write(json.dumps(request) + "\n")
+    server.stdin.flush()
+    reply = json.loads(server.stdout.readline())
+    assert reply["id"] == 1 and "serverInfo" in reply["result"], reply
+    print("initialize answered by", reply["result"]["serverInfo"])
+finally:
+    server.kill()
+    server.wait(timeout=30)
+PY
+"""
+
+
 def probe_run(command, url):
     """The run text a probe step must have: the documented command as the probe starts it."""
 
@@ -229,15 +250,15 @@ def documented_commands(document):
     """Commands a document gives: fenced block lines and table-row code spans, comments removed."""
 
     text = (ROOT / document).read_text(encoding="utf-8")
-    commands = set()
+    commands = {}  # ordered: a step's lines must keep the document's order
     for block in re.findall(r"^```(?:bash|sh|shell)\n(.*?)^```", text, re.DOTALL | re.MULTILINE):
         for line in block.splitlines():
-            commands.add(re.sub(r"\s+#.*$", "", line).strip())
+            commands.setdefault(re.sub(r"\s+#.*$", "", line).strip())
     # Inline spans count only in table rows (QUICKSTART's prerequisites table), never in prose.
     for row in re.findall(r"^\|.*$", text, re.MULTILINE):
         for span in re.findall(r"`([^`\n]+)`", row):
-            commands.add(span.replace("\\|", "|").strip())
-    return commands
+            commands.setdefault(span.replace("\\|", "|").strip())
+    return list(commands)
 
 
 def command_lines(run):
@@ -303,6 +324,20 @@ class LocalRunWorkflowTest(unittest.TestCase):
             with self.subTest(step=step["name"]):
                 self.assertEqual(undocumented_lines(step["name"], step["run"], DOCUMENTS), [])
 
+    def test_every_step_keeps_the_order_of_its_document(self):
+        for step in steps():
+            if step["name"] in DOCUMENTS and step["name"] not in CI_ONLY:
+                commands = documented_commands(DOCUMENTS[step["name"]])
+                found = [
+                    commands.index(line) for line in command_lines(step["run"]) if line in commands
+                ]
+                with self.subTest(step=step["name"]):
+                    self.assertEqual(found, sorted(found))
+
+    def test_the_stdio_initialize_round_trip_is_exactly_this(self):
+        by_name = {step["name"]: step["run"] for step in steps()}
+        self.assertEqual(by_name["Serve over stdio and initialize (CI only)"], STDIO_INITIALIZE_RUN)
+
     def test_the_ci_only_list_has_no_stale_entry(self):
         lines = {line.strip() for step in steps() for line in step["run"].splitlines()}
         names = {step["name"] for step in steps()}
@@ -363,7 +398,7 @@ class LocalRunWorkflowTest(unittest.TestCase):
                 "Run `in prose` first.\n\n| Tool | Check |\n|---|---|\n| Node | `in a table` |\n",
                 encoding="utf-8",
             )
-            self.assertEqual(documented_commands(str(document)), {"in a table"})
+            self.assertEqual(documented_commands(str(document)), ["in a table"])
 
     def test_a_one_sided_edit_is_caught(self):
         step = next(s for s in steps() if s["name"] == "Install the project")
