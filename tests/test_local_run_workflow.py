@@ -3,6 +3,7 @@
 import re
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import yaml
 
@@ -192,15 +193,17 @@ def steps():
 
 
 def documented_commands(document):
-    """Commands a document gives: lines of fenced blocks and inline code spans, comments removed."""
+    """Commands a document gives: fenced block lines and table-row code spans, comments removed."""
 
     text = (ROOT / document).read_text(encoding="utf-8")
     commands = set()
     for block in re.findall(r"^```(?:bash|sh|shell)\n(.*?)^```", text, re.DOTALL | re.MULTILINE):
         for line in block.splitlines():
             commands.add(re.sub(r"\s+#.*$", "", line).strip())
-    for span in re.findall(r"`([^`\n]+)`", text):
-        commands.add(span.replace("\\|", "|").strip())
+    # Inline spans count only in table rows (QUICKSTART's prerequisites table), never in prose.
+    for row in re.findall(r"^\|.*$", text, re.MULTILINE):
+        for span in re.findall(r"`([^`\n]+)`", row):
+            commands.add(span.replace("\\|", "|").strip())
     return commands
 
 
@@ -315,6 +318,15 @@ class LocalRunWorkflowTest(unittest.TestCase):
                 "cancel-in-progress": "${{ github.event_name == 'pull_request' }}",
             },
         )
+
+    def test_a_command_in_prose_is_not_a_documented_command(self):
+        with TemporaryDirectory() as directory:
+            document = Path(directory) / "document.md"
+            document.write_text(
+                "Run `in prose` first.\n\n| Tool | Check |\n|---|---|\n| Node | `in a table` |\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(documented_commands(str(document)), {"in a table"})
 
     def test_a_one_sided_edit_is_caught(self):
         step = next(s for s in steps() if s["name"] == "Install the project")
