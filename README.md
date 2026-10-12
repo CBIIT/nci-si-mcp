@@ -10,12 +10,11 @@
 CI and CodeQL badges track `main`. Coverage badges show combined line and branch coverage
 from successful main CI, with the measured commit and run linked; they are not acceptance pass rates.
 
-The government-furnished Model Context Protocol (MCP) server for the NCI Semantic
-Infrastructure, built to production standards and likely to become the production codebase,
-though not yet declared production. Two Statements of Work build on it: *EVS SOW v2.1*
-(terminology: NCI Thesaurus through EVS) and *caDSR SOW v1.1* (metadata: common data elements
-through caDSR), with the cross-domain tools that join them. It never returns caDSR content it
-did not retrieve. The repository holds four deliverables:
+The NCI Semantic Infrastructure Model Context Protocol (MCP) server, built to production standards
+and likely to become the production codebase, though not yet declared production. It serves
+terminology (NCI Thesaurus through EVS) and metadata (common data elements through caDSR), with
+the cross-domain tools that join them, and it never returns content it did not retrieve:
+[what the server must do](docs/specification.md#what-the-server-must-do). The repository holds four deliverables:
 
 - **The MCP server** with its local NCIt index: [QUICKSTART.md](QUICKSTART.md).
 - **The acceptance suite** that it and its successors are measured by:

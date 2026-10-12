@@ -109,15 +109,15 @@ then waits for the endpoint, up to the timeout, and stops at once on an HTTP 401
 scheme, and is not given to the hook. The harness cannot read a remote server's standard error or
 data directory, so the checks that a secret is in neither (X-12) cover what the server returns.
 
-The Prototype Baseline Assessment reads the outcomes of a run against the furnished server:
+The baseline assessment reads the outcomes of a run against the furnished server:
 a tool that passes is a reuse candidate, one that fails or is INCOMPLETE a hardening candidate,
 and one NOT IMPLEMENTED new development.
 
 The suite does not test response time and throughput (the benchmark), the ranking quality of
-semantic search (the retrieval evaluation set), security controls (the contractor's security
-tests), the platform APIs themselves (the conformance suite), or operator procedures such as
-building, activating and rolling back the index (the contractor's integration tests and the
-deployment guide). It tests what each of these must show at the tool surface: a structured
+semantic search (the retrieval evaluation set), security controls (the implementing team's
+security tests), the platform APIs themselves (the conformance suite), or operator procedures
+such as building, activating and rolling back the index (the implementing team's integration
+tests and the deployment guide). It tests what each of these must show at the tool surface: a structured
 timeout error, the index release in provenance, correlation, and no secret in a result or log.
 
 Changes to this specification, the suite, the fixture set and the request forms follow a
@@ -127,8 +127,8 @@ are furnished as initial versions for the EVS, caDSR and Shared SI teams to refi
 record. For the Shared SI Service's SPARQL endpoint the request form prescribes the query text,
 matched with runs of whitespace collapsed; a team may propose another form through the register,
 as for every form.
-The suite and the fixture set are versioned independently. A contractor may propose a test, but
-may not substitute its own tests for the suite as the basis of acceptance.
+The suite and the fixture set are versioned independently. A team implementing the server may
+propose a test, but may not substitute its own tests for the suite as the basis of acceptance.
 Every suite test cites the requirements it enforces, and at the furnished tag every requirement
 is cited by one; a report whose digest is not that of an approved release reads MODIFIED;
 changes under `spec/` and `acceptance/` need a code owner's approval; and the change log records

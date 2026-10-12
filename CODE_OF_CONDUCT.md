@@ -19,8 +19,8 @@ work open, respectful and focused on its purpose.
 - **Findings are about the work.** Review is given in writing on GitHub, says what is wrong and why,
   and points to the evidence. A comment whose first line starts with `## Reviewer` is binding; a
   disagreement with it is raised before acting, in reply to it.
-- **One audience.** The contractors are NCI teams. They are colleagues, given the same information
-  and the same courtesy as anyone else on the project.
+- **One audience.** Everyone who builds on or implements the server is a colleague, given the same
+  information and the same courtesy as anyone else on the project.
 - **Upstream teams are partners.** A gap in EVS or caDSR is reported to its team with the evidence,
   never worked around or hidden in this server.
 - **Say what is true.** Report results as they are, including failures and what was left out.

@@ -178,7 +178,7 @@ def match_data_elements(
     modelVariant: Annotated[  # noqa: N803 - public specification spelling.
         str | None,
         Described(
-            "Required by the caDSR SOW (embedding model variant); the Enhanced CDE Match "
+            "Required by the specification (embedding model variant); the Enhanced CDE Match "
             "contract has no such parameter yet (C-6), so a value is refused with "
             "invalid_request. Leave unset until it does."
         ),
@@ -186,7 +186,7 @@ def match_data_elements(
     similarityThreshold: Annotated[  # noqa: N803 - public specification spelling.
         float | None,
         Described(
-            "Required by the caDSR SOW (similarity threshold); the Enhanced CDE Match "
+            "Required by the specification (similarity threshold); the Enhanced CDE Match "
             "contract has no such parameter yet (C-6), so a value is refused with "
             "invalid_request. Leave unset until it does."
         ),
