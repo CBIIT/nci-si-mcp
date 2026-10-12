@@ -17,7 +17,11 @@ class ConfigurationConflictError(ValueError):
 
 
 class SnapshotInvalidError(OSError):
-    """The selected startup snapshot is malformed: unusable evidence, as a missing one is."""
+    """The selected startup snapshot is malformed.
+
+    An OSError, not a ValueError: like a missing snapshot it is unusable evidence (503), not the
+    caller's bad request, which the portal answers with 400.
+    """
 
 
 class LocalConfiguration:
