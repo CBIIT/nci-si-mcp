@@ -107,6 +107,45 @@ REMOVALS = {
     "Remove a preinstalled Node.js (macOS)": ["node"],
 }
 
+# The exact run text of each in-use check: a check that cannot fail would let a copy the runner
+# image ships take over unnoticed.
+IN_USE_PYTHON_MACOS = r"""fail() { echo "::error::$1"; exit 1; }
+[ "$(command -v pdm)" = "$(brew --prefix)/bin/pdm" ] || fail "pdm is $(command -v pdm), not the Homebrew install"
+version="$(pdm run python -c "import sys; print('%d.%d' % sys.version_info[:2])" | tail -n 1)"
+[ "$version" = "3.14" ] || fail "the project runs Python $version, not 3.14"
+base="$(pdm run python -c "import sys; print(sys.base_prefix)" | tail -n 1)"
+formula="$(brew --prefix python@3.14)"
+case "$base" in "$formula"/*) ;; *) fail "the project's Python is $base, not Homebrew's python@3.14 ($formula)" ;; esac
+"""  # noqa: E501
+
+IN_USE_PYTHON_LINUX = r"""fail() { echo "::error::$1"; exit 1; }
+[ "$(command -v pdm)" = "$HOME/.local/bin/pdm" ] || fail "pdm is $(command -v pdm), not the uv tool install"
+version="$(pdm run python -c "import sys; print('%d.%d' % sys.version_info[:2])" | tail -n 1)"
+[ "$version" = "3.14" ] || fail "the project runs Python $version, not 3.14"
+base="$(pdm run python -c "import sys; print(sys.base_prefix)" | tail -n 1)"
+managed="$(uv python dir)"
+case "$base" in "$managed"/*) ;; *) fail "the project's Python is $base, not a uv-managed one under $managed" ;; esac
+"""  # noqa: E501
+
+IN_USE_NODE = r"""fail() { echo "::error::$1"; exit 1; }
+case "$RUNNER_OS" in
+  macOS) expected="$(brew --prefix)/bin/node" ;;
+  *) expected="$HOME/.nvm/versions/node/*/bin/node" ;;
+esac
+# shellcheck disable=SC2254 # the pattern is meant to expand
+case "$(command -v node)" in $expected) ;; *) fail "node is $(command -v node), not the documented install ($expected)" ;; esac
+node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 24 ? 0 : 1)' || fail "Node.js $(node --version) is older than 24"
+"""  # noqa: E501
+
+IN_USE_CHECKS = {
+    "Check that the documented Python and PDM are in use (macOS)": IN_USE_PYTHON_MACOS,
+    "Check that the documented Python and PDM are in use (Linux)": IN_USE_PYTHON_LINUX,
+    "Check that the documented Node.js is in use": IN_USE_NODE,
+}
+
+# The CI-only probe steps each end after this long, however the server behaves.
+PROBE_TIMEOUT_MINUTES = 3
+
 TRIGGERS = {
     "push": {"branches": ["main"]},
     "schedule": [{"cron": "17 7 * * 1"}],
@@ -241,6 +280,18 @@ class LocalRunWorkflowTest(unittest.TestCase):
                 self.assertIn(probe_run(command, url), by_name[name])
                 if url is not None:
                     self.assertEqual(by_name[name].strip(), probe_run(command, url))
+
+    def test_the_in_use_checks_are_exactly_these(self):
+        by_name = {step["name"]: step["run"] for step in steps()}
+        for name, run in IN_USE_CHECKS.items():
+            with self.subTest(step=name):
+                self.assertEqual(by_name[name], run)
+
+    def test_every_probe_step_has_the_same_short_bound(self):
+        by_name = {step["name"]: step for step in steps()}
+        for name in PROBES:
+            with self.subTest(step=name):
+                self.assertEqual(by_name[name]["timeout-minutes"], PROBE_TIMEOUT_MINUTES)
 
     def test_a_failed_removal_of_a_preinstalled_formula_fails_the_job(self):
         by_name = {step["name"]: step["run"] for step in steps()}
