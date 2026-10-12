@@ -15,6 +15,7 @@ LINUX = "runner.os == 'Linux'"
 
 # Every step in order: its name and its condition.
 STEPS = [
+    ("Remove preinstalled Python and PDM (macOS)", MACOS),
     ("Install Python and PDM (macOS)", MACOS),
     ("Install uv (Linux)", LINUX),
     ("Open a new shell (Linux)", LINUX),
@@ -29,6 +30,7 @@ STEPS = [
     ("Serve over streamable HTTP until ready (CI only)", None),
     ("Run the acceptance suite against the fixtures", None),
     ("Compare the outcomes with the expected ones", None),
+    ("Remove a preinstalled Node.js (macOS)", MACOS),
     ("Install Node.js (macOS)", MACOS),
     ("Install nvm and Node.js (Linux)", LINUX),
     ("Check that the documented Node.js is in use", None),
@@ -53,6 +55,9 @@ DOCUMENTS = {
 
 # What exists only in CI, by step name (the whole step) or by exact line, and why.
 CI_ONLY = {
+    "Remove preinstalled Python and PDM (macOS)": "brew install exits 0 without installing a "
+    "formula the runner image ships, so the documented install must really run",
+    "Remove a preinstalled Node.js (macOS)": "the same, for Node.js",
     "Open a new shell (Linux)": "the documents say 'in a new shell'; the next step sees the path",
     "Check that the documented Python and PDM are in use (macOS)": "fails the job when a copy "
     "that the runner image ships takes over from the Homebrew install",
@@ -94,6 +99,12 @@ PROBES = {
         "pdm run portal serve",
         "http://127.0.0.1:8081/health",
     ),
+}
+
+# The CI-only steps that remove a copy the runner image ships, and the formulae each removes.
+REMOVALS = {
+    "Remove preinstalled Python and PDM (macOS)": ["python@3.14", "pdm"],
+    "Remove a preinstalled Node.js (macOS)": ["node"],
 }
 
 TRIGGERS = {
@@ -230,6 +241,19 @@ class LocalRunWorkflowTest(unittest.TestCase):
                 self.assertIn(probe_run(command, url), by_name[name])
                 if url is not None:
                     self.assertEqual(by_name[name].strip(), probe_run(command, url))
+
+    def test_a_failed_removal_of_a_preinstalled_formula_fails_the_job(self):
+        by_name = {step["name"]: step["run"] for step in steps()}
+        for name, formulae in REMOVALS.items():
+            with self.subTest(step=name):
+                self.assertEqual(
+                    by_name.get(name, "").splitlines(),
+                    [
+                        f"if brew list --versions {formula} >/dev/null; then "
+                        f"brew uninstall --ignore-dependencies {formula}; fi"
+                        for formula in formulae
+                    ],
+                )
 
     def test_a_newer_push_replaces_only_a_pull_request_run(self):
         self.assertEqual(
