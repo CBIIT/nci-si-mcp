@@ -30,6 +30,10 @@ BROKEN_FOOTERS = {
     ),
     "link without url": FOOTER.replace(', url = "https://example.test/policy"', ""),
     "link url not https": FOOTER.replace("https://example.test/policy", "javascript:alert(1)"),
+    "link url plain http": FOOTER.replace(
+        "https://example.test/policy", "http://example.test/policy"
+    ),
+    "link without label": FOOTER.replace('label = "Agency", ', ""),
 }
 
 
