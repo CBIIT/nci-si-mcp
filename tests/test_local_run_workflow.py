@@ -102,6 +102,38 @@ PROBES = {
     ),
 }
 
+# The exact run text of the step that writes the readiness probe. It answers ready only while the
+# server it started is running, stops that server, and fails unless it ended by its own exit or
+# the SIGTERM sent to it.
+READY_PROBE_RUN = r"""cat > "$RUNNER_TEMP/ready.py" <<'PY'
+import os, signal, subprocess, sys, time, urllib.request
+
+url, command = sys.argv[1], sys.argv[2:]
+server = subprocess.Popen(command, start_new_session=True)
+try:
+    deadline = time.monotonic() + 90
+    while True:
+        try:
+            with urllib.request.urlopen(url, timeout=5) as reply:
+                if server.poll() is None:
+                    print(url, reply.status, reply.read().decode())
+                    break
+        except OSError:
+            pass
+        if server.poll() is not None or time.monotonic() > deadline:
+            sys.exit("not ready: " + url)
+        time.sleep(1)
+finally:
+    try:
+        os.killpg(server.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+    status = server.wait(timeout=30)
+if status not in (0, -signal.SIGTERM):
+    sys.exit(f"the server stopped with status {status}")
+PY
+"""
+
 # The CI-only steps that remove a copy the runner image ships, and the formulae each removes.
 REMOVALS = {
     "Remove preinstalled Python and PDM (macOS)": ["python@3.14", "pdm"],
@@ -295,6 +327,10 @@ class LocalRunWorkflowTest(unittest.TestCase):
         for name in PROBES:
             with self.subTest(step=name):
                 self.assertEqual(by_name[name]["timeout-minutes"], PROBE_TIMEOUT_MINUTES)
+
+    def test_the_readiness_probe_is_exactly_this(self):
+        by_name = {step["name"]: step["run"] for step in steps()}
+        self.assertEqual(by_name["Write the readiness probe (CI only)"], READY_PROBE_RUN)
 
     def test_a_failed_removal_of_a_preinstalled_formula_fails_the_job(self):
         by_name = {step["name"]: step["run"] for step in steps()}
