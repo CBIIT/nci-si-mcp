@@ -1,22 +1,22 @@
 {
-  "commit": "dd9ba3559329d5649c113a3dcd5fc793a32a1177",
-  "run": "https://github.com/CBIIT/nci-si-mcp/actions/runs/38183160485",
+  "commit": "fee86124bf0838cb97f8255b8015a241860a3f47",
+  "run": "https://github.com/CBIIT/nci-si-mcp/actions/runs/38217373107",
   "totals": {
     "server": {
-      "covered_lines": 9668,
-      "num_statements": 9841,
-      "percent_covered": 98.0761458249131,
-      "percent_covered_display": "98.08",
-      "missing_lines": 173,
+      "covered_lines": 9687,
+      "num_statements": 9859,
+      "percent_covered": 98.08793868495361,
+      "percent_covered_display": "98.09",
+      "missing_lines": 172,
       "excluded_lines": 78,
-      "percent_statements_covered": 98.24204857229957,
-      "percent_statements_covered_display": "98.24",
-      "num_branches": 2530,
+      "percent_statements_covered": 98.25540115630389,
+      "percent_statements_covered_display": "98.26",
+      "num_branches": 2536,
       "num_partial_branches": 37,
-      "covered_branches": 2465,
+      "covered_branches": 2471,
       "missing_branches": 65,
-      "percent_branches_covered": 97.43083003952569,
-      "percent_branches_covered_display": "97.43"
+      "percent_branches_covered": 97.43690851735016,
+      "percent_branches_covered_display": "97.44"
     },
     "harness": {
       "covered_lines": 2836,
