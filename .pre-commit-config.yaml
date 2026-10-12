@@ -24,9 +24,11 @@ repos:
   # the one place that says which version runs, here and in CI.
   - repo: local
     hooks:
+      # --no-cache on both ruff hooks: the cache does not revisit unchanged files when a new
+      # file changes the first-party set, so a cached local pass can disagree with CI.
       - id: ruff-format
         name: ruff format
-        entry: pdm run ruff format --force-exclude
+        entry: pdm run ruff format --no-cache --force-exclude
         language: system
         types_or: [python, pyi]
 
@@ -78,7 +80,7 @@ repos:
       # Ruff repairs what it can and still fails, so the fix is looked at and staged.
       - id: ruff-check
         name: ruff check
-        entry: pdm run ruff check --fix --exit-non-zero-on-fix --force-exclude
+        entry: pdm run ruff check --no-cache --fix --exit-non-zero-on-fix --force-exclude
         language: system
         types_or: [python, pyi]
 
