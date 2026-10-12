@@ -381,6 +381,20 @@ class LocalRunWorkflowTest(unittest.TestCase):
                     ],
                 )
 
+    def test_nothing_changes_a_step_beside_its_pinned_keys(self):
+        # An env, defaults, working-directory or continue-on-error would change what a documented
+        # line does, or keep a failed check from failing the job, with every run line unchanged.
+        workflow = load(LOCAL_RUN)
+        self.assertEqual(set(workflow), {"name", True, "permissions", "concurrency", "jobs"})
+        self.assertEqual(set(job()), {"name", "runs-on", "strategy", "timeout-minutes", "steps"})
+        allowed = {"name", "if", "uses", "with", "shell", "timeout-minutes", "run"}
+        extra = {
+            step.get("name", step.get("uses")): sorted(set(step) - allowed)
+            for step in job()["steps"]
+            if set(step) - allowed
+        }
+        self.assertEqual(extra, {})
+
     def test_only_the_fixture_run_survives_a_failing_command_to_judge_its_status(self):
         # Under the default `bash -e`, exit status 1 would end the step before the guard and the
         # comparison that judge it.
