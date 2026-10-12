@@ -17,9 +17,14 @@ from scripts import container_smoke, processes
 
 
 class SmokeLifecycle:
+    """A stand-in container engine for the whole command. Every step but the two that talk to
+    Docker directly is replaced; of those, retained_builds runs first (its container prints the
+    builds it finds in the assets) and the reap after it (its container empties the assets)."""
+
     def __init__(self, changes_build):
         self.changes_build = changes_build
         self.builds = ["prepared"]
+        self.listed = False
         self.cleaned = False
 
     def prepare(self, _image, assets):
@@ -32,10 +37,11 @@ class SmokeLifecycle:
             self.builds = ["unexpected replacement"]
 
     def docker(self, *args):
-        if "list_builds()" in args[-1]:
+        if args[0] != "run":
+            raise AssertionError(f"Unexpected Docker verb {args[0]}")
+        if not self.listed:
+            self.listed = True
             return SimpleNamespace(stdout=json.dumps(self.builds))
-        if "shutil.rmtree" not in args[-1]:
-            raise AssertionError("Unexpected Docker command")
         for path in self.assets.iterdir():
             if path.is_dir():
                 shutil.rmtree(path)
