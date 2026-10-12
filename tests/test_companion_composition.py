@@ -49,6 +49,12 @@ class CompanionCompositionTest(unittest.TestCase):
             ],
         )
 
+    def test_the_runbook_tags_the_image_the_mcp_service_runs(self):
+        # The container runbook builds :local; Compose would otherwise try to pull :verified.
+        runbook = Path("docs/companion-containers.md").read_text(encoding="utf-8")
+        self.assertEqual(self.compose["services"]["mcp"]["image"], "nci-si-mcp:verified")
+        self.assertIn("`docker tag nci-si-mcp:local nci-si-mcp:verified`", runbook)
+
     def test_committed_companion_dependencies_match_pdm_and_exclude_models(self):
         expected = render(tomllib.loads(Path("pdm.lock").read_text()))
         self.assertEqual(Path("container/companion-requirements.txt").read_text(), expected)
