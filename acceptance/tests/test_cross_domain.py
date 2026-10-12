@@ -1,6 +1,6 @@
 """The cross-domain tools' own requirements (spec/requirements.yaml), each test against its tool.
 
-A tool answers from any surface that can (caDSR SOW v1.1 item 6), and the surfaces answer from
+A tool answers from any surface that can, and the surfaces answer from
 their own content: the Shared SI graph is the caDSR export of 1 July 2026, the caDSR API is
 live. So a test reads the surface the result's provenance names and checks the answer against
 that surface's recording, never one surface against another. The release a call requires can be
@@ -194,7 +194,7 @@ def test_descendants_beyond_the_tool_s_maximum_are_truncated_with_how_much_was_l
 
 # The data element and value the tool is asked about, and the surfaces that can answer: the
 # Shared SI Service's permissible values of the data element, asked by its id, or caDSR REST's
-# data element with its value meanings, the concept record from EVS (caDSR SOW item 6).
+# data element with its value meanings, the concept record from EVS.
 ELEMENT, VALUE = "2200604", "Male"
 CADSR_ELEMENT = f"recorded/cadsr/data-element-{ELEMENT}.json"
 

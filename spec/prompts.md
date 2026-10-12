@@ -3,6 +3,6 @@ modules, so the evs and cadsr profiles list none and unified lists all four. Eac
 `resolve_release`, so that one release is pinned for the whole sequence, and the tools it names,
 in order, are the order the caller makes the calls.
 
-There is at most one prompt for each use the Statements of Work name, and only where it adds
+There is at most one prompt for each multi-step use of the tools, and only where it adds
 something the tools do not. Decision: there is no prompt for grounding a value, because
 `ground_value` does it in one call and a prompt would only restate the tool.

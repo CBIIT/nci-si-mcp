@@ -10,11 +10,24 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from urllib.parse import urlsplit, urlunsplit
 
+from scripts.vocabulary import HttpStop, RunStop, run_stop
+
 DEFAULT_MAX_REQUESTS = 500
 
 
 class RunStoppedError(Exception):
     """A bounded campaign stopped; the reason contains no endpoint or credential."""
+
+    def __init__(self, reason: RunStop | HttpStop) -> None:
+        self.reason: RunStop | HttpStop = run_stop(reason)
+        super().__init__(self.reason)
+
+
+def http_stop(status: int) -> HttpStop:
+    """The stop reason of an HTTP error status, 400 to 599 only."""
+    if not 400 <= status <= 599:  # noqa: PLR2004 - the HTTP error range
+        raise ValueError("Only an HTTP error status stops a run")
+    return HttpStop(f"http_{status}")
 
 
 def _url_syntax(url: str) -> None:

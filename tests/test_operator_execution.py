@@ -20,7 +20,9 @@ from scripts.operator_execution import (
     _perform,
     execute_job,
 )
+from scripts.operator_process import run_owned
 from scripts.operator_source import SOURCE_PATHS
+from scripts.operator_worker import clean_environment
 from scripts.portal_store import EvidenceStore
 
 
@@ -110,6 +112,7 @@ class OperatorExecutionTest(unittest.TestCase):
             (scratch / "server.log").write_text("disposable diagnostics")
             (directory / "bundle/selection.json").write_text("{}")
             (directory / "source").mkdir()
+            (directory / "worker.log").write_text("worker diagnostics")
             return {"state": "cancelled", "exit_code": 130, "reason": "cancelled"}
 
         with TemporaryDirectory() as temporary:
@@ -123,6 +126,36 @@ class OperatorExecutionTest(unittest.TestCase):
             self.assertFalse((root / "job/bundle/worker-interrupted").exists())
             self.assertFalse((root / "job/source").exists())
             self.assertEqual((root / "job/bundle/selection.json").read_text(), "{}")
+            self.assertEqual((root / "job/worker.log").read_text(), "worker diagnostics")
+
+    def test_inventory_and_worker_output_reach_the_job_log_of_the_owned_run(self):
+        # The pipeline runs as the controller runs it, in an owned child whose output is logged.
+        child = (
+            "import sys\nfrom pathlib import Path\nfrom unittest.mock import patch\n"
+            "from scripts import operator_execution\n"
+            "def snapshot(_repository, _commit, destination):\n"
+            "    (destination / 'scripts').mkdir(parents=True)\n"
+            "    (destination / 'scripts/operator_inventory.py').write_text(\n"
+            "        \"import sys\\nprint('INVENTORY-OUT', flush=True)\\n\"\n"
+            "        \"sys.stderr.write('INVENTORY-ERR\\\\n')\\nraise SystemExit(7)\\n\")\n"
+            "with patch.object(operator_execution, 'archive_source', snapshot):\n"
+            "    raise SystemExit(operator_execution._perform(\n"
+            "        Path(sys.argv[1]), 'a' * 40, 'benchmark-http-fixture'))\n"
+        )
+        with TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            result = run_owned(
+                [sys.executable, "-c", child, str(directory)],
+                directory=directory,
+                environment=clean_environment(directory),
+                seconds=60,
+                cancelled=threading.Event(),
+            )
+            self.assertEqual(result, {"state": "failed", "exit_code": 7, "reason": "worker_failed"})
+            self.assertTrue((directory / "worker.log").is_file())
+            self.assertEqual(
+                (directory / "worker.log").read_text(), "INVENTORY-OUT\nINVENTORY-ERR\n"
+            )
 
 
 class RemoteExecutionTest(unittest.TestCase):

@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import re
 import sqlite3
+from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import cast
 from urllib.parse import SplitResult, parse_qs, urlsplit
 
 from scripts.formats import JOB_ID
+from scripts.operator_process import WORKER_LOG
 from scripts.portal_actions import form_length, perform, same_origin
 from scripts.portal_configuration import ConfigurationConflictError, LocalConfiguration
 from scripts.portal_configuration_views import configuration_page, propose
@@ -63,7 +65,7 @@ def _route(
 
 def _job_route(
     store: EvidenceStore, jobs: JobController | None, path: str, query: str
-) -> tuple[int, str, str]:
+) -> tuple[int, str, str | bytes]:
     if query:
         raise ValueError("Job routes do not take query parameters")
     if jobs is None:
@@ -74,14 +76,30 @@ def _job_route(
         )
     if path == "/jobs":
         return 200, "text/html", jobs_page(jobs.history(), jobs.profiles)
-    match = re.fullmatch(f"/jobs/({JOB_ID})", path)
+    return _job(store, jobs, path)
+
+
+def _job(store: EvidenceStore, jobs: JobController, path: str) -> tuple[int, str, str | bytes]:
+    match = re.fullmatch(f"/jobs/({JOB_ID})(/{re.escape(WORKER_LOG)})?", path)
     if match is None:
         raise EvidenceNotFoundError("No such job route")
+    row = _of_job(jobs.get, match[1])
+    if match[2] is None:
+        evidence = _has_evidence(store, match[1])
+        has_log = _of_job(jobs.has_worker_log, match[1])
+        return 200, "text/html", job_page(row, has_evidence=evidence, has_log=has_log)
+    log = _of_job(jobs.worker_log, match[1])
+    if log is None:
+        raise EvidenceNotFoundError("This job kept no worker log")
+    return 200, "text/plain", log
+
+
+def _of_job[T](lookup: Callable[[str], T], run_id: str) -> T:
+    """A controller lookup; only its KeyError means "no such job", never one while rendering."""
     try:
-        row = jobs.get(match[1])
+        return lookup(run_id)
     except KeyError:
         raise EvidenceNotFoundError("No such job") from None
-    return 200, "text/html", job_page(row, has_evidence=_has_evidence(store, match[1]))
 
 
 def _has_evidence(store: EvidenceStore, run_id: str) -> bool:

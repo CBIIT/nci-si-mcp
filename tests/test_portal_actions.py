@@ -1,13 +1,17 @@
 """Local run controls admit same-origin fixed intents, never commands from another website."""
 
 import socket
+import sys
 import threading
+import time
 import unittest
 from http.client import HTTPConnection
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from urllib.parse import urlencode
 
+from scripts.operator_process import run_owned
+from scripts.operator_worker import clean_environment
 from scripts.portal_http import create_server
 from scripts.portal_jobs import JobController
 from scripts.portal_store import EvidenceStore
@@ -163,3 +167,113 @@ class PortalActionsTest(unittest.TestCase):
         status, _, _ = self.post("/jobs/" + "4" * 32 + "/cancel", {"run_id": "4" * 32})
         self.assertEqual(status, 404)
         self.assertEqual(len(self.jobs.history()), 3)
+
+    def test_job_routes_refuse_query_parameters(self):
+        self.assertEqual(self.post("/jobs", self.intent)[0], 303)
+        for path in ("/jobs?x=1", f"/jobs/{'1' * 32}?x=1", f"/jobs/{'1' * 32}/worker.log?x=1"):
+            with self.subTest(path=path):
+                self.assertEqual(self.request(path)[0], 400)
+        self.assertEqual(self.request(f"/jobs/{'1' * 32}")[0], 200)
+
+
+class WorkerLogPageTest(unittest.TestCase):
+    def setUp(self):
+        temporary = TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
+        self.finished = threading.Event()
+        self.jobs = JobController(root / "jobs", execute=self.execute, commit=lambda: "a" * 40)
+        self.addCleanup(self.jobs.close)
+        self.server = create_server(EvidenceStore(root / "store.sqlite"), port=0, jobs=self.jobs)
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        self.addCleanup(self.close_server)
+        self.origin = f"http://127.0.0.1:{self.server.server_port}"
+
+    close_server = PortalActionsTest.close_server
+    request = PortalActionsTest.request
+
+    def execute(self, job, directory, _cancelled):
+        directory.mkdir()
+        log = directory / "worker.log"
+        if job["run_id"] == "1" * 32:
+            log.write_bytes(b"Traceback: <worker> & failed\n")
+        elif job["run_id"] == "4" * 32:
+            (directory / "private").write_text("PRIVATE-CANARY")
+            log.symlink_to(directory / "private")
+        elif job["run_id"] == "5" * 32:
+            log.write_bytes(b"x" * (2 * 512 * 1024 + 65))
+        elif job["run_id"] == "6" * 32:
+            log.mkdir()
+        elif job["run_id"] == "7" * 32:
+            # The real copier keeps the first and the last 512 KiB of 3 MiB.
+            run_owned(
+                [sys.executable, "-c", "import sys; sys.stdout.buffer.write(b'x' * 3 * 2**20)"],
+                directory=directory,
+                environment=clean_environment(directory),
+                seconds=30,
+                cancelled=threading.Event(),
+            )
+        self.finished.set()
+        return {"state": "failed", "exit_code": 1, "reason": "worker_failed"}
+
+    def run_job(self, run_id):
+        self.finished.clear()
+        self.jobs.submit(run_id, "benchmark-http-fixture")
+        self.assertTrue(self.finished.wait(5))
+        deadline = time.monotonic() + 5
+        while self.jobs.get(run_id)["state"] != "failed" and time.monotonic() < deadline:
+            time.sleep(0.01)
+
+    def test_the_job_page_links_the_worker_log_which_is_served_as_plain_text(self):
+        self.run_job("1" * 32)
+        status, _, page = self.request("/jobs/" + "1" * 32)
+        self.assertEqual(status, 200)
+        self.assertIn(f'<a href="/jobs/{"1" * 32}/worker.log">Worker log</a>', page)
+        status, headers, body = self.request(f"/jobs/{'1' * 32}/worker.log")
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["Content-Type"], "text/plain; charset=utf-8")
+        self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
+        self.assertEqual(body, "Traceback: <worker> & failed\n")
+
+    def test_a_job_without_a_worker_log_says_so_and_serves_none(self):
+        self.run_job("2" * 32)
+        _, _, page = self.request("/jobs/" + "2" * 32)
+        self.assertIn("No worker log was recorded.", page)
+        self.assertNotIn("/worker.log", page)
+        self.assertEqual(self.request(f"/jobs/{'2' * 32}/worker.log")[0], 404)
+        self.assertEqual(self.request(f"/jobs/{'3' * 32}/worker.log")[0], 404)
+
+    def test_only_the_exact_worker_log_path_serves_the_log(self):
+        self.run_job("1" * 32)
+        for path in ("workerXlog", "worker-log", "worker.log/", "worker.logs"):
+            with self.subTest(path=path):
+                self.assertEqual(self.request(f"/jobs/{'1' * 32}/{path}")[0], 404)
+
+    def test_a_linked_log_is_no_log_and_an_oversized_one_is_unusable_evidence(self):
+        self.run_job("4" * 32)
+        status, _, page = self.request("/jobs/" + "4" * 32)
+        self.assertEqual(status, 200)
+        self.assertIn("No worker log was recorded.", page)
+        status, _, body = self.request(f"/jobs/{'4' * 32}/worker.log")
+        self.assertEqual(status, 404)
+        self.assertNotIn("PRIVATE-CANARY", body)
+        self.run_job("5" * 32)
+        status, _, page = self.request("/jobs/" + "5" * 32)
+        self.assertEqual(status, 200)
+        self.assertIn(f'<a href="/jobs/{"5" * 32}/worker.log">Worker log</a>', page)
+        self.assertEqual(self.request(f"/jobs/{'5' * 32}/worker.log")[0], 503)
+
+    def test_a_directory_named_like_the_log_is_no_log(self):
+        self.run_job("6" * 32)
+        _, _, page = self.request("/jobs/" + "6" * 32)
+        self.assertIn("No worker log was recorded.", page)
+        self.assertNotIn("/worker.log", page)
+        self.assertEqual(self.request(f"/jobs/{'6' * 32}/worker.log")[0], 404)
+
+    def test_a_log_at_the_largest_size_the_copier_writes_is_served(self):
+        self.run_job("7" * 32)
+        status, _, body = self.request(f"/jobs/{'7' * 32}/worker.log")
+        self.assertEqual(status, 200)
+        omitted = f"\n[worker.log: {2 * 2**20} bytes omitted]\n"
+        self.assertEqual(body, "x" * 512 * 1024 + omitted + "x" * 512 * 1024)

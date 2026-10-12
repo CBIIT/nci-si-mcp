@@ -19,26 +19,13 @@ from typing import Any, cast
 from scripts.evidence_envelope import MAX_EXIT_CODE
 from scripts.formats import JOB_ID, SHA1_HEX
 from scripts.operator_files import read_bytes, write_json
+from scripts.operator_process import MAX_WORKER_LOG_BYTES, WORKER_LOG
 from scripts.portal_store import MAX_RETENTION
+from scripts.vocabulary import ACTIVE, JOB_REASONS, TERMINAL, JobOutcome
 
 from nci_si_mcp.audit import emit
 
 PROFILES = ("acceptance-http-fixture", "benchmark-http-fixture", "benchmark-http-remote")
-ACTIVE = {"pending", "running"}
-TERMINAL = {"completed", "failed", "cancelled", "interrupted", "unavailable"}
-REASONS = {
-    None,
-    "cancelled",
-    "deadline",
-    "output_limit",
-    "invalid_evidence",
-    "worker_failed",
-    "worker_error",
-    "missing_report",
-    "missing_inventory",
-    "owner_restart",
-    "owner_shutdown",
-}
 MAX_ADMITTED = 3
 MAX_STATE_BYTES = 2 * 1024 * 1024
 MAX_TIMESTAMP_LENGTH = 40
@@ -54,7 +41,7 @@ FIELDS = {
     "exit_code",
     "reason",
 }
-Executor = Callable[[dict[str, Any], Path, threading.Event], dict[str, Any]]
+Executor = Callable[[dict[str, Any], Path, threading.Event], JobOutcome]
 
 
 class JobConflictError(ValueError):
@@ -150,8 +137,13 @@ def _validate_outcome(row: dict[str, Any]) -> None:
     code = row["exit_code"]
     if code is not None and (type(code) is not int or not 0 <= code <= MAX_EXIT_CODE):
         raise ValueError("Invalid job exit code")
-    if row["reason"] not in REASONS:
+    if row["reason"] is not None and row["reason"] not in JOB_REASONS:
         raise ValueError("Invalid job stop reason")
+
+
+def _kept(log: Path) -> bool:
+    """A worker log the run wrote: a regular file, never a link, as runs create it exclusively."""
+    return log.is_file() and not log.is_symlink()
 
 
 class JobController:
@@ -230,6 +222,28 @@ class JobController:
         with self.condition:
             self._available()
             return deepcopy(self._get(run_id))
+
+    def _worker_log_path(self, run_id: str) -> Path:
+        # The path is built from the recorded job's id, never from the request's value.
+        with self.condition:
+            self._available()
+            recorded = self._get(run_id)["run_id"]
+        return self.root / recorded / WORKER_LOG
+
+    def has_worker_log(self, run_id: str) -> bool:
+        """Whether the run kept a worker log."""
+        return _kept(self._worker_log_path(run_id))
+
+    def worker_log(self, run_id: str) -> bytes | None:
+        """The job's worker log as recorded so far, or None when the run kept none."""
+        path = self._worker_log_path(run_id)
+        if not _kept(path):
+            return None
+        try:
+            return read_bytes(path, MAX_WORKER_LOG_BYTES)
+        except ValueError:
+            # Larger than any copy writes: unusable local evidence, not the caller's bad request.
+            raise OSError("Worker log exceeds its size bound") from None
 
     def submit(self, run_id: str, profile: str) -> dict[str, Any]:
         _identifier(run_id)
@@ -331,7 +345,11 @@ class JobController:
                 "validation_worker_failed",
                 errorType=type(error).__name__,
             )
-            result = {"state": "unavailable", "exit_code": None, "reason": "worker_error"}
+            result: JobOutcome = {
+                "state": "unavailable",
+                "exit_code": None,
+                "reason": "worker_error",
+            }
         with self.condition:
             # The executor owns cancellation and has already saved the terminal evidence.
             row.update(result, finished_at=_now())

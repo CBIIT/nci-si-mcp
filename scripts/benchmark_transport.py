@@ -6,7 +6,7 @@ from collections.abc import AsyncIterator
 from typing import cast
 
 import httpx2
-from scripts.benchmark_limits import Budget, RunStoppedError
+from scripts.benchmark_limits import Budget, RunStoppedError, http_stop
 
 MAX_RESPONSE_BYTES = 8 * 1024 * 1024
 
@@ -55,7 +55,7 @@ def _response_headers(response: httpx2.Response, maximum: int) -> None:
     if response.is_redirect:
         raise RunStoppedError("redirect")
     if response.is_error:
-        raise RunStoppedError(f"http_{response.status_code}")
+        raise RunStoppedError(http_stop(response.status_code))
     if response.headers.get("content-encoding", "identity").lower() != "identity":
         # Count actual bytes without permitting a compressed response to expand without a bound.
         raise RunStoppedError("content_encoding")

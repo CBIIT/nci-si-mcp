@@ -2,13 +2,67 @@
 
 Generated from `spec/` by `pdm run spec-render`; do not edit by hand.
 
-This is the specification of the required MCP tools and their behavior furnished with the
-Prototype Baseline Package. The Statements of Work frame and bound its scope; within that scope
-it is the source of record for what the tools do. Its source is data: the conventions
+This is the specification of the required MCP tools and their behavior: the source of record for
+what the tools do. Its source is data: the conventions
 (`spec/conventions.yaml`), the tools (`spec/tools.yaml`), the resources and prompts
 (`spec/resources.yaml`, `spec/prompts.yaml`) and the requirements (`spec/requirements.yaml`).
 The server implements the tools, and the acceptance suite tests the requirements, each test
 citing the requirements it enforces by id.
+
+## What the server must do
+
+The NCI Semantic Infrastructure MCP server gives AI assistants and applications access to NCI
+terminology and metadata through the Model Context Protocol. The sections below hold the
+requirements; this is what they add up to.
+
+- **EVS tools:** look up, search and traverse the NCI Thesaurus: concepts, hierarchy, roles,
+  associations and mapsets.
+- **caDSR tools:** find and read common data elements, forms, value domains and permissible
+  values, and match text to data elements and value meanings.
+- **Cross-domain and workflow tools:** join the two, such as the data elements that use a concept
+  or the concept a permissible value means, and compose common sequences, such as grounding a
+  value or harmonising a data dictionary.
+- **Release pinning and provenance:** answer from one named EVS release and caDSR registry
+  state, and say in every result where each value came from.
+- **Transports and secured mode:** serve over stdio and streamable HTTP, with a secured mode that
+  authenticates callers and can only narrow the tools they reach.
+- **Auditability:** one completion record per call, with its correlation id, and no secret in a
+  result or a log.
+
+The acceptance suite (section 5) is the measure: a tool is accepted when its tests pass.
+
+### What belongs in the MCP layer, and what in the systems behind it
+
+- **The MCP layer may** shape requests and results for the protocol, validate input, bound and
+  page results, pin releases and record provenance, correlate and audit calls, map errors to one
+  closed set, cache under a stated policy, secure access, and orchestrate calls whose results it
+  bundles as they were returned. For example, an NCIt call that names no release is pinned to
+  the current one, and the result says which.
+- **The MCP layer must not** create, infer, default or backfill content the source system
+  manages, or rebuild a capability the source system lacks. For example, a caDSR search filter
+  that the keyword search does not serve is refused, not applied to the results afterwards.
+- **A gap belongs to the source system.** A missing field, a missing capability, a failure masked
+  as a success, or no explicit signal that something is absent is reported to the source system
+  and stays visible to the caller; it is not worked around in the layer. For example, caDSR
+  publishes no registry release identifier, so a result names none. The concrete requests are in
+  the [upstream requirements](../docs/upstream/README.md).
+
+### The local NCIt index: the one interim exception
+
+Semantic search over the NCI Thesaurus is not available from EVS today, so the server provides
+it from a local index. It is the one stated exception to "the MCP layer must not rebuild a
+capability the source system lacks", and it is interim:
+
+- **Built from EVS releases.** The index holds one release EVS published, pinned and recorded, so
+  every result names the release it came from. It invents no content.
+- **Meant for the source system.** Semantic search is intended to move into EVS and be maintained
+  there; the server would then call it like any other upstream capability
+  ([the upstream request](../docs/upstream/evs.md#evs-semantic)).
+- **Always labelled.** A result says that it comes from the local index and which release the index
+  holds. The index never stands in silently for a live answer.
+
+The index's build, activation and rollback are described in the
+[architecture](../ARCHITECTURE.md#index-lifecycle).
 
 ## 1. Conventions
 
@@ -144,9 +198,9 @@ Binding on every tool.
 | Id | Convention |
 |---|---|
 | A10.1 | A joint conformance test spans both modules and checks A1.2, A3, A4, A5.4 and correlation propagation. |
-| A10.2 | Where the two modules are contracted to different parties, responsibility for the joint test is assigned explicitly, and neither party's acceptance depends on the other's delivery schedule. |
+| A10.2 | Where different teams own the two modules, responsibility for the joint test is assigned explicitly, and neither module's acceptance depends on the other's release schedule. |
 | A10.3 | No tool description contains placeholder text or an unsupported operator, parameter or syntax example. |
-| A10.4 | Response-time criteria are relative to the platform's capability at delivery: a module that passes a slow platform call through faithfully conforms. |
+| A10.4 | Response-time criteria are relative to the platform's capability at acceptance: a module that passes a slow platform call through faithfully conforms. |
 
 ### A11 · Performance measurement
 
@@ -684,14 +738,14 @@ identity and release, not section by section.
 
 ### Prompts
 
-Furnished by the government, listed by prompts/list (M5.1).
+Listed by prompts/list (M5.1).
 
 A prompt is listed only in a profile that has every tool it names (M5.1). All four need both
 modules, so the evs and cadsr profiles list none and unified lists all four. Each starts from
 `resolve_release`, so that one release is pinned for the whole sequence, and the tools it names,
 in order, are the order the caller makes the calls.
 
-There is at most one prompt for each use the Statements of Work name, and only where it adds
+There is at most one prompt for each multi-step use of the tools, and only where it adds
 something the tools do not. Decision: there is no prompt for grounding a value, because
 `ground_value` does it in one call and a prompt would only restate the tool.
 
@@ -1014,26 +1068,26 @@ then waits for the endpoint, up to the timeout, and stops at once on an HTTP 401
 scheme, and is not given to the hook. The harness cannot read a remote server's standard error or
 data directory, so the checks that a secret is in neither (X-12) cover what the server returns.
 
-The Prototype Baseline Assessment reads the outcomes of a run against the furnished prototype:
+The baseline assessment reads the outcomes of a run against the furnished server:
 a tool that passes is a reuse candidate, one that fails or is INCOMPLETE a hardening candidate,
 and one NOT IMPLEMENTED new development.
 
 The suite does not test response time and throughput (the benchmark), the ranking quality of
-semantic search (the retrieval evaluation set), security controls (the contractor's security
-tests), the platform APIs themselves (the conformance suite), or operator procedures such as
-building, activating and rolling back the index (the contractor's integration tests and the
-deployment guide). It tests what each of these must show at the tool surface: a structured
+semantic search (the retrieval evaluation set), security controls (the implementing team's
+security tests), the platform APIs themselves (the conformance suite), or operator procedures
+such as building, activating and rolling back the index (the implementing team's integration
+tests and the deployment guide). It tests what each of these must show at the tool surface: a structured
 timeout error, the index release in provenance, correlation, and no secret in a result or log.
 
 Changes to this specification, the suite, the fixture set and the request forms follow a
 versioned change request, an impact assessment and the written approval of the branch chief or
 a delegate, from the furnished tag. The request forms, prompt templates and resource definitions
-are furnished as initial versions for the EVS, caDSR and Shared SI teams to refine through that
+are initial versions for the EVS, caDSR and Shared SI teams to refine through that
 record. For the Shared SI Service's SPARQL endpoint the request form prescribes the query text,
 matched with runs of whitespace collapsed; a team may propose another form through the register,
 as for every form.
-The suite and the fixture set are versioned independently. A contractor may propose a test, but
-may not substitute its own tests for the suite as the basis of acceptance.
+The suite and the fixture set are versioned independently. A team implementing the server may
+propose a test, but may not substitute its own tests for the suite as the basis of acceptance.
 Every suite test cites the requirements it enforces, and at the furnished tag every requirement
 is cited by one; a report whose digest is not that of an approved release reads MODIFIED;
 changes under `spec/` and `acceptance/` need a code owner's approval; and the change log records

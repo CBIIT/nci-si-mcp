@@ -1,18 +1,33 @@
-"""Process helpers shared by the scripts: reaping, bounded waits and SIGTERM handling."""
+"""Process helpers shared by the scripts: reaping, bounded waits, SIGTERM and log tails."""
 
 from __future__ import annotations
 
 import os
 import signal
 import subprocess
+import sys
 import time
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from pathlib import Path
 
 STOP_SECONDS = 10
+SERVER_LOG_TAIL_BYTES = 64 * 1024
+
+
+def print_server_log_tail(log: Path) -> None:
+    """Print the end of an owned server's log to stderr, so that a failed run says why."""
+    try:
+        with log.open("rb") as stream:
+            stream.seek(max(0, stream.seek(0, os.SEEK_END) - SERVER_LOG_TAIL_BYTES))
+            tail = stream.read()
+    except FileNotFoundError:
+        return  # the server never started, so it has nothing to say
+    sys.stderr.write(f"Owned server log, last {SERVER_LOG_TAIL_BYTES} bytes:\n")
+    sys.stderr.write(tail.decode("utf-8", "replace"))
 
 
 def _send(process: subprocess.Popen[bytes], sig: signal.Signals, *, group: bool) -> None:

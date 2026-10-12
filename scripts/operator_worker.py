@@ -14,7 +14,8 @@ from scripts.benchmark import CASES, cases
 from scripts.benchmark_http import run_http
 from scripts.benchmark_limits import Limits
 from scripts.operator_files import write_json
-from scripts.processes import exit_on_sigterm
+from scripts.processes import exit_on_sigterm, print_server_log_tail
+from scripts.vocabulary import run_stop
 
 from nci_si_acceptance.client import OwnedServer, server_environment
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
@@ -68,22 +69,38 @@ def fixture_benchmark(
         FixtureServer(load_fixtures(acceptance_http.FIXTURES)) as upstream,
     ):
         directory = Path(temporary)
-        scenarios = tuple(sorted({case["scenario"] for case in selected if case["scenario"]}))
-        upstream.activate(*scenarios)
-        generated = server_environment("fixture", directory / "data", upstream.url)
-        settings = {key: value for key, value in generated.items() if key.startswith("NCI_SI_")}
-        settings |= upstream.fixtures.settings_of(scenarios)
-        with _server(directory, settings) as target:
-            report = asyncio.run(
-                run_http(
-                    target, (target,), selected, limits, output, fixture=True, cancelled=cancelled
-                )
-            )
-        if unmatched_requests(upstream.log()):
-            report.update(complete=False, state="failed", stopReason="runner_error")
-            write_json(output, report, form="report")
-            raise RuntimeError("Fixture benchmark requested an unrecorded response")
-        return report
+        complete = False  # an exception or SIGTERM ends the run unsuccessfully too
+        try:
+            report = _measure(directory, upstream, selected, limits, output, cancelled)
+            complete = report["complete"]
+            return report
+        finally:
+            if not complete:
+                print_server_log_tail(directory / "server.log")
+
+
+def _measure(
+    directory: Path,
+    upstream: FixtureServer,
+    selected: list[dict[str, Any]],
+    limits: Limits,
+    output: Path,
+    cancelled: threading.Event | None,
+) -> dict[str, Any]:
+    scenarios = tuple(sorted({case["scenario"] for case in selected if case["scenario"]}))
+    upstream.activate(*scenarios)
+    generated = server_environment("fixture", directory / "data", upstream.url)
+    settings = {key: value for key, value in generated.items() if key.startswith("NCI_SI_")}
+    settings |= upstream.fixtures.settings_of(scenarios)
+    with _server(directory, settings) as target:
+        report = asyncio.run(
+            run_http(target, (target,), selected, limits, output, fixture=True, cancelled=cancelled)
+        )
+    if unmatched_requests(upstream.log()):
+        report.update(complete=False, state="failed", stopReason=run_stop("runner_error"))
+        write_json(output, report, form="report")
+        raise RuntimeError("Fixture benchmark requested an unrecorded response")
+    return report
 
 
 def main() -> int:

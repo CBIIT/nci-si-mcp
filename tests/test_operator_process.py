@@ -1,7 +1,9 @@
 """Cancellation and deadlines terminate only the worker process group created for this job."""
 
 import json
+import logging
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -224,3 +226,252 @@ class OperatorProcessTest(unittest.TestCase):
                 cancelled=threading.Event(),
             )
         self.assertEqual(result, {"state": "failed", "exit_code": 7, "reason": "worker_failed"})
+
+
+class WorkerLogTest(unittest.TestCase):
+    PART = 512 * 1024  # the documented bound: the first and the last 512 KiB
+
+    def run_worker(self, directory, code, *, cancelled=None, seconds=60):
+        return run_owned(
+            [sys.executable, "-c", code],
+            directory=directory,
+            environment=clean_environment(directory),
+            seconds=seconds,
+            cancelled=cancelled or threading.Event(),
+        )
+
+    def test_worker_output_is_kept_in_a_private_job_log_bounded_to_its_head_and_tail(self):
+        part = self.PART
+        flood = f"sys.stdout.buffer.write(b'H' * {part} + b'x' * {part} + b'T' * {part})"
+        for output, expected in (
+            ("sys.stdout.write('OUT\\n')", b"ERR\nOUT\n"),
+            (
+                flood,
+                b"ERR\n"
+                + b"H" * (part - 4)
+                + f"\n[worker.log: {part + 4} bytes omitted]\n".encode()
+                + b"T" * part,
+            ),
+        ):
+            with self.subTest(size=len(expected)), TemporaryDirectory() as temporary:
+                directory = Path(temporary)
+                code = (
+                    "import sys; sys.stderr.write('ERR\\n'); sys.stderr.flush(); "
+                    f"{output}; sys.stdout.flush(); sys.exit(3)"
+                )
+                result = self.run_worker(directory, code)
+                log = directory / "worker.log"
+                self.assertEqual(
+                    result, {"state": "failed", "exit_code": 3, "reason": "worker_failed"}
+                )
+                self.assertTrue(log.is_file())
+                self.assertEqual(log.stat().st_mode & 0o777, 0o600)
+                self.assertEqual(log.read_bytes(), expected)
+
+    def test_a_cancelled_worker_flooding_its_output_is_reaped_and_its_log_kept(self):
+        with TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            ready = directory / "ready"
+            log = directory / "worker.log"
+            code = (
+                "import os,sys; "
+                f"open({str(ready)!r},'w').write(str(os.getpid()))\n"
+                "while True: sys.stdout.buffer.write(b'x' * 65536); sys.stdout.flush()"
+            )
+            cancelled = threading.Event()
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(self.run_worker, directory, code, cancelled=cancelled)
+                try:
+                    # More than a pipe buffer has been copied while the worker still writes.
+                    deadline = time.monotonic() + 10
+                    while time.monotonic() < deadline and not (
+                        ready.exists() and log.exists() and log.stat().st_size > 4 * 65536
+                    ):
+                        time.sleep(0.01)
+                    self.assertTrue(log.is_file() and log.stat().st_size > 4 * 65536)
+                finally:
+                    cancelled.set()
+                result = future.result(timeout=15)
+            self.assertEqual((result["state"], result["reason"]), ("cancelled", "cancelled"))
+            with self.assertRaises(ProcessLookupError):
+                os.kill(int(ready.read_text()), 0)
+            parts = re.split(rb"\n\[worker\.log: \d+ bytes omitted\]\n", log.read_bytes())
+            self.assertIn(len(parts), (1, 2))
+            for part in parts:
+                self.assertEqual(part, b"x" * len(part))
+                self.assertLessEqual(len(part), self.PART)
+
+    def test_a_log_that_cannot_be_written_never_blocks_the_worker(self):
+        with TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            (directory / "worker.log").mkdir()
+            code = "import sys; sys.stdout.buffer.write(b'x' * (2 * 1024 * 1024)); sys.exit(0)"
+            result = self.run_worker(directory, code, seconds=30)
+            self.assertEqual(result, {"state": "completed", "exit_code": 0, "reason": None})
+
+    @patch("scripts.operator_process.LOG_JOIN_SECONDS", 0.2)
+    def test_a_pipe_held_outside_the_stopped_group_ends_the_run_with_a_diagnostic(self):
+        with TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            holder = directory / "holder"
+            # The holder leaves the worker's group, so stopping the group leaves the pipe open.
+            code = (
+                "import subprocess,sys,pathlib; "
+                "p=subprocess.Popen([sys.executable,'-c','import time; time.sleep(300)'], "
+                "start_new_session=True); "
+                f"pathlib.Path({str(holder)!r}).write_text(str(p.pid))"
+            )
+            pool = ThreadPoolExecutor(max_workers=1)
+            try:
+                with self.assertLogs("scripts.operator_process", logging.ERROR) as logs:
+                    result = pool.submit(self.run_worker, directory, code).result(timeout=30)
+                self.assertEqual(result, {"state": "completed", "exit_code": 0, "reason": None})
+                self.assertEqual(
+                    [json.loads(line.split(":", 2)[2])["event"] for line in logs.output],
+                    ["worker_log_open"],
+                )
+            finally:
+                if holder.exists():
+                    with suppress(ProcessLookupError):
+                        os.kill(int(holder.read_text()), signal.SIGKILL)
+                pool.shutdown()
+
+    def test_a_log_that_cannot_be_written_is_diagnosed_by_its_error_type(self):
+        with TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            (directory / "worker.log").mkdir()
+            with self.assertLogs("scripts.operator_process", logging.ERROR) as logs:
+                self.run_worker(directory, "print('x')", seconds=30)
+            records = [json.loads(line.split(":", 2)[2]) for line in logs.output]
+            self.assertEqual(
+                [(r["event"], r["errorType"]) for r in records],
+                [("worker_log_failed", "FileExistsError")],
+            )
+
+    def test_the_log_holds_the_output_so_far_while_the_worker_still_runs(self):
+        with TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            release = directory / "release"
+            log = directory / "worker.log"
+            code = (
+                "import sys,time,pathlib; sys.stdout.write('MARKER\\n'); sys.stdout.flush()\n"
+                f"while not pathlib.Path({str(release)!r}).exists(): time.sleep(.01)"
+            )
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(self.run_worker, directory, code)
+                try:
+                    # Polling is a hang guard; the claim is the content seen before the exit.
+                    deadline = time.monotonic() + 15
+                    while time.monotonic() < deadline:
+                        if log.is_file() and log.read_bytes() == b"MARKER\n":
+                            break
+                        time.sleep(0.01)
+                    self.assertFalse(future.done())
+                    self.assertEqual(log.read_bytes(), b"MARKER\n")
+                finally:
+                    release.write_text("go")
+                result = future.result(timeout=30)
+            self.assertEqual(result["state"], "completed")
+
+
+def _open_descriptors():
+    return set(os.listdir("/dev/fd"))
+
+
+class DescriptorHygieneTest(unittest.TestCase):
+    def run_worker(self, directory, command):
+        return run_owned(
+            command,
+            directory=directory,
+            environment=clean_environment(directory),
+            seconds=30,
+            cancelled=threading.Event(),
+        )
+
+    def test_a_run_leaves_no_descriptor_open_whether_or_not_the_worker_starts(self):
+        for name, command in (
+            ("finished", [sys.executable, "-c", "print('x')"]),
+            ("missing", ["/nonexistent/worker"]),
+        ):
+            with self.subTest(name), TemporaryDirectory() as temporary:
+                directory = Path(temporary)
+                before = _open_descriptors()
+                if name == "missing":
+                    with self.assertRaises(FileNotFoundError):
+                        self.run_worker(directory, command)
+                else:
+                    self.assertEqual(self.run_worker(directory, command)["state"], "completed")
+                self.assertEqual(_open_descriptors(), before)
+
+    def test_a_copier_that_cannot_start_leaves_neither_worker_nor_descriptor(self):
+        real_start = threading.Thread.start
+        started = []
+
+        def start(thread):
+            if thread.name == "validation-worker-log":
+                raise RuntimeError("can't start new thread")
+            real_start(thread)
+
+        class Recording(subprocess.Popen):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                started.append(self)
+
+        with TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            before = _open_descriptors()
+            try:
+                with (
+                    patch.object(threading.Thread, "start", start),
+                    patch("scripts.operator_process.subprocess.Popen", Recording),
+                    self.assertRaisesRegex(RuntimeError, "can't start new thread"),
+                ):
+                    self.run_worker(
+                        directory, [sys.executable, "-c", "import time; time.sleep(300)"]
+                    )
+                self.assertEqual(_open_descriptors(), before)
+                self.assertEqual(len(started), 1)
+                # Reaped by the cleanup: a worker still running has no return code.
+                self.assertIsNotNone(started[0].returncode)
+            finally:
+                for process in started:
+                    process.kill()
+                    process.wait()
+
+    def test_the_copier_thread_never_keeps_an_exited_interpreter_alive(self):
+        # A holder in another session keeps the pipe open past the run; the interpreter that
+        # called run_owned must still exit.
+        root = Path(__file__).resolve().parents[1]
+        with TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            holder = directory / "holder"
+            worker = (
+                "import subprocess,sys,pathlib; "
+                "p=subprocess.Popen([sys.executable,'-c','import time; time.sleep(300)'], "
+                "start_new_session=True); "
+                f"pathlib.Path({str(holder)!r}).write_text(str(p.pid))"
+            )
+            driver = (
+                "import sys, threading; from pathlib import Path\n"
+                "import scripts.operator_process as op\n"
+                "op.LOG_JOIN_SECONDS = 0.2\n"
+                "from scripts.operator_worker import clean_environment\n"
+                f"d = Path({str(directory)!r})\n"
+                f"r = op.run_owned([sys.executable, '-c', {worker!r}], directory=d,\n"
+                "    environment=clean_environment(d), seconds=30, cancelled=threading.Event())\n"
+                "print(r['state'])\n"
+            )
+            try:
+                done = subprocess.run(  # noqa: S603 - a fixed driver of this test
+                    [sys.executable, "-c", driver],
+                    cwd=root,
+                    env=clean_environment(directory) | {"PYTHONPATH": str(root)},
+                    capture_output=True,
+                    timeout=120,  # a hang guard only
+                    check=False,
+                )
+            finally:
+                if holder.exists():
+                    with suppress(ProcessLookupError):
+                        os.kill(int(holder.read_text()), signal.SIGKILL)
+            self.assertEqual((done.returncode, done.stdout.strip()), (0, b"completed"))

@@ -3,7 +3,7 @@
 from typing import Any
 from urllib.parse import parse_qs
 
-from scripts.portal_configuration import MAX_VALUE, LocalConfiguration
+from scripts.portal_configuration import MAX_VALUE, LocalConfiguration, SnapshotInvalidError
 from scripts.portal_views import page, table, text
 
 from nci_si_mcp.config_snapshot import PROPOSABLE
@@ -12,11 +12,16 @@ from nci_si_mcp.config_snapshot import PROPOSABLE
 def configuration_page(configuration: LocalConfiguration) -> tuple[int, str]:
     try:
         snapshot = configuration.read()
-    except OSError:
+    except OSError as error:
+        problem = (
+            "The selected target startup snapshot is malformed."
+            if isinstance(error, SnapshotInvalidError)
+            else "No target startup snapshot is readable."
+        )
         return 503, page(
             "Configuration unavailable",
-            "<p>No usable target startup snapshot is selected. Remote configuration is "
-            'unknown.</p><p><a href="/help#configuration">Set up configuration evidence</a>.</p>',
+            f"<p>{problem} Remote configuration is unknown.</p>"
+            '<p><a href="/help#configuration">Set up configuration evidence</a>.</p>',
             section="/configuration",
         )
     body = "<p>Recorded startup configuration, not a live-state or availability guarantee. "

@@ -64,7 +64,9 @@ against an owned HTTP server and recorded upstream fixtures. Five first-call and
 measurements per case follow one warm-up in the warmed session. Fixture credentials are
 synthetic. No production data directory or deployment environment is inherited. Acceptance
 uses its full prepared HTTP fixture suite and a private report path, retaining its four documented
-remote-unprepared skips. Temporary data, logs, control sockets and owned children are cleaned up.
+remote-unprepared skips. Temporary data, control sockets and owned children are cleaned up; a failed run
+first prints the last 64 KiB of the owned server's log, and a dashboard job keeps the worker's
+output in its worker log ([local validation](local-validation.md)).
 These processes use loopback, not an OS network sandbox: the network-isolated worker composition
 in #195 must deny external egress and publish no fixture ports. Do not deploy this local worker
 as a production administration endpoint.

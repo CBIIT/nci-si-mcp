@@ -1,5 +1,7 @@
 """Remote benchmark commands require explicit consent and never take credentials in URLs."""
 
+import json
+import os
 import subprocess
 import sys
 import unittest
@@ -93,3 +95,46 @@ class HTTPBenchmarkCommandTest(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertIn("explicit operator opt-in", result.stderr)
             self.assertFalse(output.exists())
+
+    TARGET = "https://127.0.0.1:9/mcp"  # the discard port: the connection is refused
+
+    def remote_run(self, command, directory):
+        """Run a remote worker command as the job does; whether its output names the header."""
+        output = Path(directory) / "report.json"
+        result = subprocess.run(  # noqa: S603 - fixed project command, refused loopback target
+            [
+                *command,
+                "--allow-remote",
+                "--target",
+                self.TARGET,
+                "--allow-target",
+                self.TARGET,
+                "--output",
+                str(output),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=60,
+            env={**os.environ, "NCI_SI_BENCHMARK_AUTHORIZATION": "Bearer PRIVATE-CANARY"},
+        )
+        written = output.read_text() if output.exists() else ""
+        return result, "PRIVATE-CANARY" in result.stdout + result.stderr + written
+
+    def test_a_failed_remote_run_writes_no_authorization_to_its_output(self):
+        # The worker's output is kept in the job log; the header must never be part of it.
+        with TemporaryDirectory() as directory:
+            result, leaked = self.remote_run(
+                [sys.executable, "-m", "scripts.benchmark_http_cli"], directory
+            )
+            self.assertEqual(result.returncode, 1)
+            report = json.loads((Path(directory) / "report.json").read_text())
+            self.assertEqual(report["stopReason"], "transport_error")
+            self.assertFalse(leaked)
+
+    def test_the_leak_check_sees_a_stand_in_worker_that_writes_the_header(self):
+        # Negative control: the same harness must notice a worker that leaks the header.
+        stand_in = "import os, sys; sys.stderr.write(os.environ['NCI_SI_BENCHMARK_AUTHORIZATION'])"
+        with TemporaryDirectory() as directory:
+            _, leaked = self.remote_run([sys.executable, "-c", stand_in], directory)
+            self.assertTrue(leaked)

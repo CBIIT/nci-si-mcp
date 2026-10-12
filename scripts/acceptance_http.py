@@ -21,7 +21,7 @@ from threading import Thread
 from typing import Any
 
 import yaml
-from scripts.processes import exit_on_sigterm, stop
+from scripts.processes import exit_on_sigterm, print_server_log_tail, stop
 
 from nci_si_acceptance.client import OwnedServer, server_environment, without_nci_si_settings
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
@@ -99,6 +99,9 @@ def prepare(directory: Path, *, environment: dict[str, str] | None = None) -> No
             raise RuntimeError("Index preparation requested an unrecorded upstream response")
 
 
+NO_USABLE_RUN = 2
+
+
 def report_skips(tests: dict[str, Any]) -> None:
     skipped = {name for name, row in tests.items() if row["outcome"] == "skipped"}
     print(f"Remote fixture run: {len(tests) - len(skipped)} executed, {len(skipped)} skipped.")
@@ -106,16 +109,24 @@ def report_skips(tests: dict[str, Any]) -> None:
         print(f"Skipped (remote unprepared contract): {name}")
 
 
-def verdict(report: dict[str, Any], expected: set[str]) -> bool:
-    tests = report["tests"]
-    report_skips(tests)
+def _outcome_differences(tests: dict[str, Any], expected: set[str]) -> list[str]:
     observed = {name: row["outcome"] for name, row in tests.items()}
     wanted = {name: "skipped" if name in UNPREPARED else "passed" for name in expected}
-    return (
-        report["transport"] == "streamable-http"
-        and observed == wanted
-        and not report["failed_gates"]
-    )
+    return [
+        f"{name}: expected {wanted.get(name, 'absent')}, observed {observed.get(name, 'missing')}"
+        for name in sorted(observed.keys() | wanted.keys())
+        if observed.get(name) != wanted.get(name)
+    ]
+
+
+def differences(report: dict[str, Any], expected: set[str]) -> list[str]:
+    """One line per way the report differs from the expected remote fixture run."""
+    lines = _outcome_differences(report["tests"], expected)
+    if report["transport"] != "streamable-http":
+        lines.append(f"transport: expected streamable-http, observed {report['transport']}")
+    if report["failed_gates"]:
+        lines.append("failed gates: " + ", ".join(report["failed_gates"]))
+    return lines
 
 
 def run_suite(
@@ -151,44 +162,68 @@ def run_suite(
         status = suite.wait()
     finally:
         stop(suite)
-    if status or not output.exists():
-        return 1
+    return _judge(status, output)
+
+
+def _judge(status: int, output: Path) -> int:
+    """0 for the expected run; 1 for a run that differs from it; 2 for no usable run."""
+    if not output.exists():
+        return _failed(NO_USABLE_RUN, f"The suite exited {status} and wrote no report.")
+    if status not in (0, 1):
+        return _failed(NO_USABLE_RUN, f"The suite exited {status} without a usable run.")
     try:
         observed = load_report(output, "fixture")
     except SystemExit as error:
-        print(error, file=sys.stderr)
-        return 1
+        return _failed(NO_USABLE_RUN, str(error))
+    report_skips(observed["tests"])
     expected = set(json.loads((ACCEPTANCE / "expected/fixture.json").read_text()))
-    return 0 if verdict(observed, expected) else 1
+    if lines := differences(observed, expected):
+        return _failed(1, "\n".join(lines))
+    if status:
+        return _failed(1, "The suite exited 1 although every outcome is the expected one.")
+    return 0
+
+
+def _failed(code: int, reason: str) -> int:
+    print(reason, file=sys.stderr)
+    return code
 
 
 def run(*, report: Path | None = None, environment: dict[str, str] | None = None) -> int:
     (ROOT / "tmp").mkdir(exist_ok=True)
     with TemporaryDirectory(prefix="http-", dir=ROOT / "tmp") as temporary:
         directory = Path(temporary)
-        prepare(directory, environment=environment)
-        socket_path = directory / "control"
-        # The runner owns the server. A restart answers the hook within its 30 s.
-        with OwnedServer(
-            os.environ if environment is None else environment,
-            directory / "server.log",
-            data_dir=directory / "index",
-            require_index=True,
-            ready_seconds=25,
-        ) as server:
-            # Restore cwd before starting the control thread.
-            with chdir(directory):
-                control = socketserver.UnixStreamServer("control", hook_handler(server))
-            with control:
-                thread = Thread(target=control.serve_forever, daemon=True)
-                thread.start()
-                try:
-                    return run_suite(
-                        server.port, socket_path, report=report, environment=environment
-                    )
-                finally:
-                    control.shutdown()
-                    thread.join()
+        status = 1  # an exception or SIGTERM ends the run unsuccessfully too
+        try:
+            status = _serve_and_run(directory, report, environment)
+            return status
+        finally:
+            if status:
+                print_server_log_tail(directory / "server.log")
+
+
+def _serve_and_run(directory: Path, report: Path | None, environment: dict[str, str] | None) -> int:
+    prepare(directory, environment=environment)
+    socket_path = directory / "control"
+    # The runner owns the server. A restart answers the hook within its 30 s.
+    with OwnedServer(
+        os.environ if environment is None else environment,
+        directory / "server.log",
+        data_dir=directory / "index",
+        require_index=True,
+        ready_seconds=25,
+    ) as server:
+        # Restore cwd before starting the control thread.
+        with chdir(directory):
+            control = socketserver.UnixStreamServer("control", hook_handler(server))
+        with control:
+            thread = Thread(target=control.serve_forever, daemon=True)
+            thread.start()
+            try:
+                return run_suite(server.port, socket_path, report=report, environment=environment)
+            finally:
+                control.shutdown()
+                thread.join()
 
 
 if __name__ == "__main__":

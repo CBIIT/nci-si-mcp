@@ -3,7 +3,7 @@ import unittest
 from contextlib import redirect_stdout
 from copy import deepcopy
 
-from scripts.acceptance_http import UNPREPARED, verdict
+from scripts.acceptance_http import UNPREPARED, differences, report_skips
 
 
 class HTTPVerdictTest(unittest.TestCase):
@@ -19,8 +19,8 @@ class HTTPVerdictTest(unittest.TestCase):
         report = self.report()
         output = io.StringIO()
         with redirect_stdout(output):
-            accepted = verdict(report, set(report["tests"]))
-        self.assertTrue(accepted)
+            report_skips(report["tests"])
+        self.assertEqual(differences(report, set(report["tests"])), [])
         self.assertIn("1 executed, 4 skipped", output.getvalue())
         for name in UNPREPARED:
             self.assertIn(name, output.getvalue())
@@ -28,9 +28,9 @@ class HTTPVerdictTest(unittest.TestCase):
     def test_a_failure_unexpected_skip_or_unimplemented_case_cannot_pass(self):
         report = self.report()
         for outcome in ("failed", "error", "skipped", "not_implemented"):
-            with self.subTest(outcome=outcome), redirect_stdout(io.StringIO()):
+            with self.subTest(outcome=outcome):
                 report["tests"]["applicable-case"]["outcome"] = outcome
-                self.assertFalse(verdict(report, set(report["tests"])))
+                self.assertNotEqual(differences(report, set(report["tests"])), [])
 
     def test_missing_cases_wrong_transport_and_failed_gates_cannot_pass(self):
         original = self.report()
@@ -39,5 +39,6 @@ class HTTPVerdictTest(unittest.TestCase):
             {"transport": "stdio"},
             {"failed_gates": ["inventory"]},
         ):
-            with self.subTest(changed=changed), redirect_stdout(io.StringIO()):
-                self.assertFalse(verdict(deepcopy(original) | changed, set(original["tests"])))
+            with self.subTest(changed=changed):
+                changed_report = deepcopy(original) | changed
+                self.assertNotEqual(differences(changed_report, set(original["tests"])), [])

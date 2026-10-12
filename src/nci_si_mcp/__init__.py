@@ -1,4 +1,4 @@
-"""NCI Semantic Infrastructure MCP server prototype."""
+"""NCI Semantic Infrastructure MCP server."""
 
 import logging
 from importlib.metadata import version

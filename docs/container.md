@@ -2,7 +2,7 @@
 
 See the [prerequisites](../QUICKSTART.md#platforms-and-prerequisites) for the tools a local build needs.
 
-The prototype image is cloud-neutral and CPU-only, initially Linux amd64. Cloud One's
+The server image is cloud-neutral and CPU-only, initially Linux amd64. Cloud One's
 production design remains with the hosting team: no AWS credentials, roles, infrastructure
 or identity provider are configured here. The default image **requires authentication** and
 refuses startup without the approved identity integration configured through the

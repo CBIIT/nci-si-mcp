@@ -9,6 +9,8 @@ import re
 from datetime import datetime
 from typing import Any, NoReturn
 
+from scripts.vocabulary import TERMINAL
+
 MAX_ENVELOPE_BYTES = 65_536
 MAX_REPORT_BYTES = 16_777_216
 MAX_EXIT_CODE = 255
@@ -111,7 +113,7 @@ def _classification(record: dict[str, Any]) -> None:
         _reject()
     if record["kind"] not in ("acceptance", "benchmark"):
         _reject()
-    if record["state"] not in ("completed", "failed", "cancelled", "interrupted", "unavailable"):
+    if record["state"] not in TERMINAL:
         _reject()
 
 

@@ -1,5 +1,7 @@
 """The shared process helpers reap what they own and bound every wait."""
 
+import contextlib
+import io
 import select
 import signal
 import subprocess
@@ -9,7 +11,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from scripts.processes import stop, wait_until
+from scripts.processes import SERVER_LOG_TAIL_BYTES, print_server_log_tail, stop, wait_until
 
 IGNORES_TERMINATION = (
     "import signal,time; signal.signal(signal.SIGTERM,signal.SIG_IGN); "
@@ -182,3 +184,26 @@ class ExitOnSigtermTest(unittest.TestCase):
             finally:
                 child.stdout.close()
             self.assertEqual(marker.read_text(), "cleaned")
+
+
+class PrintServerLogTailTest(unittest.TestCase):
+    def tail(self, log: Path) -> str:
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            print_server_log_tail(log)
+        return stderr.getvalue()
+
+    def test_a_log_that_was_never_written_prints_nothing(self):
+        with TemporaryDirectory() as directory:
+            self.assertEqual(self.tail(Path(directory) / "server.log"), "")
+
+    def test_the_tail_is_the_last_bytes_and_undecodable_bytes_are_replaced(self):
+        with TemporaryDirectory() as directory:
+            log = Path(directory) / "server.log"
+            log.write_bytes(b"early" + b"a" * SERVER_LOG_TAIL_BYTES + b"\xff end")
+            self.assertEqual(
+                self.tail(log),
+                f"Owned server log, last {SERVER_LOG_TAIL_BYTES} bytes:\n"
+                + "a" * (SERVER_LOG_TAIL_BYTES - 5)
+                + "� end",
+            )

@@ -6,11 +6,12 @@ detail.
 
 ## What this is
 
-The government-furnished prototype of the NCI Semantic Infrastructure MCP server, and the
-acceptance suite it and its successors are measured by. Two Statements of Work build on it:
-EVS v2.1 and caDSR v1.1. It is a prototype, not a production service: a lean wrapper over EVS
-and caDSR (plus the NCIt index), never a shadow of them; the two Statements of Work fund fixes to
-the upstream systems, and a functional gap there stays visible here (see the first standard
+The NCI Semantic Infrastructure MCP server, and the acceptance suite it and its successors are
+measured by. Describe the repository as the NCI Semantic Infrastructure MCP server, built to
+production standards and likely to become the production codebase: never as a prototype, never
+as in production, and never by contract terms or documents outside the repository. It is a lean
+wrapper over EVS and caDSR (plus the NCIt index), never a shadow of them; a functional gap in
+an upstream system is reported to its team and stays visible here (see the first standard
 below). Until NCI issues caDSR credentials, CDE Match and the lists-of-values API are tested
 against fixtures crafted from the published contracts; the data element API, vmMatch and
 Form API 2.0 are anonymous and may be tested live.
@@ -26,9 +27,7 @@ The specification of the required tools and their behaviour is owned by this rep
 source of record is the data in `spec/` (conventions, records, tools, requirements);
 `docs/specification.md` is generated from it with `pdm run spec-render` and is never edited by
 hand. `docs/implementation-plan.md` plans the implementation, and `acceptance/` holds the
-acceptance suite that tests the requirements (its README says how). The programme's other
-documents (the Statements of Work, which frame and bound the scope and are not a specification,
-and the Platform API Specification) live outside this repository; do not rely on them being present.
+acceptance suite that tests the requirements (its README says how).
 
 ## Engineering standards
 
@@ -120,8 +119,8 @@ directory. Set `NCI_SI_DATA_DIR` to a scratch directory for experiments.
 
 ## Tooling beyond the server
 
-The repository deliberately holds four things: the server (`src/`), the acceptance suite built
-for the two Statements of Work (`acceptance/`), the documentation site hosted alongside the MCP,
+The repository deliberately holds four things: the server (`src/`), the acceptance suite
+(`acceptance/`), the documentation site hosted alongside the MCP,
 and the validation companion with its benchmark and evaluation tooling. `scripts/` serves the
 last two and the suite's CI; each family below is operational, and what depends on it says why.
 
@@ -134,7 +133,7 @@ last two and the suite's CI; each family below is operational, and what depends 
 | Validation companion | `portal*.py`, `operator_*.py`, `evidence_*.py`, `companion_entry.py`, `companion_relay.py`, `companion_smoke.py`, `container/Admin.Dockerfile`, `container/compose.local.yaml` | `pdm run portal`, `pdm run operator-worker`; the `companions` job | `docs/local-validation.md`, `docs/companion-containers.md` |
 | Benchmarks and evaluation | `benchmark*.py`, `http_measurement.py`, `assisted_evaluation.py`, `assisted_scoring.py` | `pdm run benchmark-http`; the companion's workers | `docs/benchmark.md`, `docs/assisted-evaluation.md` |
 | Shared process helpers | `processes.py` | imported by the acceptance, container, companion, operator and benchmark scripts | every script that owns or waits for a process |
-| Shared formats, lock lines and files | `formats.py`, `requirements_lock.py`, `operator_files.py` | imported by the evidence, portal, docs, operator, benchmark and lock scripts | every script that checks a hash, job id or release tag, both requirement locks, and every atomic JSON write |
+| Shared formats, vocabularies, lock lines and files | `formats.py`, `vocabulary.py`, `requirements_lock.py`, `operator_files.py` | imported by the evidence, portal, docs, operator, benchmark and lock scripts | every script that checks a hash, job id or release tag, every run and job stop reason and state, both requirement locks, and every atomic JSON write |
 | README badges | `coverage_badges.py` | the CI `coverage-badges` job | the README |
 
 A script that served an ephemeral purpose and is no longer needed to operate or maintain the

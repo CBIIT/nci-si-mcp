@@ -1,6 +1,6 @@
 # Quickstart
 
-How to install and run the prototype server, what it serves, and how it fails. What this repository
+How to install and run the server, what it serves, and how it fails. What this repository
 is, and the status of each tool group, is in [README.md](README.md).
 
 See also: the same instructions and diagrams as a searchable website
@@ -682,7 +682,7 @@ Credentials and echoed credentials are redacted, even in correlation metadata an
 `Retry-After` error details; redaction does not change the actual retry delay. Exception
 messages and raw upstream bodies are excluded; external diagnostic messages are hashed.
 The diagnostic log level does not disable audit completion records. The platform remains the
-authority for audit, quotas and authorisation; this prototype adds no audit database.
+authority for audit, quotas and authorisation; this server adds no audit database.
 
 ## Errors
 

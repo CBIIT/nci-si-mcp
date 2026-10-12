@@ -10,6 +10,7 @@ from scripts.evidence_acceptance import digest
 from scripts.evidence_envelope import MAX_ENVELOPE_BYTES, decode_json
 from scripts.operator_files import read_bytes, write_json
 from scripts.portal_store import MAX_BUNDLE_BYTES, EvidenceStore
+from scripts.vocabulary import JobOutcome, JobReason, TerminalJobState
 
 ORIGINAL = ("catalogue", "stories", "expectations", "selection")
 
@@ -45,7 +46,7 @@ def _bound_original(job: dict[str, Any], directory: Path) -> dict[str, bytes]:
     return original
 
 
-def _envelope(job: dict[str, Any], result: dict[str, Any], bundle: dict[str, bytes]) -> dict:
+def _envelope(job: dict[str, Any], result: JobOutcome, bundle: dict[str, bytes]) -> dict:
     report = bundle.get("report")
     state = result["state"]
     if state == "failed" and result["exit_code"] in (0, None):
@@ -66,24 +67,28 @@ def _envelope(job: dict[str, Any], result: dict[str, Any], bundle: dict[str, byt
     }
 
 
+def _ended(result: JobOutcome, state: TerminalJobState, reason: JobReason) -> JobOutcome:
+    return {"state": state, "exit_code": result["exit_code"], "reason": reason}
+
+
 def finish_evidence(
     job: dict[str, Any],
     directory: Path,
-    result: dict[str, Any],
+    result: JobOutcome,
     store: EvidenceStore,
-) -> dict[str, Any]:
+) -> JobOutcome:
     try:
         bundle = _bound_original(job, directory)
         if result["state"] == "completed" and "report" not in bundle:
-            result = result | {"state": "unavailable", "reason": "missing_report"}
+            result = _ended(result, "unavailable", "missing_report")
         envelope = _envelope(job, result, bundle)
         path = directory / "bundle/envelope.json"
         write_json(path, envelope)
         store.import_bundle(bundle | {"envelope": read_bytes(path, MAX_ENVELOPE_BYTES)})
     except ValueError:
-        return result | {"state": "failed", "reason": "invalid_evidence"}
+        return _ended(result, "failed", "invalid_evidence")
     except FileNotFoundError:
         if result["state"] in {"cancelled", "interrupted"}:
             return result
-        return result | {"state": "unavailable", "reason": "missing_inventory"}
+        return _ended(result, "unavailable", "missing_inventory")
     return result

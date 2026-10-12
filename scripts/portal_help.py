@@ -63,7 +63,9 @@ enables an exact HTTPS target at startup. You cannot enter a target, command or 
 <p>Choose <strong>Refresh status</strong> to see progress. <strong>Cancel this run</strong> removes
 queued work or stops the owned worker and its processes. Cancellation cannot prove that an
 in-flight remote request stopped. A deadline or output limit preserves available evidence and
-reports the stop reason; missing outcomes are unknown, never passes.</p>
+reports the stop reason; missing outcomes are unknown, never passes. The run's
+<strong>Worker log</strong> holds the worker's output, with the end of the owned server's log
+when the run failed.</p>
 <p>Interrupted work is never retried automatically. After a restart, abandoned pending or
 running jobs are marked interrupted. Inspect their available results before starting a new run.
 Resubmitting the same retained form intent returns the original job instead of creating a

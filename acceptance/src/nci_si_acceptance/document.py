@@ -208,7 +208,7 @@ def _resources_and_prompts() -> list[str]:
     lines += ["|---|---|---|---|---|---|"]
     lines += [_resource_row(resource) for resource in RESOURCES.values()]
     lines += ["", "### Prompts", ""]
-    lines += ["Furnished by the government, listed by prompts/list (M5.1).", ""]
+    lines += ["Listed by prompts/list (M5.1).", ""]
     lines += [_text("prompts.md"), ""]
     return lines + [line for name, prompt in PROMPTS.items() for line in _prompt(name, prompt)]
 

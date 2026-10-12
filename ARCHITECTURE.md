@@ -1,6 +1,6 @@
 # NCI SI MCP Architecture
 
-This document describes the implemented Python prototype: EVS terminology, caDSR metadata,
+This document describes the implemented Python server: EVS terminology, caDSR metadata,
 Shared SI joins and composed workflows served through MCP over stdio or HTTP, with a CLI for
 index operations and the original EVS commands.
 The diagrams use Mermaid, rendered by GitHub and the
@@ -57,7 +57,7 @@ flowchart LR
     Consumer["MCP client / application"]
     Operator["Operator / developer"]
     Suite["Acceptance harness"]
-    SI["NCI SI MCP prototype<br/>EVS · caDSR · cross-domain · workflows"]
+    SI["NCI SI MCP server<br/>EVS · caDSR · cross-domain · workflows"]
     EVS["NCI EVS<br/>REST and FHIR"]
     CADSR["NCI caDSR<br/>APIs and export metadata"]
     SSIS["Shared SI<br/>SPARQL"]

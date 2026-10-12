@@ -6,7 +6,11 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from scripts.portal_configuration import ConfigurationConflictError, LocalConfiguration
+from scripts.portal_configuration import (
+    ConfigurationConflictError,
+    LocalConfiguration,
+    SnapshotInvalidError,
+)
 
 from nci_si_mcp.config import Settings
 from nci_si_mcp.config_snapshot import capture
@@ -79,6 +83,21 @@ class PortalConfigurationTest(unittest.TestCase):
                 self.proposal(name, value)
         self.assertEqual(self.proposal("evs_max_attempts", "2")["after"], 2)
         self.assertEqual(self.proposal("log_level", "DEBUG")["after"], "DEBUG")
+
+    def test_unreadable_and_malformed_snapshots_fail_apart_without_naming_the_file(self):
+        self.path.unlink()
+        self.path.mkdir()  # present but unreadable as a file
+        with self.assertRaises(OSError) as unreadable:
+            self.configuration.read()
+        self.path.rmdir()
+        self.path.write_text("<html>unavailable</html>")
+        with self.assertRaises(SnapshotInvalidError) as malformed:
+            self.configuration.read()
+        self.assertNotIsInstance(unreadable.exception, SnapshotInvalidError)
+        for error in (unreadable.exception, malformed.exception):
+            self.assertNotIn(str(self.path), str(error))
+            self.assertIsNone(error.__cause__)
+            self.assertTrue(error.__suppress_context__)
 
     def test_unknown_and_malformed_target_configuration_is_not_a_default_snapshot(self):
         with self.assertRaises(OSError):

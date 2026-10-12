@@ -1,12 +1,13 @@
 """Fixed local validation profiles do not inherit production secrets or serving data."""
 
+import io
 import json
 import os
 import signal
 import subprocess
 import sys
 import unittest
-from contextlib import suppress
+from contextlib import redirect_stderr, suppress
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -14,6 +15,8 @@ from unittest.mock import patch
 from scripts.benchmark_limits import Limits
 from scripts.operator_worker import _server, clean_environment, fixture_benchmark
 from scripts.processes import wait_until
+
+OWNED_SERVER_LOG = "Owned server log, last 65536 bytes:\n"  # the heading of the log tail on failure
 
 
 def children_of(pid: int) -> list[int]:
@@ -148,25 +151,38 @@ class OperatorEnvironmentTest(unittest.TestCase):
     def test_unrecorded_fixture_request_invalidates_completed_report(self):
         with TemporaryDirectory() as directory:
             output = Path(directory) / "report.json"
+            diagnostics = io.StringIO()
             with (
                 patch("scripts.operator_worker.unmatched_requests", return_value=["missing"]),
                 self.assertRaisesRegex(RuntimeError, "unrecorded"),
+                redirect_stderr(diagnostics),
             ):
                 fixture_benchmark(
                     output, limits=Limits(repetitions=1, warmups=0), names=["get_concept"]
                 )
+            _, heading, tail = diagnostics.getvalue().partition(OWNED_SERVER_LOG)
+            self.assertEqual(heading, OWNED_SERVER_LOG)
+            self.assertIn('"call_completed"', tail)
             written = output.read_text()
             report = json.loads(written)
             self.assertFalse(report["complete"])
             self.assertEqual(report["state"], "failed")
+            self.assertEqual(report["stopReason"], "runner_error")
             self.assertEqual(written, json.dumps(report, indent=2) + "\n")
 
     def test_fixture_benchmark_runs_owned_http_server_and_removes_working_data(self):
         with TemporaryDirectory() as directory:
             output = Path(directory) / "report.json"
-            with patch.dict(
-                "os.environ",
-                {"NCI_SI_DATA_DIR": "/production/index", "AWS_SECRET_ACCESS_KEY": "PRIVATE-CANARY"},
+            diagnostics = io.StringIO()
+            with (
+                patch.dict(
+                    "os.environ",
+                    {
+                        "NCI_SI_DATA_DIR": "/production/index",
+                        "AWS_SECRET_ACCESS_KEY": "PRIVATE-CANARY",
+                    },
+                ),
+                redirect_stderr(diagnostics),
             ):
                 result = fixture_benchmark(
                     output,
@@ -182,6 +198,7 @@ class OperatorEnvironmentTest(unittest.TestCase):
             self.assertEqual(json.loads(output.read_text()), result)
             self.assertEqual([path.name for path in Path(directory).iterdir()], ["report.json"])
             self.assertNotIn("PRIVATE-CANARY", output.read_text())
+            self.assertNotIn(OWNED_SERVER_LOG, diagnostics.getvalue())
 
     def test_child_environment_uses_owned_home_and_drops_credentials_proxies_and_settings(self):
         parent = {

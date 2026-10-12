@@ -20,6 +20,7 @@ from scripts.operator_worker import clean_environment
 from scripts.portal_jobs import PROFILES
 from scripts.portal_store import EvidenceStore
 from scripts.processes import exit_on_sigterm
+from scripts.vocabulary import JobOutcome
 
 ROOT = Path(__file__).resolve().parents[1]
 REMOTE_TARGET = "NCI_SI_OPERATOR_REMOTE_TARGET"
@@ -56,7 +57,7 @@ def execute_job(
     *,
     store: EvidenceStore,
     remote: RemoteProbe | None = None,
-) -> dict[str, Any]:
+) -> JobOutcome:
     settings = _remote_environment(job["profile"], remote)
     directory = directory.resolve()
     directory.mkdir(mode=0o700)
@@ -117,9 +118,7 @@ def _run(command: list[str], source: Path, environment: dict[str, str]) -> int:
         cwd=source,
         env=environment,
         check=False,
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stdin=subprocess.DEVNULL,  # output is inherited: the controller keeps it in worker.log
     ).returncode
 
 

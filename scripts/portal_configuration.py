@@ -16,6 +16,14 @@ class ConfigurationConflictError(ValueError):
     """The submitted form no longer names the selected recorded target/revision."""
 
 
+class SnapshotInvalidError(OSError):
+    """The selected startup snapshot is malformed.
+
+    An OSError, not a ValueError: like a missing snapshot it is unusable evidence (503), not the
+    caller's bad request, which the portal answers with 400.
+    """
+
+
 class LocalConfiguration:
     def __init__(self, path: Path | None):
         self.path = path
@@ -23,11 +31,13 @@ class LocalConfiguration:
     def read(self) -> dict[str, Any]:
         if self.path is None:
             raise OSError("No target startup snapshot selected")
+        # Never substitute companion settings or expose the source path or body.
         try:
             return read_snapshot(self.path)
-        except OSError, ValueError:
-            # Never substitute companion settings or expose the source path/body.
-            raise OSError("Selected target startup evidence is unavailable") from None
+        except OSError:
+            raise OSError("Selected target startup evidence is unreadable") from None
+        except ValueError:
+            raise SnapshotInvalidError("Selected target startup evidence is malformed") from None
 
     def propose(self, *, instance: str, revision: str, setting: str, value: str) -> dict[str, Any]:
         snapshot = self.read()

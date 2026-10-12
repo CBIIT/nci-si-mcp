@@ -118,7 +118,7 @@ operator-installed integration with SDK `AuthSettings`, `TokenVerifier` and a ca
 resolver. It refuses startup without all three and binds policy to verified token identity.
 The SDK enforces audience and required scopes before MCP dispatch; session ownership also
 includes the applicable tenant. Embedders can supply these collaborators to `create_http_app`.
-This prototype does not choose a production identity provider or store a transport credential.
+This server does not choose a production identity provider or store a transport credential.
 
 Missing/invalid credentials return HTTP 401; insufficient scope returns HTTP 403. Refused
 requests never reach the registry or emit a tool completion audit containing caller content.
@@ -144,6 +144,9 @@ No caDSR credentials or live upstream service are needed.
 
 The report is `acceptance/http-fixture.json`. The gate requires every expected case to be
 present and pass, except four `unprepared` cases that the remote contract requires it to skip;
-their names and count are printed. The complete stdio ratchet remains separate. The
+their names and count are printed. It exits 1 when the run differs from that, with one line on
+standard error per differing test, transport or failed gate, and 2 when the suite left no usable
+report (none, an incomplete one, or a crashed run), saying which. On failure it also prints the
+last 64 KiB of the server's log. The complete stdio ratchet remains separate. The
 `acceptance (HTTP fixture)` CI job runs this gate; making it a required branch check is an
 owner decision. Production deployment and index operation procedures follow in #121's runbook.
