@@ -2,7 +2,7 @@
   "name": "nci-si-documentation-assets",
   "private": true,
   "engines": {
-    "node": ">=24 <25"
+    "node": ">=24"
   },
   "description": "Pinned local diagram runtime for the public documentation build",
   "dependencies": {
