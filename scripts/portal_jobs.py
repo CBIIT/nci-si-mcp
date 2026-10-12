@@ -141,6 +141,11 @@ def _validate_outcome(row: dict[str, Any]) -> None:
         raise ValueError("Invalid job stop reason")
 
 
+def _kept(log: Path) -> bool:
+    """A worker log the run wrote: a regular file, never a link, as runs create it exclusively."""
+    return log.is_file() and not log.is_symlink()
+
+
 class JobController:
     def __init__(
         self,
@@ -218,20 +223,24 @@ class JobController:
             self._available()
             return deepcopy(self._get(run_id))
 
-    def has_worker_log(self, run_id: str) -> bool:
-        """Whether the run kept a worker log; a link is never one, as runs create it exclusively."""
+    def _worker_log_path(self, run_id: str) -> Path:
+        # The path is built from the recorded job's id, never from the request's value.
         with self.condition:
             self._available()
-            self._get(run_id)
-        path = self.root / run_id / WORKER_LOG
-        return path.is_file() and not path.is_symlink()
+            recorded = self._get(run_id)["run_id"]
+        return self.root / recorded / WORKER_LOG
+
+    def has_worker_log(self, run_id: str) -> bool:
+        """Whether the run kept a worker log."""
+        return _kept(self._worker_log_path(run_id))
 
     def worker_log(self, run_id: str) -> bytes | None:
         """The job's worker log as recorded so far, or None when the run kept none."""
-        if not self.has_worker_log(run_id):
+        path = self._worker_log_path(run_id)
+        if not _kept(path):
             return None
         try:
-            return read_bytes(self.root / run_id / WORKER_LOG, MAX_WORKER_LOG_BYTES)
+            return read_bytes(path, MAX_WORKER_LOG_BYTES)
         except ValueError:
             # Larger than any copy writes: unusable local evidence, not the caller's bad request.
             raise OSError("Worker log exceeds its size bound") from None
