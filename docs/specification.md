@@ -738,7 +738,7 @@ identity and release, not section by section.
 
 ### Prompts
 
-Furnished by the government, listed by prompts/list (M5.1).
+Listed by prompts/list (M5.1).
 
 A prompt is listed only in a profile that has every tool it names (M5.1). All four need both
 modules, so the evs and cadsr profiles list none and unified lists all four. Each starts from

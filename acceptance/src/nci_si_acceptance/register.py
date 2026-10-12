@@ -2,7 +2,7 @@
 
     pdm run acceptance-register [--fixtures DIR]
 
-The government furnishes an initial form for every platform operation the tools rest
+The register holds an initial form for every platform operation the tools rest
 on: from the published API documentation and what was verified live where the
 operation exists, and a draft naming its requirement where it does not. The manifest
 holds each form with its operation and rationale; this writes the readable register
@@ -41,11 +41,10 @@ SCENARIO_HEADER = "| Operation | Request | Expected | Rationale | Fixture |"
 SHARED_HEADER = "| Operation | Request | Expected | Fixture |"
 INTRODUCTION = """\
 The upstream requests the acceptance suite's fixtures answer, each with the platform operation it
-serves (its `OP-` id in the programme's operation inventory, or the requirement where the
-operation is missing) and why
-it has this form. They are initial versions, from the published API documentation and live checks
-where the operation exists and a draft where it does not, furnished for the EVS, caDSR and Shared SI
-teams to refine as needed, each change with the approval of the branch chief or a delegate.
+serves (its `OP-` id, or the requirement where the operation is missing) and why it has this
+form. They are initial versions, from the published API documentation and live checks
+where the operation exists and a draft where it does not, for the EVS, caDSR and Shared SI teams
+to refine as needed, each change with the approval of the branch chief or a delegate.
 
 Two kinds of request are answered whatever their form: EVS concept requests, by rules over one
 recording per concept (below), and requests whose parameters the service is shown to ignore.

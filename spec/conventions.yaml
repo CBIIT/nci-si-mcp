@@ -1,7 +1,7 @@
 # The conventions binding every tool of both modules, so that a caller cannot tell from a
 # response which module produced it. Each rule states what a requirement needs to be read on
-# its own, and `why` gives the reason where the rule is not self-evident. The A ids are those
-# the programme's documents cite, kept stable for that reason; the M ids are the MCP surface's
+# its own, and `why` gives the reason where the rule is not self-evident. The A ids are cited
+# outside this repository and kept stable for that reason; the M ids are the MCP surface's
 # own. Ids are never renumbered once merged.
 
 A1:
