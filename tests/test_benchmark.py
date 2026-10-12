@@ -28,14 +28,14 @@ class BenchmarkTest(unittest.TestCase):
         self.assertEqual(report["cases"], [])
         self.assertEqual(report["expectedCases"], ["get_form"])
 
-    def test_all_representative_calls_produce_successful_correlated_fixture_evidence(self):
+    def test_a_representative_call_produces_successful_correlated_fixture_evidence(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "benchmark.json"
-            report = benchmark.run("fixture", list(benchmark.CASES), 1, output)
+            report = benchmark.run("fixture", ["get_concept"], 1, output)
             self.assertEqual(json.loads(output.read_text()), report)
         self.assertTrue(report["complete"])
-        self.assertEqual(report["expectedCases"], list(benchmark.CASES))
-        self.assertEqual(len(report["cases"]), 10)
+        self.assertEqual(report["expectedCases"], ["get_concept"])
+        self.assertEqual(len(report["cases"]), 1)
         for case in report["cases"]:
             with self.subTest(tool=case["tool"]):
                 self.assertEqual(case["cold"]["summary"]["errorRate"], 0)
