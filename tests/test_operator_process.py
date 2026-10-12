@@ -1,6 +1,7 @@
 """Cancellation and deadlines terminate only the worker process group created for this job."""
 
 import json
+import logging
 import os
 import re
 import signal
@@ -307,3 +308,30 @@ class WorkerLogTest(unittest.TestCase):
             code = "import sys; sys.stdout.buffer.write(b'x' * (2 * 1024 * 1024)); sys.exit(0)"
             result = self.run_worker(directory, code, seconds=30)
             self.assertEqual(result, {"state": "completed", "exit_code": 0, "reason": None})
+
+    @patch("scripts.operator_process.LOG_JOIN_SECONDS", 0.2)
+    def test_a_pipe_held_outside_the_stopped_group_ends_the_run_with_a_diagnostic(self):
+        with TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            holder = directory / "holder"
+            # The holder leaves the worker's group, so stopping the group leaves the pipe open.
+            code = (
+                "import subprocess,sys,pathlib; "
+                "p=subprocess.Popen([sys.executable,'-c','import time; time.sleep(300)'], "
+                "start_new_session=True); "
+                f"pathlib.Path({str(holder)!r}).write_text(str(p.pid))"
+            )
+            pool = ThreadPoolExecutor(max_workers=1)
+            try:
+                with self.assertLogs("scripts.operator_process", logging.ERROR) as logs:
+                    result = pool.submit(self.run_worker, directory, code).result(timeout=30)
+                self.assertEqual(result, {"state": "completed", "exit_code": 0, "reason": None})
+                self.assertEqual(
+                    [json.loads(line.split(":", 2)[2])["event"] for line in logs.output],
+                    ["worker_log_open"],
+                )
+            finally:
+                if holder.exists():
+                    with suppress(ProcessLookupError):
+                        os.kill(int(holder.read_text()), signal.SIGKILL)
+                pool.shutdown()

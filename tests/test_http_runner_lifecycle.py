@@ -88,9 +88,12 @@ class HTTPRunnerLifecycleTest(unittest.TestCase):
                 self.assertTrue(diagnostics.endswith(" is an incomplete run; re-run it\n"))
 
     def test_a_suite_that_crashed_is_not_compared_and_says_so(self):
-        self.assertEqual(
-            self.run_capturing(self.valid, 3), (2, "The suite exited 3 without a usable run.\n")
-        )
+        for status in (2, 3, 5):  # interrupted, internal error, no tests collected
+            with self.subTest(status=status):
+                self.assertEqual(
+                    self.run_capturing(self.valid, status),
+                    (2, f"The suite exited {status} without a usable run.\n"),
+                )
 
     def test_a_verdict_mismatch_names_each_difference(self):
         failed = json.loads(json.dumps(self.valid))
@@ -163,7 +166,7 @@ class HTTPRunnerLifecycleTest(unittest.TestCase):
 class HTTPRunnerServerLogTest(unittest.TestCase):
     HEADING = "Owned server log, last 65536 bytes:\n"
 
-    def run_with_status(self, status, content='{"event": "call_completed"}\n'):
+    def run_with_status(self, status, content='{"event": "call_completed"}\n', *, error=None):
         class Server:
             port = 8000
 
@@ -181,16 +184,24 @@ class HTTPRunnerServerLogTest(unittest.TestCase):
         with (
             patch.object(runner, "prepare"),
             patch.object(runner, "OwnedServer", Server),
-            patch.object(runner, "run_suite", return_value=status),
+            patch.object(runner, "run_suite", return_value=status, side_effect=error),
             redirect_stderr(diagnostics),
         ):
-            self.assertEqual(runner.run(), status)
+            if error is None:
+                self.assertEqual(runner.run(), status)
+            else:
+                with self.assertRaises(type(error)):
+                    runner.run()
         return diagnostics.getvalue()
 
     def test_a_failed_run_ends_with_the_tail_of_the_owned_server_log(self):
         self.assertEqual(self.run_with_status(1), self.HEADING + '{"event": "call_completed"}\n')
         long = "a" * 10 + "b" * 65536
         self.assertEqual(self.run_with_status(1, long), self.HEADING + "b" * 65536)
+
+    def test_an_interrupted_run_still_ends_with_the_server_log_tail(self):
+        diagnostics = self.run_with_status(None, error=KeyboardInterrupt())
+        self.assertEqual(diagnostics, self.HEADING + '{"event": "call_completed"}\n')
 
     def test_a_successful_run_prints_no_server_log(self):
         self.assertEqual(self.run_with_status(0), "")

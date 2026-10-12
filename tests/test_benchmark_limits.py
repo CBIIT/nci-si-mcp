@@ -126,16 +126,13 @@ class BenchmarkLimitsTest(unittest.TestCase):
                 Limits(**kwargs)
 
     def test_a_stop_reason_outside_the_vocabulary_is_refused_where_it_is_raised(self):
-        def http(status):
-            return RunStoppedError(benchmark_limits.http_stop(status))
-
         for build, value in (
             (RunStoppedError, "typo"),
             (RunStoppedError, "http_399"),
             (RunStoppedError, "http_600"),
             (RunStoppedError, "http_4xx"),
-            (http, 399),
-            (http, 600),
+            (benchmark_limits.http_stop, 399),
+            (benchmark_limits.http_stop, 600),
         ):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 build(value)
@@ -143,8 +140,8 @@ class BenchmarkLimitsTest(unittest.TestCase):
             (RunStoppedError, "deadline", "deadline"),
             (RunStoppedError, "http_400", "http_400"),
             (RunStoppedError, "http_599", "http_599"),
-            (http, 400, "http_400"),
-            (http, 599, "http_599"),
+            (benchmark_limits.http_stop, 400, "http_400"),
+            (benchmark_limits.http_stop, 599, "http_599"),
         ):
             with self.subTest(value=value):
                 self.assertEqual(str(build(value)), reason)
