@@ -81,6 +81,8 @@ The [mutation evidence](evidence/phase-6/mutation-review.json) preserves all 97 
 replacements and their test failures: 76 were caught initially, 20 real gaps were closed with
 regressions and full-suite rechecks, and one survivor is equivalent with its reason recorded.
 Every mutant was restored. This finite campaign does not claim exhaustive mutation coverage.
+The mutation evidence is a point-in-time record: its file hashes and test node ids describe the
+tree as it was in Phase 6, and later test file moves and renames invalidate them.
 The release is not considered complete until CI, Audit, CodeQL and Release pass on its merge
 commit, all remaining Phase 6 issues close, milestone 8 closes through the API, installed version
 metadata refreshes, and owned scratch/branches/processes are removed. Deferred Backlog issues

@@ -13,12 +13,16 @@ from contextlib import suppress
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from scripts.operator_process import LIFELINE, MAX_REPORT_BYTES, _wait, run_owned
 from scripts.operator_worker import clean_environment
 
 
 class OperatorProcessTest(unittest.TestCase):
+    # The reap is this test's claim; the length of the grace between SIGTERM and SIGKILL is
+    # owned by tests/test_processes.py, so a resistant worker is not waited out for 10 s.
+    @patch("scripts.processes.STOP_SECONDS", 0.5)
     def test_running_cancellation_reaps_normal_and_sigterm_resistant_workers(self):
         for resistant in (False, True):
             with self.subTest(resistant=resistant), TemporaryDirectory() as temporary:

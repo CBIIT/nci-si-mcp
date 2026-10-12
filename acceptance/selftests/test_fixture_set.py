@@ -10,8 +10,8 @@ from urllib.request import Request, urlopen
 
 import pytest
 import yaml
-from conftest import CRAFTED, crafted_digest, without_crafted
 
+from conftest import CRAFTED, crafted_digest, without_crafted
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
 from nci_si_acceptance.record import FIXTURES, plan, request_of, stale
 
