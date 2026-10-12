@@ -5,7 +5,6 @@ from __future__ import annotations
 import re
 import sqlite3
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from pathlib import Path
 from typing import cast
 from urllib.parse import SplitResult, parse_qs, urlsplit
 
@@ -18,7 +17,7 @@ from scripts.portal_job_views import job_page, jobs_page
 from scripts.portal_jobs import JobConflictError, JobController, QueueFullError
 from scripts.portal_store import EvidenceNotFoundError, EvidenceStore
 from scripts.portal_views import comparison_page, history_page, page, run_page
-from scripts.site_assets import FONT_FILES
+from scripts.site_assets import ASSETS_DIR, FONT_FILES, STYLESHEETS
 
 MAX_TARGET = 2048
 MAX_FILTER = 100
@@ -113,10 +112,18 @@ def _result_route(store: EvidenceStore, path: str, query: str) -> tuple[int, str
 
 
 def _asset(name: str) -> tuple[int, str, str | bytes]:
-    if name not in FONT_FILES:
+    if name in STYLESHEETS:
+        source = ASSETS_DIR / name
+    elif name in FONT_FILES:
+        source = ASSETS_DIR / "fonts" / name
+    else:
         raise EvidenceNotFoundError("No such asset")
-    source = Path(__file__).resolve().parents[1] / "docs/site-assets/fonts" / name
-    media = {".ttf": "font/ttf", ".txt": "text/plain", ".json": "application/json"}
+    media = {
+        ".ttf": "font/ttf",
+        ".txt": "text/plain",
+        ".json": "application/json",
+        ".css": "text/css",
+    }
     try:
         content = source.read_bytes()
     except OSError:
@@ -261,7 +268,7 @@ def _handler(
                 self.send_header("Location", location)
             self.send_header(
                 "Content-Security-Policy",
-                "default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; "
+                "default-src 'none'; style-src 'self'; font-src 'self'; "
                 "form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
             )
             self.end_headers()

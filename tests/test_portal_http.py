@@ -1,7 +1,9 @@
 """Real loopback HTTP preserves the local-only boundary and serves readable result pages."""
 
+import re
 import sqlite3
 import threading
+import tomllib
 import unittest
 from contextlib import closing
 from http.client import HTTPConnection
@@ -43,7 +45,7 @@ class PortalHTTPTest(unittest.TestCase):
         _, headers, _ = self.request("/")
         self.assertEqual(
             headers["Content-Security-Policy"],
-            "default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; "
+            "default-src 'none'; style-src 'self'; font-src 'self'; "
             "form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
         )
 
@@ -54,10 +56,38 @@ class PortalHTTPTest(unittest.TestCase):
         self.assertEqual(headers["Content-Type"], "font/ttf")
         self.assertEqual(int(headers["Content-Length"]), len(body))
         self.assertIn("font-src 'self'", headers["Content-Security-Policy"])
+        status, _, stylesheet = self.request("/assets/ncids.css")
+        self.assertEqual(status, 200)
+        self.assertIn('url("open-sans.ttf")', stylesheet)
+        self.assertIn("font-family: Poppins", stylesheet)
+        self.assertIn('font-family: "Roboto Mono"', stylesheet)
+
+    def test_pages_link_the_two_served_stylesheets_and_carry_no_inline_style(self):
         _, _, page = self.request("/")
-        self.assertIn('url("/assets/open-sans.ttf")', page)
-        self.assertIn("font-family:Poppins", page)
-        self.assertIn('font-family:"Roboto Mono"', page)
+        self.assertEqual(
+            re.findall(r'<link rel="stylesheet" href="([^"]+)">', page),
+            ["/assets/ncids.css", "/assets/portal.css"],
+        )
+        self.assertNotIn("<style", page)
+        for name in ("ncids.css", "portal.css"):
+            with self.subTest(name=name):
+                status, headers, body = self.request("/assets/" + name, raw=True)
+                self.assertEqual(status, 200)
+                self.assertEqual(headers["Content-Type"], "text/css; charset=utf-8")
+                self.assertEqual(body, Path("docs/site-assets", name).read_bytes())
+
+    def test_footer_links_are_the_documentation_footer_table_in_order(self):
+        project = tomllib.loads(Path("docs/site-assets/zensical.toml").read_text())["project"]
+        self.assertIn("footer", project.get("extra", {}))
+        footer = project["extra"]["footer"]
+        expected = [
+            footer["contact_url"],
+            *(link["url"] for link in footer["agencies"]),
+            *(link["url"] for link in footer["policies"]),
+        ]
+        _, _, page = self.request("/")
+        rendered = page.split('<footer class="nci-footer">', 1)[1]
+        self.assertEqual(re.findall(r'href="(https://[^"]+)"', rendered), expected)
 
     def test_assets_expose_only_reviewed_fonts_and_their_licences(self):
         status, _, body = self.request("/assets/poppins-OFL.txt")
@@ -69,7 +99,7 @@ class PortalHTTPTest(unittest.TestCase):
         self.assertEqual(self.request("/assets/open-sans.ttf?path=private")[0], 400)
 
     def test_unreadable_font_reports_asset_repair_without_disclosing_filesystem_details(self):
-        with patch("scripts.portal_http.Path.read_bytes", side_effect=OSError("PRIVATE-CANARY")):
+        with patch("pathlib.Path.read_bytes", side_effect=OSError("PRIVATE-CANARY")):
             status, _, body = self.request("/assets/open-sans.ttf")
         self.assertEqual(status, 503)
         self.assertIn("Local assets unavailable", body)

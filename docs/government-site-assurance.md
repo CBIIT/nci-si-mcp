@@ -23,7 +23,7 @@ requests. That future review is not an implementation or Phase 7 release gate.
 | Requirement | Implementation and verification in Phase 7 |
 |---|---|
 | Palette | NCIDS cerulean, neutral, teal and state tokens; measure actual foreground/background pairs after changes |
-| Typography | NCIDS Poppins headings, Open Sans body and Roboto Mono code; locally supplied assets with provenance, no runtime font tracking |
+| Typography | NCIDS Poppins headings, Open Sans body and Roboto Mono code; locally supplied assets with provenance, no runtime font tracking; the faces live in one shared `ncids.css`, and the portal's content security policy allows only same-origin styles (`style-src 'self'`) |
 | Header/navigation | Consistent identity, home link, current section, responsive navigation, functional documentation search and skip link |
 | Footer policies | Disclaimer Policy, Accessibility, FOIA, HHS Vulnerability Disclosure, and NCIDS Privacy and Security link |
 | Agency links | HHS, NIH, NCI, USA.gov, in that order and with agency names spelled out |

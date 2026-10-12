@@ -63,6 +63,16 @@ class CompanionContextTest(unittest.TestCase):
                 (output / "admin/app/docs/site-assets/fonts/open-sans.ttf").read_bytes(),
                 (root / "docs/site-assets/fonts/open-sans.ttf").read_bytes(),
             )
+            site_assets = output / "admin/app/docs/site-assets"
+            self.assertEqual(
+                sorted(entry.name for entry in site_assets.iterdir() if entry.is_file()),
+                ["ncids.css", "portal.css", "zensical.toml"],
+            )
+            for name in ("ncids.css", "portal.css", "zensical.toml"):
+                self.assertEqual(
+                    (site_assets / name).read_bytes(),
+                    (root / "docs/site-assets" / name).read_bytes(),
+                )
             self.assertFalse((output / "admin/app/docs/upstream").exists())
             self.assertEqual((output / "docs/site/index.html").read_text(), "Public documentation")
             self.assertEqual(
@@ -207,3 +217,19 @@ class DocsImageTest(unittest.TestCase):
             self.assertEqual(
                 _health(image, _free_port()), b'{"status":"ok","service":"documentation"}'
             )
+
+
+class AdminImageTest(unittest.TestCase):
+    def test_admin_dockerfile_copies_the_context_in_exactly_these_steps(self):
+        lines = (ROOT / "container/Admin.Dockerfile").read_text().splitlines()
+        self.assertEqual(
+            [line for line in lines if line.startswith("COPY ")],
+            [
+                "COPY requirements.txt /build/requirements.txt",
+                "COPY wheels/*.whl /build/",
+                "COPY --from=dependencies /opt/venv /opt/venv",
+                "COPY app /app",
+                "COPY bundle/operator-source.* /app/",
+            ],
+        )
+        self.assertIn("WORKDIR /app", lines)

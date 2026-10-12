@@ -2,11 +2,17 @@
 
 import json
 import subprocess
+import threading
 import unittest
+from http.client import HTTPConnection
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from scripts import companion_smoke, processes
+from scripts.portal_http import create_server
+from scripts.portal_store import EvidenceStore
 
 
 class CompanionSmokeTest(unittest.TestCase):
@@ -67,3 +73,71 @@ class CompanionSmokeTest(unittest.TestCase):
             self.assertRaisesRegex(RuntimeError, "Benchmark results are unavailable"),
         ):
             companion_smoke.benchmark("owned-admin")
+
+
+DOCS_PORT, PORTAL_PORT = 8080, 8081
+
+
+class PortalStylingTest(unittest.TestCase):
+    """The smoke run against a real portal: styled page and footer link are required of it."""
+
+    def setUp(self):
+        directory = TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.server = create_server(EvidenceStore(Path(directory.name) / "results.sqlite"), port=0)
+        thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(thread.join, 2)
+        self.addCleanup(self.server.server_close)
+        self.addCleanup(self.server.shutdown)
+
+    def smoke(self, override=None):
+        """Run the smoke's `main`, the portal on 8081 being the real server; `override` maps a
+        path to the (status, body) the portal is made to answer instead."""
+        override = override or {}
+        asked = []
+
+        def request(port, path, body=None):
+            if port == DOCS_PORT:
+                return 200, "National Cancer Institute"
+            if port != PORTAL_PORT:
+                return 200, ""
+            asked.append(path)
+            if path in override:
+                return override[path]
+            connection = HTTPConnection("127.0.0.1", self.server.server_port, timeout=3)
+            try:
+                connection.request("GET", path)
+                response = connection.getresponse()
+                return response.status, response.read().decode()
+            finally:
+                connection.close()
+
+        with (
+            patch.object(companion_smoke, "docker", return_value=""),
+            patch.object(companion_smoke, "request", request),
+            patch.object(companion_smoke, "ready"),
+            patch.object(companion_smoke, "inspect_boundary"),
+            patch.object(companion_smoke, "_serving_probe", return_value=("10.0.0.2", 1)),
+            patch.object(companion_smoke, "blocked_connectivity"),
+            patch.object(companion_smoke, "benchmark"),
+            patch.object(companion_smoke, "cleanup"),
+        ):
+            companion_smoke.main()
+        return asked
+
+    def test_a_correctly_styled_portal_with_its_footer_passes(self):
+        self.assertEqual(self.smoke(), ["/", "/assets/ncids.css", "/assets/portal.css"])
+
+    def test_a_missing_stylesheet_or_footer_contact_link_fails_the_smoke(self):
+        connection = HTTPConnection("127.0.0.1", self.server.server_port, timeout=3)
+        self.addCleanup(connection.close)
+        connection.request("GET", "/")
+        page = connection.getresponse().read().decode().replace("/issues", "/elsewhere")
+        for path, replacement in (
+            ("/assets/ncids.css", (404, "")),
+            ("/assets/portal.css", (404, "")),
+            ("/", (200, page)),
+        ):
+            with self.subTest(path=path), self.assertRaises(RuntimeError):
+                self.smoke({path: replacement})
