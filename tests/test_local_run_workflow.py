@@ -68,7 +68,7 @@ CI_ONLY = {
     "Serve the validation dashboard until ready (CI only)": "the documented portal serve "
     "command, run by the probe, for the same reason",
     '. "$HOME/.nvm/nvm.sh"': "the documents say 'in a new shell', where nvm is loaded",
-    'echo "$(dirname "$(command -v node)")" >> "$GITHUB_PATH"': "puts the nvm Node.js on the "
+    'dirname "$(command -v node)" >> "$GITHUB_PATH"': "puts the nvm Node.js on the "
     "path of the job's next steps, as a new shell would",
     "status=$?": "keeps the fixture run's exit status, which the next line judges",
     '[ "$status" -le 1 ] && [ -s acceptance/fixture.json ] || { echo "::error::The fixture run '
@@ -126,14 +126,18 @@ def documented_commands(document):
     return commands
 
 
+def command_lines(run):
+    lines = (line.strip() for line in run.splitlines())
+    return [line for line in lines if line and not line.startswith("#")]
+
+
 def undocumented_lines(step_name, run, documents):
     """The step's command lines that neither a document gives nor the CI-only list explains."""
 
     if step_name in CI_ONLY:
         return []
     commands = documented_commands(documents[step_name])
-    lines = [line.strip() for line in run.splitlines() if line.strip()]
-    return [line for line in lines if line not in commands and line not in CI_ONLY]
+    return [line for line in command_lines(run) if line not in commands and line not in CI_ONLY]
 
 
 class LocalRunWorkflowTest(unittest.TestCase):
