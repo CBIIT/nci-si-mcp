@@ -16,6 +16,7 @@ LINUX = "runner.os == 'Linux'"
 
 # Every step in order: its name and its condition.
 STEPS = [
+    ("Remove the runner's python.org Python (macOS)", MACOS),
     ("Remove preinstalled Python and PDM (macOS)", MACOS),
     ("Install Python and PDM (macOS)", MACOS),
     ("Install uv (Linux)", LINUX),
@@ -56,6 +57,8 @@ DOCUMENTS = {
 
 # What exists only in CI, by step name (the whole step) or by exact line, and why.
 CI_ONLY = {
+    "Remove the runner's python.org Python (macOS)": "the runner image ships python.org builds "
+    "in /Library/Frameworks that a clean Mac lacks, and PDM picks them over Homebrew's",
     "Remove preinstalled Python and PDM (macOS)": "brew install exits 0 without installing a "
     "formula the runner image ships, so the documented install must really run",
     "Remove a preinstalled Node.js (macOS)": "the same, for Node.js",
@@ -367,6 +370,16 @@ class LocalRunWorkflowTest(unittest.TestCase):
     def test_the_readiness_probe_is_exactly_this(self):
         by_name = {step["name"]: step["run"] for step in steps()}
         self.assertEqual(by_name["Write the readiness probe (CI only)"], READY_PROBE_RUN)
+
+    def test_the_runner_loses_its_python_org_builds_before_the_documented_install(self):
+        by_name = {step["name"]: step["run"] for step in steps()}
+        self.assertEqual(
+            by_name.get("Remove the runner's python.org Python (macOS)", "").splitlines(),
+            [
+                "sudo find /usr/local/bin -lname '*Library/Frameworks/Python.framework/*' -delete",
+                "sudo rm -rf /Library/Frameworks/Python.framework",
+            ],
+        )
 
     def test_a_failed_removal_of_a_preinstalled_formula_fails_the_job(self):
         by_name = {step["name"]: step["run"] for step in steps()}
