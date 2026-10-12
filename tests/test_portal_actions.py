@@ -223,6 +223,12 @@ class WorkerLogPageTest(unittest.TestCase):
         self.assertEqual(self.request(f"/jobs/{'2' * 32}/worker.log")[0], 404)
         self.assertEqual(self.request(f"/jobs/{'3' * 32}/worker.log")[0], 404)
 
+    def test_only_the_exact_worker_log_path_serves_the_log(self):
+        self.run_job("1" * 32)
+        for path in ("workerXlog", "worker-log", "worker.log/", "worker.logs"):
+            with self.subTest(path=path):
+                self.assertEqual(self.request(f"/jobs/{'1' * 32}/{path}")[0], 404)
+
     def test_a_linked_log_is_no_log_and_an_oversized_one_is_unusable_evidence(self):
         self.run_job("4" * 32)
         status, _, page = self.request("/jobs/" + "4" * 32)
