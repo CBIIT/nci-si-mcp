@@ -10,9 +10,9 @@ from urllib.request import Request, urlopen
 
 import pytest
 import yaml
-from conftest import crafted_digest, without_crafted
 from jsonschema import Draft4Validator
 
+from conftest import crafted_digest, without_crafted
 from nci_si_acceptance.craft import (
     EXCLUSION_ROLES,
     LICENCE_FIELD,

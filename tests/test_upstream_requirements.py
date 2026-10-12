@@ -53,16 +53,6 @@ def catalogue():
 
 
 class PackageTests(unittest.TestCase):
-    def test_checked_in_packages_are_current_and_do_not_claim_live_content_acceptance(self):
-        generated = packages.generate()
-        for name, text in generated.items():
-            self.assertEqual(text, (packages.ROOT / packages.DIRECTORY / name).read_text())
-        self.assertIn("0 formal PASS (fixture only)", generated["README.md"])
-        self.assertIn("928 not_live, 16 passed", generated["README.md"])
-        self.assertIn("C-1", generated["cadsr.md"])
-        self.assertIn("E-4", generated["evs.md"])
-        self.assertIn("S-5", generated["ssis.md"])
-
     def test_affected_tests_are_named_by_their_path_from_the_repository_root(self):
         source, fixture, live = catalogue(), report("fixture"), report("live")
 

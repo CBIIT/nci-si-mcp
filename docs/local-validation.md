@@ -24,8 +24,14 @@ record. **Help & guide** is available
 on every page; contextual links beside results explain status, filters, verdicts, provenance,
 latency percentiles and the conditions for a meaningful comparison. The guide is served locally
 at `/help`, requires no account and makes no third-party requests.
-NCI policy and agency links are in the footer. NCIDS component/typography integration is tracked
-in the [assurance plan](government-site-assurance.md). Production review is handled separately
+Styling comes from two local stylesheets, `/assets/ncids.css` (the NCIDS fonts, colors and
+footer shared with the documentation site) and `/assets/portal.css`; pages carry no inline
+style, so the content security policy is `style-src 'self'`. NCI policy and agency links are in
+the footer, read from the `[project.extra.footer]` table of `docs/site-assets/zensical.toml`,
+the same table the documentation footer uses; the portal will not start if that table is missing
+or malformed. It finds these files from its own location, whatever the working directory.
+NCIDS component/typography integration is tracked in the
+[assurance plan](government-site-assurance.md). Production review is handled separately
 by the owner and does not block local development or the Phase 7 release.
 
 A bound bundle follows the [evidence contract](evidence-contract.md): `envelope.json`, optional

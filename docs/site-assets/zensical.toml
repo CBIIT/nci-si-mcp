@@ -4,7 +4,7 @@ site_description = "MCP prototype documentation, behavioral stories and deployme
 docs_dir = "content"
 site_dir = "site"
 use_directory_urls = false
-extra_css = ["assets/site.css"]
+extra_css = ["assets/ncids.css", "assets/site.css"]
 nav = [
   { "Start here" = [
     { "Overview" = "README.md" },
@@ -45,6 +45,23 @@ nav = [
     { "caDSR" = "docs/upstream/cadsr.md" },
     { "Shared SI" = "docs/upstream/ssis.md" },
   ] },
+]
+
+# The footer links of the documentation site and of the local validation portal.
+[project.extra.footer]
+contact_url = "https://github.com/CBIIT/nci-si-mcp/issues"
+agencies = [
+  { label = "U.S. Department of Health and Human Services", url = "https://www.hhs.gov" },
+  { label = "National Institutes of Health", url = "https://www.nih.gov" },
+  { label = "National Cancer Institute", url = "https://www.cancer.gov" },
+  { label = "USA.gov", url = "https://www.usa.gov" },
+]
+policies = [
+  { label = "Disclaimer Policy", url = "https://www.cancer.gov/policies/disclaimer" },
+  { label = "Accessibility", url = "https://www.cancer.gov/policies/accessibility" },
+  { label = "FOIA", url = "https://www.nih.gov/institutes-nih/nih-office-director/office-communications-public-liaison/freedom-information-act-office" },
+  { label = "HHS Vulnerability Disclosure", url = "https://www.hhs.gov/vulnerability-disclosure-policy" },
+  { label = "Privacy and Security", url = "https://www.cancer.gov/policies/privacy-security" },
 ]
 
 [project.theme]

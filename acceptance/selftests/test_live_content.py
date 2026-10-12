@@ -1,6 +1,7 @@
 """Live-content acceptance rejects errors and invented identity through a real MCP process."""
 
 import pytest
+
 from conftest import SUITE
 
 pytest_plugins = ["pytester"]

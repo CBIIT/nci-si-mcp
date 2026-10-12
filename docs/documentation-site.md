@@ -41,7 +41,7 @@ require all six checks to pass: flowchart, sequence, state, entity relationships
 labels (powers, fractions and roots), and rejection of untrusted mathematical links. Also
 inspect the architecture and deployment pages visually. The test page is not part of the
 publication allowlist; remove the disposable preview after testing.
-The site serves its diagram runtime, stylesheet, fonts and
+The site serves its diagram runtime, stylesheets, fonts and
 search assets locally; external references remain ordinary links. Repository README badges
 become text links in the site, so browsing documentation does not fetch third-party badge images.
 Serve the artifact over HTTP; direct `file://` search is not a supported preview mode.
@@ -52,7 +52,10 @@ Open Sans body text and Roboto Mono code. Font files and their upstream licenses
 under `docs/site-assets/fonts`; `sources.json` records the pinned source revision and SHA-256
 digests. No browser request to a font provider is needed. The compact blue footer retains
 agency and policy links, identifies this prototype, and links to project maintainers without
-social media widgets. Edit `main.html` and `site.css` there, then rebuild; the template itself
+social media widgets. The NCIDS fonts, color tokens and footer styling are in `ncids.css`,
+shared with the local validation portal; `site.css` holds the Material overrides, and the
+footer links are the `[project.extra.footer]` table of `zensical.toml`, which `main.html` loops
+over and the portal reads too. Edit those files there, then rebuild; the template itself
 is not a standalone web page.
 On wide screens, the native Zensical search control sits above “On this page.” It returns
 to the header when the right sidebar is hidden; the same control retains its keyboard shortcut.

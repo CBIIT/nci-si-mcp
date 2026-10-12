@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import json
 import socket
+import sys
 import threading
 import time
 from contextlib import asynccontextmanager
@@ -76,11 +77,15 @@ class HTTPBenchmarkTest(ServerFixture):
             listener.bind(("127.0.0.1", 0))
             port = listener.getsockname()[1]
             # Bound but not listening: no other service can claim this port during the probe.
+            # Linux refuses the connection at once; macOS leaves the SYN unanswered until the
+            # kernel gives up after about 7.8 s. The one-second timeout bounds both; the report
+            # names the refusal "transport_error" and the unanswered connect "timeout".
             url = f"http://127.0.0.1:{port}/mcp"
             report = asyncio.run(
-                run_http(url, (url,), [self.case], Limits(), self.output, fixture=True)
+                run_http(url, (url,), [self.case], Limits(timeout=1), self.output, fixture=True)
             )
-        self.assertEqual(report["stopReason"], "transport_error")
+        expected = "timeout" if sys.platform == "darwin" else "transport_error"
+        self.assertEqual(report["stopReason"], expected)
         self.assertFalse(report["complete"])
         self.assertEqual(report["cases"][0]["cold"]["samples"], [])
 

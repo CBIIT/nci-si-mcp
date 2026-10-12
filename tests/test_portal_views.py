@@ -1,6 +1,7 @@
 """Result pages explain provenance and incompleteness without JavaScript or raw evidence."""
 
 import unittest
+from unittest.mock import patch
 
 from scripts.evidence_http import PHASE_LABELS
 from scripts.portal_configuration import LocalConfiguration
@@ -15,6 +16,7 @@ from scripts.portal_views import (
     page,
     run_page,
 )
+from scripts.site_assets import Footer, FooterLink
 
 from test_evidence_acceptance import missing_report, project, report
 from test_evidence_benchmark import project as benchmark_projection
@@ -38,7 +40,7 @@ class PortalViewsTest(unittest.TestCase):
 
     def test_every_page_exposes_nci_policies_and_ordered_agency_links(self):
         html = page("Run checks", "<p>Content</p>")
-        footer = html.split("<footer>", 1)[1]
+        footer = html.split('<footer class="nci-footer">', 1)[1]
         for label in (
             "Disclaimer Policy",
             "Accessibility",
@@ -60,8 +62,25 @@ class PortalViewsTest(unittest.TestCase):
         self.assertIn('class="usa-skipnav skip" href="#main"', html)
         self.assertNotIn("An official website of the United States government", html)
 
+    def test_footer_labels_and_urls_are_escaped(self):
+        link = FooterLink('A&B "<x>"', 'https://example.test/?a=1&b="2"')
+        footer = Footer(link.url, (link,), (link,))
+        with patch("scripts.portal_views.FOOTER", footer):
+            html = page("Run checks", "<p>Content</p>").split('<footer class="nci-footer">', 1)[1]
+        self.assertIn(
+            '<a href="https://example.test/?a=1&amp;b=&quot;2&quot;">'
+            "Contact project maintainers</a>",
+            html,
+        )
+        self.assertIn(
+            '<li><a href="https://example.test/?a=1&amp;b=&quot;2&quot;">'
+            "A&amp;B &quot;&lt;x&gt;&quot;</a></li>",
+            html,
+        )
+        self.assertNotIn("<x>", html)
+
     def test_the_contact_link_points_at_the_project_issue_tracker(self):
-        footer = page("Run checks", "<p>Content</p>").split("<footer>", 1)[1]
+        footer = page("Run checks", "<p>Content</p>").split('<footer class="nci-footer">', 1)[1]
         self.assertIn(
             '<a href="https://github.com/CBIIT/nci-si-mcp/issues">Contact project maintainers</a>',
             footer,

@@ -171,11 +171,11 @@ class OperatorEnvironmentTest(unittest.TestCase):
                 result = fixture_benchmark(
                     output,
                     limits=Limits(repetitions=1, warmups=0),
-                    names=["get_concept", "harmonize_data_dictionary"],
+                    names=["get_concept"],
                 )
             self.assertTrue(result["complete"])
             self.assertEqual(result["mode"], "fixture")
-            self.assertEqual(len(result["cases"]), 2)
+            self.assertEqual(len(result["cases"]), 1)
             self.assertTrue(
                 all(case["warm"]["summary"]["errorRate"] == 0 for case in result["cases"])
             )

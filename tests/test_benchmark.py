@@ -1,12 +1,17 @@
+import io
 import json
 import tempfile
 import unittest
-from contextlib import contextmanager
+from contextlib import contextmanager, redirect_stdout
+from http.client import HTTPConnection
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
+from urllib.parse import urlsplit
 
 from scripts import benchmark
+
+from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
 
 
 def sample(elapsed=1.0, *, error=False, requests=2, size=9):
@@ -28,14 +33,16 @@ class BenchmarkTest(unittest.TestCase):
         self.assertEqual(report["cases"], [])
         self.assertEqual(report["expectedCases"], ["get_form"])
 
-    def test_all_representative_calls_produce_successful_correlated_fixture_evidence(self):
+    def test_a_representative_call_produces_successful_correlated_fixture_evidence(self):
+        # match_data_elements needs its fixture scenario (cadsr/credentialed) activated.
+        names = ["get_concept", "match_data_elements"]
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "benchmark.json"
-            report = benchmark.run("fixture", list(benchmark.CASES), 1, output)
+            report = benchmark.run("fixture", names, 1, output)
             self.assertEqual(json.loads(output.read_text()), report)
         self.assertTrue(report["complete"])
-        self.assertEqual(report["expectedCases"], list(benchmark.CASES))
-        self.assertEqual(len(report["cases"]), 10)
+        self.assertEqual(report["expectedCases"], names)
+        self.assertEqual([case["tool"] for case in report["cases"]], names)
         for case in report["cases"]:
             with self.subTest(tool=case["tool"]):
                 self.assertEqual(case["cold"]["summary"]["errorRate"], 0)
@@ -145,3 +152,34 @@ class BenchmarkTest(unittest.TestCase):
                         call_tool=lambda *_args, reply=reply, **_kwargs: reply
                     )
                     benchmark.measure(session, log, {"tool": "get_concept", "arguments": {}})
+
+
+class BenchmarkCommandTest(unittest.TestCase):
+    def test_nonpositive_repetitions_are_rejected_without_creating_measurements(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "report.json"
+            for repetitions in ("0", "-1"):
+                with (
+                    self.subTest(repetitions=repetitions),
+                    patch(
+                        "sys.argv",
+                        ["benchmark", "--output", str(output), "--repetitions", repetitions],
+                    ),
+                    redirect_stdout(io.StringIO()),
+                    self.assertRaisesRegex(ValueError, "At least one measured repetition"),
+                ):
+                    benchmark.main()
+                self.assertFalse(output.exists())
+
+
+class CaseIsolationTest(unittest.TestCase):
+    def test_a_case_starts_with_the_log_of_no_earlier_request(self):
+        case = benchmark.cases(["get_concept"])[0]
+        with FixtureServer(load_fixtures(benchmark.FIXTURES)) as upstream:
+            connection = HTTPConnection(urlsplit(upstream.url).netloc, timeout=3)
+            self.addCleanup(connection.close)
+            connection.request("GET", "/left-by-the-previous-case")
+            connection.getresponse().read()
+            self.assertEqual(len(upstream.log()), 1)
+            benchmark.environment_for("fixture", upstream, case)
+            self.assertEqual(upstream.log(), [])

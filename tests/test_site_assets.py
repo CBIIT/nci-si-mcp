@@ -1,7 +1,9 @@
-"""Local typography retains its reviewed upstream bytes and licence provenance."""
+"""Local typography keeps its reviewed upstream bytes and licence provenance; the shared NCIDS
+stylesheet is separate from the site overrides and loads before them."""
 
 import hashlib
 import json
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -22,3 +24,17 @@ class SiteAssetsTest(unittest.TestCase):
                 self.assertEqual(
                     hashlib.sha256((root / name).read_bytes()).hexdigest(), source["sha256"]
                 )
+
+
+class StylesheetTest(unittest.TestCase):
+    def test_shared_ncids_rules_are_separate_from_the_material_overrides(self):
+        root = Path("docs/site-assets")
+        shared = (root / "ncids.css").read_text()
+        overrides = (root / "site.css").read_text()
+        for rule in ("@font-face", ".nci-footer__inner"):
+            self.assertIn(rule, shared)
+            self.assertNotIn(rule, overrides)
+
+    def test_documentation_loads_the_shared_rules_before_the_overrides(self):
+        config = tomllib.loads(Path("docs/site-assets/zensical.toml").read_text())
+        self.assertEqual(config["project"]["extra_css"], ["assets/ncids.css", "assets/site.css"])

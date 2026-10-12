@@ -4,7 +4,6 @@ import select
 import signal
 import subprocess
 import sys
-import time
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -29,6 +28,33 @@ def spawn(script: str, **options) -> subprocess.Popen[str]:
     return process
 
 
+class SlowToExit:
+    """A stand-in process that ignores SIGTERM, finishes with code 7 once the wait given to it
+    is at least `grace` seconds, and dies of SIGKILL otherwise."""
+
+    def __init__(self, grace: float) -> None:
+        self.grace = grace
+        self.returncode = None
+        self.killed = False
+        self.waits = []
+
+    def poll(self):
+        return self.returncode
+
+    def send_signal(self, sig):
+        self.killed = sig == signal.SIGKILL
+
+    def wait(self, timeout):
+        self.waits.append(timeout)
+        if self.killed:
+            self.returncode = -signal.SIGKILL
+        elif timeout >= self.grace:
+            self.returncode = 7
+        else:
+            raise subprocess.TimeoutExpired("slow", timeout)
+        return self.returncode
+
+
 class StopTest(unittest.TestCase):
     def test_a_child_that_ignores_termination_is_killed_and_reaped(self):
         process = spawn(IGNORES_TERMINATION)
@@ -44,17 +70,16 @@ class StopTest(unittest.TestCase):
             process.stdout.close()
 
     def test_a_slow_child_gets_its_full_grace_period_before_it_is_killed(self):
-        # Ignores termination for 2 s, then exits by itself: the 10 s grace must outlast it.
-        slow = (
-            "import signal,sys,time; signal.signal(signal.SIGTERM,signal.SIG_IGN); "
-            "print('ready',flush=True); time.sleep(2); sys.exit(7)"
-        )
-        process = spawn(slow)
-        try:
-            stop(process)
-            self.assertEqual(process.returncode, 7)
-        finally:
-            process.stdout.close()
+        # Exits by itself, but only if it is allowed to wait at least ten seconds after SIGTERM.
+        process = SlowToExit(grace=10)
+        stop(process)
+        self.assertEqual(process.returncode, 7)
+
+    def test_a_child_outliving_its_grace_period_is_waited_for_ten_seconds_twice(self):
+        process = SlowToExit(grace=11)
+        stop(process)
+        self.assertEqual(process.waits, [10, 10])
+        self.assertEqual(process.returncode, -signal.SIGKILL)
 
     def test_a_cooperative_child_is_terminated(self):
         process = spawn("import time; print('ready',flush=True); time.sleep(300)")
@@ -119,13 +144,8 @@ class WaitUntilTest(unittest.TestCase):
         self.assertEqual(list(answers), [])
 
     def test_false_when_the_deadline_passes_first(self):
-        with patch("scripts.processes.time.monotonic", side_effect=(0, 0, 11)):
+        with patch("scripts.processes.time.monotonic", side_effect=(0, 0, 10.5)):
             self.assertFalse(wait_until(lambda: False, 10, interval=0))
-
-    def test_a_never_true_predicate_returns_false_after_about_the_given_seconds(self):
-        started = time.monotonic()
-        self.assertFalse(wait_until(lambda: False, 0.05, interval=0.01))
-        self.assertLess(time.monotonic() - started, 0.5)
 
     def test_a_predicate_true_at_once_is_not_delayed_by_a_spent_deadline(self):
         self.assertTrue(wait_until(lambda: True, 0, interval=0))

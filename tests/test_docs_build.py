@@ -1,6 +1,7 @@
 """Exercise a complete static build, including search and excluded-file canaries."""
 
 import json
+import re
 import shutil
 import unittest
 from pathlib import Path
@@ -19,7 +20,7 @@ class DocumentationBuildTest(unittest.TestCase):
         self.root = Path(self.directory.name)
         assets = self.root / "docs/site-assets"
         assets.mkdir(parents=True)
-        for name in ("site.css", "main.html", "search-placement.js"):
+        for name in ("ncids.css", "site.css", "main.html", "search-placement.js"):
             shutil.copyfile(ROOT / "docs/site-assets" / name, assets / name)
         shutil.copytree(ROOT / "docs/site-assets/fonts", assets / "fonts")
         vendor = assets / "node_modules/mermaid"
@@ -44,7 +45,13 @@ site_name = "Test documentation"
 docs_dir = "content"
 site_dir = "site"
 use_directory_urls = false
+extra_css = ["assets/ncids.css", "assets/site.css"]
 nav = [{ Overview = "README.md" }, { Story = "docs/story.md" }]
+[project.extra.footer]
+contact_url = "https://example.test/contact?a=1&b=2"
+agencies = [{ label = "Health & Human Services", url = "https://example.test/agency?a=1&b=2" }]
+policies = [{ label = "Privacy & Security", url = "https://example.test/policy?a=1&b=2" }]
+
 [project.theme]
 font = false
 custom_dir = "overrides"
@@ -53,6 +60,37 @@ custom_dir = "overrides"
     def build(self):
         with patch("scripts.docs_site.source_identity", return_value=self.identity):
             return build_site(self.root, self.output)
+
+    def test_footer_links_come_from_the_configuration_table(self):
+        self.build()
+        footer = (self.output / "index.html").read_text().split('<footer class="nci-footer">', 1)[1]
+        links = re.findall(r'<a href="([^"#]+)">([^<]+)</a>', footer.split("</footer>", 1)[0])
+        self.assertEqual(
+            links,
+            [
+                ("https://example.test/contact?a=1&amp;b=2", "Contact project maintainers"),
+                ("https://example.test/agency?a=1&amp;b=2", "Health &amp; Human Services"),
+                ("https://example.test/policy?a=1&amp;b=2", "Privacy &amp; Security"),
+            ],
+        )
+
+    def test_footer_urls_cannot_break_out_of_their_attribute(self):
+        hostile = 'https://example.test/x?q="><b>'
+        in_toml = hostile.replace('"', '\\"')
+        config = self.root / "docs/site-assets/zensical.toml"
+        config.write_text(
+            config.read_text()
+            .replace("https://example.test/contact?a=1&b=2", in_toml)
+            .replace("https://example.test/agency?a=1&b=2", in_toml)
+            .replace("https://example.test/policy?a=1&b=2", in_toml)
+        )
+        self.build()
+        footer = (self.output / "index.html").read_text().split('<footer class="nci-footer">', 1)[1]
+        escaped = "https://example.test/x?q=&quot;&gt;&lt;b&gt;"
+        self.assertEqual(
+            re.findall(r'<a href="([^"#]*)">', footer.split("</footer>", 1)[0]),
+            [escaped, escaped, escaped],
+        )
 
     def test_complete_artifact_has_public_story_search_and_no_excluded_content(self):
         self.build()
@@ -68,6 +106,18 @@ custom_dir = "overrides"
             with self.subTest(path=path.relative_to(self.output)):
                 self.assertNotIn(b"PRIVATE-STORY-CANARY", path.read_bytes())
                 self.assertNotIn(b"PRIVATE-RESULT-CANARY", path.read_bytes())
+
+    def test_site_ships_the_shared_stylesheet_and_links_it_before_the_overrides(self):
+        self.build()
+        self.assertEqual(
+            (self.output / "assets/ncids.css").read_bytes(),
+            (ROOT / "docs/site-assets/ncids.css").read_bytes(),
+        )
+        links = re.findall(
+            r'<link[^>]+href="\./(assets/(?:ncids|site)\.css)"',
+            (self.output / "index.html").read_text(),
+        )
+        self.assertEqual(links, ["assets/ncids.css", "assets/site.css"])
 
     def test_existing_destination_preserves_human_files(self):
         self.output.mkdir()

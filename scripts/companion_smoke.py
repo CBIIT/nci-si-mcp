@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import html
 import json
+import re
 import subprocess
 import sys
 import uuid
@@ -13,6 +15,7 @@ from typing import Any
 
 from scripts.portal_jobs import ACTIVE
 from scripts.processes import wait_until
+from scripts.site_assets import STYLESHEETS, load_footer
 
 COMPOSE = "container/compose.local.yaml"
 
@@ -56,6 +59,19 @@ def ready(port: int) -> None:
 
     if not wait_until(healthy, 45, interval=0.2):
         raise TimeoutError("Companion did not become healthy")
+
+
+def portal_styling(port: int) -> None:
+    """The portal page links its stylesheets, each is served, and the footer carries the contact
+    link of the documentation configuration."""
+    status, page = request(port, "/")
+    require(status == HTTPStatus.OK, "Portal page unavailable")
+    sheets = re.findall(r'<link rel="stylesheet" href="([^"]+)">', page)
+    require(sheets == [f"/assets/{name}" for name in STYLESHEETS], "Portal stylesheets missing")
+    for sheet in sheets:
+        require(request(port, sheet)[0] == HTTPStatus.OK, f"Portal stylesheet {sheet} unavailable")
+    contact = html.escape(load_footer().contact_url, quote=True)  # as the portal renders it
+    require(f'href="{contact}"' in page, "Portal footer link missing")
 
 
 def inspect_boundary(container: str) -> None:
@@ -190,6 +206,7 @@ def main() -> None:
         ready(8080)
         ready(8081)
         require("National Cancer Institute" in request(8080, "/")[1], "Docs identity missing")
+        portal_styling(8081)
         admin = docker(*compose, "ps", "-q", "administration")
         inspect_boundary(admin)
         address, port = _serving_probe(network, serving)

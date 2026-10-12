@@ -46,6 +46,10 @@ by restart are recorded as interrupted and are never retried automatically.
 The admin container offers only fixture acceptance and benchmark profiles. Owned disposable
 subprocesses share its bounded resource allocation and internal network. It has no serving
 MCP network, index/model volume, production credential, Docker socket or external network route.
+The admin image also carries `docs/site-assets/ncids.css`, `portal.css` and `zensical.toml`
+(the portal's stylesheets and footer links); the smoke test checks that the portal page links
+its stylesheets, that each is served, and that the footer shows the contact link. The docs image
+ships the `scripts` modules it runs (`python3.14 -m scripts.static_server` from `/app`).
 A small ingress relay publishes port 8081 on host loopback and forwards bytes only to
 `administration:8081`; request headers cannot select its destination. It has no evidence
 volume or serving network. This extra process supports Docker engines that do not publish

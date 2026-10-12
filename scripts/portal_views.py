@@ -5,85 +5,18 @@ from __future__ import annotations
 from html import escape
 from typing import Any, Literal
 
-from scripts.docs_links import REPOSITORY_URL
 from scripts.evidence_benchmark import comparable
+from scripts.site_assets import STYLESHEETS, FooterLink, load_footer
 
-FOIA_URL = (
-    "https://www.nih.gov/institutes-nih/nih-office-director/"
-    "office-communications-public-liaison/freedom-information-act-office"
-)
+# Read once at start-up: a missing or malformed table stops the portal rather than render an
+# empty footer.
+FOOTER = load_footer()
 
-# Published NCIDS colors and locally hosted typography; see government-site-assurance.md.
-STYLE = """
-@font-face{font-family:"Open Sans";src:url("/assets/open-sans.ttf") format("truetype");
-font-weight:300 800;font-display:swap}
-@font-face{font-family:Poppins;src:url("/assets/poppins-regular.ttf") format("truetype");
-font-weight:400;font-display:swap}
-@font-face{font-family:Poppins;src:url("/assets/poppins-semibold.ttf") format("truetype");
-font-weight:600;font-display:swap}
-@font-face{font-family:"Roboto Mono";src:url("/assets/roboto-mono.ttf") format("truetype");
-font-weight:100 700;font-display:swap}
-:root{color-scheme:light;font:1rem/1.6 "Open Sans",system-ui,sans-serif;color:#1b1b1b;
-background:#f0f0f0}*{box-sizing:border-box}body{margin:0}a{color:#004971;text-underline-offset:.2em}
-a:hover{text-decoration-thickness:2px}h1,h2,h3{line-height:1.25;overflow-wrap:anywhere}
-h1,h2,h3,.brand,.footer-identity strong{font-family:Poppins,sans-serif;font-weight:600}
-code,pre{font-family:"Roboto Mono",monospace}
-h1{font-size:clamp(1.7rem,4vw,2.5rem);letter-spacing:-.03em;margin:.25rem 0 1rem}
-h2{font-size:1.35rem;margin-top:2rem}h3{font-size:1.1rem}p{max-width:78ch}
-.shell{max-width:78rem;margin:auto;padding:1.25rem 2rem}.topbar{background:#00314b;color:white}
-.topbar .shell{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;
-align-items:center}
-.brand{font-size:1.1rem;font-weight:750;letter-spacing:.02em}.topbar a{color:white}
-nav{display:flex;gap:1.5rem;flex-wrap:wrap}
-nav a[aria-current]{font-weight:700;text-decoration-thickness:3px}
-.eyebrow{text-transform:uppercase;font-size:.75rem;letter-spacing:.1em;
-font-weight:750;color:#3d4551}.skip{position:absolute;left:1rem;top:-8rem;background:white;
-padding:.75rem;z-index:2}.skip:focus{top:.5rem}.notice{background:#d4e7f2;border-left:4px solid
-#004971;padding:.75rem 1rem;border-radius:0 .4rem .4rem 0;font-size:.9rem;max-width:none}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr));gap:1rem;
-margin:1.5rem 0}.card{background:white;border:1px solid #cbd8e1;border-radius:.65rem;
-padding:1.25rem;
-box-shadow:0 2px 5px #12364a08}.card h2{margin:0 0 1rem;font-size:1rem}.card p{margin:.5rem 0}
-.badge{display:inline-block;background:#edf3f6;border:1px solid #a6bbc7;border-radius:2rem;
-padding:.1rem .65rem;font-size:.8rem;font-weight:700;margin:.25rem .25rem .25rem 0}
-.interrupted,.cancelled,.unavailable{background:#fdf2bf;color:#5c4809;border-color:#936f38}
-.failed{background:#fde2ea;color:#700824;border-color:#b60d43}
-.meta{color:#3d4551;font-size:.9rem}.run-list{list-style:none;padding:0;display:grid;gap:.6rem}
-.run-list li{background:white;border:1px solid #cbd8e1;border-radius:.5rem;padding:1rem 1.25rem}
-.run-link{font-weight:700}.scroll{overflow-x:auto;border:1px solid #cbd8e1;border-radius:.5rem;
-background:white;margin:1rem 0 1.5rem}table{border-collapse:collapse;width:100%;font-size:.9rem}
-caption{text-align:left;padding:.75rem 1rem;font-weight:700;color:#1b1b1b}
-th,td{text-align:left;border-top:1px solid #d9e3ea;padding:.7rem 1rem;overflow-wrap:anywhere}
-th{background:#edf3f6;font-size:.8rem}tbody tr:nth-child(even){background:#f7fafc}
-:focus-visible{outline:3px solid #004971;outline-offset:3px}
-.topbar :focus-visible{outline-color:white}
-form{display:flex;gap:1rem;align-items:end;flex-wrap:wrap;background:white;border:1px solid #cbd8e1;
-border-radius:.5rem;padding:1.25rem;margin:1rem 0}label{display:grid;gap:.35rem;font-weight:650}
-input,select,button{font:inherit;max-width:100%;min-height:2.75rem;border:1px solid #7892a3;
-border-radius:.35rem;padding:.5rem .75rem}input,select{background:white;color:#1b1b1b}
-button,.action{background:#004971;color:white;font-weight:650;cursor:pointer;border-radius:.35rem}
-button:hover,.action:hover{background:#00314b}.action{display:inline-block;padding:.65rem 1rem;
-text-decoration:none}.help-link{font-size:.9rem}.help-nav{display:flex;flex-wrap:wrap;gap:1rem}
-code{overflow-wrap:anywhere;background:#edf3f6;padding:.1rem .25rem;border-radius:.2rem}
-pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#edf3f6;padding:1rem;border-radius:.4rem}
-footer{margin-top:2rem;font-size:.85rem;line-height:1.5;color:white;background:#00314b}
-footer .shell{padding-top:1.25rem;padding-bottom:1rem;display:grid;gap:1rem}
-footer a{color:white}footer :focus-visible{outline-color:white}
-footer p,footer ul{margin:0}.footer-main{display:flex;justify-content:space-between;
-align-items:start;gap:1rem 2rem;flex-wrap:wrap}
-.footer-identity strong{display:block;font-size:1.4rem;line-height:1.3}
-.footer-identity span{font-size:1rem}.footer-identity .footer-context{margin-top:.65rem}
-.footer-contact{text-align:right;margin-left:auto}
-.footer-contact h2{font-size:1.2rem;margin:0 0 .3rem}
-footer .footer-agencies{display:block;margin-top:.65rem}
-footer .footer-agencies ul{display:block}footer .footer-bottom{display:flex;
-justify-content:space-between;align-items:baseline;gap:.5rem 1.5rem;flex-wrap:wrap}
-footer ul{list-style:none;padding:0;display:flex;gap:.35rem 1.25rem;flex-wrap:wrap}
-footer a{display:inline-block;padding:.15rem 0}
-section[id]{scroll-margin-top:1rem}@media(max-width:40rem){.shell{padding:1rem}form,label{width:100%}
-input,select{width:100%}th,td{padding:.5rem}.card{padding:1rem}
-.footer-contact{text-align:left;margin-left:0}}
-"""
+
+def _footer_links(links: tuple[FooterLink, ...]) -> str:
+    return "".join(
+        f'<li><a href="{text(link.url)}">{text(link.label)}</a></li>\n' for link in links
+    )
 
 
 def text(value: Any) -> str:
@@ -103,6 +36,10 @@ def _navigation(section: str | None) -> str:
     return '<nav aria-label="Main">' + "".join(links) + "</nav>"
 
 
+def _stylesheets() -> str:
+    return "".join(f'<link rel="stylesheet" href="/assets/{name}">' for name in STYLESHEETS)
+
+
 def page(
     title: str,
     content: str,
@@ -111,33 +48,25 @@ def page(
 ) -> str:
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{text(title)} · NCI SI local validation</title><style>{STYLE}</style></head>
+<title>{text(title)} · NCI SI local validation</title>{_stylesheets()}</head>
 <body id="top"><a class="usa-skipnav skip" href="#main">Skip to content</a>
 <header class="topbar"><div class="shell"><a class="brand" href="/">NCI SI · Validation</a>
 {_navigation(section)}</div>
 </header><main id="main" class="shell"><p class="eyebrow">Local evidence workspace</p>
 <h1>{text(title)}</h1><p class="notice">No login is required locally.
 UAT/PROD administration is disabled pending platform integration.</p>
-{content}</main><footer><div class="shell"><div class="footer-main">
-<div class="footer-identity"><p><strong>National Cancer Institute</strong>
-<span>at the National Institutes of Health</span></p>
-<p class="footer-context">Semantic Infrastructure · Local validation prototype<br>
+{content}</main><footer class="nci-footer"><div class="nci-footer__inner">
+<div class="nci-footer__main"><div class="nci-footer__identity">
+<strong>National Cancer Institute</strong> <span>at the National Institutes of Health</span>
+<p>Semantic Infrastructure · Local validation prototype<br>
 <a href="/help#provenance">Understand the evidence</a></p></div>
-<div class="footer-contact"><h2>Contact us</h2>
-<a href="{REPOSITORY_URL}/issues">Contact project maintainers</a>
-<nav class="footer-agencies" aria-label="Government agencies"><ul>
-<li><a href="https://www.hhs.gov">U.S. Department of Health and Human Services</a></li>
-<li><a href="https://www.nih.gov">National Institutes of Health</a></li>
-<li><a href="https://www.cancer.gov">National Cancer Institute</a></li>
-<li><a href="https://www.usa.gov">USA.gov</a></li>
-</ul></nav></div></div><div class="footer-bottom"><nav aria-label="Policies"><ul>
-<li><a href="https://www.cancer.gov/policies/disclaimer">Disclaimer Policy</a></li>
-<li><a href="https://www.cancer.gov/policies/accessibility">Accessibility</a></li>
-<li><a href="{FOIA_URL}">FOIA</a></li>
-<li><a href="https://www.hhs.gov/vulnerability-disclosure-policy">
-HHS Vulnerability Disclosure</a></li>
-<li><a href="https://www.cancer.gov/policies/privacy-security">Privacy and Security</a></li>
-</ul></nav><a href="#top">Back to top ↑</a></div></div></footer></body></html>"""
+<div class="nci-footer__contact"><h2>Contact us</h2>
+<a href="{text(FOOTER.contact_url)}">Contact project maintainers</a>
+<nav aria-label="Government agencies"><ul>
+{_footer_links(FOOTER.agencies)}</ul></nav></div></div>
+<div class="nci-footer__bottom"><nav class="nci-footer__policies" aria-label="Policies"><ul>
+{_footer_links(FOOTER.policies)}</ul></nav><a href="#top">Back to top ↑</a></div>
+</div></footer></body></html>"""
 
 
 def table(title: str, headers: list[str], rows: list[list[Any]]) -> str:
