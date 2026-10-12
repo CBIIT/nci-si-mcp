@@ -1,6 +1,7 @@
 """Container verification waits for actual queue states and requires readable results."""
 
 import json
+import re
 import subprocess
 import threading
 import unittest
@@ -133,11 +134,15 @@ class PortalStylingTest(unittest.TestCase):
         connection = HTTPConnection("127.0.0.1", self.server.server_port, timeout=3)
         self.addCleanup(connection.close)
         connection.request("GET", "/")
-        page = connection.getresponse().read().decode().replace("/issues", "/elsewhere")
-        for path, replacement in (
-            ("/assets/ncids.css", (404, "")),
-            ("/assets/portal.css", (404, "")),
-            ("/", (200, page)),
+        page = connection.getresponse().read().decode()
+        unstyled = re.sub(r"<link[^>]*stylesheet[^>]*>", "", page)
+        self.assertNotEqual(unstyled, page)
+        for case, path, replacement in (
+            ("ncids.css missing", "/assets/ncids.css", (404, "")),
+            ("portal.css missing", "/assets/portal.css", (404, "")),
+            ("wrong contact link", "/", (200, page.replace("/issues", "/elsewhere"))),
+            ("no stylesheet links", "/", (200, unstyled)),
+            ("page unavailable", "/", (503, page)),
         ):
-            with self.subTest(path=path), self.assertRaises(RuntimeError):
+            with self.subTest(case), self.assertRaises(RuntimeError):
                 self.smoke({path: replacement})
