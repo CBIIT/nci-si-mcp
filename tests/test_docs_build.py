@@ -1,6 +1,7 @@
 """Exercise a complete static build, including search and excluded-file canaries."""
 
 import json
+import re
 import shutil
 import unittest
 from pathlib import Path
@@ -45,6 +46,11 @@ docs_dir = "content"
 site_dir = "site"
 use_directory_urls = false
 nav = [{ Overview = "README.md" }, { Story = "docs/story.md" }]
+[project.extra.footer]
+contact_url = "https://example.test/contact"
+agencies = [{ label = "Agency One", url = "https://example.test/agency" }]
+policies = [{ label = "Policy One", url = "https://example.test/policy" }]
+
 [project.theme]
 font = false
 custom_dir = "overrides"
@@ -53,6 +59,19 @@ custom_dir = "overrides"
     def build(self):
         with patch("scripts.docs_site.source_identity", return_value=self.identity):
             return build_site(self.root, self.output)
+
+    def test_footer_links_come_from_the_configuration_table(self):
+        self.build()
+        footer = (self.output / "index.html").read_text().split('<footer class="nci-footer">', 1)[1]
+        links = re.findall(r'<a href="([^"#]+)">([^<]+)</a>', footer.split("</footer>", 1)[0])
+        self.assertEqual(
+            links,
+            [
+                ("https://example.test/contact", "Contact project maintainers"),
+                ("https://example.test/agency", "Agency One"),
+                ("https://example.test/policy", "Policy One"),
+            ],
+        )
 
     def test_complete_artifact_has_public_story_search_and_no_excluded_content(self):
         self.build()
