@@ -381,6 +381,12 @@ class LocalRunWorkflowTest(unittest.TestCase):
                     ],
                 )
 
+    def test_only_the_fixture_run_survives_a_failing_command_to_judge_its_status(self):
+        # Under the default `bash -e`, exit status 1 would end the step before the guard and the
+        # comparison that judge it.
+        shells = {step["name"]: step["shell"] for step in steps() if "shell" in step}
+        self.assertEqual(shells, {"Run the acceptance suite against the fixtures": "bash {0}"})
+
     def test_a_newer_push_replaces_only_a_pull_request_run(self):
         self.assertEqual(
             load(LOCAL_RUN)["concurrency"],
