@@ -1,7 +1,8 @@
+import io
 import json
 import tempfile
 import unittest
-from contextlib import contextmanager
+from contextlib import contextmanager, redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -145,3 +146,21 @@ class BenchmarkTest(unittest.TestCase):
                         call_tool=lambda *_args, reply=reply, **_kwargs: reply
                     )
                     benchmark.measure(session, log, {"tool": "get_concept", "arguments": {}})
+
+
+class BenchmarkCommandTest(unittest.TestCase):
+    def test_nonpositive_repetitions_are_rejected_without_creating_measurements(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "report.json"
+            for repetitions in ("0", "-1"):
+                with (
+                    self.subTest(repetitions=repetitions),
+                    patch(
+                        "sys.argv",
+                        ["benchmark", "--output", str(output), "--repetitions", repetitions],
+                    ),
+                    redirect_stdout(io.StringIO()),
+                    self.assertRaisesRegex(ValueError, "At least one measured repetition"),
+                ):
+                    benchmark.main()
+                self.assertFalse(output.exists())
