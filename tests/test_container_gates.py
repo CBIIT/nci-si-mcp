@@ -3,11 +3,20 @@ import re
 import subprocess
 import sys
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 from scripts import container_lock, image_scan
+
+PDM_LOCK = Path(__file__).resolve().parents[1] / "pdm.lock"
+
+
+def locked_version(name: str) -> str:
+    """The version `pdm.lock` pins, read independently of container_lock."""
+    packages = tomllib.loads(PDM_LOCK.read_text())["package"]
+    return next(package["version"] for package in packages if package["name"] == name)
 
 
 class ContainerGateTest(unittest.TestCase):
@@ -100,17 +109,23 @@ class ContainerGateTest(unittest.TestCase):
                 self.assertEqual(process.returncode, status, process.stderr)
                 self.assertIn(f"Publication gate: {status} High/Critical findings", process.stdout)
 
+    def test_rendered_lock_pins_the_versions_pdm_locks(self):
+        rendered = container_lock.LOCK.read_text()
+        self.assertIn(f"\nmcp=={locked_version('mcp')} \\\n", rendered)
+        self.assertIn(f"torch-{locked_version('torch')}%2Bcpu", rendered)
+
     def test_current_lock_checks_and_version_or_hash_drift_fails(self):
         container_lock.check()
         original = container_lock.LOCK.read_text()
+        mcp, torch = locked_version("mcp"), locked_version("torch")
         with tempfile.TemporaryDirectory() as directory:
             lock = Path(directory) / "requirements.txt"
             with patch.object(container_lock, "LOCK", lock):
                 for changed in (
                     original.replace("# PDM: ", "# PDM: stale"),
-                    original.replace("mcp==2.2.0", "mcp==0.0.0"),
+                    original.replace(f"mcp=={mcp}", "mcp==0.0.0"),
                     original.replace("--hash=sha256:", "--hash=sha256:invalid", 1),
-                    original.replace("torch-2.14.1%2Bcpu", "torch-0.0.0%2Bcpu"),
+                    original.replace(f"torch-{torch}%2Bcpu", "torch-0.0.0%2Bcpu"),
                 ):
                     with self.subTest(lock=changed[:80]):
                         lock.write_text(changed)
