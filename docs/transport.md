@@ -144,6 +144,9 @@ No caDSR credentials or live upstream service are needed.
 
 The report is `acceptance/http-fixture.json`. The gate requires every expected case to be
 present and pass, except four `unprepared` cases that the remote contract requires it to skip;
-their names and count are printed. The complete stdio ratchet remains separate. The
+their names and count are printed. It exits 1 when the run differs from that, with one line on
+standard error per differing test, transport or failed gate, and 2 when the suite left no usable
+report (none, an incomplete one, or a crashed run), saying which. On failure it also prints the
+last 64 KiB of the server's log. The complete stdio ratchet remains separate. The
 `acceptance (HTTP fixture)` CI job runs this gate; making it a required branch check is an
 owner decision. Production deployment and index operation procedures follow in #121's runbook.

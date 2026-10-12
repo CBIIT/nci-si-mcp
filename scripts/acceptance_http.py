@@ -99,6 +99,9 @@ def prepare(directory: Path, *, environment: dict[str, str] | None = None) -> No
             raise RuntimeError("Index preparation requested an unrecorded upstream response")
 
 
+NO_USABLE_RUN = 2
+
+
 def report_skips(tests: dict[str, Any]) -> None:
     skipped = {name for name, row in tests.items() if row["outcome"] == "skipped"}
     print(f"Remote fixture run: {len(tests) - len(skipped)} executed, {len(skipped)} skipped.")
@@ -107,15 +110,28 @@ def report_skips(tests: dict[str, Any]) -> None:
 
 
 def verdict(report: dict[str, Any], expected: set[str]) -> bool:
-    tests = report["tests"]
-    report_skips(tests)
+    report_skips(report["tests"])
+    return not differences(report, expected)
+
+
+def _outcome_differences(tests: dict[str, Any], expected: set[str]) -> list[str]:
     observed = {name: row["outcome"] for name, row in tests.items()}
     wanted = {name: "skipped" if name in UNPREPARED else "passed" for name in expected}
-    return (
-        report["transport"] == "streamable-http"
-        and observed == wanted
-        and not report["failed_gates"]
-    )
+    return [
+        f"{name}: expected {wanted.get(name, 'absent')}, observed {observed.get(name, 'missing')}"
+        for name in sorted(observed.keys() | wanted.keys())
+        if observed.get(name) != wanted.get(name)
+    ]
+
+
+def differences(report: dict[str, Any], expected: set[str]) -> list[str]:
+    """One line per way the report differs from the expected remote fixture run."""
+    lines = _outcome_differences(report["tests"], expected)
+    if report["transport"] != "streamable-http":
+        lines.append(f"transport: expected streamable-http, observed {report['transport']}")
+    if report["failed_gates"]:
+        lines.append("failed gates: " + ", ".join(report["failed_gates"]))
+    return lines
 
 
 def run_suite(
@@ -151,15 +167,31 @@ def run_suite(
         status = suite.wait()
     finally:
         stop(suite)
-    if status or not output.exists():
-        return 1
+    return _judge(status, output)
+
+
+def _judge(status: int, output: Path) -> int:
+    """0 for the expected run; 1 for a run that differs from it; 2 for no usable run."""
+    if not output.exists():
+        return _failed(NO_USABLE_RUN, f"The suite exited {status} and wrote no report.")
+    if status not in (0, 1):
+        return _failed(NO_USABLE_RUN, f"The suite exited {status} without a usable run.")
     try:
         observed = load_report(output, "fixture")
     except SystemExit as error:
-        print(error, file=sys.stderr)
-        return 1
+        return _failed(NO_USABLE_RUN, str(error))
+    report_skips(observed["tests"])
     expected = set(json.loads((ACCEPTANCE / "expected/fixture.json").read_text()))
-    return 0 if verdict(observed, expected) else 1
+    if lines := differences(observed, expected):
+        return _failed(1, "\n".join(lines))
+    if status:
+        return _failed(1, "The suite exited 1 although every outcome is the expected one.")
+    return 0
+
+
+def _failed(code: int, reason: str) -> int:
+    print(reason, file=sys.stderr)
+    return code
 
 
 def run(*, report: Path | None = None, environment: dict[str, str] | None = None) -> int:
