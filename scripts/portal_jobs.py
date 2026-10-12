@@ -19,26 +19,13 @@ from typing import Any, cast
 from scripts.evidence_envelope import MAX_EXIT_CODE
 from scripts.formats import JOB_ID, SHA1_HEX
 from scripts.operator_files import read_bytes, write_json
+from scripts.operator_process import MAX_WORKER_LOG_BYTES, WORKER_LOG
 from scripts.portal_store import MAX_RETENTION
+from scripts.vocabulary import ACTIVE, JOB_REASONS, TERMINAL, JobOutcome
 
 from nci_si_mcp.audit import emit
 
 PROFILES = ("acceptance-http-fixture", "benchmark-http-fixture", "benchmark-http-remote")
-ACTIVE = {"pending", "running"}
-TERMINAL = {"completed", "failed", "cancelled", "interrupted", "unavailable"}
-REASONS = {
-    None,
-    "cancelled",
-    "deadline",
-    "output_limit",
-    "invalid_evidence",
-    "worker_failed",
-    "worker_error",
-    "missing_report",
-    "missing_inventory",
-    "owner_restart",
-    "owner_shutdown",
-}
 MAX_ADMITTED = 3
 MAX_STATE_BYTES = 2 * 1024 * 1024
 MAX_TIMESTAMP_LENGTH = 40
@@ -54,7 +41,7 @@ FIELDS = {
     "exit_code",
     "reason",
 }
-Executor = Callable[[dict[str, Any], Path, threading.Event], dict[str, Any]]
+Executor = Callable[[dict[str, Any], Path, threading.Event], JobOutcome]
 
 
 class JobConflictError(ValueError):
@@ -150,7 +137,7 @@ def _validate_outcome(row: dict[str, Any]) -> None:
     code = row["exit_code"]
     if code is not None and (type(code) is not int or not 0 <= code <= MAX_EXIT_CODE):
         raise ValueError("Invalid job exit code")
-    if row["reason"] not in REASONS:
+    if row["reason"] is not None and row["reason"] not in JOB_REASONS:
         raise ValueError("Invalid job stop reason")
 
 
@@ -230,6 +217,16 @@ class JobController:
         with self.condition:
             self._available()
             return deepcopy(self._get(run_id))
+
+    def worker_log(self, run_id: str) -> bytes | None:
+        """The job's worker log as recorded so far, or None when the run kept none."""
+        with self.condition:
+            self._available()
+            self._get(run_id)
+        path = self.root / run_id / WORKER_LOG
+        if not path.exists() and not path.is_symlink():
+            return None
+        return read_bytes(path, MAX_WORKER_LOG_BYTES)
 
     def submit(self, run_id: str, profile: str) -> dict[str, Any]:
         _identifier(run_id)

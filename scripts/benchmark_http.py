@@ -22,6 +22,7 @@ from scripts.benchmark_limits import Budget, Limits, RunStoppedError, approved_t
 from scripts.benchmark_transport import http_client
 from scripts.http_measurement import MeasurementError, failure_sample, measure_reply, summarize_http
 from scripts.operator_files import write_json
+from scripts.vocabulary import RunStop, run_stop
 
 
 def _validate_cases(cases: list[dict[str, Any]]) -> None:
@@ -218,9 +219,9 @@ async def _run(campaign: _Campaign) -> dict[str, Any]:
     return campaign.report
 
 
-def _stop_report(campaign: _Campaign, reason: str) -> None:
+def _stop_report(campaign: _Campaign, reason: RunStop | str) -> None:
     campaign.report.update(
-        state="cancelled" if reason == "cancelled" else "failed", stopReason=reason
+        state="cancelled" if reason == "cancelled" else "failed", stopReason=run_stop(reason)
     )
 
 

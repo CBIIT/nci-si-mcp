@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -224,3 +225,85 @@ class OperatorProcessTest(unittest.TestCase):
                 cancelled=threading.Event(),
             )
         self.assertEqual(result, {"state": "failed", "exit_code": 7, "reason": "worker_failed"})
+
+
+class WorkerLogTest(unittest.TestCase):
+    PART = 512 * 1024  # the documented bound: the first and the last 512 KiB
+
+    def run_worker(self, directory, code, *, cancelled=None, seconds=60):
+        return run_owned(
+            [sys.executable, "-c", code],
+            directory=directory,
+            environment=clean_environment(directory),
+            seconds=seconds,
+            cancelled=cancelled or threading.Event(),
+        )
+
+    def test_worker_output_is_kept_in_a_private_job_log_bounded_to_its_head_and_tail(self):
+        part = self.PART
+        flood = f"sys.stdout.buffer.write(b'H' * {part} + b'x' * {part} + b'T' * {part})"
+        for output, expected in (
+            ("sys.stdout.write('OUT\\n')", b"ERR\nOUT\n"),
+            (
+                flood,
+                b"ERR\n"
+                + b"H" * (part - 4)
+                + f"\n[worker.log: {part + 4} bytes omitted]\n".encode()
+                + b"T" * part,
+            ),
+        ):
+            with self.subTest(size=len(expected)), TemporaryDirectory() as temporary:
+                directory = Path(temporary)
+                code = (
+                    "import sys; sys.stderr.write('ERR\\n'); sys.stderr.flush(); "
+                    f"{output}; sys.stdout.flush(); sys.exit(3)"
+                )
+                result = self.run_worker(directory, code)
+                log = directory / "worker.log"
+                self.assertEqual(
+                    result, {"state": "failed", "exit_code": 3, "reason": "worker_failed"}
+                )
+                self.assertTrue(log.is_file())
+                self.assertEqual(log.stat().st_mode & 0o777, 0o600)
+                self.assertEqual(log.read_bytes(), expected)
+
+    def test_a_cancelled_worker_flooding_its_output_is_reaped_and_its_log_kept(self):
+        with TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            ready = directory / "ready"
+            log = directory / "worker.log"
+            code = (
+                "import os,sys; "
+                f"open({str(ready)!r},'w').write(str(os.getpid()))\n"
+                "while True: sys.stdout.buffer.write(b'x' * 65536); sys.stdout.flush()"
+            )
+            cancelled = threading.Event()
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(self.run_worker, directory, code, cancelled=cancelled)
+                try:
+                    # More than a pipe buffer has been copied while the worker still writes.
+                    deadline = time.monotonic() + 10
+                    while time.monotonic() < deadline and not (
+                        ready.exists() and log.exists() and log.stat().st_size > 4 * 65536
+                    ):
+                        time.sleep(0.01)
+                    self.assertTrue(log.is_file() and log.stat().st_size > 4 * 65536)
+                finally:
+                    cancelled.set()
+                result = future.result(timeout=15)
+            self.assertEqual((result["state"], result["reason"]), ("cancelled", "cancelled"))
+            with self.assertRaises(ProcessLookupError):
+                os.kill(int(ready.read_text()), 0)
+            parts = re.split(rb"\n\[worker\.log: \d+ bytes omitted\]\n", log.read_bytes())
+            self.assertIn(len(parts), (1, 2))
+            for part in parts:
+                self.assertEqual(part, b"x" * len(part))
+                self.assertLessEqual(len(part), self.PART)
+
+    def test_a_log_that_cannot_be_written_never_blocks_the_worker(self):
+        with TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            (directory / "worker.log").mkdir()
+            code = "import sys; sys.stdout.buffer.write(b'x' * (2 * 1024 * 1024)); sys.exit(0)"
+            result = self.run_worker(directory, code, seconds=30)
+            self.assertEqual(result, {"state": "completed", "exit_code": 0, "reason": None})

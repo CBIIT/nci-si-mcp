@@ -13,9 +13,9 @@ from http import HTTPStatus
 from http.client import HTTPConnection
 from typing import Any
 
-from scripts.portal_jobs import ACTIVE
 from scripts.processes import wait_until
 from scripts.site_assets import STYLESHEETS, load_footer
+from scripts.vocabulary import ACTIVE
 
 COMPOSE = "container/compose.local.yaml"
 

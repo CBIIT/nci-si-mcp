@@ -1,5 +1,7 @@
 """Remote benchmark commands require explicit consent and never take credentials in URLs."""
 
+import json
+import os
 import subprocess
 import sys
 import unittest
@@ -93,3 +95,32 @@ class HTTPBenchmarkCommandTest(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertIn("explicit operator opt-in", result.stderr)
             self.assertFalse(output.exists())
+
+    def test_a_failed_remote_run_writes_no_authorization_to_its_output(self):
+        # The worker's output is kept in the job log; the header must never be part of it.
+        target = "https://127.0.0.1:9/mcp"  # the discard port: the connection is refused
+        with TemporaryDirectory() as directory:
+            output = Path(directory) / "report.json"
+            result = subprocess.run(  # noqa: S603 - fixed project command, refused loopback target
+                [
+                    sys.executable,
+                    "-m",
+                    "scripts.benchmark_http_cli",
+                    "--allow-remote",
+                    "--target",
+                    target,
+                    "--allow-target",
+                    target,
+                    "--output",
+                    str(output),
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=60,
+                env={**os.environ, "NCI_SI_BENCHMARK_AUTHORIZATION": "Bearer PRIVATE-CANARY"},
+            )
+            self.assertEqual(result.returncode, 1)
+            self.assertEqual(json.loads(output.read_text())["stopReason"], "transport_error")
+            self.assertNotIn("PRIVATE-CANARY", result.stdout + result.stderr)
+            self.assertNotIn("PRIVATE-CANARY", output.read_text())

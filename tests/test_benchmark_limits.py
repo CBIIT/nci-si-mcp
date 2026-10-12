@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from scripts import benchmark_http_cli
+from scripts import benchmark_http_cli, benchmark_limits
 from scripts.benchmark_limits import Budget, Limits, RunStoppedError, approved_target
 
 
@@ -124,3 +124,27 @@ class BenchmarkLimitsTest(unittest.TestCase):
         ):
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
                 Limits(**kwargs)
+
+    def test_a_stop_reason_outside_the_vocabulary_is_refused_where_it_is_raised(self):
+        def http(status):
+            return RunStoppedError(benchmark_limits.http_stop(status))
+
+        for build, value in (
+            (RunStoppedError, "typo"),
+            (RunStoppedError, "http_399"),
+            (RunStoppedError, "http_600"),
+            (RunStoppedError, "http_4xx"),
+            (http, 399),
+            (http, 600),
+        ):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                build(value)
+        for build, value, reason in (
+            (RunStoppedError, "deadline", "deadline"),
+            (RunStoppedError, "http_400", "http_400"),
+            (RunStoppedError, "http_599", "http_599"),
+            (http, 400, "http_400"),
+            (http, 599, "http_599"),
+        ):
+            with self.subTest(value=value):
+                self.assertEqual(str(build(value)), reason)

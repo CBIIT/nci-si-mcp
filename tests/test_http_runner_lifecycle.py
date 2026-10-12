@@ -5,7 +5,7 @@ import json
 import subprocess
 import sys
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
@@ -38,29 +38,42 @@ class HTTPRunnerLifecycleTest(unittest.TestCase):
             self.addCleanup(replacement.stop)
 
     def run_with(self, report, exit_code):
+        return self.run_capturing(report, exit_code)[0]
+
+    def run_capturing(self, report, exit_code):
         def wait():
             if report is not None:
                 self.report.write_text(json.dumps(report))
             return exit_code
 
         process = Mock(wait=Mock(side_effect=wait), poll=Mock(return_value=exit_code))
+        diagnostics = io.StringIO()
         with (
             patch.object(runner.subprocess, "Popen", return_value=process),
             redirect_stdout(io.StringIO()),
+            redirect_stderr(diagnostics),
         ):
-            return runner.run_suite(8000, self.directory / "control")
+            return runner.run_suite(8000, self.directory / "control"), diagnostics.getvalue()
 
     def test_old_success_is_removed_before_a_run_that_writes_no_report(self):
         self.report.write_text(json.dumps(self.valid))
-        self.assertEqual(self.run_with(None, 0), 1)
+        self.assertEqual(
+            self.run_capturing(None, 0), (2, "The suite exited 0 and wrote no report.\n")
+        )
         self.assertFalse(self.report.exists())
 
     def test_a_complete_report_cannot_override_a_failed_process(self):
-        self.assertEqual(self.run_with(self.valid, 1), 1)
+        self.assertEqual(
+            self.run_capturing(self.valid, 1),
+            (1, "The suite exited 1 although every outcome is the expected one.\n"),
+        )
         self.assertEqual(json.loads(self.report.read_text()), self.valid)
 
     def test_zero_exit_still_requires_the_complete_remote_verdict(self):
-        incomplete = self.valid | {"tests": {"required-case": {"outcome": "passed"}}}
+        incomplete = self.valid | {
+            "tests": {"required-case": {"outcome": "passed"}},
+            "run": {"exit_status": 0, "selected": 1, "finished": 1, "worker_crashes": 0},
+        }
         self.assertEqual(self.run_with(incomplete, 0), 1)
         self.assertEqual(self.run_with(self.valid, 0), 0)
 
@@ -70,7 +83,31 @@ class HTTPRunnerLifecycleTest(unittest.TestCase):
             {"exit_status": 0, "selected": 5, "finished": 5, "worker_crashes": 1},
         ):
             with self.subTest(run=run):
-                self.assertEqual(self.run_with(self.valid | {"run": run}, 0), 1)
+                code, diagnostics = self.run_capturing(self.valid | {"run": run}, 0)
+                self.assertEqual(code, 2)
+                self.assertTrue(diagnostics.endswith(" is an incomplete run; re-run it\n"))
+
+    def test_a_suite_that_crashed_is_not_compared_and_says_so(self):
+        self.assertEqual(
+            self.run_capturing(self.valid, 3), (2, "The suite exited 3 without a usable run.\n")
+        )
+
+    def test_a_verdict_mismatch_names_each_difference(self):
+        failed = json.loads(json.dumps(self.valid))
+        failed["tests"]["required-case"]["outcome"] = "failed"
+        failed |= {"transport": "stdio", "failed_gates": ["inventory"]}
+        del failed["tests"][sorted(runner.UNPREPARED)[0]]
+        failed["run"] |= {"selected": 4, "finished": 4}
+        self.assertEqual(
+            self.run_capturing(failed, 1),
+            (
+                1,
+                "required-case: expected passed, observed failed\n"
+                f"{sorted(runner.UNPREPARED)[0]}: expected skipped, observed missing\n"
+                "transport: expected streamable-http, observed stdio\n"
+                "failed gates: inventory\n",
+            ),
+        )
 
     def test_operator_report_and_environment_are_isolated_from_default_ci_output(self):
         private = self.directory / "operator.json"
@@ -121,3 +158,39 @@ class HTTPRunnerLifecycleTest(unittest.TestCase):
             if child.poll() is None:
                 child.kill()
             wait(timeout=5)
+
+
+class HTTPRunnerServerLogTest(unittest.TestCase):
+    HEADING = "Owned server log, last 65536 bytes:\n"
+
+    def run_with_status(self, status, content='{"event": "call_completed"}\n'):
+        class Server:
+            port = 8000
+
+            def __init__(self, _environment, log, **_options):
+                self.log = log
+
+            def __enter__(self):
+                self.log.write_text(content)
+                return self
+
+            def __exit__(self, *_exception):
+                return False
+
+        diagnostics = io.StringIO()
+        with (
+            patch.object(runner, "prepare"),
+            patch.object(runner, "OwnedServer", Server),
+            patch.object(runner, "run_suite", return_value=status),
+            redirect_stderr(diagnostics),
+        ):
+            self.assertEqual(runner.run(), status)
+        return diagnostics.getvalue()
+
+    def test_a_failed_run_ends_with_the_tail_of_the_owned_server_log(self):
+        self.assertEqual(self.run_with_status(1), self.HEADING + '{"event": "call_completed"}\n')
+        long = "a" * 10 + "b" * 65536
+        self.assertEqual(self.run_with_status(1, long), self.HEADING + "b" * 65536)
+
+    def test_a_successful_run_prints_no_server_log(self):
+        self.assertEqual(self.run_with_status(0), "")

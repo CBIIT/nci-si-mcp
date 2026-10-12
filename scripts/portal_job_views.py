@@ -5,8 +5,8 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from scripts.portal_jobs import ACTIVE
 from scripts.portal_views import page, table, text
+from scripts.vocabulary import ACTIVE
 
 LABELS = {
     "acceptance-http-fixture": "Acceptance checks · HTTP fixtures",
@@ -47,7 +47,7 @@ def jobs_page(rows: list[dict[str, Any]], profiles: tuple[str, ...]) -> str:
     return page("Run checks", body + "</ol>", section="/jobs")
 
 
-def job_page(row: dict[str, Any], *, has_evidence: bool) -> str:
+def job_page(row: dict[str, Any], *, has_evidence: bool, has_log: bool) -> str:
     body = f'<p><span class="badge {text(row["state"])}">{text(row["state"].capitalize())}</span> '
     body += (
         text(LABELS[row["profile"]])
@@ -63,6 +63,10 @@ def job_page(row: dict[str, Any], *, has_evidence: bool) -> str:
         body += (
             "<p>No validated result bundle is available yet. Missing results are not passes.</p>"
         )
+    if has_log:
+        body += f'<p><a href="/jobs/{row["run_id"]}/worker.log">Worker log</a></p>'
+    else:
+        body += "<p>No worker log was recorded.</p>"
     body += table(
         "Run details",
         ["Field", "Recorded value"],
