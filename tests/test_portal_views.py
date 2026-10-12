@@ -64,9 +64,14 @@ class PortalViewsTest(unittest.TestCase):
 
     def test_footer_labels_and_urls_are_escaped(self):
         link = FooterLink('A&B "<x>"', 'https://example.test/?a=1&b="2"')
-        footer = Footer("https://example.test/contact", (link,), (link,))
+        footer = Footer(link.url, (link,), (link,))
         with patch("scripts.portal_views.FOOTER", footer):
             html = page("Run checks", "<p>Content</p>").split('<footer class="nci-footer">', 1)[1]
+        self.assertIn(
+            '<a href="https://example.test/?a=1&amp;b=&quot;2&quot;">'
+            "Contact project maintainers</a>",
+            html,
+        )
         self.assertIn(
             '<li><a href="https://example.test/?a=1&amp;b=&quot;2&quot;">'
             "A&amp;B &quot;&lt;x&gt;&quot;</a></li>",
