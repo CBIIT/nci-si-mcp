@@ -10,6 +10,7 @@ from typing import cast
 from urllib.parse import SplitResult, parse_qs, urlsplit
 
 from scripts.formats import JOB_ID
+from scripts.operator_process import WORKER_LOG
 from scripts.portal_actions import form_length, perform, same_origin
 from scripts.portal_configuration import ConfigurationConflictError, LocalConfiguration
 from scripts.portal_configuration_views import configuration_page, propose
@@ -79,7 +80,7 @@ def _job_route(
 
 
 def _job(store: EvidenceStore, jobs: JobController, path: str) -> tuple[int, str, str | bytes]:
-    match = re.fullmatch(f"/jobs/({JOB_ID})(/worker.log)?", path)
+    match = re.fullmatch(f"/jobs/({JOB_ID})(/{re.escape(WORKER_LOG)})?", path)
     if match is None:
         raise EvidenceNotFoundError("No such job route")
     row = _of_job(jobs.get, match[1])
