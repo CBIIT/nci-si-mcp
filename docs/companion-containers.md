@@ -64,7 +64,8 @@ only on `127.0.0.1:8000`; the image itself defaults to required authentication. 
 healthcheck verifies the local index/model, not upstream availability, with a 180-second startup
 grace. Do not expose this opt-out beyond the trusted local deployment.
 Set `NCI_SI_LOCAL_INDEX` and `NCI_SI_LOCAL_MODEL` to absolute directories containing a compatible
-completed index and offline model, readable by UID 65532, then:
+completed index (readable and writable by UID 65532, as SQLite needs its journal) and offline
+model (readable by UID 65532), then:
 
 ```bash
 docker compose -f container/compose.local.yaml --profile mcp up -d
