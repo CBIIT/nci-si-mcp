@@ -76,6 +76,26 @@ CI_ONLY = {
     "not pass, which the comparison judges; any other status, or no report, is no run",
 }
 
+# The CI-only probe steps run a documented server command; the document that gives the command,
+# the command, and the readiness URL the probe waits for (None: an initialize over stdio).
+PROBES = {
+    "Serve over stdio and initialize (CI only)": (
+        "QUICKSTART.md",
+        "pdm run nci-si-mcp serve",
+        None,
+    ),
+    "Serve over streamable HTTP until ready (CI only)": (
+        "QUICKSTART.md",
+        "pdm run nci-si-mcp serve --transport streamable-http",
+        "http://127.0.0.1:8000/ready",
+    ),
+    "Serve the validation dashboard until ready (CI only)": (
+        "docs/local-validation.md",
+        "pdm run portal serve",
+        "http://127.0.0.1:8081/health",
+    ),
+}
+
 TRIGGERS = {
     "push": {"branches": ["main"]},
     "schedule": [{"cron": "17 7 * * 1"}],
@@ -99,6 +119,14 @@ TRIGGERS = {
         ]
     },
 }
+
+
+def probe_run(command, url):
+    """The run text a probe step must have: the documented command as the probe starts it."""
+
+    if url is None:
+        return '["' + '", "'.join(command.split()) + '"]'
+    return f'python3 "$RUNNER_TEMP/ready.py" {url} {command}'
 
 
 def load(path):
@@ -193,6 +221,25 @@ class LocalRunWorkflowTest(unittest.TestCase):
         lines = {line.strip() for step in steps() for line in step["run"].splitlines()}
         names = {step["name"] for step in steps()}
         self.assertEqual([key for key in CI_ONLY if key not in names | lines], [])
+
+    def test_the_probe_steps_run_the_documented_server_commands(self):
+        by_name = {step["name"]: step["run"] for step in steps()}
+        for name, (document, command, url) in PROBES.items():
+            with self.subTest(step=name):
+                self.assertIn(command, documented_commands(document))
+                self.assertIn(probe_run(command, url), by_name[name])
+                if url is not None:
+                    self.assertEqual(by_name[name].strip(), probe_run(command, url))
+
+    def test_a_newer_push_replaces_only_a_pull_request_run(self):
+        self.assertEqual(
+            load(LOCAL_RUN)["concurrency"],
+            {
+                "group": "local-run-"
+                "${{ github.event_name == 'pull_request' && github.ref || github.sha }}",
+                "cancel-in-progress": "${{ github.event_name == 'pull_request' }}",
+            },
+        )
 
     def test_a_one_sided_edit_is_caught(self):
         step = next(s for s in steps() if s["name"] == "Install the project")
