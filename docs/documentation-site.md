@@ -41,7 +41,7 @@ require all six checks to pass: flowchart, sequence, state, entity relationships
 labels (powers, fractions and roots), and rejection of untrusted mathematical links. Also
 inspect the architecture and deployment pages visually. The test page is not part of the
 publication allowlist; remove the disposable preview after testing.
-The site serves its diagram runtime, stylesheet, fonts and
+The site serves its diagram runtime, stylesheets, fonts and
 search assets locally; external references remain ordinary links. Repository README badges
 become text links in the site, so browsing documentation does not fetch third-party badge images.
 Serve the artifact over HTTP; direct `file://` search is not a supported preview mode.

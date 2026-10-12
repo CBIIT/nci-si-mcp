@@ -54,6 +54,8 @@ companion and the benchmark tooling; these are their entry points.
 The server tests are `unittest.TestCase` classes, run by pytest. They are offline:
 `tests/fakes.py` supplies shared doubles, and client integration tests use local HTTP fixtures.
 The acceptance suite and its self-tests use pytest directly.
+The unit tests ignore the developer's `NCI_SI_*` variables (`tests/conftest.py` removes them); a
+test that needs a setting sets it with `monkeypatch` or `patch.dict`.
 
 ## Test levels
 
