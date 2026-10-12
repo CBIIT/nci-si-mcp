@@ -58,7 +58,7 @@ UAT/PROD administration is disabled pending platform integration.</p>
 {content}</main><footer class="nci-footer"><div class="nci-footer__inner">
 <div class="nci-footer__main"><div class="nci-footer__identity">
 <strong>National Cancer Institute</strong> <span>at the National Institutes of Health</span>
-<p>Semantic Infrastructure · Local validation prototype<br>
+<p>Semantic Infrastructure · Local validation<br>
 <a href="/help#provenance">Understand the evidence</a></p></div>
 <div class="nci-footer__contact"><h2>Contact us</h2>
 <a href="{text(FOOTER.contact_url)}">Contact project maintainers</a>

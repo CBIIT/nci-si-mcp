@@ -6,9 +6,10 @@ detail.
 
 ## What this is
 
-The government-furnished prototype of the NCI Semantic Infrastructure MCP server, and the
-acceptance suite it and its successors are measured by. Two Statements of Work build on it:
-EVS v2.1 and caDSR v1.1. It is a prototype, not a production service: a lean wrapper over EVS
+The government-furnished NCI Semantic Infrastructure MCP server, and the acceptance suite it
+and its successors are measured by. Two Statements of Work build on it: EVS v2.1 and caDSR v1.1.
+Describe the repository as built to production standards and likely to become the production
+codebase, never as a prototype and never as in production. It is a lean wrapper over EVS
 and caDSR (plus the NCIt index), never a shadow of them; the two Statements of Work fund fixes to
 the upstream systems, and a functional gap there stays visible here (see the first standard
 below). Until NCI issues caDSR credentials, CDE Match and the lists-of-values API are tested

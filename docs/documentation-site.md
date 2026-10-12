@@ -51,7 +51,7 @@ and [typography](https://designsystem.cancer.gov/foundations/typography): Poppin
 Open Sans body text and Roboto Mono code. Font files and their upstream licenses are vendored
 under `docs/site-assets/fonts`; `sources.json` records the pinned source revision and SHA-256
 digests. No browser request to a font provider is needed. The compact blue footer retains
-agency and policy links, identifies this prototype, and links to project maintainers without
+agency and policy links, identifies the build, and links to project maintainers without
 social media widgets. The NCIDS fonts, color tokens and footer styling are in `ncids.css`,
 shared with the local validation portal; `site.css` holds the Material overrides, and the
 footer links are the `[project.extra.footer]` table of `zensical.toml`, which `main.html` loops

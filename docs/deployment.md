@@ -1,7 +1,7 @@
 # Deployment views
 
 These diagrams complement the [architecture views](../ARCHITECTURE.md) and the executable
-[container runbook](container.md). Local views describe the supported prototype. The Cloud One
+[container runbook](container.md). Local views describe the supported local setup. The Cloud One
 view is a **proposed reference layout**, not deployed infrastructure or an approved AWS design.
 Solid arrows show calls, reads or output; dashed arrows show operator-supplied configuration
 and assets. Labels identify protocols and storage permissions.

@@ -118,7 +118,7 @@ operator-installed integration with SDK `AuthSettings`, `TokenVerifier` and a ca
 resolver. It refuses startup without all three and binds policy to verified token identity.
 The SDK enforces audience and required scopes before MCP dispatch; session ownership also
 includes the applicable tenant. Embedders can supply these collaborators to `create_http_app`.
-This prototype does not choose a production identity provider or store a transport credential.
+This server does not choose a production identity provider or store a transport credential.
 
 Missing/invalid credentials return HTTP 401; insufficient scope returns HTTP 403. Refused
 requests never reach the registry or emit a tool completion audit containing caller content.

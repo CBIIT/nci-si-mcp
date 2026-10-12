@@ -5,6 +5,7 @@ install and run the server is in [QUICKSTART.md](QUICKSTART.md); how it is built
 [ARCHITECTURE.md](ARCHITECTURE.md). Update the documents and diagrams with each behaviour change:
 the [documentation website](docs/documentation-site.md) is built from these sources (pinned build,
 local preview, reviewed page allowlist, source and version labels).
+Everyone taking part follows the [code of conduct](CODE_OF_CONDUCT.md).
 
 ## Set up
 

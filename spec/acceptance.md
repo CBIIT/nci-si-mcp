@@ -109,7 +109,7 @@ then waits for the endpoint, up to the timeout, and stops at once on an HTTP 401
 scheme, and is not given to the hook. The harness cannot read a remote server's standard error or
 data directory, so the checks that a secret is in neither (X-12) cover what the server returns.
 
-The Prototype Baseline Assessment reads the outcomes of a run against the furnished prototype:
+The Prototype Baseline Assessment reads the outcomes of a run against the furnished server:
 a tool that passes is a reuse candidate, one that fails or is INCOMPLETE a hardening candidate,
 and one NOT IMPLEMENTED new development.
 

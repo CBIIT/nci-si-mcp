@@ -392,6 +392,20 @@ class DocumentationTest(unittest.TestCase):
             [],
         )
 
+    def test_the_code_of_conduct_holds_the_report_address_and_the_entry_documents_link_to_it(self):
+        address = "hannes.niedner@nih.gov"
+        holders = [name for name in tracked_documents() if address in read(name)]
+
+        self.assertEqual(holders, ["CODE_OF_CONDUCT.md"])
+        self.assertEqual(
+            [
+                name
+                for name in ("README.md", "CONTRIBUTING.md")
+                if "](CODE_OF_CONDUCT.md)" not in read(name)
+            ],
+            [],
+        )
+
     def test_shell_blocks_run_project_commands_through_pdm_run(self):
         # After `pdm install` the environment is not activated, so a bare `python -m ...`
         # or `nci-si-mcp ...` fails for a new developer. The one exception installs the

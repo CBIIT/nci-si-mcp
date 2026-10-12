@@ -4,7 +4,7 @@
 
 The work is tracked on GitHub as one milestone per phase and one for the furnished package (§11), with one issue per deliverable; issues cite this document by section. Where a section describes the code "today", it means `main` at the *Updated* date above.
 
-This document is the implementation plan: how `nci_si_mcp` is extended from the current EVS-first prototype into the shared platform, EVS module and caDSR module that the two Statements of Work scope, together with the acceptance suite that is the acceptance instrument for both. It is written against the code as it is, so every change is stated as a delta from a named module, and it is ordered so that each phase leaves the repository releasable.
+This document is the implementation plan: how `nci_si_mcp` is extended from the original EVS-first prototype into the shared platform, EVS module and caDSR module that the two Statements of Work scope, together with the acceptance suite that is the acceptance instrument for both. It is written against the code as it is, so every change is stated as a delta from a named module, and it is ordered so that each phase leaves the repository releasable.
 
 The Statements of Work frame and bound the scope; within it, the specification of the required tools and their behaviour is the source of record. It lives in this repository as data in `spec/` (conventions, tools, requirements), rendered as [`docs/specification.md`](specification.md), and is cited below by convention id (A1–A11, M1–M5) and requirement id. The requests to the platform teams stay in the programme's *Platform API Specification*. Where this plan is more specific than the specification, it is because the code forces a decision the specification leaves open.
 
@@ -530,9 +530,9 @@ and upstream error details.
 
 ## 11. Phases and definition of done
 
-The Prototype Baseline Package furnishes the specification, the acceptance suite with its fixture set, and the prototype: the shared platform, the EVS module and the caDSR client, tools and tests completed at award.
+The Prototype Baseline Package furnishes the specification, the acceptance suite with its fixture set, and the server: the shared platform, the EVS module and the caDSR client, tools and tests completed at award.
 
-The suite is therefore completed first, for all twenty-nine tools, so that it is complete at whatever point the package is furnished. A tool the prototype lacks is a valid NOT IMPLEMENTED row; a required tool without tests is a defect in the package. The phases then make the tools pass their tests, in the order of the table below.
+The suite is therefore completed first, for all twenty-nine tools, so that it is complete at whatever point the package is furnished. A tool the server lacks is a valid NOT IMPLEMENTED row; a required tool without tests is a defect in the package. The phases then make the tools pass their tests, in the order of the table below.
 
 Each phase ends with the unit suite green, the acceptance suite's expected outcomes updated for every test whose outcome changed, and a `vX.Y.Z` release where a merged `feat`, `fix` or `perf` pull request cuts one.
 
@@ -547,7 +547,7 @@ Each phase ends with the unit suite green, the acceptance suite's expected outco
 | **5 · Workflows, remote transport, audit** | §7, §3.8, §3.9 | workflow tools PASS; unified profile accepted under the specification's §4 |
 | **6 · SI architecture alignment, access control and assisted workflows** | §14: approved portable access contracts, conditional evaluation and integrations | approved behavior passes its tests; optional no-go/defer decisions remain explicit; documentation and release evidence match the delivered scope |
 
-Work proceeds in the order of the table above until award. What remains at the furnished commit is the contractors' work under the two Statements of Work, and the specification is what the Prototype Baseline Assessment measures the prototype against.
+Work proceeds in the order of the table above until award. What remains at the furnished commit is the contractors' work under the two Statements of Work, and the specification is what the Prototype Baseline Assessment measures the server against.
 
 ---
 
