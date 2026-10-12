@@ -185,8 +185,14 @@ class WorkerLogPageTest(unittest.TestCase):
 
     def execute(self, job, directory, _cancelled):
         directory.mkdir()
+        log = directory / "worker.log"
         if job["run_id"] == "1" * 32:
-            (directory / "worker.log").write_bytes(b"Traceback: <worker> & failed\n")
+            log.write_bytes(b"Traceback: <worker> & failed\n")
+        elif job["run_id"] == "4" * 32:
+            (directory / "private").write_text("PRIVATE-CANARY")
+            log.symlink_to(directory / "private")
+        elif job["run_id"] == "5" * 32:
+            log.write_bytes(b"x" * (2 * 512 * 1024 + 65))
         self.finished.set()
         return {"state": "failed", "exit_code": 1, "reason": "worker_failed"}
 
@@ -216,3 +222,17 @@ class WorkerLogPageTest(unittest.TestCase):
         self.assertNotIn("/worker.log", page)
         self.assertEqual(self.request(f"/jobs/{'2' * 32}/worker.log")[0], 404)
         self.assertEqual(self.request(f"/jobs/{'3' * 32}/worker.log")[0], 404)
+
+    def test_a_linked_log_is_no_log_and_an_oversized_one_is_unusable_evidence(self):
+        self.run_job("4" * 32)
+        status, _, page = self.request("/jobs/" + "4" * 32)
+        self.assertEqual(status, 200)
+        self.assertIn("No worker log was recorded.", page)
+        status, _, body = self.request(f"/jobs/{'4' * 32}/worker.log")
+        self.assertEqual(status, 404)
+        self.assertNotIn("PRIVATE-CANARY", body)
+        self.run_job("5" * 32)
+        status, _, page = self.request("/jobs/" + "5" * 32)
+        self.assertEqual(status, 200)
+        self.assertIn(f'<a href="/jobs/{"5" * 32}/worker.log">Worker log</a>', page)
+        self.assertEqual(self.request(f"/jobs/{'5' * 32}/worker.log")[0], 503)
