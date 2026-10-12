@@ -106,6 +106,16 @@ class PortalHTTPTest(unittest.TestCase):
         self.assertNotIn("PRIVATE-CANARY", body)
         self.assertNotIn("Check the local evidence store", body)
 
+    def test_missing_stylesheet_reports_the_repair_for_every_local_asset(self):
+        with patch("pathlib.Path.read_bytes", side_effect=OSError("PRIVATE-CANARY")):
+            status, _, body = self.request("/assets/ncids.css")
+        self.assertEqual(status, 503)
+        self.assertIn(
+            "<p>Restore the reviewed local assets (stylesheets and typography) or rebuild "
+            "the companion image.</p>",
+            body,
+        )
+
     def test_history_and_filtered_results_are_accessible_without_login(self):
         status, headers, body = self.request("/")
         self.assertEqual(status, 200)
