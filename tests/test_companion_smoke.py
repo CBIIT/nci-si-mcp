@@ -1,5 +1,6 @@
 """Container verification waits for actual queue states and requires readable results."""
 
+import html
 import json
 import re
 import subprocess
@@ -138,6 +139,17 @@ class PortalStylingTest(unittest.TestCase):
             patch.object(companion_smoke, "load_footer", return_value=footer),
         ):
             self.assertEqual(self.smoke(), ["/", "/assets/ncids.css", "/assets/portal.css"])
+
+    def test_a_contact_url_present_only_as_text_is_not_a_footer_link(self):
+        connection = HTTPConnection("127.0.0.1", self.server.server_port, timeout=3)
+        self.addCleanup(connection.close)
+        connection.request("GET", "/")
+        page = connection.getresponse().read().decode()
+        contact = html.escape(load_footer().contact_url, quote=True)
+        text_only = page.replace(f'href="{contact}"', f'title="x">{contact}<a')
+        self.assertNotEqual(text_only, page)
+        with self.assertRaisesRegex(RuntimeError, "Portal footer link missing"):
+            self.smoke({"/": (200, text_only)})
 
     def test_a_missing_stylesheet_or_footer_contact_link_fails_the_smoke(self):
         connection = HTTPConnection("127.0.0.1", self.server.server_port, timeout=3)
