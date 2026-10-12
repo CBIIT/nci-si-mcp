@@ -2,13 +2,16 @@
 
 import json
 import unittest
+from http.client import HTTPConnection
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
+from urllib.parse import urlsplit
 
 from scripts import benchmark
 
 from nci_si_acceptance import client
+from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
 
 
 class BenchmarkBoundaryTest(unittest.TestCase):
@@ -34,3 +37,16 @@ class BenchmarkBoundaryTest(unittest.TestCase):
         result = report["cases"][0]
         self.assertEqual(result["cold"]["summary"]["errorRate"], 0)
         self.assertEqual(result["warm"]["summary"]["errorRate"], 0)
+
+
+class CaseIsolationTest(unittest.TestCase):
+    def test_a_case_starts_with_the_log_of_no_earlier_request(self):
+        case = benchmark.cases(["get_concept"])[0]
+        with FixtureServer(load_fixtures(benchmark.FIXTURES)) as upstream:
+            connection = HTTPConnection(urlsplit(upstream.url).netloc, timeout=3)
+            self.addCleanup(connection.close)
+            connection.request("GET", "/left-by-the-previous-case")
+            connection.getresponse().read()
+            self.assertEqual(len(upstream.log()), 1)
+            benchmark.environment_for("fixture", upstream, case)
+            self.assertEqual(upstream.log(), [])
