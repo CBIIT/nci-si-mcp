@@ -28,6 +28,9 @@ BROKEN_FOOTERS = {
     "empty agencies": FOOTER.replace(
         '[{ label = "Agency", url = "https://example.test/agency" }]', "[]"
     ),
+    "link not a table": FOOTER.replace(
+        '[{ label = "Agency", url = "https://example.test/agency" }]', '["x"]'
+    ),
     "link without url": FOOTER.replace(', url = "https://example.test/policy"', ""),
     "link url not https": FOOTER.replace("https://example.test/policy", "javascript:alert(1)"),
     "link url plain http": FOOTER.replace(

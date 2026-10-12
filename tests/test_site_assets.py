@@ -1,4 +1,5 @@
-"""Local typography retains its reviewed upstream bytes and licence provenance."""
+"""Local typography keeps its reviewed upstream bytes and licence provenance; the shared NCIDS
+stylesheet is separate from the site overrides and loads before them."""
 
 import hashlib
 import json

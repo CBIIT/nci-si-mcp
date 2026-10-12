@@ -1,6 +1,7 @@
 """Result pages explain provenance and incompleteness without JavaScript or raw evidence."""
 
 import unittest
+from unittest.mock import patch
 
 from scripts.evidence_http import PHASE_LABELS
 from scripts.portal_configuration import LocalConfiguration
@@ -15,6 +16,7 @@ from scripts.portal_views import (
     page,
     run_page,
 )
+from scripts.site_assets import Footer, FooterLink
 
 from test_evidence_acceptance import missing_report, project, report
 from test_evidence_benchmark import project as benchmark_projection
@@ -59,6 +61,18 @@ class PortalViewsTest(unittest.TestCase):
         self.assertEqual(positions, sorted(positions))
         self.assertIn('class="usa-skipnav skip" href="#main"', html)
         self.assertNotIn("An official website of the United States government", html)
+
+    def test_footer_labels_and_urls_are_escaped(self):
+        link = FooterLink('A&B "<x>"', 'https://example.test/?a=1&b="2"')
+        footer = Footer("https://example.test/contact", (link,), (link,))
+        with patch("scripts.portal_views.FOOTER", footer):
+            html = page("Run checks", "<p>Content</p>").split('<footer class="nci-footer">', 1)[1]
+        self.assertIn(
+            '<li><a href="https://example.test/?a=1&amp;b=&quot;2&quot;">'
+            "A&amp;B &quot;&lt;x&gt;&quot;</a></li>",
+            html,
+        )
+        self.assertNotIn("<x>", html)
 
     def test_the_contact_link_points_at_the_project_issue_tracker(self):
         footer = page("Run checks", "<p>Content</p>").split('<footer class="nci-footer">', 1)[1]
