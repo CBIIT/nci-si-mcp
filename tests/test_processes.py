@@ -28,6 +28,31 @@ def spawn(script: str, **options) -> subprocess.Popen[str]:
     return process
 
 
+class SlowToExit:
+    """A stand-in process that ignores SIGTERM, finishes with code 7 once the wait given to it
+    is at least `grace` seconds, and dies of SIGKILL otherwise."""
+
+    def __init__(self, grace: float) -> None:
+        self.grace = grace
+        self.returncode = None
+        self.killed = False
+
+    def poll(self):
+        return self.returncode
+
+    def send_signal(self, sig):
+        self.killed = sig == signal.SIGKILL
+
+    def wait(self, timeout):
+        if self.killed:
+            self.returncode = -signal.SIGKILL
+        elif timeout >= self.grace:
+            self.returncode = 7
+        else:
+            raise subprocess.TimeoutExpired("slow", timeout)
+        return self.returncode
+
+
 class StopTest(unittest.TestCase):
     def test_a_child_that_ignores_termination_is_killed_and_reaped(self):
         process = spawn(IGNORES_TERMINATION)
@@ -43,17 +68,10 @@ class StopTest(unittest.TestCase):
             process.stdout.close()
 
     def test_a_slow_child_gets_its_full_grace_period_before_it_is_killed(self):
-        # Ignores termination for 2 s, then exits by itself: the 10 s grace must outlast it.
-        slow = (
-            "import signal,sys,time; signal.signal(signal.SIGTERM,signal.SIG_IGN); "
-            "print('ready',flush=True); time.sleep(2); sys.exit(7)"
-        )
-        process = spawn(slow)
-        try:
-            stop(process)
-            self.assertEqual(process.returncode, 7)
-        finally:
-            process.stdout.close()
+        # Exits by itself, but only if it is allowed to wait at least ten seconds after SIGTERM.
+        process = SlowToExit(grace=10)
+        stop(process)
+        self.assertEqual(process.returncode, 7)
 
     def test_a_cooperative_child_is_terminated(self):
         process = spawn("import time; print('ready',flush=True); time.sleep(300)")
