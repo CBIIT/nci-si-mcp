@@ -106,8 +106,8 @@ def failing_engine(status, message):
 
 
 class DockerFailureReportTest(unittest.TestCase):
-    def smoke(self, **steps):
-        """Run the command with every step passing except the ones given."""
+    def smoke(self, engine=None, **steps):
+        """Run the command with every step passing except the ones given; `engine` is docker."""
         assets = {"prepare": lambda _image, assets: (assets / "model").mkdir()}
         quiet = {
             name: patch.object(container_smoke, name, side_effect=assets.get(name))
@@ -122,7 +122,9 @@ class DockerFailureReportTest(unittest.TestCase):
             TemporaryDirectory() as directory,
             patch.object(container_smoke, "ROOT", Path(directory)),
             patch("sys.argv", ["container_smoke.py", "test-image"]),
-            patch.object(container_smoke.subprocess, "run", failing_engine(1, "cleanup boom")),
+            patch.object(
+                container_smoke.subprocess, "run", engine or failing_engine(1, "cleanup boom")
+            ),
             redirect_stdout(io.StringIO()),
             redirect_stderr(io.StringIO()) as stderr,
         ):
@@ -149,6 +151,17 @@ class DockerFailureReportTest(unittest.TestCase):
         self.assertEqual(
             stderr,
             "Cleanup of the smoke assets failed: docker run failed (exit 1): cleanup boom\n",
+        )
+
+    def test_a_cleanup_that_times_out_is_reported_like_any_other_failure(self):
+        def hangs(command, **_options):
+            raise subprocess.TimeoutExpired(command, 300)
+
+        error, stderr = self.smoke(engine=hangs, failure=RuntimeError("primary index failure"))
+        self.assertEqual(str(error), "primary index failure")
+        self.assertRegex(
+            stderr,
+            r"^Cleanup of the smoke assets failed: Command .* timed out after 300 seconds\n$",
         )
 
     def test_a_failed_cleanup_alone_fails_the_command_and_says_why(self):
