@@ -5,7 +5,10 @@ import json
 import unittest
 from copy import deepcopy
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
+from scripts.benchmark import source_digest
 from scripts.benchmark_report import Report
 from scripts.evidence_benchmark import project_benchmark
 from scripts.evidence_envelope import EvidenceError
@@ -16,6 +19,26 @@ from test_evidence_http import http_report, project_http
 
 
 class BenchmarkRecordTest(unittest.TestCase):
+    def test_source_identity_covers_extracted_measurement_records(self):
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "scripts").mkdir()
+            runner = root / "scripts/benchmark.py"
+            runner.write_text("runner")
+            for name in ("benchmark_records.py", "benchmark_report.py"):
+                (root / "scripts" / name).write_text("original")
+            with (
+                patch("scripts.benchmark.ROOT", root),
+                patch("scripts.benchmark.__file__", str(runner)),
+            ):
+                original = source_digest()
+                for name in ("benchmark_records.py", "benchmark_report.py"):
+                    with self.subTest(name=name):
+                        path = root / "scripts" / name
+                        path.write_text("changed")
+                        self.assertNotEqual(source_digest(), original)
+                        path.write_text("original")
+
     def test_existing_wire_records_roundtrip_and_original_bytes_import(self):
         directory = Path(__file__).resolve().parents[1] / "docs/evidence/phase-5"
         for name in ("benchmark-fixture.json", "benchmark-live.json"):
