@@ -132,7 +132,8 @@ def _asset(name: str) -> tuple[int, str, str | bytes]:
             "text/html",
             page(
                 "Local assets unavailable",
-                "<p>Restore the reviewed typography assets or rebuild the companion image.</p>",
+                "<p>Restore the reviewed local assets (stylesheets and typography) or rebuild "
+                "the companion image.</p>",
             ),
         )
     return 200, media[source.suffix], content
