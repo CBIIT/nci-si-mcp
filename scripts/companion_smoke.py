@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import json
 import re
 import subprocess
@@ -69,7 +70,8 @@ def portal_styling(port: int) -> None:
     require(sheets == [f"/assets/{name}" for name in STYLESHEETS], "Portal stylesheets missing")
     for sheet in sheets:
         require(request(port, sheet)[0] == HTTPStatus.OK, f"Portal stylesheet {sheet} unavailable")
-    require(f'href="{load_footer().contact_url}"' in page, "Portal footer link missing")
+    contact = html.escape(load_footer().contact_url, quote=True)  # as the portal renders it
+    require(f'href="{contact}"' in page, "Portal footer link missing")
 
 
 def inspect_boundary(container: str) -> None:
