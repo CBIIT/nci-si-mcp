@@ -335,3 +335,143 @@ class WorkerLogTest(unittest.TestCase):
                     with suppress(ProcessLookupError):
                         os.kill(int(holder.read_text()), signal.SIGKILL)
                 pool.shutdown()
+
+    def test_a_log_that_cannot_be_written_is_diagnosed_by_its_error_type(self):
+        with TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            (directory / "worker.log").mkdir()
+            with self.assertLogs("scripts.operator_process", logging.ERROR) as logs:
+                self.run_worker(directory, "print('x')", seconds=30)
+            records = [json.loads(line.split(":", 2)[2]) for line in logs.output]
+            self.assertEqual(
+                [(r["event"], r["errorType"]) for r in records],
+                [("worker_log_failed", "FileExistsError")],
+            )
+
+    def test_the_log_holds_the_output_so_far_while_the_worker_still_runs(self):
+        with TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            release = directory / "release"
+            log = directory / "worker.log"
+            code = (
+                "import sys,time,pathlib; sys.stdout.write('MARKER\\n'); sys.stdout.flush()\n"
+                f"while not pathlib.Path({str(release)!r}).exists(): time.sleep(.01)"
+            )
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(self.run_worker, directory, code)
+                try:
+                    # Polling is a hang guard; the claim is the content seen before the exit.
+                    deadline = time.monotonic() + 15
+                    while time.monotonic() < deadline:
+                        if log.is_file() and log.read_bytes() == b"MARKER\n":
+                            break
+                        time.sleep(0.01)
+                    self.assertFalse(future.done())
+                    self.assertEqual(log.read_bytes(), b"MARKER\n")
+                finally:
+                    release.write_text("go")
+                result = future.result(timeout=30)
+            self.assertEqual(result["state"], "completed")
+
+
+def _open_descriptors():
+    return set(os.listdir("/dev/fd"))
+
+
+class DescriptorHygieneTest(unittest.TestCase):
+    def run_worker(self, directory, command):
+        return run_owned(
+            command,
+            directory=directory,
+            environment=clean_environment(directory),
+            seconds=30,
+            cancelled=threading.Event(),
+        )
+
+    def test_a_run_leaves_no_descriptor_open_whether_or_not_the_worker_starts(self):
+        for name, command in (
+            ("finished", [sys.executable, "-c", "print('x')"]),
+            ("missing", ["/nonexistent/worker"]),
+        ):
+            with self.subTest(name), TemporaryDirectory() as temporary:
+                directory = Path(temporary)
+                before = _open_descriptors()
+                if name == "missing":
+                    with self.assertRaises(FileNotFoundError):
+                        self.run_worker(directory, command)
+                else:
+                    self.assertEqual(self.run_worker(directory, command)["state"], "completed")
+                self.assertEqual(_open_descriptors(), before)
+
+    def test_a_copier_that_cannot_start_leaves_neither_worker_nor_descriptor(self):
+        real_start = threading.Thread.start
+        started = []
+
+        def start(thread):
+            if thread.name == "validation-worker-log":
+                raise RuntimeError("can't start new thread")
+            real_start(thread)
+
+        class Recording(subprocess.Popen):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                started.append(self)
+
+        with TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            before = _open_descriptors()
+            try:
+                with (
+                    patch.object(threading.Thread, "start", start),
+                    patch("scripts.operator_process.subprocess.Popen", Recording),
+                    self.assertRaisesRegex(RuntimeError, "can't start new thread"),
+                ):
+                    self.run_worker(
+                        directory, [sys.executable, "-c", "import time; time.sleep(300)"]
+                    )
+                self.assertEqual(_open_descriptors(), before)
+                self.assertEqual(len(started), 1)
+                # Reaped by the cleanup: a worker still running has no return code.
+                self.assertIsNotNone(started[0].returncode)
+            finally:
+                for process in started:
+                    process.kill()
+                    process.wait()
+
+    def test_the_copier_thread_never_keeps_an_exited_interpreter_alive(self):
+        # A holder in another session keeps the pipe open past the run; the interpreter that
+        # called run_owned must still exit.
+        root = Path(__file__).resolve().parents[1]
+        with TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            holder = directory / "holder"
+            worker = (
+                "import subprocess,sys,pathlib; "
+                "p=subprocess.Popen([sys.executable,'-c','import time; time.sleep(300)'], "
+                "start_new_session=True); "
+                f"pathlib.Path({str(holder)!r}).write_text(str(p.pid))"
+            )
+            driver = (
+                "import sys, threading; from pathlib import Path\n"
+                "import scripts.operator_process as op\n"
+                "op.LOG_JOIN_SECONDS = 0.2\n"
+                "from scripts.operator_worker import clean_environment\n"
+                f"d = Path({str(directory)!r})\n"
+                f"r = op.run_owned([sys.executable, '-c', {worker!r}], directory=d,\n"
+                "    environment=clean_environment(d), seconds=30, cancelled=threading.Event())\n"
+                "print(r['state'])\n"
+            )
+            try:
+                done = subprocess.run(  # noqa: S603 - a fixed driver of this test
+                    [sys.executable, "-c", driver],
+                    cwd=root,
+                    env=clean_environment(directory) | {"PYTHONPATH": str(root)},
+                    capture_output=True,
+                    timeout=120,  # a hang guard only
+                    check=False,
+                )
+            finally:
+                if holder.exists():
+                    with suppress(ProcessLookupError):
+                        os.kill(int(holder.read_text()), signal.SIGKILL)
+            self.assertEqual((done.returncode, done.stdout.strip()), (0, b"completed"))

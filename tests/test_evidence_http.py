@@ -67,6 +67,37 @@ def project_http(report=None, *, selection=None, **metadata):
 
 
 class HTTPEvidenceTest(unittest.TestCase):
+    def test_a_stop_reason_must_be_a_known_stop_or_an_http_error_status_string(self):
+        for stop, accepted in (
+            ("http_404", True),
+            ("http_503", True),
+            ("http_4045", False),
+            ("http_404x", False),
+            ("xhttp_404", False),
+            ("http_200", False),
+            (404, False),
+            (None, False),
+            (["timeout"], False),
+        ):
+            with self.subTest(stop=stop):
+                report = http_report()
+                report.update(complete=False, state="failed", stopReason=stop)
+                if accepted:
+                    self.assertFalse(
+                        project_http(report, state="failed", exit_code=1)["inventory_complete"]
+                    )
+                else:
+                    with self.assertRaises(ValueError):
+                        project_http(report, state="failed", exit_code=1)
+
+    def test_a_cancelled_run_is_a_valid_report_state_and_an_unknown_state_is_not(self):
+        report = http_report()
+        report.update(complete=False, state="cancelled", stopReason="cancelled")
+        self.assertFalse(project_http(report, state="cancelled", exit_code=1)["inventory_complete"])
+        report.update(state="paused")
+        with self.assertRaises(ValueError):
+            project_http(report, state="cancelled", exit_code=1)
+
     def test_client_timeout_counts_as_error_without_a_fabricated_result_size(self):
         report = http_report()
         phase = report["cases"][0]["cold"]

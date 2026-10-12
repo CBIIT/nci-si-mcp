@@ -51,7 +51,9 @@ class OperatorEvidenceTest(unittest.TestCase):
         result = finish_evidence(
             self.job, self.root, {"state": "completed", "exit_code": 0, "reason": None}, self.store
         )
-        self.assertEqual(result["state"], "unavailable")
+        self.assertEqual(
+            result, {"state": "unavailable", "exit_code": 0, "reason": "missing_report"}
+        )
         evidence = self.store.get("1" * 32)["evidence"]
         self.assertIsNone(evidence["counts"])
         self.assertFalse(evidence["inventory_complete"])
@@ -63,8 +65,7 @@ class OperatorEvidenceTest(unittest.TestCase):
         result = finish_evidence(
             self.job, self.root, {"state": "completed", "exit_code": 0, "reason": None}, self.store
         )
-        self.assertEqual(result["state"], "failed")
-        self.assertEqual(result["reason"], "invalid_evidence")
+        self.assertEqual(result, {"state": "failed", "exit_code": 0, "reason": "invalid_evidence"})
         self.assertEqual(self.store.history(), [])
 
     def test_missing_original_inventory_cannot_be_reconstructed_from_passing_report(self):
@@ -72,9 +73,19 @@ class OperatorEvidenceTest(unittest.TestCase):
         result = finish_evidence(
             self.job, self.root, {"state": "completed", "exit_code": 0, "reason": None}, self.store
         )
-        self.assertEqual(result["state"], "unavailable")
-        self.assertEqual(result["reason"], "missing_inventory")
+        self.assertEqual(
+            result, {"state": "unavailable", "exit_code": 0, "reason": "missing_inventory"}
+        )
         self.assertEqual(self.store.history(), [])
+
+    def test_a_missing_inventory_does_not_overwrite_an_interrupted_or_cancelled_outcome(self):
+        (self.bundle / "catalogue.json").unlink()
+        for result in (
+            {"state": "interrupted", "exit_code": None, "reason": "owner_shutdown"},
+            {"state": "cancelled", "exit_code": 143, "reason": "cancelled"},
+        ):
+            with self.subTest(state=result["state"]):
+                self.assertEqual(finish_evidence(self.job, self.root, result, self.store), result)
 
     def test_output_bound_failure_preserves_zero_exit_without_claiming_completed(self):
         result = finish_evidence(

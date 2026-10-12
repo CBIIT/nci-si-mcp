@@ -167,6 +167,7 @@ class OperatorEnvironmentTest(unittest.TestCase):
             report = json.loads(written)
             self.assertFalse(report["complete"])
             self.assertEqual(report["state"], "failed")
+            self.assertEqual(report["stopReason"], "runner_error")
             self.assertEqual(written, json.dumps(report, indent=2) + "\n")
 
     def test_fixture_benchmark_runs_owned_http_server_and_removes_working_data(self):

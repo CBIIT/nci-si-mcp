@@ -126,6 +126,33 @@ class PortalJobsTest(unittest.TestCase):
                     pass
                 self.assertEqual(path.read_text(), raw)
 
+    def test_every_recorded_stop_reason_loads_and_an_unrecorded_one_does_not(self):
+        controller = self.controller()
+        self.release.set()
+        controller.submit("1" * 32, "benchmark-http-fixture")
+        self.wait_for(controller, "1" * 32, "completed")
+        controller.close()
+        path = self.root / "jobs.json"
+        original = json.loads(path.read_text())
+        for reason, loads in (
+            ("owner_restart", True),
+            ("owner_shutdown", True),
+            ("missing_inventory", True),
+            ("owner_vanished", False),
+        ):
+            with self.subTest(reason=reason):
+                changed = json.loads(json.dumps(original))
+                changed["jobs"][0].update(state="interrupted", exit_code=None, reason=reason)
+                raw = json.dumps(changed)
+                path.write_text(raw)
+                if loads:
+                    with closing(self.controller()) as reopened:
+                        self.assertEqual(reopened.get("1" * 32)["reason"], reason)
+                else:
+                    with self.assertRaises(OSError), closing(self.controller()):
+                        pass
+                self.assertEqual(path.read_text(), raw)
+
     def test_duplicated_jobs_or_regressed_sequence_are_preserved_without_replay(self):
         controller = self.controller()
         controller.submit("1" * 32, "benchmark-http-fixture")
