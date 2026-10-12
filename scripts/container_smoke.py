@@ -8,6 +8,7 @@ import json
 import shutil
 import socket
 import subprocess
+import sys
 import tempfile
 import urllib.error
 import urllib.request
@@ -27,9 +28,30 @@ STARTUP_SECONDS = 180
 
 def docker(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
     # Fixed executable and argument list, never a shell or caller-supplied command.
-    return subprocess.run(  # noqa: S603
-        [DOCKER, *args], check=check, capture_output=True, text=True, timeout=300
-    )
+    try:
+        return subprocess.run(  # noqa: S603
+            [DOCKER, *args], check=check, capture_output=True, text=True, timeout=300
+        )
+    except subprocess.CalledProcessError as error:
+        # CalledProcessError's own text omits what docker said, the part that explains it.
+        raise RuntimeError(
+            f"docker {args[0]} failed (exit {error.returncode}): {error.stderr.strip()}"
+        ) from error
+
+
+def reap(image: str, assets: Path) -> str | None:
+    """Remove the files the containers created; the failure, if any, as a message."""
+    try:
+        docker(
+            *mounted(image, assets, "--network", "none", "--entrypoint", "python"),
+            "-c",
+            "import shutil; from pathlib import Path; "
+            "[shutil.rmtree(p) if p.is_dir() else p.unlink() "
+            "for p in Path('/assets').iterdir()]",
+        )
+    except (RuntimeError, subprocess.TimeoutExpired) as error:
+        return f"Cleanup of the smoke assets failed: {error}"
+    return None
 
 
 def mounted(image: str, assets: Path, *args: str) -> list[str]:
@@ -200,6 +222,7 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="container-smoke-", dir=ROOT / "tmp") as directory:
         assets = Path(directory)
         assets.chmod(0o777)  # Let the unprivileged image UID create and reap scratch assets.
+        completed = False
         try:
             failure(args.image, assets, "index")
             prepare(args.image, assets)
@@ -209,16 +232,16 @@ def main() -> None:
             retained_builds(args.image, assets)
             (assets / "model").rename(assets / "held-model")
             failure(args.image, assets, "model")
+            completed = True
         finally:
             # Native Linux preserves container ownership on bind mounts. Reap our files
-            # as their creating UID before the host removes its temporary directory.
-            docker(
-                *mounted(args.image, assets, "--network", "none", "--entrypoint", "python"),
-                "-c",
-                "import shutil; from pathlib import Path; "
-                "[shutil.rmtree(p) if p.is_dir() else p.unlink() "
-                "for p in Path('/assets').iterdir()]",
-            )
+            # as their creating UID before the host removes its temporary directory. A
+            # failure here is reported but never replaces the error that got us here.
+            cleanup_failure = reap(args.image, assets)
+            if cleanup_failure and not completed:
+                print(cleanup_failure, file=sys.stderr)
+    if cleanup_failure:
+        raise RuntimeError(cleanup_failure)
     print("Image smoke passed: offline external model/index, HTTP, missing assets, graceful stop")
 
 

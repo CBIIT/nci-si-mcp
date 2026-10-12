@@ -13,7 +13,18 @@ configuration proposals, including startup-settings snapshots
 
 ## Install
 
-The project needs Python 3.14 or newer and is managed with [PDM](https://pdm-project.org).
+### Platforms and prerequisites
+
+Supported platforms: macOS (primary) and Linux, with a POSIX shell. Windows is not supported.
+
+| Need | For | How to get it |
+|---|---|---|
+| Python 3.14 or newer and [PDM](https://pdm-project.org) | everything | macOS: `brew install python@3.14 pdm`. Linux: `curl -LsSf https://astral.sh/uv/install.sh \| sh`, then, in a new shell, `uv python install 3.14` and `uv tool install pdm` |
+| git, with tags | everything: the version comes from the nearest tag | a plain `git clone` has them; a shallow clone or a source archive does not |
+| Network access to EVS | live calls, `release-info`, `index-sample` | (`download.pytorch.org` as well for the container image) |
+| Free ports 8000, 8080, 8081 | 8000 the HTTP server and the site preview, 8080 the documentation container, 8081 the validation dashboard | |
+| Node.js 24 or newer | the documentation site only | macOS: `brew install node`; Linux: `curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8/install.sh \| bash`, then, in a new shell, `nvm install 24` |
+| A container runtime with Compose | containers only; on Apple Silicon it needs amd64 emulation | Docker or Podman |
 
 ```bash
 pdm install
@@ -23,8 +34,8 @@ pdm run nci-si-mcp serve
 
 `pdm install` creates `.venv` from `pdm.lock` and installs the package in editable mode with
 the test and lint tools, the `server` extra (MCP), and the `index` extra (NumPy for exact
-indexed search). The commands below are written as `python -m nci_si_mcp.cli ...`:
-run them inside the environment (`eval $(pdm venv activate)`) or prefix them with `pdm run`.
+indexed search). Every command below runs through `pdm run`, which uses that environment
+without activating it.
 
 To run a released version without a checkout, install it from its tag; the
 [releases page](https://github.com/CBIIT/nci-si-mcp/releases) lists the versions:
@@ -136,9 +147,9 @@ rejected: unset it instead.
 The full NCIt concept universe is large. Start with a known sample:
 
 ```bash
-python -m nci_si_mcp.cli index-sample C3262 C2991 C40704 C153397 C116938
-python -m nci_si_mcp.cli search "kinase inhibition"
-python -m nci_si_mcp.cli evaluate
+pdm run nci-si-mcp index-sample C3262 C2991 C40704 C153397 C116938
+pdm run nci-si-mcp search "kinase inhibition"
+pdm run nci-si-mcp evaluate
 ```
 
 `index-sample` adds concepts to the index while the configured channel's release stays the
@@ -172,13 +183,13 @@ No MCP result carries the full EVS `raw` payload, to keep MCP context compact. T
 CLI adds it to `search` and `lookup` with `--include-raw`, for debugging:
 
 ```bash
-python -m nci_si_mcp.cli lookup C3262 --include-raw
+pdm run nci-si-mcp lookup C3262 --include-raw
 ```
 
 Traversal can be tested from the terminal before using MCP:
 
 ```bash
-python -m nci_si_mcp.cli traverse C3262 \
+pdm run nci-si-mcp traverse C3262 \
   --max-depth 1 \
   --max-edges 100 \
   --edge-type role \

@@ -1,5 +1,7 @@
 # Container operation
 
+See the [prerequisites](../QUICKSTART.md#platforms-and-prerequisites) for the tools a local build needs.
+
 The prototype image is cloud-neutral and CPU-only, initially Linux amd64. Cloud One's
 production design remains with the hosting team: no AWS credentials, roles, infrastructure
 or identity provider are configured here. The default image **requires authentication** and
@@ -124,8 +126,12 @@ the image scan. [Publication recovery](#scan-policy-and-publication) is describe
 ### Local builds and dependency lock
 
 Run `pdm build --no-sdist` in a tagged checkout, then
-`docker build --platform linux/amd64 -t nci-si-mcp:local .`.
-With Podman, use `podman build --format docker` to preserve the image health check.
+`docker build --platform linux/amd64 --load -t nci-si-mcp:local .`; `--load` puts the image in
+the local store, where a buildx `docker-container` builder would otherwise leave it in the build
+cache. The `docker` CLI on a Podman engine builds the OCI format, which drops the
+`HEALTHCHECK` the smoke check reads; there use `podman build --format docker` instead.
+The build downloads about 200 MB of torch from `download.pytorch.org` and produces an image of
+about 1.6 GB, so it needs that network access, the disk and several minutes.
 Keep exactly one current wheel in `dist/`. Run
 `pdm run python -m scripts.container_smoke nci-si-mcp:local` to check the image with an
 external, test-only model and a recorded concept. CI builds the same wheel/image and runs

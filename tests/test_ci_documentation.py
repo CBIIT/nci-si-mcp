@@ -106,7 +106,7 @@ class DocumentationWorkflowTest(unittest.TestCase):
 
     def test_node_contract_matches_the_ci_major_in_package_and_operator_docs(self):
         package = json.loads(Path("docs/site-assets/package.json").read_text())
-        self.assertEqual(package.get("engines", {}).get("node"), ">=24 <25")
+        self.assertEqual(package.get("engines", {}).get("node"), ">=24")
         versions = {
             step["with"]["node-version"]
             for job in JOBS.values()
@@ -115,6 +115,6 @@ class DocumentationWorkflowTest(unittest.TestCase):
         }
         self.assertEqual(versions, {"24"})
         lock = json.loads(Path("docs/site-assets/package-lock.json").read_text())
-        self.assertEqual(lock["packages"][""]["engines"]["node"], ">=24 <25")
-        for path in ("docs/companion-containers.md", "docs/documentation-site.md"):
-            self.assertIn("Node.js 24", Path(path).read_text())
+        self.assertEqual(lock["packages"][""]["engines"]["node"], ">=24")
+        for path in ("QUICKSTART.md", "docs/documentation-site.md"):
+            self.assertIn("Node.js 24 or newer", Path(path).read_text())
