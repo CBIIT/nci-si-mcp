@@ -53,6 +53,13 @@ jobs:
           fetch-depth: 0  # the package version is derived from the nearest tag
           persist-credentials: false
 
+      # The runner image ships python.org builds in /Library/Frameworks, linked from /usr/local/bin,
+      # that a clean Mac lacks; PDM picks them over Homebrew's python@3.14. Remove them first.
+      - name: Remove the runner's python.org Python (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          sudo find /usr/local/bin -lname '*Library/Frameworks/Python.framework/*' -delete
+          sudo rm -rf /Library/Frameworks/Python.framework
       # `brew install` exits 0 without installing a formula the runner image already ships, so the
       # in-use checks below could pass without the documented install having run. A failed
       # uninstall fails the job.
