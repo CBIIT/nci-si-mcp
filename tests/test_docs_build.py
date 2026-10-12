@@ -48,8 +48,8 @@ use_directory_urls = false
 extra_css = ["assets/ncids.css", "assets/site.css"]
 nav = [{ Overview = "README.md" }, { Story = "docs/story.md" }]
 [project.extra.footer]
-contact_url = "https://example.test/contact"
-agencies = [{ label = "Agency One", url = "https://example.test/agency" }]
+contact_url = "https://example.test/contact?a=1&b=2"
+agencies = [{ label = "Health & Human Services", url = "https://example.test/agency?a=1&b=2" }]
 policies = [{ label = "Privacy & Security", url = "https://example.test/policy?a=1&b=2" }]
 
 [project.theme]
@@ -68,8 +68,8 @@ custom_dir = "overrides"
         self.assertEqual(
             links,
             [
-                ("https://example.test/contact", "Contact project maintainers"),
-                ("https://example.test/agency", "Agency One"),
+                ("https://example.test/contact?a=1&amp;b=2", "Contact project maintainers"),
+                ("https://example.test/agency?a=1&amp;b=2", "Health &amp; Human Services"),
                 ("https://example.test/policy?a=1&amp;b=2", "Privacy &amp; Security"),
             ],
         )
