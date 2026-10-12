@@ -98,6 +98,12 @@ class PortalHTTPTest(unittest.TestCase):
                 self.assertEqual(self.request(path)[0], 404)
         self.assertEqual(self.request("/assets/open-sans.ttf?path=private")[0], 400)
 
+    def test_only_the_portal_stylesheets_are_served_not_any_css_file(self):
+        # site.css exists beside the portal's stylesheets but belongs to the documentation site.
+        for path in ("/assets/site.css", "/assets/nope.css", "/assets/../site.css"):
+            with self.subTest(path=path):
+                self.assertEqual(self.request(path)[0], 404)
+
     def test_unreadable_font_reports_asset_repair_without_disclosing_filesystem_details(self):
         with patch("pathlib.Path.read_bytes", side_effect=OSError("PRIVATE-CANARY")):
             status, _, body = self.request("/assets/open-sans.ttf")
