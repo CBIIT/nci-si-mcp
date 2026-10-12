@@ -382,6 +382,7 @@ class DocumentationTest(unittest.TestCase):
         }
 
         self.assertEqual(holders, ["QUICKSTART.md"])
+        self.assertIn("\n### Platforms and prerequisites\n", read("QUICKSTART.md"))
         self.assertEqual(
             [
                 name
