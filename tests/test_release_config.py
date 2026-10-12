@@ -75,5 +75,27 @@ class PullRequestTitleTest(unittest.TestCase):
                 self.assertIn("CONTRIBUTING.md", summary)
 
 
+class PackageDependenciesTest(unittest.TestCase):
+    def test_the_core_package_has_no_dependencies(self):
+        with (ROOT / "pyproject.toml").open("rb") as file:
+            project = tomllib.load(file)["project"]
+
+        self.assertEqual(project["dependencies"], [])
+
+
+class PlatformNeutralServerTest(unittest.TestCase):
+    """Both platforms see the same server: no platform branch can change a result."""
+
+    def test_no_server_module_asks_which_platform_it_runs_on(self):
+        names = ("sys.platform", "platform.system", "os.name", "os.uname")
+        found = [
+            f"{path.relative_to(ROOT)}: {name}"
+            for path in sorted((ROOT / "src").rglob("*.py"))
+            for name in names
+            if name in path.read_text(encoding="utf-8")
+        ]
+        self.assertEqual(found, [])
+
+
 if __name__ == "__main__":
     unittest.main()
