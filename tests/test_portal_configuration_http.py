@@ -98,6 +98,21 @@ class ConfigurationHTTPTest(unittest.TestCase):
         status, _ = self.request("/configuration/proposals", fields=self.form)
         self.assertEqual(status, 503)
 
+    def test_a_missing_and_a_malformed_snapshot_are_told_apart_without_their_path_or_body(self):
+        for write, message in (
+            (self.path.unlink, "No target startup snapshot is readable."),
+            (
+                lambda: self.path.write_text("<html>PRIVATE-BODY</html>"),
+                "The selected target startup snapshot is malformed.",
+            ),
+        ):
+            with self.subTest(message=message):
+                write()
+                status, page = self.request()
+                self.assertEqual(status, 503)
+                self.assertIn(f"<p>{message} Remote configuration is unknown.</p>", page)
+                self.assertNotIn("PRIVATE", page)
+
     def test_configuration_help_explains_snapshot_age_and_no_apply_authority(self):
         status, page = self.request("/help")
         self.assertEqual(status, 200)
