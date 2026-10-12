@@ -293,7 +293,7 @@ What the check is and is not:
 ## Secured caller fixtures
 
 The additive X-25–X-28 cases use `NCI_SI_ACCEPTANCE_SECURITY_SERVER`, an operator-supplied
-command that starts a loopback HTTP server. The furnished repository's CI and HTTP gate supply `scripts/permissions_fixture.py`. For a
+command that starts a loopback HTTP server. This repository's CI and HTTP gate supply `scripts/permissions_fixture.py`. For a
 local fixture run set `NCI_SI_ACCEPTANCE_SECURITY_SERVER='python ../scripts/permissions_fixture.py'`
 alongside the preparation environment. Successors provide their own adapter;
 the suite imports no server code. Without an adapter these cases explicitly report NOT RUN.

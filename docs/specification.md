@@ -198,9 +198,9 @@ Binding on every tool.
 | Id | Convention |
 |---|---|
 | A10.1 | A joint conformance test spans both modules and checks A1.2, A3, A4, A5.4 and correlation propagation. |
-| A10.2 | Where the two modules are contracted to different parties, responsibility for the joint test is assigned explicitly, and neither party's acceptance depends on the other's delivery schedule. |
+| A10.2 | Where different teams own the two modules, responsibility for the joint test is assigned explicitly, and neither module's acceptance depends on the other's release schedule. |
 | A10.3 | No tool description contains placeholder text or an unsupported operator, parameter or syntax example. |
-| A10.4 | Response-time criteria are relative to the platform's capability at delivery: a module that passes a slow platform call through faithfully conforms. |
+| A10.4 | Response-time criteria are relative to the platform's capability at acceptance: a module that passes a slow platform call through faithfully conforms. |
 
 ### A11 · Performance measurement
 
