@@ -124,15 +124,23 @@ jobs:
               while True:
                   try:
                       with urllib.request.urlopen(url, timeout=5) as reply:
-                          print(url, reply.status, reply.read().decode())
-                          break
+                          if server.poll() is None:
+                              print(url, reply.status, reply.read().decode())
+                              break
                   except OSError:
-                      if server.poll() is not None or time.monotonic() > deadline:
-                          sys.exit("not ready: " + url)
-                      time.sleep(1)
+                      pass
+                  if server.poll() is not None or time.monotonic() > deadline:
+                      sys.exit("not ready: " + url)
+                  time.sleep(1)
           finally:
-              os.killpg(server.pid, signal.SIGTERM)
-              server.wait(timeout=30)
+              try:
+                  os.killpg(server.pid, signal.SIGTERM)
+              except ProcessLookupError:
+                  pass
+              status = server.wait(timeout=30)
+          # pdm run reports a child that the SIGTERM ended as 256 - 15.
+          if status not in (0, -signal.SIGTERM, 256 - signal.SIGTERM):
+              sys.exit(f"the server stopped with status {status}")
           PY
       - name: Serve over stdio and initialize (CI only)
         timeout-minutes: 3

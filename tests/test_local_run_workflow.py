@@ -104,7 +104,7 @@ PROBES = {
 
 # The exact run text of the step that writes the readiness probe. It answers ready only while the
 # server it started is running, stops that server, and fails unless it ended by its own exit or
-# the SIGTERM sent to it.
+# the SIGTERM sent to it (directly, or as `pdm run` reports it).
 READY_PROBE_RUN = r"""cat > "$RUNNER_TEMP/ready.py" <<'PY'
 import os, signal, subprocess, sys, time, urllib.request
 
@@ -129,7 +129,8 @@ finally:
     except ProcessLookupError:
         pass
     status = server.wait(timeout=30)
-if status not in (0, -signal.SIGTERM):
+# pdm run reports a child that the SIGTERM ended as 256 - 15.
+if status not in (0, -signal.SIGTERM, 256 - signal.SIGTERM):
     sys.exit(f"the server stopped with status {status}")
 PY
 """
