@@ -6,7 +6,7 @@ to the MCP process or an operational results store. Local use requires no instit
 
 ## Build and preview
 
-From the repository root, with Python 3.14+, PDM and Node.js 24 / npm installed:
+From the repository root, with the [prerequisites](../QUICKSTART.md#platforms-and-prerequisites) installed (Node.js 24 or newer, with npm):
 
 ```bash
 pdm install -G docs

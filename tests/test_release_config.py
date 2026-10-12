@@ -75,5 +75,13 @@ class PullRequestTitleTest(unittest.TestCase):
                 self.assertIn("CONTRIBUTING.md", summary)
 
 
+class PackageDependenciesTest(unittest.TestCase):
+    def test_the_core_package_has_no_dependencies(self):
+        with (ROOT / "pyproject.toml").open("rb") as file:
+            project = tomllib.load(file)["project"]
+
+        self.assertEqual(project["dependencies"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

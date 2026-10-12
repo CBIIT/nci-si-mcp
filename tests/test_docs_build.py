@@ -88,8 +88,13 @@ custom_dir = "overrides"
 
     def test_missing_rebuilt_runtime_never_falls_back_to_vendor_bundle(self):
         (self.root / "docs/site-assets/node_modules/.cache/nci-si/mermaid.min.js").unlink()
-        with self.assertRaises(FileNotFoundError):
+        with self.assertRaises(FileNotFoundError) as raised:
             self.build()
+        self.assertEqual(
+            str(raised.exception),
+            "The Mermaid runtime is not built (npm ci clears it): "
+            "run `npm run build --prefix docs/site-assets` and retry.",
+        )
         self.assertFalse(self.output.exists())
 
     def test_broken_link_prevents_any_publication_and_cleans_staging(self):

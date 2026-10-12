@@ -38,6 +38,23 @@ class CompanionCompositionTest(unittest.TestCase):
         self.assertTrue(set(admin["networks"]).isdisjoint(services["mcp"]["networks"]))
         self.assertNotIn("volumes", services["documentation"])
 
+    def test_serving_index_mount_is_writable_for_sqlite_wal_and_the_model_is_read_only(self):
+        # A WAL database opened on a read-only directory fails startup with
+        # "attempt to write a readonly database", so only the model mount may be :ro.
+        self.assertEqual(
+            self.compose["services"]["mcp"]["volumes"],
+            [
+                "${NCI_SI_LOCAL_INDEX:-../tmp/serving-index}:/data",
+                "${NCI_SI_LOCAL_MODEL:-../tmp/serving-model}:/model:ro",
+            ],
+        )
+
+    def test_the_runbook_tags_the_image_the_mcp_service_runs(self):
+        # The container runbook builds :local; Compose would otherwise try to pull :verified.
+        runbook = Path("docs/companion-containers.md").read_text(encoding="utf-8")
+        self.assertEqual(self.compose["services"]["mcp"]["image"], "nci-si-mcp:verified")
+        self.assertIn("`docker tag nci-si-mcp:local nci-si-mcp:verified`", runbook)
+
     def test_committed_companion_dependencies_match_pdm_and_exclude_models(self):
         expected = render(tomllib.loads(Path("pdm.lock").read_text()))
         self.assertEqual(Path("container/companion-requirements.txt").read_text(), expected)

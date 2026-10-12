@@ -1,11 +1,13 @@
 """The smoke command checks retention and reaps its container-owned assets."""
 
+import errno
 import io
 import json
+import os
 import shutil
 import subprocess
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -91,6 +93,105 @@ class SmokeCommandTest(unittest.TestCase):
                 self.assertEqual("Image smoke passed" in output.getvalue(), not changed)
                 self.assertTrue(lifecycle.cleaned)
                 self.assertFalse(lifecycle.assets.exists())
+
+
+def failing_engine(status, message):
+    """A stand-in for subprocess.run: every docker call exits with `status` and `message`."""
+
+    def run(command, check, **_options):
+        result = subprocess.CompletedProcess(command, status, "", message)
+        if check:
+            result.check_returncode()
+        return result
+
+    return run
+
+
+class DockerFailureReportTest(unittest.TestCase):
+    def smoke(self, engine=None, **steps):
+        """Run the command with every step passing except the ones given; `engine` is docker."""
+        assets = {"prepare": lambda _image, assets: (assets / "model").mkdir()}
+        quiet = {
+            name: patch.object(container_smoke, name, side_effect=assets.get(name))
+            for name in ("failure", "prepare", "default_auth_refusal", "serve", "retained_builds")
+            if name not in steps
+        }
+        failing = {
+            name: patch.object(container_smoke, name, side_effect=error)
+            for name, error in steps.items()
+        }
+        with (
+            TemporaryDirectory() as directory,
+            patch.object(container_smoke, "ROOT", Path(directory)),
+            patch("sys.argv", ["container_smoke.py", "test-image"]),
+            patch.object(
+                container_smoke.subprocess, "run", engine or failing_engine(1, "cleanup boom")
+            ),
+            redirect_stdout(io.StringIO()),
+            redirect_stderr(io.StringIO()) as stderr,
+        ):
+            for patcher in (*quiet.values(), *failing.values()):
+                patcher.start()
+                self.addCleanup(patcher.stop)
+            try:
+                container_smoke.main()
+            except Exception as error:  # noqa: BLE001 - the test reports whichever error escapes
+                return error, stderr.getvalue()
+        return None, stderr.getvalue()
+
+    def test_a_failed_docker_call_shows_its_stderr(self):
+        with (
+            patch.object(container_smoke.subprocess, "run", failing_engine(125, "no such image")),
+            self.assertRaises(Exception) as raised,
+        ):
+            container_smoke.docker("run", "image")
+        self.assertEqual(str(raised.exception), "docker run failed (exit 125): no such image")
+
+    def test_a_failed_cleanup_does_not_hide_the_first_failure(self):
+        error, stderr = self.smoke(failure=RuntimeError("primary index failure"))
+        self.assertEqual(str(error), "primary index failure")
+        self.assertEqual(
+            stderr,
+            "Cleanup of the smoke assets failed: docker run failed (exit 1): cleanup boom\n",
+        )
+
+    def test_a_cleanup_that_times_out_is_reported_like_any_other_failure(self):
+        def hangs(command, **_options):
+            raise subprocess.TimeoutExpired(command, 300)
+
+        error, stderr = self.smoke(engine=hangs, failure=RuntimeError("primary index failure"))
+        self.assertEqual(str(error), "primary index failure")
+        self.assertRegex(
+            stderr,
+            r"^Cleanup of the smoke assets failed: Command .* timed out after 300 seconds\n$",
+        )
+
+    def test_a_directory_that_cannot_be_removed_does_not_hide_the_first_failure(self):
+        # Native Linux leaves container-owned files the host user cannot remove; the removal
+        # reports each such path to the caller's onexc handler, as shutil.rmtree does.
+        remove = shutil.rmtree
+
+        def rmtree(path, *args, onexc=None, **options):
+            if Path(path).name.startswith("container-smoke-"):
+                try:
+                    raise OSError(errno.EBUSY, "Device or resource busy")
+                except OSError as error:  # as in shutil.rmtree, the handler runs in the except
+                    onexc(os.rmdir, str(path), error)
+                return None
+            return remove(path, *args, onexc=onexc, **options)
+
+        with patch.object(shutil, "rmtree", rmtree):
+            error, stderr = self.smoke(failure=RuntimeError("primary index failure"))
+        self.assertEqual(str(error), "primary index failure")
+        self.assertRegex(stderr, "^Cleanup of the smoke assets failed: .*cleanup boom\n$")
+
+    def test_a_failed_cleanup_alone_fails_the_command_and_says_why(self):
+        error, stderr = self.smoke()
+        self.assertEqual(
+            str(error),
+            "Cleanup of the smoke assets failed: docker run failed (exit 1): cleanup boom",
+        )
+        self.assertEqual(stderr, "")
 
 
 class AuthRefusalEngine:
