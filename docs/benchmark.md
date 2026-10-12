@@ -94,6 +94,14 @@ actually served remotely. A release refusal remains a measured error, not a succ
 | Errors | Tool errors and client failures remain explicit; a timeout has unknown result size |
 | Server telemetry | Upstream attempts, cache state, source commit and replica are unknown; no audit endpoint is invented |
 
+Record flow: both measurement runners → frozen records in `scripts/benchmark_records.py` and
+`scripts/benchmark_report.py` → existing transport-specific JSON → one import/projection path.
+The records share sample, summary, phase, case, report and selection validation. Stdio keeps
+its measured attempts and release; HTTP keeps its null server telemetry. Semantic import
+errors name a fixed field path without its value. JSON/envelope errors remain root-level.
+Both current wire formats are retained without a version change. The older interrupted
+stdio report remains untouched and rejected for its missing inventory; none is inferred.
+
 Concurrency is fixed at one. Defaults are 500 total HTTP requests, 120 seconds aggregate,
 15 seconds per operation, five measured repetitions and one warm-up. Remote CLI options can
 lower or raise these within hard bounds of 1,000 requests, 1,200 aggregate seconds, 120 seconds

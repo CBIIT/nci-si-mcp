@@ -4,7 +4,8 @@ import json
 import unittest
 from types import SimpleNamespace
 
-from scripts.http_measurement import MeasurementError, failure_sample, measure_reply, summarize_http
+from scripts.benchmark_records import summarize
+from scripts.http_measurement import MeasurementError, failure_sample, measure_reply
 
 
 class HTTPMeasurementTest(unittest.TestCase):
@@ -54,19 +55,19 @@ class HTTPMeasurementTest(unittest.TestCase):
     def test_summary_includes_errors_and_missing_samples_stay_unknown(self):
         good = measure_reply(self.reply({}), 10, "request", http_requests=1)
         bad = good | {"elapsedMs": 100, "error": True, "responseCode": "timeout"}
-        summary = summarize_http([good, bad])
+        summary = summarize([good, bad])
         self.assertEqual(summary["calls"], 2)
         self.assertEqual(summary["errorRate"], 0.5)
         self.assertEqual((summary["p50Ms"], summary["p95Ms"]), (10, 100))
         self.assertIsNone(summary["meanOutboundRequests"])
-        empty = summarize_http([])
+        empty = summarize([])
         self.assertEqual(empty["calls"], 0)
         self.assertIsNone(empty["p95Ms"])
         self.assertIsNone(empty["errorRate"])
 
     def test_client_failure_keeps_latency_and_error_without_claiming_a_result_size(self):
         sample = failure_sample("timeout", 150, "request", http_requests=1)
-        summary = summarize_http([sample])
+        summary = summarize([sample])
         self.assertEqual(sample["responseCode"], "timeout")
         self.assertTrue(sample["error"])
         self.assertIsNone(sample["resultBytes"])

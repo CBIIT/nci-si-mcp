@@ -24,7 +24,8 @@ RUN_STOPS = frozenset(get_args(RunStop))
 HttpStop = NewType("HttpStop", str)
 _HTTP_STOP = re.compile(r"http_[45][0-9]{2}")
 
-RUN_STATES = frozenset({"running", "completed", "failed", "cancelled"})
+RunState = Literal["running", "completed", "failed", "cancelled"]
+RUN_STATES = frozenset(get_args(RunState))
 
 # Why a job ended other than in success, recorded by the worker controller.
 JobReason = Literal[

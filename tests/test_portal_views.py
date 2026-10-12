@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import patch
 
-from scripts.evidence_http import PHASE_LABELS
+from scripts.benchmark_records import PHASE_LABELS
 from scripts.portal_configuration import LocalConfiguration
 from scripts.portal_configuration_views import configuration_page
 from scripts.portal_help import help_page

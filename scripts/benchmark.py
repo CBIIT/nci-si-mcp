@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import math
 import platform
 import sys
 import time
@@ -18,6 +17,14 @@ from tempfile import TemporaryDirectory
 from typing import Any
 
 import yaml
+from scripts.benchmark_records import (
+    Case,
+    Phase,
+    Sample,
+    SelectedCase,
+    Suite,
+)
+from scripts.benchmark_report import Report
 from scripts.operator_files import write_json
 
 from nci_si_acceptance.client import Mode, Session, open_session, server_environment
@@ -62,14 +69,6 @@ def cases(names: list[str]) -> list[dict[str, Any]]:
     ]
 
 
-def percentile(values: list[float], fraction: float) -> float:
-    if not values or not 0 < fraction <= 1:
-        raise ValueError("A percentile needs samples and a fraction in (0, 1]")
-    if any(not math.isfinite(value) or value < 0 for value in values):
-        raise ValueError("Timing samples must be finite and nonnegative")
-    return sorted(values)[math.ceil(len(values) * fraction) - 1]
-
-
 def completion(log: str, correlation: str, tool: str) -> dict[str, Any]:
     records = map(json.loads, log.splitlines())
     found = [
@@ -98,27 +97,14 @@ def measure(session: Session, log: Path, case: dict[str, Any]) -> dict[str, Any]
     content = reply.structured_content
     if content is None or reply.is_error != (record["status"] == "error"):
         raise ValueError("MCP and its completion disagree about the measured result")
-    return {
-        "elapsedMs": elapsed,
-        "resultBytes": len(json.dumps(content, ensure_ascii=False, separators=(",", ":")).encode()),
-        "outboundRequests": record["outboundRequests"],
-        "responseCode": record["responseCode"],
-        "error": reply.is_error,
-        "release": record["release"],
-    }
-
-
-def summarize(samples: list[dict[str, Any]]) -> dict[str, Any]:
-    times = [sample["elapsedMs"] for sample in samples]
-    requests = sum(sample["outboundRequests"] for sample in samples)
-    return {
-        "calls": len(samples),
-        "p50Ms": percentile(times, 0.50),
-        "p95Ms": percentile(times, 0.95),
-        "errorRate": sum(sample["error"] for sample in samples) / len(samples),
-        "meanResultBytes": sum(sample["resultBytes"] for sample in samples) / len(samples),
-        "meanOutboundRequests": requests / len(samples),
-    }
+    return Sample(
+        elapsedMs=elapsed,
+        resultBytes=len(json.dumps(content, ensure_ascii=False, separators=(",", ":")).encode()),
+        outboundRequests=record["outboundRequests"],
+        responseCode=record["responseCode"],
+        error=reply.is_error,
+        release=record["release"],
+    ).to_dict("stdio")
 
 
 @contextmanager
@@ -143,10 +129,7 @@ def run_case(case: dict[str, Any], environment: dict[str, str], repetitions: int
     with opened(environment) as (session, log):
         measure(session, log, case)  # Prime once, excluded from timing and error aggregates.
         warm = [measure(session, log, case) for _ in range(repetitions)]
-    return case | {
-        "cold": {"summary": summarize(cold), "samples": cold},
-        "warm": {"summary": summarize(warm), "samples": warm},
-    }
+    return Case(SelectedCase(**case), Phase.measured(cold), Phase.measured(warm)).to_dict("stdio")
 
 
 def environment_for(mode: Mode, upstream: FixtureServer | None, case: dict[str, Any]):
@@ -171,19 +154,19 @@ def run(mode: Mode, names: list[str], repetitions: int, output: Path) -> dict[st
     if repetitions < 1:
         raise ValueError("At least one measured repetition is required")
     (ROOT / "tmp").mkdir(exist_ok=True)
-    report: dict[str, Any] = {
-        "mode": mode,
-        "transport": "stdio",
-        "createdAt": datetime.now(UTC).isoformat(),
-        "serverVersion": version("nci-si-mcp"),
-        "sourceSha256": source_digest(),
-        "python": platform.python_version(),
-        "platform": platform.platform(),
-        "suite": identity(),
-        "repetitions": repetitions,
-        "expectedCases": names,
-        "complete": False,
-        "conditions": {
+    report = Report(
+        mode=mode,
+        transport="stdio",
+        createdAt=datetime.now(UTC).isoformat(),
+        serverVersion=version("nci-si-mcp"),
+        sourceSha256=source_digest(),
+        python=platform.python_version(),
+        platform=platform.platform(),
+        suite=Suite(**identity()),
+        repetitions=repetitions,
+        expectedCases=names,
+        complete=False,
+        conditions={
             "clientTimeoutSeconds": CLIENT_TIMEOUT_SECONDS,
             "cold": "fresh process and data directory per call; startup excluded",
             "warm": "one process after one excluded priming call; actual attempts report caching",
@@ -191,8 +174,8 @@ def run(mode: Mode, names: list[str], repetitions: int, output: Path) -> dict[st
             "resultBytes": "UTF-8 compact structured content, excluding MCP envelope",
             "index": "none; lexical search; no semantic-quality or production latency claim",
         },
-        "cases": [],
-    }
+        cases=[],
+    ).to_dict()
     # An interrupted first case must not leave an older successful report.
     write_json(output, report, form="report")
     fixture = FixtureServer(load_fixtures(FIXTURES)) if mode == "fixture" else nullcontext(None)

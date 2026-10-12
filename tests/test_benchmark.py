@@ -10,12 +10,20 @@ from unittest.mock import patch
 from urllib.parse import urlsplit
 
 from scripts import benchmark
+from scripts.benchmark_records import percentile, summarize
 
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
 
 
 def sample(elapsed=1.0, *, error=False, requests=2, size=9):
-    return {"elapsedMs": elapsed, "error": error, "outboundRequests": requests, "resultBytes": size}
+    return {
+        "elapsedMs": elapsed,
+        "error": error,
+        "outboundRequests": requests,
+        "resultBytes": size,
+        "responseCode": "upstream_unavailable" if error else "ok",
+        "release": {},
+    }
 
 
 class BenchmarkTest(unittest.TestCase):
@@ -57,7 +65,7 @@ class BenchmarkTest(unittest.TestCase):
         rows = [
             sample(float(value), error=value == maximum, requests=value) for value in range(1, 21)
         ]
-        result = benchmark.summarize(rows)
+        result = summarize(rows)
         self.assertEqual((result["p50Ms"], result["p95Ms"]), (10, 19))
         self.assertEqual(result["errorRate"], 0.05)
         self.assertEqual(result["meanOutboundRequests"], 10.5)
@@ -67,7 +75,7 @@ class BenchmarkTest(unittest.TestCase):
     def test_invalid_timing_evidence_is_refused(self):
         for values, fraction in (([], 0.5), ([1], 0), ([1], 1.1), ([float("nan")], 0.5), ([-1], 1)):
             with self.subTest(values=values), self.assertRaises(ValueError):
-                benchmark.percentile(values, fraction)
+                percentile(values, fraction)
 
     def test_only_one_correlated_completion_with_actual_attempts_is_evidence(self):
         record = {
@@ -128,7 +136,9 @@ class BenchmarkTest(unittest.TestCase):
             return sample(100 if process["calls"] == 1 else 5, requests=process["calls"])
 
         with patch.object(benchmark, "opened", opened), patch.object(benchmark, "measure", measure):
-            result = benchmark.run_case({"tool": "get_concept"}, {}, 2)
+            result = benchmark.run_case(
+                {"tool": "get_concept", "arguments": {}, "scenario": None}, {}, 2
+            )
         self.assertEqual([process["calls"] for process in processes], [1, 1, 3])
         self.assertEqual(result["cold"]["summary"]["p50Ms"], 100)
         self.assertEqual(result["warm"]["summary"]["p95Ms"], 5)
