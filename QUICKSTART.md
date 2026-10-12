@@ -23,7 +23,7 @@ Supported platforms: macOS (primary) and Linux, with a POSIX shell. Windows is n
 | git, with tags | everything: the version comes from the nearest tag | a plain `git clone` has them; a shallow clone or a source archive does not |
 | Network access to EVS | live calls, `release-info`, `index-sample` | (`download.pytorch.org` as well for the container image) |
 | Free ports 8000, 8080, 8081 | 8000 the HTTP server and the site preview, 8080 the documentation container, 8081 the validation dashboard | |
-| Node.js 24 or newer | the documentation site only | macOS: `brew install node`; Linux: your package manager or [nodejs.org](https://nodejs.org) |
+| Node.js 24 or newer | the documentation site only | macOS: `brew install node`; Linux: `curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8/install.sh \| bash`, then, in a new shell, `nvm install 24` |
 | A container runtime with Compose | containers only; on Apple Silicon it needs amd64 emulation | Docker or Podman |
 
 ```bash
