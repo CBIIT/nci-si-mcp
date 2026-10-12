@@ -21,7 +21,7 @@ from threading import Thread
 from typing import Any
 
 import yaml
-from scripts.processes import exit_on_sigterm, stop
+from scripts.processes import exit_on_sigterm, print_server_log_tail, stop
 
 from nci_si_acceptance.client import OwnedServer, server_environment, without_nci_si_settings
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
@@ -166,29 +166,37 @@ def run(*, report: Path | None = None, environment: dict[str, str] | None = None
     (ROOT / "tmp").mkdir(exist_ok=True)
     with TemporaryDirectory(prefix="http-", dir=ROOT / "tmp") as temporary:
         directory = Path(temporary)
-        prepare(directory, environment=environment)
-        socket_path = directory / "control"
-        # The runner owns the server. A restart answers the hook within its 30 s.
-        with OwnedServer(
-            os.environ if environment is None else environment,
-            directory / "server.log",
-            data_dir=directory / "index",
-            require_index=True,
-            ready_seconds=25,
-        ) as server:
-            # Restore cwd before starting the control thread.
-            with chdir(directory):
-                control = socketserver.UnixStreamServer("control", hook_handler(server))
-            with control:
-                thread = Thread(target=control.serve_forever, daemon=True)
-                thread.start()
-                try:
-                    return run_suite(
-                        server.port, socket_path, report=report, environment=environment
-                    )
-                finally:
-                    control.shutdown()
-                    thread.join()
+        status = 1  # an exception or SIGTERM ends the run unsuccessfully too
+        try:
+            status = _serve_and_run(directory, report, environment)
+            return status
+        finally:
+            if status:
+                print_server_log_tail(directory / "server.log")
+
+
+def _serve_and_run(directory: Path, report: Path | None, environment: dict[str, str] | None) -> int:
+    prepare(directory, environment=environment)
+    socket_path = directory / "control"
+    # The runner owns the server. A restart answers the hook within its 30 s.
+    with OwnedServer(
+        os.environ if environment is None else environment,
+        directory / "server.log",
+        data_dir=directory / "index",
+        require_index=True,
+        ready_seconds=25,
+    ) as server:
+        # Restore cwd before starting the control thread.
+        with chdir(directory):
+            control = socketserver.UnixStreamServer("control", hook_handler(server))
+        with control:
+            thread = Thread(target=control.serve_forever, daemon=True)
+            thread.start()
+            try:
+                return run_suite(server.port, socket_path, report=report, environment=environment)
+            finally:
+                control.shutdown()
+                thread.join()
 
 
 if __name__ == "__main__":

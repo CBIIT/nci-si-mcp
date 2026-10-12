@@ -19,6 +19,7 @@ from typing import Any, cast
 from scripts.evidence_envelope import MAX_EXIT_CODE
 from scripts.formats import JOB_ID, SHA1_HEX
 from scripts.operator_files import read_bytes, write_json
+from scripts.operator_process import MAX_WORKER_LOG_BYTES, WORKER_LOG
 from scripts.portal_store import MAX_RETENTION
 from scripts.vocabulary import ACTIVE, JOB_REASONS, TERMINAL, JobOutcome
 
@@ -216,6 +217,16 @@ class JobController:
         with self.condition:
             self._available()
             return deepcopy(self._get(run_id))
+
+    def worker_log(self, run_id: str) -> bytes | None:
+        """The job's worker log as recorded so far, or None when the run kept none."""
+        with self.condition:
+            self._available()
+            self._get(run_id)
+        path = self.root / run_id / WORKER_LOG
+        if not path.exists() and not path.is_symlink():
+            return None
+        return read_bytes(path, MAX_WORKER_LOG_BYTES)
 
     def submit(self, run_id: str, profile: str) -> dict[str, Any]:
         _identifier(run_id)

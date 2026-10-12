@@ -62,8 +62,10 @@ latency claims. Browser uploads are not enabled.
 Choose **Run checks**, a validation profile, then **Start validation run**. The default profiles
 run HTTP acceptance checks or representative HTTP benchmarks against disposable fixture services.
 One worker runs at a time, with at most two queued jobs. Acceptance workers have a **900-second**
-deadline; benchmarks have **240 seconds**, including setup. Worker console output is discarded;
-reports are bounded to 16 MiB and complete evidence bundles to 24 MiB.
+deadline; benchmarks have **240 seconds**, including setup. Worker console output is kept in the
+job's **Worker log** (owner-only, its first and last 512 KiB), with the last 64 KiB of the owned
+server's log when a run fails; reports are bounded to 16 MiB and complete evidence bundles to
+24 MiB.
 
 Each job archives the committed checkout source and captures the original inventory before
 execution. **Uncommitted edits are excluded.** The installed Python environment supplies runtime
@@ -76,7 +78,8 @@ unknown. Cancellation does not establish that an in-flight remote request stoppe
 restart, abandoned jobs are marked interrupted and never automatically retried. Repeating the
 same retained form submission returns its existing job; a fresh form creates a new attempt.
 After owned processes stop, the parent removes disposable source and worker scratch directories,
-including those left by cancellation, while retaining the original evidence bundle.
+including those left by cancellation, while retaining the original evidence bundle and the
+worker log. Both are removed when the job is pruned.
 
 Remote probes require explicit local startup configuration:
 

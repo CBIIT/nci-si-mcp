@@ -118,9 +118,7 @@ def _run(command: list[str], source: Path, environment: dict[str, str]) -> int:
         cwd=source,
         env=environment,
         check=False,
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stdin=subprocess.DEVNULL,  # output is inherited: the controller keeps it in worker.log
     ).returncode
 
 
