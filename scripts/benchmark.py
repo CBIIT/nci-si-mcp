@@ -144,7 +144,12 @@ def environment_for(mode: Mode, upstream: FixtureServer | None, case: dict[str, 
 
 def source_digest() -> str:
     digest = hashlib.sha256()
-    paths = [*sorted((ROOT / "src/nci_si_mcp").glob("*.py")), Path(__file__)]
+    paths = [
+        *sorted((ROOT / "src/nci_si_mcp").glob("*.py")),
+        Path(__file__),
+        ROOT / "scripts/benchmark_records.py",
+        ROOT / "scripts/benchmark_report.py",
+    ]
     for path in paths:
         digest.update(str(path.relative_to(ROOT)).encode() + b"\0" + path.read_bytes())
     return digest.hexdigest()
