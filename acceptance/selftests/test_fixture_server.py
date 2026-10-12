@@ -726,7 +726,7 @@ def test_a_body_labelled_a_form_is_matched_only_as_a_form(tmp_path):
 
 
 def test_a_parameter_declared_ignored_is_left_out_of_the_match_and_kept_in_the_log(tmp_path):
-    evidence = "STATUS.md, 11 September 2026: $expand accepts count and ignores it"
+    evidence = "recorded EVS answer, 11 September 2026: $expand accepts count and ignores it"
     fixture_file(
         tmp_path,
         "expand.json",
@@ -749,7 +749,9 @@ def test_a_parameter_declared_ignored_is_left_out_of_the_match_and_kept_in_the_l
 
 def test_a_fixture_matching_on_a_parameter_its_path_ignores_is_refused(tmp_path):
     request = {"surface": "evs-fhir", "method": "GET", "path": "/ValueSet/$expand"}
-    fixture_file(tmp_path, "a.json", request=request | {"ignored": {"count": "STATUS.md"}})
+    fixture_file(
+        tmp_path, "a.json", request=request | {"ignored": {"count": "recorded EVS answer"}}
+    )
     fixture_file(tmp_path, "b.json", request=request | {"params": {"count": ["5"]}})
 
     with pytest.raises(ValueError, match=r"b\.json matches on count, which its path ignores"):

@@ -9,7 +9,7 @@
 #              tool call made from it is held to its own rules (A7.7)
 #   tools      the tools it names, in order (of first mention in the template)
 #   adds       what the prompt adds to the tools it names
-#   template   the text, furnished by the government; `{name}` is an argument's value
+#   template   the text, fixed by this specification; `{name}` is an argument's value
 #
 # A prompt is listed only in a profile that has every tool it names (M5.1). All four need both
 # modules, so the evs and cadsr profiles list none and the unified profile lists all four.

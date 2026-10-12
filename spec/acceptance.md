@@ -123,7 +123,7 @@ timeout error, the index release in provenance, correlation, and no secret in a 
 Changes to this specification, the suite, the fixture set and the request forms follow a
 versioned change request, an impact assessment and the written approval of the branch chief or
 a delegate, from the furnished tag. The request forms, prompt templates and resource definitions
-are furnished as initial versions for the EVS, caDSR and Shared SI teams to refine through that
+are initial versions for the EVS, caDSR and Shared SI teams to refine through that
 record. For the Shared SI Service's SPARQL endpoint the request form prescribes the query text,
 matched with runs of whitespace collapsed; a team may propose another form through the register,
 as for every form.

@@ -1,6 +1,6 @@
 # Implementation plan: from EVS-first prototype to the shared NCI Semantic Infrastructure MCP platform
 
-**Status:** record of delivered work (Phases 0 to 6 are merged; Phase 7 is recorded in [portal-plan.md](portal-plan.md); open work is on the GitHub milestones) · **Written:** 1 October 2026 · **Last updated to the code:** 2 October 2026, `main` after `v0.2.0`; later sections carry their own dates · **Furnished commit:** tagged when the owner furnishes it (§1.2, §11)
+**Status:** record of delivered work (Phases 0 to 6 are merged; Phase 7 is recorded in [portal-plan.md](portal-plan.md); open work is on the GitHub milestones) · **Written:** 1 October 2026 · **Last updated to the code:** 2 October 2026, `main` after `v0.2.0`; later sections carry their own dates · **Furnished commit:** tagged when the owner cuts it (§1.2, §11)
 
 The work is tracked on GitHub as one milestone per phase and one for the furnished package (§11), with one issue per deliverable; issues cite this document by section. Where a section describes the code "today", it means `main` at the *Updated* date above.
 
@@ -36,7 +36,7 @@ Done:
 
 Remaining:
 
-- Tag the furnished commit, when the owner decides to furnish it (§11), as `baseline-YYYY-MM` for the month it is cut (`baseline-2026-10` if that is this month). This is the commit the baseline package furnishes and the commit the baseline run reports against. It is a manual tag beside the automatic `vX.Y.Z` release tags.
+- Tag the furnished commit, when the owner decides to cut it (§11), as `baseline-YYYY-MM` for the month it is cut (`baseline-2026-10` if that is this month). This is the commit the baseline package furnishes and the commit the baseline run reports against. It is a manual tag beside the automatic `vX.Y.Z` release tags.
 
 ### 1.3 Ground rules carried forward from the current code
 
@@ -530,9 +530,9 @@ and upstream error details.
 
 ## 11. Phases and definition of done
 
-The baseline package furnishes the specification, the acceptance suite with its fixture set, and the server: the shared platform, the EVS module and the caDSR client, with the tools and tests completed when it is cut.
+The baseline package contains the specification, the acceptance suite with its fixture set, and the server: the shared platform, the EVS module and the caDSR client, with the tools and tests completed when it is cut.
 
-The suite is therefore completed first, for all twenty-nine tools, so that it is complete at whatever point the package is furnished. A tool the server lacks is a valid NOT IMPLEMENTED row; a required tool without tests is a defect in the package. The phases then make the tools pass their tests, in the order of the table below.
+The suite is therefore completed first, for all twenty-nine tools, so that it is complete at whatever point the package is cut. A tool the server lacks is a valid NOT IMPLEMENTED row; a required tool without tests is a defect in the package. The phases then make the tools pass their tests, in the order of the table below.
 
 Each phase ends with the unit suite green, the acceptance suite's expected outcomes updated for every test whose outcome changed, and a `vX.Y.Z` release where a merged `feat`, `fix` or `perf` pull request cuts one.
 
