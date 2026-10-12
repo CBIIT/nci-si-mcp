@@ -143,6 +143,12 @@ def _assets(root: Path, workspace: Path) -> None:
     }
     for name in FONT_FILES:
         files[name] = source / "fonts" / name
+    if not files["mermaid.min.js"].is_file():
+        # `npm ci` clears node_modules/.cache, where the build step puts the runtime.
+        raise FileNotFoundError(
+            "The Mermaid runtime is not built (npm ci clears it): "
+            "run `npm run build --prefix docs/site-assets` and retry."
+        )
     for name, path in files.items():
         _unlinked(root, path.relative_to(root))
         shutil.copyfile(path, assets / name)
