@@ -15,16 +15,16 @@
     </div>
     <div class="nci-footer__contact">
       <h2>Contact us</h2>
-      <a href="{{ footer.contact_url }}">Contact project maintainers</a>
+      <a href="{{ footer.contact_url | e }}">Contact project maintainers</a>
       <nav aria-label="Government agencies"><ul>
-        {% for link in footer.agencies %}<li><a href="{{ link.url }}">{{ link.label }}</a></li>
+        {% for link in footer.agencies %}<li><a href="{{ link.url | e }}">{{ link.label | e }}</a></li>
         {% endfor %}
       </ul></nav>
     </div>
   </div>
   <div class="nci-footer__bottom">
     <nav class="nci-footer__policies" aria-label="Policies"><ul>
-      {% for link in footer.policies %}<li><a href="{{ link.url }}">{{ link.label }}</a></li>
+      {% for link in footer.policies %}<li><a href="{{ link.url | e }}">{{ link.label | e }}</a></li>
       {% endfor %}
     </ul></nav>
     <a href="#">Back to top ↑</a>
