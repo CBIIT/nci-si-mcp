@@ -83,19 +83,21 @@ for module in pkgutil.walk_packages(ncit_index.__path__, ncit_index.__name__ + '
     importlib.import_module(module.name)
 from ncit_index.index import LocalIndex
 from ncit_index.records import Concept
+from dataclasses import replace
 from ncit_index.embeddings import HashingEmbeddingProvider
 with tempfile.TemporaryDirectory() as directory:
     index = LocalIndex(Path(directory))
     concept = Concept('C1', 'Neoplasm', 'NCI Thesaurus', 'ncit', '26.06e', None,
                       '2026-06-29T00:00:00Z', 'active_cache')
     provider = HashingEmbeddingProvider()
-    index.upsert_concepts([concept], None, provider)
+    inputs = [concept, replace(concept, code='C2', preferred_name='Tumor')]
+    index.upsert_concepts(inputs, None, provider)
     hits, total, manifest = index.search_page('Neoplasm', provider, mode='bm25')
     print(json.dumps([[(hit.concept.code, hit.score, hit.rank, hit.matched_on)
-                      for hit in hits], total, manifest.release_version]))
+                      for hit in hits], total, manifest.release_version, manifest.concept_count]))
 """
         result = subprocess.run(  # noqa: S603 -- fixed script in the project interpreter
             [sys.executable, "-c", script], capture_output=True, text=True, check=False
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(json.loads(result.stdout), [[["C1", 1.0, 1, "name"]], 1, "26.06e"])
+        self.assertEqual(json.loads(result.stdout), [[["C1", 1.0, 1, "name"]], 1, "26.06e", 2])
