@@ -48,6 +48,15 @@ Only those fixed filenames are read, symlinks are rejected, and total input is b
 Hashes validate byte bindings, not producer identity. Imported origin and declared server
 identity remain unverified. Importing does not execute tests.
 
+Envelope validation errors name a field, for example `Invalid envelope field: report_sha256`,
+without echoing its value. Unknown keys name only the envelope. An invalid persisted job names
+its field, such as `jobs[0].exit_code`; startup leaves `jobs.json` unchanged for inspection and
+starts no worker.
+Original inventory errors name the snapshot or a safe field position, for example
+`Invalid inventory field: catalogue.cases[0].tool`, never the private test identifier.
+Native acceptance errors use `Invalid acceptance field: <path>`. Historical optional fields
+remain optional; malformed completion metadata keeps a run incomplete rather than hiding it.
+
 Old reports without a bound original inventory can be retained explicitly without verdicts:
 
 ```bash

@@ -39,6 +39,8 @@ import argparse
 import json
 import sys
 from collections import Counter
+from dataclasses import asdict, dataclass, fields
+from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -88,6 +90,144 @@ UNRUN = ("skipped", "not_implemented", "not_live")
 # Those of them that could not run. A live run's fixture-only tests and gates do not run there
 # by design (not_live), so they keep no tool from passing.
 CANNOT_RUN = ("skipped", "not_implemented")
+
+
+class ReportFieldError(ValueError):
+    """A known field location, never an imported value or dynamic key."""
+
+
+def require_field(condition: bool, path: str) -> None:
+    if not condition:
+        raise ReportFieldError(f"Invalid acceptance field: {path}")
+
+
+class Absent(Enum):
+    FIELD = "absent"
+
+
+def record_shape(value: Any, record: type, path: str) -> None:
+    require_field(isinstance(value, dict), path or "report")
+    declared = fields(record)
+    for item in declared:
+        if item.default != Absent.FIELD:
+            require_field(item.name in value, f"{path}.{item.name}".lstrip("."))
+    require_field(set(value) <= {item.name for item in declared}, path or "report")
+
+
+@dataclass(frozen=True)
+class Attribution:
+    tool: str | None
+    gate: bool
+
+
+@dataclass(frozen=True)
+class TestResult(Attribution):
+    outcome: str
+    unmatched: list[str]
+
+    @classmethod
+    def from_dict(cls, value: Any, path: str) -> TestResult:
+        record_shape(value, cls, path)
+        require_field(type(value["gate"]) is bool, f"{path}.gate")
+        require_field(
+            isinstance(value["outcome"], str) and value["outcome"] in RANK, f"{path}.outcome"
+        )
+        require_field(isinstance(value["unmatched"], list), f"{path}.unmatched")
+        require_field(
+            all(isinstance(item, str) for item in value["unmatched"]), f"{path}.unmatched"
+        )
+        return cls(**value)
+
+
+@dataclass(frozen=True)
+class ToolResult:
+    group: str
+    outcome: str
+    gates_only: bool
+    counts: dict[str, int]
+    implemented_as: str | Absent | None = Absent.FIELD
+
+    def to_dict(self) -> dict[str, Any]:
+        return {name: value for name, value in asdict(self).items() if value != Absent.FIELD}
+
+    @classmethod
+    def from_dict(cls, value: Any, path: str) -> ToolResult:
+        record_shape(value, cls, path)
+        require_field(isinstance(value["counts"], dict), f"{path}.counts")
+        require_field(
+            all(type(count) is int and count > 0 for count in value["counts"].values()),
+            f"{path}.counts",
+        )
+        require_field(isinstance(value["outcome"], str), f"{path}.outcome")
+        require_field(type(value["gates_only"]) is bool, f"{path}.gates_only")
+        alias = value.get("implemented_as")
+        require_field(alias is None or isinstance(alias, str), f"{path}.implemented_as")
+        return cls(**value)
+
+
+@dataclass(frozen=True)
+class RunCompletion:
+    exit_status: int
+    selected: int
+    finished: int
+    worker_crashes: int
+
+
+@dataclass(frozen=True)
+class ReportSuite:
+    version: str
+    fixture_set: str
+    digest: str
+
+    @classmethod
+    def from_dict(cls, value: Any) -> ReportSuite:
+        record_shape(value, cls, "suite")
+        for item in fields(cls):
+            require_field(isinstance(value[item.name], str), f"suite.{item.name}")
+        return cls(**value)
+
+
+@dataclass(frozen=True, kw_only=True)
+class NativeReport:
+    mode: str
+    transport: str
+    run: Any = Absent.FIELD
+    failed_gates: list[str]
+    unrun_gates: list[str]
+    tools_list_bytes: int | None
+    tools: dict[str, ToolResult]
+    tests: dict[str, TestResult]
+    suite: ReportSuite | Absent = Absent.FIELD
+
+    def to_dict(self) -> dict[str, Any]:
+        result = {name: value for name, value in asdict(self).items() if value != Absent.FIELD}
+        result["tools"] = {name: row.to_dict() for name, row in self.tools.items()}
+        return result
+
+    @classmethod
+    def from_dict(cls, value: Any) -> NativeReport:
+        record_shape(value, cls, "")
+        require_field("suite" in value, "suite")
+        require_field(value["mode"] in ("fixture", "live"), "mode")
+        require_field(value["transport"] in ("stdio", "streamable-http"), "transport")
+        size = value["tools_list_bytes"]
+        require_field(size is None or (type(size) is int and size >= 0), "tools_list_bytes")
+        require_field(isinstance(value["tests"], dict), "tests")
+        require_field(isinstance(value["tools"], dict), "tools")
+        tests = {
+            name: TestResult.from_dict(row, f"tests[{index}]")
+            for index, (name, row) in enumerate(value["tests"].items())
+        }
+        tools = {
+            name: ToolResult.from_dict(row, f"tools[{index}]")
+            for index, (name, row) in enumerate(value["tools"].items())
+        }
+        return cls(
+            **(
+                value
+                | {"tests": tests, "tools": tools, "suite": ReportSuite.from_dict(value["suite"])}
+            )
+        )
 
 
 def tool_outcome(
@@ -178,12 +318,11 @@ class Collector:
     def pytest_sessionfinish(self, session: pytest.Session, exitstatus: int) -> None:
         # xdist sets the controller's testscollected from the workers' agreed collection.
         # Record this before the suite's sessionfinish hook writes the report.
-        self.run = {
-            "exit_status": int(exitstatus),
-            "selected": session.testscollected,
-            "finished": len(self.finished),
-            "worker_crashes": self.worker_crashes,
-        }
+        self.run = asdict(
+            RunCompletion(
+                int(exitstatus), session.testscollected, len(self.finished), self.worker_crashes
+            )
+        )
         output = getattr(session.config, "workeroutput", None)  # set on an xdist worker only
         if (noted := self.noted_tools()) is not None and output is not None:
             output[WORKER_TOOLS] = noted
@@ -203,8 +342,10 @@ class Collector:
         if outcome is None:
             return
         properties: dict[str, Any] = dict(report.user_properties)
-        attribution = properties.get(ATTRIBUTION) or {"tool": None, "gate": False}
-        test = self.tests.setdefault(report.nodeid, {**attribution, "outcome": outcome})
+        attribution = properties.get(ATTRIBUTION) or asdict(Attribution(None, False))
+        test = self.tests.setdefault(
+            report.nodeid, asdict(TestResult(**attribution, outcome=outcome, unmatched=[]))
+        )
         if RANK[outcome] >= RANK[test["outcome"]]:
             test["outcome"] = outcome
             test["unmatched"] = properties.get(UNMATCHED, [])
@@ -230,12 +371,12 @@ class Collector:
     def _row(self, name: str, group: str, gates_failed: bool, gates_unrun: bool) -> dict[str, Any]:
         counts = Counter(test["outcome"] for test in self.tests.values() if test["tool"] == name)
         implemented = None if self.implemented is None else self.implemented.get(name, False)
-        return {
-            "group": group,
-            "outcome": tool_outcome(counts, gates_failed, gates_unrun, implemented),
-            "gates_only": fails_by_gates_only(counts, gates_failed),
-            "counts": dict(counts),
-        }
+        return ToolResult(
+            group,
+            tool_outcome(counts, gates_failed, gates_unrun, implemented),
+            fails_by_gates_only(counts, gates_failed),
+            dict(counts),
+        ).to_dict()
 
     def report(self, mode: str) -> dict[str, Any]:
         gates, unrun = gate_names(self.tests, FAILED), gate_names(self.tests, UNRUN)
@@ -244,17 +385,17 @@ class Collector:
             name: self._row(name, group, bool(gates), blocked)
             for name, group in REQUIRED_TOOLS.items()
         }
-        return {
-            "mode": mode,
-            "transport": self.transport,
-            "run": self.run,
-            "failed_gates": gates,
-            "unrun_gates": unrun,
-            "tools_list_bytes": self.listing_bytes,
-            "tools": rows,
+        return NativeReport(
+            mode=mode,
+            transport=self.transport,
+            run=self.run,
+            failed_gates=gates,
+            unrun_gates=unrun,
+            tools_list_bytes=self.listing_bytes,
+            tools={name: ToolResult(**row) for name, row in rows.items()},
             # Workers report in the order they finish; a report is the same whatever that was.
-            "tests": dict(sorted(self.tests.items())),
-        }
+            tests={name: TestResult(**row) for name, row in sorted(self.tests.items())},
+        ).to_dict()
 
 
 def combine(
@@ -388,10 +529,9 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[None]) ->
     if call.excinfo is not None and isinstance(call.excinfo.value, NotImplementedSkip):
         report.user_properties.append((SKIP, "not_implemented"))
     marker = item.get_closest_marker("tool")
-    attribution = {
-        "tool": marker.args[0] if marker else None,
-        "gate": item.get_closest_marker("gate") is not None,
-    }
+    attribution = asdict(
+        Attribution(marker.args[0] if marker else None, item.get_closest_marker("gate") is not None)
+    )
     report.user_properties.append((ATTRIBUTION, attribution))
     return report
 
@@ -488,9 +628,8 @@ def completion_problem(report: dict[str, Any]) -> str | None:
 
 
 def _valid_run_metadata(run: Any) -> bool:
-    fields = ("exit_status", "selected", "finished", "worker_crashes")
     return isinstance(run, dict) and all(
-        type(run.get(key)) is int and run[key] >= 0 for key in fields
+        type(run.get(item.name)) is int and run[item.name] >= 0 for item in fields(RunCompletion)
     )
 
 
