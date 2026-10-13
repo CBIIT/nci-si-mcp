@@ -82,6 +82,23 @@ class InventoryImportTest(unittest.TestCase):
         ):
             self.assert_invalid(bundle() | {"selection": encoded(selected)}, path)
 
+    def test_attribution_requires_each_field_and_an_object(self):
+        base = json.loads(bundle()["catalogue"])
+        for row, path in (
+            (None, ""),
+            ([], ""),
+            ({"tool": None}, ".gate"),
+            ({"gate": True}, ".tool"),
+        ):
+            catalogue = base | {"cases": {"PRIVATE-CANARY": row}}
+            self.assert_invalid(
+                bundle() | {"catalogue": encoded(catalogue)}, f"catalogue.cases[0]{path}"
+            )
+
+    def test_bad_snapshot_json_names_the_snapshot(self):
+        for name in bundle():
+            self.assert_invalid(bundle() | {name: b'{"PRIVATE-CANARY":'}, name)
+
     def test_identifier_length_and_digest_boundaries_preserve_valid_snapshots(self):
         original = json.loads(bundle()["stories"])
         self.assertTrue(

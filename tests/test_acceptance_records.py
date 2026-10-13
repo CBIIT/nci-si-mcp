@@ -97,6 +97,28 @@ class AcceptanceRecordTest(unittest.TestCase):
                 self.assertEqual(report_module.NativeReport.from_dict(native).to_dict(), native)
                 self.assertEqual(path.read_bytes(), original)
 
+    def test_nested_records_require_each_declared_field(self):
+        for group in ("suite", "tests", "tools"):
+            base = report()
+            row = base[group] if group == "suite" else next(iter(base[group].values()))
+            owner = "suite" if group == "suite" else f"{group}[0]"
+            for name in row:
+                native = report()
+                changed = native[group] if group == "suite" else next(iter(native[group].values()))
+                del changed[name]
+                with self.subTest(owner=owner, missing=name):
+                    self.assert_invalid(native, f"{owner}.{name}")
+
+    def test_nested_records_reject_non_objects(self):
+        for group in ("suite", "tests", "tools"):
+            for value in (None, []):
+                native = report()
+                if group == "suite":
+                    native[group] = value
+                else:
+                    native[group][next(iter(native[group]))] = value
+                self.assert_invalid(native, "suite" if group == "suite" else f"{group}[0]")
+
     def test_partial_completion_and_legacy_availability_are_preserved(self):
         self.assertTrue(project(report() | {"tools_list_bytes": 0})["inventory_complete"])
         for run in (None, {}, {"selected": "PRIVATE-CANARY"}):
