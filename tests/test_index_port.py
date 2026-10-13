@@ -5,7 +5,6 @@ import subprocess
 import sys
 import unittest
 from dataclasses import replace
-from unittest.mock import patch
 
 from fakes import FakeIndex
 from nci_si_mcp.errors import InputValidationError
@@ -55,10 +54,12 @@ class ReadPortTest(ServerFixture):
             ),
         )
         manifest = self.local_index.get_active_manifest()
-        with patch.object(
-            self.local_index, "_active_manifest", return_value=replace(manifest, needs_rebuild=True)
-        ):
-            result = invoke(self.context, "search", query="Neoplasm")["error"]
+        with self.local_index._connect() as connection:
+            connection.execute(
+                "UPDATE manifests SET payload = ?",
+                (json.dumps(replace(manifest, needs_rebuild=True).to_dict()),),
+            )
+        result = invoke(self.context, "search", query="Neoplasm")["error"]
         self.assertEqual(
             (result["code"], result["message"]),
             (
@@ -68,6 +69,14 @@ class ReadPortTest(ServerFixture):
             ),
         )
         self.assertNotIn("details", result)
+        update = invoke(self.context, "index_codes", ["C4741"])["error"]
+        self.assertEqual(
+            (update["code"], update["message"]),
+            (
+                "capability_unavailable",
+                "Run index-rebuild before updating a legacy sample.",
+            ),
+        )
 
     def test_registry_reads_in_memory_snapshots_without_operator_methods(self):
         manifest = IndexManifest(

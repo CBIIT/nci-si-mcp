@@ -55,6 +55,28 @@ def result(response):
 
 
 class HTTPTest(ServerFixture):
+    def test_legacy_index_readiness_keeps_the_previous_error_identity(self):
+        logging.disable(logging.NOTSET)
+        invoke(self.context, "index_codes", ["C3262"])
+
+        async def scenario():
+            async with http_app(self.settings, self.context) as client:
+                ready = await client.get("/ready")
+                manifest = self.local_index.get_active_manifest()
+                with self.local_index._connect() as connection:
+                    connection.execute(
+                        "UPDATE manifests SET payload = ?",
+                        (json.dumps(replace(manifest, needs_rebuild=True).to_dict()),),
+                    )
+                with self.assertLogs("nci_si_mcp.transport", level="WARNING") as captured:
+                    blocked = await client.get("/ready")
+                return ready, blocked, captured.records
+
+        ready, blocked, records = asyncio.run(scenario())
+        self.assertEqual((ready.status_code, ready.json()), (200, {"status": "ready"}))
+        self.assertEqual((blocked.status_code, blocked.json()), (503, {"status": "not_ready"}))
+        self.assertEqual(records[0].structured["errorType"], "PlatformError")
+
     def setUp(self):
         super().setUp()
         self.evs.concepts = deepcopy(self.evs.concepts)
