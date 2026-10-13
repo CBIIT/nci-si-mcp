@@ -5,16 +5,19 @@ from __future__ import annotations
 import logging
 import re
 
-from .audit import emit
-from .config import Settings, configure_logging
-from .context import Context
-from .embeddings import (
+from ncit_index.embeddings import (
     HashingEmbeddingProvider,
     SentenceTransformersProvider,
     create_embedding_provider,
 )
+from ncit_index.errors import IndexCapabilityError, IndexCompatibilityError, NoActiveIndexError
+from ncit_index.index import LocalIndex
+
+from .audit import emit
+from .config import Settings, configure_logging
+from .context import Context
 from .errors import PlatformError
-from .index import IndexCompatibilityError, LocalIndex, NoActiveIndexError
+from .index_adapter import LocalIndexAdapter, index_event
 from .server import create_mcp
 from .transport import run_http
 
@@ -31,15 +34,17 @@ def startup_failure(asset: str, error: Exception) -> None:
         logging.ERROR,
         "container_startup_failed",
         asset=asset,
-        errorType=type(error).__name__,
+        errorType="PlatformError"
+        if isinstance(error, IndexCapabilityError)
+        else type(error).__name__,
         parameter=parameter.group() if parameter else None,
     )
 
 
-def prepared_index(settings: Settings) -> LocalIndex:
+def prepared_index(settings: Settings) -> LocalIndexAdapter:
     if settings.http_require_index and not (settings.data_dir / "nci_si.sqlite3").is_file():
         raise NoActiveIndexError("Supply the index in NCI_SI_DATA_DIR")
-    index = LocalIndex(settings.data_dir)
+    index = LocalIndexAdapter(LocalIndex(settings.data_dir, on_event=index_event))
     manifest = index.get_active_manifest()
     if manifest is None:
         if settings.http_require_index:

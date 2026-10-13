@@ -15,9 +15,10 @@ from fakes import FakeEVS, concept, release
 from nci_si_mcp.cli import build_parser, main
 from nci_si_mcp.config import Settings
 from nci_si_mcp.context import Context
-from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.http_client import UpstreamUnavailableError
-from nci_si_mcp.index import LocalIndex
+from nci_si_mcp.index_adapter import LocalIndexAdapter, index_event
+from ncit_index.embeddings import HashingEmbeddingProvider
+from ncit_index.index import LocalIndex
 from test_traversal import complete_graph
 
 NEOPLASM = concept(
@@ -94,7 +95,7 @@ class MainTest(unittest.TestCase):
         return Context(
             Settings(data_dir=self.path),
             evs=complete_graph(FakeEVS([NEOPLASM, KINASE])),
-            index=LocalIndex(self.path),
+            index=LocalIndexAdapter(LocalIndex(self.path, on_event=index_event)),
             embedding_provider=HashingEmbeddingProvider(),
         )
 

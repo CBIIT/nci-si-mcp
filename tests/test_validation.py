@@ -3,7 +3,6 @@ import types
 import unittest
 from unittest.mock import patch
 
-from nci_si_mcp.embeddings import HashingEmbeddingProvider, create_embedding_provider
 from nci_si_mcp.errors import InputValidationError
 from nci_si_mcp.validation import (
     validate_ncit_code,
@@ -11,6 +10,7 @@ from nci_si_mcp.validation import (
     validate_search,
     validate_traversal,
 )
+from ncit_index.embeddings import HashingEmbeddingProvider, create_embedding_provider
 
 
 class ValidationTest(unittest.TestCase):

@@ -5,11 +5,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from nci_si_mcp.embeddings import HashingEmbeddingProvider
-from nci_si_mcp.errors import IndexBuildError
 from nci_si_mcp.evaluation import evaluate_build
 from nci_si_mcp.evaluation_sets import load_set
-from nci_si_mcp.index import LocalIndex
+from ncit_index.embeddings import HashingEmbeddingProvider
+from ncit_index.errors import IndexBuildError
+from ncit_index.index import LocalIndex
+from test_index import normalized
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "tests/fixtures/evaluation"
@@ -34,7 +35,9 @@ class RecordedEvaluationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             index = LocalIndex(directory)
             provider = HashingEmbeddingProvider()
-            candidate = index.build(recorded_sample(), None, provider, build_kind="production")
+            candidate = index.build(
+                normalized(recorded_sample()), None, provider, build_kind="production"
+            )
             with self.assertRaises(IndexBuildError):
                 index.activate(candidate.build_id)
             evaluated = evaluate_build(index, provider, dataset, candidate.build_id)

@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from ncit_index.embeddings import EmbeddingProvider, create_embedding_provider
+from ncit_index.index import LocalIndex
+
 from .cadsr import CaDSRClient
 from .config import Settings
-from .embeddings import EmbeddingProvider, create_embedding_provider
 from .evs import LICENSE_KEY_HEADER, EVSClient
 from .http_client import HttpClient
-from .index import LocalIndex
+from .index_adapter import LocalIndexAdapter, index_event
+from .index_port import IndexPort
 from .ssis import SSISClient
 
 
@@ -19,7 +22,7 @@ class Context:
         evs: EVSClient | None = None,
         cadsr: CaDSRClient | None = None,
         ssis: SSISClient | None = None,
-        index: LocalIndex | None = None,
+        index: IndexPort | None = None,
         embedding_provider: EmbeddingProvider | None = None,
     ) -> None:
         self.settings = settings
@@ -33,7 +36,9 @@ class Context:
             max_response_bytes=settings.evs_max_response_bytes,
             license_key=settings.evs_license_key,
         )
-        self.index = index or LocalIndex(settings.data_dir)
+        self.index: IndexPort = index or LocalIndexAdapter(
+            LocalIndex(settings.data_dir, on_event=index_event)
+        )
         self.fhir = HttpClient(
             settings.evs_fhir_base_url,
             label="EVS_FHIR",

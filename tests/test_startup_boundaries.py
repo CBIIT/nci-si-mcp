@@ -57,7 +57,7 @@ class StartupBoundaryTest(ServerFixture):
             json.loads(answer.content[0].text)["error"]["code"], "capability_unavailable"
         )
         self.assertIsNone(self.context.index.get_active_manifest())
-        self.assertEqual(self.context.index.list_builds(), [])
+        self.assertEqual(self.local_index.list_builds(), [])
 
     def test_http_middleware_forwards_application_startup_and_shutdown(self):
         app = create_http_app(self.settings, context=self.context)

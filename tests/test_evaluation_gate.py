@@ -7,12 +7,15 @@ from dataclasses import replace
 from unittest.mock import patch
 
 from fakes import concept
-from nci_si_mcp.embeddings import EmbeddingProvider, HashingEmbeddingProvider
-from nci_si_mcp.errors import IndexBuildError, correlated
+from nci_si_mcp.errors import correlated
 from nci_si_mcp.evaluation import evaluate_build
 from nci_si_mcp.evaluation_sets import GoldQuery, MetricFloor, parse_set
-from nci_si_mcp.index import LocalIndex
+from nci_si_mcp.index_adapter import manifest_record
+from ncit_index.embeddings import EmbeddingProvider, HashingEmbeddingProvider
+from ncit_index.errors import IndexBuildError
+from ncit_index.index import LocalIndex
 from test_evaluation_sets import sample_set_payload
+from test_index import normalized
 
 
 class OrthogonalProvider(EmbeddingProvider):
@@ -29,7 +32,7 @@ class OrthogonalProvider(EmbeddingProvider):
 class EvaluationGateTests(unittest.TestCase):
     def test_hit_at_five_independently_blocks_activation_when_mrr_passes(self):
         candidate = self.index.build(
-            [concept(f"C{i}", "Identical") for i in range(1, 7)],
+            normalized([concept(f"C{i}", "Identical") for i in range(1, 7)]),
             None,
             self.provider,
             build_kind="production",
@@ -61,10 +64,10 @@ class EvaluationGateTests(unittest.TestCase):
         self.dataset = replace(parse_set(sample_set_payload()), release=self.rows[0]["version"])
 
     def build(self):
-        return self.index.build(self.rows, None, self.provider, build_kind="production")
+        return self.index.build(normalized(self.rows), None, self.provider, build_kind="production")
 
     def test_missing_evaluation_blocks_activation_without_changing_active_snapshot(self):
-        self.index.upsert_concepts([self.rows[1]], None, self.provider)
+        self.index.upsert_concepts(normalized([self.rows[1]]), None, self.provider)
         active = self.index.get_active_manifest()
         candidate = self.build()
         with self.assertRaisesRegex(IndexBuildError, "passing evaluation"):
@@ -74,7 +77,7 @@ class EvaluationGateTests(unittest.TestCase):
         self.assertIsNone(self.index.get_concept_snapshot("C3262")[1])
 
     def test_passing_report_survives_reopen_and_enables_activation_and_rollback(self):
-        self.index.upsert_concepts([self.rows[1]], None, self.provider)
+        self.index.upsert_concepts(normalized([self.rows[1]]), None, self.provider)
         previous = self.index.get_active_manifest()
         candidate = self.build()
         evaluated = evaluate_build(self.index, self.provider, self.dataset, candidate.build_id)
@@ -89,8 +92,8 @@ class EvaluationGateTests(unittest.TestCase):
         self.assertEqual(active.build_kind, "production")
         self.assertEqual(reopened.activate(previous.build_id).build_id, previous.build_id)
         with correlated():
-            self.assertNotIn("evaluation_report", active.to_result())
-            self.assertNotIn("build_kind", active.to_result())
+            self.assertNotIn("evaluation_report", manifest_record(active).to_result())
+            self.assertNotIn("build_kind", manifest_record(active).to_result())
 
     def test_failed_metric_report_is_preserved_and_blocks_activation(self):
         candidate = self.build()
@@ -106,7 +109,7 @@ class EvaluationGateTests(unittest.TestCase):
     def test_semantic_and_hybrid_failures_each_independently_block_activation(self):
         provider = OrthogonalProvider()
         candidate = self.index.build(
-            [concept("C3262", "query filler"), concept("C8", "target")],
+            normalized([concept("C3262", "query filler"), concept("C8", "target")]),
             None,
             provider,
             build_kind="production",
@@ -158,7 +161,9 @@ class EvaluationGateTests(unittest.TestCase):
         evaluate_build(self.index, self.provider, self.dataset, candidate.build_id)
         active = self.index.activate(candidate.build_id)
         with self.assertRaisesRegex(IndexBuildError, "separate data directory"):
-            self.index.upsert_concepts([concept("C999", "new sample")], None, self.provider)
+            self.index.upsert_concepts(
+                normalized([concept("C999", "new sample")]), None, self.provider
+            )
         self.assertEqual(self.index.get_active_manifest(), active)
         self.assertIsNone(self.index.get_concept_snapshot("C999")[1])
 
@@ -189,7 +194,7 @@ class EvaluationGateTests(unittest.TestCase):
         self.assertIsNone(self.index.list_builds()[0].evaluation_report)
 
     def test_sample_rebuild_stays_a_sample_and_needs_no_production_report(self):
-        sample = self.index.build(self.rows, None, self.provider)
+        sample = self.index.build(normalized(self.rows), None, self.provider)
         rebuilt = self.index.rebuild(sample.build_id, self.provider)
         self.assertEqual(rebuilt.build_kind, "sample")
         self.assertTrue(self.index.activate(rebuilt.build_id).active)
@@ -197,7 +202,7 @@ class EvaluationGateTests(unittest.TestCase):
 
     def test_candidate_removed_before_report_write_cannot_be_resurrected_as_evaluated(self):
         candidate = self.build()
-        other = self.index.build([self.rows[1]], None, self.provider)
+        other = self.index.build(normalized([self.rows[1]]), None, self.provider)
         record = self.index.record_evaluation
 
         def activate_before_report(build_id, report):
@@ -213,14 +218,14 @@ class EvaluationGateTests(unittest.TestCase):
         self.assertIsNone(self.index.get_active_manifest().evaluation_report)
 
     def test_unclassified_rebuild_requires_evaluation_and_explains_both_migration_paths(self):
-        original = self.index.build(self.rows, None, self.provider)
+        original = self.index.build(normalized(self.rows), None, self.provider)
         payload = original.to_dict()
         del payload["build_kind"]
         with self.index._connect() as conn:
             conn.execute("UPDATE manifests SET payload = ?", (json.dumps(payload),))
         legacy = self.index.activate(original.build_id)
         with self.assertRaisesRegex(IndexBuildError, "separate data directory"):
-            self.index.upsert_concepts(self.rows, None, self.provider)
+            self.index.upsert_concepts(normalized(self.rows), None, self.provider)
         self.assertEqual(self.index.get_active_manifest(), legacy)
         rebuilt = self.index.rebuild(original.build_id, self.provider)
         self.assertEqual(rebuilt.build_kind, "production")
@@ -238,7 +243,7 @@ class EvaluationGateTests(unittest.TestCase):
         self.assertEqual(self.index.activate(original.build_id), legacy)
 
     def test_unrecognized_classification_cannot_bypass_the_gate(self):
-        candidate = self.index.build(self.rows, None, self.provider)
+        candidate = self.index.build(normalized(self.rows), None, self.provider)
         payload = candidate.to_dict() | {"build_kind": "unknown"}
         with self.index._connect() as conn:
             conn.execute("UPDATE manifests SET payload = ?", (json.dumps(payload),))

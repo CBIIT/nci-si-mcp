@@ -10,6 +10,7 @@ from fakes import concept, terminology_row
 from nci_si_mcp import cursor
 from nci_si_mcp.errors import InputValidationError
 from nci_si_mcp.registry import invoke
+from test_index import normalized
 from test_server import ServerFixture
 
 
@@ -130,8 +131,8 @@ class ContentReviewTest(ServerFixture):
         )
 
     def test_indexed_result_preserves_matching_field_without_top_level_provenance(self):
-        self.context.index.upsert_concepts(
-            list(self.evs.concepts.values()), None, self.context.embedding_provider
+        self.local_index.upsert_concepts(
+            normalized(self.evs.concepts.values()), None, self.context.embedding_provider
         )
         hits, total, manifest = self.context.index.search_page(
             "One", self.context.embedding_provider, 1, "vector", requested_release="26.06e"

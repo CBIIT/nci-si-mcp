@@ -10,8 +10,9 @@ from unittest.mock import patch
 from fakes import concept
 from nci_si_mcp import container_entry
 from nci_si_mcp.audit import JsonFormatter
-from nci_si_mcp.embeddings import HashingEmbeddingProvider, SentenceTransformersProvider
-from nci_si_mcp.index import NoActiveIndexError
+from ncit_index.embeddings import HashingEmbeddingProvider, SentenceTransformersProvider
+from ncit_index.errors import NoActiveIndexError
+from test_index import normalized
 from test_server import ServerFixture
 
 
@@ -21,13 +22,15 @@ class ContainerTest(ServerFixture):
         self.settings = replace(self.settings, http_require_index=True, transport="streamable-http")
 
     def index(self):
-        self.context.index.upsert_concepts([concept("C1")], None, HashingEmbeddingProvider())
+        self.local_index.upsert_concepts(
+            normalized([concept("C1")]), None, HashingEmbeddingProvider()
+        )
 
     def test_missing_required_index_is_rejected_without_creating_one(self):
-        self.context.index.db_path.unlink()
+        self.local_index.db_path.unlink()
         with self.assertRaises(NoActiveIndexError):
             container_entry.prepared_index(self.settings)
-        self.assertFalse(self.context.index.db_path.exists())
+        self.assertFalse(self.local_index.db_path.exists())
 
     def test_empty_or_incompatible_index_is_rejected(self):
         with self.assertRaises(NoActiveIndexError):

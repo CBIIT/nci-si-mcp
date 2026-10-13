@@ -204,7 +204,7 @@ def serve(image: str, assets: Path) -> None:
 
 def retained_builds(image: str, assets: Path) -> None:
     code = (
-        "import json; from pathlib import Path; from nci_si_mcp.index import LocalIndex; "
+        "import json; from pathlib import Path; from ncit_index.index import LocalIndex; "
         "print(json.dumps([b.build_id for b in LocalIndex(Path('/assets/data')).list_builds()]))"
     )
     result = docker(

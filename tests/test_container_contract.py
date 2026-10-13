@@ -23,8 +23,9 @@ import yaml
 from scripts import container_smoke
 
 from fakes import concept
-from nci_si_mcp.embeddings import HashingEmbeddingProvider
-from nci_si_mcp.index import LocalIndex
+from ncit_index.embeddings import HashingEmbeddingProvider
+from ncit_index.index import LocalIndex
+from test_index import normalized
 
 
 def image_environment():
@@ -64,7 +65,7 @@ def startup(process, port):
 def entry_point(environment):
     with TemporaryDirectory() as directory:
         index = LocalIndex(Path(directory))
-        index.upsert_concepts([concept("C1")], None, HashingEmbeddingProvider())
+        index.upsert_concepts(normalized([concept("C1")]), None, HashingEmbeddingProvider())
         port = free_port()
         controlled = environment | {
             "PATH": os.environ["PATH"],

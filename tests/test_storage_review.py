@@ -8,13 +8,18 @@ from unittest.mock import patch
 
 import test_index
 from fakes import concept, release
-from nci_si_mcp import index as index_module
-from nci_si_mcp.errors import IndexBuildError, IndexCompatibilityError, PlatformError
 from nci_si_mcp.evs import EVSClient, EVSResponseError, normalize_concept
-from nci_si_mcp.index import LocalIndex, evaluation_identity
-from nci_si_mcp.index_storage import clean_stale_builds, concept_fields, fts_table, name_key
 from nci_si_mcp.indexing import full_build
-from test_index import IndexTestCase
+from ncit_index import index as index_module
+from ncit_index.errors import (
+    IndexBuildError,
+    IndexCapabilityError,
+    IndexCompatibilityError,
+    IndexCursorError,
+)
+from ncit_index.index import LocalIndex, evaluation_identity
+from ncit_index.storage import clean_stale_builds, concept_fields, fts_table, name_key
+from test_index import IndexTestCase, normalized
 from test_server import ServerFixture
 
 
@@ -31,7 +36,9 @@ class StorageReviewTest(IndexTestCase):
         index = LocalIndex(self.path)
         for kind in ("sample", "production"):
             with self.subTest(kind=kind):
-                original = index.build([concept("C1")], None, self.provider, build_kind=kind)
+                original = index.build(
+                    normalized([concept("C1")]), None, self.provider, build_kind=kind
+                )
                 rebuilt = index.rebuild(original.build_id, self.provider)
                 self.assertEqual(rebuilt.build_kind, kind)
                 self.assertIsNone(rebuilt.unclassified_source_build)
@@ -40,18 +47,17 @@ class StorageReviewTest(IndexTestCase):
         index = self.build([concept("C1")])
         active = replace(index.get_active_manifest(), needs_rebuild=True)
         update_manifest(index, active)
-        with self.assertRaisesRegex(PlatformError, "index-rebuild"):
-            index.upsert_concepts([concept("C2")], None, self.provider)
+        with self.assertRaisesRegex(IndexCapabilityError, "index-rebuild"):
+            index.upsert_concepts(normalized([concept("C2")]), None, self.provider)
         self.assertEqual(index.get_active_manifest(), active)
         self.assertIsNone(index.get_concept_snapshot("C2")[1])
 
     def test_expired_cursor_names_requested_and_current_releases(self):
         index = self.build([concept("C1")])
         old = index.get_active_manifest()
-        index.upsert_concepts([concept("C2", version="new")], None, self.provider)
-        with self.assertRaises(PlatformError) as raised:
+        index.upsert_concepts(normalized([concept("C2", version="new")]), None, self.provider)
+        with self.assertRaises(IndexCursorError) as raised:
             index.search_page("term", self.provider, build_id=old.build_id, requested_release="old")
-        self.assertEqual(raised.exception.code, "cursor_expired")
         self.assertEqual(
             raised.exception.details, {"cursorRelease": "old", "currentRelease": "new"}
         )
@@ -65,7 +71,7 @@ class StorageReviewTest(IndexTestCase):
         index = self.build([concept("C1", "Primary name", synonyms=[{"name": "Distinct alias"}])])
         active = replace(index.get_active_manifest(), embedding_dimensions=None)
         update_manifest(index, active)
-        updated = index.upsert_concepts([concept("C2")], None, self.provider)
+        updated = index.upsert_concepts(normalized([concept("C2")]), None, self.provider)
         self.assertEqual(updated.embedding_dimensions, self.provider.dimensions)
         self.assertIsNotNone(index.get_concept_snapshot("C2")[1])
 
@@ -74,13 +80,13 @@ class StorageReviewTest(IndexTestCase):
         active = replace(index.get_active_manifest(), embedding_dimensions=7)
         update_manifest(index, active)
         with self.assertRaises(IndexCompatibilityError):
-            index.upsert_concepts([concept("C2")], None, self.provider)
+            index.upsert_concepts(normalized([concept("C2")]), None, self.provider)
         self.assertEqual(index.get_active_manifest(), active)
 
     def test_evaluation_inputs_survive_concurrent_candidate_pruning(self):
         index = self.build([concept("C1")])
-        candidate = index.build([concept("C2")], None, self.provider)
-        replacement = index.build([concept("C3")], None, self.provider)
+        candidate = index.build(normalized([concept("C2")]), None, self.provider)
+        replacement = index.build(normalized([concept("C3")]), None, self.provider)
         original = index_module._completed_manifest
 
         def prune_after_read(conn, build):
@@ -120,8 +126,8 @@ class StorageReviewTest(IndexTestCase):
     def test_pruning_removes_vectors_and_fts_storage(self):
         index = self.build([concept("C1")])
         old = index.get_active_manifest().build_id
-        index.upsert_concepts([concept("C2")], None, self.provider)
-        index.upsert_concepts([concept("C3")], None, self.provider)
+        index.upsert_concepts(normalized([concept("C2")]), None, self.provider)
+        index.upsert_concepts(normalized([concept("C3")]), None, self.provider)
         with index._connect() as conn:
             self.assertEqual(
                 conn.execute(
@@ -156,7 +162,7 @@ class StorageReviewTest(IndexTestCase):
         error.sqlite_errorcode = sqlite3.SQLITE_IOERR
         with (
             index._connect() as conn,
-            patch("nci_si_mcp.index_storage.delete_build", side_effect=error),
+            patch("ncit_index.storage.delete_build", side_effect=error),
             self.assertRaisesRegex(sqlite3.OperationalError, "lease I/O failure"),
         ):
             clean_stale_builds(conn, self.path)
@@ -174,7 +180,7 @@ class StorageReviewTest(IndexTestCase):
 
     def test_only_one_manifest_can_be_active(self):
         index = self.build([concept("C1")])
-        candidate = index.build([concept("C2")], None, self.provider)
+        candidate = index.build(normalized([concept("C2")]), None, self.provider)
         with index._connect() as conn, self.assertRaises(sqlite3.IntegrityError):
             conn.execute(
                 "UPDATE manifests SET active = 1 WHERE build_id = ?", (candidate.build_id,)
@@ -194,7 +200,7 @@ class LegacyStorageReviewTest(IndexTestCase):
         active = index.get_active_manifest()
         self.assertIsNone(active.embedding_dimensions)
         with self.assertRaises(IndexBuildError) as raised:
-            index.upsert_concepts([concept("C2")], None, self.provider)
+            index.upsert_concepts(normalized([concept("C2")]), None, self.provider)
         self.assertEqual(index.list_builds(), [active])
         self.assertIsNone(index.get_concept_snapshot("C2")[1])
         self.assertIn("separate data directory", str(raised.exception))
@@ -235,7 +241,7 @@ class FullBuildStorageReviewTest(ServerFixture):
             self.assertRaises(IndexCompatibilityError),
         ):
             full_build(self.context, release())
-        self.assertEqual(self.context.index.list_builds(), [])
+        self.assertEqual(self.local_index.list_builds(), [])
 
     def test_full_build_rejects_null_nontext_and_whitespace_names(self):
         for name in (None, 7, " \t\n "):
@@ -252,4 +258,4 @@ class FullBuildStorageReviewTest(ServerFixture):
                 self.assertRaisesRegex(EVSResponseError, "preferred name"),
             ):
                 full_build(self.context, release())
-        self.assertEqual(self.context.index.list_builds(), [])
+        self.assertEqual(self.local_index.list_builds(), [])
