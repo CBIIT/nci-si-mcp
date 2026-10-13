@@ -227,7 +227,7 @@ class JobController:
             state = JobState.from_dict(value)
         except JobRecordError as error:
             raise OSError(f"{error}; preserve jobs.json for inspection") from None
-        except ValueError, TypeError:
+        except ValueError:
             raise OSError("Local job state is unavailable; preserve it for inspection") from None
         return asdict(state)
 
