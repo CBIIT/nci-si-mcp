@@ -38,6 +38,13 @@ def digest(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
+def decode_inventory(raw: bytes, path: str) -> Any:
+    try:
+        return decode_json(raw)
+    except EvidenceError:
+        raise EvidenceError(f"Invalid inventory field: {path}") from None
+
+
 @dataclass(frozen=True)
 class Binding:
     commit: str
@@ -133,8 +140,5 @@ def read_snapshots(record: dict[str, Any], snapshots: dict[str, bytes]) -> dict[
     result = {}
     for name, raw in snapshots.items():
         require(digest(raw) == record[name + "_sha256"], name)
-        try:
-            result[name] = decode_json(raw)
-        except EvidenceError:
-            raise EvidenceError(f"Invalid inventory field: {name}") from None
+        result[name] = decode_inventory(raw, name)
     return asdict(Snapshots.from_dict(result))

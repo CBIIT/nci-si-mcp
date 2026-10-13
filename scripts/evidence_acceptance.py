@@ -100,7 +100,11 @@ def _availability(row: dict[str, Any]) -> tuple[bool | None, ...]:
 
 def _native(raw: bytes, context: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     try:
-        report = NativeReport.from_dict(decode_json(raw)).to_dict()
+        value = decode_json(raw)
+    except EvidenceError:
+        raise EvidenceError("Invalid acceptance field: report") from None
+    try:
+        report = NativeReport.from_dict(value).to_dict()
     except ReportFieldError as error:
         raise EvidenceError(str(error)) from None
     _native_header(report, context["catalogue"])

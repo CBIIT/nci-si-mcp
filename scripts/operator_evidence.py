@@ -7,8 +7,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from scripts.evidence_envelope import MAX_ENVELOPE_BYTES, Envelope, decode_json
-from scripts.inventory_records import ORIGINAL, Binding, digest
+from scripts.evidence_envelope import MAX_ENVELOPE_BYTES, Envelope
+from scripts.inventory_records import ORIGINAL, Binding, decode_inventory, digest
 from scripts.operator_files import read_bytes, write_json
 from scripts.portal_store import MAX_BUNDLE_BYTES, EvidenceStore
 from scripts.vocabulary import JobOutcome, JobReason, TerminalJobState
@@ -32,7 +32,9 @@ def bind_original(directory: Path, commit: str) -> None:
 def _bound_original(job: dict[str, Any], directory: Path) -> dict[str, bytes]:
     original = _original(directory)
     expected = Binding(job["commit"], {name: digest(raw) for name, raw in original.items()})
-    binding = decode_json(read_bytes(directory / "binding.json", MAX_ENVELOPE_BYTES))
+    binding = decode_inventory(
+        read_bytes(directory / "binding.json", MAX_ENVELOPE_BYTES), "binding"
+    )
     Binding.from_dict(binding, expected)
     report = directory / "bundle/report.json"
     if report.exists() or report.is_symlink():
