@@ -11,82 +11,58 @@ from scripts.inventory_records import digest, read_snapshots
 from nci_si_acceptance.report import (
     CANNOT_RUN,
     FAILED,
-    RANK,
     UNRUN,
+    NativeReport,
+    ReportFieldError,
     complete,
     completion_problem,
     fails_by_gates_only,
     gate_names,
     own_unrun,
+    require_field,
     tool_outcome,
 )
 
-_REPORT_FIELDS = {
-    "mode",
-    "transport",
-    "suite",
-    "failed_gates",
-    "unrun_gates",
-    "tools_list_bytes",
-    "tools",
-    "tests",
-}
-_TOOL_FIELDS = {"group", "outcome", "gates_only", "counts"}
-# The 29 reports recorded before the harness dropped the field (docs/evidence/phase-5) carry
-# `implemented_as`, which a report has no schema number to version; they stay valid as recorded.
+# Earlier tool rows carry this field; absence and null imply different availability.
 _RECORDED_TOOL_FIELD = "implemented_as"
 
 
-def require(condition: bool) -> None:
+def require(condition: bool, path: str) -> None:
     """Reject contradictions without including private values in diagnostics."""
-    if not condition:
-        raise EvidenceError("Invalid evidence report or original inventory binding")
-
-
-def fields(value: Any, expected: set[str]) -> None:
-    require(isinstance(value, dict) and set(value) == expected)
+    try:
+        require_field(condition, path)
+    except ReportFieldError as error:
+        raise EvidenceError(str(error)) from None
 
 
 def _native_header(report: dict[str, Any], catalogue: dict[str, Any]) -> None:
-    require(isinstance(report, dict) and set(report) - {"run"} == _REPORT_FIELDS)
-    require(report["mode"] in ("fixture", "live"))
-    require(report["transport"] in ("stdio", "streamable-http"))
-    fields(report["suite"], {"version", "fixture_set", "digest"})
-    require(all(isinstance(value, str) for value in report["suite"].values()))
-    require(report["suite"]["digest"] == catalogue["suite_digest"])
-    size = report["tools_list_bytes"]
-    require(size is None or (type(size) is int and size >= 0))
-    require(isinstance(report["tests"], dict))
-    fields(report["tools"], set(catalogue["tools"]))
+    require(report["suite"]["digest"] == catalogue["suite_digest"], "suite.digest")
+    require(set(report["tools"]) == set(catalogue["tools"]), "tools")
 
 
 def _native_cases(report: dict[str, Any], context: dict[str, Any]) -> None:
-    require(set(report["tests"]) <= set(context["selection"]))
-    for name, row in report["tests"].items():
-        fields(row, {"tool", "gate", "outcome", "unmatched"})
+    require(set(report["tests"]) <= set(context["selection"]), "tests")
+    for index, (name, row) in enumerate(report["tests"].items()):
         expected = context["catalogue"]["cases"][name]
-        require(type(row["gate"]) is bool and row["gate"] == expected["gate"])
-        require(row["tool"] == expected["tool"])
-        require(isinstance(row["outcome"], str) and row["outcome"] in RANK)
-        require(isinstance(row["unmatched"], list))
-        require(all(isinstance(value, str) for value in row["unmatched"]))
+        require(row["gate"] == expected["gate"], f"tests[{index}].gate")
+        require(row["tool"] == expected["tool"], f"tests[{index}].tool")
 
 
 def _gates(report: dict[str, Any], field: str, outcomes: tuple[str, ...]) -> list[str]:
     expected = gate_names(report["tests"], outcomes)
-    require(report[field] == expected)
+    require(report[field] == expected, field)
     return expected
 
 
-def _tool(row: Any, counts: Counter[str], group: str, failed: bool, unrun: bool) -> dict[str, Any]:
-    require(isinstance(row, dict) and set(row) - {_RECORDED_TOOL_FIELD} == _TOOL_FIELDS)
-    require(row["group"] == group)
-    _counts(row["counts"], counts)
+def _tool(
+    row: Any, counts: Counter[str], group: str, failed: bool, unrun: bool, path: str
+) -> dict[str, Any]:
+    require(row["group"] == group, f"{path}.group")
+    require(row["counts"] == dict(counts), f"{path}.counts")
     availability = _availability(row)
-    require(isinstance(row["outcome"], str))
-    require(row["outcome"] in _verdicts(counts, failed, unrun, availability))
+    require(row["outcome"] in _verdicts(counts, failed, unrun, availability), f"{path}.outcome")
     expected = fails_by_gates_only(counts, failed)
-    require(type(row["gates_only"]) is bool and row["gates_only"] == expected)
+    require(row["gates_only"] == expected, f"{path}.gates_only")
     return {
         "group": group,
         "outcome": row["outcome"],
@@ -119,18 +95,14 @@ def _availability(row: dict[str, Any]) -> tuple[bool | None, ...]:
     if _RECORDED_TOOL_FIELD not in row:
         return (None, False, True)
     alias = row[_RECORDED_TOOL_FIELD]
-    require(alias is None or isinstance(alias, str))
     return (None, False) if alias is None else (True,)
 
 
-def _counts(actual: Any, expected: Counter[str]) -> None:
-    require(isinstance(actual, dict))
-    require(all(type(value) is int and value > 0 for value in actual.values()))
-    require(actual == dict(expected))
-
-
 def _native(raw: bytes, context: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
-    report = decode_json(raw)
+    try:
+        report = NativeReport.from_dict(decode_json(raw)).to_dict()
+    except ReportFieldError as error:
+        raise EvidenceError(str(error)) from None
     _native_header(report, context["catalogue"])
     _native_cases(report, context)
     failed = bool(_gates(report, "failed_gates", FAILED))
@@ -139,9 +111,11 @@ def _native(raw: bytes, context: dict[str, Any]) -> tuple[dict[str, Any], dict[s
     # run (not_live) does not.
     unrun = bool(gate_names(report["tests"], CANNOT_RUN))
     tools = {}
-    for name, group in context["catalogue"]["tools"].items():
+    for index, (name, row) in enumerate(report["tools"].items()):
         counts = Counter(row["outcome"] for row in report["tests"].values() if row["tool"] == name)
-        tools[name] = _tool(report["tools"][name], counts, group, failed, unrun)
+        tools[name] = _tool(
+            row, counts, context["catalogue"]["tools"][name], failed, unrun, f"tools[{index}]"
+        )
     return report, tools
 
 
@@ -185,7 +159,7 @@ def project_acceptance(
     no historical completion fields are invented. Partial evidence remains displayable.
     """
     record = validate_envelope(envelope, report)
-    require(record["kind"] == "acceptance")
+    require(record["kind"] == "acceptance", "kind")
     context = read_snapshots(
         record,
         {

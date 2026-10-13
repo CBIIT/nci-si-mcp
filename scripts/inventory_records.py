@@ -10,7 +10,7 @@ from typing import Any, Literal
 from scripts.evidence_envelope import EvidenceError, decode_json
 from scripts.formats import SHA256_HEX
 
-from nci_si_acceptance.report import RANK
+from nci_si_acceptance.report import RANK, Attribution
 
 ORIGINAL = ("catalogue", "stories", "expectations", "selection")
 
@@ -54,18 +54,12 @@ class Binding:
         return cls(**value)
 
 
-@dataclass(frozen=True)
-class Attribution:
-    tool: str | None
-    gate: bool
-
-    @classmethod
-    def from_dict(cls, value: Any, tools: dict[str, str], path: str) -> Attribution:
-        shape(value, cls, path)
-        require(type(value["gate"]) is bool, f"{path}.gate")
-        tool = value["tool"]
-        require(tool is None or (isinstance(tool, str) and tool in tools), f"{path}.tool")
-        return cls(**value)
+def _attribution(value: Any, tools: dict[str, str], path: str) -> Attribution:
+    shape(value, Attribution, path)
+    require(type(value["gate"]) is bool, f"{path}.gate")
+    tool = value["tool"]
+    require(tool is None or (isinstance(tool, str) and tool in tools), f"{path}.tool")
+    return Attribution(**value)
 
 
 @dataclass(frozen=True)
@@ -101,7 +95,7 @@ def _cases(value: dict[str, Any], tools: dict[str, str]) -> dict[str, Attributio
     for index, (name, row) in enumerate(value.items()):
         path = f"catalogue.cases[{index}]"
         require(bool(name), path)
-        result[name] = Attribution.from_dict(row, tools, path)
+        result[name] = _attribution(row, tools, path)
     return result
 
 

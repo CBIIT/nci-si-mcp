@@ -54,6 +54,8 @@ its field, such as `jobs[0].exit_code`; startup leaves `jobs.json` unchanged for
 starts no worker.
 Original inventory errors name the snapshot or a safe field position, for example
 `Invalid inventory field: catalogue.cases[0].tool`, never the private test identifier.
+Native acceptance errors use `Invalid acceptance field: <path>`. Historical optional fields
+remain optional; malformed completion metadata keeps a run incomplete rather than hiding it.
 
 Old reports without a bound original inventory can be retained explicitly without verdicts:
 

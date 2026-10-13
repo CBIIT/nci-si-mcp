@@ -245,6 +245,8 @@ ignore_names = [
     "access", "runner_commit", "catalogue_sha256", "stories_sha256", "expectations_sha256",
     "selection_sha256", "started_at", "finished_at", "report_sha256", "server_commit",
     "sequence", "submitted_at",
+    # Acceptance records serialize these fields and inspect their declarations.
+    "implemented_as", "exit_status", "tools_list_bytes",
 ]
 
 [tool.basedpyright]
