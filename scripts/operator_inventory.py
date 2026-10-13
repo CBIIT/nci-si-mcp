@@ -13,6 +13,7 @@ from scripts.benchmark import CASES, cases
 from scripts.benchmark_limits import Limits
 from scripts.benchmark_records import Conditions, SelectedCase
 from scripts.benchmark_report import Selection, fingerprint
+from scripts.inventory_records import Attribution, Catalogue, Snapshots
 
 from nci_si_acceptance.spec import REQUIRED_TOOLS
 from nci_si_acceptance.stories import ROOT, Collection, cases_of, collect, load_stories, validate
@@ -22,17 +23,16 @@ from nci_si_acceptance.suite_identity import suite_digest
 class Inventory(Collection):
     def __init__(self) -> None:
         super().__init__()
-        self.attribution: dict[str, dict[str, Any]] = {}
+        self.attribution: dict[str, Attribution] = {}
 
     def pytest_collection_finish(self, session: pytest.Session) -> None:
         super().pytest_collection_finish(session)
         for item in session.items:
             marker = item.get_closest_marker("tool")
             case = cases_of([item])[0]
-            self.attribution[case.key] = {
-                "tool": marker.args[0] if marker else None,
-                "gate": item.get_closest_marker("gate") is not None,
-            }
+            self.attribution[case.key] = Attribution(
+                marker.args[0] if marker else None, item.get_closest_marker("gate") is not None
+            )
 
 
 def benchmark_selection(mode: str) -> dict[str, Any]:
@@ -48,21 +48,18 @@ def snapshots(inventory: Inventory, kind: str, mode: str) -> dict[str, Any]:
     stories = load_stories()
     validate(stories, inventory.cases)
     mapping = {function: story["id"] for story in stories for function in story["tests"]}
-    return {
-        "catalogue": {
-            "schema": 1,
-            "suite_digest": suite_digest(),
-            "tools": REQUIRED_TOOLS,
-            "cases": inventory.attribution,
-        },
-        "stories": {case.key: mapping[case.function] for case in inventory.cases},
-        "expectations": json.loads((ROOT / "expected/fixture.json").read_text()),
-        "selection": (
-            [case.key for case in inventory.cases]
-            if kind == "acceptance"
-            else benchmark_selection(mode)
-        ),
-    }
+    return asdict(
+        Snapshots(
+            catalogue=Catalogue(1, suite_digest(), REQUIRED_TOOLS, inventory.attribution),
+            stories={case.key: mapping[case.function] for case in inventory.cases},
+            expectations=json.loads((ROOT / "expected/fixture.json").read_text()),
+            selection=(
+                [case.key for case in inventory.cases]
+                if kind == "acceptance"
+                else benchmark_selection(mode)
+            ),
+        )
+    )
 
 
 def main() -> int:

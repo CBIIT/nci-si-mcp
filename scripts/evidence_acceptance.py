@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import hashlib
-import re
 from collections import Counter
 from typing import Any
 
 from scripts.evidence_envelope import EvidenceError, decode_json, validate_envelope
-from scripts.formats import SHA256_HEX
+from scripts.inventory_records import digest, read_snapshots
 
 from nci_si_acceptance.report import (
     CANNOT_RUN,
@@ -47,59 +45,6 @@ def require(condition: bool) -> None:
 
 def fields(value: Any, expected: set[str]) -> None:
     require(isinstance(value, dict) and set(value) == expected)
-
-
-def identifier(value: Any) -> None:
-    require(isinstance(value, str) and re.fullmatch(r"[a-z][a-z0-9_-]{0,99}", value) is not None)
-
-
-def digest(raw: bytes) -> str:
-    return hashlib.sha256(raw).hexdigest()
-
-
-def _catalogue(value: Any) -> None:
-    fields(value, {"schema", "suite_digest", "tools", "cases"})
-    require(type(value["schema"]) is int and value["schema"] == 1)
-    require(isinstance(value["suite_digest"], str))
-    require(re.fullmatch(SHA256_HEX, value["suite_digest"]) is not None)
-    require(isinstance(value["tools"], dict) and isinstance(value["cases"], dict))
-    for name, group in value["tools"].items():
-        identifier(name)
-        identifier(group)
-    for name, case in value["cases"].items():
-        _catalogue_case(name, case, value["tools"])
-
-
-def _catalogue_case(name: str, case: Any, tools: dict[str, str]) -> None:
-    # Node IDs are used for exact equality and hashed for display, never as paths or markup.
-    require(bool(name))
-    fields(case, {"tool", "gate"})
-    require(type(case["gate"]) is bool)
-    require(case["tool"] is None or isinstance(case["tool"], str))
-    require(case["tool"] is None or case["tool"] in tools)
-
-
-def _context(record: dict[str, Any], snapshots: dict[str, bytes]) -> dict[str, Any]:
-    result = {}
-    for name, raw in snapshots.items():
-        require(digest(raw) == record[name + "_sha256"])
-        result[name] = decode_json(raw)
-    _catalogue(result["catalogue"])
-    cases = result["catalogue"]["cases"]
-    for name in ("stories", "expectations"):
-        fields(result[name], set(cases))
-    for story in result["stories"].values():
-        identifier(story)
-    require(all(isinstance(v, str) and v in RANK for v in result["expectations"].values()))
-    _selection(result["selection"], cases)
-    return result
-
-
-def _selection(selected: Any, cases: dict[str, Any]) -> None:
-    require(isinstance(selected, list))
-    require(all(isinstance(name, str) for name in selected))
-    require(len(set(selected)) == len(selected))
-    require(bool(selected) and set(selected) <= set(cases))
 
 
 def _native_header(report: dict[str, Any], catalogue: dict[str, Any]) -> None:
@@ -241,7 +186,7 @@ def project_acceptance(
     """
     record = validate_envelope(envelope, report)
     require(record["kind"] == "acceptance")
-    context = _context(
+    context = read_snapshots(
         record,
         {
             "catalogue": catalogue,

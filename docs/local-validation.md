@@ -52,6 +52,8 @@ Envelope validation errors name a field, for example `Invalid envelope field: re
 without echoing its value. Unknown keys name only the envelope. An invalid persisted job names
 its field, such as `jobs[0].exit_code`; startup leaves `jobs.json` unchanged for inspection and
 starts no worker.
+Original inventory errors name the snapshot or a safe field position, for example
+`Invalid inventory field: catalogue.cases[0].tool`, never the private test identifier.
 
 Old reports without a bound original inventory can be retained explicitly without verdicts:
 

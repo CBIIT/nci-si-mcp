@@ -7,13 +7,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from scripts.evidence_acceptance import digest
 from scripts.evidence_envelope import MAX_ENVELOPE_BYTES, Envelope, decode_json
+from scripts.inventory_records import ORIGINAL, Binding, digest
 from scripts.operator_files import read_bytes, write_json
 from scripts.portal_store import MAX_BUNDLE_BYTES, EvidenceStore
 from scripts.vocabulary import JobOutcome, JobReason, TerminalJobState
-
-ORIGINAL = ("catalogue", "stories", "expectations", "selection")
 
 
 def _original(directory: Path) -> dict[str, bytes]:
@@ -27,19 +25,15 @@ def _original(directory: Path) -> dict[str, bytes]:
 
 def bind_original(directory: Path, commit: str) -> None:
     original = _original(directory)
-    binding = {"commit": commit, "digests": {name: digest(raw) for name, raw in original.items()}}
-    write_json(directory / "binding.json", binding)
+    binding = Binding(commit, {name: digest(raw) for name, raw in original.items()})
+    write_json(directory / "binding.json", asdict(binding))
 
 
 def _bound_original(job: dict[str, Any], directory: Path) -> dict[str, bytes]:
     original = _original(directory)
-    expected = {
-        "commit": job["commit"],
-        "digests": {name: digest(raw) for name, raw in original.items()},
-    }
+    expected = Binding(job["commit"], {name: digest(raw) for name, raw in original.items()})
     binding = decode_json(read_bytes(directory / "binding.json", MAX_ENVELOPE_BYTES))
-    if binding != expected:
-        raise ValueError("Original validation inventory changed during execution")
+    Binding.from_dict(binding, expected)
     report = directory / "bundle/report.json"
     if report.exists() or report.is_symlink():
         remaining = MAX_BUNDLE_BYTES - MAX_ENVELOPE_BYTES - sum(map(len, original.values()))
