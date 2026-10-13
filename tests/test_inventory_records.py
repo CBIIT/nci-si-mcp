@@ -100,6 +100,13 @@ class InventoryImportTest(unittest.TestCase):
 
 
 class BindingImportTest(unittest.TestCase):
+    def test_malformed_binding_names_binding_without_echoing_json(self):
+        (self.root / "binding.json").write_bytes(b'{"PRIVATE-CANARY":')
+        with self.assertRaises(ValueError) as failure:
+            _bound_original(self.job, self.root)
+        self.assertEqual(str(failure.exception), "Invalid inventory field: binding")
+        self.assertNotIn("PRIVATE-CANARY", str(failure.exception))
+
     def setUp(self):
         temporary = TemporaryDirectory()
         self.addCleanup(temporary.cleanup)

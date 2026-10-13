@@ -1,18 +1,33 @@
 """Native acceptance records preserve old evidence and reject fields without disclosing values."""
 
+import hashlib
 import json
 import subprocess
 import sys
 import unittest
 from pathlib import Path
 
+from scripts.evidence_acceptance import project_acceptance
 from scripts.evidence_envelope import EvidenceError
 
 from nci_si_acceptance import report as report_module
-from test_evidence_acceptance import project, report
+from test_evidence_acceptance import bundle, encoded, project, report
+from test_evidence_envelope import envelope
 
 
 class AcceptanceRecordTest(unittest.TestCase):
+    def test_malformed_report_names_report_without_echoing_json(self):
+        raw = b'{"PRIVATE-CANARY":'
+        context = bundle()
+        metadata = envelope(report_sha256=hashlib.sha256(raw).hexdigest())
+        metadata.update(
+            {name + "_sha256": hashlib.sha256(value).hexdigest() for name, value in context.items()}
+        )
+        with self.assertRaises(EvidenceError) as failure:
+            project_acceptance(encoded(metadata), raw, **context)
+        self.assertEqual(str(failure.exception), "Invalid acceptance field: report")
+        self.assertNotIn("PRIVATE-CANARY", str(failure.exception))
+
     def assert_invalid(self, native, path):
         with self.assertRaises(EvidenceError) as failure:
             project(native)
