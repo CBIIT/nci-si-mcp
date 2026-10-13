@@ -2,17 +2,16 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from scripts.evidence_acceptance import digest
-from scripts.evidence_envelope import MAX_ENVELOPE_BYTES, decode_json
+from scripts.evidence_envelope import MAX_ENVELOPE_BYTES, Envelope
+from scripts.inventory_records import ORIGINAL, Binding, decode_inventory, digest
 from scripts.operator_files import read_bytes, write_json
 from scripts.portal_store import MAX_BUNDLE_BYTES, EvidenceStore
 from scripts.vocabulary import JobOutcome, JobReason, TerminalJobState
-
-ORIGINAL = ("catalogue", "stories", "expectations", "selection")
 
 
 def _original(directory: Path) -> dict[str, bytes]:
@@ -26,19 +25,17 @@ def _original(directory: Path) -> dict[str, bytes]:
 
 def bind_original(directory: Path, commit: str) -> None:
     original = _original(directory)
-    binding = {"commit": commit, "digests": {name: digest(raw) for name, raw in original.items()}}
-    write_json(directory / "binding.json", binding)
+    binding = Binding(commit, {name: digest(raw) for name, raw in original.items()})
+    write_json(directory / "binding.json", asdict(binding))
 
 
 def _bound_original(job: dict[str, Any], directory: Path) -> dict[str, bytes]:
     original = _original(directory)
-    expected = {
-        "commit": job["commit"],
-        "digests": {name: digest(raw) for name, raw in original.items()},
-    }
-    binding = decode_json(read_bytes(directory / "binding.json", MAX_ENVELOPE_BYTES))
-    if binding != expected:
-        raise ValueError("Original validation inventory changed during execution")
+    expected = Binding(job["commit"], {name: digest(raw) for name, raw in original.items()})
+    binding = decode_inventory(
+        read_bytes(directory / "binding.json", MAX_ENVELOPE_BYTES), "binding"
+    )
+    Binding.from_dict(binding, expected)
     report = directory / "bundle/report.json"
     if report.exists() or report.is_symlink():
         remaining = MAX_BUNDLE_BYTES - MAX_ENVELOPE_BYTES - sum(map(len, original.values()))
@@ -51,20 +48,25 @@ def _envelope(job: dict[str, Any], result: JobOutcome, bundle: dict[str, bytes])
     state = result["state"]
     if state == "failed" and result["exit_code"] in (0, None):
         state = "interrupted"
-    return {
-        "schema": 1,
-        "access": "maintainer-admin",
-        "run_id": job["run_id"],
-        "kind": "acceptance" if job["profile"] == "acceptance-http-fixture" else "benchmark",
-        "runner_commit": job["commit"],
-        **{name + "_sha256": digest(bundle[name]) for name in ORIGINAL},
-        "started_at": job["started_at"],
-        "finished_at": datetime.now(UTC).isoformat(),
-        "state": state,
-        "exit_code": result["exit_code"],
-        "report_sha256": digest(report) if report is not None else None,
-        "server_commit": None if job["profile"] == "benchmark-http-remote" else job["commit"],
-    }
+    return asdict(
+        Envelope(
+            schema=1,
+            access="maintainer-admin",
+            run_id=job["run_id"],
+            kind="acceptance" if job["profile"] == "acceptance-http-fixture" else "benchmark",
+            runner_commit=job["commit"],
+            catalogue_sha256=digest(bundle["catalogue"]),
+            stories_sha256=digest(bundle["stories"]),
+            expectations_sha256=digest(bundle["expectations"]),
+            selection_sha256=digest(bundle["selection"]),
+            started_at=job["started_at"],
+            finished_at=datetime.now(UTC).isoformat(),
+            state=state,
+            exit_code=result["exit_code"],
+            report_sha256=digest(report) if report is not None else None,
+            server_commit=None if job["profile"] == "benchmark-http-remote" else job["commit"],
+        )
+    )
 
 
 def _ended(result: JobOutcome, state: TerminalJobState, reason: JobReason) -> JobOutcome:

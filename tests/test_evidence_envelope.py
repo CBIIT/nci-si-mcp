@@ -30,6 +30,95 @@ def envelope(**changes):
 
 
 class EvidenceEnvelopeTest(unittest.TestCase):
+    def test_invalid_import_names_the_field_without_echoing_input(self):
+        invalid = (
+            [("schema", value, "schema") for value in (True, 2)]
+            + [
+                (name, "PRIVATE-CANARY", name)
+                for name in (
+                    "access",
+                    "kind",
+                    "state",
+                    "run_id",
+                    "runner_commit",
+                    "catalogue_sha256",
+                    "stories_sha256",
+                    "expectations_sha256",
+                    "selection_sha256",
+                    "server_commit",
+                    "report_sha256",
+                    "started_at",
+                    "finished_at",
+                )
+            ]
+            + [("exit_code", value, "exit_code") for value in (False, 0.0, -1, 256, None, 1)]
+            + [
+                ("finished_at", "2026-10-08T09:59:59Z", "finished_at"),
+                ("started_at", "2026-02-30T10:00:00Z", "started_at"),
+                ("finished_at", "2026-10-08T10:01:00", "finished_at"),
+                ("report_sha256", "0" * 64, "report_sha256"),
+                ("state", "failed", "exit_code"),
+                ("state", "unavailable", "state"),
+                ("PRIVATE-CANARY", True, "envelope"),
+            ]
+        )
+        for name, value, path in invalid:
+            with self.subTest(name=name, value=value):
+                self.assert_invalid(envelope(**{name: value}), REPORT, path)
+
+    def assert_invalid(self, record, report, path):
+        with self.assertRaises(EvidenceError) as failure:
+            validate_envelope(json.dumps(record).encode(), report)
+        self.assertEqual(str(failure.exception), f"Invalid envelope field: {path}")
+        self.assertNotIn("PRIVATE-CANARY", str(failure.exception))
+
+    def test_missing_fields_and_report_binding_name_safe_locations(self):
+        for name in envelope():
+            with self.subTest(name=name):
+                record = envelope()
+                del record[name]
+                self.assert_invalid(record, REPORT, name)
+        for value in ([], None):
+            self.assert_invalid(value, REPORT, "envelope")
+        self.assert_invalid(envelope(), None, "report_sha256")
+        self.assert_invalid(envelope(report_sha256=None), REPORT, "report_sha256")
+        self.assert_invalid(envelope(report_sha256=None), None, "state")
+        self.assert_invalid(envelope(state="failed", exit_code=None), REPORT, "exit_code")
+
+    def test_digest_and_exit_limits_preserve_accepted_values(self):
+        for name, length in (
+            ("run_id", 32),
+            ("runner_commit", 40),
+            ("server_commit", 40),
+            ("catalogue_sha256", 64),
+            ("stories_sha256", 64),
+            ("expectations_sha256", 64),
+            ("selection_sha256", 64),
+        ):
+            record = envelope(**{name: "f" * length})
+            self.assertEqual(validate_envelope(json.dumps(record).encode(), REPORT), record)
+            for value in ("f" * (length - 1), "f" * (length + 1), "F" * length, None):
+                if name == "server_commit" and value is None:
+                    continue
+                self.assert_invalid(envelope(**{name: value}), REPORT, name)
+        for code in (0, 255, None):
+            record = envelope(state="cancelled", exit_code=code)
+            self.assertEqual(validate_envelope(json.dumps(record).encode(), REPORT), record)
+        record = envelope(finished_at=envelope()["started_at"])
+        self.assertEqual(validate_envelope(json.dumps(record).encode(), REPORT), record)
+
+    def test_import_byte_limits_accept_the_limit_and_reject_one_past(self):
+        raw = json.dumps(envelope()).encode()
+        padded = raw + b" " * (65536 - len(raw))
+        self.assertEqual(validate_envelope(padded, REPORT), envelope())
+        with self.assertRaises(EvidenceError) as failure:
+            validate_envelope(padded + b" ", REPORT)
+        self.assertEqual(str(failure.exception), "Invalid envelope field: envelope")
+        report = b" " * 16777216
+        record = envelope(report_sha256=hashlib.sha256(report).hexdigest())
+        self.assertEqual(validate_envelope(json.dumps(record).encode(), report), record)
+        self.assert_invalid(record, report + b" ", "report")
+
     def test_valid_envelope_preserves_unknown_server_and_does_not_claim_a_pass(self):
         record = envelope()
         result = validate_envelope(json.dumps(record).encode(), REPORT)
