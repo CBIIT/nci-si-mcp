@@ -12,36 +12,97 @@ import threading
 from collections.abc import Callable
 from contextlib import ExitStack
 from copy import deepcopy
+from dataclasses import asdict, dataclass, fields
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast, get_args
 
 from scripts.evidence_envelope import MAX_EXIT_CODE
 from scripts.formats import JOB_ID, SHA1_HEX
 from scripts.operator_files import read_bytes, write_json
 from scripts.operator_process import MAX_WORKER_LOG_BYTES, WORKER_LOG
 from scripts.portal_store import MAX_RETENTION
-from scripts.vocabulary import ACTIVE, JOB_REASONS, TERMINAL, JobOutcome
+from scripts.vocabulary import (
+    ACTIVE,
+    JOB_REASONS,
+    TERMINAL,
+    ActiveJobState,
+    JobOutcome,
+    JobReason,
+    TerminalJobState,
+)
 
 from nci_si_mcp.audit import emit
 
-PROFILES = ("acceptance-http-fixture", "benchmark-http-fixture", "benchmark-http-remote")
+Profile = Literal["acceptance-http-fixture", "benchmark-http-fixture", "benchmark-http-remote"]
+PROFILES = get_args(Profile)
 MAX_ADMITTED = 3
 MAX_STATE_BYTES = 2 * 1024 * 1024
 MAX_TIMESTAMP_LENGTH = 40
-FIELDS = {
-    "run_id",
-    "profile",
-    "state",
-    "sequence",
-    "commit",
-    "submitted_at",
-    "started_at",
-    "finished_at",
-    "exit_code",
-    "reason",
-}
 Executor = Callable[[dict[str, Any], Path, threading.Event], JobOutcome]
+
+
+class JobRecordError(ValueError):
+    """A persisted field is invalid; the message contains only a declared field path."""
+
+
+def _require(condition: bool, path: str) -> None:
+    if not condition:
+        raise JobRecordError(f"Invalid job field: {path}")
+
+
+def _shape(value: Any, record: type, path: str) -> None:
+    _require(isinstance(value, dict), path or "state")
+    names = {item.name for item in fields(record)}
+    for name in sorted(names):
+        _require(name in value, f"{path}.{name}".lstrip("."))
+    _require(set(value) == names, path or "state")
+
+
+@dataclass(frozen=True)
+class Job:
+    run_id: str
+    profile: Profile
+    state: ActiveJobState | TerminalJobState
+    sequence: int
+    commit: str
+    submitted_at: str
+    started_at: str | None
+    finished_at: str | None
+    exit_code: int | None
+    reason: JobReason | None
+
+    @classmethod
+    def from_dict(cls, value: Any, path: str) -> Job:
+        _shape(value, cls, path)
+        _format(value["run_id"], JOB_ID, f"{path}.run_id")
+        _require(value["profile"] in PROFILES, f"{path}.profile")
+        _require(
+            isinstance(value["state"], str) and value["state"] in ACTIVE | TERMINAL, f"{path}.state"
+        )
+        _require(type(value["sequence"]) is int and value["sequence"] >= 1, f"{path}.sequence")
+        _format(value["commit"], SHA1_HEX, f"{path}.commit")
+        _validate_execution(value, path)
+        return cls(**value)
+
+
+@dataclass(frozen=True)
+class JobState:
+    next: int
+    jobs: list[Job]
+
+    @classmethod
+    def from_dict(cls, value: Any) -> JobState:
+        _shape(value, cls, "")
+        _require(type(value["next"]) is int, "next")
+        _require(isinstance(value["jobs"], list), "jobs")
+        jobs = [Job.from_dict(row, f"jobs[{index}]") for index, row in enumerate(value["jobs"])]
+        _validate_sequences(value)
+        return cls(value["next"], jobs)
+
+
+def _format(value: Any, pattern: str, path: str) -> None:
+    _require(isinstance(value, str) and re.fullmatch(pattern, value) is not None, path)
 
 
 class JobConflictError(ValueError):
@@ -61,84 +122,57 @@ def _identifier(value: str) -> None:
         raise ValueError("Invalid local job identifier")
 
 
-def _validate_state(value: Any) -> None:
-    if not isinstance(value, dict) or set(value) != {"next", "jobs"}:
-        raise ValueError("Invalid job state")
-    if type(value["next"]) is not int or not isinstance(value["jobs"], list):
-        raise ValueError("Invalid job state")
-    for row in value["jobs"]:
-        _validate_job(row)
-    _validate_sequences(value)
-
-
 def _validate_sequences(value: dict[str, Any]) -> None:
-    identifiers = [row["run_id"] for row in value["jobs"]]
-    sequences = [row["sequence"] for row in value["jobs"]]
-    if len(set(identifiers)) != len(identifiers) or len(set(sequences)) != len(sequences):
-        raise ValueError("Duplicate retained jobs")
-    if value["next"] <= max(sequences, default=0):
-        raise ValueError("Invalid next job sequence")
-    if len(value["jobs"]) > MAX_RETENTION + MAX_ADMITTED:
-        raise ValueError("Too many retained jobs")
+    for name in ("run_id", "sequence"):
+        seen = set()
+        for index, row in enumerate(value["jobs"]):
+            _require(row[name] not in seen, f"jobs[{index}].{name}")
+            seen.add(row[name])
+    _require(value["next"] > max((row["sequence"] for row in value["jobs"]), default=0), "next")
+    _require(len(value["jobs"]) <= MAX_RETENTION + MAX_ADMITTED, "jobs")
 
 
-def _validate_job(row: Any) -> None:
-    if not isinstance(row, dict) or set(row) != FIELDS:
-        raise ValueError("Invalid job record")
-    _identifier(row["run_id"])
-    if row["profile"] not in PROFILES or row["state"] not in ACTIVE | TERMINAL:
-        raise ValueError("Unsupported job record")
-    _validate_identity(row)
-    _validate_execution(row)
-
-
-def _validate_identity(row: dict[str, Any]) -> None:
-    if type(row["sequence"]) is not int or re.fullmatch(SHA1_HEX, row["commit"]) is None:
-        raise ValueError("Invalid job identity")
-    if row["sequence"] < 1:
-        raise ValueError("Invalid job sequence")
-
-
-def _validate_execution(row: dict[str, Any]) -> None:
-    _timestamp(row["submitted_at"])
+def _validate_execution(row: dict[str, Any], path: str) -> None:
+    _timestamp(row["submitted_at"], f"{path}.submitted_at")
     for name in ("started_at", "finished_at"):
         if row[name] is not None:
-            _timestamp(row[name])
-    _validate_outcome(row)
-    _validate_phase(row)
+            _timestamp(row[name], f"{path}.{name}")
+    _validate_outcome(row, path)
+    _validate_phase(row, path)
 
 
-def _validate_phase(row: dict[str, Any]) -> None:
+def _validate_phase(row: dict[str, Any], path: str) -> None:
     state = row["state"]
     if state in ACTIVE:
-        if (row["finished_at"], row["exit_code"], row["reason"]) != (None, None, None):
-            raise ValueError("Active job has terminal facts")
-        if (row["started_at"] is not None) != (state == "running"):
-            raise ValueError("Invalid active job start")
-    elif row["finished_at"] is None:
-        raise ValueError("Terminal job has no finish time")
-    if state == "completed" and (row["exit_code"], row["reason"], row["started_at"] is None) != (
-        0,
-        None,
-        False,
-    ):
-        raise ValueError("Contradictory completed job")
+        for name in ("finished_at", "exit_code", "reason"):
+            _require(row[name] is None, f"{path}.{name}")
+        _require((row["started_at"] is not None) == (state == "running"), f"{path}.started_at")
+    else:
+        _require(row["finished_at"] is not None, f"{path}.finished_at")
+    if state == "completed":
+        _require(row["exit_code"] == 0, f"{path}.exit_code")
+        _require(row["reason"] is None, f"{path}.reason")
+        _require(row["started_at"] is not None, f"{path}.started_at")
 
 
-def _timestamp(value: Any) -> None:
-    if not isinstance(value, str) or len(value) > MAX_TIMESTAMP_LENGTH:
-        raise ValueError("Invalid job timestamp")
-    parsed = datetime.fromisoformat(value)
-    if parsed.utcoffset() != UTC.utcoffset(None):
-        raise ValueError("Job timestamps must name UTC")
+def _timestamp(value: Any, path: str) -> None:
+    _require(isinstance(value, str) and len(value) <= MAX_TIMESTAMP_LENGTH, path)
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        raise JobRecordError(f"Invalid job field: {path}") from None
+    _require(parsed.utcoffset() == UTC.utcoffset(None), path)
 
 
-def _validate_outcome(row: dict[str, Any]) -> None:
+def _validate_outcome(row: dict[str, Any], path: str) -> None:
     code = row["exit_code"]
-    if code is not None and (type(code) is not int or not 0 <= code <= MAX_EXIT_CODE):
-        raise ValueError("Invalid job exit code")
-    if row["reason"] is not None and row["reason"] not in JOB_REASONS:
-        raise ValueError("Invalid job stop reason")
+    _require(
+        code is None or (type(code) is int and 0 <= code <= MAX_EXIT_CODE), f"{path}.exit_code"
+    )
+    reason = row["reason"]
+    _require(
+        reason is None or (isinstance(reason, str) and reason in JOB_REASONS), f"{path}.reason"
+    )
 
 
 def _kept(log: Path) -> bool:
@@ -186,17 +220,20 @@ class JobController:
     def _load(self) -> dict[str, Any]:
         path = self.root / "jobs.json"
         if not path.exists():
-            return {"next": 1, "jobs": []}
+            return asdict(JobState(1, []))
         try:
             raw = read_bytes(path, MAX_STATE_BYTES)
             value = json.loads(raw)
-            _validate_state(value)
+            state = JobState.from_dict(value)
+        except JobRecordError as error:
+            raise OSError(f"{error}; preserve jobs.json for inspection") from None
         except ValueError, TypeError:
             raise OSError("Local job state is unavailable; preserve it for inspection") from None
-        return value
+        return asdict(state)
 
     def _save(self) -> None:
-        write_json(self.root / "jobs.json", self.state)
+        state = JobState(self.state["next"], [Job(**row) for row in self.state["jobs"]])
+        write_json(self.root / "jobs.json", asdict(state))
 
     def _recover(self) -> None:
         for row in self.state["jobs"]:
@@ -266,19 +303,21 @@ class JobController:
     def _admit(self, run_id: str, profile: str) -> dict[str, Any]:
         if sum(row["state"] in ACTIVE for row in self.state["jobs"]) >= MAX_ADMITTED:
             raise QueueFullError("One worker and two queued jobs are already admitted")
-        row = {
-            "run_id": run_id,
-            "profile": profile,
-            "state": "pending",
-            "commit": self.commit(),
-            "sequence": self.state["next"],
-            "submitted_at": _now(),
-            "started_at": None,
-            "finished_at": None,
-            "exit_code": None,
-            "reason": None,
-        }
-        _validate_job(row)
+        row = asdict(
+            Job(
+                run_id=run_id,
+                profile=cast("Profile", profile),
+                state="pending",
+                commit=self.commit(),
+                sequence=self.state["next"],
+                submitted_at=_now(),
+                started_at=None,
+                finished_at=None,
+                exit_code=None,
+                reason=None,
+            )
+        )
+        Job.from_dict(row, "job")
         self.state["next"] += 1
         self.state["jobs"].append(row)
         try:

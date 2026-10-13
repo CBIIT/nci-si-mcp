@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from scripts.evidence_acceptance import digest
-from scripts.evidence_envelope import MAX_ENVELOPE_BYTES, decode_json
+from scripts.evidence_envelope import MAX_ENVELOPE_BYTES, Envelope, decode_json
 from scripts.operator_files import read_bytes, write_json
 from scripts.portal_store import MAX_BUNDLE_BYTES, EvidenceStore
 from scripts.vocabulary import JobOutcome, JobReason, TerminalJobState
@@ -51,20 +52,25 @@ def _envelope(job: dict[str, Any], result: JobOutcome, bundle: dict[str, bytes])
     state = result["state"]
     if state == "failed" and result["exit_code"] in (0, None):
         state = "interrupted"
-    return {
-        "schema": 1,
-        "access": "maintainer-admin",
-        "run_id": job["run_id"],
-        "kind": "acceptance" if job["profile"] == "acceptance-http-fixture" else "benchmark",
-        "runner_commit": job["commit"],
-        **{name + "_sha256": digest(bundle[name]) for name in ORIGINAL},
-        "started_at": job["started_at"],
-        "finished_at": datetime.now(UTC).isoformat(),
-        "state": state,
-        "exit_code": result["exit_code"],
-        "report_sha256": digest(report) if report is not None else None,
-        "server_commit": None if job["profile"] == "benchmark-http-remote" else job["commit"],
-    }
+    return asdict(
+        Envelope(
+            schema=1,
+            access="maintainer-admin",
+            run_id=job["run_id"],
+            kind="acceptance" if job["profile"] == "acceptance-http-fixture" else "benchmark",
+            runner_commit=job["commit"],
+            catalogue_sha256=digest(bundle["catalogue"]),
+            stories_sha256=digest(bundle["stories"]),
+            expectations_sha256=digest(bundle["expectations"]),
+            selection_sha256=digest(bundle["selection"]),
+            started_at=job["started_at"],
+            finished_at=datetime.now(UTC).isoformat(),
+            state=state,
+            exit_code=result["exit_code"],
+            report_sha256=digest(report) if report is not None else None,
+            server_commit=None if job["profile"] == "benchmark-http-remote" else job["commit"],
+        )
+    )
 
 
 def _ended(result: JobOutcome, state: TerminalJobState, reason: JobReason) -> JobOutcome:

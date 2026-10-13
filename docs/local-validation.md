@@ -48,6 +48,11 @@ Only those fixed filenames are read, symlinks are rejected, and total input is b
 Hashes validate byte bindings, not producer identity. Imported origin and declared server
 identity remain unverified. Importing does not execute tests.
 
+Envelope validation errors name a field, for example `Invalid envelope field: report_sha256`,
+without echoing its value. Unknown keys name only the envelope. An invalid persisted job names
+its field, such as `jobs[0].exit_code`; startup leaves `jobs.json` unchanged for inspection and
+starts no worker.
+
 Old reports without a bound original inventory can be retained explicitly without verdicts:
 
 ```bash
