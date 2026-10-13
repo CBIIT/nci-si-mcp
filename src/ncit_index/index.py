@@ -60,7 +60,7 @@ _SQL_CHUNK = 500
 def _distinct_concepts(concepts: Iterable[NcitConcept]) -> list[NcitConcept]:
     """Keep one concept per code, as sample updates have always done."""
 
-    by_code = {str(item.raw.get("code") or ""): item for item in concepts}
+    by_code = {item.code: item for item in concepts}
     concepts = list(by_code.values())
     if not concepts:
         raise IndexBuildError("No concepts were provided for indexing")

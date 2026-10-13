@@ -36,7 +36,7 @@ are represented without changing retrieval behavior.
 | --- | --- |
 | `get_active_manifest()` | Active manifest or absence; release/status reporting and manifest resource. |
 | `verify_active(provider)` | Usable active manifest or failure, without embedding or upstream I/O in the local implementation; readiness/startup. |
-| `get_concept_snapshot(code)` | Manifest and optional cached concept from one snapshot, both absent when no build is active; cached lookup and concept resource. |
+| `get_concept_snapshot(code)` | Manifest and optional cached concept from one snapshot, both absent when no build is active; cached CLI lookup. |
 | `search_page(query, provider, limit, mode, requested_release, offset, build_id, retired_status)` | Ranked hits, exact filtered total and manifest from one snapshot; indexed tool search and legacy CLI search. |
 
 - **Identity:** one build holds one recorded EVS release. Verify the requested release and
@@ -44,7 +44,8 @@ are represented without changing retrieval behavior.
   an empty page still has a manifest and provenance. Never silently substitute another build.
 - **Paging:** MCP owns opaque cursors binding applied arguments, release and build id. The
   adapter passes the expected build id and offset; a replacement expires the cursor even at
-  the same release. Filter retirement before counting and paging; retain deterministic ties.
+  the same release. Current indexed cursor identities require 32 lowercase hexadecimal characters.
+  Filter retirement before counting and paging; retain deterministic ties.
   MCP pages until exhausted without truncation; CLI one-page truncation is constructed MCP-side.
 - **Limits:** the read adapter accepts nonblank queries and limits 1–1000, default 10, with
   `bm25`, `vector` or `hybrid` (default). Offset defaults to zero; release, build id and retirement
