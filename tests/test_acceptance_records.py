@@ -49,6 +49,10 @@ class AcceptanceRecordTest(unittest.TestCase):
             native = report()
             next(iter(native["tests"].values()))["gate"] = gate
             self.assert_invalid(native, "tests[0].gate")
+            with self.assertRaises(ValueError) as failure:
+                report_module.NativeReport.from_dict(native)
+            self.assertEqual(str(failure.exception), "Invalid acceptance field: tests[0].gate")
+            self.assertNotIn("PRIVATE-CANARY", str(failure.exception))
         self.assertEqual(
             report_module.NativeReport.from_dict(report()).tools["lookup"].counts, {"passed": 1}
         )

@@ -69,6 +69,7 @@ class InventoryImportTest(unittest.TestCase):
             for value, path in (
                 ({}, name),
                 ([], name),
+                (list(original), name),
                 (original | {"PRIVATE-CANARY": "passed"}, name),
                 (original | {key: "PRIVATE-CANARY"}, f"{name}[0]"),
                 (original | {key: 1}, f"{name}[0]"),
@@ -99,6 +100,7 @@ class InventoryImportTest(unittest.TestCase):
     def test_bad_snapshot_json_names_the_snapshot(self):
         for name in bundle():
             self.assert_invalid(bundle() | {name: b'{"PRIVATE-CANARY":'}, name)
+        self.assert_invalid(bundle() | {"stories": b"[" * 200_000 + b"]" * 200_000}, "stories")
 
     def test_identifier_length_and_digest_boundaries_preserve_valid_snapshots(self):
         original = json.loads(bundle()["stories"])
