@@ -69,7 +69,10 @@ class IndexedSearchTest(ServerFixture):
                 "currentRelease": "26.06e",
             },
         )
-        self.assertIn("build changed", result["error"]["message"])
+        self.assertEqual(
+            result["error"]["message"],
+            "The active index build changed. Restart the search against the active build.",
+        )
 
     def test_retirement_filters_before_count_and_page_selection(self):
         self.evs.rows = [
@@ -102,6 +105,13 @@ class IndexedSearchTest(ServerFixture):
         with patch.dict("sys.modules", {"numpy": None}):
             result = self.search()
         self.assertEqual(result["error"]["code"], "capability_unavailable")
+        self.assertEqual(
+            result["error"]["message"],
+            "Exact indexed search needs NumPy. Install the 'index' extra and retry.",
+        )
+        self.assertEqual(
+            result["error"]["details"], {"capability": "semantic/hybrid index scoring"}
+        )
         self.assertNotIn("results", result)
 
     def test_an_indexed_cursor_requires_its_internal_build_identity(self):

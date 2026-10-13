@@ -5,8 +5,10 @@ import subprocess
 import sys
 import unittest
 from dataclasses import replace
+from unittest.mock import patch
 
 from fakes import FakeIndex
+from nci_si_mcp.errors import InputValidationError
 from nci_si_mcp.evs import normalize_concept
 from nci_si_mcp.http_client import UpstreamUnavailableError
 from nci_si_mcp.models import IndexManifest, SearchHit
@@ -15,6 +17,58 @@ from test_server import NEOPLASM, ServerFixture
 
 
 class ReadPortTest(ServerFixture):
+    def test_local_read_adapter_preserves_validation_and_normalization(self):
+        invoke(self.context, "index_codes", ["C3262"])
+        defaults = {"query": "Neoplasm", "limit": 1, "mode": "bm25"}
+        cases = [
+            ("query", " ", "Search query must not be blank"),
+            ("limit", 0, "Search limit must be between 1 and 1000"),
+            ("limit", 1001, "Search limit must be between 1 and 1000"),
+            ("mode", "unknown", "Search mode must be one of: bm25, hybrid, vector"),
+        ]
+        for field, value, message in cases:
+            with (
+                self.subTest(field=field, value=value),
+                self.assertRaises(InputValidationError) as caught,
+            ):
+                self.context.index.search_page(
+                    embedding_provider=self.context.embedding_provider,
+                    **(defaults | {field: value}),
+                )
+            self.assertEqual(str(caught.exception), message)
+            self.assertEqual(caught.exception.details, {"parameter": field, "reason": message})
+        for limit in (1, 1000):
+            hits, total, _ = self.context.index.search_page(
+                "  Neoplasm  ", self.context.embedding_provider, limit=limit, mode="BM25"
+            )
+            self.assertEqual(([hit.concept.code for hit in hits], total), (["C3262"], 1))
+
+    def test_manifest_mismatch_and_legacy_capability_keep_exact_errors(self):
+        invoke(self.context, "index_codes", ["C3262"])
+        mismatch = invoke(self.context, "index_resource", release="26.07d")["error"]
+        self.assertEqual(
+            (mismatch["code"], mismatch["message"], mismatch["details"]),
+            (
+                "release_mismatch",
+                "The index holds another release. Rebuild it for the requested release.",
+                {"requested": "26.07d", "served": ["26.06e"], "source": "index"},
+            ),
+        )
+        manifest = self.local_index.get_active_manifest()
+        with patch.object(
+            self.local_index, "_active_manifest", return_value=replace(manifest, needs_rebuild=True)
+        ):
+            result = invoke(self.context, "search", query="Neoplasm")["error"]
+        self.assertEqual(
+            (result["code"], result["message"]),
+            (
+                "capability_unavailable",
+                "Run index-rebuild with this build id, then index-activate, "
+                "to enable field search.",
+            ),
+        )
+        self.assertNotIn("details", result)
+
     def test_registry_reads_in_memory_snapshots_without_operator_methods(self):
         manifest = IndexManifest(
             "ncit",
