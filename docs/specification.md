@@ -62,7 +62,9 @@ capability the source system lacks", and it is interim:
   holds. The index never stands in silently for a live answer.
 
 The index's build, activation and rollback are described in the
-[architecture](../ARCHITECTURE.md#index-lifecycle).
+[architecture](../ARCHITECTURE.md#index-lifecycle). The [migration guide](../docs/index-migration.md)
+describes its read-only boundary and the future handover to EVS; the hosted service and switch
+are not implemented, and any future provenance change requires explicit specification agreement.
 
 ## 1. Conventions
 

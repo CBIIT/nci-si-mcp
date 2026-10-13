@@ -11,6 +11,7 @@ from nci_si_mcp.evs import EVSClient
 from nci_si_mcp.http_client import UpstreamUnavailableError
 from test_audit import captured, records
 from test_evs_client import FakeResponse, http_error
+from test_index import normalized
 from test_server import ServerFixture
 
 
@@ -98,8 +99,10 @@ class IndexAuditMutationTest(ServerFixture):
     def test_replacing_an_index_logs_the_release_it_replaced(self):
         with captured() as stream:
             for version in ("26.06e", "26.07a"):
-                self.context.index.upsert_concepts(
-                    [concept("C1", version=version)], None, self.context.embedding_provider
+                self.local_index.upsert_concepts(
+                    normalized([concept("C1", version=version)]),
+                    None,
+                    self.context.embedding_provider,
                 )
         first, second = records(stream, "index_activated")
         self.assertEqual((first["release"], second["release"]), ("26.06e", "26.07a"))

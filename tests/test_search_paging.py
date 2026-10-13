@@ -5,17 +5,18 @@ from urllib.parse import parse_qs, urlsplit
 
 from fakes import concept, release, terminology_row
 from nci_si_mcp.evs import EVSClient, EVSReleaseNotFoundError
-from nci_si_mcp.index_scoring import rank_page
 from nci_si_mcp.registry import invoke
+from ncit_index.scoring import rank_page
 from test_evs_client import FakeResponse
+from test_index import normalized
 from test_server import ServerFixture
 
 
 class IndexedSearchTest(ServerFixture):
     def setUp(self):
         super().setUp()
-        self.context.index.upsert_concepts(
-            [concept(f"C{i}", "Kinase", active=True) for i in range(1, 6)],
+        self.local_index.upsert_concepts(
+            normalized([concept(f"C{i}", "Kinase", active=True) for i in range(1, 6)]),
             None,
             self.context.embedding_provider,
         )
@@ -54,8 +55,8 @@ class IndexedSearchTest(ServerFixture):
 
     def test_a_same_release_replacement_expires_the_cursor(self):
         first = self.search()
-        self.context.index.upsert_concepts(
-            [concept("C6", "Kinase", active=True)],
+        self.local_index.upsert_concepts(
+            normalized([concept("C6", "Kinase", active=True)]),
             None,
             self.context.embedding_provider,
         )
@@ -80,11 +81,13 @@ class IndexedSearchTest(ServerFixture):
                 }
             }
         ]
-        self.context.index.upsert_concepts(
-            [
-                concept(f"C{i}", "Kinase", active=False, conceptStatus="retired-test")
-                for i in (2, 4, 6)
-            ],
+        self.local_index.upsert_concepts(
+            normalized(
+                [
+                    concept(f"C{i}", "Kinase", active=False, conceptStatus="retired-test")
+                    for i in (2, 4, 6)
+                ]
+            ),
             None,
             self.context.embedding_provider,
         )
@@ -112,17 +115,17 @@ class IndexedSearchTest(ServerFixture):
                 self.assertEqual(self.search(cursor=token)["error"]["code"], "invalid_request")
 
     def test_page_count_and_identity_share_a_snapshot_during_activation(self):
-        replacement = self.context.index.build(
-            [concept("C9", "Kinase", active=True)],
+        replacement = self.local_index.build(
+            normalized([concept("C9", "Kinase", active=True)]),
             None,
             self.context.embedding_provider,
         )
 
         def activate_then_rank(*args, **kwargs):
-            self.context.index.activate(replacement.build_id)
+            self.local_index.activate(replacement.build_id)
             return rank_page(*args, **kwargs)
 
-        with patch("nci_si_mcp.index.rank_page", side_effect=activate_then_rank):
+        with patch("ncit_index.index.rank_page", side_effect=activate_then_rank):
             first = self.search()
         self.assertEqual(first["totalKnown"], 5)
         self.assertEqual([hit["concept"]["code"] for hit in first["results"]], ["C1", "C2"])

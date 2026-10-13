@@ -6,11 +6,14 @@ from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from .embeddings import EmbeddingProvider
-from .errors import IndexEvaluationError
+from ncit_index.embeddings import EmbeddingProvider
+from ncit_index.errors import IndexEvaluationError
+from ncit_index.index import LocalIndex, evaluation_identity, evaluation_next_step
+from ncit_index.records import IndexManifest
+
 from .evaluation_sets import EvaluationSet, GoldQuery, production_set
-from .index import LocalIndex, evaluation_identity, evaluation_next_step
-from .models import IndexManifest, utc_now_iso
+from .models import utc_now_iso
+from .validation import MAX_INDEX_SEARCH_LIMIT, validate_search
 
 HIT_CUTOFF = 5
 
@@ -61,10 +64,11 @@ def _evaluate_query(
     limit: int,
     build_id: str | None,
 ) -> QueryResult:
+    query, limit, mode = validate_search(gold.query, limit, mode, maximum=MAX_INDEX_SEARCH_LIMIT)
     if build_id is None:
-        hits = index.search(gold.query, provider, limit=limit, mode=mode)
+        hits = index.search(query, provider, limit=limit, mode=mode)
     else:
-        hits, _ = index.search_build(build_id, gold.query, provider, limit=limit, mode=mode)
+        hits, _ = index.search_build(build_id, query, provider, limit=limit, mode=mode)
     codes = tuple(hit.concept.code for hit in hits)
     return QueryResult(
         gold.query,

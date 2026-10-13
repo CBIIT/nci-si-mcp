@@ -3,9 +3,10 @@ import tempfile
 import unittest
 
 from fakes import concept
-from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.evaluation import GoldQuery, evaluate_retrieval
-from nci_si_mcp.index import LocalIndex
+from ncit_index.embeddings import HashingEmbeddingProvider
+from ncit_index.index import LocalIndex
+from test_index import normalized
 
 # "sarcoma" matches seven concepts. BM25 ranks them by how often the term
 # occurs, so C1 is first, C2 second and C7 seventh.
@@ -20,7 +21,7 @@ class EvaluationTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_path:
             index = LocalIndex(tmp_path)
             provider = HashingEmbeddingProvider()
-            index.upsert_concepts(CONCEPTS, "2026-06-29", provider)
+            index.upsert_concepts(normalized(CONCEPTS, "2026-06-29"), "2026-06-29", provider)
             return evaluate_retrieval(
                 index,
                 provider,
@@ -49,7 +50,7 @@ class EvaluationTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_path:
             index = LocalIndex(tmp_path)
             provider = HashingEmbeddingProvider()
-            index.upsert_concepts(CONCEPTS, "2026-06-29", provider)
+            index.upsert_concepts(normalized(CONCEPTS, "2026-06-29"), "2026-06-29", provider)
 
             results = evaluate_retrieval(
                 index, provider, gold_queries=[GoldQuery("melanoma", ("C8",))]
@@ -91,9 +92,9 @@ class EvaluationTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             index = LocalIndex(directory)
             provider = HashingEmbeddingProvider()
-            index.upsert_concepts([concept("C1", "sarcoma")], None, provider)
+            index.upsert_concepts(normalized([concept("C1", "sarcoma")]), None, provider)
             active = index.get_active_manifest()
-            candidate = index.build([concept("C8", "melanoma")], None, provider)
+            candidate = index.build(normalized([concept("C8", "melanoma")]), None, provider)
             results = evaluate_retrieval(
                 index, provider, [GoldQuery("melanoma", ("C8",))], build_id=candidate.build_id
             )

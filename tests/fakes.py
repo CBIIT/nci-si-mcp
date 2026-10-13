@@ -9,6 +9,43 @@ from nci_si_mcp.release import ReleaseContext
 from nci_si_mcp.ssis import CADSR_GRAPH, NCIT_GRAPH, SSISClient
 
 
+class FakeIndex:
+    """In-memory read snapshots; no storage or operator API."""
+
+    def __init__(self, manifest, hits):
+        self.manifest = manifest
+        self.hits = hits
+
+    def get_active_manifest(self):
+        return self.manifest
+
+    def verify_active(self, provider):
+        return self.manifest
+
+    def get_concept_snapshot(self, code):
+        concept = next((hit.concept for hit in self.hits if hit.concept.code == code), None)
+        return self.manifest, concept
+
+    def search_page(
+        self,
+        query,
+        embedding_provider,
+        limit=10,
+        mode="hybrid",
+        *,
+        requested_release=None,
+        offset=0,
+        build_id=None,
+        retired_status=None,
+    ):
+        hits = [
+            hit
+            for hit in self.hits
+            if retired_status in (None, hit.concept.raw.get("conceptStatus"))
+        ]
+        return hits[offset : offset + limit], len(hits), self.manifest
+
+
 class FakeSSIS(SSISClient):
     """Offline graph rows; records the actual remaining query allowance."""
 

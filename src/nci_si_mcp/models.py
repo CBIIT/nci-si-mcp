@@ -7,9 +7,12 @@ without importing the optional `mcp` package.
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field, fields
+from dataclasses import dataclass, field, fields
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Any
+
+from ncit_index.records import Concept as StoredConcept
+from ncit_index.records import IndexManifest as StoredManifest
 
 from .errors import PlatformError, call_correlation_id
 from .validation import Polarity
@@ -201,21 +204,7 @@ def upstream_origin(raw: dict[str, Any]) -> dict[str, Any]:
 # NcitConcept and IndexManifest are stored as JSON in the index. A new field
 # needs a default, or a schema migration that rewrites the stored payloads.
 @dataclass(frozen=True, slots=True)
-class NcitConcept:
-    code: str
-    preferred_name: str
-    source_vocabulary: str
-    terminology: str
-    release_version: str
-    release_date: str | None
-    retrieved_at: str
-    source: str
-    evidence: dict[str, Any] = field(default_factory=dict)
-    raw: dict[str, Any] = field(default_factory=dict)
-
-    def to_stored(self) -> dict[str, Any]:
-        return asdict(self)
-
+class NcitConcept(StoredConcept):
     def provenance(self, source_uri: str | None) -> ProvenanceEnvelope:
         surface, served_by = _ORIGINS[self.source]
         return ProvenanceEnvelope(
@@ -246,52 +235,7 @@ class NcitConcept:
 
 
 @dataclass(frozen=True, slots=True)
-class IndexManifest:
-    terminology: str
-    release_version: str
-    release_date: str | None
-    embedding_provider: str
-    embedding_model: str
-    concept_count: int
-    built_at: str
-    index_path: str
-    embedding_dimensions: int | None = None
-    active: bool = False
-    build_id: str = ""
-    needs_rebuild: bool = False
-    evaluation_version: str | None = None
-    evaluation_score: float | None = None
-    build_kind: Literal["legacy", "sample", "production"] = "legacy"
-    evaluation_report: dict[str, Any] | None = None
-    unclassified_source_build: str | None = None
-
-    @classmethod
-    def from_payload(cls, payload: dict[str, Any]) -> IndexManifest:
-        """Rebuild a stored manifest, ignoring keys this version does not know."""
-
-        known = {item.name for item in fields(cls)}
-        return cls(**{key: value for key, value in payload.items() if key in known})
-
-    def embedding_matches(self, provider: str, model: str, dimensions: int | None = None) -> bool:
-        """Whether vectors from this provider share the index's embedding space.
-
-        Dimensions are compared only when both sides know them; an index built
-        before dimensions were recorded stores None.
-        """
-
-        return (
-            self.embedding_provider == provider
-            and self.embedding_model == model
-            and (
-                dimensions is None
-                or self.embedding_dimensions is None
-                or self.embedding_dimensions == dimensions
-            )
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
+class IndexManifest(StoredManifest):
     def to_result(self) -> dict[str, Any]:
         """The manifest as the index_manifest record: its fields and its provenance."""
 

@@ -13,12 +13,15 @@ from fakes import concept
 from nci_si_mcp import results
 from nci_si_mcp.caching import cache_call
 from nci_si_mcp.context import Context
-from nci_si_mcp.errors import IndexEvaluationError, IndexStateError, correlated
+from nci_si_mcp.errors import correlated
 from nci_si_mcp.evaluation_sets import production_set
 from nci_si_mcp.http_client import UpstreamTooLargeError, UpstreamUnavailableError
+from nci_si_mcp.index_adapter import manifest_record
 from nci_si_mcp.models import TraversalProvenance
 from nci_si_mcp.registry import invoke
+from ncit_index.errors import IndexEvaluationError, IndexStateError
 from test_evs_client import FakeResponse, http_error
+from test_index import normalized
 from test_server import ServerFixture
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -118,8 +121,8 @@ class RecordReviewTest(TestCase):
 
 class AdapterReviewTest(ServerFixture):
     def candidate(self):
-        return self.context.index.build(
-            [concept("C1", "One", active=True)], None, self.context.embedding_provider
+        return self.local_index.build(
+            normalized([concept("C1", "One", active=True)]), None, self.context.embedding_provider
         )
 
     def test_three_pinned_content_tools_select_long_public_cache_hints(self):
@@ -192,10 +195,13 @@ class AdapterReviewTest(ServerFixture):
         candidate = self.candidate()
         result = invoke(self.context, "index_rebuild", candidate.build_id)
         rebuilt = next(
-            item for item in self.context.index.list_builds() if item.build_id == result["buildId"]
+            item for item in self.local_index.list_builds() if item.build_id == result["buildId"]
         )
         with correlated(result["manifest"]["provenance"]["correlationId"]):
-            self.assertEqual(result, {"buildId": rebuilt.build_id, "manifest": rebuilt.to_result()})
+            self.assertEqual(
+                result,
+                {"buildId": rebuilt.build_id, "manifest": manifest_record(rebuilt).to_result()},
+            )
         self.assertIsNone(rebuilt.evaluation_version)
 
     def test_legacy_build_is_scored_without_the_gate(self):
@@ -203,14 +209,14 @@ class AdapterReviewTest(ServerFixture):
         candidate = self.candidate()
         payload = candidate.to_dict()
         del payload["build_kind"]
-        with self.context.index._connect() as conn:
+        with self.local_index._connect() as conn:
             conn.execute("UPDATE manifests SET payload = ?", (json.dumps(payload),))
         result = invoke(self.context, "evaluate", candidate.build_id)
         self.assertEqual(result["build_id"], candidate.build_id)
         self.assertEqual(result["evaluation_version"], production_set().version)
         self.assertFalse(result["gate_applies"])
         self.assertEqual([item["mode"] for item in result["results"]], ["bm25", "vector", "hybrid"])
-        self.assertIsNone(self.context.index.list_builds()[0].evaluation_report)
+        self.assertIsNone(self.local_index.list_builds()[0].evaluation_report)
 
     def test_operator_failures_include_actionable_next_steps(self):
         for error, ending in (
@@ -226,7 +232,8 @@ class AdapterReviewTest(ServerFixture):
         ):
             with (
                 self.subTest(error=error),
-                patch.object(self.context.index, "activate", side_effect=error("Rejected build.")),
+                patch("nci_si_mcp.indexing.open_index", return_value=self.local_index),
+                patch.object(self.local_index, "activate", side_effect=error("Rejected build.")),
             ):
                 result = invoke(self.context, "index_activate", "a" * 32)
                 self.assertEqual(result["error"]["code"], "internal_error")

@@ -3,24 +3,27 @@
 import sqlite3
 from unittest.mock import patch
 
-from nci_si_mcp.embeddings import HashingEmbeddingProvider
-from nci_si_mcp.errors import (
+from nci_si_mcp.errors import correlated
+from nci_si_mcp.index_adapter import LocalIndexAdapter
+from ncit_index.embeddings import HashingEmbeddingProvider
+from ncit_index.errors import (
     IndexBuildError,
     IndexCompatibilityError,
+    IndexCursorError,
     IndexStateError,
     IndexStorageError,
-    PlatformError,
-    correlated,
 )
-from nci_si_mcp.index import LocalIndex
-from test_index import RAW_CONCEPTS, IndexTestCase
+from ncit_index.index import LocalIndex
+from test_index import RAW_CONCEPTS, IndexTestCase, normalized
 
 
 class BuildLifecycleTest(IndexTestCase):
     def test_candidate_search_does_not_change_active_build_or_rollback_target(self):
         index = self.build()
         active = index.get_active_manifest()
-        candidate = index.build([dict(RAW_CONCEPTS[0], code="C999")], None, self.provider)
+        candidate = index.build(
+            normalized([dict(RAW_CONCEPTS[0], code="C999")]), None, self.provider
+        )
         before = index.list_builds()
         hits, manifest = index.search_build(candidate.build_id, "neoplasm", self.provider)
         self.assertEqual([hit.concept.code for hit in hits], ["C999"])
@@ -31,8 +34,10 @@ class BuildLifecycleTest(IndexTestCase):
 
     def test_candidate_search_snapshot_survives_concurrent_candidate_removal(self):
         index = self.build()
-        candidate = index.build([dict(RAW_CONCEPTS[0], code="C999")], None, self.provider)
-        other = index.build([dict(RAW_CONCEPTS[0], code="C888")], None, self.provider)
+        candidate = index.build(
+            normalized([dict(RAW_CONCEPTS[0], code="C999")]), None, self.provider
+        )
+        other = index.build(normalized([dict(RAW_CONCEPTS[0], code="C888")]), None, self.provider)
         embed = self.provider.embed
 
         def activate_during_query(texts):
@@ -50,7 +55,7 @@ class BuildLifecycleTest(IndexTestCase):
     def test_a_sample_whose_activation_check_fails_leaves_no_inactive_snapshot(self):
         index = self.build()
         active = index.get_active_manifest()
-        other = index.build([dict(RAW_CONCEPTS[0], code="C888")], None, self.provider)
+        other = index.build(normalized([dict(RAW_CONCEPTS[0], code="C888")]), None, self.provider)
         embed = self.provider.embed
 
         def activate_during_sample(texts):
@@ -61,7 +66,9 @@ class BuildLifecycleTest(IndexTestCase):
             patch.object(self.provider, "embed", side_effect=activate_during_sample),
             self.assertRaisesRegex(IndexStateError, "changed during sample indexing"),
         ):
-            index.upsert_concepts([dict(RAW_CONCEPTS[0], code="C777")], None, self.provider)
+            index.upsert_concepts(
+                normalized([dict(RAW_CONCEPTS[0], code="C777")]), None, self.provider
+            )
 
         self.assertEqual(
             {build.build_id for build in index.list_builds()}, {active.build_id, other.build_id}
@@ -70,7 +77,7 @@ class BuildLifecycleTest(IndexTestCase):
 
     def test_candidate_search_requires_completed_compatible_build_without_active_index(self):
         index = LocalIndex(self.path)
-        candidate = index.build(RAW_CONCEPTS, None, self.provider)
+        candidate = index.build(normalized(RAW_CONCEPTS), None, self.provider)
         hits, manifest = index.search_build(candidate.build_id, "neoplasm", self.provider)
         self.assertTrue(hits)
         self.assertEqual(manifest.build_id, candidate.build_id)
@@ -85,23 +92,24 @@ class BuildLifecycleTest(IndexTestCase):
     def test_cursor_expires_before_checking_a_replacement_builds_provider(self):
         index = self.build()
         active = index.get_active_manifest()
-        replacement = index.build(RAW_CONCEPTS, None, HashingEmbeddingProvider(dimensions=64))
+        replacement = index.build(
+            normalized(RAW_CONCEPTS), None, HashingEmbeddingProvider(dimensions=64)
+        )
         index.activate(replacement.build_id)
-        with self.assertRaises(PlatformError) as raised:
+        with self.assertRaises(IndexCursorError) as raised:
             index.search_page("cancer", self.provider, build_id=active.build_id)
-        self.assertEqual(raised.exception.code, "cursor_expired")
         self.assertEqual(raised.exception.details["cursorRelease"], active.release_version)
         self.assertEqual(raised.exception.details["currentRelease"], replacement.release_version)
 
     def test_unusable_build_lease_reports_storage_error_and_keeps_active_index(self):
         index = self.build()
         active = index.get_active_manifest()
-        with patch("nci_si_mcp.index.uuid4") as identifier:
+        with patch("ncit_index.index.uuid4") as identifier:
             identifier.return_value.hex = "f" * 32
             lease_path = self.path / f"build-{'f' * 32}.sqlite3"
             lease_path.mkdir()
             with self.assertRaises(IndexStorageError) as raised:
-                index.build(RAW_CONCEPTS, None, self.provider)
+                index.build(normalized(RAW_CONCEPTS), None, self.provider)
         self.assertIn(str(lease_path), str(raised.exception))
         self.assertEqual(index.get_active_manifest(), active)
 
@@ -125,13 +133,15 @@ class BuildLifecycleTest(IndexTestCase):
                 with self.assertRaises(IndexBuildError):
                     index.activate(building)
                 index.upsert_concepts(
-                    [dict(RAW_CONCEPTS[0], code="C999")], None, HashingEmbeddingProvider()
+                    normalized([dict(RAW_CONCEPTS[0], code="C999")]),
+                    None,
+                    HashingEmbeddingProvider(),
                 )
             return embed(texts)
 
         rows = [dict(RAW_CONCEPTS[0], code=f"C{number}") for number in range(65)]
         with patch.object(self.provider, "embed", side_effect=write_during_second_batch):
-            built = index.build(rows, None, self.provider)
+            built = index.build(normalized(rows), None, self.provider)
         self.assertEqual(built.concept_count, 65)
         self.assertIsNotNone(index.get_concept_snapshot("C999")[1])
         self.assertFalse(built.active)
@@ -140,7 +150,9 @@ class BuildLifecycleTest(IndexTestCase):
     def test_cache_payload_and_manifest_share_snapshot_during_activation(self):
         index = self.build()
         active = index.get_active_manifest()
-        other = index.build([dict(RAW_CONCEPTS[1], version="other")], None, self.provider)
+        other = index.build(
+            normalized([dict(RAW_CONCEPTS[1], version="other")]), None, self.provider
+        )
         read = LocalIndex._active_manifest
 
         def activate_after_manifest(conn):
@@ -165,7 +177,7 @@ class BuildLifecycleTest(IndexTestCase):
     def test_failed_activation_rolls_back_the_active_flag_and_retention(self):
         index = self.build()
         active = index.get_active_manifest()
-        built = index.build([RAW_CONCEPTS[0]], None, self.provider)
+        built = index.build(normalized([RAW_CONCEPTS[0]]), None, self.provider)
         with index._connect() as conn:
             conn.execute(
                 "CREATE TRIGGER refuse_activation BEFORE UPDATE ON manifests "
@@ -194,7 +206,7 @@ class BuildLifecycleTest(IndexTestCase):
             patch.object(self.provider, "embed", side_effect=interrupt_second_batch),
             self.assertRaises(KeyboardInterrupt),
         ):
-            index.build(rows, None, self.provider)
+            index.build(normalized(rows), None, self.provider)
         self.assertEqual(index.list_builds(), [active])
         self.assertEqual(self.provider.embed, embed)
         with index._connect() as conn:
@@ -205,7 +217,7 @@ class BuildLifecycleTest(IndexTestCase):
                 1,
             )
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM concepts").fetchone()[0], 66)
-        next_build = index.build(RAW_CONCEPTS, None, self.provider)
+        next_build = index.build(normalized(RAW_CONCEPTS), None, self.provider)
         self.assertEqual(next_build.concept_count, 2)
         with index._connect() as conn:
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM concepts").fetchone()[0], 4)
@@ -227,9 +239,11 @@ class BuildLifecycleTest(IndexTestCase):
         ]
         for rows in cases:
             with self.subTest(rows=rows), self.assertRaises(IndexBuildError):
-                index.build(iter(rows), None, self.provider)
+                index.build(normalized(iter(rows)), None, self.provider)
         with self.assertRaises(IndexCompatibilityError):
-            index.build(RAW_CONCEPTS, None, self.provider, expected_release_version="other")
+            index.build(
+                normalized(RAW_CONCEPTS), None, self.provider, expected_release_version="other"
+            )
         self.assertEqual(index.list_builds(), [active])
 
     def test_embedding_dimension_change_between_batches_rolls_back(self):
@@ -247,14 +261,18 @@ class BuildLifecycleTest(IndexTestCase):
             patch.object(self.provider, "embed", side_effect=changing),
             self.assertRaisesRegex(IndexCompatibilityError, "changed during"),
         ):
-            index.build(rows, None, self.provider)
+            index.build(normalized(rows), None, self.provider)
         self.assertEqual(index.get_active_manifest().concept_count, 2)
         self.assertEqual(len(index.list_builds()), 1)
 
     def test_inactive_build_cannot_change_active_bm25_statistics(self):
         index = self.build()
         before = index.search("kinase tumor", self.provider, mode="bm25")
-        index.build([dict(RAW_CONCEPTS[0], code=f"C{n}") for n in range(50)], None, self.provider)
+        index.build(
+            normalized([dict(RAW_CONCEPTS[0], code=f"C{n}") for n in range(50)]),
+            None,
+            self.provider,
+        )
         self.assertEqual(index.search("kinase tumor", self.provider, mode="bm25"), before)
 
     def test_inactive_same_release_build_does_not_change_readers_and_can_roll_back(self):
@@ -262,7 +280,7 @@ class BuildLifecycleTest(IndexTestCase):
         old = index.get_active_manifest()
         changed = dict(RAW_CONCEPTS[1], name="Changed Name")
 
-        built = index.build([changed], None, self.provider)
+        built = index.build(normalized([changed]), None, self.provider)
 
         self.assertFalse(built.active)
         self.assertEqual(index.get_active_manifest(), old)
@@ -275,9 +293,9 @@ class BuildLifecycleTest(IndexTestCase):
     def test_third_activation_keeps_only_active_and_previous_build(self):
         index = self.build()
         first = index.get_active_manifest()
-        second = index.build([RAW_CONCEPTS[0]], None, self.provider)
+        second = index.build(normalized([RAW_CONCEPTS[0]]), None, self.provider)
         index.activate(second.build_id)
-        third = index.build([RAW_CONCEPTS[1]], None, self.provider)
+        third = index.build(normalized([RAW_CONCEPTS[1]]), None, self.provider)
         index.activate(third.build_id)
 
         self.assertEqual(
@@ -307,7 +325,7 @@ class FieldSearchTest(IndexTestCase):
         with patch.object(
             self.provider, "embed", side_effect=lambda texts: [[1.0, 0.0] for _ in texts]
         ):
-            index.upsert_concepts(RAW_CONCEPTS, None, self.provider)
+            index.upsert_concepts(normalized(RAW_CONCEPTS), None, self.provider)
             tied = index.search("arbitrary query", self.provider, mode="vector")
             self.assertEqual([hit.matched_on for hit in tied], ["name", "name"])
         with patch.object(self.provider, "embed", return_value=[[0.0, 1.0]]):
@@ -320,7 +338,7 @@ class FieldSearchTest(IndexTestCase):
     def test_public_manifest_excludes_operator_state(self):
         index = self.build()
         with correlated():
-            public = index.get_active_manifest().to_result()
+            public = LocalIndexAdapter(index).get_active_manifest().to_result()
         self.assertEqual(
             set(public),
             {"terminology", "version", "concepts", "embedding", "builtAt", "provenance"},
@@ -344,7 +362,7 @@ class FieldSearchTest(IndexTestCase):
             definitions=[{"definition": "Neoplasm"}],
         )
         index = LocalIndex(self.path)
-        index.upsert_concepts([raw], None, self.provider)
+        index.upsert_concepts(normalized([raw]), None, self.provider)
 
         self.assertEqual(calls, ["Neoplasm", "Tumor"])
         self.assertEqual(index.search("Neoplasm", self.provider)[0].matched_on, "name")

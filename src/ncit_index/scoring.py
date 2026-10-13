@@ -8,9 +8,9 @@ import sqlite3
 from collections.abc import Iterator, Sequence
 from typing import Any, NamedTuple
 
-from .errors import IndexCompatibilityError, IndexStorageError, PlatformError
-from .index_storage import FIELD_KINDS, fts_table, name_key
-from .models import IndexManifest
+from .errors import IndexCapabilityError, IndexCompatibilityError, IndexStorageError
+from .records import IndexManifest
+from .storage import FIELD_KINDS, fts_table, name_key
 
 CHUNK_SIZE = 2048
 _PRIORITY = {kind: number for number, kind in enumerate(FIELD_KINDS)}
@@ -28,8 +28,7 @@ def _numpy() -> Any:
     try:
         import numpy
     except ImportError:
-        raise PlatformError(
-            "capability_unavailable",
+        raise IndexCapabilityError(
             "Exact indexed search needs NumPy. Install the 'index' extra and retry.",
             capability="semantic/hybrid index scoring",
         ) from None

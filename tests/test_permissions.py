@@ -25,6 +25,7 @@ from nci_si_mcp.permissions import (
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.server import create_mcp
 from test_cadsr_matching import cde_response, cde_row
+from test_index import normalized
 from test_release_selection import initialize_http
 from test_seam import gdc_map, value_row
 from test_server import ServerFixture, pinned
@@ -731,8 +732,10 @@ class ProtectedHTTPTest(ServerFixture):
 
 class CursorPermissionTest(ServerFixture):
     def test_a_replayed_or_tampered_cursor_cannot_grant_indexed_content(self):
-        self.context.index.upsert_concepts(
-            [concept("C1", "Kinase", active=True), concept("C2", "Kinase", active=True)],
+        self.local_index.upsert_concepts(
+            normalized(
+                [concept("C1", "Kinase", active=True), concept("C2", "Kinase", active=True)]
+            ),
             None,
             self.context.embedding_provider,
         )

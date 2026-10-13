@@ -4,20 +4,20 @@ import json
 from dataclasses import replace
 
 from fakes import concept
-from nci_si_mcp.errors import IndexBuildError
 from nci_si_mcp.evaluation import evaluate_build, evaluate_retrieval
 from nci_si_mcp.evaluation_sets import GoldQuery, MetricFloor, parse_set, production_set
-from nci_si_mcp.index import LocalIndex
+from ncit_index.errors import IndexBuildError
+from ncit_index.index import LocalIndex
 from test_evaluation_gate import OrthogonalProvider
 from test_evaluation_sets import sample_set_payload
-from test_index import IndexTestCase
+from test_index import IndexTestCase, normalized
 
 
 class EvaluationReviewTest(IndexTestCase):
     def candidate(self):
         index = LocalIndex(self.path)
         build = index.build(
-            [concept("C3262", "Neoplasm")], None, self.provider, build_kind="production"
+            normalized([concept("C3262", "Neoplasm")]), None, self.provider, build_kind="production"
         )
         dataset = replace(parse_set(sample_set_payload()), release="26.06e")
         evaluated = evaluate_build(index, self.provider, dataset, build.build_id)
@@ -37,7 +37,7 @@ class EvaluationReviewTest(IndexTestCase):
         provider = OrthogonalProvider()
         index = LocalIndex(self.path)
         build = index.build(
-            [concept("C3262", "query filler"), concept("C8", "target")],
+            normalized([concept("C3262", "query filler"), concept("C8", "target")]),
             None,
             provider,
             build_kind="production",

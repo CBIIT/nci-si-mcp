@@ -4,17 +4,26 @@ from __future__ import annotations
 
 import json
 import logging
+from pathlib import Path
 from tempfile import TemporaryFile
 from typing import Any, TextIO
 
+from ncit_index.index import LocalIndex
+from ncit_index.records import IndexManifest
+
 from .audit import emit
 from .context import Context
-from .evs import EVSResponseError
-from .models import IndexManifest
+from .evs import EVSResponseError, normalize_concept
+from .index_adapter import index_event
 from .release import ReleaseContext
 from .validation import NCIT_CODE_RE
 
 logger = logging.getLogger(__name__)
+
+
+def open_index(data_dir: Path) -> LocalIndex:
+    """Open local operator storage separately from the serving read port."""
+    return LocalIndex(data_dir, on_event=index_event)
 
 
 def full_build(context: Context, release: ReleaseContext) -> IndexManifest:
@@ -27,8 +36,8 @@ def full_build(context: Context, release: ReleaseContext) -> IndexManifest:
     with TemporaryFile(mode="w+t", encoding="utf-8") as spool:
         _download(context, release, spool)
         spool.seek(0)
-        return context.index.build(
-            (json.loads(line) for line in spool),
+        return open_index(context.settings.data_dir).build(
+            (normalize_concept(json.loads(line), release.date, "active_cache") for line in spool),
             release.date,
             context.embedding_provider,
             expected_release_version=release.version,

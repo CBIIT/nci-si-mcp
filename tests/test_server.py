@@ -19,12 +19,13 @@ from mcp.shared.exceptions import MCPError
 from fakes import FakeEVS, concept, release
 from nci_si_mcp.config import Settings
 from nci_si_mcp.context import Context
-from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.errors import correlated
 from nci_si_mcp.http_client import UpstreamUnavailableError
-from nci_si_mcp.index import LocalIndex
+from nci_si_mcp.index_adapter import LocalIndexAdapter, index_event
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.server import INSTRUCTIONS, create_mcp
+from ncit_index.embeddings import HashingEmbeddingProvider
+from ncit_index.index import LocalIndex
 from test_docs import QUICKSTART, bullet_names, section
 from test_traversal import complete_graph
 
@@ -166,10 +167,11 @@ class ServerFixture(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         self.settings = Settings(data_dir=Path(directory.name))
         self.evs = complete_graph(FakeEVS([NEOPLASM, MORPHOLOGY]))
+        self.local_index = LocalIndex(self.settings.data_dir, on_event=index_event)
         self.context = Context(
             self.settings,
             evs=self.evs,
-            index=LocalIndex(self.settings.data_dir),
+            index=LocalIndexAdapter(self.local_index),
             embedding_provider=HashingEmbeddingProvider(),
         )
 

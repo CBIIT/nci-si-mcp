@@ -6,9 +6,8 @@ Builds are immutable snapshots. Activation retains the previous snapshot for rol
 from __future__ import annotations
 
 import json
-import logging
 import sqlite3
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import replace
 from itertools import batched, chain, groupby
@@ -17,20 +16,22 @@ from tempfile import TemporaryFile
 from typing import Any, Literal
 from uuid import uuid4
 
-from .audit import emit
 from .embeddings import EmbeddingProvider
 from .errors import (
     IndexBuildError,
+    IndexCapabilityError,
     IndexCompatibilityError,
+    IndexCursorError,
     IndexEvaluationError,
+    IndexReleaseError,
     IndexStateError,
     IndexStorageError,
     NoActiveIndexError,
-    PlatformError,
 )
-from .evs import normalize_concept
-from .index_scoring import rank_page
-from .index_storage import (
+from .records import Concept as NcitConcept
+from .records import IndexManifest, SearchHit, utc_now_iso
+from .scoring import rank_page
+from .storage import (
     FIELD_KINDS,
     SCHEMA_VERSION,
     build_lease,
@@ -43,21 +44,11 @@ from .index_storage import (
     name_key,
     vector_bytes,
 )
-from .models import IndexManifest, NcitConcept, SearchHit, Truncation, utc_now_iso
-from .validation import MAX_INDEX_SEARCH_LIMIT, validate_search
-
-logger = logging.getLogger(__name__)
 
 
 def require_index_release(manifest: IndexManifest, requested: str | None) -> None:
     if requested is not None and manifest.release_version != requested:
-        raise PlatformError(
-            "release_mismatch",
-            "The index holds another release. Rebuild it for the requested release.",
-            requested=requested,
-            served=[manifest.release_version],
-            source="index",
-        )
+        raise IndexReleaseError(requested, manifest.release_version)
 
 
 # SQL built with f-strings below interpolates only table names and predicates
@@ -66,17 +57,10 @@ def require_index_release(manifest: IndexManifest, requested: str | None) -> Non
 _SQL_CHUNK = 500
 
 
-def _distinct_concepts(
-    raw_concepts: Iterable[dict[str, object]], release_date: str | None
-) -> list[NcitConcept]:
-    """Normalize the payloads, keeping one concept per code."""
+def _distinct_concepts(concepts: Iterable[NcitConcept]) -> list[NcitConcept]:
+    """Keep one concept per code, as sample updates have always done."""
 
-    by_code = {
-        str(raw.get("code") or ""): normalize_concept(
-            raw, release_date=release_date, source="active_cache"
-        )
-        for raw in raw_concepts
-    }
+    by_code = {str(item.raw.get("code") or ""): item for item in concepts}
     concepts = list(by_code.values())
     if not concepts:
         raise IndexBuildError("No concepts were provided for indexing")
@@ -98,21 +82,6 @@ def _embed(embedding_provider: EmbeddingProvider, texts: list[str]) -> Sequence[
     if dimensions < 1 or any(len(vector) != dimensions for vector in vectors):
         raise IndexCompatibilityError("Embedding provider returned inconsistent vector dimensions")
     return vectors
-
-
-def _results_truncation(scored: int, limit: int) -> Truncation:
-    """The truncation record of a search whose `limit` may have left scored concepts out."""
-
-    if scored <= limit:
-        return Truncation(occurred=False)
-    return Truncation(
-        occurred=True,
-        bound="results",
-        limit=limit,
-        reached=limit,
-        omitted=scored - limit,
-        exact=True,
-    )
 
 
 def _query_vector(
@@ -230,11 +199,18 @@ _STORAGE_ERROR_CODES = frozenset(
 
 
 class LocalIndex:
-    def __init__(self, data_dir: Path) -> None:
+    def __init__(
+        self, data_dir: Path, *, on_event: Callable[[str, dict[str, Any]], None] | None = None
+    ) -> None:
+        self.on_event = on_event
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.db_path = self.data_dir / "nci_si.sqlite3"
         self._init_db()
+
+    def _event(self, name: str, **details: Any) -> None:
+        if self.on_event is not None:
+            self.on_event(name, details)
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
@@ -339,7 +315,7 @@ class LocalIndex:
 
     def build(
         self,
-        raw_concepts: Iterable[dict[str, object]],
+        raw_concepts: Iterable[NcitConcept],
         release_date: str | None,
         embedding_provider: EmbeddingProvider,
         expected_release_version: str | None = None,
@@ -347,7 +323,7 @@ class LocalIndex:
         build_kind: Literal["sample", "production"] = "sample",
     ) -> IndexManifest:
         """Embed outside transactions; interrupted builds stay hidden until cleaned."""
-        concepts = (normalize_concept(raw, release_date, "active_cache") for raw in raw_concepts)
+        concepts = iter(raw_concepts)
         first = next(concepts, None)
         if first is None:
             raise IndexBuildError("No concepts were provided for indexing")
@@ -428,9 +404,7 @@ class LocalIndex:
                 _write_batch(conn, manifest.build_id, batch, fields, vectors)
             dimensions = width
             if number % 16 == 0:
-                emit(
-                    logger,
-                    logging.INFO,
+                self._event(
                     "index_embedding_progress",
                     build_id=manifest.build_id,
                     concepts=len(seen),
@@ -444,8 +418,7 @@ class LocalIndex:
             conn.execute("BEGIN IMMEDIATE")
             return self._activate(conn, build_id)
 
-    @staticmethod
-    def _activate(conn: sqlite3.Connection, build_id: str) -> IndexManifest:
+    def _activate(self, conn: sqlite3.Connection, build_id: str) -> IndexManifest:
         row = conn.execute(
             "SELECT payload, active FROM manifests WHERE build_id = ? AND state = 'complete'",
             (build_id,),
@@ -469,9 +442,7 @@ class LocalIndex:
         ]
         for identifier in stale:
             delete_build(conn, identifier)
-        emit(
-            logger,
-            logging.INFO,
+        self._event(
             "index_activated",
             build_id=build_id,
             release=manifest.release_version,
@@ -510,13 +481,13 @@ class LocalIndex:
 
     def upsert_concepts(
         self,
-        raw_concepts: Iterable[dict[str, object]],
+        raw_concepts: Iterable[NcitConcept],
         release_date: str | None,
         embedding_provider: EmbeddingProvider,
         expected_release_version: str | None = None,
     ) -> IndexManifest:
         """Developer sample update: build the combined same-release sample, then activate."""
-        concepts = _distinct_concepts(raw_concepts, release_date)
+        concepts = _distinct_concepts(raw_concepts)
         release = _build_release(concepts[0])
         if expected_release_version is not None and release != expected_release_version:
             raise IndexCompatibilityError(
@@ -555,9 +526,7 @@ class LocalIndex:
         if active is None or active.release_version != release:
             return concepts
         if active.needs_rebuild:
-            raise PlatformError(
-                "capability_unavailable", "Run index-rebuild before updating a legacy sample."
-            )
+            raise IndexCapabilityError("Run index-rebuild before updating a legacy sample.")
         if not active.embedding_matches(provider.name, provider.model):
             raise IndexCompatibilityError(
                 f"Embedding mismatch; rebuild {active.index_path} with index-rebuild"
@@ -592,21 +561,6 @@ class LocalIndex:
     ) -> list[SearchHit]:
         return self.search_page(query, embedding_provider, limit, mode)[0]
 
-    def search_snapshot(
-        self,
-        query: str,
-        embedding_provider: EmbeddingProvider,
-        limit: int = 10,
-        mode: str = "hybrid",
-        *,
-        requested_release: str | None = None,
-    ) -> tuple[list[SearchHit], Truncation, IndexManifest]:
-        """Legacy CLI search reports any hits omitted by its one-page limit."""
-        hits, total, manifest = self.search_page(
-            query, embedding_provider, limit, mode, requested_release=requested_release
-        )
-        return hits, _results_truncation(total, limit), manifest
-
     def search_page(
         self,
         query: str,
@@ -620,7 +574,6 @@ class LocalIndex:
         retired_status: str | None = None,
     ) -> tuple[list[SearchHit], int, IndexManifest]:
         """Read the active identity, complete ranking and page in one snapshot."""
-        query, limit, mode = validate_search(query, limit, mode, maximum=MAX_INDEX_SEARCH_LIMIT)
         with self._connect() as conn:
             conn.execute("PRAGMA temp_store = FILE")
             conn.execute("BEGIN")
@@ -642,7 +595,6 @@ class LocalIndex:
         mode: str = "hybrid",
     ) -> tuple[list[SearchHit], IndexManifest]:
         """Evaluate a completed candidate without changing activation or rollback state."""
-        query, limit, mode = validate_search(query, limit, mode, maximum=MAX_INDEX_SEARCH_LIMIT)
         with self._connect() as conn:
             conn.execute("PRAGMA temp_store = FILE")
             conn.execute("BEGIN")
@@ -662,11 +614,8 @@ class LocalIndex:
         if manifest is None:
             raise NoActiveIndexError("No active NCIt index is available")
         if build_id is not None and build_id != manifest.build_id:
-            raise PlatformError(
-                "cursor_expired",
-                "The active index build changed. Restart the search against the active build.",
-                cursorRelease=requested_release or manifest.release_version,
-                currentRelease=manifest.release_version,
+            raise IndexCursorError(
+                requested_release or manifest.release_version, manifest.release_version
             )
         _require_searchable(manifest, provider)
         return manifest
@@ -674,8 +623,7 @@ class LocalIndex:
 
 def _require_searchable(manifest: IndexManifest, provider: EmbeddingProvider) -> None:
     if manifest.needs_rebuild:
-        raise PlatformError(
-            "capability_unavailable",
+        raise IndexCapabilityError(
             "Run index-rebuild with this build id, then index-activate, to enable field search.",
         )
     if not manifest.embedding_matches(provider.name, provider.model):

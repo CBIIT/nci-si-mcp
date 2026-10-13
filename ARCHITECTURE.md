@@ -95,7 +95,11 @@ flowchart TB
     Content --> Producers
     Metadata --> Producers
     Producers --> Clients["EVS / caDSR / Shared SI clients"]
-    Producers --> Index["Local index + exact scoring"]
+    Producers --> Port["IndexPort: read-only"]
+    Port --> Local["LocalIndexAdapter"]
+    Local --> Index["ncit_index: storage + exact scoring"]
+    CLI --> Operators["indexing / evaluation operators"]
+    Operators --> Index
     Clients --> Http["Bounded HTTP client"]
     Http --> Upstreams["NCI upstreams"]
     Index --> Embeddings["Embedding provider"]
@@ -119,7 +123,7 @@ The registry derives adapter parameters from handler signatures; closed choices 
 | `bounds.py` | Owns traversal defaults and maxima and the per-call `Budget`. A context variable shares 200 HTTP attempts, including retries, release discovery and split batches, and restores the previous context on exit. The walker rotates kinds across each breadth-first frontier and counts newly admitted nodes against optional per-kind allowances. Neighborhood and CLI traversal preserve partial graphs on exhaustion; without graph content they raise `RequestBudgetError`, mapped to `bound_exceeded`. Hierarchy page replay always fails with `bound_exceeded` on request exhaustion. | Python standard library |
 | `cli.py` | Builds command arguments and dispatch from the registry; owns `serve` startup, reports configuration failures and exits 1 on an error record. | `registry.py`, `server.py` |
 | `config_snapshot.py` | Opt-in local startup evidence from the actual serving settings; explicit safe-field allowlist, target instance/revision and owned-file cleanup. No live-state or remote discovery claim; companion proposals never apply settings. | `config.py`, local validation companion |
-| `container_entry.py` | Starts the same server with externally supplied assets, verifies the index and loads the model offline; startup failures name the asset and error class without library messages. It never builds or activates an index. | `context.py`, `embeddings.py`, `transport.py` |
+| `container_entry.py` | Starts the same server with externally supplied assets, verifies the index and loads the model offline; startup failures name the asset and error class without library messages. It never builds or activates an index. | `context.py`, `ncit_index.embeddings`, `transport.py` |
 | `transport.py` | Stateful or stateless HTTP over the shared adapter; SDK authentication and scope hooks, Host/Origin admission, body cap, local readiness and token-free auth diagnostics. Sessions belong to one process. | `server.py`, optional MCP/Starlette/Uvicorn |
 | `server.py` | Registers profile-selected tools, five resource templates and two concrete resources from the registry on an `mcp` 2.x `MCPServer`, and flags error records as protocol errors. Middleware carries cache decisions from SDK worker threads into tool `_meta` and resource fields, without inspecting content or matching names. Undeclared successful responses fail. The served input and output schemas are the SDK-derived ones without pydantic's generated titles (an output schema is named for its tool), with the nested records described and closed. SDK hints cover lists/discovery. Prompts are packaged in `data/prompts.json`, kept equal to `spec/prompts.yaml` by a test, exposed only by profiles that contain every tool they name, and make no content calls. | `registry.py`, `caching.py`, optional `mcp` package |
 | `parameters.py` | What each tool parameter means, in the handler signature (`Described` in `Annotated`): description, stated form and list limits, which `server.py` serves as schema keywords; the nested records' field descriptions. No dependencies. | standard library |
@@ -127,7 +131,7 @@ The registry derives adapter parameters from handler signatures; closed choices 
 | `server_permissions.py` | Caller-filtered MCP surfaces and session ownership | `permissions.py`, registry, caching, optional MCP package |
 | `http_auth.py` | Operator-installed authentication integration, verified issuer/identity binding and required-startup validation | `permissions.py`, optional MCP authentication package |
 | `registry.py` | Declares each operation once with its handler, output union, optional cache default and adapter exposure. Handlers that own the complete cache policy omit the default. Derives input models, CLI arguments and MCP parameters from handler signatures; selects tools by profile and invokes all producers through one boundary. Carries each tool's group metadata and read-only, idempotent, non-destructive, open-world annotations (M1.4). | `handlers.py`, `invocation.py`, `caching.py`, `results.py` |
-| `context.py` | Holds injectable settings, clients, index and embedding provider shared by a server or CLI invocation. | EVS client, local index, embeddings |
+| `context.py` | Holds injectable settings, clients, read-only index port and embedding provider; constructs the local read adapter by default. No operator accessor. | EVS client, `index_port.py`, `index_adapter.py`, `ncit_index.embeddings` |
 | `audit.py` | Emits one redacted JSON completion record per invocation, classifies parameters from the registry, counts actual HTTP attempts in request-scoped state, and formats diagnostics. | Correlation context, standard-library logging and SHA-256 |
 | `handlers.py` | Validates inputs, orchestrates use cases, pins EVS requests to the configured release channel, enforces index compatibility and implements lookup fallback. Owns tool contracts and pinned resource content; absent and mismatched indexes are explicit errors. | `context.py`, release, traversal, evaluation |
 | `catalogue.py` | Reads release-pinned roles and associations once per call, validates row identities and the configured terminology-specific exclusion set, and projects relationship records with polarity by code. Missing exclusions fail the listing and neighborhood call with internal_error and missingCodes; no startup reads or cross-call cache. | EVS client, models, configuration |
@@ -146,19 +150,31 @@ The registry derives adapter parameters from handler signatures; closed choices 
 | `fhir.py` | Reads and verifies the unpinned NCIt value-set expansion, projects members and applies inactive filtering and local offset paging. | `http_client.py`, release, shared models |
 | `release_selection.py` | A lazy invocation scope resolves omitted NCIt releases once, with synchronized first discovery in MCP session state. Explicit releases bypass that state; other terminologies require one. Session withdrawal fails closed without rediscovery. The SDK connection owns HTTP session state; a stdio lifespan owns its stream state. Stateless and CLI calls retain no pin. Audit records the effective release and selection source, including content failures. Implicit calls are uncached/private because their arguments do not key the release; explicit calls keep the pinned public policy only in trusted-local mode. Secured calls remain zero/private. | Release resolver, audit, context variables |
 | `release.py` | The release model. `resolve_evs_release` asks EVS for the one row that is latest and tagged with the channel and returns the `ReleaseContext` that one call threads through its requests; zero or several rows are `release_not_available`, with ambiguous versions in `found`. Only terminology, channel, version and date are serialized; the pinned path stays internal. Discovery remains fresh; the implicit NCIt content pin alone can survive within an MCP session (X-22). `registry_state` builds `published`, optional `identifier`, `generatedAt` and `sourceDistribution` from upstream metadata. Without a registry release, the export folder supplies its local date-time, at minute precision without a timezone; it is preserved without an offset. Invalid metadata raises `RegistryMetadataError`, mapped to `upstream_unavailable`. | `evs.py`, `errors.py` |
-| `index.py` | Builds inactive field indexes, activates snapshots with rollback retention, and ranks BM25/vector/hybrid results within one read snapshot. | SQLite FTS5, embedding provider, `index_storage.py`, `index_scoring.py` |
-| `index_storage.py` | Defines schema 6 with float32 vector BLOBs, preserves raw concepts and build activation during migration, and manages per-build FTS tables. | SQLite, shared models |
-| `indexing.py` | Reconciles all pinned full-build pages before writing the index; spools raw payloads and logs aggregate progress. | EVS client, local index |
-| `index_scoring.py` | Scores every indexed field in one scan, reduces numeric arrays to each concept's best field, and partitions the requested page with deterministic ties. | SQLite FTS5, optional NumPy |
-| `embeddings.py` | Defines the embedding abstraction, a deterministic local hashing provider, an optional sentence-transformers provider, and the check that provider and model settings agree. | Optional `sentence-transformers` package |
+| `index_port.py` | Defines `IndexPort`: active manifest, readiness verification, concept snapshot and paged search only. | MCP records, embedding provider |
+| `index_adapter.py` | Implements `LocalIndexAdapter`: validates search, converts package records to MCP records, and supplies the event-to-audit callback. Exceptions reach the shared invocation mapping. | `ncit_index`, models, validation, audit |
+| `indexing.py` | Opens the package operator API through a small factory; normalizes EVS build inputs and reconciles all pinned full-build pages before writing; spools payloads and logs aggregate progress. | EVS client, `ncit_index`, adapter conversion/event helpers |
 | `traversal.py` | Resolves which edge types to follow and performs a breadth-first traversal of hierarchy, role, and association relations with deduplication and hard depth/node/edge limits, and gives each node and edge its traversal provenance and the walk its truncation record. | EVS client, shared models |
-| `models.py` | Defines the serializable concept, index, search-hit and traversal dataclasses, and the provenance, traversal provenance and truncation records every result is built from. | `errors.py` |
+| `models.py` | Defines serializable MCP concept, index, search-hit and traversal records, plus provenance and truncation; reuses package-owned stored fields. | `errors.py`, `ncit_index.records` |
 | `results.py` | Declares the serialized tool records as dependency-free TypedDicts, including optional wire keys and recursive truncation. Registry output declarations combine each success record with the shared error result; the MCP SDK generates their output schemas through a RootModel, preserving the top-level object. | `errors.py`, `validation.py` |
-| `evaluation.py` | Reports per-query rankings and Hit@1, Hit@5 and reciprocal-rank metrics for BM25, vector and hybrid search; evaluates inactive candidates and stores build-specific gate evidence. | Local index, embedding provider, evaluation sets |
+| `evaluation.py` | MCP-distribution tooling for per-query rankings and Hit@1, Hit@5 and reciprocal-rank metrics; evaluates inactive candidates and stores build-specific gate evidence through the package operator API, not `IndexPort`. | `indexing.py`, `ncit_index`, embedding provider, evaluation sets |
 | `evaluation_sets.py` | Validates versioned judgments, calibration identity and measured regression floors; distinguishes test-only calibration. | Standard library |
-| `config.py` | Loads the profile, the upstream mode and the five upstream base URLs (taken as a set: production defaults in live mode, all required in fixture mode), release channel, exclusion role codes, the two credentials (kept out of every string form), timeouts, EVS retry, batching, logging, data-directory and embedding settings from environment variables and validates them; whether the data directory is usable shows only when the index is opened. | Environment, `embeddings.py`, `validation.py` |
+| `config.py` | Loads the profile, the upstream mode and the five upstream base URLs (taken as a set: production defaults in live mode, all required in fixture mode), release channel, exclusion role codes, the two credentials (kept out of every string form), timeouts, EVS retry, batching, logging, data-directory and embedding settings from environment variables and validates them; whether the data directory is usable shows only when the index is opened. | Environment, `ncit_index.embeddings`, `validation.py` |
 | `validation.py` | Defines the closed value sets (search modes, directions, edge types), the identifier forms of `spec/tools.yaml` (`NCIT_CODE_FORM`, `REGISTRY_ID_FORM`, `ITEM_VERSION_FORM`, `RELEASE_FORM`, `TERMINOLOGY_FORM`), normalizes NCIt codes, and validates search and traversal inputs. | Shared errors, limits in `bounds.py` |
-| `errors.py` | Defines the validation and index errors, `PlatformError` with the closed error-code set of the specification, the per-call correlation identifier, and `serialise`, the one function that builds the error record. | Python standard library |
+| `errors.py` | Defines validation errors, `PlatformError` with the specification's closed error-code set, correlation and `serialise`. Index exceptions belong to the package and are mapped by `invocation._ERROR_CODES`. | Python standard library |
+
+## Portable index package
+
+The top-level `ncit_index` package ships in the same distribution but imports neither
+`nci_si_mcp` nor MCP. Optional NumPy and sentence-transformers imports remain lazy.
+
+| Module in `ncit_index` | Responsibility |
+| --- | --- |
+| `index.py` | `LocalIndex`: snapshot reads and the public build, upsert, rebuild, activation, build-listing and evaluation operator API. |
+| `storage.py` | Schema 6, migrations, float32 vector storage and per-build FTS tables. |
+| `scoring.py` | Exact field scoring, concept reduction and deterministic page selection. |
+| `embeddings.py` | Provider abstraction, hashing and optional sentence-transformers providers, configuration checks. |
+| `records.py` | Package-owned stored concepts, manifests and search hits, without MCP provenance serialization. |
+| `errors.py` | Package exceptions, without protocol error codes or MCP imports. |
 
 ## Primary flows
 
@@ -183,7 +199,7 @@ sequenceDiagram
     participant Adapter as MCP adapter
     participant Call as Search handler
     participant EVS as EVS release API
-    participant Index as Local index
+    participant Index as IndexPort / local adapter
     participant Audit as JSON audit
     Client->>Adapter: search_concepts<br/>(query, mode, release?)
     Adapter->>Call: Validated arguments<br/>shared call scopes
@@ -209,13 +225,19 @@ and optional authentication precede this tool invocation (see [transport](docs/t
 
 ### Build a local index
 
+The local index is interim. The [EVS migration guide](docs/index-migration.md) describes the
+read contract and future handover; a hosted service, HTTP adapter, switch setting and local
+operator retirement are not implemented. Phase 30 changes no caller-visible behavior.
+Serving uses `Context.index: IndexPort`; CLI operators open the package directly through
+`indexing.py`, including evaluation tooling. Build and evaluation methods never enter the port.
+
 1. `index-sample` enters through the CLI and invokes `handlers.index_codes` through the registry.
 2. The handler validates and deduplicates the codes, resolves the single latest
    NCIt release of the configured channel, then retrieves the concepts from EVS in bounded
    batches, each request pinned to that release. If EVS does not return every
    code, nothing is indexed.
-3. `LocalIndex` normalizes each concept and verifies the payload release and
-   embedding provider/model/dimensions before changing persistent state.
+3. MCP-side indexing normalizes EVS concepts into package records; `ncit_index.index.LocalIndex`
+   verifies the payload release and embedding provider/model/dimensions before changing state.
 4. Preferred name, synonyms and definitions become separate field rows, deduplicated
    by identical text within each concept. Embeddings are computed in batches of 64
    concepts outside write transactions. Each batch commits under a `building` manifest;
@@ -274,8 +296,9 @@ in the same transaction. Distribution to serving replicas is a separate operator
    same registry. The MCP entry pins the caller's release. Lexical/typeahead search passes
    EVS order through without scores, preserving only lexical highlights. Semantic/hybrid
    search uses the exact NCIt index and requires the optional NumPy `index` extra.
-2. `LocalIndex` verifies that the runtime embedding configuration matches the
-   manifest. For MCP, it also verifies the requested release inside the read transaction.
+2. Both callers use `IndexPort.search_page`. `LocalIndexAdapter` validates the search and
+   converts records; the package verifies embedding compatibility and the requested release
+   inside the read transaction. Package events reach audit through an injected callback.
 3. BM25 scores come from SQLite FTS5 without a candidate cap. Each concept's field vectors
    occupy one float32 BLOB; a single scan scores every field in bounded matrix chunks.
    Compact per-query numeric arrays retain cosines, concept indices and field kinds.
@@ -295,8 +318,8 @@ in the same transaction. Distribution to serving replicas is a separate operator
    `--include-raw` asks for them. MCP returns `nextCursor` until the final page, without
    truncation. Cursors bind applied arguments, the pinned release and, for indexed modes,
    the internal build id. An activation expires indexed cursors even if the release is
-   unchanged. EVS cursors expire when their pinned release is withdrawn. The CLI's one-page
-   `search_snapshot` instead reports an exact count of omitted concepts.
+   unchanged. EVS cursors expire when their pinned release is withdrawn. The CLI constructs
+   its one-page truncation on the MCP side, with an exact count of omitted concepts.
    An empty result carries provenance for its selected source.
 
 ### CLI lookup and the concept resource
@@ -426,6 +449,8 @@ records. The platform still owns authoritative audit, quotas and authorisation; 
 adds no persistent audit store, rate limiter or invented upstream audit headers.
 
 ## Persistence schema
+
+`ncit_index.storage` owns this schema; extraction preserves its version and payloads.
 
 ```mermaid
 erDiagram

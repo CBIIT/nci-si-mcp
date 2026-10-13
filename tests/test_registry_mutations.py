@@ -15,10 +15,10 @@ from jsonschema import Draft202012Validator
 from pydantic import TypeAdapter
 
 from nci_si_mcp import cli, results, validation
-from nci_si_mcp.errors import IndexCompatibilityError
 from nci_si_mcp.http_client import UpstreamRejectedError, UpstreamUnavailableError
 from nci_si_mcp.registry import OPERATIONS, SPECS, invoke
 from nci_si_mcp.server import _audit_tools
+from ncit_index.errors import IndexCompatibilityError
 from test_audit import captured, records
 from test_server import ServerFixture
 
@@ -57,7 +57,7 @@ class RegistryMutationTest(ServerFixture):
 
     def test_incompatible_index_error_names_the_rebuild_next_step(self):
         with patch.object(
-            self.context.index, "search_snapshot", side_effect=IndexCompatibilityError("bad")
+            self.context.index, "search_page", side_effect=IndexCompatibilityError("bad")
         ):
             result = invoke(self.context, "search", "Neoplasm")
         self.assertEqual(result["error"]["code"], "internal_error")

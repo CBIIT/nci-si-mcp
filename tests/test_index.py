@@ -7,19 +7,24 @@ from pathlib import Path
 from unittest.mock import patch
 
 from fakes import concept
-from nci_si_mcp.embeddings import EmbeddingProvider, HashingEmbeddingProvider
-from nci_si_mcp.errors import (
-    IndexBuildError,
-    IndexCompatibilityError,
-    IndexStorageError,
-    InputValidationError,
-    NoActiveIndexError,
-    PlatformError,
-)
+from nci_si_mcp.errors import InputValidationError
 from nci_si_mcp.evaluation import evaluate_build
 from nci_si_mcp.evaluation_sets import EvaluationSet, GoldQuery, MetricFloor
 from nci_si_mcp.evs import normalize_concept
-from nci_si_mcp.index import SCHEMA_VERSION, LocalIndex
+from nci_si_mcp.index_adapter import LocalIndexAdapter, index_event, results_truncation
+from ncit_index.embeddings import EmbeddingProvider, HashingEmbeddingProvider
+from ncit_index.errors import (
+    IndexBuildError,
+    IndexCapabilityError,
+    IndexCompatibilityError,
+    IndexStorageError,
+    NoActiveIndexError,
+)
+from ncit_index.index import SCHEMA_VERSION, LocalIndex
+
+
+def normalized(concepts, date=None):
+    return (normalize_concept(raw, release_date=date, source="active_cache") for raw in concepts)
 
 
 def concept_search_text(concept):
@@ -87,8 +92,10 @@ class IndexTestCase(unittest.TestCase):
         self.provider = HashingEmbeddingProvider()
 
     def build(self, concepts=RAW_CONCEPTS, date="2026-06-29", provider=None, **options):
-        index = LocalIndex(self.path)
-        index.upsert_concepts(concepts, date, provider or self.provider, **options)
+        index = LocalIndex(self.path, on_event=index_event)
+        index.upsert_concepts(
+            normalized(concepts, date), date, provider or self.provider, **options
+        )
         return index
 
     def counts(self, index):
@@ -106,7 +113,9 @@ class IndexTestCase(unittest.TestCase):
 class UpsertTest(IndexTestCase):
     def test_upsert_activates_the_release_and_caches_concepts_with_provenance(self):
         index = LocalIndex(self.path)
-        manifest = index.upsert_concepts(RAW_CONCEPTS, "2026-06-29", self.provider)
+        manifest = index.upsert_concepts(
+            normalized(RAW_CONCEPTS, "2026-06-29"), "2026-06-29", self.provider
+        )
 
         self.assertEqual(manifest.release_version, "26.06e")
         self.assertEqual(manifest.concept_count, 2)
@@ -134,7 +143,10 @@ class UpsertTest(IndexTestCase):
         index = self.build()
 
         manifest = index.upsert_concepts(
-            [dict(RAW_CONCEPTS[1], name="Renamed Growth", synonyms=[], definitions=[])],
+            normalized(
+                [dict(RAW_CONCEPTS[1], name="Renamed Growth", synonyms=[], definitions=[])],
+                "2026-06-29",
+            ),
             "2026-06-29",
             self.provider,
         )
@@ -151,7 +163,9 @@ class UpsertTest(IndexTestCase):
 
     def test_sample_does_not_overwrite_an_activation_during_embedding(self):
         index = self.build()
-        other = index.build([dict(RAW_CONCEPTS[1], version="other")], None, self.provider)
+        other = index.build(
+            normalized([dict(RAW_CONCEPTS[1], version="other")]), None, self.provider
+        )
         embed = self.provider.embed
 
         def activate_during_embedding(texts):
@@ -162,7 +176,7 @@ class UpsertTest(IndexTestCase):
             patch.object(self.provider, "embed", side_effect=activate_during_embedding),
             self.assertRaisesRegex(IndexBuildError, "active index changed"),
         ):
-            index.upsert_concepts([RAW_CONCEPTS[0]], None, self.provider)
+            index.upsert_concepts(normalized([RAW_CONCEPTS[0]]), None, self.provider)
         self.assertEqual(index.get_active_manifest().build_id, other.build_id)
         self.assertEqual(index.get_concept_snapshot("C3262")[1].release_version, "other")
 
@@ -171,7 +185,9 @@ class UpsertTest(IndexTestCase):
 
         with self.assertLogs("nci_si_mcp.index", level="INFO"):
             manifest = index.upsert_concepts(
-                [dict(RAW_CONCEPTS[1], version="26.07d")], "2026-07-27", self.provider
+                normalized([dict(RAW_CONCEPTS[1], version="26.07d")], "2026-07-27"),
+                "2026-07-27",
+                self.provider,
             )
 
         self.assertEqual(manifest.release_version, "26.07d")
@@ -187,7 +203,7 @@ class UpsertTest(IndexTestCase):
 
         with self.assertRaises(IndexCompatibilityError):
             index.upsert_concepts(
-                [dict(RAW_CONCEPTS[0], version="26.07a")],
+                normalized([dict(RAW_CONCEPTS[0], version="26.07a")], "2026-07-06"),
                 "2026-07-06",
                 self.provider,
                 expected_release_version="26.07d",
@@ -206,14 +222,16 @@ class UpsertTest(IndexTestCase):
         }
         for label, batch in batches.items():
             with self.subTest(label), self.assertRaises(IndexBuildError):
-                index.upsert_concepts(batch, "2026-06-29", self.provider)
+                index.upsert_concepts(normalized(batch, "2026-06-29"), "2026-06-29", self.provider)
         self.assertIsNone(index.get_active_manifest())
 
     def test_a_code_repeated_in_one_batch_is_indexed_once(self):
         index = LocalIndex(self.path)
 
         manifest = index.upsert_concepts(
-            [RAW_CONCEPTS[1], dict(RAW_CONCEPTS[1], name="Later Name")], "2026-06-29", self.provider
+            normalized([RAW_CONCEPTS[1], dict(RAW_CONCEPTS[1], name="Later Name")], "2026-06-29"),
+            "2026-06-29",
+            self.provider,
         )
 
         self.assertEqual(manifest.concept_count, 1)
@@ -222,7 +240,9 @@ class UpsertTest(IndexTestCase):
 
     def test_count_and_search_ignore_rows_of_an_inactive_release(self):
         index = self.build()
-        index.build([concept("C9999", "Tumor Marker", version="26.99z")], None, self.provider)
+        index.build(
+            normalized([concept("C9999", "Tumor Marker", version="26.99z")]), None, self.provider
+        )
         self.assertEqual(index.get_active_manifest().concept_count, 2)
         self.assertIsNone(index.get_concept_snapshot("C9999")[1])
         for mode in ("bm25", "vector", "hybrid"):
@@ -243,7 +263,9 @@ class UpsertTest(IndexTestCase):
 
         with self.assertRaises(sqlite3.IntegrityError):
             index.upsert_concepts(
-                [dict(RAW_CONCEPTS[0], version="26.07d")], "2026-07-27", self.provider
+                normalized([dict(RAW_CONCEPTS[0], version="26.07d")], "2026-07-27"),
+                "2026-07-27",
+                self.provider,
             )
 
         self.assertEqual(index.get_active_manifest(), before)
@@ -261,7 +283,9 @@ class UpsertTest(IndexTestCase):
                 index = self.build()
                 before = index.get_active_manifest()
                 with self.assertRaises(IndexCompatibilityError) as raised:
-                    index.upsert_concepts([RAW_CONCEPTS[0]], "2026-06-29", provider)
+                    index.upsert_concepts(
+                        normalized([RAW_CONCEPTS[0]], "2026-06-29"), "2026-06-29", provider
+                    )
                 self.assertIn("nci_si.sqlite3", str(raised.exception))
                 self.assertEqual(index.get_active_manifest(), before)
                 (self.path / "nci_si.sqlite3").unlink()
@@ -274,7 +298,11 @@ class UpsertTest(IndexTestCase):
             conn.execute("UPDATE manifests SET payload = ?", (json.dumps(payload),))
 
         with self.assertRaises(IndexCompatibilityError):
-            index.upsert_concepts([RAW_CONCEPTS[0]], "2026-06-29", RenamedProvider(dimensions=64))
+            index.upsert_concepts(
+                normalized([RAW_CONCEPTS[0]], "2026-06-29"),
+                "2026-06-29",
+                RenamedProvider(dimensions=64),
+            )
 
     def test_provider_returning_wrong_vectors_is_rejected(self):
         class ShortProvider(HashingEmbeddingProvider):
@@ -288,7 +316,9 @@ class UpsertTest(IndexTestCase):
 
         for provider in (ShortProvider(), RaggedProvider()):
             with self.subTest(type(provider).__name__), self.assertRaises(IndexCompatibilityError):
-                LocalIndex(self.path).upsert_concepts(RAW_CONCEPTS, "2026-06-29", provider)
+                LocalIndex(self.path).upsert_concepts(
+                    normalized(RAW_CONCEPTS, "2026-06-29"), "2026-06-29", provider
+                )
 
 
 class StorageTest(IndexTestCase):
@@ -330,7 +360,7 @@ class StorageTest(IndexTestCase):
                 failure = sqlite3.OperationalError("storage trouble")
                 failure.sqlite_errorcode = code
                 with (
-                    patch("nci_si_mcp.index.sqlite3.connect", side_effect=failure),
+                    patch("ncit_index.index.sqlite3.connect", side_effect=failure),
                     self.assertRaises(IndexStorageError) as raised,
                 ):
                     index.get_active_manifest()
@@ -366,7 +396,7 @@ class StorageTest(IndexTestCase):
             if not replaced:
                 replaced.append(True)
                 LocalIndex(self.path).upsert_concepts(
-                    [concept("C9999", "Tumor Marker", version="26.07d")],
+                    normalized([concept("C9999", "Tumor Marker", version="26.07d")], "2026-07-27"),
                     "2026-07-27",
                     self.provider,
                 )
@@ -406,7 +436,7 @@ class StorageTest(IndexTestCase):
         writer.execute("BEGIN IMMEDIATE")
 
         connect = sqlite3.connect
-        with patch("nci_si_mcp.index.sqlite3.connect", lambda path: connect(path, timeout=0)):
+        with patch("ncit_index.index.sqlite3.connect", lambda path: connect(path, timeout=0)):
             manifest = LocalIndex(self.path).get_active_manifest()
 
         self.assertEqual(manifest.release_version, "26.06e")
@@ -450,12 +480,12 @@ class MigrationTest(IndexTestCase):
         class RacingConnection(sqlite3.Connection):
             def execute(self, statement, *parameters):
                 if statement == "BEGIN IMMEDIATE":
-                    with patch("nci_si_mcp.index.sqlite3.connect", connect):
+                    with patch("ncit_index.index.sqlite3.connect", connect):
                         completed.append(LocalIndex(directory).get_active_manifest())
                 return super().execute(statement, *parameters)
 
         with patch(
-            "nci_si_mcp.index.sqlite3.connect",
+            "ncit_index.index.sqlite3.connect",
             lambda path: connect(path, factory=RacingConnection),
         ):
             index = LocalIndex(directory)
@@ -523,9 +553,8 @@ class MigrationTest(IndexTestCase):
         self.assertTrue(manifest.needs_rebuild)
         self.assertEqual(index.get_concept_snapshot("C40704")[1].raw, RAW_CONCEPTS[0])
         for mode in ("bm25", "vector", "hybrid"):
-            with self.subTest(mode=mode), self.assertRaises(PlatformError) as raised:
+            with self.subTest(mode=mode), self.assertRaises(IndexCapabilityError) as raised:
                 index.search("kinase", self.provider, mode=mode)
-            self.assertEqual(raised.exception.code, "capability_unavailable")
             self.assertIn("index-rebuild", str(raised.exception))
         rebuilt = index.rebuild(manifest.build_id, self.provider)
         self.assertEqual(index.get_active_manifest(), manifest)
@@ -574,9 +603,10 @@ class SearchTest(IndexTestCase):
     def test_a_limit_reports_the_scored_concepts_it_left_out_exactly_in_a_small_index(self):
         index = self.build(synthetic_concepts(30))
 
-        hits, truncation, _ = index.search_snapshot(
+        hits, total, _ = LocalIndexAdapter(index).search_page(
             "alpha1", self.provider, limit=10, mode="hybrid"
         )
+        truncation = results_truncation(total, 10)
 
         self.assertEqual(len(hits), 10)
         self.assertEqual(
@@ -590,7 +620,10 @@ class SearchTest(IndexTestCase):
                 "exact": True,
             },
         )
-        _, everything, _ = index.search_snapshot("alpha1", self.provider, limit=30, mode="hybrid")
+        _, total, _ = LocalIndexAdapter(index).search_page(
+            "alpha1", self.provider, limit=30, mode="hybrid"
+        )
+        everything = results_truncation(total, 30)
         self.assertEqual(everything.to_dict(), {"occurred": False})
 
     def test_concept_without_a_matching_term_has_a_zero_bm25_component(self):
@@ -628,7 +661,9 @@ class SearchTest(IndexTestCase):
         index = self.build()
         for arguments in ((" ", 10, "hybrid"), ("tumor", 0, "hybrid"), ("tumor", 10, "fuzzy")):
             with self.subTest(arguments=arguments), self.assertRaises(InputValidationError):
-                index.search(arguments[0], self.provider, limit=arguments[1], mode=arguments[2])
+                LocalIndexAdapter(index).search_page(
+                    arguments[0], self.provider, limit=arguments[1], mode=arguments[2]
+                )
 
     def test_search_rejects_a_runtime_from_another_embedding_space(self):
         index = self.build()
@@ -735,7 +770,9 @@ class SearchTest(IndexTestCase):
     def test_search_only_returns_the_active_release(self):
         index = self.build()
         index.upsert_concepts(
-            [dict(RAW_CONCEPTS[1], version="26.07d")], "2026-07-27", self.provider
+            normalized([dict(RAW_CONCEPTS[1], version="26.07d")], "2026-07-27"),
+            "2026-07-27",
+            self.provider,
         )
 
         for mode in ("bm25", "vector", "hybrid"):

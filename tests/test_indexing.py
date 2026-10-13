@@ -2,16 +2,17 @@ import json
 from unittest.mock import patch
 
 from fakes import concept, terminology_row
-from nci_si_mcp.errors import IndexBuildError
 from nci_si_mcp.evaluation import evaluate_build
 from nci_si_mcp.evaluation_sets import parse_set
 from nci_si_mcp.evs import EVSClient, EVSReleaseMismatchError, EVSResponseError
 from nci_si_mcp.indexing import full_build
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.release import ReleaseContext
+from ncit_index.errors import IndexBuildError
 from test_audit import captured, records
 from test_evaluation_sets import sample_set_payload
 from test_evs_client import FakeResponse
+from test_index import normalized
 from test_server import ServerFixture
 
 
@@ -57,14 +58,14 @@ class FullBuildTest(ServerFixture):
         self.assertEqual([(row["pages"], row["concepts"]) for row in progress], [(2, 1001)])
         self.assertEqual(built.build_kind, "production")
         with self.assertRaisesRegex(IndexBuildError, "passing evaluation"):
-            self.context.index.activate(built.build_id)
+            self.local_index.activate(built.build_id)
         evaluate_build(
-            self.context.index,
+            self.local_index,
             self.context.embedding_provider,
             fixture_calibration("C1001", last["name"]),
             built.build_id,
         )
-        self.context.index.activate(built.build_id)
+        self.local_index.activate(built.build_id)
         self.assertFalse(self.context.index.get_concept_snapshot("C1001")[1].raw["active"])
 
     def test_shifted_page_duplicate_and_missing_concept_reject_before_database_write(self):
@@ -76,7 +77,9 @@ class FullBuildTest(ServerFixture):
                     {"total": 1001, "concepts": [first[-1]]},
                 ]
             )
-        self.assertEqual(self.context.index.list_builds(), [self.active])
+        self.assertEqual(
+            [m.to_dict() for m in self.local_index.list_builds()], [self.active.to_dict()]
+        )
 
     def test_changing_total_rejects_build(self):
         first = [concept(f"C{number}") for number in range(1, 1001)]
@@ -87,7 +90,9 @@ class FullBuildTest(ServerFixture):
                     {"total": 1002, "concepts": [concept("C1001")]},
                 ]
             )
-        self.assertEqual(self.context.index.list_builds(), [self.active])
+        self.assertEqual(
+            [m.to_dict() for m in self.local_index.list_builds()], [self.active.to_dict()]
+        )
 
     def test_invalid_totals_and_page_shapes_leave_active_untouched(self):
         pages = [
@@ -107,7 +112,9 @@ class FullBuildTest(ServerFixture):
         for page in pages:
             with self.subTest(page=page), self.assertRaises(EVSResponseError):
                 self.build_pages([page])
-        self.assertEqual(self.context.index.list_builds(), [self.active])
+        self.assertEqual(
+            [m.to_dict() for m in self.local_index.list_builds()], [self.active.to_dict()]
+        )
 
     def test_every_page_requires_pinned_payload_release(self):
         for raw in (concept("C1", version="old"), concept("C1", version="")):
@@ -150,22 +157,22 @@ class FullBuildTest(ServerFixture):
         ]
         with patch("nci_si_mcp.http_client._open", side_effect=replies):
             result = invoke(self.context, "index_build")
-        candidate = next(b for b in self.context.index.list_builds() if not b.active)
+        candidate = next(b for b in self.local_index.list_builds() if not b.active)
         self.assertIn(candidate.build_id, result["error"]["message"])
         self.assertIn("calibration does not match", result["error"]["message"])
         with self.assertRaisesRegex(IndexBuildError, "passing evaluation"):
-            self.context.index.activate(candidate.build_id)
+            self.local_index.activate(candidate.build_id)
         self.assertEqual(self.context.index.get_active_manifest(), self.active)
 
     def test_production_rebuild_reports_fresh_failed_evaluation_and_cannot_activate(self):
-        candidate = self.context.index.build(
-            [concept("C1", "Target")],
+        candidate = self.local_index.build(
+            normalized([concept("C1", "Target")]),
             None,
             self.context.embedding_provider,
             build_kind="production",
         )
         evaluate_build(
-            self.context.index,
+            self.local_index,
             self.context.embedding_provider,
             fixture_calibration("C1", "Target"),
             candidate.build_id,
@@ -179,15 +186,15 @@ class FullBuildTest(ServerFixture):
         self.assertEqual(result["evaluation"]["gold_codes_not_indexed"], ["C2"])
         self.assertNotEqual(result["buildId"], candidate.build_id)
         with self.assertRaisesRegex(IndexBuildError, "passing evaluation"):
-            self.context.index.activate(result["buildId"])
+            self.local_index.activate(result["buildId"])
         self.assertEqual(self.context.index.get_active_manifest(), self.active)
 
     def test_evaluate_command_records_candidate_pass_without_activation(self):
         unavailable = invoke(self.context, "evaluate", build_id="missing")
         self.assertEqual(unavailable["error"]["code"], "internal_error")
         self.assertIn("unavailable", unavailable["error"]["message"])
-        candidate = self.context.index.build(
-            [concept("C1", "Target")],
+        candidate = self.local_index.build(
+            normalized([concept("C1", "Target")]),
             None,
             self.context.embedding_provider,
             build_kind="production",
@@ -200,5 +207,5 @@ class FullBuildTest(ServerFixture):
         self.assertTrue(result["passed"])
         self.assertEqual(result["build_id"], candidate.build_id)
         self.assertEqual(self.context.index.get_active_manifest(), self.active)
-        self.context.index.activate(candidate.build_id)
+        self.local_index.activate(candidate.build_id)
         self.assertEqual(self.context.index.get_active_manifest().evaluation_report, result)
