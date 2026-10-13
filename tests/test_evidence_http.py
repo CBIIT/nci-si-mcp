@@ -5,8 +5,8 @@ import json
 import unittest
 from copy import deepcopy
 
+from scripts.benchmark_records import summarize
 from scripts.evidence_benchmark import project_benchmark
-from scripts.http_measurement import summarize_http
 
 from test_evidence_envelope import envelope
 
@@ -27,7 +27,7 @@ def http_report():
     case = {"tool": "get_concept", "arguments": {"code": "PRIVATE-CANARY"}, "scenario": None}
     for number, phase in enumerate(("cold", "warm", "warmups"), 1):
         rows = [sample | {"correlationId": str(number) * 32}]
-        case[phase] = {"samples": rows, "summary": summarize_http(rows)}
+        case[phase] = {"samples": rows, "summary": summarize(rows)}
     return {
         "schema": 1,
         "transport": "streamable-http",
@@ -102,7 +102,7 @@ class HTTPEvidenceTest(unittest.TestCase):
         report = http_report()
         phase = report["cases"][0]["cold"]
         phase["samples"][0].update(responseCode="timeout", resultBytes=None, error=True)
-        phase["summary"] = summarize_http(phase["samples"])
+        phase["summary"] = summarize(phase["samples"])
         report.update(complete=False, state="failed", stopReason="timeout")
         result = project_http(report, state="failed", exit_code=1)
         self.assertEqual(result["cases"][0]["cold"]["errors"], 1)
@@ -143,7 +143,7 @@ class HTTPEvidenceTest(unittest.TestCase):
 
     def test_missing_warm_phase_cannot_be_marked_complete(self):
         report = http_report()
-        report["cases"][0]["warm"] = {"samples": [], "summary": summarize_http([])}
+        report["cases"][0]["warm"] = {"samples": [], "summary": summarize([])}
         with self.assertRaises(ValueError):
             project_http(report)
         report.update(state="failed", complete=False, stopReason="timeout")

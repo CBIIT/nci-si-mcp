@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from scripts.evidence_benchmark_common import fingerprint_value
+from scripts.benchmark_report import fingerprint_value
 
 
 class OperatorInventoryTest(unittest.TestCase):

@@ -234,6 +234,13 @@ ignore_names = [
     "conceptTerminology", "dataElements", "permissibleValue", "storedValues", "confidence",
     "intervalDays",
     "perHop", "permissibleValueAlignment", "sampleValues",
+    # Benchmark record fields are read by dataclasses.asdict and the transport field selector.
+    "elapsedMs", "resultBytes", "responseCode", "outboundRequests", "httpRequests",
+    "cacheState", "serverCommit", "replica",
+    "p50Ms", "p95Ms", "errorRate", "meanResultBytes", "meanOutboundRequests",
+    "timing", "concurrency", "remoteTermination", "serverTelemetry", "fixture_set",
+    "workload", "hardware", "placement", "warmup", "createdAt", "stopReason",
+    "targetSha256", "serverVersion", "sourceSha256", "python",
 ]
 
 [tool.basedpyright]
