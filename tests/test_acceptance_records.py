@@ -16,6 +16,49 @@ from test_evidence_envelope import envelope
 
 
 class AcceptanceRecordTest(unittest.TestCase):
+    def test_tool_set_kind_and_missing_case_identity_are_checked(self):
+        native = report()
+        native["tools"] = {}
+        self.assert_invalid(native, "tools")
+        native = report()
+        native["tools"]["PRIVATE-CANARY"] = native["tools"]["lookup"].copy()
+        self.assert_invalid(native, "tools")
+        with self.assertRaises(EvidenceError) as failure:
+            project(kind="benchmark")
+        self.assertEqual(str(failure.exception), "Invalid acceptance field: kind")
+        native = report()
+        name = next(iter(native["tests"]))
+        del native["tests"][name]
+        native["tools"]["lookup"].update(counts={}, outcome="NO TESTS")
+        result = project(native)
+        self.assertEqual(result["missing"], [hashlib.sha256(name.encode()).hexdigest()])
+        self.assertNotIn(name, json.dumps(result))
+
+    def test_alias_availability_and_native_numeric_guards(self):
+        self.assertEqual(project()["tools"]["lookup"]["outcome"], "PASS")
+        native = report()
+        native["tools"]["lookup"]["implemented_as"] = None
+        self.assertEqual(project(native)["tools"]["lookup"]["outcome"], "PASS")
+        native["tools"]["lookup"]["outcome"] = "NOT IMPLEMENTED"
+        self.assertEqual(project(native)["tools"]["lookup"]["outcome"], "NOT IMPLEMENTED")
+        del native["tools"]["lookup"]["implemented_as"]
+        self.assertEqual(project(native)["tools"]["lookup"]["outcome"], "NOT IMPLEMENTED")
+        native["tools"]["lookup"].update(implemented_as="lookup", outcome="NOT IMPLEMENTED")
+        self.assert_invalid(native, "tools[0].outcome")
+        for gate in (1, "yes"):
+            native = report()
+            next(iter(native["tests"].values()))["gate"] = gate
+            self.assert_invalid(native, "tests[0].gate")
+        self.assertEqual(
+            report_module.NativeReport.from_dict(report()).tools["lookup"].counts, {"passed": 1}
+        )
+        native = report()
+        native["tools"]["lookup"]["counts"] = {"passed": 0}
+        with self.assertRaises(ValueError) as failure:
+            report_module.NativeReport.from_dict(native)
+        self.assertEqual(str(failure.exception), "Invalid acceptance field: tools[0].counts")
+        self.assertNotIn("PRIVATE-CANARY", str(failure.exception))
+
     def test_malformed_report_names_report_without_echoing_json(self):
         raw = b'{"PRIVATE-CANARY":'
         context = bundle()

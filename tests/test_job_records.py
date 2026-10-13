@@ -25,6 +25,19 @@ def job(**changes):
 
 
 class JobImportTest(unittest.TestCase):
+    def test_unhashable_state_and_invalid_admission_commit_preserve_storage(self):
+        self.assert_invalid({"next": 2, "jobs": [job(state=[])]}, "jobs[0].state")
+        self.path.unlink()
+        with closing(self.controller()) as controller:
+            controller.commit = lambda: "PRIVATE-CANARY"
+            original = self.path.read_bytes()
+            with self.assertRaises(ValueError) as failure:
+                controller.submit("1" * 32, "acceptance-http-fixture")
+            self.assertEqual(str(failure.exception), "Invalid job field: job.commit")
+            self.assertNotIn("PRIVATE-CANARY", str(failure.exception))
+            self.assertEqual(self.path.read_bytes(), original)
+            self.assertEqual(controller.history(), [])
+
     def setUp(self):
         temporary = TemporaryDirectory()
         self.addCleanup(temporary.cleanup)

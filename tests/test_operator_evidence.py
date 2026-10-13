@@ -4,6 +4,7 @@ import json
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from scripts.operator_evidence import bind_original, finish_evidence
 from scripts.portal_store import EvidenceStore, load_bundle
@@ -12,6 +13,90 @@ from test_portal_store import run_bundle
 
 
 class OperatorEvidenceTest(unittest.TestCase):
+    def test_shared_bundle_budget_counts_inventory_and_report_bytes(self):
+        originals = [
+            path.stat().st_size for path in self.bundle.iterdir() if path.name != "report.json"
+        ]
+        inventory_size = sum(originals)
+        report_size = (self.bundle / "report.json").stat().st_size
+        for budget, accepted in (
+            (inventory_size - 1, False),
+            (inventory_size + report_size - 1, False),
+            (inventory_size + report_size, True),
+        ):
+            with (
+                self.subTest(budget=budget),
+                patch("scripts.operator_evidence.MAX_BUNDLE_BYTES", 65536 + budget),
+            ):
+                result = finish_evidence(
+                    self.job,
+                    self.root,
+                    {"state": "completed", "exit_code": 0, "reason": None},
+                    self.store,
+                )
+                self.assertEqual(result["reason"], None if accepted else "invalid_evidence")
+        self.assertTrue(all(size <= inventory_size - 1 for size in originals))
+
+    def test_report_symlinks_are_invalid_evidence_including_dangling_links(self):
+        report = self.bundle / "report.json"
+        report.unlink()
+        for target in (self.root / "missing", self.bundle / "stories.json"):
+            report.symlink_to(target)
+            result = finish_evidence(
+                self.job,
+                self.root,
+                {"state": "completed", "exit_code": 0, "reason": None},
+                self.store,
+            )
+            self.assertEqual(
+                result, {"state": "failed", "exit_code": 0, "reason": "invalid_evidence"}
+            )
+            report.unlink()
+        self.assertEqual(self.store.history(), [])
+
+    def test_terminal_envelope_facts_preserve_state_and_execution_identity(self):
+        for number, (state, code, profile, expected) in enumerate(
+            (
+                ("failed", None, "acceptance-http-fixture", "interrupted"),
+                ("cancelled", None, "acceptance-http-fixture", "cancelled"),
+                ("completed", 0, "benchmark-http-remote", "completed"),
+                ("completed", 0, "benchmark-http-fixture", "completed"),
+            ),
+            2,
+        ):
+            job = self.job | {"run_id": str(number) * 32, "profile": profile}
+            result = {"state": state, "exit_code": code, "reason": None}
+            finish_evidence(job, self.root, result, self.store)
+            saved = json.loads((self.bundle / "envelope.json").read_text())
+            self.assertEqual(
+                (saved["state"], saved["exit_code"], saved["runner_commit"]),
+                (expected, code, "f" * 40),
+            )
+            self.assertEqual(
+                saved["server_commit"], None if profile == "benchmark-http-remote" else "f" * 40
+            )
+
+    def test_missing_report_or_inventory_preserves_the_documented_terminal_state(self):
+        (self.bundle / "report.json").unlink()
+        for number, (state, code) in enumerate((("failed", 1), ("cancelled", None)), 2):
+            result = {"state": state, "exit_code": code, "reason": None}
+            self.assertEqual(
+                finish_evidence(
+                    self.job | {"run_id": str(number) * 32}, self.root, result, self.store
+                ),
+                result,
+            )
+        (self.bundle / "catalogue.json").unlink()
+        result = finish_evidence(
+            self.job,
+            self.root,
+            {"state": "failed", "exit_code": 1, "reason": "worker_failed"},
+            self.store,
+        )
+        self.assertEqual(
+            result, {"state": "unavailable", "exit_code": 1, "reason": "missing_inventory"}
+        )
+
     def test_saved_bundle_reimports_idempotently_with_identical_original_bytes(self):
         finish_evidence(
             self.job, self.root, {"state": "completed", "exit_code": 0, "reason": None}, self.store

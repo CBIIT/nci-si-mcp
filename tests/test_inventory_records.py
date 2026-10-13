@@ -71,6 +71,7 @@ class InventoryImportTest(unittest.TestCase):
                 ([], name),
                 (original | {"PRIVATE-CANARY": "passed"}, name),
                 (original | {key: "PRIVATE-CANARY"}, f"{name}[0]"),
+                (original | {key: 1}, f"{name}[0]"),
             ):
                 self.assert_invalid(bundle() | {name: encoded(value)}, path)
         for selected, path in (
@@ -108,6 +109,9 @@ class InventoryImportTest(unittest.TestCase):
         )
         self.assert_invalid(
             bundle() | {"stories": encoded(dict.fromkeys(original, "a" * 101))}, "stories[0]"
+        )
+        self.assert_invalid(
+            bundle() | {"stories": encoded(dict.fromkeys(original, "1story"))}, "stories[0]"
         )
         for value in ("a" * 63, "a" * 65, "A" * 64):
             catalogue = json.loads(bundle()["catalogue"]) | {"suite_digest": value}

@@ -30,6 +30,32 @@ def envelope(**changes):
 
 
 class EvidenceEnvelopeTest(unittest.TestCase):
+    def test_strict_json_and_timestamp_boundaries(self):
+        raw = json.dumps(envelope()).encode()
+        invalid = [
+            raw.replace(b'"state": "completed"', b'"state":"failed","state":"completed"'),
+            b"[" * 2000 + b"]" * 2000,
+        ]
+        invalid += [
+            raw.replace(b'"exit_code": 0', b'"exit_code": ' + value)
+            for value in (b"NaN", b"Infinity", b"-Infinity")
+        ]
+        for value in invalid:
+            with self.subTest(raw=value[:40]), self.assertRaises(EvidenceError) as failure:
+                validate_envelope(value, REPORT)
+            self.assertEqual(str(failure.exception), "Invalid envelope field: envelope")
+            self.assertNotIn("PRIVATE-CANARY", str(failure.exception))
+        record = envelope(finished_at="2026-10-08T10:01:00.123456Z")
+        self.assertEqual(validate_envelope(json.dumps(record).encode(), REPORT), record)
+        self.assert_invalid(
+            envelope(finished_at="2026-10-08T10:01:00.1234567Z"), REPORT, "finished_at"
+        )
+        for value in ([], {}):
+            self.assert_invalid(envelope(state=value), REPORT, "state")
+        record = envelope(state="cancelled", exit_code=255)
+        self.assertEqual(validate_envelope(json.dumps(record).encode(), REPORT), record)
+        self.assert_invalid(envelope(state="cancelled", exit_code=256), REPORT, "exit_code")
+
     def test_invalid_import_names_the_field_without_echoing_input(self):
         invalid = (
             [("schema", value, "schema") for value in (True, 2)]
