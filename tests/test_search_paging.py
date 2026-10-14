@@ -1,15 +1,18 @@
 import base64
 import json
+from dataclasses import replace
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 
 from fakes import concept, release, terminology_row
 from nci_si_mcp.evs import EVSClient, EVSReleaseNotFoundError
 from nci_si_mcp.registry import invoke
+from ncit_index.embeddings import HashingEmbeddingProvider
 from ncit_index.scoring import rank_page
 from test_evs_client import FakeResponse
 from test_index import normalized
-from test_server import ServerFixture
+from test_release_cursor_validation import padded_token
+from test_server import ServerFixture, pinned
 
 
 class IndexedSearchTest(ServerFixture):
@@ -351,3 +354,173 @@ class LiveSearchTest(ServerFixture):
         with self.replies([[metadata], {"total": 1, "concepts": [row]}]):
             result = self.search(retired="only")
         self.assertEqual(result["error"]["code"], "upstream_unavailable")
+
+
+def reposition(value, offset):
+    payload = json.loads(base64.urlsafe_b64decode(value))
+    return padded_token(payload | {"offset": offset})
+
+
+class SearchContinuationTest(ServerFixture):
+    def setUp(self):
+        super().setUp()
+        self.evs.concepts = {
+            "C1": concept("C1", "One", active=True, children=[{"code": "C2"}]),
+            "C2": concept("C2", "Two", active=True),
+        }
+
+    def call(self, tool, **arguments):
+        return invoke(
+            self.context,
+            tool,
+            **({"terminology": "ncit", "release": "26.06e"} | arguments),
+        )
+
+    def search(self, **arguments):
+        return self.call("search_concepts", **({"query": "One", "limit": 1} | arguments))
+
+    def live_rows(self, total, rows):
+        return patch.object(self.evs, "search_concepts", return_value=(total, rows), create=True)
+
+    def retirement_metadata(self):
+        return terminology_row() | {
+            "metadata": {
+                "retiredStatusValue": "Retired_Concept",
+                "conceptStatuses": ["Retired_Concept"],
+            }
+        }
+
+    def test_search_cursor_binds_release_and_terminology(self):
+        with self.live_rows(2, [self.evs.concepts["C1"]]):
+            first = self.search()
+            for changed in ({"release": "other"}, {"terminology": "other"}):
+                with self.subTest(changed=changed):
+                    result = self.search(cursor=first["nextCursor"], **changed)
+                    self.assertEqual(result["error"]["code"], "invalid_request")
+                    self.assertEqual(result["error"]["details"]["parameter"], "cursor")
+
+    def test_search_cursor_at_or_past_total_is_invalid(self):
+        with self.live_rows(2, [self.evs.concepts["C1"]]):
+            first = self.search()
+        with self.live_rows(2, []):
+            for offset in (2, 3):
+                with self.subTest(offset=offset):
+                    result = self.search(cursor=reposition(first["nextCursor"], offset))
+                    self.assertEqual(result["error"]["code"], "invalid_request")
+                    self.assertNotIn("results", result)
+
+    def test_indexed_result_preserves_matching_field_without_top_level_provenance(self):
+        self.local_index.upsert_concepts(
+            normalized(self.evs.concepts.values()), None, self.context.embedding_provider
+        )
+        hits, total, manifest = self.context.index.search_page(
+            "One", self.context.embedding_provider, 1, "vector", requested_release="26.06e"
+        )
+        for field in ("synonym", "definition"):
+            with (
+                self.subTest(field=field),
+                patch.object(
+                    self.context.index,
+                    "search_page",
+                    return_value=([replace(hits[0], matched_on=field)], total, manifest),
+                ),
+            ):
+                result = self.search(mode="semantic")
+                self.assertEqual(result["results"][0]["matchedOn"], field)
+                self.assertNotIn("provenance", result)
+
+    def test_retired_only_rejects_inactive_hit_with_different_status(self):
+        self.evs.rows = [self.retirement_metadata()]
+        raw = concept("C1", active=False, conceptStatus="Obsolete")
+        with self.live_rows(1, [raw]):
+            result = self.search(retired="only")
+        self.assertEqual(result["error"]["code"], "upstream_unavailable")
+        self.assertNotIn("results", result)
+
+    def test_retirement_metadata_selects_both_release_and_terminology(self):
+        selected = self.retirement_metadata()
+        self.evs.rows = [
+            selected | {"version": "other"},
+            selected | {"terminology": "other"},
+            selected,
+        ]
+        raw = concept("C1", active=False, conceptStatus="Retired_Concept")
+        with self.live_rows(1, [raw]):
+            result = self.search(retired="only")
+        self.assertEqual(result["results"][0]["concept"]["status"], "Retired_Concept")
+
+    def test_absent_retirement_release_is_release_not_available(self):
+        self.evs.rows = [self.retirement_metadata() | {"version": "other"}]
+        result = self.search(retired="only")
+        self.assertEqual(result["error"]["code"], "release_not_available")
+        self.assertNotIn("results", result)
+
+    def test_whitespace_query_is_invalid(self):
+        with self.live_rows(0, []):
+            result = self.search(query=" \t\n ")
+        self.assertEqual(result["error"]["code"], "invalid_request")
+        self.assertEqual(result["error"]["details"]["parameter"], "query")
+
+
+class IndexedSearchBoundaryTest(ServerFixture):
+    def content(self, operation, **arguments):
+        return invoke(self.context, operation, **pinned(**arguments))
+
+    def index_concepts(self, concepts):
+        self.local_index.upsert_concepts(
+            normalized(concepts),
+            None,
+            self.context.embedding_provider,
+            expected_release_version="26.06e",
+        )
+
+    def test_search_returns_all_150_hits_for_large_requested_limits(self):
+        self.index_concepts([concept(f"C{i}", "Kinase", active=True) for i in range(1, 151)])
+        for limit in (500, 5000):
+            with self.subTest(limit=limit):
+                result = self.content(
+                    "search_concepts", query="Kinase", mode="semantic", limit=limit
+                )
+                self.assertEqual(len(result["results"]), 150)
+                self.assertNotIn("nextCursor", result)
+
+    def test_semantic_and_hybrid_search_return_different_rankings_through_mcp(self):
+        # Semantic similarity favors the synonym-free enzyme label; lexical evidence
+        # favors the kinase label. Neither preferred name is an exact query match.
+        provider = HashingEmbeddingProvider(dimensions=2)
+        self.context.embedding_provider = provider
+        vectors = {
+            "Kinase inhibitor": [0.0, 1.0],
+            "Enzyme modulator": [1.0, 0.0],
+            "Kinase": [1.0, 0.0],
+        }
+        with patch.object(provider, "embed", side_effect=lambda texts: [vectors[t] for t in texts]):
+            self.index_concepts(
+                [
+                    concept("C1", "Kinase inhibitor", active=True),
+                    concept("C2", "Enzyme modulator", active=True),
+                ]
+            )
+            for mode, expected in (("semantic", ["C2", "C1"]), ("hybrid", ["C1", "C2"])):
+                with self.subTest(mode=mode):
+                    is_error, result = self.call("search_concepts", query="Kinase", mode=mode)
+                    self.assertFalse(is_error)
+                    hits = result["results"]
+                    self.assertEqual([hit["concept"]["code"] for hit in hits], expected)
+                    self.assertGreater(hits[0]["score"], hits[1]["score"])
+                    for hit in hits:
+                        self.assertEqual(
+                            {"sourceUri", "upstream"} & hit["concept"]["provenance"].keys(),
+                            set(),
+                        )
+
+    def test_invalid_mode_cursor_and_unselectable_retirement_are_refused_with_a_usable_index(self):
+        self.index_concepts([concept("C1", "Kinase", active=True)])
+        options = ({"mode": "bm25"}, {"cursor": "cursor"}, {"retired": "only"})
+        for option in options:
+            with self.subTest(option=option):
+                result = self.content(
+                    "search_concepts", **({"query": "Kinase", "mode": "semantic"} | option)
+                )
+                self.assertIn("error", result)
+                self.assertEqual(result["error"]["code"], "invalid_request")

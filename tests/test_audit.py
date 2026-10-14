@@ -12,12 +12,14 @@ from datetime import datetime
 from pathlib import Path
 from threading import Barrier
 from types import SimpleNamespace
+from unittest import TestCase
 from unittest.mock import patch
 
+import yaml
 from mcp.types import JSONRPCMessage
 from pydantic import TypeAdapter
 
-from fakes import catalogue_rows, concept
+from fakes import FakeSSIS, catalogue_rows, concept
 from nci_si_mcp.audit import JsonFormatter, audited, compact, emit, hashed, secrets
 from nci_si_mcp.bounds import Budget, RequestBudgetError, budgeted
 from nci_si_mcp.config import Settings, configure_logging
@@ -27,7 +29,9 @@ from nci_si_mcp.evs import EVSClient
 from nci_si_mcp.http_client import UpstreamUnavailableError
 from nci_si_mcp.registry import SPECS, invoke
 from nci_si_mcp.server import _audit_tools, _validate_inputs
+from test_evs_client import FakeResponse, http_error
 from test_http_client import Reply, ServerTestCase
+from test_index import normalized
 from test_server import ServerFixture, pinned
 
 
@@ -49,6 +53,11 @@ def captured():
         logger.removeHandler(handler)
         logger.setLevel(level)
         logging.disable(disabled)
+
+
+def digest(value):
+    encoded = json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    return hashlib.sha256(encoded.encode()).hexdigest()
 
 
 def records(stream, event="call_completed"):
@@ -460,3 +469,226 @@ class AuditHttpTest(ServerTestCase):
             {"1": 1, "2": 2},
         )
         self.assertEqual(len(server.seen), 3)
+
+
+ROOT = Path(__file__).resolve().parents[1]
+TOOLS = yaml.safe_load((ROOT / "spec/tools.yaml").read_text())
+
+
+def _free_text_roots(tool: str) -> set[str]:
+    # The specification's free-text argument names, without index or path suffixes.
+    return {p.split("[")[0].split(".")[0] for p in TOOLS[tool].get("free_text", [])}
+
+
+# Parameters whose values are free text or opaque (audited as a SHA-256 digest); every other
+# parameter of these tools is an identifier, a closed value or a number, audited in the clear.
+HASHED = {
+    "get_form": {"keyword"},
+    "get_permissible_value": set(),
+    "get_code_map": {"targetContext", "cursor"},
+    "match_data_elements": {"entities", "modelVariant", "filters"},
+    "match_value_meanings": {"values"},
+    "get_data_element": {"longName", "questionText"},
+    "search_data_elements": {"query", "filters", "cursor"},
+    "list_contexts": {"cursor"},
+    "list_classification_schemes": {"context", "cursor"},
+    "resolve_registry_release": set(),
+}
+
+
+class CaDSRAuditClassificationTest(TestCase):
+    def test_each_cadsr_parameter_has_the_specification_audit_class(self):
+        tools = {spec.name: spec for spec in SPECS if spec.group == "cadsr" and spec.name in TOOLS}
+        self.assertEqual(set(tools), set(HASHED))
+        for name, spec in tools.items():
+            # The specification's free-text arguments are hashed; the table may hash more
+            # (identifiers that correlate callers), never less.
+            self.assertLessEqual(_free_text_roots(name), HASHED[name], name)
+            for parameter in spec.parameters:
+                with self.subTest(tool=name, parameter=parameter.name):
+                    expected = "hash" if parameter.name in HASHED[name] else "plain"
+                    self.assertEqual(spec.audit.get(parameter.name), expected)
+
+    def test_data_element_resource_identifiers_are_plain_audit_fields(self):
+        patterns = TOOLS["get_data_element"]["patterns"]
+        resources = [
+            spec for spec in SPECS if spec.uri and spec.uri.startswith("cadsr://data-element/")
+        ]
+        self.assertEqual(len(resources), 2)
+        for spec in resources:
+            with self.subTest(uri=spec.uri):
+                self.assertTrue(all(parameter.name in patterns for parameter in spec.parameters))
+                self.assertEqual(
+                    spec.audit, {parameter.name: "plain" for parameter in spec.parameters}
+                )
+
+
+def digest_record(value):
+    encoded = json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    return {"sha256": hashlib.sha256(encoded.encode()).hexdigest()}
+
+
+class RegistryAuditPrivacyTest(ServerFixture):
+    def test_search_cursor_is_hashed_even_when_the_option_is_refused(self):
+        cursor = "private-cursor-canary"
+        with captured() as stream:
+            result = invoke(
+                self.context, "search_concepts", "ncit", "26.06e", "Neoplasm", cursor=cursor
+            )
+        self.assertEqual(result["error"]["code"], "invalid_request")
+        (record,) = records(stream)
+        self.assertEqual(record["parameters"]["cursor"], digest_record(cursor))
+        self.assertNotIn(cursor, stream.getvalue())
+
+    def test_legacy_relationship_filter_is_hashed_in_completion_record(self):
+        names = ["Disease_Has_Abnormal_Cell"]
+        with captured() as stream:
+            result = invoke(
+                self.context, "traverse", ["C3262"], max_depth=1, relationship_names=names
+            )
+        self.assertEqual([edge["target_code"] for edge in result["edges"]], ["C4741", "C12922"])
+        (record,) = records(stream)
+        self.assertEqual(record["parameters"]["relationship_names"], digest_record(names))
+        self.assertNotIn(names[0], stream.getvalue())
+
+    def test_invisible_tool_names_and_arguments_are_hashed(self):
+        async def rejected(_):
+            return {"isError": True}
+
+        request = SimpleNamespace(
+            method="tools/call",
+            params={"name": "get_concept", "arguments": {"code": "C3262"}},
+            meta={"correlationId": "hidden-tool"},
+        )
+        with captured() as stream:
+            result = asyncio.run(_audit_tools(self.context, "cadsr")(request, rejected))
+        self.assertEqual(result, {"isError": True})
+        (record,) = records(stream)
+        self.assertEqual(
+            record["tool"], json.dumps(digest_record("get_concept"), separators=(",", ":"))
+        )
+        self.assertEqual(list(record["parameters"].values()), [digest_record("C3262")])
+        self.assertEqual(record["correlationId"], "hidden-tool")
+
+
+class AuditDiagnosticPrivacyTest(unittest.TestCase):
+    def test_request_and_retry_diagnostics_hash_each_original_value(self):
+        client = EVSClient("https://example.invalid", retry_backoff_seconds=0).http
+        path = "/private-path-canary"
+        reason = f"EVS request failed for {path}: HTTP 503 Reason"
+        with (
+            captured() as stream,
+            patch(
+                "nci_si_mcp.http_client._open", side_effect=[http_error(503), FakeResponse(b"{}")]
+            ),
+        ):
+            self.assertEqual(client.get_json(path), {})
+        attempts = records(stream, "upstream_request")
+        self.assertEqual([row["urlHash"] for row in attempts], [digest(client.base_url + path)] * 2)
+        (retry,) = records(stream, "upstream_request_retry")
+        self.assertEqual(retry["pathHash"], digest(path))
+        self.assertEqual(retry["reasonHash"], digest(reason))
+        for value in (client.base_url, path, reason):
+            self.assertNotIn(value, stream.getvalue())
+
+    def test_password_alone_is_redacted_from_a_diagnostic(self):
+        with captured() as stream, audited("lookup", {}, {}, secrets(None, "user:pw123")):
+            emit(logging.getLogger("nci_si_mcp.test"), logging.WARNING, "canary", value="pw123")
+        self.assertEqual(records(stream, "canary")[0]["value"], "[redacted]")
+        self.assertNotIn("pw123", stream.getvalue())
+
+    def test_hashes_do_not_depend_on_object_key_order(self):
+        self.assertEqual(hashed({"a": 1, "b": 2}), hashed({"b": 2, "a": 1}))
+        self.assertEqual(hashed({"b": 2, "a": 1}), {"sha256": digest({"a": 1, "b": 2})})
+
+    def test_raw_upstream_release_is_excluded_and_platform_releases_are_deduplicated(self):
+        release = {"terminology": "ncit", "identifier": "26.06e"}
+        with captured() as stream, audited("lookup", {}, {}, ()) as record:
+            record.result = {
+                "nodes": [{"provenance": {"release": dict(release)}} for _ in range(3)],
+                "raw": {"provenance": {"release": {"identifier": "upstream-canary"}}},
+            }
+        self.assertEqual(records(stream)[0]["release"]["resolved"], [release])
+        self.assertNotIn("upstream-canary", stream.getvalue())
+
+    def test_cancellation_propagates_and_discards_a_previously_set_result(self):
+        # Nested contexts let CodeQL see that assertRaises consumes the cancellation.
+        with captured() as stream:  # noqa: SIM117
+            with self.assertRaises(asyncio.CancelledError):
+                with audited("lookup", {}, {}, ()) as record:
+                    record.result = {"code": "C1"}
+                    raise asyncio.CancelledError()
+        (result,) = records(stream)
+        self.assertEqual(result["errorType"], "CancelledError")
+        self.assertEqual(result["status"], "error")
+        self.assertIsNone(result["resultSize"])
+
+
+class IndexActivationAuditTest(ServerFixture):
+    def test_each_index_activation_logs_its_new_release_and_build_identity(self):
+        with captured() as stream:
+            for version in ("26.06e", "26.07a"):
+                self.local_index.upsert_concepts(
+                    normalized([concept("C1", version=version)]),
+                    None,
+                    self.context.embedding_provider,
+                )
+        first, second = records(stream, "index_activated")
+        self.assertEqual((first["release"], second["release"]), ("26.06e", "26.07a"))
+        self.assertNotEqual(first["build_id"], second["build_id"])
+        self.assertEqual(self.context.index.get_active_manifest().release_version, "26.07a")
+
+
+@patch("nci_si_mcp.server.configure_logging")
+class CrossDomainAuditPrivacyTest(ServerFixture):
+    def setUp(self):
+        super().setUp()
+        self.context.ssis = FakeSSIS(self.settings)
+
+    def test_all_cross_domain_parameters_keep_their_audit_privacy_class(self, _):
+        calls = (
+            (
+                "find_data_elements_for_concept",
+                {
+                    "conceptCode": "bad",
+                    "terminology": "ncit",
+                    "release": "26.06e",
+                    "expandDescendants": True,
+                    "includePermissibleValues": True,
+                    "limit": 17,
+                    "cursor": "cursor-canary",
+                },
+                {"cursor"},
+            ),
+            (
+                "get_concept_for_permissible_value",
+                {
+                    "permissibleValueId": "456",
+                    "dataElementId": "123",
+                    "value": "value-canary",
+                    "release": "26.06e",
+                },
+                {"value"},
+            ),
+            (
+                "resolve_stored_value",
+                {
+                    "conceptCode": "bad",
+                    "commons": "commons-canary",
+                    "dataElementId": "123",
+                    "release": "26.06e",
+                },
+                {"commons"},
+            ),
+            ("get_release_alignment", {"maxIntervalDays": -1}, set()),
+        )
+        for name, arguments, private in calls:
+            with self.subTest(tool=name), captured() as stream:
+                result = invoke(self.context, name, **arguments)
+                self.assertEqual(result["error"]["code"], "invalid_request")
+                expected = {
+                    key: {"sha256": digest(value)} if key in private else value
+                    for key, value in arguments.items()
+                }
+                self.assertEqual(records(stream)[0]["parameters"], expected)
+                self.assertTrue(all(arguments[key] not in stream.getvalue() for key in private))

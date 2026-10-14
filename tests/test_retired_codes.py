@@ -212,3 +212,49 @@ class RetiredCodeTest(ServerFixture):
         self.assertTrue(failed.is_error)
         validator.validate(failed.structured_content)
         self.assertEqual(failed.structured_content["error"]["code"], "invalid_request")
+
+
+class RetiredIdentityTest(ServerFixture):
+    def setUp(self):
+        super().setUp()
+        self.evs.concepts = {
+            "C1": concept("C1", "One", active=True, children=[{"code": "C2"}]),
+            "C2": concept("C2", "Two", active=True),
+        }
+
+    def call(self, tool, **arguments):
+        return invoke(
+            self.context,
+            tool,
+            **({"terminology": "ncit", "release": "26.06e"} | arguments),
+        )
+
+    def test_null_or_nontext_replacement_code_is_not_silently_dropped(self):
+        self.evs.concepts["C1"].update(active=False)
+        for code in (None, 123):
+            with (
+                self.subTest(code=code),
+                patch.object(
+                    self.evs,
+                    "get_replacements",
+                    return_value=[{"replacementCode": code, "replacementName": "Two"}],
+                    create=True,
+                ),
+            ):
+                result = self.call("resolve_retired_code", code="C1")
+                self.assertEqual(result["error"]["code"], "upstream_unavailable")
+                self.assertNotIn("replacements", result)
+
+    def test_retired_status_keeps_inactive_and_reads_replacements_without_name(self):
+        self.evs.concepts["C1"].update(active=False, conceptStatus="Retired_Concept")
+        with patch.object(
+            self.evs,
+            "get_replacements",
+            return_value=[{"replacementCode": "C2", "replacementName": "Two"}],
+            create=True,
+        ):
+            result = self.call("resolve_retired_code", code="C1")
+        self.assertFalse(result["active"])
+        self.assertEqual(result["status"], "Retired_Concept")
+        self.assertEqual(result["replacements"][0]["code"], "C2")
+        self.assertNotIn("name", result)

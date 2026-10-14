@@ -16,6 +16,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import ClassVar
 from unittest.mock import patch
 
+from nci_si_mcp.cadsr import CaDSRClient
+from nci_si_mcp.config import Settings
 from nci_si_mcp.errors import PlatformError, correlated
 from nci_si_mcp.evs import LICENSE_KEY_HEADER, EVSClient
 from nci_si_mcp.http_client import (
@@ -25,6 +27,7 @@ from nci_si_mcp.http_client import (
     UpstreamTooLargeError,
     UpstreamUnavailableError,
 )
+from test_evs_client import FakeResponse
 
 KEY = "placeholder-licence-key"
 OK = b'{"ok": true}'
@@ -660,6 +663,47 @@ class CredentialsStayOutTest(ServerTestCase):
 
         self.assertEqual(raised.exception.details["status"], 403)
         self.assertNotIn(KEY, f"{raised.exception} {raised.exception.details}")
+
+
+class ClientBoundaryTest(ServerTestCase):
+    def cadsr(self, server, **options):
+        client = CaDSRClient(
+            Settings(cadsr_base_url=server.url, cadsr_ftp_url=server.url, **options)
+        )
+        for http in (client.http, client.match_http, client.export_http):
+            http.sleep = lambda _: None
+        return client
+
+    def test_307_post_redirect_is_refused_without_replaying_the_body(self):
+        server = self.serve(Reply(307, headers={"Location": "/redirected"}))
+        with self.assertRaises(UpstreamRejectedError) as raised:
+            self.cadsr(server).match_value_meanings([{"name": "X"}], {})
+        self.assertEqual(raised.exception.details["status"], 307)
+        self.assertIn("POST redirect refused", str(raised.exception))
+        self.assertEqual(len(server.seen), 1)
+
+
+class CredentialRedactionTest(unittest.TestCase):
+    def test_request_observer_receives_a_redacted_url(self):
+        client = EVSClient("https://example.invalid", license_key="key-canary").http
+        observed = []
+        client.on_request = observed.append
+        with patch("nci_si_mcp.http_client._open", return_value=FakeResponse(b"{}")):
+            result = client.get_json("/key-canary/concept")
+        self.assertEqual(result, {})
+        self.assertEqual(
+            [row.url for row in observed], ["https://example.invalid/[redacted]/concept"]
+        )
+
+    def test_rejected_content_reason_redacts_credentials(self):
+        client = EVSClient("https://example.invalid", license_key="key-canary").http
+        with (
+            patch("nci_si_mcp.http_client._open", return_value=FakeResponse(b"{}")),
+            self.assertRaises(UpstreamUnavailableError) as raised,
+        ):
+            client.get_json("/metadata", reject=lambda payload: "unusable key-canary")
+        self.assertEqual(str(raised.exception), "unusable [redacted]")
+        self.assertEqual(raised.exception.details, {"surface": "evs", "status": 200, "attempts": 1})
 
 
 if __name__ == "__main__":

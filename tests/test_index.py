@@ -3,6 +3,7 @@ import sqlite3
 import tempfile
 import unittest
 from contextlib import closing
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
@@ -21,10 +22,19 @@ from ncit_index.errors import (
     NoActiveIndexError,
 )
 from ncit_index.index import SCHEMA_VERSION, LocalIndex
+from ncit_index.storage import fts_table
 
 
 def normalized(concepts, date=None):
     return (normalize_concept(raw, release_date=date, source="active_cache") for raw in concepts)
+
+
+def update_manifest(index, manifest):
+    with index._connect() as conn:
+        conn.execute(
+            "UPDATE manifests SET payload = ? WHERE build_id = ?",
+            (json.dumps(manifest.to_dict()), manifest.build_id),
+        )
 
 
 def concept_search_text(concept):
@@ -796,6 +806,91 @@ class SearchTest(IndexTestCase):
             [(hit.concept.code, hit.score) for hit in few],
             [(hit.concept.code, hit.score) for hit in every[:2]],
         )
+
+
+class ManifestIntegrityTest(IndexTestCase):
+    def test_sample_needing_rebuild_cannot_be_updated(self):
+        index = self.build([concept("C1")])
+        active = replace(index.get_active_manifest(), needs_rebuild=True)
+        update_manifest(index, active)
+        with self.assertRaisesRegex(IndexCapabilityError, "index-rebuild"):
+            index.upsert_concepts(normalized([concept("C2")]), None, self.provider)
+        self.assertEqual(index.get_active_manifest(), active)
+        self.assertIsNone(index.get_concept_snapshot("C2")[1])
+
+    def test_missing_dimensions_are_derived_for_sample_compatibility(self):
+        index = self.build([concept("C1", "Primary name", synonyms=[{"name": "Distinct alias"}])])
+        active = replace(index.get_active_manifest(), embedding_dimensions=None)
+        update_manifest(index, active)
+        updated = index.upsert_concepts(normalized([concept("C2")]), None, self.provider)
+        self.assertEqual(updated.embedding_dimensions, self.provider.dimensions)
+        self.assertIsNotNone(index.get_concept_snapshot("C2")[1])
+
+    def test_declared_dimensions_are_not_replaced_by_stored_vector_width(self):
+        index = self.build([concept("C1")])
+        active = replace(index.get_active_manifest(), embedding_dimensions=7)
+        update_manifest(index, active)
+        with self.assertRaises(IndexCompatibilityError):
+            index.upsert_concepts(normalized([concept("C2")]), None, self.provider)
+        self.assertEqual(index.get_active_manifest(), active)
+
+    def test_build_identifier_cannot_form_an_arbitrary_sql_identifier(self):
+        for value in ("x" * 32, "a" * 31, "a" * 32 + "; DROP TABLE concepts"):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, "identifier"):
+                fts_table(value)
+
+    def test_building_manifest_cannot_be_active(self):
+        index = self.build([concept("C1")])
+        with index._connect() as conn, self.assertRaises(sqlite3.IntegrityError):
+            conn.execute("UPDATE manifests SET state = 'building' WHERE active = 1")
+        self.assertIsNotNone(index.get_active_manifest())
+
+    def test_only_one_manifest_can_be_active(self):
+        index = self.build([concept("C1")])
+        candidate = index.build(normalized([concept("C2")]), None, self.provider)
+        with index._connect() as conn, self.assertRaises(sqlite3.IntegrityError):
+            conn.execute(
+                "UPDATE manifests SET active = 1 WHERE build_id = ?", (candidate.build_id,)
+            )
+        self.assertEqual(sum(item.active for item in index.list_builds()), 1)
+
+
+class LegacyMigrationIntegrityTest(IndexTestCase):
+    legacy_database = MigrationTest.legacy_database
+
+    def test_empty_legacy_manifest_without_dimensions_still_blocks_sample_updates(self):
+        self.legacy_database([("26.06e", concept("C1"))])
+        with closing(sqlite3.connect(self.path / "nci_si.sqlite3")) as conn, conn:
+            conn.execute("DELETE FROM concepts")
+            conn.execute("UPDATE manifests SET payload = json_set(payload, '$.concept_count', 0)")
+        index = LocalIndex(self.path)
+        active = index.get_active_manifest()
+        self.assertIsNone(active.embedding_dimensions)
+        with self.assertRaises(IndexBuildError) as raised:
+            index.upsert_concepts(normalized([concept("C2")]), None, self.provider)
+        self.assertEqual(index.list_builds(), [active])
+        self.assertIsNone(index.get_concept_snapshot("C2")[1])
+        self.assertIn("separate data directory", str(raised.exception))
+
+    def test_legacy_migration_derives_dimensions_and_retains_status(self):
+        self.legacy_database([("26.06e", concept("C1", conceptStatus="Retired_Concept"))])
+        index = LocalIndex(self.path)
+        self.assertEqual(index.get_active_manifest().embedding_dimensions, self.provider.dimensions)
+        with index._connect() as conn:
+            self.assertEqual(
+                conn.execute("SELECT status FROM concepts").fetchone()[0], "Retired_Concept"
+            )
+
+    def test_orphan_legacy_concept_aborts_migration_without_losing_it(self):
+        self.legacy_database([("26.06e", concept("C1"))])
+        with closing(sqlite3.connect(self.path / "nci_si.sqlite3")) as conn, conn:
+            conn.execute("UPDATE concepts SET release_version = 'orphan'")
+        with self.assertRaisesRegex(IndexCompatibilityError, "without a manifest"):
+            LocalIndex(self.path)
+        with closing(sqlite3.connect(self.path / "nci_si.sqlite3")) as conn:
+            self.assertEqual(
+                conn.execute("SELECT release_version FROM concepts").fetchone()[0], "orphan"
+            )
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 import io
 import json
 import unittest
+from dataclasses import replace
 from unittest.mock import patch
 from urllib.error import HTTPError
 
@@ -12,6 +13,7 @@ from nci_si_mcp.registry import invoke
 from nci_si_mcp.release import registry_state, resolve_evs_release, served_evs_release
 from test_evs_client import FakeResponse
 from test_handlers import NEOPLASM, HandlerTestCase
+from test_server import ServerFixture
 
 # The weekly build is listed first, as EVS may list it, and both are latest for their channel.
 WEEKLY = terminology_row("26.09c", "2026-09-21", weekly="true")
@@ -334,3 +336,53 @@ class RegistryStateTest(unittest.TestCase):
                 self.assertEqual(error["code"], "upstream_unavailable")
                 self.assertEqual(error["details"], {"surface": "cadsr"})
                 self.assertIn("distribution", error["message"])
+
+
+class TerminologyChannelTest(ServerFixture):
+    def test_listing_ignores_false_channel_tags_and_uses_the_configured_channel(self):
+        self.evs.rows = [
+            terminology_row("weekly", monthly="false", weekly="true"),
+            terminology_row("monthly", monthly="true", weekly="false"),
+        ]
+        for channel in ("monthly", "weekly"):
+            with self.subTest(channel=channel):
+                self.context.settings = replace(self.settings, release_channel=channel)
+                result = invoke(self.context, "list_terminologies")
+                self.assertIn("terminologies", result)
+                self.assertEqual([item["release"] for item in result["terminologies"]], [channel])
+
+
+class SelectionMetadataTest(unittest.TestCase):
+    def test_invalid_tags_versions_and_segments_are_release_errors(self):
+        for change in (
+            {"tags": None},
+            {"tags": {"monthly": "false"}},
+            {"version": ".26"},
+            {"version": "_26"},
+            {"terminologyVersion": "ncit_.26"},
+            {"terminologyVersion": "ncit_-26"},
+            {"terminologyVersion": 26},
+        ):
+            with (
+                patch(
+                    "nci_si_mcp.evs.EVSClient.get_terminologies", return_value=[MONTHLY | change]
+                ),
+                self.subTest(change=change),
+                self.assertRaises(PlatformError) as raised,
+            ):
+                resolve_evs_release(EVSClient("https://example.invalid"), "ncit", "monthly")
+            self.assertEqual(raised.exception.code, "release_not_available")
+
+
+class ServedReleaseIdentityTest(unittest.TestCase):
+    def test_another_terminology_with_the_same_version_is_not_the_requested_release(self):
+        row = terminology_row() | {"terminology": "other"}
+        with self.assertRaises(PlatformError) as raised:
+            served_evs_release([row], "ncit", "26.06e", "monthly")
+        self.assertEqual(raised.exception.code, "release_not_available")
+
+    def test_a_served_release_retains_its_upstream_pinned_identifier(self):
+        row = terminology_row() | {"terminologyVersion": "upstream-specific-pin"}
+        selected = served_evs_release([row], "ncit", "26.06e", "monthly")
+        self.assertEqual(selected.pinned_terminology, "upstream-specific-pin")
+        self.assertEqual(selected.version, "26.06e")

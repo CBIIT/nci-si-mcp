@@ -240,6 +240,19 @@ class FakeEVS:
         return [item for item in self.descendants.get(code, []) if item["level"] <= max_level]
 
 
+def code_map(identifier="123", **extra):
+    return {
+        "CDE Public ID": identifier,
+        "Version": "2",
+        "CRDC Name": "Map",
+        "Used By": "CRDC, CIP, ",
+        "permissibleValues": [
+            {"Permissible Value": "A", "Concept Code": "C1:C2"},
+            {"Permissible Value": "B", "Concept Code": None},
+        ],
+    } | extra
+
+
 def data_element(public_id="123", **extra):
     return {
         "publicId": public_id,

@@ -142,3 +142,8 @@ class EvaluationSetTests(unittest.TestCase):
             path.write_text('{"hit_at_5": 1, "hit_at_5": 0}', encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "repeats key"):
                 load_set(path)
+
+
+class CalibrationReleaseTest(unittest.TestCase):
+    def test_shipped_calibration_names_the_measured_release(self):
+        self.assertEqual(production_set().release, "26.09d")

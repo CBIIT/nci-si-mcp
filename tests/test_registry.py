@@ -1,9 +1,15 @@
 import json
 from dataclasses import replace
+from pathlib import Path
 from typing import Literal, TypedDict
+from unittest import TestCase
 from unittest.mock import patch
 
-from nci_si_mcp import cli
+import yaml
+from jsonschema import Draft202012Validator
+from pydantic import TypeAdapter
+
+from nci_si_mcp import cli, results
 from nci_si_mcp.caching import cache_call, select_cache_hint
 from nci_si_mcp.http_client import (
     UpstreamRejectedError,
@@ -146,3 +152,137 @@ class RegistryTest(ServerFixture):
                 self.assertEqual(result["error"]["code"], code)
                 self.assertEqual(result["error"]["details"], details)
                 self.assertEqual(result["error"]["correlationId"], "registry-call")
+
+
+ROOT = Path(__file__).resolve().parents[1]
+ITEM_TYPES = {
+    "concept": "Concept",
+    "node": "Node",
+    "edge": "Edge",
+    "subset": "Subset",
+    "mapping": "Mapping",
+    "replacement": "Replacement",
+    "relationship": "CatalogueRelationship",
+    "search_result": "RankedConcept",
+    "member": "ValueSetMember",
+    "terminology": "TerminologyResult",
+    "index_manifest": "IndexManifestResult",
+    "error": "ErrorRecord",
+}
+
+
+class ContentRecordSchemaTest(TestCase):
+    def test_content_item_keys_and_optionality_match_specification(self):
+        records = yaml.safe_load((ROOT / "spec/records.yaml").read_text())
+        for name, type_name in ITEM_TYPES.items():
+            with self.subTest(record=name):
+                fields = records[name]["fields"]
+                schema = TypeAdapter(getattr(results, type_name)).json_schema()
+                required = {key for key, field in fields.items() if not field.get("optional")}
+                self.assertEqual(set(schema["properties"]), set(fields))
+                self.assertEqual(set(schema["required"]), required)
+
+    def test_catalogue_closed_values_match_specification(self):
+        fields = yaml.safe_load((ROOT / "spec/records.yaml").read_text())["relationship"]["fields"]
+        schema = TypeAdapter(results.CatalogueRelationship).json_schema()
+        for key in ("kind", "polarity"):
+            with self.subTest(key=key):
+                self.assertEqual(set(schema["properties"][key]["enum"]), set(fields[key]["values"]))
+
+    def test_provenance_traversal_and_truncation_closed_values_match_specification(self):
+        records = yaml.safe_load((ROOT / "spec/records.yaml").read_text())
+        for record, type_name, field in (
+            ("provenance", "Provenance", "source"),
+            ("provenance", "Provenance", "servedBy"),
+            ("traversal", "TraversalProvenance", "polarity"),
+            ("truncation", "Truncated", "bound"),
+        ):
+            with self.subTest(record=record, field=field):
+                schema = TypeAdapter(getattr(results, type_name)).json_schema()
+                if "$ref" in schema:
+                    schema = schema["$defs"][schema["$ref"].rsplit("/", 1)[1]]
+                self.assertEqual(
+                    set(schema["properties"][field].get("enum", [])),
+                    set(records[record]["fields"][field]["values"]),
+                )
+
+    def test_list_envelopes_preserve_required_counts_and_missing_identifiers(self):
+        tools = yaml.safe_load((ROOT / "spec/tools.yaml").read_text())
+        for tool, record, field in (
+            ("get_concepts", results.ConceptBatch, "missing"),
+            ("expand_value_set", results.ValueSetExpansion, "total"),
+        ):
+            with self.subTest(tool=tool):
+                self.assertIn(field, tools[tool]["returns"])
+                self.assertNotIn(field + "?", tools[tool]["returns"])
+                self.assertIn(field, TypeAdapter(record).json_schema()["required"])
+        # The specification permits omission; this implementation guarantees the count.
+        self.assertIn("totalKnown", TypeAdapter(results.ConceptSearch).json_schema()["required"])
+
+
+def validator(operation):
+    return Draft202012Validator(TypeAdapter(OPERATIONS[operation].output).json_schema())
+
+
+class OutputSchemaValidationTest(ServerFixture):
+    def test_provenance_correlation_is_required_in_output_schema(self):
+        result = invoke(self.context, "lookup", "C3262")
+        schema = validator("lookup")
+        self.assertTrue(schema.is_valid(result))
+        del result["provenance"]["correlationId"]
+        self.assertFalse(schema.is_valid(result))
+
+    def test_occurred_truncation_cannot_claim_false_with_counts(self):
+        result = invoke(self.context, "traverse", ["C3262"], max_nodes=1)
+        record = result["truncation"]
+        schema = Draft202012Validator(TypeAdapter(results.Truncated).json_schema())
+        self.assertTrue(schema.is_valid(record))
+        record["occurred"] = False
+        self.assertFalse(schema.is_valid(record))
+
+    def test_fallback_reason_is_a_closed_value_in_lookup_schema(self):
+        invoke(self.context, "index_codes", ["C3262"])
+        self.evs.errors["get_concept"] = UpstreamUnavailableError("offline")
+        result = invoke(self.context, "lookup", "C3262")
+        schema = validator("lookup")
+        self.assertTrue(schema.is_valid(result))
+        self.assertEqual(result["fallback"]["reason"], "upstream_unavailable")
+        result["fallback"]["reason"] = "invented"
+        self.assertFalse(schema.is_valid(result))
+
+    def test_release_report_requires_active_index_even_when_null(self):
+        result = invoke(self.context, "release_info")
+        schema = validator("release_info")
+        self.assertTrue(schema.is_valid(result))
+        self.assertIsNone(result.pop("active_index"))
+        self.assertFalse(schema.is_valid(result))
+
+    def test_search_schema_rejects_unknown_legacy_mode(self):
+        invoke(self.context, "index_codes", ["C3262"])
+        result = invoke(self.context, "search", "Neoplasm")
+        schema = validator("search")
+        self.assertTrue(schema.is_valid(result))
+        result["mode"] = "invented"
+        self.assertFalse(schema.is_valid(result))
+
+    def test_traversal_schema_rejects_unknown_edge_type(self):
+        result = invoke(self.context, "traverse", ["C3262"], max_depth=1)
+        schema = validator("traverse")
+        self.assertTrue(schema.is_valid(result))
+        self.assertTrue(result["edges"])
+        result["edges"][0]["edge_type"] = "invented"
+        self.assertFalse(schema.is_valid(result))
+
+    def test_release_report_accepts_selected_release_error_arm(self):
+        self.evs.errors["get_terminologies"] = UpstreamUnavailableError("offline")
+        result = invoke(self.context, "release_info")
+        self.assertEqual(result["selected_release"]["error"]["code"], "upstream_unavailable")
+        self.assertNotIn("error", result)
+        self.assertTrue(validator("release_info").is_valid(result))
+
+    def test_traversal_schema_rejects_unknown_assertion_direction(self):
+        result = invoke(self.context, "traverse", ["C3262"], max_depth=1)
+        schema = validator("traverse")
+        self.assertTrue(schema.is_valid(result))
+        result["edges"][0]["provenance"]["direction"] = "sideways"
+        self.assertFalse(schema.is_valid(result))

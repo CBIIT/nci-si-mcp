@@ -3,8 +3,11 @@
 import sqlite3
 from unittest.mock import patch
 
+from fakes import concept
 from nci_si_mcp.errors import correlated
+from nci_si_mcp.evs import normalize_concept
 from nci_si_mcp.index_adapter import LocalIndexAdapter
+from ncit_index import index as index_module
 from ncit_index.embeddings import HashingEmbeddingProvider
 from ncit_index.errors import (
     IndexBuildError,
@@ -14,6 +17,7 @@ from ncit_index.errors import (
     IndexStorageError,
 )
 from ncit_index.index import LocalIndex
+from ncit_index.storage import clean_stale_builds, concept_fields, fts_table, name_key
 from test_index import RAW_CONCEPTS, IndexTestCase, normalized
 
 
@@ -385,3 +389,201 @@ class FieldSearchTest(IndexTestCase):
                 hit = index.search(query, self.provider, mode="bm25")[0]
                 self.assertEqual(hit.concept.code, "C3262")
                 self.assertEqual(hit.matched_on, expected)
+
+
+class BuildStorageIntegrityTest(IndexTestCase):
+    def test_expired_cursor_names_requested_and_current_releases(self):
+        index = self.build([concept("C1")])
+        old = index.get_active_manifest()
+        index.upsert_concepts(normalized([concept("C2", version="new")]), None, self.provider)
+        with self.assertRaises(IndexCursorError) as raised:
+            index.search_page("term", self.provider, build_id=old.build_id, requested_release="old")
+        self.assertEqual(
+            raised.exception.details, {"cursorRelease": "old", "currentRelease": "new"}
+        )
+
+    def test_page_ranks_continue_after_offset(self):
+        index = self.build([concept(f"C{i}", "Same") for i in range(1, 5)])
+        hits, total, _ = index.search_page("Same", self.provider, mode="bm25", offset=2, limit=2)
+        self.assertEqual(([hit.rank for hit in hits], total), ([3, 4], 4))
+
+    def test_evaluation_inputs_survive_concurrent_candidate_pruning(self):
+        index = self.build([concept("C1")])
+        candidate = index.build(normalized([concept("C2")]), None, self.provider)
+        replacement = index.build(normalized([concept("C3")]), None, self.provider)
+        original = index_module._completed_manifest
+
+        def prune_after_read(conn, build):
+            manifest = original(conn, build)
+            index.activate(replacement.build_id)
+            return manifest
+
+        with patch.object(index_module, "_completed_manifest", side_effect=prune_after_read):
+            manifest, missing = index.evaluation_inputs(candidate.build_id, {"C2"})
+        self.assertEqual((manifest.build_id, missing), (candidate.build_id, []))
+        self.assertNotIn(candidate.build_id, {item.build_id for item in index.list_builds()})
+
+    def test_pruning_removes_vectors_and_fts_storage(self):
+        index = self.build([concept("C1")])
+        old = index.get_active_manifest().build_id
+        index.upsert_concepts(normalized([concept("C2")]), None, self.provider)
+        index.upsert_concepts(normalized([concept("C3")]), None, self.provider)
+        with index._connect() as conn:
+            self.assertEqual(
+                conn.execute(
+                    "SELECT COUNT(*) FROM concept_vectors WHERE build_id = ?", (old,)
+                ).fetchone()[0],
+                0,
+            )
+            self.assertIsNone(
+                conn.execute(
+                    "SELECT name FROM sqlite_master WHERE name = ?", (fts_table(old),)
+                ).fetchone()
+            )
+
+    def test_duplicate_field_text_keeps_name_before_synonym_before_definition(self):
+        raw = concept(
+            "C1",
+            "Name",
+            synonyms=[{"name": "Name"}, {"name": "Alias"}],
+            definitions=[{"definition": "Name"}, {"definition": "Alias"}],
+        )
+        item = normalize_concept(raw, None, "active_cache")
+        self.assertEqual(concept_fields(item), [("name", "Name"), ("synonym", "Alias")])
+
+    def test_exact_name_key_collapses_whitespace_and_normalizes_unicode(self):
+        self.assertEqual(name_key("  CAFE\u0301\t  cell\n"), "café cell")
+
+    def test_nonbusy_failure_cleaning_a_stale_build_is_not_swallowed(self):
+        index = self.build([concept("C1")])
+        with index._connect() as conn:
+            conn.execute("UPDATE manifests SET active = 0, state = 'building'")
+        error = sqlite3.OperationalError("lease I/O failure")
+        error.sqlite_errorcode = sqlite3.SQLITE_IOERR
+        with (
+            index._connect() as conn,
+            patch("ncit_index.storage.delete_build", side_effect=error),
+            self.assertRaisesRegex(sqlite3.OperationalError, "lease I/O failure"),
+        ):
+            clean_stale_builds(conn, self.path)
+
+
+class RankingBoundaryTest(IndexTestCase):
+    def test_exact_name_beats_a_better_vector_before_page_selection(self):
+        provider = HashingEmbeddingProvider(dimensions=2)
+        values = {"Exact": [1.0, 0.0], "Other": [0.0, 1.0]}
+        with patch.object(provider, "embed", side_effect=lambda texts: [values[t] for t in texts]):
+            index = self.build([concept("C9", "Exact"), concept("C1", "Other")], provider=provider)
+        with patch.object(provider, "embed", return_value=[[0.0, 1.0]]):
+            hits = index.search("Exact", provider, mode="vector", limit=1)
+        self.assertEqual(
+            [(hit.concept.code, hit.score, hit.matched_on) for hit in hits], [("C9", 1.0, "name")]
+        )
+
+    def test_bm25_exact_casefold_match_is_injected_and_wins_score_ties(self):
+        index = self.build(
+            [
+                concept("C1", "Other", synonyms=[{"name": "STRASSE"}]),
+                concept("C9", "Straße"),
+            ]
+        )
+        hits = index.search("STRASSE", self.provider, mode="bm25", limit=1)
+        self.assertEqual(
+            [(hit.concept.code, hit.score, hit.matched_on) for hit in hits], [("C9", 1.0, "name")]
+        )
+
+    def test_bm25_ties_use_code_order_and_continue_after_the_first_page(self):
+        index = self.build(
+            [concept(code, "Other", synonyms=[{"name": "needle"}]) for code in ("C9", "C1", "C5")]
+        )
+        # A valid query plan can visit equal matches in insertion order.
+        # The public ordering must not depend on the optional lookup index.
+        with index._connect() as conn:
+            conn.execute("DROP INDEX fields_concept")
+        first, total, _ = index.search_page("needle", self.provider, mode="bm25", limit=1)
+        second, _, _ = index.search_page("needle", self.provider, mode="bm25", limit=1, offset=1)
+        self.assertEqual(total, 3)
+        self.assertEqual([first[0].concept.code, second[0].concept.code], ["C1", "C5"])
+        self.assertEqual([first[0].score, second[0].score], [1.0, 1.0])
+
+    def test_bm25_equal_fields_prefer_name_over_synonym_and_definition(self):
+        index = self.build(
+            [
+                concept(
+                    "C1",
+                    "alpha beta",
+                    synonyms=[{"name": "beta alpha"}],
+                    definitions=[{"definition": "alpha  beta"}],
+                )
+            ]
+        )
+        hits = index.search("alpha", self.provider, mode="bm25")
+        self.assertEqual(
+            [(hit.concept.code, hit.matched_on, hit.score) for hit in hits], [("C1", "name", 1.0)]
+        )
+
+    def test_hybrid_lexical_scores_stay_with_their_concepts_after_a_scan_chunk(self):
+        rows = [concept(f"C{i:03}", "noise") for i in range(256)] + [concept("C999", "needle")]
+        with patch.object(
+            self.provider, "embed", side_effect=lambda texts: [[1.0, 0.0] for _ in texts]
+        ):
+            index = self.build(rows)
+            hits = index.search("needle query", self.provider, mode="hybrid", limit=2)
+        self.assertEqual(hits[0].concept.code, "C999")
+        self.assertEqual(hits[0].score_components["bm25"], 1.0)
+        self.assertEqual(hits[1].score_components["bm25"], 0.0)
+
+    def test_vector_mode_never_reports_a_bm25_component_even_for_exact_names(self):
+        index = self.build([concept("C1", "Alpha"), concept("C2", "Alpha Beta")])
+        hits = index.search("Alpha", self.provider, mode="vector")
+        self.assertEqual([hit.concept.code for hit in hits], ["C1", "C2"])
+        self.assertEqual([hit.score_components["bm25"] for hit in hits], [0.0, 0.0])
+
+    def test_vector_nonexact_matches_also_have_no_bm25_component(self):
+        index = self.build([concept("C1", "Alpha Beta"), concept("C2", "Alpha Gamma")])
+        hits = index.search("Alpha", self.provider, mode="vector")
+        self.assertEqual({hit.concept.code for hit in hits}, {"C1", "C2"})
+        self.assertEqual([hit.score_components["bm25"] for hit in hits], [0.0, 0.0])
+
+    def test_positive_cosines_normalize_the_weakest_match_to_zero(self):
+        provider = HashingEmbeddingProvider(dimensions=2)
+        values = {"Alpha": [1.0, 0.0], "Beta": [1.0, 1.0], "query": [1.0, 0.0]}
+        with patch.object(provider, "embed", side_effect=lambda texts: [values[t] for t in texts]):
+            index = self.build([concept("C1", "Alpha"), concept("C2", "Beta")], provider=provider)
+            hits = index.search("query", provider, mode="vector")
+        self.assertEqual(
+            [(hit.concept.code, hit.score) for hit in hits], [("C1", 1.0), ("C2", 0.0)]
+        )
+
+    def test_no_matching_retirement_status_has_zero_total_and_no_hits(self):
+        index = self.build([concept("C1", "Alpha", active=True)])
+        hits, total, manifest = index.search_page(
+            "Alpha", self.provider, retired_status="Retired_Concept"
+        )
+        self.assertEqual((hits, total), ([], 0))
+        self.assertEqual(manifest.concept_count, 1)
+
+    def test_a_retirement_filter_pages_exactly_over_a_mix_of_multi_field_concepts(self):
+        # Concepts carry several fields each, so the scan's arrays must be sized by the
+        # fields of the matching concepts only, while the page stays exact.
+        index = self.build(
+            [
+                concept("C1", "Alpha", synonyms=[{"name": "Alpha one"}], active=False),
+                concept("C2", "Alpha two", synonyms=[{"name": "Alpha too"}], active=True),
+                concept("C3", "Alpha three", active=False),
+                concept("C4", "Alpha four", synonyms=[{"name": "Alpha 4"}], active=True),
+            ]
+        )
+        retired_status = "Retired_Concept"
+        with index._connect() as conn:
+            conn.execute(
+                "UPDATE concepts SET status = ? WHERE code IN ('C1', 'C3')", (retired_status,)
+            )
+        first, total, _ = index.search_page(
+            "Alpha", self.provider, mode="vector", limit=1, retired_status=retired_status
+        )
+        second, _, _ = index.search_page(
+            "Alpha", self.provider, mode="vector", limit=1, offset=1, retired_status=retired_status
+        )
+        self.assertEqual(total, 2)
+        self.assertEqual({hit.concept.code for hit in first + second}, {"C1", "C3"})
