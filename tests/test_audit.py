@@ -19,7 +19,7 @@ import yaml
 from mcp.types import JSONRPCMessage
 from pydantic import TypeAdapter
 
-from fakes import catalogue_rows, concept
+from fakes import FakeSSIS, catalogue_rows, concept
 from nci_si_mcp.audit import JsonFormatter, audited, compact, emit, hashed, secrets
 from nci_si_mcp.bounds import Budget, RequestBudgetError, budgeted
 from nci_si_mcp.config import Settings, configure_logging
@@ -636,3 +636,58 @@ class IndexAuditMutationTest(ServerFixture):
         self.assertEqual((first["release"], second["release"]), ("26.06e", "26.07a"))
         self.assertNotEqual(first["build_id"], second["build_id"])
         self.assertEqual(self.context.index.get_active_manifest().release_version, "26.07a")
+
+
+@patch("nci_si_mcp.server.configure_logging")
+class SeamContractMutationTest(ServerFixture):
+    def setUp(self):
+        super().setUp()
+        self.context.ssis = FakeSSIS(self.settings)
+
+    def test_all_cross_domain_parameters_keep_their_audit_privacy_class(self, _):
+        calls = (
+            (
+                "find_data_elements_for_concept",
+                {
+                    "conceptCode": "bad",
+                    "terminology": "ncit",
+                    "release": "26.06e",
+                    "expandDescendants": True,
+                    "includePermissibleValues": True,
+                    "limit": 17,
+                    "cursor": "cursor-canary",
+                },
+                {"cursor"},
+            ),
+            (
+                "get_concept_for_permissible_value",
+                {
+                    "permissibleValueId": "456",
+                    "dataElementId": "123",
+                    "value": "value-canary",
+                    "release": "26.06e",
+                },
+                {"value"},
+            ),
+            (
+                "resolve_stored_value",
+                {
+                    "conceptCode": "bad",
+                    "commons": "commons-canary",
+                    "dataElementId": "123",
+                    "release": "26.06e",
+                },
+                {"commons"},
+            ),
+            ("get_release_alignment", {"maxIntervalDays": -1}, set()),
+        )
+        for name, arguments, private in calls:
+            with self.subTest(tool=name), captured() as stream:
+                result = invoke(self.context, name, **arguments)
+                self.assertEqual(result["error"]["code"], "invalid_request")
+                expected = {
+                    key: {"sha256": digest(value)} if key in private else value
+                    for key, value in arguments.items()
+                }
+                self.assertEqual(records(stream)[0]["parameters"], expected)
+                self.assertTrue(all(arguments[key] not in stream.getvalue() for key in private))
