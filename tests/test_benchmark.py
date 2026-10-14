@@ -5,6 +5,7 @@ import unittest
 from contextlib import contextmanager, redirect_stdout
 from http.client import HTTPConnection
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import patch
 from urllib.parse import urlsplit
@@ -12,6 +13,7 @@ from urllib.parse import urlsplit
 from scripts import benchmark
 from scripts.benchmark_records import percentile, summarize
 
+from nci_si_acceptance import client
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
 
 
@@ -193,3 +195,28 @@ class CaseIsolationTest(unittest.TestCase):
             self.assertEqual(len(upstream.log()), 1)
             benchmark.environment_for("fixture", upstream, case)
             self.assertEqual(upstream.log(), [])
+
+
+class BenchmarkBoundaryTest(unittest.TestCase):
+    def test_unrecorded_fixture_response_cannot_be_published_as_complete_evidence(self):
+        case = benchmark.cases(["get_concept"])[0]
+        case["arguments"]["code"] = "C999999999"
+        with TemporaryDirectory() as directory:
+            output = Path(directory) / "benchmark.json"
+            with (
+                patch.object(benchmark, "cases", return_value=[case]),
+                self.assertRaisesRegex(ValueError, "unrecorded fixture response"),
+            ):
+                benchmark.run("fixture", ["get_concept"], 1, output)
+            self.assertFalse(json.loads(output.read_text())["complete"])
+
+    def test_benchmark_session_uses_its_own_timeout_instead_of_the_harness_default(self):
+        with (
+            TemporaryDirectory() as directory,
+            patch.object(client, "READ_TIMEOUT_SECONDS", 0.000001),
+        ):
+            report = benchmark.run("fixture", ["get_concept"], 1, Path(directory) / "report.json")
+        self.assertTrue(report["complete"])
+        result = report["cases"][0]
+        self.assertEqual(result["cold"]["summary"]["errorRate"], 0)
+        self.assertEqual(result["warm"]["summary"]["errorRate"], 0)
