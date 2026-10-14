@@ -10,13 +10,8 @@ from nci_si_mcp import invocation as invocation_module
 from nci_si_mcp.bounds import RequestBudgetError
 from nci_si_mcp.config import Settings
 from nci_si_mcp.context import Context
-from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.errors import (
-    IndexBuildError,
-    IndexCompatibilityError,
-    IndexStorageError,
     InputValidationError,
-    NoActiveIndexError,
     PlatformError,
     is_error_record,
 )
@@ -37,9 +32,18 @@ from nci_si_mcp.http_client import (
     UpstreamTooLargeError,
     UpstreamUnavailableError,
 )
-from nci_si_mcp.index import LocalIndex
+from nci_si_mcp.index_adapter import LocalIndexAdapter, index_event
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.release import RegistryMetadataError
+from ncit_index.embeddings import HashingEmbeddingProvider
+from ncit_index.errors import (
+    IndexBuildError,
+    IndexCompatibilityError,
+    IndexStorageError,
+    NoActiveIndexError,
+)
+from ncit_index.index import LocalIndex
+from test_index import normalized
 from test_traversal import complete_graph
 
 # Two releases that EVS marks latest for the monthly channel at once.
@@ -74,10 +78,11 @@ class HandlerTestCase(unittest.TestCase):
         self.context = self.make_context()
 
     def make_context(self, provider=None, **settings):
+        self.local_index = LocalIndex(self.path, on_event=index_event)
         return Context(
             Settings(data_dir=self.path, **settings),
             evs=self.evs,
-            index=LocalIndex(self.path),
+            index=LocalIndexAdapter(self.local_index),
             embedding_provider=provider or HashingEmbeddingProvider(),
         )
 
@@ -315,17 +320,17 @@ class IndexCodesTest(HandlerTestCase):
 class SearchTest(HandlerTestCase):
     def test_empty_search_keeps_its_release_during_concurrent_activation(self):
         self.index()
-        replacement = self.context.index.build(
-            [dict(KINASE, version="26.07a")], None, self.context.embedding_provider
+        replacement = self.local_index.build(
+            normalized([dict(KINASE, version="26.07a")]), None, self.context.embedding_provider
         )
-        search_page = self.context.index.search_page
+        search_page = self.local_index.search_page
 
         def activate_after_search(*args, **kwargs):
             result = search_page(*args, **kwargs)
-            self.context.index.activate(replacement.build_id)
+            self.local_index.activate(replacement.build_id)
             return result
 
-        with patch.object(self.context.index, "search_page", side_effect=activate_after_search):
+        with patch.object(self.local_index, "search_page", side_effect=activate_after_search):
             result = invoke(self.context, "search", "zzzz", mode="bm25")
         self.assertEqual(result["hits"], [])
         self.assertEqual(result["provenance"]["release"]["identifier"], "26.06e")
@@ -653,15 +658,20 @@ class FailureHandlingTest(HandlerTestCase):
 
     def test_sample_activation_conflict_is_reported_and_keeps_the_other_writer(self):
         self.index()
-        replacement = self.context.index.build([KINASE], None, self.context.embedding_provider)
-        build = self.context.index._build_stream
+        replacement = self.local_index.build(
+            normalized([KINASE]), None, self.context.embedding_provider
+        )
+        build = self.local_index._build_stream
 
         def activate_after_build(*args, **kwargs):
             candidate = build(*args, **kwargs)
-            self.context.index.activate(replacement.build_id)
+            self.local_index.activate(replacement.build_id)
             return candidate
 
-        with patch.object(self.context.index, "_build_stream", side_effect=activate_after_build):
+        with (
+            patch("nci_si_mcp.indexing.open_index", return_value=self.local_index),
+            patch.object(self.local_index, "_build_stream", side_effect=activate_after_build),
+        ):
             result = invoke(self.context, "index_codes", ["C3262"])
         self.assert_error(result, "internal_error")
         self.assertIn("retry the sample", result["error"]["message"])
@@ -692,7 +702,7 @@ class FailureHandlingTest(HandlerTestCase):
         with self.assertRaises(IndexBuildError):
             invocation_module.call(
                 "index_codes",
-                lambda: self.context.index.upsert_concepts([], None, HashingEmbeddingProvider()),
+                lambda: self.local_index.upsert_concepts([], None, HashingEmbeddingProvider()),
             )
 
     def test_unexpected_exceptions_are_not_disguised_as_results(self):

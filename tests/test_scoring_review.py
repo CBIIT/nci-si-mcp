@@ -3,8 +3,8 @@
 from unittest.mock import patch
 
 from fakes import concept
-from nci_si_mcp.embeddings import HashingEmbeddingProvider
-from nci_si_mcp.errors import IndexStorageError, PlatformError
+from ncit_index.embeddings import HashingEmbeddingProvider
+from ncit_index.errors import IndexCapabilityError, IndexStorageError
 from test_index import IndexTestCase
 
 
@@ -149,7 +149,9 @@ class ScoringReviewTest(IndexTestCase):
 
     def test_missing_numpy_names_the_unavailable_scoring_capability(self):
         index = self.build([concept("C1", "Alpha")])
-        with patch.dict("sys.modules", {"numpy": None}), self.assertRaises(PlatformError) as raised:
+        with (
+            patch.dict("sys.modules", {"numpy": None}),
+            self.assertRaises(IndexCapabilityError) as raised,
+        ):
             index.search("Alpha", self.provider, mode="vector")
-        self.assertEqual(raised.exception.code, "capability_unavailable")
         self.assertEqual(raised.exception.details, {"capability": "semantic/hybrid index scoring"})

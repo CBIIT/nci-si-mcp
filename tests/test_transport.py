@@ -13,10 +13,10 @@ from mcp.server.auth.settings import AuthSettings
 
 from fakes import release
 from nci_si_mcp.audit import JsonFormatter
-from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.evs import EVSReleaseNotFoundError
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.transport import create_http_app
+from ncit_index.embeddings import HashingEmbeddingProvider
 from test_release_selection import initialize_http, version
 from test_server import ServerFixture
 
@@ -55,6 +55,28 @@ def result(response):
 
 
 class HTTPTest(ServerFixture):
+    def test_legacy_index_readiness_keeps_the_previous_error_identity(self):
+        logging.disable(logging.NOTSET)
+        invoke(self.context, "index_codes", ["C3262"])
+
+        async def scenario():
+            async with http_app(self.settings, self.context) as client:
+                ready = await client.get("/ready")
+                manifest = self.local_index.get_active_manifest()
+                with self.local_index._connect() as connection:
+                    connection.execute(
+                        "UPDATE manifests SET payload = ?",
+                        (json.dumps(replace(manifest, needs_rebuild=True).to_dict()),),
+                    )
+                with self.assertLogs("nci_si_mcp.transport", level="WARNING") as captured:
+                    blocked = await client.get("/ready")
+                return ready, blocked, captured.records
+
+        ready, blocked, records = asyncio.run(scenario())
+        self.assertEqual((ready.status_code, ready.json()), (200, {"status": "ready"}))
+        self.assertEqual((blocked.status_code, blocked.json()), (503, {"status": "not_ready"}))
+        self.assertEqual(records[0].structured["errorType"], "PlatformError")
+
     def setUp(self):
         super().setUp()
         self.evs.concepts = deepcopy(self.evs.concepts)
@@ -236,7 +258,7 @@ class HTTPTest(ServerFixture):
         async def scenario():
             async with http_app(self.settings, self.context) as client:
                 ready = await client.get("/ready")
-                self.context.index.db_path.write_bytes(b"not SQLite" * 1000)
+                self.local_index.db_path.write_bytes(b"not SQLite" * 1000)
                 corrupt = await client.get("/ready")
                 return ready, corrupt
 
@@ -296,7 +318,7 @@ class HTTPTest(ServerFixture):
             [record["errorType"] for record in records],
             ["NoActiveIndexError", "IndexCompatibilityError"],
         )
-        self.assertNotIn(str(self.context.index.db_path), json.dumps(records))
+        self.assertNotIn(str(self.local_index.db_path), json.dumps(records))
 
     def test_host_and_origin_allow_lists_cover_health_and_mcp_even_on_wildcard_bind(self):
         settings = replace(self.settings, http_host="0.0.0.0")  # noqa: S104 - ASGI test, no socket

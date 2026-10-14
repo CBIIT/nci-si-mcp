@@ -10,19 +10,19 @@ from unittest.mock import patch
 import numpy as np
 
 from fakes import concept
-from nci_si_mcp.embeddings import HashingEmbeddingProvider, SentenceTransformersProvider
-from nci_si_mcp.errors import IndexCompatibilityError, IndexStorageError
 from nci_si_mcp.evs import normalize_concept
-from nci_si_mcp.index import LocalIndex
-from nci_si_mcp.index_storage import (
+from nci_si_mcp.models import IndexManifest
+from ncit_index.embeddings import HashingEmbeddingProvider, SentenceTransformersProvider
+from ncit_index.errors import IndexCompatibilityError, IndexStorageError
+from ncit_index.index import LocalIndex
+from ncit_index.storage import (
     SCHEMA_VERSION,
     concept_fields,
     create_fts,
     fts_table,
     vector_bytes,
 )
-from nci_si_mcp.models import IndexManifest
-from test_index import IndexTestCase
+from test_index import IndexTestCase, normalized
 
 
 def schema_five(conn):
@@ -94,7 +94,7 @@ class Float32MigrationTest(IndexTestCase):
             active = self.old_build(conn, "a" * 32, rows, True)
             older = self.old_build(conn, "b" * 32, [concept("C3", "Older", active=True)], False)
         index = LocalIndex(self.path)
-        self.assertEqual(index.get_active_manifest(), active)
+        self.assertEqual(index.get_active_manifest().to_dict(), active.to_dict())
         self.assertEqual(
             {m.build_id for m in index.list_builds()}, {active.build_id, older.build_id}
         )
@@ -124,7 +124,9 @@ class VectorIntegrityTest(IndexTestCase):
             provider, "embed", side_effect=lambda texts: [values[text] for text in texts]
         ):
             index = LocalIndex(self.path)
-            index.upsert_concepts([concept("C1", "Alpha"), concept("C2", "Beta")], None, provider)
+            index.upsert_concepts(
+                normalized([concept("C1", "Alpha"), concept("C2", "Beta")]), None, provider
+            )
             hits = index.search("query", provider, mode="vector")
         self.assertEqual([hit.concept.code for hit in hits], ["C1", "C2"])
         self.assertGreater(hits[0].score, hits[1].score)
@@ -142,7 +144,7 @@ class VectorIntegrityTest(IndexTestCase):
                 ),
                 self.assertRaises(IndexCompatibilityError),
             ):
-                index.upsert_concepts([concept("C99", "New")], None, self.provider)
+                index.upsert_concepts(normalized([concept("C99", "New")]), None, self.provider)
             self.assertEqual(index.get_active_manifest(), active)
             self.assertIsNone(index.get_concept_snapshot("C99")[1])
 
@@ -151,7 +153,7 @@ class VectorIntegrityTest(IndexTestCase):
         with patch.object(provider, "embed", side_effect=lambda texts: [[0.0, 1.0] for _ in texts]):
             index = LocalIndex(self.path)
             index.upsert_concepts(
-                [concept(f"C{i:05}", "Other") for i in range(300)],
+                normalized([concept(f"C{i:05}", "Other") for i in range(300)]),
                 None,
                 provider,
             )
@@ -188,7 +190,9 @@ class VectorIntegrityTest(IndexTestCase):
             provider, "embed", side_effect=lambda texts: [values[text] for text in texts]
         ):
             index = LocalIndex(self.path)
-            index.upsert_concepts([concept("C1", "Alpha"), concept("C2", "Beta")], None, provider)
+            index.upsert_concepts(
+                normalized([concept("C1", "Alpha"), concept("C2", "Beta")]), None, provider
+            )
             hits = index.search("query", provider, mode="vector")
         self.assertEqual([hit.concept.code for hit in hits], ["C1", "C2"])
         self.assertEqual(hits[0].score, hits[1].score)

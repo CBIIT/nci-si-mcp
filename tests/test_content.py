@@ -10,6 +10,7 @@ from nci_si_mcp.evs import EVSClient
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.traversal import traverse_ncit
 from test_bounds import BudgetHub
+from test_index import normalized
 from test_server import ServerFixture
 
 
@@ -172,13 +173,13 @@ class ContentTest(ServerFixture):
 
     def test_empty_search_has_provenance_and_detects_a_replaced_index(self):
         self.index()
-        with patch("nci_si_mcp.index.rank_page", return_value=([], 0)):
+        with patch("ncit_index.index.rank_page", return_value=([], 0)):
             result = self.content("search_concepts", query="No match", mode="semantic")
             self.assertEqual(result["results"], [])
             self.assertEqual(result["provenance"]["release"]["identifier"], "26.06e")
             self.evs.concepts = {"C3": concept("C3", version="new", active=True)}
-            self.context.index.upsert_concepts(
-                list(self.evs.concepts.values()), None, self.context.embedding_provider
+            self.local_index.upsert_concepts(
+                normalized(self.evs.concepts.values()), None, self.context.embedding_provider
             )
             result = self.content("search_concepts", query="No match", mode="semantic")
             self.assertEqual(result["error"]["code"], "release_mismatch")
@@ -267,8 +268,8 @@ class ContentTest(ServerFixture):
         self.assertEqual(result["error"]["code"], "upstream_unavailable")
 
     def index(self):
-        self.context.index.upsert_concepts(
-            list(self.evs.concepts.values()),
+        self.local_index.upsert_concepts(
+            normalized(self.evs.concepts.values()),
             None,
             self.context.embedding_provider,
             expected_release_version="26.06e",

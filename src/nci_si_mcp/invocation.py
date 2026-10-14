@@ -6,18 +6,24 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
+from ncit_index.errors import (
+    IndexCapabilityError,
+    IndexCompatibilityError,
+    IndexCursorError,
+    IndexEvaluationError,
+    IndexReleaseError,
+    IndexStateError,
+    IndexStorageError,
+    NoActiveIndexError,
+)
+
 from .audit import emit
 from .bounds import (
     RequestBudgetError,
 )
 from .errors import (
     ErrorCode,
-    IndexCompatibilityError,
-    IndexEvaluationError,
-    IndexStateError,
-    IndexStorageError,
     InputValidationError,
-    NoActiveIndexError,
     PlatformError,
     serialise,
     with_next_step,
@@ -45,6 +51,9 @@ logger = logging.getLogger(__name__)
 # record. Anything else is a bug and propagates. A `PlatformError` is reported as it is,
 # with the message its raiser wrote.
 _ERROR_CODES: dict[type[Exception], tuple[ErrorCode, str]] = {
+    IndexCapabilityError: ("capability_unavailable", ""),
+    IndexCursorError: ("cursor_expired", ""),
+    IndexReleaseError: ("release_mismatch", ""),
     RequestBudgetError: ("bound_exceeded", "Ask for fewer start codes or a smaller traversal."),
     InputValidationError: ("invalid_request", "Correct the argument and call again."),
     EVSNotFoundError: (
@@ -105,7 +114,8 @@ def _platform_error(exc: Exception) -> PlatformError:
         return exc
     code, next_step = next(_ERROR_CODES[cls] for cls in type(exc).__mro__ if cls in _ERROR_CODES)
     details = getattr(exc, "details", {})
-    return PlatformError(code, with_next_step(str(exc), next_step), **details)
+    message = with_next_step(str(exc), next_step) if next_step else str(exc)
+    return PlatformError(code, message, **details)
 
 
 def error_record(exc: Exception) -> dict[str, Any]:

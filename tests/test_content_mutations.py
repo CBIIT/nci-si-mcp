@@ -3,8 +3,9 @@ from unittest.mock import patch
 
 from fakes import concept, terminology_row
 from nci_si_mcp.bounds import Budget, current_budget
-from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.registry import invoke
+from ncit_index.embeddings import HashingEmbeddingProvider
+from test_index import normalized
 from test_server import ServerFixture, pinned
 
 
@@ -17,8 +18,11 @@ class ContentMutationTest(ServerFixture):
         return invoke(self.context, operation, **pinned(**arguments))
 
     def index_concepts(self, concepts):
-        self.context.index.upsert_concepts(
-            concepts, None, self.context.embedding_provider, expected_release_version="26.06e"
+        self.local_index.upsert_concepts(
+            normalized(concepts),
+            None,
+            self.context.embedding_provider,
+            expected_release_version="26.06e",
         )
 
     def children(self, count):

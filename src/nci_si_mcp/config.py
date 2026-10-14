@@ -11,8 +11,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from ncit_index.embeddings import normalize_embedding_settings
+
 from .audit import JsonFormatter
-from .embeddings import normalize_embedding_settings
 from .validation import (
     HTTP_AUTH_MODES,
     HTTP_SESSIONS,

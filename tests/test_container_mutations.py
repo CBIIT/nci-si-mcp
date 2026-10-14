@@ -8,7 +8,8 @@ from unittest.mock import patch
 
 from fakes import concept
 from nci_si_mcp import container_entry
-from nci_si_mcp.embeddings import HashingEmbeddingProvider, SentenceTransformersProvider
+from ncit_index.embeddings import HashingEmbeddingProvider, SentenceTransformersProvider
+from test_index import normalized
 from test_server import ServerFixture
 from test_storage_review import update_manifest
 
@@ -25,9 +26,11 @@ class OfflineModel:
 class ContainerOfflineTest(ServerFixture):
     def test_legacy_active_index_fails_startup_until_operator_rebuilds_it(self):
         settings = replace(self.settings, transport="streamable-http", http_require_index=True)
-        self.context.index.upsert_concepts([concept("C1")], None, HashingEmbeddingProvider())
+        self.local_index.upsert_concepts(
+            normalized([concept("C1")]), None, HashingEmbeddingProvider()
+        )
         legacy = replace(self.context.index.get_active_manifest(), needs_rebuild=True)
-        update_manifest(self.context.index, legacy)
+        update_manifest(self.local_index, legacy)
         logging.disable(logging.NOTSET)
         with (
             patch.object(container_entry.Settings, "from_env", return_value=settings),
@@ -60,7 +63,7 @@ class ContainerOfflineTest(ServerFixture):
             {"sentence_transformers": types.SimpleNamespace(SentenceTransformer=OfflineModel)},
         ):
             provider = SentenceTransformersProvider(settings.embedding_model, local_files_only=True)
-            self.context.index.upsert_concepts([concept("C1")], None, provider)
+            self.local_index.upsert_concepts(normalized([concept("C1")]), None, provider)
             before = self.context.index.get_active_manifest()
             with (
                 patch.object(container_entry.Settings, "from_env", return_value=settings),

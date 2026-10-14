@@ -373,8 +373,10 @@ boundary directly; EVS errors identify only EVS-specific failures. Attempts are 
 the `on_request` hook. A credential is a header of one client and goes to that client's origin only;
 it is redacted from every message built from what the platform said.
 
-`LocalIndex._connect` turns SQLite failures of the database itself (locked, unreadable, not a
-database) into `IndexStorageError` naming the file; constraint and usage errors propagate as bugs.
+`ncit_index.index.LocalIndex._connect` turns SQLite failures of the database itself (locked,
+unreadable, not a database) into `ncit_index.errors.IndexStorageError` naming the file;
+constraint and usage errors propagate as bugs. Index exceptions belong to `ncit_index.errors`,
+not MCP `errors.py`; `invocation._ERROR_CODES` maps them with existing messages and details.
 A 404 from EVS means "no such concept" only for `EVSClient.get_concept`. Every other method goes
 through `_get_existing`, which converts a 404 to `EVSResponseError` (a wrong base URL).
 
@@ -412,7 +414,23 @@ update them when behaviour changes.
 
 ### Index and search
 
-`LocalIndex._connect()` is a context manager that commits or rolls back and then closes; use it for
+The interim index is the top-level `ncit_index` package: `index.py`, `storage.py`, `scoring.py`,
+`embeddings.py`, `records.py` and `errors.py`. It ships in the MCP distribution but imports no
+`nci_si_mcp` or MCP modules; NumPy and sentence-transformers stay lazy. Stored records and index
+exceptions belong to the package; EVS normalization and protocol provenance stay MCP-side.
+
+`Context.index` is the read-only `IndexPort` in `index_port.py`: `get_active_manifest`,
+`verify_active(provider)`, `get_concept_snapshot(code)` and
+`search_page(query, provider, limit, mode, requested_release, offset, build_id, retired_status)`.
+`index_adapter.py` supplies `LocalIndexAdapter`, search validation, record conversion and the
+callback that translates package events to audit. `cursor.py` remains MCP-owned.
+Context has no operator accessor. CLI index commands and `evaluation.py` open the package's
+public operator API through the small factory in `indexing.py`, never through the read port.
+Evaluation orchestration stays in the MCP distribution. The [migration guide](docs/index-migration.md)
+describes a future EVS service, HTTP read adapter, one-setting switch and retirement of local
+operators; none is implemented. Phase 30 leaves results, errors, audit and provenance unchanged.
+
+`ncit_index.index.LocalIndex._connect()` commits or rolls back and then closes; use it for
 every database access. `upsert_concepts` reads a consistent snapshot and checks
 compatibility before snapshot creation. Embeddings run outside transactions; each
 batch is written in a short transaction under a building manifest. Only completed builds activate.

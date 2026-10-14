@@ -6,11 +6,17 @@ import logging
 from typing import TYPE_CHECKING, Any
 from urllib.request import parse_http_list
 
+from ncit_index.errors import (
+    IndexCapabilityError,
+    IndexCompatibilityError,
+    IndexStorageError,
+    NoActiveIndexError,
+)
+
 from .audit import emit
 from .config import Settings
 from .context import Context
 from .errors import PlatformError
-from .index import IndexCompatibilityError, IndexStorageError, NoActiveIndexError
 from .permissions import AuthorityResolver
 from .server import create_mcp
 
@@ -99,8 +105,14 @@ def _readiness_error(context: Context, require_index: bool) -> str | None:
         if not require_index and context.index.get_active_manifest() is None:
             return None
         context.index.verify_active(context.embedding_provider)
-    except (IndexStorageError, IndexCompatibilityError, NoActiveIndexError, PlatformError) as exc:
-        return type(exc).__name__
+    except (
+        IndexStorageError,
+        IndexCompatibilityError,
+        NoActiveIndexError,
+        IndexCapabilityError,
+        PlatformError,
+    ) as exc:
+        return "PlatformError" if isinstance(exc, IndexCapabilityError) else type(exc).__name__
     return None
 
 

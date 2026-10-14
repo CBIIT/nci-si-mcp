@@ -7,6 +7,11 @@ from collections.abc import Callable
 from itertools import batched
 from typing import Annotated, Any, cast, get_args
 
+from ncit_index.errors import NoActiveIndexError
+from ncit_index.index import require_index_release
+from ncit_index.records import IndexManifest
+
+from . import indexing
 from .audit import emit
 from .bounds import (
     DEFAULT_MAX_DEPTH,
@@ -19,7 +24,6 @@ from .catalogue import exclusion_codes
 from .content import get_concept
 from .context import Context
 from .errors import (
-    NoActiveIndexError,
     PlatformError,
     is_error_record,
 )
@@ -33,11 +37,10 @@ from .evs import (
     normalize_concept,
 )
 from .http_client import UpstreamError, UpstreamUnavailableError
-from .index import require_index_release
+from .index_adapter import manifest_record, results_truncation
 from .indexing import full_build
 from .invocation import error_record
 from .models import (
-    IndexManifest,
     live_provenance,
     release_ref,
     upstream_origin,
@@ -252,8 +255,8 @@ def index_codes(context: Context, codes: list[str]) -> dict[str, Any]:
             "the index was not changed. Remove the codes, or check them against that release.",
             identifiers=missing_codes,
         )
-    manifest = context.index.upsert_concepts(
-        raw_concepts=raw_concepts,
+    manifest = indexing.open_index(context.settings.data_dir).upsert_concepts(
+        raw_concepts=(normalize_concept(raw, release.date, "active_cache") for raw in raw_concepts),
         release_date=release.date,
         embedding_provider=context.embedding_provider,
         expected_release_version=release.version,
@@ -265,7 +268,7 @@ def index_codes(context: Context, codes: list[str]) -> dict[str, Any]:
         release=manifest.release_version,
         concepts=manifest.concept_count,
     )
-    return manifest.to_result()
+    return manifest_record(manifest).to_result()
 
 
 def index_build(context: Context) -> dict[str, Any]:
@@ -276,32 +279,41 @@ def index_build(context: Context) -> dict[str, Any]:
 
 def index_builds(context: Context) -> dict[str, Any]:
     """List completed operator snapshots and identify the active build."""
-    return {"builds": [item.to_dict() for item in context.index.list_builds()]}
+    return {
+        "builds": [
+            item.to_dict() for item in indexing.open_index(context.settings.data_dir).list_builds()
+        ]
+    }
 
 
 def index_rebuild(context: Context, build_id: str) -> dict[str, Any]:
     """Rebuild stored raw concepts offline; evaluate new production snapshots."""
-    built = context.index.rebuild(build_id, context.embedding_provider)
+    built = indexing.open_index(context.settings.data_dir).rebuild(
+        build_id, context.embedding_provider
+    )
     return _evaluated_build(context, built)
 
 
 def _evaluated_build(context: Context, built: IndexManifest) -> dict[str, Any]:
     if built.build_kind == "production":
         built = evaluate_build(
-            context.index, context.embedding_provider, production_set(), built.build_id
+            indexing.open_index(context.settings.data_dir),
+            context.embedding_provider,
+            production_set(),
+            built.build_id,
         )
         return {
             "buildId": built.build_id,
-            "manifest": built.to_result(),
+            "manifest": manifest_record(built).to_result(),
             "evaluation": built.evaluation_report,
         }
-    return {"buildId": built.build_id, "manifest": built.to_result()}
+    return {"buildId": built.build_id, "manifest": manifest_record(built).to_result()}
 
 
 def index_activate(context: Context, build_id: str) -> dict[str, Any]:
     """Activate a completed build; the replaced build is retained for rollback."""
-    active = context.index.activate(build_id)
-    return {"buildId": active.build_id, "manifest": active.to_result()}
+    active = indexing.open_index(context.settings.data_dir).activate(build_id)
+    return {"buildId": active.build_id, "manifest": manifest_record(active).to_result()}
 
 
 def search(
@@ -340,14 +352,14 @@ def search(
     out; it then names the `results` bound and how many were `omitted`,
     `exact` where that is a count and not a lower bound."""
     query, limit, normalized_mode = validate_search(query, limit, mode)
-    hits, truncation, manifest = context.index.search_snapshot(
+    hits, total, manifest = context.index.search_page(
         query, context.embedding_provider, limit=limit, mode=normalized_mode
     )
     result: dict[str, Any] = {
         "query": query,
         "mode": normalized_mode,
         "hits": [hit.to_dict(None, include_raw=include_raw) for hit in hits],
-        "truncation": truncation.to_dict(),
+        "truncation": results_truncation(total, limit).to_dict(),
     }
     # A result with no item has none to carry the provenance (M3.2).
     if not hits:
@@ -521,19 +533,20 @@ def traverse(
 
 def evaluate(context: Context, build_id: str | None = None) -> dict[str, Any]:
     """Score the versioned queries on a candidate or the active build; gate production only."""
+    index = indexing.open_index(context.settings.data_dir)
     if build_id is None:
-        active = context.index.get_active_manifest()
+        active = index.get_active_manifest()
         if active is None:
             raise NoActiveIndexError("No active NCIt index is available")
         build_id = active.build_id
     dataset = production_set()
     codes = {code for gold in dataset.queries for code in gold.expected_codes}
-    manifest, missing = context.index.evaluation_inputs(build_id, codes)
+    manifest, missing = index.evaluation_inputs(build_id, codes)
     if manifest.build_kind not in {"sample", "legacy"}:
-        evaluated = evaluate_build(context.index, context.embedding_provider, dataset, build_id)
+        evaluated = evaluate_build(index, context.embedding_provider, dataset, build_id)
         return cast("dict[str, Any]", evaluated.evaluation_report)
     results = evaluate_retrieval(
-        context.index, context.embedding_provider, dataset.queries, build_id=build_id
+        index, context.embedding_provider, dataset.queries, build_id=build_id
     )
     return {
         "build_id": build_id,

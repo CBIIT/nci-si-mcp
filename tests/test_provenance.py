@@ -14,13 +14,14 @@ import yaml
 from fakes import FakeEVS, concept, release
 from nci_si_mcp.config import Settings
 from nci_si_mcp.context import Context
-from nci_si_mcp.embeddings import HashingEmbeddingProvider
 from nci_si_mcp.errors import call_correlation_id, correlated
 from nci_si_mcp.http_client import UpstreamTooLargeError, UpstreamUnavailableError
-from nci_si_mcp.index import LocalIndex
+from nci_si_mcp.index_adapter import LocalIndexAdapter, results_truncation
 from nci_si_mcp.models import NcitConcept, utc_now_iso
 from nci_si_mcp.registry import invoke
-from test_index import synthetic_concepts
+from ncit_index.embeddings import HashingEmbeddingProvider
+from ncit_index.index import LocalIndex
+from test_index import normalized, synthetic_concepts
 from test_traversal import complete_graph
 
 RECORDS = yaml.safe_load((Path(__file__).parent.parent / "spec/records.yaml").read_text())
@@ -73,7 +74,7 @@ class ProvenanceTestCase(unittest.TestCase):
         self.context = Context(
             Settings(data_dir=self.path),
             evs=self.evs,
-            index=LocalIndex(self.path),
+            index=LocalIndexAdapter(LocalIndex(self.path)),
             embedding_provider=HashingEmbeddingProvider(),
         )
 
@@ -760,11 +761,18 @@ class EdgeTypeProvenanceTest(ProvenanceTestCase):
 
 class ExactnessBoundaryTest(ProvenanceTestCase):
     def search(self, index, limit, mode):
-        return index.search_snapshot("alpha1", HashingEmbeddingProvider(), limit, mode)[1]
+        _, total, _ = LocalIndexAdapter(index).search_page(
+            "alpha1", HashingEmbeddingProvider(), limit, mode
+        )
+        return results_truncation(total, limit)
 
     def build(self, count):
         index = LocalIndex(self.path)
-        index.upsert_concepts(synthetic_concepts(count), "2026-06-29", HashingEmbeddingProvider())
+        index.upsert_concepts(
+            normalized(synthetic_concepts(count), "2026-06-29"),
+            "2026-06-29",
+            HashingEmbeddingProvider(),
+        )
         return index
 
     def test_vector_truncation_counts_every_indexed_concept(self):

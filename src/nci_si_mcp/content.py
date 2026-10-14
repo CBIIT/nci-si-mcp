@@ -7,6 +7,8 @@ from itertools import batched
 from typing import Annotated, Any, NoReturn, get_args
 from urllib.parse import urlsplit
 
+from ncit_index.errors import NoActiveIndexError
+
 from . import cursor as cursors
 from . import fhir
 from .bounds import (
@@ -23,7 +25,7 @@ from .bounds import (
 )
 from .catalogue import exclusion_codes, load_catalogue
 from .context import Context
-from .errors import InputValidationError, NoActiveIndexError, PlatformError, call_correlation_id
+from .errors import InputValidationError, PlatformError, call_correlation_id
 from .evs import (
     EVSReleaseNotFoundError,
     EVSResponseError,

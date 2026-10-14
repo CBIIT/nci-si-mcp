@@ -45,35 +45,6 @@ class InputValidationError(ValueError):
         )
 
 
-class IndexCompatibilityError(RuntimeError):
-    """Raised when an index write or search would mix releases or embedding spaces,
-    or when the database was written by a newer schema than this code supports."""
-
-
-class IndexBuildError(RuntimeError):
-    """Raised when the concepts handed to the index cannot form one release.
-
-    The service rejects such EVS payloads before indexing, so this signals a
-    bug in a caller rather than a condition to report to a user.
-    """
-
-
-class IndexEvaluationError(IndexBuildError):
-    """An operator build violates the evaluation or sample-isolation policy."""
-
-
-class IndexStateError(IndexBuildError):
-    """An operator-selected build is unavailable or a concurrent writer changed it."""
-
-
-class NoActiveIndexError(RuntimeError):
-    """Raised when a search is attempted before any index has been built."""
-
-
-class IndexStorageError(RuntimeError):
-    """Raised when SQLite cannot open, read or write the index database."""
-
-
 def with_next_step(message: str, step: str) -> str:
     """Append the caller's next step to a message."""
 

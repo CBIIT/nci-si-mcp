@@ -8,6 +8,7 @@ from mcp.shared.exceptions import MCPError
 
 from fakes import concept, terminology_row
 from nci_si_mcp.registry import invoke
+from test_index import normalized
 from test_server import ServerFixture
 
 
@@ -124,8 +125,8 @@ class ResourceTest(ServerFixture):
         self.assertEqual(absent["code"], "capability_unavailable")
         self.assertIn("index-build", absent["message"])
         invoke(self.context, "index_codes", ["C3262"])
-        candidate = self.context.index.build(
-            [concept("C3262", version="25.12e")],
+        candidate = self.local_index.build(
+            normalized([concept("C3262", version="25.12e")]),
             None,
             self.context.embedding_provider,
         )
@@ -135,7 +136,7 @@ class ResourceTest(ServerFixture):
             mismatch["details"],
             {"requested": "25.12e", "served": ["26.06e"], "source": "index"},
         )
-        self.context.index.activate(candidate.build_id)
+        self.local_index.activate(candidate.build_id)
         result = self.read("ncit://index/manifest/25.12e")
         self.assertEqual(result["version"], "25.12e")
         self.assertEqual(result["provenance"]["source"], "evs_index")

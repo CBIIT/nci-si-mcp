@@ -9,8 +9,9 @@ from sentence_transformers import SentenceTransformer
 from sentence_transformers.sentence_transformer.modules import BoW
 
 from nci_si_mcp.config import configure_logging
-from nci_si_mcp.embeddings import SentenceTransformersProvider
-from nci_si_mcp.index import LocalIndex
+from nci_si_mcp.evs import normalize_concept
+from nci_si_mcp.indexing import open_index
+from ncit_index.embeddings import SentenceTransformersProvider
 
 root = Path("/assets")
 configure_logging("INFO")
@@ -31,8 +32,10 @@ with patch("socket.socket.connect", side_effect=AssertionError("Model attempted 
         pass  # Missing external assets must fail even with network calls forbidden.
     else:
         raise RuntimeError("Missing model unexpectedly loaded")
-index = LocalIndex(root / "data")
-concept = json.loads(Path("/concept.json").read_text())["response"]["body"]
+index = open_index(root / "data")
+concept = normalize_concept(
+    json.loads(Path("/concept.json").read_text())["response"]["body"], None, "active_cache"
+)
 index.upsert_concepts([concept], None, provider)
 manifest = index.upsert_concepts([concept], None, provider)
 results = index.search("neoplasm", provider, limit=1, mode="vector")

@@ -136,7 +136,7 @@ pythonpath = ["tests", "scripts/validation"]
 
 [tool.coverage.run]
 branch = true
-source = ["nci_si_mcp", "scripts"]
+source = ["nci_si_mcp", "ncit_index", "scripts"]
 # Every script is measured except these, each named with its reason. The patterns start with
 # a wildcard because a test's child process runs from another directory.
 omit = [
@@ -187,10 +187,10 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 # Optional extras (mcp, sentence-transformers) are imported where they are first needed.
-"src/nci_si_mcp/embeddings.py" = ["PLC0415"]
+"src/ncit_index/embeddings.py" = ["PLC0415"]
 "src/nci_si_mcp/server.py" = ["PLC0415"]
 "src/nci_si_mcp/transport.py" = ["PLC0415"]
-"src/nci_si_mcp/index_scoring.py" = ["PLC0415"]
+"src/ncit_index/scoring.py" = ["PLC0415"]
 # The gate scripts report on the terminal.
 "scripts/**/*.py" = ["T20"]
 # The acceptance suite is written in pytest's style, which asserts with `assert`.

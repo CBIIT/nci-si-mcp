@@ -18,7 +18,8 @@ from typing import Any
 from uuid import uuid4
 
 from .errors import IndexCompatibilityError, IndexStorageError
-from .models import IndexManifest, NcitConcept
+from .records import Concept as NcitConcept
+from .records import IndexManifest
 
 SCHEMA_VERSION = 6
 FIELD_KINDS = ("name", "synonym", "definition")
