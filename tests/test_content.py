@@ -11,7 +11,7 @@ from nci_si_mcp.registry import invoke
 from nci_si_mcp.traversal import traverse_ncit
 from test_bounds import BudgetHub
 from test_index import normalized
-from test_server import ServerFixture
+from test_server import ServerFixture, pinned
 
 
 class ContentTest(ServerFixture):
@@ -526,3 +526,200 @@ class ContentTest(ServerFixture):
                 "exact": False,
             },
         )
+
+
+def relation(code, name="relation"):
+    return {"relatedCode": code, "relatedName": code, "type": name}
+
+
+class ContentReviewTest(ServerFixture):
+    def setUp(self):
+        super().setUp()
+        self.evs.concepts = {
+            "C1": concept("C1", "One", active=True, children=[{"code": "C2"}]),
+            "C2": concept("C2", "Two", active=True),
+        }
+
+    def call(self, tool, **arguments):
+        return invoke(
+            self.context,
+            tool,
+            **({"terminology": "ncit", "release": "26.06e"} | arguments),
+        )
+
+    def search(self, **arguments):
+        return self.call("search_concepts", **({"query": "One", "limit": 1} | arguments))
+
+    def live_rows(self, total, rows):
+        return patch.object(self.evs, "search_concepts", return_value=(total, rows), create=True)
+
+    def hierarchy(self, **arguments):
+        return self.call(
+            "get_concept_hierarchy",
+            **({"code": "C1", "direction": "child", "limit": 1} | arguments),
+        )
+
+    def test_live_and_hierarchy_provenance_belongs_only_to_empty_results(self):
+        with self.live_rows(1, [self.evs.concepts["C1"]]):
+            self.assertNotIn("provenance", self.search())
+        self.assertNotIn("provenance", self.hierarchy())
+        with self.live_rows(0, []):
+            empty = self.search()
+        self.assertEqual(empty["results"], [])
+        self.assertEqual(
+            empty["provenance"]["sourceUri"],
+            "https://evs.test/api/v1/concept/ncit_26.06e/search",
+        )
+
+    def test_malformed_live_match_code_fails_at_content_boundary(self):
+        for code in (None, "", 123):
+            with (
+                self.subTest(code=code),
+                self.live_rows(1, [self.evs.concepts["C1"] | {"code": code}]),
+            ):
+                result = self.search()
+                self.assertEqual(result["error"]["code"], "upstream_unavailable")
+                self.assertNotIn("results", result)
+
+
+class ContentMutationTest(ServerFixture):
+    def content(self, operation, **arguments):
+        return invoke(self.context, operation, **pinned(**arguments))
+
+    def children(self, count):
+        targets = [{"code": f"C{i}", "name": str(i)} for i in range(2, count + 2)]
+        self.evs.concepts = {item["code"]: concept(item["code"], active=True) for item in targets}
+        self.evs.concepts["C1"] = concept("C1", active=True, children=targets)
+
+    def test_neighborhood_reports_its_hard_node_maximum(self):
+        self.children(1000)
+        result = self.content(
+            "get_concept_neighborhood",
+            code="C1",
+            kinds=["child"],
+            depth=1,
+            maxNodes=9000,
+            budgetPerKind=9000,
+        )
+        self.assertEqual(len(result["nodes"]), 1000)
+        self.assertEqual(result["truncation"]["bound"], "nodes")
+        self.assertEqual(result["truncation"]["limit"], 1000)
+
+    def test_neighborhood_reports_its_hard_edge_maximum(self):
+        self.evs.concepts = {
+            "C1": concept("C1", active=True, roles=[relation("C1", f"R{i}") for i in range(5001)])
+        }
+        result = self.content(
+            "get_concept_neighborhood", code="C1", kinds=["role"], depth=1, maxEdges=9000
+        )
+        self.assertEqual(len(result["edges"]), 5000)
+        self.assertEqual(result["truncation"]["bound"], "edges")
+        self.assertEqual(result["truncation"]["limit"], 5000)
+
+    def test_two_kind_hydration_cut_reports_actual_requests_and_uncertainty(self):
+        self.children(2)
+        self.evs.concepts["C1"]["roles"] = [relation("C4")]
+        original = self.evs.get_concepts_by_codes
+
+        def counted(*args, **kwargs):
+            current_budget().request()
+            return original(*args, **kwargs)
+
+        with (
+            patch("nci_si_mcp.content.Budget", return_value=Budget(depth=1, nodes=3, requests=1)),
+            patch.object(self.evs, "get_concepts_by_codes", side_effect=counted),
+        ):
+            result = self.content("get_concept_neighborhood", code="C1", kinds=["child", "role"])
+        self.assertEqual([node["code"] for node in result["nodes"]], ["C1"])
+        kinds = result["truncation"]["perKind"]
+        self.assertEqual(set(kinds), {"child", "role"})
+        self.assertEqual(kinds["child"]["bound"], "nodes")
+        self.assertEqual(
+            kinds["role"],
+            {
+                "occurred": True,
+                "bound": "requests",
+                "limit": 1,
+                "reached": 1,
+                "omitted": 1,
+                "exact": False,
+            },
+        )
+
+    def test_inverse_associations_use_assertion_endpoints_and_public_kind_names(self):
+        self.evs.concepts = {
+            "C1": concept("C1", active=True, inverseAssociations=[relation("C2"), relation("C3")]),
+            "C2": concept("C2", active=True),
+        }
+        result = self.content(
+            "get_concept_neighborhood",
+            code="C1",
+            kinds=["child", "inverseAssociation"],
+            depth=1,
+            budgetPerKind=1,
+        )
+        (edge,) = result["edges"]
+        self.assertEqual((edge["sourceCode"], edge["targetCode"]), ("C2", "C1"))
+        self.assertEqual((edge["sourceTerminology"], edge["targetTerminology"]), ("ncit", "ncit"))
+        kinds = result["truncation"]["perKind"]
+        self.assertEqual(set(kinds), {"child", "inverseAssociation"})
+        self.assertEqual(kinds["inverseAssociation"]["bound"], "kind_budget")
+
+
+class StatusReviewTest(ServerFixture):
+    def setUp(self):
+        super().setUp()
+        self.evs.concepts = {
+            "C1": concept("C1", "One", active=True, children=[{"code": "C2"}]),
+            "C2": concept("C2", "Two", active=True),
+        }
+
+    def records(self, operation, arguments, field):
+        response = self.session(
+            lambda client: client.call_tool(
+                operation, {"terminology": "ncit", "release": "26.06e"} | arguments
+            )
+        )
+        self.assertFalse(response.is_error)
+        payload = response.structured_content
+        return payload[field] if field else [payload]
+
+    def concept_records(self):
+        return (
+            self.records("get_concept", {"code": "C1"}, None)
+            + self.records("get_concepts", {"codes": ["C1", "C2"]}, "concepts")
+            + self.records("resolve_retired_code", {"code": "C1"}, None)
+        )
+
+    def node_records(self):
+        return self.records(
+            "get_concept_hierarchy", {"code": "C1", "direction": "child"}, "nodes"
+        ) + self.records("get_concept_neighborhood", {"code": "C1", "kinds": ["child"]}, "nodes")
+
+    def search_records(self):
+        with patch.object(
+            self.evs,
+            "search_concepts",
+            return_value=(1, [self.evs.concepts["C1"]]),
+            create=True,
+        ):
+            hits = self.records("search_concepts", {"query": "One"}, "results")
+        return [hit["concept"] for hit in hits]
+
+    def set_status(self, value):
+        for raw in self.evs.concepts.values():
+            raw["conceptStatus"] = value
+
+    def test_null_and_empty_status_are_omitted_in_every_output_arm(self):
+        for value in (None, ""):
+            with self.subTest(value=value):
+                self.set_status(value)
+                records = self.concept_records() + self.node_records() + self.search_records()
+                self.assertEqual(len(records), 8)
+                for record in records:
+                    self.assertNotIn("status", record)
+
+    def test_nonempty_status_is_unchanged_in_every_output_arm(self):
+        self.set_status("  Upstream status  ")
+        records = self.concept_records() + self.node_records() + self.search_records()
+        self.assertEqual([record["status"] for record in records], ["  Upstream status  "] * 8)

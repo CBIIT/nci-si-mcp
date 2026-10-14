@@ -1,3 +1,5 @@
+import base64
+import json
 from unittest.mock import patch
 
 from fakes import concept, release
@@ -5,7 +7,7 @@ from nci_si_mcp import cursor as cursors
 from nci_si_mcp.bounds import Budget, current_budget
 from nci_si_mcp.evs import EVSReleaseNotFoundError
 from nci_si_mcp.registry import invoke
-from test_server import ServerFixture
+from test_server import ServerFixture, pinned
 from test_traversal import HubEVS
 
 
@@ -242,3 +244,84 @@ class HierarchyPagingTest(ServerFixture):
                 )
                 self.assertNotIn("error", continued)
                 self.assertEqual([node["code"] for node in continued["nodes"]], ["C3"])
+
+
+def reposition(value, offset):
+    payload = json.loads(base64.urlsafe_b64decode(value))
+    return padded_token(payload | {"offset": offset})
+
+
+def padded_token(payload, size=None):
+    text = json.dumps(payload)
+    if size is not None:
+        text = text.ljust(size)
+    return base64.urlsafe_b64encode(text.encode()).decode()
+
+
+class ContentReviewTest(ServerFixture):
+    def setUp(self):
+        super().setUp()
+        self.evs.concepts = {
+            "C1": concept("C1", "One", active=True, children=[{"code": "C2"}]),
+            "C2": concept("C2", "Two", active=True),
+        }
+
+    def call(self, tool, **arguments):
+        return invoke(
+            self.context,
+            tool,
+            **({"terminology": "ncit", "release": "26.06e"} | arguments),
+        )
+
+    def hierarchy(self, **arguments):
+        return self.call(
+            "get_concept_hierarchy",
+            **({"code": "C1", "direction": "child", "limit": 1} | arguments),
+        )
+
+    def test_hierarchy_cursor_binds_terminology(self):
+        self.evs.concepts["C1"]["children"].append({"code": "C3"})
+        self.evs.concepts["C3"] = concept("C3", active=True)
+        first = self.hierarchy()
+        for raw in self.evs.concepts.values():
+            raw["terminology"] = "other"
+        result = self.hierarchy(cursor=first["nextCursor"], terminology="other")
+        self.assertEqual(result["error"]["code"], "invalid_request")
+        self.assertEqual(result["error"]["details"]["parameter"], "cursor")
+
+    def test_hierarchy_cursor_at_total_is_invalid(self):
+        self.evs.concepts["C1"]["children"].append({"code": "C3"})
+        self.evs.concepts["C3"] = concept("C3", active=True)
+        first = self.hierarchy()
+        result = self.hierarchy(cursor=reposition(first["nextCursor"], 2))
+        self.assertEqual(result["error"]["code"], "invalid_request")
+        self.assertNotIn("nodes", result)
+
+
+class ContentMutationTest(ServerFixture):
+    def content(self, operation, **arguments):
+        return invoke(self.context, operation, **pinned(**arguments))
+
+    def children(self, count):
+        targets = [{"code": f"C{i}", "name": str(i)} for i in range(2, count + 2)]
+        self.evs.concepts = {item["code"]: concept(item["code"], active=True) for item in targets}
+        self.evs.concepts["C1"] = concept("C1", active=True, children=targets)
+
+    def test_hierarchy_default_depth_is_one_and_large_depth_clamps_to_four(self):
+        self.evs.concepts = {
+            f"C{i}": concept(f"C{i}", active=True, children=[{"code": f"C{i + 1}"}])
+            for i in range(1, 7)
+        }
+        default = self.content("get_concept_hierarchy", code="C1", direction="child")
+        self.assertEqual([node["code"] for node in default["nodes"]], ["C2"])
+        result = self.content("get_concept_hierarchy", code="C1", direction="child", depth=9)
+        self.assertEqual([node["code"] for node in result["nodes"]], ["C2", "C3", "C4", "C5"])
+        self.assertEqual(result["truncation"]["limit"], 4)
+        self.assertEqual(result["truncation"]["bound"], "depth")
+
+    def test_hierarchy_default_limit_allows_one_hundred_fifty_children(self):
+        self.children(150)
+        result = self.content("get_concept_hierarchy", code="C1", direction="child")
+        self.assertIn("nodes", result)
+        self.assertEqual(len(result["nodes"]), 150)
+        self.assertEqual(result["truncation"], {"occurred": False})

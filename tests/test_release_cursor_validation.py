@@ -2,8 +2,10 @@
 
 import base64
 import json
+from unittest import TestCase
 
 from nci_si_mcp import cursor
+from nci_si_mcp.errors import InputValidationError
 from nci_si_mcp.registry import invoke
 from test_server import ServerFixture
 
@@ -91,3 +93,30 @@ class CursorValidationTest(ServerFixture):
                 )
                 self.assertEqual(result["error"]["code"], "invalid_request")
                 self.assertEqual(self.evs.calls, [])
+
+
+def padded_token(payload, size=None):
+    text = json.dumps(payload)
+    if size is not None:
+        text = text.ljust(size)
+    return base64.urlsafe_b64encode(text.encode()).decode()
+
+
+class CursorReviewTest(TestCase):
+    def test_unknown_version_is_rejected(self):
+        value = padded_token({"v": 2, "arguments": {}, "offset": 1})
+        with self.assertRaises(InputValidationError):
+            cursor.decode(value, {})
+
+    def test_maximum_length_is_inclusive_and_longer_valid_json_is_rejected(self):
+        payload = {"v": 1, "arguments": {}, "offset": 1}
+        boundary = padded_token(payload, 6144)
+        self.assertEqual(len(boundary), 8192)
+        self.assertEqual(cursor.decode(boundary, {}).offset, 1)
+        with self.assertRaises(InputValidationError):
+            cursor.decode(padded_token(payload, 6147), {})
+
+    def test_non_alphabet_character_cannot_be_ignored(self):
+        value = cursor.encode({}, 1)
+        with self.assertRaises(InputValidationError):
+            cursor.decode("!" + value, {})
