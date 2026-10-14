@@ -1004,3 +1004,43 @@ class BoundedFrontierTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TraversalMutationTest(unittest.TestCase):
+    def setUp(self):
+        self.enterContext(correlated("mutation-review"))
+
+    def test_unrequested_concept_in_the_initial_batch_is_an_error(self):
+        with (
+            patch.object(
+                FakeEVS, "get_concepts_by_codes", return_value=[concept("C1"), concept("C9")]
+            ),
+            self.assertRaisesRegex(EVSResponseError, "not requested"),
+        ):
+            walk(FakeEVS(), max_depth=1, edge_types=["child"])
+
+
+class TraversalReviewTest(unittest.TestCase):
+    def test_other_terminology_is_kept_on_start_and_reached_nodes(self):
+        client = FakeEVS(
+            [
+                concept("root", terminology="other", children=[{"code": "child"}]),
+                concept("child", terminology="other"),
+            ]
+        )
+        budget = Budget(depth=1)
+        with correlated("other-terminology"), budgeted(budget):
+            result = traverse_ncit(
+                client,
+                ["root"],
+                release(terminology="other"),
+                ["child"],
+                budget,
+                exclusions=frozenset(),
+            )
+        nodes = result.to_dict()["nodes"]
+        self.assertEqual(
+            [(node["code"], node["terminology"]) for node in nodes],
+            [("root", "other"), ("child", "other")],
+        )
+        self.assertEqual(result.truncation.to_dict(), {"occurred": False})
