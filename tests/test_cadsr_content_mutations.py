@@ -14,7 +14,7 @@ from test_http_client import Reply
 PIN = {"identifier": "26.1", "generatedAt": "2026-07-01T22:19"}
 
 
-class ContentMutationTest(CaDSRFixture):
+class CaDSRContentBoundaryTest(CaDSRFixture):
     def test_versioned_resource_retrieves_named_version_and_records_its_uri(self):
         server = self.serve(reply({"DataElement": element(version="1.5")}))
         result = self.call(server, "data_element_version_resource", publicId="123", version="1.5")

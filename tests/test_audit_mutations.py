@@ -1,6 +1,4 @@
 import asyncio
-import hashlib
-import json
 import logging
 import unittest
 from unittest.mock import patch
@@ -9,15 +7,10 @@ from fakes import concept
 from nci_si_mcp.audit import audited, emit, hashed, secrets
 from nci_si_mcp.evs import EVSClient
 from nci_si_mcp.http_client import UpstreamUnavailableError
-from test_audit import captured, records
+from test_audit import captured, digest, records
 from test_evs_client import FakeResponse, http_error
 from test_index import normalized
 from test_server import ServerFixture
-
-
-def digest(value):
-    encoded = json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
-    return hashlib.sha256(encoded.encode()).hexdigest()
 
 
 class AuditMutationTest(unittest.TestCase):

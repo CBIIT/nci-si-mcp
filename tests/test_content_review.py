@@ -14,7 +14,7 @@ from test_index import normalized
 from test_server import ServerFixture
 
 
-def token(payload, size=None):
+def padded_token(payload, size=None):
     text = json.dumps(payload)
     if size is not None:
         text = text.ljust(size)
@@ -23,22 +23,22 @@ def token(payload, size=None):
 
 def reposition(value, offset):
     payload = json.loads(base64.urlsafe_b64decode(value))
-    return token(payload | {"offset": offset})
+    return padded_token(payload | {"offset": offset})
 
 
 class CursorReviewTest(TestCase):
     def test_unknown_version_is_rejected(self):
-        value = token({"v": 2, "arguments": {}, "offset": 1})
+        value = padded_token({"v": 2, "arguments": {}, "offset": 1})
         with self.assertRaises(InputValidationError):
             cursor.decode(value, {})
 
     def test_maximum_length_is_inclusive_and_longer_valid_json_is_rejected(self):
         payload = {"v": 1, "arguments": {}, "offset": 1}
-        boundary = token(payload, 6144)
+        boundary = padded_token(payload, 6144)
         self.assertEqual(len(boundary), 8192)
         self.assertEqual(cursor.decode(boundary, {}).offset, 1)
         with self.assertRaises(InputValidationError):
-            cursor.decode(token(payload, 6147), {})
+            cursor.decode(padded_token(payload, 6147), {})
 
     def test_non_alphabet_character_cannot_be_ignored(self):
         value = cursor.encode({}, 1)

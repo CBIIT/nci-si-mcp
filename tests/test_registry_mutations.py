@@ -20,7 +20,7 @@ from test_audit import captured, records
 from test_server import ServerFixture
 
 
-def digest(value):
+def digest_record(value):
     encoded = json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
     return {"sha256": hashlib.sha256(encoded.encode()).hexdigest()}
 
@@ -38,7 +38,7 @@ class RegistryMutationTest(ServerFixture):
             )
         self.assertEqual(result["error"]["code"], "invalid_request")
         (record,) = records(stream)
-        self.assertEqual(record["parameters"]["cursor"], digest(cursor))
+        self.assertEqual(record["parameters"]["cursor"], digest_record(cursor))
         self.assertNotIn(cursor, stream.getvalue())
 
     def test_legacy_relationship_filter_is_hashed_in_completion_record(self):
@@ -49,7 +49,7 @@ class RegistryMutationTest(ServerFixture):
             )
         self.assertEqual([edge["target_code"] for edge in result["edges"]], ["C4741", "C12922"])
         (record,) = records(stream)
-        self.assertEqual(record["parameters"]["relationship_names"], digest(names))
+        self.assertEqual(record["parameters"]["relationship_names"], digest_record(names))
         self.assertNotIn(names[0], stream.getvalue())
 
     def test_incompatible_index_error_names_the_rebuild_next_step(self):
@@ -88,8 +88,10 @@ class RegistryMutationTest(ServerFixture):
             result = asyncio.run(_audit_tools(self.context, "cadsr")(request, rejected))
         self.assertEqual(result, {"isError": True})
         (record,) = records(stream)
-        self.assertEqual(record["tool"], json.dumps(digest("get_concept"), separators=(",", ":")))
-        self.assertEqual(list(record["parameters"].values()), [digest("C3262")])
+        self.assertEqual(
+            record["tool"], json.dumps(digest_record("get_concept"), separators=(",", ":"))
+        )
+        self.assertEqual(list(record["parameters"].values()), [digest_record("C3262")])
         self.assertEqual(record["correlationId"], "hidden-tool")
 
     def test_invalid_environment_error_has_an_actionable_next_step(self):

@@ -9,8 +9,7 @@ from fakes import FakeSSIS
 from nci_si_mcp.cli import build_parser
 from nci_si_mcp.evs import EVSClient
 from nci_si_mcp.registry import invoke
-from test_audit import captured, records
-from test_audit_mutations import digest
+from test_audit import captured, digest, records
 from test_seam import NCIT, element, gdc_map, value_row
 from test_server import ServerFixture
 

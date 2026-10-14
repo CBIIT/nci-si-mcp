@@ -51,6 +51,11 @@ def captured():
         logging.disable(disabled)
 
 
+def digest(value):
+    encoded = json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    return hashlib.sha256(encoded.encode()).hexdigest()
+
+
 def records(stream, event="call_completed"):
     found = [json.loads(line) for line in stream.getvalue().splitlines()]
     return [record for record in found if record["event"] == event]

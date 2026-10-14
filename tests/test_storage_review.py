@@ -1,6 +1,5 @@
 """Storage and operator-state regressions from the independent mutation review."""
 
-import json
 import sqlite3
 from contextlib import closing
 from dataclasses import replace
@@ -19,16 +18,8 @@ from ncit_index.errors import (
 )
 from ncit_index.index import LocalIndex, evaluation_identity
 from ncit_index.storage import clean_stale_builds, concept_fields, fts_table, name_key
-from test_index import IndexTestCase, normalized
+from test_index import IndexTestCase, normalized, update_manifest
 from test_server import ServerFixture
-
-
-def update_manifest(index, manifest):
-    with index._connect() as conn:
-        conn.execute(
-            "UPDATE manifests SET payload = ? WHERE build_id = ?",
-            (json.dumps(manifest.to_dict()), manifest.build_id),
-        )
 
 
 class StorageReviewTest(IndexTestCase):

@@ -9,9 +9,8 @@ from unittest.mock import patch
 from fakes import concept
 from nci_si_mcp import container_entry
 from ncit_index.embeddings import HashingEmbeddingProvider, SentenceTransformersProvider
-from test_index import normalized
+from test_index import normalized, update_manifest
 from test_server import ServerFixture
-from test_storage_review import update_manifest
 
 
 class OfflineModel:

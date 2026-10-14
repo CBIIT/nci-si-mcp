@@ -27,6 +27,14 @@ def normalized(concepts, date=None):
     return (normalize_concept(raw, release_date=date, source="active_cache") for raw in concepts)
 
 
+def update_manifest(index, manifest):
+    with index._connect() as conn:
+        conn.execute(
+            "UPDATE manifests SET payload = ? WHERE build_id = ?",
+            (json.dumps(manifest.to_dict()), manifest.build_id),
+        )
+
+
 def concept_search_text(concept):
     return concept.preferred_name
 
