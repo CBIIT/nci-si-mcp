@@ -1,7 +1,7 @@
 import json
 from unittest.mock import patch
 
-from fakes import concept, terminology_row
+from fakes import concept, release, terminology_row
 from nci_si_mcp.errors import correlated
 from nci_si_mcp.evaluation import evaluate_build
 from nci_si_mcp.evaluation_sets import parse_set
@@ -10,7 +10,7 @@ from nci_si_mcp.index_adapter import manifest_record
 from nci_si_mcp.indexing import full_build
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.release import ReleaseContext
-from ncit_index.errors import IndexBuildError
+from ncit_index.errors import IndexBuildError, IndexCompatibilityError
 from test_audit import captured, records
 from test_evaluation_sets import sample_set_payload
 from test_evs_client import FakeResponse
@@ -241,3 +241,38 @@ class AdapterReviewTest(ServerFixture):
                 {"buildId": rebuilt.build_id, "manifest": manifest_record(rebuilt).to_result()},
             )
         self.assertIsNone(rebuilt.evaluation_version)
+
+
+class FullBuildStorageReviewTest(ServerFixture):
+    def setUp(self):
+        super().setUp()
+        self.context.evs = EVSClient("https://example.invalid")
+
+    def test_downloaded_build_must_match_the_requested_release(self):
+        with (
+            patch.object(
+                self.context.evs,
+                "get_index_page",
+                return_value=(1, [concept("C1", version="wrong")]),
+            ),
+            self.assertRaises(IndexCompatibilityError),
+        ):
+            full_build(self.context, release())
+        self.assertEqual(self.local_index.list_builds(), [])
+
+    def test_full_build_rejects_null_nontext_and_whitespace_names(self):
+        for name in (None, 7, " \t\n "):
+            with (
+                self.subTest(name=name),
+                patch.object(
+                    self.context.evs,
+                    "get_index_page",
+                    return_value=(
+                        1,
+                        [concept("C1", synonyms=[{"name": "Searchable alias"}]) | {"name": name}],
+                    ),
+                ),
+                self.assertRaisesRegex(EVSResponseError, "preferred name"),
+            ):
+                full_build(self.context, release())
+        self.assertEqual(self.local_index.list_builds(), [])

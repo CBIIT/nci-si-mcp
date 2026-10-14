@@ -1,8 +1,10 @@
 """The production activation gate uses candidate-specific, persisted evaluation evidence."""
 
 import json
+import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from dataclasses import replace
 from unittest.mock import patch
 
@@ -11,11 +13,12 @@ from nci_si_mcp.errors import correlated
 from nci_si_mcp.evaluation import evaluate_build
 from nci_si_mcp.evaluation_sets import GoldQuery, MetricFloor, parse_set
 from nci_si_mcp.index_adapter import manifest_record
+from ncit_index import index as index_module
 from ncit_index.embeddings import EmbeddingProvider, HashingEmbeddingProvider
 from ncit_index.errors import IndexBuildError
-from ncit_index.index import LocalIndex
+from ncit_index.index import LocalIndex, evaluation_identity
 from test_evaluation_sets import sample_set_payload
-from test_index import normalized
+from test_index import IndexTestCase, normalized
 
 
 class OrthogonalProvider(EmbeddingProvider):
@@ -252,3 +255,40 @@ class EvaluationGateTests(unittest.TestCase):
         with self.assertRaisesRegex(IndexBuildError, "unknown classification"):
             evaluate_build(self.index, self.provider, self.dataset, candidate.build_id)
         self.assertIsNone(self.index.get_active_manifest())
+
+
+class StorageReviewTest(IndexTestCase):
+    def test_classified_rebuild_does_not_claim_an_unclassified_source(self):
+        index = LocalIndex(self.path)
+        for kind in ("sample", "production"):
+            with self.subTest(kind=kind):
+                original = index.build(
+                    normalized([concept("C1")]), None, self.provider, build_kind=kind
+                )
+                rebuilt = index.rebuild(original.build_id, self.provider)
+                self.assertEqual(rebuilt.build_kind, kind)
+                self.assertIsNone(rebuilt.unclassified_source_build)
+
+    def test_evaluation_record_holds_write_lock_before_reading_identity(self):
+        index = self.build([concept("C1")])
+        candidate = index.get_active_manifest()
+        original = index_module._completed_manifest
+        blocked = []
+
+        def competing_write(conn, build):
+            manifest = original(conn, build)
+            with closing(sqlite3.connect(index.db_path, timeout=0)) as other:
+                try:
+                    other.execute("BEGIN IMMEDIATE")
+                except sqlite3.OperationalError as exc:
+                    blocked.append(exc.sqlite_errorcode)
+            return manifest
+
+        report = evaluation_identity(candidate) | {
+            "evaluation_version": "review",
+            "evaluation_score": 1,
+        }
+        with patch.object(index_module, "_completed_manifest", side_effect=competing_write):
+            result = index.record_evaluation(candidate.build_id, report)
+        self.assertEqual(blocked, [sqlite3.SQLITE_BUSY])
+        self.assertEqual(result.evaluation_report, report)

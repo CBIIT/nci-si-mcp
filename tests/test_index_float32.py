@@ -226,3 +226,24 @@ class ArrayVectorTest(IndexTestCase):
             with self.subTest(label), self.assertRaises(IndexCompatibilityError) as raised:
                 vector_bytes(np.array(values))
             self.assertIn(reason, str(raised.exception))
+
+
+class ScoringReviewTest(IndexTestCase):
+    def test_nonbinary_vector_kind_storage_is_reported_as_database_corruption(self):
+        index = self.build([concept("C1", "Alpha")])
+        for kinds in ("x", 1):
+            with self.subTest(kinds=kinds):
+                with index._connect() as conn:
+                    conn.execute("UPDATE concept_vectors SET kinds = ?", (kinds,))
+                with self.assertRaisesRegex(IndexStorageError, "Stored vector length"):
+                    index.search("Alpha", self.provider, mode="vector")
+
+    def test_nonbinary_vectors_are_reported_as_database_corruption(self):
+        index = self.build([concept("C1", "Alpha")])
+        # Matching the expected byte length isolates the type guard from the size guard.
+        for vector in ("x" * (self.provider.dimensions * 4), 1):
+            with self.subTest(vector_type=type(vector).__name__):
+                with index._connect() as conn:
+                    conn.execute("UPDATE concept_vectors SET vector = ?", (vector,))
+                with self.assertRaisesRegex(IndexStorageError, "Stored vector length"):
+                    index.search("Alpha", self.provider, mode="vector")
