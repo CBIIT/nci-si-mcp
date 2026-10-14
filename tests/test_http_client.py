@@ -27,6 +27,7 @@ from nci_si_mcp.http_client import (
     UpstreamTooLargeError,
     UpstreamUnavailableError,
 )
+from test_evs_client import FakeResponse
 
 KEY = "placeholder-licence-key"
 OK = b'{"ok": true}'
@@ -684,3 +685,26 @@ class ClientBoundaryTest(ServerTestCase):
         self.assertEqual(raised.exception.details["status"], 307)
         self.assertIn("POST redirect refused", str(raised.exception))
         self.assertEqual(len(server.seen), 1)
+
+
+class AuditMutationTest(unittest.TestCase):
+    def test_request_observer_receives_a_redacted_url(self):
+        client = EVSClient("https://example.invalid", license_key="key-canary").http
+        observed = []
+        client.on_request = observed.append
+        with patch("nci_si_mcp.http_client._open", return_value=FakeResponse(b"{}")):
+            result = client.get_json("/key-canary/concept")
+        self.assertEqual(result, {})
+        self.assertEqual(
+            [row.url for row in observed], ["https://example.invalid/[redacted]/concept"]
+        )
+
+    def test_rejected_content_reason_redacts_credentials(self):
+        client = EVSClient("https://example.invalid", license_key="key-canary").http
+        with (
+            patch("nci_si_mcp.http_client._open", return_value=FakeResponse(b"{}")),
+            self.assertRaises(UpstreamUnavailableError) as raised,
+        ):
+            client.get_json("/metadata", reject=lambda payload: "unusable key-canary")
+        self.assertEqual(str(raised.exception), "unusable [redacted]")
+        self.assertEqual(raised.exception.details, {"surface": "evs", "status": 200, "attempts": 1})

@@ -887,3 +887,28 @@ class AdapterReviewTest(ServerFixture):
                 result = invoke(self.context, "index_activate", "a" * 32)
                 self.assertEqual(result["error"]["code"], "internal_error")
                 self.assertTrue(result["error"]["message"].endswith(ending))
+
+
+class RegistryMutationTest(ServerFixture):
+    def test_incompatible_index_error_names_the_rebuild_next_step(self):
+        with patch.object(
+            self.context.index, "search_page", side_effect=IndexCompatibilityError("bad")
+        ):
+            result = invoke(self.context, "search", "Neoplasm")
+        self.assertEqual(result["error"]["code"], "internal_error")
+        self.assertTrue(
+            result["error"]["message"].endswith(
+                "Use the original embedding settings, or run `index-rebuild` and activate its "
+                "evaluated build with `index-activate`."
+            )
+        )
+
+    def test_rejected_upstream_error_names_the_base_url_next_step(self):
+        self.evs.errors["get_concept"] = UpstreamRejectedError("rejected", status=403)
+        result = invoke(self.context, "lookup", "C3262", live_only=True)
+        self.assertEqual(result["error"]["code"], "upstream_unavailable")
+        self.assertTrue(
+            result["error"]["message"].endswith(
+                "Check the configured base URL and credentials for this upstream."
+            )
+        )

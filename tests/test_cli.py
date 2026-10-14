@@ -12,13 +12,16 @@ from unittest.mock import MagicMock, patch
 
 import nci_si_mcp
 from fakes import FakeEVS, concept, release
+from nci_si_mcp import cli
 from nci_si_mcp.cli import build_parser, main
 from nci_si_mcp.config import Settings
 from nci_si_mcp.context import Context
 from nci_si_mcp.http_client import UpstreamUnavailableError
 from nci_si_mcp.index_adapter import LocalIndexAdapter, index_event
+from nci_si_mcp.registry import SPECS
 from ncit_index.embeddings import HashingEmbeddingProvider
 from ncit_index.index import LocalIndex
+from test_server import ServerFixture
 from test_traversal import complete_graph
 
 NEOPLASM = concept(
@@ -445,3 +448,32 @@ class ProcessTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RegistryMutationTest(ServerFixture):
+    def test_invalid_environment_error_has_an_actionable_next_step(self):
+        output = io.StringIO()
+        with (
+            patch.dict(os.environ, {"NCI_SI_TIMEOUT_SECONDS": "0"}, clear=True),
+            patch.object(sys, "argv", ["nci-si-mcp", "release-info"]),
+            redirect_stdout(output),
+        ):
+            status = cli.main()
+        result = json.loads(output.getvalue())
+        self.assertEqual(status, 1)
+        self.assertEqual(result["error"]["details"]["parameter"], "NCI_SI_TIMEOUT_SECONDS")
+        self.assertTrue(
+            result["error"]["message"].endswith("Fix the environment variable and rerun.")
+        )
+
+    def test_cli_requires_a_subcommand(self):
+        with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as raised:
+            cli.build_parser().parse_args([])
+        self.assertEqual(raised.exception.code, 2)
+
+    def test_cli_help_describes_each_registered_command(self):
+        help_text = " ".join(cli.build_parser().format_help().split())
+        for spec in SPECS:
+            if spec.command:
+                with self.subTest(command=spec.command):
+                    self.assertIn(" ".join(spec.description.splitlines()[0].split()), help_text)
