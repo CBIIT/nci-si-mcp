@@ -12,8 +12,10 @@ from datetime import datetime
 from pathlib import Path
 from threading import Barrier
 from types import SimpleNamespace
+from unittest import TestCase
 from unittest.mock import patch
 
+import yaml
 from mcp.types import JSONRPCMessage
 from pydantic import TypeAdapter
 
@@ -465,3 +467,53 @@ class AuditHttpTest(ServerTestCase):
             {"1": 1, "2": 2},
         )
         self.assertEqual(len(server.seen), 3)
+
+
+ROOT = Path(__file__).resolve().parents[1]
+TOOLS = yaml.safe_load((ROOT / "spec/tools.yaml").read_text())
+
+
+def _free_text_roots(tool: str) -> set[str]:
+    # The specification's free-text argument names, without index or path suffixes.
+    return {p.split("[")[0].split(".")[0] for p in TOOLS[tool].get("free_text", [])}
+
+
+HASHED = {
+    "get_form": {"keyword"},
+    "get_permissible_value": set(),
+    "get_code_map": {"targetContext", "cursor"},
+    "match_data_elements": {"entities", "modelVariant", "filters"},
+    "match_value_meanings": {"values"},
+    "get_data_element": {"longName", "questionText"},
+    "search_data_elements": {"query", "filters", "cursor"},
+    "list_contexts": {"cursor"},
+    "list_classification_schemes": {"context", "cursor"},
+    "resolve_registry_release": set(),
+}
+
+
+class CaDSRSchemaMutationTest(TestCase):
+    def test_each_cadsr_parameter_has_the_specification_audit_class(self):
+        tools = {spec.name: spec for spec in SPECS if spec.group == "cadsr" and spec.name in TOOLS}
+        self.assertEqual(set(tools), set(HASHED))
+        for name, spec in tools.items():
+            # The specification's free-text arguments are hashed; the table may hash more
+            # (identifiers that correlate callers), never less.
+            self.assertLessEqual(_free_text_roots(name), HASHED[name], name)
+            for parameter in spec.parameters:
+                with self.subTest(tool=name, parameter=parameter.name):
+                    expected = "hash" if parameter.name in HASHED[name] else "plain"
+                    self.assertEqual(spec.audit.get(parameter.name), expected)
+
+    def test_data_element_resource_identifiers_are_plain_audit_fields(self):
+        patterns = TOOLS["get_data_element"]["patterns"]
+        resources = [
+            spec for spec in SPECS if spec.uri and spec.uri.startswith("cadsr://data-element/")
+        ]
+        self.assertEqual(len(resources), 2)
+        for spec in resources:
+            with self.subTest(uri=spec.uri):
+                self.assertTrue(all(parameter.name in patterns for parameter in spec.parameters))
+                self.assertEqual(
+                    spec.audit, {parameter.name: "plain" for parameter in spec.parameters}
+                )
