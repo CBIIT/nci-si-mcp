@@ -141,3 +141,10 @@ class ResourceTest(ServerFixture):
         self.assertEqual(result["version"], "25.12e")
         self.assertEqual(result["provenance"]["source"], "evs_index")
         self.assertEqual(result["provenance"]["servedBy"], "index")
+
+
+class AdapterReviewTest(ServerFixture):
+    def test_absent_index_resource_names_its_capability(self):
+        result = invoke(self.context, "index_resource", "26.06e")
+        self.assertEqual(result["error"]["code"], "capability_unavailable")
+        self.assertEqual(result["error"]["details"], {"capability": "NCIt index"})

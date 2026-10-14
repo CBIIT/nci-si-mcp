@@ -1,9 +1,14 @@
 import json
 from dataclasses import replace
+from pathlib import Path
 from typing import Literal, TypedDict
+from unittest import TestCase
 from unittest.mock import patch
 
-from nci_si_mcp import cli
+import yaml
+from pydantic import TypeAdapter
+
+from nci_si_mcp import cli, results
 from nci_si_mcp.caching import cache_call, select_cache_hint
 from nci_si_mcp.http_client import (
     UpstreamRejectedError,
@@ -146,3 +151,69 @@ class RegistryTest(ServerFixture):
                 self.assertEqual(result["error"]["code"], code)
                 self.assertEqual(result["error"]["details"], details)
                 self.assertEqual(result["error"]["correlationId"], "registry-call")
+
+
+ROOT = Path(__file__).resolve().parents[1]
+ITEM_TYPES = {
+    "concept": "Concept",
+    "node": "Node",
+    "edge": "Edge",
+    "subset": "Subset",
+    "mapping": "Mapping",
+    "replacement": "Replacement",
+    "relationship": "CatalogueRelationship",
+    "search_result": "RankedConcept",
+    "member": "ValueSetMember",
+    "terminology": "TerminologyResult",
+    "index_manifest": "IndexManifestResult",
+    "error": "ErrorRecord",
+}
+
+
+class RecordReviewTest(TestCase):
+    def test_phase_two_item_keys_and_optionality_match_specification(self):
+        records = yaml.safe_load((ROOT / "spec/records.yaml").read_text())
+        for name, type_name in ITEM_TYPES.items():
+            with self.subTest(record=name):
+                fields = records[name]["fields"]
+                schema = TypeAdapter(getattr(results, type_name)).json_schema()
+                required = {key for key, field in fields.items() if not field.get("optional")}
+                self.assertEqual(set(schema["properties"]), set(fields))
+                self.assertEqual(set(schema["required"]), required)
+
+    def test_catalogue_closed_values_match_specification(self):
+        fields = yaml.safe_load((ROOT / "spec/records.yaml").read_text())["relationship"]["fields"]
+        schema = TypeAdapter(results.CatalogueRelationship).json_schema()
+        for key in ("kind", "polarity"):
+            with self.subTest(key=key):
+                self.assertEqual(set(schema["properties"][key]["enum"]), set(fields[key]["values"]))
+
+    def test_provenance_traversal_and_truncation_closed_values_match_specification(self):
+        records = yaml.safe_load((ROOT / "spec/records.yaml").read_text())
+        for record, type_name, field in (
+            ("provenance", "Provenance", "source"),
+            ("provenance", "Provenance", "servedBy"),
+            ("traversal", "TraversalProvenance", "polarity"),
+            ("truncation", "Truncated", "bound"),
+        ):
+            with self.subTest(record=record, field=field):
+                schema = TypeAdapter(getattr(results, type_name)).json_schema()
+                if "$ref" in schema:
+                    schema = schema["$defs"][schema["$ref"].rsplit("/", 1)[1]]
+                self.assertEqual(
+                    set(schema["properties"][field].get("enum", [])),
+                    set(records[record]["fields"][field]["values"]),
+                )
+
+    def test_list_envelopes_preserve_required_counts_and_missing_identifiers(self):
+        tools = yaml.safe_load((ROOT / "spec/tools.yaml").read_text())
+        for tool, record, field in (
+            ("get_concepts", results.ConceptBatch, "missing"),
+            ("expand_value_set", results.ValueSetExpansion, "total"),
+        ):
+            with self.subTest(tool=tool):
+                self.assertIn(field, tools[tool]["returns"])
+                self.assertNotIn(field + "?", tools[tool]["returns"])
+                self.assertIn(field, TypeAdapter(record).json_schema()["required"])
+        # The specification permits omission; this implementation guarantees the count.
+        self.assertIn("totalKnown", TypeAdapter(results.ConceptSearch).json_schema()["required"])

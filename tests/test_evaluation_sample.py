@@ -5,12 +5,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from fakes import concept
 from nci_si_mcp.evaluation import evaluate_build
-from nci_si_mcp.evaluation_sets import load_set
+from nci_si_mcp.evaluation_sets import load_set, production_set
+from nci_si_mcp.registry import invoke
 from ncit_index.embeddings import HashingEmbeddingProvider
 from ncit_index.errors import IndexBuildError
 from ncit_index.index import LocalIndex
 from test_index import normalized
+from test_server import ServerFixture
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "tests/fixtures/evaluation"
@@ -65,3 +68,24 @@ class RecordedEvaluationTests(unittest.TestCase):
                     with self.subTest(mode=mode["mode"], query=query["query"]):
                         self.assertEqual(query["first_expected_rank"], 1)
                         self.assertIn(query["ranked_codes"][0], query["expected_codes"])
+
+
+class AdapterReviewTest(ServerFixture):
+    def candidate(self):
+        return self.local_index.build(
+            normalized([concept("C1", "One", active=True)]), None, self.context.embedding_provider
+        )
+
+    def test_legacy_build_is_scored_without_the_gate(self):
+        # A snapshot written before builds were classified has no build_kind in its manifest.
+        candidate = self.candidate()
+        payload = candidate.to_dict()
+        del payload["build_kind"]
+        with self.local_index._connect() as conn:
+            conn.execute("UPDATE manifests SET payload = ?", (json.dumps(payload),))
+        result = invoke(self.context, "evaluate", candidate.build_id)
+        self.assertEqual(result["build_id"], candidate.build_id)
+        self.assertEqual(result["evaluation_version"], production_set().version)
+        self.assertFalse(result["gate_applies"])
+        self.assertEqual([item["mode"] for item in result["results"]], ["bm25", "vector", "hybrid"])
+        self.assertIsNone(self.local_index.list_builds()[0].evaluation_report)

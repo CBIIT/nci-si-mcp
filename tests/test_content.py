@@ -723,3 +723,13 @@ class StatusReviewTest(ServerFixture):
         self.set_status("  Upstream status  ")
         records = self.concept_records() + self.node_records() + self.search_records()
         self.assertEqual([record["status"] for record in records], ["  Upstream status  "] * 8)
+
+
+class AdapterReviewTest(ServerFixture):
+    def test_missing_index_names_unavailable_search_capability(self):
+        result = invoke(self.context, "search_concepts", "ncit", "One", "26.06e", mode="semantic")
+        self.assertEqual(result["error"]["code"], "capability_unavailable")
+        self.assertEqual(
+            result["error"]["details"],
+            {"capability": "semantic/hybrid search without an active NCIt index"},
+        )

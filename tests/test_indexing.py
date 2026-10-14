@@ -2,9 +2,11 @@ import json
 from unittest.mock import patch
 
 from fakes import concept, terminology_row
+from nci_si_mcp.errors import correlated
 from nci_si_mcp.evaluation import evaluate_build
 from nci_si_mcp.evaluation_sets import parse_set
 from nci_si_mcp.evs import EVSClient, EVSReleaseMismatchError, EVSResponseError
+from nci_si_mcp.index_adapter import manifest_record
 from nci_si_mcp.indexing import full_build
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.release import ReleaseContext
@@ -209,3 +211,33 @@ class FullBuildTest(ServerFixture):
         self.assertEqual(self.context.index.get_active_manifest(), self.active)
         self.local_index.activate(candidate.build_id)
         self.assertEqual(self.context.index.get_active_manifest().evaluation_report, result)
+
+
+class AdapterReviewTest(ServerFixture):
+    def candidate(self):
+        return self.local_index.build(
+            normalized([concept("C1", "One", active=True)]), None, self.context.embedding_provider
+        )
+
+    def test_activate_returns_selected_build_and_its_manifest(self):
+        candidate = self.candidate()
+        result = invoke(self.context, "index_activate", candidate.build_id)
+        active = self.context.index.get_active_manifest()
+        with correlated(result["manifest"]["provenance"]["correlationId"]):
+            self.assertEqual(
+                result, {"buildId": candidate.build_id, "manifest": active.to_result()}
+            )
+        self.assertEqual(active.build_id, candidate.build_id)
+
+    def test_sample_rebuild_has_exact_ungated_build_shape(self):
+        candidate = self.candidate()
+        result = invoke(self.context, "index_rebuild", candidate.build_id)
+        rebuilt = next(
+            item for item in self.local_index.list_builds() if item.build_id == result["buildId"]
+        )
+        with correlated(result["manifest"]["provenance"]["correlationId"]):
+            self.assertEqual(
+                result,
+                {"buildId": rebuilt.build_id, "manifest": manifest_record(rebuilt).to_result()},
+            )
+        self.assertIsNone(rebuilt.evaluation_version)

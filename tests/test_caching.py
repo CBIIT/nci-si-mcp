@@ -205,3 +205,18 @@ class CacheDeclarationTest(unittest.TestCase):
         self.assertEqual(inner, {"ttlMs": 0, "cacheScope": "public"})
         with self.assertRaises(LookupError):
             select_cache_hint(resolution=False)
+
+
+class AdapterReviewTest(ServerFixture):
+    def test_three_pinned_content_tools_select_long_public_cache_hints(self):
+        for tool, arguments in (
+            ("list_relationships", {}),
+            ("get_concepts", {"codes": ["C3262"]}),
+            ("get_concept_hierarchy", {"code": "C3262", "direction": "child"}),
+        ):
+            with self.subTest(tool=tool), cache_call() as hint:
+                result = invoke(
+                    self.context, tool, terminology="ncit", release="26.06e", **arguments
+                )
+                self.assertNotIn("error", result)
+                self.assertEqual(hint, {"ttlMs": 86_400_000, "cacheScope": "public"})
