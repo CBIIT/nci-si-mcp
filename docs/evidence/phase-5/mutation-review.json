@@ -1,6 +1,5 @@
 {
   "baselineCommit": "19016c6cb89a7b35c00bb2a2d0766ca2cebf8ee9",
-  "ownershipNote": "Issue #301 updates retired test paths to their current owners. Hashes and execution outcomes remain historical Phase-5 evidence; class-qualified hash keys identify the relocated groups, not hashes of the current owner files.",
   "method": "Three independent, manually targeted mutation passes after five-pass review convergence. This is not an exhaustive mutation score.",
   "execution": "Each single mutant ran against the complete unit suite or complete acceptance self-test suite, in an isolated checkout with verified local imports. Original bytes were restored and SHA-256 checked after every mutant. New tests were copied only after each original campaign ended, then a green full baseline preceded each full-suite survivor retest.",
   "infrastructure": "Two initial sandbox baselines could not bind local fixture sockets. They were rerun successfully with loopback access and were not counted as mutation results.",
@@ -44,7 +43,7 @@
       },
       "regressionTestHashes": {
         "tests/test_workflows.py": "ce0fec79c0a2d81cf4cf74d538a0a95fcab08d65e818c890e1fe5d04182cbf6f",
-        "tests/test_workflows.py::GroundReleaseTest": "a273a0048814116297fb18c29a99410e06b389329f29079e46ed3bf4589c473a"
+        "tests/test_workflow_mutations.py": "a273a0048814116297fb18c29a99410e06b389329f29079e46ed3bf4589c473a"
       }
     },
     "transport": {
@@ -86,7 +85,7 @@
       },
       "regressionTestHashes": {
         "tests/test_http_launch.py": "13d0b53d3c491fa5d9c02c50ab91fdc5aeee3cd1222c6e44b3d9e891b585e6fc",
-        "tests/test_container.py::ContainerOfflineTest": "e6bdebeac2f222921a94e4c536bbd34af219cd32b43fa0024df49a31ec805a39",
+        "tests/test_container_mutations.py": "e6bdebeac2f222921a94e4c536bbd34af219cd32b43fa0024df49a31ec805a39",
         "tests/test_container_gates.py": "e9e3f08e8e788c8e2bc7a1d3afe84c0e43cb69692c5f3c99a5f2320fe9cb51f3",
         "tests/test_image_publish.py": "42953637dd57ab739a632f0c18b009fe129d634168def77e7d7a26124d01c660",
         "tests/test_container_smoke.py": "39433a74ead711761ba81f240a38f165480a6ffaa9209ceaa86bcf790a72155c"
@@ -154,7 +153,7 @@
         }
       },
       "regressionTestHashes": {
-        "tests/test_benchmark.py::BenchmarkBoundaryTest": "16968202e4108a455a37202a9b0f2bc1520cb18268a885792eb55ceda35201c7",
+        "tests/test_benchmark_mutations.py": "16968202e4108a455a37202a9b0f2bc1520cb18268a885792eb55ceda35201c7",
         "tests/test_http_runner.py": "d3496ebd57ae01523696d996fc5e7b75ed39b0a848dfe10547bac1e2a368ff8e",
         "acceptance/selftests/test_remote.py": "5994dd28a04529354828e58d9e595db160d47c1b3dfeb367d4736b0e649881f7"
       }
@@ -262,7 +261,7 @@
           "======================= 1 failed, 1366 passed in 38.30s ========================"
         ],
         "failingTests": [
-          "FAILED tests/test_workflows.py::GroundReleaseTest::test_nested_reads_preserve_implicit_selection_and_its_release_date"
+          "FAILED tests/test_workflow_mutations.py::GroundReleaseTest::test_nested_reads_preserve_implicit_selection_and_its_release_date"
         ]
       },
       "disposition": "real gap closed by regression test"
@@ -619,7 +618,7 @@
         "failingTests": [
           "FAILED tests/test_cadsr_matching.py::MatchingTest::test_each_entity_is_a_single_object_with_exact_text_and_bounded_ordered_matches",
           "FAILED tests/test_cadsr_matching.py::MatchingTest::test_same_name_with_different_descriptions_uses_distinct_matching_requests",
-          "FAILED tests/test_cadsr_matching.py::MatchingBoundariesTest::test_ten_entities_are_accepted_with_default_match_limit",
+          "FAILED tests/test_cadsr_matching_mutations.py::MatchingBoundariesTest::test_ten_entities_are_accepted_with_default_match_limit",
           "FAILED tests/test_workflows.py::HarmonizationTest::test_columns_keep_order_and_descriptions_and_align_samples"
         ]
       },
@@ -788,7 +787,7 @@
           "======================= 1 failed, 1366 passed in 29.12s ========================"
         ],
         "failingTests": [
-          "FAILED tests/test_workflows.py::GroundReleaseTest::test_dictionary_input_is_hashed_even_when_a_later_column_is_invalid"
+          "FAILED tests/test_workflow_mutations.py::GroundReleaseTest::test_dictionary_input_is_hashed_even_when_a_later_column_is_invalid"
         ]
       },
       "disposition": "real gap closed by regression test"
@@ -1193,7 +1192,7 @@
           "======================= 1 failed, 1369 passed in 37.90s ========================"
         ],
         "failingTests": [
-          "FAILED tests/test_container.py::ContainerOfflineTest::test_startup_serves_an_external_model_with_network_loading_disabled"
+          "FAILED tests/test_container_mutations.py::ContainerOfflineTest::test_startup_serves_an_external_model_with_network_loading_disabled"
         ]
       },
       "disposition": "real gap closed by regression test"
@@ -1239,7 +1238,7 @@
           "======================= 1 failed, 1369 passed in 40.05s ========================"
         ],
         "failingTests": [
-          "FAILED tests/test_container.py::ContainerOfflineTest::test_legacy_active_index_fails_startup_until_operator_rebuilds_it"
+          "FAILED tests/test_container_mutations.py::ContainerOfflineTest::test_legacy_active_index_fails_startup_until_operator_rebuilds_it"
         ]
       },
       "disposition": "real gap closed by regression test"
@@ -1924,7 +1923,7 @@
           "======================= 1 failed, 1367 passed in 27.29s ========================"
         ],
         "failingTests": [
-          "FAILED tests/test_benchmark.py::BenchmarkBoundaryTest::test_unrecorded_fixture_response_cannot_be_published_as_complete_evidence"
+          "FAILED tests/test_benchmark_mutations.py::BenchmarkBoundaryTest::test_unrecorded_fixture_response_cannot_be_published_as_complete_evidence"
         ]
       },
       "disposition": "real gap closed by regression test"
@@ -1970,7 +1969,7 @@
           "======================= 1 failed, 1367 passed in 23.39s ========================"
         ],
         "failingTests": [
-          "FAILED tests/test_benchmark.py::BenchmarkBoundaryTest::test_benchmark_session_uses_its_own_timeout_instead_of_the_harness_default"
+          "FAILED tests/test_benchmark_mutations.py::BenchmarkBoundaryTest::test_benchmark_session_uses_its_own_timeout_instead_of_the_harness_default"
         ]
       },
       "disposition": "real gap closed by regression test"
